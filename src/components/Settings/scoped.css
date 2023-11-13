@@ -9,8 +9,8 @@ all {
     position: fixed;
     top: 14vh;
     left: -33vw;
-    height: 83vh;
-    width: 31vw;
+    height: 40vh;
+    width: 25vw;
 	margin-left: 2vw;
     padding: 1%;
 	border-radius: 21px;
@@ -28,7 +28,7 @@ all {
     transition: left 0.3s ease-in-out;
 }
 .settings-button.open {
-    left: 33vw;
+    left: 27vw;
 }
 .settings.open {
 	left: 0;
@@ -38,4 +38,13 @@ all {
 }
 .ant-transfer-list-header-selected {
     display: none;
+}
+
+.table {
+    position: fixed;
+    bottom: -330px;
+}
+
+.table.open {
+    bottom: 0vh;
 }

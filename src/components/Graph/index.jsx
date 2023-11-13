@@ -5,7 +5,9 @@ import cola from 'cytoscape-cola';
 import euler from 'cytoscape-euler';
 import springy from 'cytoscape-springy'
 import d3Force from 'cytoscape-d3-force';
+import fcose from 'cytoscape-fcose';
 
+Cytoscape.use(fcose);
 Cytoscape.use(cola);
 Cytoscape.use(euler);
 Cytoscape.use(d3Force);
@@ -14,7 +16,7 @@ Cytoscape.use(springy);
 function Graph(props) {
 
   const [width, setWith] = useState('100%');
-  const [height, setHeight] = useState('750px');
+  const [height, setHeight] = useState('80vh');
  
   useEffect(() => {
     let curMinAdcFreq = Number.MAX_SAFE_INTEGER;
@@ -87,6 +89,10 @@ function Graph(props) {
         relationArray.push(temp);
         relationSet.add(i.data.label);
       }
+      if (i.data.dates.length != 0) {
+        curMinAdcPd = Math.min(curMinAdcPd, i.data.dates[0].year);
+        curMaxAdcPd = Math.max(curMaxAdcPd, i.data.dates[0].year);
+      }
     }
     props.handleMinAdcFreq(curMinAdcFreq);
     props.handleMaxAdcFreq(curMaxAdcFreq);
@@ -145,18 +151,7 @@ function Graph(props) {
     let elements = {edges: [], nodes: []}
     for (let i in props.data.nodes) {
       let node = props.data.nodes[i].data
-      if (node.label == "Article" && 
-          node.frequency >= props.adcFreq[0] && node.frequency <= props.adcFreq[1] && 
-          node.date >= props.adcPd[0] && node.date <= props.adcPd[1] && 
-          node.n_citation >= props.adcNoc[0] && node.n_citation <= props.adcNoc[1] &&
-          props.visibleArticles.find(item => item.title === node.display)) {
-            elements.nodes.push(props.data.nodes[i])
-          }
-      if (node.label == "Event" && props.visibleArticles.find(item => item.title === node.display)) {
-        elements.nodes.push(props.data.nodes[i])
-      }
-      if (node.label != "Article" && node.label != "Event" &&
-          node.frequency >= props.gtdcFreq[0] && node.frequency <= props.gtdcFreq[1] && 
+      if (node.frequency >= props.gtdcFreq[0] && node.frequency <= props.gtdcFreq[1] && 
           node.n_citation >= props.gtdcNoc[0] && node.n_citation <= props.gtdcNoc[1] &&
           props.visibleTerms.find(item => item.title === node.display)) {
             elements.nodes.push(props.data.nodes[i])
@@ -169,6 +164,21 @@ function Graph(props) {
       elements.nodes.find((node) => node.data.id === edge.target) != undefined &&
       props.visibleRelations.find(item => item.title === edge.label)) {
         elements.edges.push(props.data.edges[i])
+      }
+    }
+    if (elements.edges.length != 0) {
+      for (let i = 0; i < elements.edges.length; i++) {
+        elements.edges[i].data.weight = 0;
+        if (elements.edges[i].data.dates.length != 0) {
+          for (var j = 0; j < elements.edges[i].data.dates.length; j++) {
+            if (elements.edges[i].data.dates[j].year >= props.adcPd[0] && elements.edges[i].data.dates[j].year <= props.adcPd[1]) {
+              elements.edges[i].data.weight += elements.edges[i].data.dates[j].weight;
+            }
+          }
+        }
+        if (elements.edges[i].data.weight <= 0) {
+          elements.edges[i].data.weight = 1;
+        }
       }
     }
     return elements;
@@ -193,13 +203,15 @@ function Graph(props) {
 
   const layout = {
     name: 'cola',
+    egdeLengthVal: 45,
+    nodeSpacing: 5,
     bundleEdges: true,
     // fit: true,
     // circle: true,
     // directed: true,
     // padding: 50,
     // // spacingFactor: 1.5,
-    animate: true,
+    animate: false,
     animationDuration: 1,
     // avoidOverlap: true,
     // nodeDimensionsIncludeLabels: false,
@@ -234,8 +246,8 @@ function Graph(props) {
         'border-color': '#AAD8FF',
         'border-opacity': '0.5',
         'background-color': '#77828C',
-        width: 50,
-        height: 50,
+        width: 10,
+        height: 10,
         //text props
         'text-outline-color': '#77828C',
         'text-outline-width': 8,
@@ -250,6 +262,7 @@ function Graph(props) {
     {
       selector: 'edge[label="Contain_vocab"]',
       style: {
+        "curve-style": "haystack",
         // "curve-style": "unbundled-bezier",
     // "control-point-distances": 120,
     // "control-point-weights": 0.2,
@@ -266,6 +279,7 @@ function Graph(props) {
     {
       selector: 'edge[label="co_occur"]',
       style: {
+        "curve-style": "haystack",
         // "curve-style": "unbundled-bezier",
     // "control-point-distances": 120,
     // "control-point-weights": 0.2,
@@ -282,6 +296,7 @@ function Graph(props) {
     {
       selector: 'edge[label="Semantic_relationship"]',
       style: {
+        "curve-style": "haystack",
         // "curve-style": "unbundled-bezier",
     // "control-point-distances": 120,
     // "control-point-weights": 0.2,
@@ -298,6 +313,7 @@ function Graph(props) {
     {
       selector: 'edge[label="Hierarchical_structure"]',
       style: {
+        "curve-style": "haystack",
         // "curve-style": "unbundled-bezier",
     // "control-point-distances": 120,
     // "control-point-weights": 0.2,
@@ -312,8 +328,9 @@ function Graph(props) {
       },
     },
     {
-      selector: 'edge[label="cite"]',
+      selector: 'edge[label="Curated_relationship"]',
       style: {
+        "curve-style": "haystack",
         // "curve-style": "unbundled-bezier",
     // "control-point-distances": 120,
     // "control-point-weights": 0.2,
@@ -351,15 +368,39 @@ function Graph(props) {
     const index = label.findIndex((pair) => {
       return pair[0] === id[i][1]
     })
+    let labelColor = ''
+    switch(id[i][1]) {
+      case 'Anatomy':
+        labelColor = '#E43333'
+      break;
+      case 'Chemicals and Drugs':
+        labelColor = '#E8882F'
+      break;
+      case 'Diseases':
+        labelColor = '#67BE48'
+      break;
+      case 'Genes and Gene Products':
+        labelColor = '#46ACAC'
+      break;
+      case 'GO':
+        labelColor = '#5782C2'
+      break;
+      case 'Organisms':
+        labelColor = '#9B58C5'
+      break;
+      case 'Pathway':
+        labelColor = '#D829B1'
+      break;
+    }
     // console.log(index)
     styleSheet.push({
       selector: 'node[id = "' + id[i][0] + '"]',
       style: {
-        backgroundColor: 'hsl(' + index*colorDif + ', ' + 90/label[index][1] * id[i][2] + '%, 50%)', 
-        backgroundOpacity: 0.3, 
+        backgroundColor: labelColor, 
+        backgroundOpacity: 1, 
         // backgroundColor: 'hsl(' + index*colorDif + ', 100%, ' + 50/label[index][1] * id[i][2] + '%)',
-        // width: 10,
-        // height: 10,
+        width: 10,
+        height: 10,
         label: 'data(display)',
         // height: 1+Math.log(id[i][2]),
         // width: 1+Math.log(id[i][2]),
@@ -370,9 +411,9 @@ function Graph(props) {
         'overlay-padding': '8px',
         'z-index': '10',
         //text props
-        'text-outline-color': '#4a56a6',
+        'text-outline-color': 'white',
         'text-outline-width': '2px',
-        color: 'white',
+        color: '#666666',
         fontSize: 10,
       },
     })
@@ -380,7 +421,6 @@ function Graph(props) {
   // console.log(styleSheet)
 
   let myCyRef;
-  
   return (
       <div>
         <div>
@@ -402,7 +442,6 @@ function Graph(props) {
               // cy.bind("click", props.handleSelectNode)
     //         cy.nodes('[label = "Event"]').style({'background-color': 'white',
     // 'color': 'black'});
-              console.log('EVT', cy);
               // cy.on('mouseover', 'node', function(e){
               //     var sel = e.target;
               //     cy.elements().difference(sel.incomers()).not(sel).addClass('semitransp');
@@ -423,6 +462,10 @@ function Graph(props) {
                 if (sel === cy) {
                   cy.elements().removeClass('semitransp');
                   cy.elements().removeClass('highlight');
+                  if (props.informationOpen) {
+                    props.handleInformation();
+                  }
+                  props.closeTable();
                 }
               });
               cy.on('mouseover', 'node', function(e){
@@ -435,8 +478,18 @@ function Graph(props) {
               });
               cy.bind('click', 'node', (evt) => {
                 var node = evt.target;
-                props.handleSelectNode(node.data());
-                props.handleInformation;
+                props.handleSelect(node.data());
+                if (!props.informationOpen) {
+                  props.handleInformation();
+                }
+              });
+              cy.bind('click', 'edge', (evt) => {
+                var edge = evt.target;
+                console.log(edge.data());
+                props.handleSelect(edge.data());
+                if (!props.informationOpen) {
+                  props.handleInformation();
+                }
               });
             }}
           />

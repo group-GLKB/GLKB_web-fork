@@ -7,17 +7,17 @@ import {
 } from '@ant-design/icons';
 import View from './view';
 import Filter from './filter';
+import Table from './table'
 
 const { Panel } = Collapse;
 
 const Settings = props => {
     const settingsClass = props.isOpen ? "settings open" : "settings";
     const buttonClass = props.isOpen ? "settings-button open" : "settings-button";
-
     return (
         <div>
             <div className={settingsClass}>
-                <View
+                {/* <View
                     view={props.view}
                     handleView={props.handleView}
                     articleNodes={props.articleNodes}
@@ -29,7 +29,7 @@ const Settings = props => {
                     visibleArticles={props.visibleArticles}
                     visibleTerms={props.visibleTerms}
                     visibleRelations={props.visibleRelations}
-                />
+                /> */}
 
                 <Filter
                     minAdcFreq={props.minAdcFreq}
@@ -79,6 +79,14 @@ const Settings = props => {
             >
                 { !props.isOpen ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             </Button>
+            <Table 
+                isTableOpen = {props.isTableOpen}
+                toggleTable = {props.toggleTable}
+                data = {props.data}
+                setData = {props.setData}
+                allNodes = {props.allNodes}
+                setGraphData = {props.setGraphData}
+            />
         </div>
         
   );

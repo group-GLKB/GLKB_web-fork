@@ -13,7 +13,7 @@ import Settings from "../Settings";
 import Graph from "../Graph";
 import Information from '../Information';
 import axios from 'axios'
-import graphData from '../Graph/test_graph.json';
+// import graphData from '../Graph/test_graph.json';
 
 const { Search } = Input;
 
@@ -25,8 +25,9 @@ const ResultPage = () => {
     const [detailType, setDetailType] = useState([]);
     const [detail, setDetail] = useState({});
     const [detailId, setDetailId] = useState(null);
-
+    const [allNodes, setAllNodes] = useState([]);
     const [data, setData] = useState({});
+    const [graphData, setGraphData] = useState();
 
     // view setting
     const [view, setView] = useState("concentric");
@@ -169,7 +170,8 @@ const ResultPage = () => {
 
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [informationOpen, setInformationOpen] = useState(false);
-
+    const [tableOpen, setTableOpen] = useState(false);
+    const [graphShownData, setGraphShownData] = useState();
 
     useEffect(() => {
         const parsed = location.search.slice(3)
@@ -197,12 +199,38 @@ const ResultPage = () => {
         nevigate(`/result?q=${content}`)
         let cypherServ = new CypherService()
         const response = await cypherServ.Article2Cypher(content)
-        console.log(response)
-        console.log(response.data)
+        console.log('function -> ', response)
         // setData(graphData)
-        setData(response.data)
+        setData(response.data[0])
+        setAllNodes(response.data[1])
         setSearchFlag(true)
     }
+
+    useEffect(() => {
+        let nodeIdsToKeep = []
+        if (graphData) {
+            console.log(data)
+            console.log(graphData)
+            for (var i = 0; i < graphData.length; i++) {
+                for (var j = 0; j < graphData[i].children.length; j++) {
+                    nodeIdsToKeep.push(graphData[i].children[j].key)
+                }
+            }
+            const filteredNodes = data.nodes.filter(node => nodeIdsToKeep.includes(node.data.id));
+            const filteredEdges = data.edges.filter(edge =>
+            nodeIdsToKeep.includes(edge.data.source) && nodeIdsToKeep.includes(edge.data.target)
+            );
+            const filteredData = {
+                nodes: filteredNodes,
+                edges: filteredEdges
+            };
+            setGraphShownData(filteredData)
+        } else {
+            if (data.edges) {
+                setGraphShownData(data)
+            }
+        }
+    }, [graphData, data])
 
     async function searchArticle(item) {
         let res = []
@@ -232,13 +260,14 @@ const ResultPage = () => {
             })
     }
 
-    async function handleSelectNode(targetNode) {
-        if (targetNode.label == "Article") {
-            setDetailType("article")
+    async function handleSelect(target) {
+        let temp_id
+        if (target.article_source) {
+            temp_id = [target.eid[0], 0];
         } else {
-            setDetailType("term")
+            temp_id = target.id
         }
-        let temp_id = targetNode.id
+        console.log(temp_id)
         setDetailId(temp_id);
         // console.log(temp_id)
         // console.log("2")
@@ -282,14 +311,28 @@ const ResultPage = () => {
         setInformationOpen(!informationOpen);
     };
 
+    const handleTable = () => {
+        setTableOpen(true);
+    }
+
+    const closeTable = () => {
+        setTableOpen(false);
+    }
+
     const handleClose = (removedTag) => {
         const newTags = tags.filter((tag) => tag !== removedTag);
         console.log(newTags);
+        if (newTags.length == 0) {
+            backHome()
+            return;
+        }
         setTags(newTags);
         const alltags = newTags.join("|")
         console.log(alltags)
         // console.log(v)
+        initialize()
         nevigate(`/result?q=${alltags}`)
+        search(alltags)
     };
     
     const forMap = (tag) => {
@@ -313,7 +356,7 @@ const ResultPage = () => {
     };
 
     const tagChild = tags.map(forMap);
-
+    console.log(graphShownData)
     return (
         <div className="result-container">
 
@@ -375,7 +418,7 @@ const ResultPage = () => {
                 {searchFlag && (
                     <div className='result-content'>
                         <Graph
-                            data={data}
+                            data={graphShownData}
                             view={view}
                             minAdcFreq={minAdcFreq}
                             maxAdcFreq={maxAdcFreq}
@@ -391,6 +434,7 @@ const ResultPage = () => {
                             handleAdcFreq={handleAdcFreq}
                             handleMinAdcFreq={handleMinAdcFreq}
                             handleMaxAdcFreq={handleMaxAdcFreq}
+                            closeTable={closeTable}
                             adcPd={adcPd}
                             handleAdcPd={handleAdcPd}
                             handleMinAdcPd={handleMinAdcPd}
@@ -418,7 +462,7 @@ const ResultPage = () => {
                             visibleRelations={visibleRelations}
                             setDetailType={setDetailType}
                             // setDetail={setDetail}
-                            handleSelectNode={handleSelectNode}
+                            handleSelect={handleSelect}
                             handleInformation={handleInformation}
                             informationOpen={informationOpen}
                         />
@@ -435,7 +479,9 @@ const ResultPage = () => {
                                 minGtdcNoc={minGtdcNoc} 
                                 maxGtdcNoc={maxGtdcNoc} 
                                 isOpen={settingsOpen}
+                                isTableOpen = {tableOpen}
                                 toggleSidebar={handleSettings}
+                                toggleTable = {handleTable}
                                 view={view}
                                 handleView={handleView}
                                 adcFreq={adcFreq}
@@ -467,6 +513,10 @@ const ResultPage = () => {
                                 visibleArticles={visibleArticles}
                                 visibleTerms={visibleTerms}
                                 visibleRelations={visibleRelations}
+                                data={data}
+                                allNodes={allNodes}
+                                setData={setData}
+                                setGraphData={setGraphData}
                             />
                         </span>
                         <span>

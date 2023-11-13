@@ -117,9 +117,13 @@ const View = props => {
         value.forEach((title, index) => {
             obj[index] = {key: (index + 1).toString(), title:title[0]};
         });
-        console.log(obj)
-        // props.setVisibleRelations(obj)
-        console.log(props.visibleRelations)
+        var arr = []
+        var i = 0
+        for (var item in obj) {
+            arr[i] = obj[item]
+            i++
+        }
+        props.setVisibleRelations(arr)
     }
 
     let Semantic_relationship = []

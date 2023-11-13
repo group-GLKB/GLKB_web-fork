@@ -16,9 +16,9 @@ export class CypherService {
             }
         }
         await axios
-            // .get("/api/1.0/frontend_term2graph", config)
-            .get("/1.0/frontend_term2graph", config)
-            // .get('/result-page', config)
+            .get("/api/1.0/frontend_term2graph?query=" + content)
+            // .get("/1.0/frontend_term2graph?query=" + content)
+            // .get('/1.0/frontend_term2graph', config)
             .then(function (response) {
                 res = response
             })

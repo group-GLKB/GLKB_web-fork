@@ -9,8 +9,8 @@ all {
     position: fixed;
     top: 14vh;
     right: -33vw;
-    height: 83vh;
-    width: 31vw;
+    height: 50vh;
+    width: 25vw;
 	margin-right: 2vw;
 	border-radius: 21px;
     opacity: 0.95;
@@ -28,7 +28,7 @@ all {
     transition: right 0.3s ease-in-out;
 }
 .information-button.open {
-    right: 33vw;
+    right: 27vw;
 }
 .information.open {
 	right: 0;
@@ -108,4 +108,23 @@ all {
     /* margin: 3%; */
     /* margin-top: 5%; */
     margin-bottom: 3%;
+}
+
+.related {
+    position: fixed;
+    top: 70vh;
+    right: -33vw;
+    height: 25vh;
+    width: 25vw;
+	margin-right: 2vw;
+	border-radius: 21px;
+    opacity: 0.95;
+    transition: right 0.3s ease-in-out;
+    background-color: #F7F7F7
+}
+.related.open {
+	right: 0;
+    overflow-y: scroll;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }

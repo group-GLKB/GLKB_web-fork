@@ -1,0 +1,27 @@
+{
+  "files": {
+    "main.css": "/static/css/main.bf970f8c.chunk.css",
+    "main.js": "/static/js/main.8a5433f2.chunk.js",
+    "main.js.map": "/static/js/main.8a5433f2.chunk.js.map",
+    "runtime-main.js": "/static/js/runtime-main.d78e8d5c.js",
+    "runtime-main.js.map": "/static/js/runtime-main.d78e8d5c.js.map",
+    "static/css/2.2f1b0f0e.chunk.css": "/static/css/2.2f1b0f0e.chunk.css",
+    "static/js/2.e333c3b2.chunk.js": "/static/js/2.e333c3b2.chunk.js",
+    "static/js/2.e333c3b2.chunk.js.map": "/static/js/2.e333c3b2.chunk.js.map",
+    "index.html": "/index.html",
+    "static/css/2.2f1b0f0e.chunk.css.map": "/static/css/2.2f1b0f0e.chunk.css.map",
+    "static/css/main.bf970f8c.chunk.css.map": "/static/css/main.bf970f8c.chunk.css.map",
+    "static/js/2.e333c3b2.chunk.js.LICENSE.txt": "/static/js/2.e333c3b2.chunk.js.LICENSE.txt",
+    "static/media/MedSchoolLogo.65898f5f.png": "/static/media/MedSchoolLogo.65898f5f.png",
+    "static/media/glkb_home_logo.b7fe247f.png": "/static/media/glkb_home_logo.b7fe247f.png",
+    "static/media/glkb_logo.98cc616c.png": "/static/media/glkb_logo.98cc616c.png",
+    "static/media/um_logo.3d55f8ef.jpg": "/static/media/um_logo.3d55f8ef.jpg"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.d78e8d5c.js",
+    "static/css/2.2f1b0f0e.chunk.css",
+    "static/js/2.e333c3b2.chunk.js",
+    "static/css/main.bf970f8c.chunk.css",
+    "static/js/main.8a5433f2.chunk.js"
+  ]
+}

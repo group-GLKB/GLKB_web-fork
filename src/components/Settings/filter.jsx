@@ -83,10 +83,10 @@ const Filter = props => {
     // maxGtdcNoc={props.maxGtdcNoc} 
 
     return (
-        <Collapse expandIconPosition='end' size='small' ghost>
+        <Collapse expandIconPosition='end' size='small' ghost defaultActiveKey={1}>
 
             {/* Article Density Control */}
-            <Panel header="Articles Density Control" key="1">
+            {/* <Panel header="Articles Density Control" key="1">
                 <div>
                     <div>
                         <Row>
@@ -129,10 +129,10 @@ const Filter = props => {
                         <Slider range value={props.adcNoc} onChange={props.handleAdcNoc} min={props.minAdcNoc} max={props.maxAdcNoc} />
                     </div>
                 </div>
-            </Panel>
+            </Panel> */}
 
             {/* Genomic Terms Density Control */}
-            <Panel header="Genomic Terms Density Control" key="2">
+            <Panel header="Genomic Terms Density Control" key="1">
                 <div>
                     <div>
                         <Row>
@@ -147,9 +147,21 @@ const Filter = props => {
                         <Slider range value={props.gtdcFreq} onChange={props.handleGtdcFreq} min={props.minGtdcFreq} max={props.maxGtdcFreq}/>
                     </div>
                     <div>
-                    <Row>
-                        <Col span={12}>Number of Citations</Col>
-                        <Col span={6}>
+                        <Row>
+                            <Col span={12}>Recency</Col>
+                            <Col span={6}>
+                                <InputNumber value={props.adcPd[0]} onBlur={props.handleAdcPd1} onPressEnter={props.handleAdcPd1} min={props.minAdcPd} max={props.maxAdcPd}/>
+                            </Col>
+                            <Col span={6}>
+                                <InputNumber value={props.adcPd[1]} onBlur={props.handleAdcPd2} onPressEnter={props.handleAdcPd2} min={props.minAdcPd} max={props.maxAdcPd}/>
+                            </Col>
+                        </Row>
+                        <Slider range value={props.adcPd} onChange={props.handleAdcPd}  min={props.minAdcPd} max={props.maxAdcPd}/>
+                    </div>
+                    <div>
+                        <Row>
+                            <Col span={12}>Number of Citations</Col>
+                            <Col span={6}>
                                 <InputNumber defaultValue={props.minGtdcNoc} value={props.gtdcNoc[0]} onBlur={props.handleGtdcNoc1} onPressEnter={props.handleGtdcNoc1} min={props.minGtdcNoc} max={props.maxGtdcNoc}/>
                             </Col>
                             <Col span={6}>
@@ -162,7 +174,7 @@ const Filter = props => {
             </Panel>
 
             {/* Articles Visibility */}
-            <Panel header="Articles Visibility" key="3" style={panelStyle}>
+            {/* <Panel header="Articles Visibility" key="3" style={panelStyle}>
                 <div>
                     <Transfer
                         dataSource={props.articleNodes}
@@ -180,7 +192,7 @@ const Filter = props => {
             </Panel>
 
             {/* Genomic Terms Visibility */}
-            <Panel header="Genomic Terms Visibility" key="4" style={panelStyle}>
+            {/* <Panel header="Genomic Terms Visibility" key="4" style={panelStyle}>
                 <div>
                     <Transfer
                         dataSource={props.termNodes}
@@ -195,10 +207,10 @@ const Filter = props => {
                         showSearch = 'true'
                     />
                 </div>
-            </Panel>
+            </Panel> */}
 
             {/* Relations Visibility */}
-            <Panel header="Relations Visibility" key="5" style={panelStyle}>
+            {/* <Panel header="Relations Visibility" key="5" style={panelStyle}>
                 <div>
                     <Transfer
                         dataSource={props.relationNodes}
@@ -213,7 +225,7 @@ const Filter = props => {
                         showSearch = 'true'
                     />
                 </div>
-            </Panel>
+            </Panel>  */}
         </Collapse>
   );
 };
