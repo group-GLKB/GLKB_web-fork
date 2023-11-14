@@ -17,11 +17,14 @@ const App = (props) => {
     const groupedNodes = {}
     if (props.allNodes.length != 0) {
         props.allNodes.forEach((node, index) => {
+            if (Array.isArray(node.type)) {
+                node.type = node.type[1]
+            }
             const type = node.type.split(';')[0];
             if (!groupedNodes[type]) {
               groupedNodes[type] = { key: type, title: type, children: [] };
             }
-            groupedNodes[type].children.push({ key: node.id, title: node.name });
+            groupedNodes[type].children.push({ key: String(node.id), title: node.name });
           });
           
         existingNodes = Object.values(groupedNodes);
@@ -46,13 +49,15 @@ const App = (props) => {
 
     const [targetKeys, setTargetKeys] = useState(graphNodes)
     const [rightTreeData, setRightTreeData] = useState(initRightTreeData)
-
+    
     const existingNodeList = []
     for (var i = 0; i < initRightTreeData.length; i++) {
         existingNodeList.push(initRightTreeData[i].children.map(child => child.key).join('|'))
     }
     const existing = existingNodeList.join('|')
     const treeData = existingNodes
+    console.log(treeData)
+    console.log(targetKeys.includes("54095130"))
     const tableClass = props.isTableOpen ? "table open" : "table";
     const generateTree = (treeNodes = [], checkedKeys = []) =>
             treeNodes.map(({ children, ...props }) => ({
