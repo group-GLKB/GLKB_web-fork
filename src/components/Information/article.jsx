@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import './scoped.css'
-import { Checkbox, Row, Col } from 'antd';
+import { Checkbox, Row, Col, List} from 'antd';
 import { useState } from "react";
 
 function Article(props) {

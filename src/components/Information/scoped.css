@@ -7,16 +7,35 @@ all {
 
 .information {
     position: fixed;
-    top: 14vh;
+    top: 10vh;
     right: -33vw;
-    height: 50vh;
+    height: 45vh;
     width: 25vw;
 	margin-right: 2vw;
 	border-radius: 21px;
     opacity: 0.95;
     transition: right 0.3s ease-in-out;
-    background-color: #F7F7F7
-    /* background-color: red; */
+    background-color: #F7F7F7;
+     /*background-color: red; */
+}
+
+/* Smaller screens (e.g., mobile devices) */
+@media (max-width: 600px) {
+    .information {
+        width: 20vw; /* Larger width for smaller screens */
+        right: -33vw; /* Adjust right position accordingly */
+        top: 10vh; /* Adjust position as needed */
+        height: 80vh; /* Adjust height as needed */
+    }
+}
+
+/* Larger screens */
+@media (min-width: 1200px) {
+    .information {
+        width: 25vw; /* Smaller width for larger screens */
+        right: -33vw; /* Adjust right position accordingly */
+        /* You can adjust height, top, and other properties as needed */
+    }
 }
 
 .information-button {
@@ -39,6 +58,7 @@ all {
 
 .article-container {
     margin: 3%;
+    height: 45vh;
 }
 
 .article-title {
@@ -47,6 +67,7 @@ all {
     font-weight: 600;
     font-size: 20px;
     line-height: 25px;
+    margin: 10px;
 }
 
 .article-authors {
@@ -84,6 +105,7 @@ all {
 
 .term-container {
     margin: 3%;
+    position: fixed;
 }
 
 .termTitle {
@@ -93,9 +115,11 @@ all {
     /* font-size: 13.3151px; */
     font-size: 15px;
     line-height: 13px;
+    position: fixed;
 }
 
 .termContent {
+    position: fixed;
     font-family: 'Mundial';
     font-style: normal;
     font-weight: 300;
@@ -107,14 +131,15 @@ all {
 .termClass {
     /* margin: 3%; */
     /* margin-top: 5%; */
+    position: fixed;
     margin-bottom: 3%;
 }
 
 .related {
     position: fixed;
-    top: 70vh;
+    top: 58vh;
     right: -33vw;
-    height: 25vh;
+    height: 35vh;
     width: 25vw;
 	margin-right: 2vw;
 	border-radius: 21px;
@@ -127,4 +152,21 @@ all {
     overflow-y: scroll;
     -ms-overflow-style: none;
     scrollbar-width: none;
+}
+
+.custom-descriptions .ant-descriptions-title {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.custom-descriptions .ant-descriptions-item-label {
+    width: 5%;
+}
+
+.custom-descriptions .ant-descriptions-item-content {
+    width: 70%;
+}
+
+.custom-descriptions {
+    font-size: 14px;
 }

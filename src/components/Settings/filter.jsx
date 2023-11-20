@@ -146,18 +146,18 @@ const Filter = props => {
                         </Row>
                         <Slider range value={props.gtdcFreq} onChange={props.handleGtdcFreq} min={props.minGtdcFreq} max={props.maxGtdcFreq}/>
                     </div>
-                    <div>
-                        <Row>
-                            <Col span={12}>Recency</Col>
-                            <Col span={6}>
-                                <InputNumber value={props.adcPd[0]} onBlur={props.handleAdcPd1} onPressEnter={props.handleAdcPd1} min={props.minAdcPd} max={props.maxAdcPd}/>
-                            </Col>
-                            <Col span={6}>
-                                <InputNumber value={props.adcPd[1]} onBlur={props.handleAdcPd2} onPressEnter={props.handleAdcPd2} min={props.minAdcPd} max={props.maxAdcPd}/>
-                            </Col>
-                        </Row>
-                        <Slider range value={props.adcPd} onChange={props.handleAdcPd}  min={props.minAdcPd} max={props.maxAdcPd}/>
-                    </div>
+                    {/*<div>*/}
+                    {/*    <Row>*/}
+                    {/*        <Col span={12}>Recency</Col>*/}
+                    {/*        <Col span={6}>*/}
+                    {/*            <InputNumber value={props.adcPd[0]} onBlur={props.handleAdcPd1} onPressEnter={props.handleAdcPd1} min={props.minAdcPd} max={props.maxAdcPd}/>*/}
+                    {/*        </Col>*/}
+                    {/*        <Col span={6}>*/}
+                    {/*            <InputNumber value={props.adcPd[1]} onBlur={props.handleAdcPd2} onPressEnter={props.handleAdcPd2} min={props.minAdcPd} max={props.maxAdcPd}/>*/}
+                    {/*        </Col>*/}
+                    {/*    </Row>*/}
+                    {/*    <Slider range value={props.adcPd} onChange={props.handleAdcPd}  min={props.minAdcPd} max={props.maxAdcPd}/>*/}
+                    {/*</div>*/}
                     <div>
                         <Row>
                             <Col span={12}>Number of Citations</Col>
