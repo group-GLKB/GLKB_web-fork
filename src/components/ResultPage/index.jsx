@@ -165,12 +165,14 @@ const ResultPage = () => {
     const [searchFlag, setSearchFlag] = useState(false)
     const [articleFlag, setArticleFlag] = useState(false)
     const [query, setQuery] = useState('')
-
-
+    
+    const [searchText, setSearchText] = useState('');
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [informationOpen, setInformationOpen] = useState(false);
     const [tableOpen, setTableOpen] = useState(false);
     const [graphShownData, setGraphShownData] = useState();
+    const [inputValue, setInputValue] = useState("");
+    const [inputVisible, setInputVisible] = useState(false);
 
     useEffect(() => {
         const parsed = location.search.slice(3)
@@ -208,12 +210,8 @@ const ResultPage = () => {
     useEffect(() => {
         let nodeIdsToKeep = []
         if (graphData) {
-            console.log(data)
-            console.log(graphData)
             for (var i = 0; i < graphData.length; i++) {
-                for (var j = 0; j < graphData[i].children.length; j++) {
-                    nodeIdsToKeep.push(graphData[i].children[j].key)
-                }
+                nodeIdsToKeep.push(graphData[i])
             }
             const filteredNodes = data.nodes.filter(node => nodeIdsToKeep.includes(node.data.id));
             const filteredEdges = data.edges.filter(edge =>
@@ -259,6 +257,7 @@ const ResultPage = () => {
             })
     }
 
+    console.log(111)
     async function handleSelect(target) {
         let temp_id
         if (target.article_source) {
@@ -334,6 +333,23 @@ const ResultPage = () => {
         search(alltags)
     };
 
+    const handleInputChange = (e) => {
+        setInputValue(e.target.value);
+        setSearchText(e.target.value);
+    };
+
+    const handleInputConfirm = (e) => {
+        setSearchText('');
+        if (!inputValue) {
+            handleSearch();
+        }
+        if (inputValue && tags.indexOf(inputValue) === -1) {
+        setTags([...tags, inputValue]);
+        }
+        setInputVisible(false);
+        setInputValue("");
+    };
+    
     const forMap = (tag) => {
         const tagElem = (
             <Tag
@@ -368,8 +384,7 @@ const ResultPage = () => {
                     </Col>
                     <Col span={10}>
                         <div className="heading-search">
-                            <Search placeholder="input search text" enterButton="Search" onSearch={search}
-                                    defaultValue={query}/>
+                            <Search placeholder="input search text" value={searchText} enterButton="Search" onChange={handleInputChange} onPressEnter={handleInputConfirm} onSearch={handleInputConfirm}/>
                         </div>
                     </Col>
                     <Col span={7}>
@@ -521,6 +536,7 @@ const ResultPage = () => {
                                 visibleRelations={visibleRelations}
                                 data={data}
                                 allNodes={allNodes}
+                                graphShownData={graphShownData}
                                 setData={setData}
                                 setGraphData={setGraphData}
                             />

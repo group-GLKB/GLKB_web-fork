@@ -42,7 +42,7 @@ all {
 
 .table {
     position: fixed;
-    bottom: -330px;
+    bottom: -170px;
 }
 
 .table.open {

@@ -178,3 +178,165 @@ h2 {
     padding-left: 120px;
     width: 680px;
 }
+
+
+all {
+    font-family: 'Mundial' !important;
+    font-style: normal !important;
+    font-weight: 300 !important;
+    font-size: 15px !important;
+}
+
+.result-container {
+    height: 100vh;
+    width: 100vw;
+    flex-direction: column;
+    display: flex;
+}
+
+.heading-container {
+    width: 100vw;
+    height: 10vh;
+    /* background-color: #F8F8F8; */
+    /* box-shadow: 0px 20px 3px 0px grey; */
+}
+
+.GLKB-container {
+    cursor: pointer;
+}
+
+.GLKBLogo {
+    float: left;
+    margin-left: 1.5vw;
+    margin-top: 1.75vh;
+    margin-bottom: 1.75vh;
+    height: 6.5vh;
+}
+
+.heading-search {
+    margin-top: 2.5vh;
+    margin-bottom: 2.5vh;
+    height: 5vh;
+}
+
+.search {
+    width: 500px;
+    height: 50px;
+    outline: none;
+    border-color: grey;
+}
+
+.UMLogo {
+    float: right;
+    margin-right: 1.5vw;
+    margin-top: 1.75vh;
+    margin-bottom: 1.75vh;
+    height: 6.5vh;
+}
+
+.line {
+    margin-left: 1.5vw;
+    margin-right: 1.5vw;
+    height: 1px;
+    width: 97vw;
+    border: none;
+    background-color: #C7C7C7;
+}
+
+/* .main-content {
+    margin-top: 1.25vh;
+    margin-bottom: 1.25vh;
+    flex: 1;
+} */
+
+.result-content {
+    width: 100vw;
+    height: 89vh;
+}
+
+/* .settings {
+    margin-left: 2vw;
+    margin-top: 4vh;
+    width: 25vw;
+    height: 83vh;
+    border-radius: 21px;
+    float: left;
+    background-color: #F8F8F8;
+} */
+
+.ant-collapse > .ant-collapse-item > .ant-collapse-header {
+    font-family: 'Mundial';
+    font-style: normal;
+    font-weight: 400;
+    font-size: 15px;
+    line-height: 14px;
+    display: flex;
+    align-items: flex-end;
+    /* text-align: center; */
+}
+
+/* .information {
+    margin-right: 2.5vw;
+    margin-top: 2vh;
+    width: 18vw;
+    height: 85vh;
+    border-radius: 25px;
+    float: right;
+    background-color: #F7F7F7;
+} */
+
+.loading-container {
+    text-align: center;
+    margin-top: 5%;
+}
+
+ /* TODO: how to adjust height to fit the rest of the space */
+.result-list-container {
+    margin-left: 1.5vw;
+    padding-left: 0.875vw;
+    padding-right: 0.875vw;
+    height: 85vh;
+    overflow-y: scroll;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.result-list-container::-webkit-scrollbar {
+    display: none;
+}
+
+.select-container-middle {
+    font-size: 40px;
+    font-family: "Source Sans Pro", sans-serif;
+    color: gray;
+    text-align: center;
+    margin-top: 150px;
+}
+
+.graph-container {
+    padding: 1%;
+    height: 75vh;
+    overflow-y: scroll;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.graph-container::-webkit-scrollbar {
+    display: none;
+}
+
+.Pub-info {
+    box-sizing: border-box;
+    background: #EEEEEE;
+    border: 0.5px solid #C7C7C7;
+    font-family: 'Source Sans Pro';
+    font-style: normal;
+    font-weight: 400;
+    font-size: 18px;
+    line-height: 23px;
+    text-align: center;
+    /* float: left; */
+    color: #505050;
+    /* width: 33%; */
+    cursor: pointer;
+}
