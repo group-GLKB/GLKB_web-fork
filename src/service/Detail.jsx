@@ -8,7 +8,11 @@ export class DetailService {
         let res = []
         await axios
             .get('/1.0/frontend_node_detail/' + nid)
+<<<<<<< HEAD
+            //.get('/api/1.0/frontend_node_detail/' + nid)
+=======
             // .get('/api/1.0/frontend_node_detail/' + nid)
+>>>>>>> master
             .then(function (response) {
                 res = response
             })
@@ -22,7 +26,11 @@ export class DetailService {
         let res = []
         await axios
             .get('/1.0/frontend_rel_detail/' + Eid)
+<<<<<<< HEAD
+           // .get('/api/1.0/frontend_rel_detail/' + Eid)
+=======
             // .get('/api/1.0/frontend_rel_detail/' + Eid)
+>>>>>>> master
             .then(function (response) {
                 res = response
             })

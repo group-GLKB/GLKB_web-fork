@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom';
-import { CypherService } from '../../service/Cypher'
-import { DetailService } from '../../service/Detail'
+import React, {useEffect, useState} from 'react'
+import {useNavigate} from 'react-router-dom';
+import {CypherService} from '../../service/Cypher'
+import {DetailService} from '../../service/Detail'
 import 'antd/dist/reset.css';
-import { Col, Row, Input, Spin, Tag} from 'antd';
-import { TweenOneGroup } from 'rc-tween-one';
+import {Col, Row, Input, Spin, Tag} from 'antd';
+import {TweenOneGroup} from 'rc-tween-one';
 import './scoped.css'
 import GLKBLogoImg from '../../img/glkb_logo.png'
 import UMLogo from '../../img/um_logo.jpg'
@@ -15,7 +15,7 @@ import Information from '../Information';
 import axios from 'axios'
 // import graphData from '../Graph/test_graph.json';
 
-const { Search } = Input;
+const {Search} = Input;
 
 const ResultPage = () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -137,7 +137,7 @@ const ResultPage = () => {
     }
 
     // number of citations
-    const [gtdcNoc, setGtdcNoc] = useState([0 ,0]);
+    const [gtdcNoc, setGtdcNoc] = useState([0, 0]);
     const handleGtdcNoc = (range) => {
         setGtdcNoc(range);
     }
@@ -157,7 +157,6 @@ const ResultPage = () => {
     const [visibleArticles, setVisibleArticles] = useState([]);
     const [visibleTerms, setVisibleTerms] = useState([]);
     const [visibleRelations, setVisibleRelations] = useState([]);
-
 
 
     const [results, setResults] = useState([])
@@ -216,7 +215,7 @@ const ResultPage = () => {
             }
             const filteredNodes = data.nodes.filter(node => nodeIdsToKeep.includes(node.data.id));
             const filteredEdges = data.edges.filter(edge =>
-            nodeIdsToKeep.includes(edge.data.source) && nodeIdsToKeep.includes(edge.data.target)
+                nodeIdsToKeep.includes(edge.data.source) && nodeIdsToKeep.includes(edge.data.target)
             );
             const filteredData = {
                 nodes: filteredNodes,
@@ -275,16 +274,16 @@ const ResultPage = () => {
 
     const addArticle = index => {
         results.filter(async (item) => {
-                    if (item.id - 1 === index) {
-                        searchArticle(item)
-                    }
-                })
+            if (item.id - 1 === index) {
+                await searchArticle(item)
+            }
+        })
     }
-    
+
     const generateHighlight = (abstract_list) => {
         let highlight = []
         for (let item of abstract_list) {
-            if (item[1] != "none" && !highlight.includes(item[1])) {
+            if (item[1] !== "none" && !highlight.includes(item[1])) {
                 highlight.push(item[1])
             }
         }
@@ -352,37 +351,36 @@ const ResultPage = () => {
     };
     
     const forMap = (tag) => {
-    const tagElem = (
-        <Tag
-        closable
-        onClose={(e) => {
-            e.preventDefault();
-            handleClose(tag);
-        }}
-        style={{ border: '1px solid #4F4F4F', borderRadius: '18px' }}
-        >
-        {tag}
-        </Tag>
-    );
-    return (
-        <span key={tag} style={{ display: 'inline-block' }}>
+        const tagElem = (
+            <Tag
+                closable
+                onClose={(e) => {
+                    e.preventDefault();
+                    handleClose(tag);
+                }}
+                style={{border: '1px solid #4F4F4F', borderRadius: '18px'}}
+            >
+                {tag}
+            </Tag>
+        );
+        return (
+            <span key={tag} style={{display: 'inline-block'}}>
         {tagElem}
         </span>
-    );
+        );
     };
 
     const tagChild = tags.map(forMap);
     console.log(graphShownData)
     return (
         <div className="result-container">
-
             {/* Navigation Bar */}
             <div className="heading-container">
                 <Row>
                     <Col span={7}>
-                        <div className="GLKB-container">
-                            <img className='GLKBLogo' src={GLKBLogoImg} onClick={backHome}/>
-                        </div> 
+                        {/*<div className="GLKB-container">*/}
+                        {/*    <img className='GLKBLogo' src={GLKBLogoImg} onClick={backHome}/>*/}
+                        {/*</div>*/}
                     </Col>
                     <Col span={10}>
                         <div className="heading-search">
@@ -390,20 +388,27 @@ const ResultPage = () => {
                         </div>
                     </Col>
                     <Col span={7}>
-                        <div className="UM-container">
-                            <img className='UMLogo' src={UMLogo}/>
-                        </div>
+                        {/*<div className="UM-container">*/}
+                        {/*    <img className='UMLogo' src={UMLogo}/>*/}
+                        {/*</div>*/}
                     </Col>
                 </Row>
             </div>
 
+
             {/* Filter Bar */}
             <div className="line"></div>
 
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '45px'}}>
-                <div style={{ textAlign: 'left', width: '600px', padding: '20px', background: '#F6F6F6', borderRadius: '14px'}}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center' }}>
-                        <span style={{ marginRight: '20px' }}>Term List:</span>
+            <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '45px'}}>
+                <div style={{
+                    textAlign: 'left',
+                    width: '600px',
+                    padding: '20px',
+                    background: '#F6F6F6',
+                    borderRadius: '14px'
+                }}>
+                    <div style={{display: 'inline-flex', alignItems: 'center'}}>
+                        <span style={{marginRight: '20px'}}>Term List:</span>
                         <TweenOneGroup
                             enter={{
                                 scale: 0.8,
@@ -416,7 +421,7 @@ const ResultPage = () => {
                                     e.target.style = 'display: inline-block';
                                 }
                             }}
-                            leave={{ opacity: 0, width: 0, scale: 0, duration: 200 }}
+                            leave={{opacity: 0, width: 0, scale: 0, duration: 200}}
                             appear={false}
                         >
                             {tagChild}
@@ -440,11 +445,11 @@ const ResultPage = () => {
                             maxAdcFreq={maxAdcFreq}
                             minAdcPd={minAdcPd}
                             maxAdcPd={maxAdcPd}
-                            minAdcNoc={minAdcNoc} 
+                            minAdcNoc={minAdcNoc}
                             maxAdcNoc={maxAdcNoc}
-                            minGtdcFreq={minGtdcFreq} 
-                            maxGtdcFreq={maxGtdcFreq} 
-                            minGtdcNoc={minGtdcNoc} 
+                            minGtdcFreq={minGtdcFreq}
+                            maxGtdcFreq={maxGtdcFreq}
+                            minGtdcNoc={minGtdcNoc}
                             maxGtdcNoc={maxGtdcNoc}
                             adcFreq={adcFreq}
                             handleAdcFreq={handleAdcFreq}
@@ -457,15 +462,15 @@ const ResultPage = () => {
                             handleMaxAdcPd={handleMaxAdcPd}
                             adcNoc={adcNoc}
                             handleAdcNoc={handleAdcNoc}
-                            handleMinAdcNoc={handleMinAdcNoc} 
+                            handleMinAdcNoc={handleMinAdcNoc}
                             handleMaxAdcNoc={handleMaxAdcNoc}
                             gtdcFreq={gtdcFreq}
                             handleGtdcFreq={handleGtdcFreq}
-                            handleMinGtdcFreq={handleMinGtdcFreq} 
+                            handleMinGtdcFreq={handleMinGtdcFreq}
                             handleMaxGtdcFreq={handleMaxGtdcFreq}
                             gtdcNoc={gtdcNoc}
                             handleGtdcNoc={handleGtdcNoc}
-                            handleMinGtdcNoc={handleMinGtdcNoc} 
+                            handleMinGtdcNoc={handleMinGtdcNoc}
                             handleMaxGtdcNoc={handleMaxGtdcNoc}
                             setArticleNodes={setArticleNodes}
                             setTermNodes={setTermNodes}
@@ -488,16 +493,16 @@ const ResultPage = () => {
                                 maxAdcFreq={maxAdcFreq}
                                 minAdcPd={minAdcPd}
                                 maxAdcPd={maxAdcPd}
-                                minAdcNoc={minAdcNoc} 
+                                minAdcNoc={minAdcNoc}
                                 maxAdcNoc={maxAdcNoc}
-                                minGtdcFreq={minGtdcFreq} 
-                                maxGtdcFreq={maxGtdcFreq} 
-                                minGtdcNoc={minGtdcNoc} 
-                                maxGtdcNoc={maxGtdcNoc} 
+                                minGtdcFreq={minGtdcFreq}
+                                maxGtdcFreq={maxGtdcFreq}
+                                minGtdcNoc={minGtdcNoc}
+                                maxGtdcNoc={maxGtdcNoc}
                                 isOpen={settingsOpen}
-                                isTableOpen = {tableOpen}
+                                isTableOpen={tableOpen}
                                 toggleSidebar={handleSettings}
-                                toggleTable = {handleTable}
+                                toggleTable={handleTable}
                                 view={view}
                                 handleView={handleView}
                                 adcFreq={adcFreq}
@@ -547,10 +552,10 @@ const ResultPage = () => {
                         </span>
                     </div>
                 )}
-                
+
             </div>
         </div>
-        
+
     )
 }
 
