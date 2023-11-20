@@ -86,6 +86,7 @@ const Settings = props => {
                 setData = {props.setData}
                 allNodes = {props.allNodes}
                 setGraphData = {props.setGraphData}
+                graphShownData = {props.graphShownData}
             />
         </div>
         
