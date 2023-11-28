@@ -34,7 +34,6 @@ all {
 }
 .settings.open {
 	left: -1vw;
-    overflow-y: hidden;
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
