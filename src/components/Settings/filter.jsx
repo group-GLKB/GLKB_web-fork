@@ -79,6 +79,25 @@ const Filter = props => {
     const onScroll = (direction, e) => {
     };
 
+    const LegendItem = ({ label, size, color }) => (
+        <div className="legend-item">
+          <div className="legend-circle" style={{ backgroundColor: color, width: size, height: size, marginLeft: size === 5 ? "6px" : size === 10 ? "4px" : "0" }}></div>
+          <div className="legend-label">{label}</div>
+        </div>
+      );
+      
+    const legendData = [
+        { label: 'Anatomy (frequency < 30)', size: 5, color: '#E43333' },
+        { label: 'Anatomy (30 <= frequency < 60)', size: 10, color: '#E43333' },
+        { label: 'Anatomy (frequency >= 60)', size: 20, color: '#E43333' },
+        { label: 'Chemicals and Drugs', size: 20, color: '#E8882F' },
+        { label: 'Diseases', size: 20, color: '#67BE48' },
+        { label: 'Genes and Gene Products', size: 20, color: '#46ACAC' },
+        { label: 'GO', size: 20, color: '#5782C2' },
+        { label: 'Organisms', size: 20, color: '#9B58C5' },
+        { label: 'Pathway', size: 20, color: '#D829B1' },
+    ];
+
     // minGtdcNoc={props.minGtdcNoc} 
     // maxGtdcNoc={props.maxGtdcNoc} 
 
@@ -170,6 +189,13 @@ const Filter = props => {
                         </Row>
                         <Slider range value={props.gtdcNoc} onChange={props.handleGtdcNoc} min={props.minGtdcNoc} max={props.maxGtdcNoc} />
                     </div>
+                </div>
+            </Panel>
+            <Panel header="legend" key="2">
+                <div className="legend-container">
+                    {legendData.map((item, index) => (
+                        <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
+                    ))}
                 </div>
             </Panel>
 
