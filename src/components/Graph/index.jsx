@@ -6,6 +6,7 @@ import euler from 'cytoscape-euler';
 import springy from 'cytoscape-springy'
 import d3Force from 'cytoscape-d3-force';
 import fcose from 'cytoscape-fcose';
+import './scoped.css'
 
 Cytoscape.use(fcose);
 Cytoscape.use(cola);
@@ -193,7 +194,7 @@ function Graph(props) {
     if (label.find(pair => pair.includes(graphData.nodes[i].data.label))[1] < graphData.nodes[i].data.frequency) {
       label.find(pair => pair.includes(graphData.nodes[i].data.label))[1] = graphData.nodes[i].data.frequency
     }
-    id.push([graphData.nodes[i].data.id, graphData.nodes[i].data.label, graphData.nodes[i].data.frequency])
+    id.push([graphData.nodes[i].data.id, graphData.nodes[i].data.label, graphData.nodes[i].data.frequency, graphData.nodes[i].data.n_citation, graphData.nodes[i].data.key_nodes])
   }
   // console.log(label)
   const colorDif = 360 / 9
@@ -369,6 +370,8 @@ function Graph(props) {
       return pair[0] === id[i][1]
     })
     let labelColor = ''
+    let size = ''
+    let shape = ''
     switch(id[i][1]) {
       case 'Anatomy':
         labelColor = '#E43333'
@@ -392,15 +395,28 @@ function Graph(props) {
         labelColor = '#D829B1'
       break;
     }
+    if (id[i][2] >= 60) {
+      size = 20
+    } else if (id[i][2] < 60 && id[i][2] >= 30) {
+      size = 10
+    } else {
+      size = 5
+    }
+    if (id[i][4] == "true") {
+      shape = 'triangle'
+    } else {
+      shape = 'ellipse'
+    }
     // console.log(index)
     styleSheet.push({
       selector: 'node[id = "' + id[i][0] + '"]',
       style: {
         backgroundColor: labelColor, 
-        backgroundOpacity: 1, 
+        backgroundOpacity: 1,
+        shape: shape, 
         // backgroundColor: 'hsl(' + index*colorDif + ', 100%, ' + 50/label[index][1] * id[i][2] + '%)',
-        width: 10,
-        height: 10,
+        width: size,
+        height: size,
         label: 'data(display)',
         // height: 1+Math.log(id[i][2]),
         // width: 1+Math.log(id[i][2]),

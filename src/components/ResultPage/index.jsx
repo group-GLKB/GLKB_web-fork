@@ -257,7 +257,6 @@ const ResultPage = () => {
             })
     }
 
-    console.log(111)
     async function handleSelect(target) {
         let temp_id
         if (target.article_source) {
@@ -340,7 +339,7 @@ const ResultPage = () => {
 
     const handleInputConfirm = (e) => {
         setSearchText('');
-        if (!inputValue) {
+        if (!inputValue && tags.length != 0) {
             handleSearch();
         }
         if (inputValue && tags.indexOf(inputValue) === -1) {
