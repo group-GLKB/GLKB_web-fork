@@ -44,7 +44,8 @@ const HomePage = () => {
 
     const handleInputConfirm = (e) => {
         setSearchText('');
-        if (!inputValue) {
+        console.log(tags)
+        if (!inputValue && tags.length != 0) {
             handleSearch();
         }
         if (inputValue && tags.indexOf(inputValue) === -1) {
