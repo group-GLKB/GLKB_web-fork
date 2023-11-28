@@ -415,16 +415,16 @@ const ResultPage = () => {
                     transition: 'background-color 0.3s ease',
                 }}
             >
-                <Menu.Item key="home" >
+                <Menu.Item key="home" href="./Homepage">
                     Home
                 </Menu.Item>
-                <Menu.Item key="about">
-                    <a href="https://google.com" target="_blank" rel="noopener noreferrer">
-                        About
-                    </a>
-                </Menu.Item>
+                {/*<Menu.Item key="about">*/}
+                {/*    <a href="https://google.com" target="_blank" rel="noopener noreferrer">*/}
+                {/*        About*/}
+                {/*    </a>*/}
+                {/*</Menu.Item>*/}
                 <Menu.Item key="API">
-                    <a href="https://google.com" target="_blank" rel="noopener noreferrer">
+                    <a href="https://glkb.dcmb.med.umich.edu/docs" target="_blank" rel="noopener noreferrer">
                         API Doc
                     </a>
                 </Menu.Item>
@@ -450,7 +450,7 @@ const ResultPage = () => {
             {/* Filter Bar */}
             <div className="line"></div>
 
-            <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '160px'}}>
+            <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '180px'}}>
                 <div style={{
                     textAlign: 'left',
                     width: '600px',

@@ -163,13 +163,13 @@ const HomePage = () => {
                 <Menu.Item key="home" >
                     Home
                 </Menu.Item>
-                <Menu.Item key="about">
-                    <a href="https://google.com" target="_blank" rel="noopener noreferrer">
-                        About
-                    </a>
-                </Menu.Item>
+                {/*<Menu.Item key="about">*/}
+                {/*    <a href="https://google.com" target="_blank" rel="noopener noreferrer">*/}
+                {/*        About*/}
+                {/*    </a>*/}
+                {/*</Menu.Item>*/}
                 <Menu.Item key="API">
-                    <a href="https://google.com" target="_blank" rel="noopener noreferrer">
+                    <a href="https://glkb.dcmb.med.umich.edu/docs" target="_blank" rel="noopener noreferrer">
                         API Doc
                     </a>
                 </Menu.Item>
