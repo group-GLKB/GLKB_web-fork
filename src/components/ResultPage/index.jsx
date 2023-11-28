@@ -3,9 +3,11 @@ import {useNavigate} from 'react-router-dom';
 import {CypherService} from '../../service/Cypher'
 import {DetailService} from '../../service/Detail'
 import 'antd/dist/reset.css';
-import {Col, Row, Input, Spin, Tag} from 'antd';
+import {Col, Row, Input, Spin, Tag, Menu} from 'antd';
 import {TweenOneGroup} from 'rc-tween-one';
 import './scoped.css'
+
+
 import GLKBLogoImg from '../../img/glkb_logo.png'
 import UMLogo from '../../img/um_logo.jpg'
 import queryString from 'query-string'
@@ -375,31 +377,80 @@ const ResultPage = () => {
     return (
         <div className="result-container">
             {/* Navigation Bar */}
-            <div className="heading-container">
-                <Row>
-                    <Col span={7}>
-                        {/*<div className="GLKB-container">*/}
-                        {/*    <img className='GLKBLogo' src={GLKBLogoImg} onClick={backHome}/>*/}
-                        {/*</div>*/}
-                    </Col>
-                    <Col span={10}>
-                        <div className="heading-search">
-                            <Search placeholder="input search text" value={searchText} enterButton="Search" onChange={handleInputChange} onPressEnter={handleInputConfirm} onSearch={handleInputConfirm}/>
-                        </div>
-                    </Col>
-                    <Col span={7}>
-                        {/*<div className="UM-container">*/}
-                        {/*    <img className='UMLogo' src={UMLogo}/>*/}
-                        {/*</div>*/}
-                    </Col>
-                </Row>
-            </div>
+            {/*<div className="heading-container">*/}
+            {/*    <Row>*/}
+            {/*        <Col span={7}>*/}
+            {/*            /!*<div className="GLKB-container">*!/*/}
+            {/*            /!*    <img className='GLKBLogo' src={GLKBLogoImg} onClick={backHome}/>*!/*/}
+            {/*            /!*</div>*!/*/}
+            {/*        </Col>*/}
+            {/*        <Col span={10}>*/}
+            {/*            <div className="heading-search">*/}
+            {/*                <Search placeholder="input search text" value={searchText} enterButton="Search" onChange={handleInputChange} onPressEnter={handleInputConfirm} onSearch={handleInputConfirm}/>*/}
+            {/*            </div>*/}
+            {/*        </Col>*/}
+            {/*        <Col span={7}>*/}
+            {/*            /!*<div className="UM-container">*!/*/}
+            {/*            /!*    <img className='UMLogo' src={UMLogo}/>*!/*/}
+            {/*            /!*</div>*!/*/}
+            {/*        </Col>*/}
+            {/*    </Row>*/}
+            {/*</div>*/}
+            {/*<Menu mode="horizontal" style={{*/}
+            {/*    lineHeight: '25px',*/}
+            {/*    fontSize: '25px',*/}
+            {/*    padding: '25px',*/}
+            {/*    borderBottom: 'none'*/}
+            {/*}} >*/}
+            <Menu
+                mode="horizontal"
+                style={{
+                    backgroundColor: '#f0f2f5',
+                    //borderBottom: '1px solid #e8e8e8',
+                    borderBottom :'none',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    padding: '0 40px',
+                    fontSize: '25px',
+                    lineHeight: '50px',
+                    transition: 'background-color 0.3s ease',
+                }}
+            >
+                <Menu.Item key="home" >
+                    Home
+                </Menu.Item>
+                <Menu.Item key="about">
+                    <a href="https://google.com" target="_blank" rel="noopener noreferrer">
+                        About
+                    </a>
+                </Menu.Item>
+                <Menu.Item key="API">
+                    <a href="https://google.com" target="_blank" rel="noopener noreferrer">
+                        API Doc
+                    </a>
+                </Menu.Item>
+            </Menu>
+            {/*<header>*/}
+            {/*    <nav>*/}
+            {/*        <ul className="navbar-nav ms-auto" id="right-nav-text">*/}
+            {/*            <li className="nav-item">*/}
+            {/*                <a className="nav-link" href="https://zdongyu613.github.io/GKB_Documentation/updates/index.html" target="_blank">*/}
+            {/*                    What's New*/}
+            {/*                </a>*/}
+            {/*            </li>*/}
+            {/*            <li className="nav-item">*/}
+            {/*                <a className="nav-link" href="https://zdongyu613.github.io/GKB_Documentation/documentation/db_download/index.html" target="_blank">*/}
+            {/*                    Data Dump*/}
+            {/*                </a>*/}
+            {/*            </li>*/}
+            {/*        </ul>*/}
+            {/*    </nav>*/}
+            {/*</header>*/}
 
 
             {/* Filter Bar */}
             <div className="line"></div>
 
-            <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '45px'}}>
+            <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '160px'}}>
                 <div style={{
                     textAlign: 'left',
                     width: '600px',
@@ -407,6 +458,9 @@ const ResultPage = () => {
                     background: '#F6F6F6',
                     borderRadius: '14px'
                 }}>
+                    <div className="heading-search">
+                        <Search placeholder="input search text" value={searchText} enterButton="Search" onChange={handleInputChange} onPressEnter={handleInputConfirm} onSearch={handleInputConfirm}/>
+                    </div>
                     <div style={{display: 'inline-flex', alignItems: 'center'}}>
                         <span style={{marginRight: '20px'}}>Term List:</span>
                         <TweenOneGroup

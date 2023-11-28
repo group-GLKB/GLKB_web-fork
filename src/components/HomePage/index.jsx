@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import 'antd/dist/reset.css';
 import { TweenOneGroup } from "rc-tween-one";
-import {Input, Col, Row, Spin, Tag} from 'antd';
+import {Input, Col, Row, Spin, Tag, Menu} from 'antd';
 import './scoped.css'
 import GLKBLogoImg from '../../img/glkb_logo.png'
 import UMLogo from '../../img/um_logo.jpg'
@@ -147,31 +147,42 @@ const HomePage = () => {
     // </div>
         <div>
             {/* Navigation Bar */}
-            <div className="heading-container">
-                <Row>
-                    <Col span={7}>
-                        <div className="GLKB-container">
-                            <img className='GLKBLogo' src={GLKBLogoImg}/>
-                        </div> 
-                    </Col>
-                    <Col span={10}>
-                        <div className="heading-search">
-                            <Search placeholder="input search text" value={searchText} enterButton="Search" onChange={handleInputChange} onPressEnter={handleInputConfirm}/>
-                        </div>
-                    </Col>
-                    <Col span={7}>
-                        <div className="UM-container">
-                            <img className='UMLogo' src={UMLogo}/>
-                        </div>
-                    </Col>
-                </Row>
-            </div>
+            <Menu
+                mode="horizontal"
+                style={{
+                    backgroundColor: '#f0f2f5',
+                    //borderBottom: '1px solid #e8e8e8',
+                    borderBottom :'none',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    padding: '0 40px',
+                    fontSize: '25px',
+                    lineHeight: '50px',
+                    transition: 'background-color 0.3s ease',
+                }}
+            >
+                <Menu.Item key="home" >
+                    Home
+                </Menu.Item>
+                <Menu.Item key="about">
+                    <a href="https://google.com" target="_blank" rel="noopener noreferrer">
+                        About
+                    </a>
+                </Menu.Item>
+                <Menu.Item key="API">
+                    <a href="https://google.com" target="_blank" rel="noopener noreferrer">
+                        API Doc
+                    </a>
+                </Menu.Item>
+            </Menu>
 
             {/* Filter Bar */}
             <div className="line"></div>
 
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '45px'}}>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '140px'}}>
                 <div style={{ textAlign: 'left', width: '600px', padding: '20px', background: '#F6F6F6', borderRadius: '14px'}}>
+                    <div className="heading-search">
+                        <Search placeholder="input search text" value={searchText} enterButton="Search" onChange={handleInputChange} onPressEnter={handleInputConfirm} onSearch={handleInputConfirm}/>
+                    </div>
                     <div style={{ display: 'inline-flex', alignItems: 'center' }}>
                         <span style={{ marginRight: '20px' }}>Term List:</span>
                         <TweenOneGroup

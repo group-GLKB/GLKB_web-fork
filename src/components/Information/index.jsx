@@ -4,22 +4,27 @@ import Article from './article'
 import Term from './term'
 import { DetailService } from '../../service/Detail'
 import { Button } from 'antd';
-import { Descriptions, List} from 'antd';
+import { Descriptions, List, Collapse, Divider, Typography} from 'antd';
 import {
     ConsoleSqlOutlined,
     MenuFoldOutlined,
     MenuUnfoldOutlined
 } from '@ant-design/icons';
 
-
+const { Panel } = Collapse;
+const { Title } = Typography;
 const Information = props => {
     const informationClass = props.isOpen ? "information open" : "information";
     const buttonClass = props.isOpen ? "information-button open" : "information-button";
     const relatedClass = props.isOpen ? "related open" : "related";
     const [nodeDetail, setNodeDetail] = useState({});
     const [edgeDetail, setEdgeDetail] = useState({});
+    const [activeKey, setActiveKey] = useState(0);
 
-
+    const handleCollapseChange = key => {
+        // Make the edge collapse panel act same time with the article collapse component
+        setActiveKey(key);
+    };
 
     const handleClick = (event, link) => {
         event.preventDefault();
@@ -40,7 +45,14 @@ const Information = props => {
             console.log(content)
             const response = await detailServ.Eid2Detail(content)
             console.log(response.data)
-            setEdgeDetail(response.data)
+            const sample_data = [[{"node1":"Neoplasms","node2":"Breast Neoplasms","number of citations":1,"relationship label":"Semantic_relationship","relationship type":"Negative_Correlation"},
+                [["Tumor suppression effect of Solanum nigrum polysaccharide fraction on Breast cancer via immunomodulation. (2016)","https://pubmed.ncbi.nlm.nih.gov/27365117/"]]],
+                [{"node1":"Breast Neoplasms","node2":"Neoplasms","number of citations":2,"relationship label":"Semantic_relationship","relationship type":"Positive_Correlation"},
+                    [["Immunohistochemical expression of metallothionein in invasive breast cancer in relation to proliferative activity, histology and prognosis. (1996)","https://pubmed.ncbi.nlm.nih.gov/8604236/"],["Long-term exposure to elevated levels of circulating TIMP-1 but not mammary TIMP-1 suppresses growth of mammary carcinomas in transgenic mice. (2004)","https://pubmed.ncbi.nlm.nih.gov/15166086/"]]],
+                [{"node1":"Breast Neoplasms","node2":"Neoplasms","number of citations":1,"relationship label":"Semantic_relationship","relationship type":"Negative_Correlation"},[["Effect of catechol estrogens on rat mammary tumors. (1979)","https://pubmed.ncbi.nlm.nih.gov/115583/"]]],
+                ]
+            setEdgeDetail(sample_data);
+            //setEdgeDetail(response.data)
             setNodeDetail({})
         }
         if (props.detailId) {
@@ -63,14 +75,26 @@ const Information = props => {
     }
     const urls = Object.keys(nodeDetail).length !== 0 ? nodeDetail[1].map(nodeForMap) : []
 
-    const edgeUrl = (url) => {
-        return(
-            <div>
-                <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>{url[0]}</a>
-            </div>
-        )
-    }
-    const edgeUrls = Object.keys(edgeDetail).length !== 0 ? edgeDetail[0][1].map(edgeUrl) : []
+    // const edgeUrl = (url) => {
+    //     return(
+    //         <div>
+    //             <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>{url[0]}</a>
+    //         </div>
+    //     )
+    // }
+    // const edgeUrls = Object.keys(edgeDetail).length !== 0 ? edgeDetail[0][1].map(edgeUrl) : []
+    // const edgeUrl = (url) => (
+    //     <div>
+    //         <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>{url[0]}</a>
+    //     </div>
+    // );
+    //
+    // const edgeUrls = Object.keys(edgeDetail).length !== 0
+    //     ? edgeDetail.map(edge =>
+    //         edge[1].map(url => edgeUrl(url))
+    //     )
+    //     : [];
+
 
 
     function renderExternal() {
@@ -91,7 +115,7 @@ const Information = props => {
     //
     // }
     if (Object.keys(edgeDetail).length !== 0) {
-        console.log(edgeDetail[0]);
+        console.log(edgeDetail);
 
     }
     // if (!detail) {
@@ -160,7 +184,8 @@ const Information = props => {
                     {Object.keys(nodeDetail).length !== 0 && (
 
                         <div className='article-container'>
-                            <Descriptions title="Node Details" bordered column={1}  size="small" className="custom-descriptions">
+                            <Title level={4}>Node Details</Title>
+                            <Descriptions bordered column={1}  size="small" className="custom-descriptions">
                                 <Descriptions.Item label="Entity ID">{nodeDetail[0].element_id}</Descriptions.Item>
                                 <Descriptions.Item label="Name">{nodeDetail[0].name}</Descriptions.Item>
                                 <Descriptions.Item label="Aliases">{nodeDetail[0].aliases}</Descriptions.Item>
@@ -180,18 +205,26 @@ const Information = props => {
                     )}
                     {Object.keys(edgeDetail).length !== 0 && (
                         <div className='article-container'>
-                            <Descriptions title="Edge Details" bordered column={1} className="custom-descriptions">
-                                <Descriptions.Item label="Node 1">{edgeDetail[0][0].node1}</Descriptions.Item>
-                                <Descriptions.Item label="Node 2">{edgeDetail[0][0].node2}</Descriptions.Item>
-                                <Descriptions.Item label="Relationship Label">{edgeDetail[0][0]['relationship label']}</Descriptions.Item>
-                                <Descriptions.Item label="Relationship Type">{edgeDetail[0][0]['relationship type']}</Descriptions.Item>
-                                <Descriptions.Item label="Number of Citations">{edgeDetail[0][0]['number of citations']}</Descriptions.Item>
-                            </Descriptions>
-                            {/*<div className='article-titile'>Node 1: {edgeDetail[0][0].node1}</div>*/}
-                            {/*<div className='article-titile'>Node 2: {edgeDetail[0][0].node2}</div>*/}
-                            {/*<div className='article-titile'>relationship label: {edgeDetail[0][0]['relationship label']}</div>*/}
-                            {/*<div className='article-titile'>relationship type: {edgeDetail[0][0]['relationship type']}</div>*/}
-                            {/*<div className='article-titile'>number of citations: {edgeDetail[0][0]['number of citations']}</div>*/}
+                            <Title level={4}>Edges Detail</Title>
+                            <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
+                                {edgeDetail.map((edge, index) => (
+                                    <Panel header={`Edge ${index + 1}: ${edge[0].node1} - ${edge[0].node2}`} key={index}>
+                                        <div className='edge-article-container'>
+                                            {/*<Descriptions title="Edge Details" bordered column={1}>*/}
+                                            <Descriptions bordered column={1}>
+                                                <Descriptions.Item label="Node 1">{edge[0].node1}</Descriptions.Item>
+                                                <Descriptions.Item label="Node 2">{edge[0].node2}</Descriptions.Item>
+                                                <Descriptions.Item label="Relationship Label">{edge[0]['relationship label']}</Descriptions.Item>
+                                                <Descriptions.Item label="Relationship Type">{edge[0]['relationship type']}</Descriptions.Item>
+                                                <Descriptions.Item label="Number of Citations">
+                                                    {/*{edge[0]['number of citations']}*/}
+                                                    {edge[0]['number of citations'] !== null ? edge[0]['number of citations'] : 'N/A'}
+                                                </Descriptions.Item>
+                                            </Descriptions>
+                                        </div>
+                                    </Panel>
+                                ))}
+                            </Collapse>
                         </div>
                     )}
 
@@ -226,7 +259,8 @@ const Information = props => {
                         <div className='article-container'>
                             {/*<div className='article-titile'>Related Articles</div>*/}
                             {/*{urls}*/}
-                            <div className='article-title'>Related Articles</div>
+                            {/*<div className='article-title'>Related Articles</div>*/}
+                            <Title level={4}>Related Articles</Title>
                             <List
                                 size="small"
                                 bordered
@@ -243,21 +277,24 @@ const Information = props => {
                     )}
                     {Object.keys(edgeDetail).length !== 0 && (
                         <div className='article-container'>
-                            {/*<div className='article-titile'>Related Articles</div>*/}
-                            {/*{edgeUrls}*/}
-                            <div className='article-title'>Related Articles</div>
-                            <List
-                                size="small"
-                                bordered
-                                dataSource={edgeUrls} // Assuming 'urls' is an array of URL strings or objects
-                                renderItem={item => (
-                                    <List.Item>
-                                        {/* Render your URL or article title here */}
-                                        {/* Example: <a href={item.url}>{item.title}</a> */}
-                                        {item}
-                                    </List.Item>
-                                )}
-                            />
+                            <Title level={4}>Related Articles</Title>
+                            <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
+                                {edgeDetail.map((edge, edgeIndex) => (
+                                    <Panel header={`Edge ${edgeIndex + 1}`} key={edgeIndex}>
+                                        {edge[1] && edge[1].length > 0 ? (
+                                            edge[1].map((url, urlIndex) => (
+                                                <div key={urlIndex}>
+                                                    <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>
+                                                        {url[0]}
+                                                    </a>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div>N/A</div>
+                                        )}
+                                    </Panel>
+                                ))}
+                            </Collapse>
                         </div>
                     )}
 

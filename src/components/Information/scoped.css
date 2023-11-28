@@ -61,6 +61,11 @@ all {
     height: 45vh;
 }
 
+.edge-article-container {
+    margin: 3%;
+    height: 25vh;
+}
+
 .article-title {
     font-family: 'Source Sans Pro';
     font-style: normal;

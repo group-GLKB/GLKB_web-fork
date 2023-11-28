@@ -12,8 +12,9 @@ import Table from './table'
 const { Panel } = Collapse;
 
 const Settings = props => {
-    const settingsClass = props.isOpen ? "settings open" : "settings";
-    const buttonClass = props.isOpen ? "settings-button open" : "settings-button";
+    //const settingsClass = props.isOpen ? "settings open" : "settings";
+    const settingsClass = "settings open";
+    //const buttonClass = props.isOpen ? "settings-button open" : "settings-button";
     return (
         <div>
             <div className={settingsClass}>
@@ -73,12 +74,12 @@ const Settings = props => {
                     visibleRelations={props.visibleRelations}
                 />  
             </div>
-            <Button
-                onClick={props.toggleSidebar}
-                className={buttonClass}
-            >
-                { !props.isOpen ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            </Button>
+            {/*<Button*/}
+            {/*    onClick={props.toggleSidebar}*/}
+            {/*    className={buttonClass}*/}
+            {/*>*/}
+            {/*    { !props.isOpen ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}*/}
+            {/*</Button>*/}
             <Table 
                 isTableOpen = {props.isTableOpen}
                 toggleTable = {props.toggleTable}

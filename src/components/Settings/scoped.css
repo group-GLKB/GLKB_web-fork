@@ -9,8 +9,8 @@ all {
     position: fixed;
     top: 14vh;
     left: -33vw;
-    height: 25vh;
-    width: 25vw;
+    height: 18vh;
+    width: 22vw;
 	margin-left: 2vw;
     padding: 1%;
 	border-radius: 21px;
@@ -18,7 +18,9 @@ all {
     opacity: 0.95;
     transition: left 0.3s ease-in-out;
     background-color: #F8F8F8;
+
 }
+
 .settings-button {
     position: fixed;
     top: 20vh;
@@ -28,14 +30,21 @@ all {
     transition: left 0.3s ease-in-out;
 }
 .settings-button.open {
-    left: 27vw;
+    left: 24vw;
 }
 .settings.open {
-	left: 0;
-    overflow-y: scroll;
+	left: -1vw;
+    overflow-y: hidden;
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+@media screen and (max-width: 300px) {
+    .setting.open {
+        min-width: 300px; /* Set your desired minimum width */
+    }
+}
+
 .ant-transfer-list-header-selected {
     display: none;
 }
