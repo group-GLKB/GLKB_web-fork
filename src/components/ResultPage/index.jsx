@@ -262,7 +262,7 @@ const ResultPage = () => {
     async function handleSelect(target) {
         let temp_id
         if (target.article_source) {
-            temp_id = [target.eid[0], 0];
+            temp_id = [target.source, target.target];
         } else {
             temp_id = target.id
         }

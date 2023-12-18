@@ -43,7 +43,7 @@ const Information = props => {
         async function searchInfoEdge(content) {
             let detailServ = new DetailService()
             console.log(content)
-            const response = await detailServ.Eid2Detail(content)
+            const response = await detailServ.Eid2Detail(content[0], content[1])
             console.log(response.data)
             const sample_data = [[{"node1":"Neoplasms","node2":"Breast Neoplasms","number of citations":1,"relationship label":"Semantic_relationship","relationship type":"Negative_Correlation"},
                 [["Tumor suppression effect of Solanum nigrum polysaccharide fraction on Breast cancer via immunomodulation. (2016)","https://pubmed.ncbi.nlm.nih.gov/27365117/"]]],
@@ -60,7 +60,7 @@ const Information = props => {
                 searchInfoNode(props.detailId);
             }
             else{
-                searchInfoEdge(props.detailId[0]);
+                searchInfoEdge(props.detailId);
             }
         }
     }, [props.detailId]);
