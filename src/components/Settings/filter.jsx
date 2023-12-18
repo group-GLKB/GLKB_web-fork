@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import './scoped.css'
-import { Row, Col, Slider, Collapse, Transfer, InputNumber, Typography} from 'antd';
+import { Row, Col, Slider, Collapse, Transfer, InputNumber, Typography, Button, Modal} from 'antd';
+import { DownOutlined, SmileOutlined } from '@ant-design/icons';
 const { Panel } = Collapse;
 const { Title } = Typography;
 
@@ -80,17 +81,34 @@ const Filter = props => {
     const onScroll = (direction, e) => {
     };
 
-    const LegendItem = ({ label, size, color }) => (
-        <div className="legend-item">
-          <div className="legend-circle" style={{ backgroundColor: color, width: size, height: size, marginLeft: size === 5 ? "6px" : size === 10 ? "4px" : "0" }}></div>
-          <div className="legend-label">{label}</div>
-        </div>
-      );
+    const LegendItem = ({ label, size, color }) => {
+        const isQueryTerms = label === 'query terms';
+        
+        return (
+            <div className="legend-item">
+            {isQueryTerms ? (
+                <div className="legend-triangle" style={{marginLeft: "4px"}}></div>
+            ) : (
+                <div className="legend-circle" style={{ backgroundColor: color, width: size, height: size, marginLeft: size === 5 ? "6px" : size === 10 ? "4px" : "0" }}></div>
+            )}
+            <div className="legend-label">{label}</div>
+            </div>
+        );
+    };
+
+    const shapeData = [
+        { label: 'query terms', size: 20, color: 'black' },
+        { label: 'non-query terms', size: 20, color: 'black' },
+    ]
       
+    const sizeData = [
+        { label: 'frequency < 30', size: 5, color: 'black' },
+        { label: '30 <= frequency < 60', size: 10, color: 'black' },
+        { label: 'frequency >= 60', size: 20, color: 'black' }
+    ];
+
     const legendData = [
-        { label: 'Anatomy (frequency < 30)', size: 5, color: '#E43333' },
-        { label: 'Anatomy (30 <= frequency < 60)', size: 10, color: '#E43333' },
-        { label: 'Anatomy (frequency >= 60)', size: 20, color: '#E43333' },
+        { label: 'Anatomy', size: 20, color: '#E43333' },
         { label: 'Chemicals and Drugs', size: 20, color: '#E8882F' },
         { label: 'Diseases', size: 20, color: '#67BE48' },
         { label: 'Genes and Gene Products', size: 20, color: '#46ACAC' },
@@ -99,6 +117,44 @@ const Filter = props => {
         { label: 'Pathway', size: 20, color: '#D829B1' },
     ];
 
+    const items = () => {
+        return (
+            <div className="legend-container">
+                <h3>shape</h3>
+                <div className="legend-column">
+                    {shapeData.map((item, index) => (
+                    <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
+                    ))}
+                </div>
+                <h3>frequency</h3>
+                <div className="legend-column">
+                    {sizeData.map((item, index) => (
+                    <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
+                    ))}
+                </div>
+                <h3 color='black'>label</h3>
+                <div className="legend-column">
+                    {legendData.map((item, index) => (
+                    <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
+                    ))}
+                </div>
+            </div>
+        )
+    }
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const showModal = () => {
+        setIsModalOpen(true);
+    };
+
+    const handleOk = () => {
+        setIsModalOpen(false);
+    };
+
+    const handleCancel = () => {
+        setIsModalOpen(false);
+    };
     // minGtdcNoc={props.minGtdcNoc} 
     // maxGtdcNoc={props.maxGtdcNoc}
 
@@ -131,13 +187,12 @@ const Filter = props => {
                 </Row>
                 <Slider range value={props.gtdcNoc} onChange={props.handleGtdcNoc} min={props.minGtdcNoc} max={props.maxGtdcNoc} />
             </div>
-            <div className="legend-container">
-                <div className="legend-column">
-                    {legendData.map((item, index) => (
-                    <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
-                    ))}
-                </div>
-            </div>
+            <Button type="primary" onClick={showModal}>
+                Legends
+            </Button>
+            <Modal title="legends" open={isModalOpen} onOk={handleOk} onCancel={handleCancel}>
+                {items()}
+            </Modal>
         </div>
 
     );
