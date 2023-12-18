@@ -131,6 +131,13 @@ const Filter = props => {
                 </Row>
                 <Slider range value={props.gtdcNoc} onChange={props.handleGtdcNoc} min={props.minGtdcNoc} max={props.maxGtdcNoc} />
             </div>
+            <div className="legend-container">
+                <div className="legend-column">
+                    {legendData.map((item, index) => (
+                    <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
+                    ))}
+                </div>
+            </div>
         </div>
 
     );

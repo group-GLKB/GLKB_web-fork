@@ -204,8 +204,8 @@ function Graph(props) {
 
   const layout = {
     name: 'cola',
-    egdeLengthVal: 45,
-    nodeSpacing: 5,
+    egdeLengthVal: 200,
+    nodeSpacing: 25,
     bundleEdges: true,
     // fit: true,
     // circle: true,

@@ -342,7 +342,7 @@ const ResultPage = () => {
     const handleInputConfirm = (e) => {
         setSearchText('');
         if (!inputValue && tags.length != 0) {
-            handleSearch();
+            handleSearch(tags.join("|"));
         }
         if (inputValue && tags.indexOf(inputValue) === -1) {
         setTags([...tags, inputValue]);

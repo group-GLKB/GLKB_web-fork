@@ -21,8 +21,8 @@ export class DetailService {
         console.log('edge to detail')
         let res = []
         await axios
-            // .get('/frontend/frontend_rel_detail_mult/' + Source + '/' + Target)
-            .get('/api/frontend/frontend_rel_detail/' + Eid)
+            .get('/frontend/frontend_rel_detail_mult/' + Source + '/' + Target)
+            // .get('/api/frontend/frontend_rel_detail/' + Eid)
             .then(function (response) {
                 res = response
             })
