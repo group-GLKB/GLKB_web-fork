@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import './scoped.css'
-import { Row, Col, Slider, Collapse, Transfer, InputNumber, Typography, Button, Modal} from 'antd';
+import { Row, Col, Slider, Collapse, Transfer, InputNumber, Typography, Button, Modal, Tree, Input} from 'antd';
 import { DownOutlined, SmileOutlined } from '@ant-design/icons';
+import { NewGraph } from '../../service/NewNode'
 const { Panel } = Collapse;
 const { Title } = Typography;
 
@@ -15,14 +16,73 @@ const Filter = props => {
         background: '#EEEEEE'
     };
 
-    /* source is visible nodes, target is invisible nodes */
+    const graphNodes = [];
+    if (props.data.nodes) {
+        for (let i = 0; i < props.data.nodes.length; i++) {
+            graphNodes.push(props.data.nodes[i].data.id)
+        }
+    }
 
+    let existingNodes = []
+    const groupedNodes = {}
+    if (props.allNodes.length != 0) {
+        props.allNodes.forEach((node, index) => {
+            const type = node.type.split(';')[0];
+            if (!groupedNodes[type]) {
+              groupedNodes[type] = { key: type, title: type, children: [] };
+            }
+            groupedNodes[type].children.push({ key: node.id, title: node.name });
+          });
+          
+        existingNodes = Object.values(groupedNodes);
+    }
+
+    let initRightTreeData = [];
+    useEffect(() => {
+        if (props.graphShownData != {}) {
+            initRightTreeData = []
+            if (props.graphShownData.nodes) {
+                for (let i = 0; i < props.graphShownData.nodes.length; i++) {
+                    const node = props.graphShownData.nodes[i];
+                    const label = node.data.label;
+                    const newNode = { key: node.data.id, title: node.data.display };
+
+                    const labelData = initRightTreeData.find(group => group.key === label);
+
+                    if (labelData) {
+                        labelData.children.push(newNode);
+                    } else {
+                        initRightTreeData.push({ key: label, title: label, children: [newNode] });
+                    }
+                }
+            }
+            setRightData(initRightTreeData)
+        }
+    },[props.graphShownData])
+
+
+    /* source is visible nodes, target is invisible nodes */
     const [selectedArticleKeys, setSelectedArticleKeys] = useState([]);
     const [selectedTermKeys, setSelectedTermKeys] = useState([]);
     const [selectedRelationKeys, setSelectedRelationKeys] = useState([]);
     const [invisibleArticleKey, setInvisibleArticleKey] = useState([]);
     const [invisibleTermKey, setInvisibleTermKey] = useState([]);
     const [invisibleRelationKey, setInvisibleRelationKey] = useState([]);
+    const [displayLeftTree, setDisplayLeftTree] = useState(true);
+    const [expandedKeys, setExpandedKeys] = useState([]);
+    const [autoExpandParent, setAutoExpandParent] = useState(false);
+    const [checkedKeys, setCheckedKeys] = useState(graphNodes);
+    const [selectedKeys, setSelectedKeys] = useState([]);
+    const [leftData, setLeftData] = useState(existingNodes);
+    const [rightData, setRightData] = useState(initRightTreeData)
+    const [newList, setNewList] = useState();
+
+    const toggleTreeDisplay = () => {
+        setDisplayLeftTree((prevDisplayLeftTree) => !prevDisplayLeftTree);
+    };
+
+    const currentTreeData = displayLeftTree ? leftData : rightData;
+
     const onArticleChange = (nextTargetKeys, direction, moveKeys) => {
         if (direction == "right") {
             let temp = props.visibleArticles
@@ -81,13 +141,19 @@ const Filter = props => {
     const onScroll = (direction, e) => {
     };
 
+    const existingNodeList = []
+    for (var i = 0; i < rightData.length; i++) {
+        existingNodeList.push(rightData[i].children.map(child => child.key).join('|'))
+    }
+    const existing = existingNodeList.join('|')
+
     const LegendItem = ({ label, size, color }) => {
         const isQueryTerms = label === 'query terms';
         
         return (
             <div className="legend-item">
             {isQueryTerms ? (
-                <div className="legend-triangle" style={{marginLeft: "4px"}}></div>
+                <div className="legend-triangle" style={{marginLeft: "0px"}}></div>
             ) : (
                 <div className="legend-circle" style={{ backgroundColor: color, width: size, height: size, marginLeft: size === 5 ? "6px" : size === 10 ? "4px" : "0" }}></div>
             )}
@@ -116,6 +182,118 @@ const Filter = props => {
         { label: 'Organisms', size: 20, color: '#9B58C5' },
         { label: 'Pathway', size: 20, color: '#D829B1' },
     ];
+
+    const onExpand = (expandedKeysValue) => {
+        setExpandedKeys(expandedKeysValue);
+        setAutoExpandParent(false);
+    };
+
+    const onCheck = (checkedKeysValue) => {
+        if (displayLeftTree) {
+            if (newList) {
+                const tempKeys = []
+                for (var i = 0; i < newList.length; i++) {
+                    for (var j = 0; j < newList[i].children.length; j++) {
+                        tempKeys.push(newList[i].children[j].key)
+                    }
+                }
+                const tempCheckedKeys = checkedKeys.filter(key => tempKeys.includes(key))
+                setCheckedKeys(checkedKeys.filter(key => !tempCheckedKeys.includes(key)).concat(checkedKeysValue));
+                console.log(checkedKeys);
+                return;
+            }
+        }
+        setCheckedKeys(checkedKeysValue);
+        console.log(checkedKeys)
+    };
+
+    const onSelect = (selectedKeysValue, info) => {
+        setSelectedKeys(selectedKeysValue);
+    };
+
+    const buttonClick = () => {
+        const existingList = existing.split('|')
+        const filteredList = checkedKeys.filter(item => !isNaN(item))
+        const newNode = filteredList.filter(id => !existingList.includes(id)).join('|')
+        if (newNode) {
+            console.log(newNode)
+            drawNewGraph(existing, newNode)
+        }
+        props.setGraphData(checkedKeys)
+    }
+
+    async function drawNewGraph(existing, newNode) {
+        let detailServ = new NewGraph()
+        const response = await detailServ.AddNodes(existing, newNode)
+        console.log(response)
+        const newData = JSON.parse(JSON.stringify(props.data));
+        for (var i = 0; i < response.data.nodes.length; i++) {
+            newData.nodes.push({'data': response.data.nodes[i]})
+        }
+        for (var i = 0; i < response.data.links.length; i++) {
+            newData.edges.push({'data': response.data.links[i]})
+        }
+        props.setData(newData)
+    }
+
+    const onCheckHandler = displayLeftTree ? onCheck : undefined;
+    const checkedKeysHandler = displayLeftTree ? checkedKeys : undefined;
+    const onSelectHandler = displayLeftTree ? onSelect : undefined;
+    const selectedKeysHandler = displayLeftTree ? selectedKeys : undefined;
+
+    const onSearch = (val, context) => {
+        if (!val) {
+            setLeftData(existingNodes)
+            if (props.graphShownData != {}) {
+                initRightTreeData = []
+                if (props.graphShownData.nodes) {
+                    for (let i = 0; i < props.graphShownData.nodes.length; i++) {
+                        const node = props.graphShownData.nodes[i];
+                        const label = node.data.label;
+                        const newNode = { key: node.data.id, title: node.data.display };
+    
+                        const labelData = initRightTreeData.find(group => group.key === label);
+    
+                        if (labelData) {
+                            labelData.children.push(newNode);
+                        } else {
+                            initRightTreeData.push({ key: label, title: label, children: [newNode] });
+                        }
+                    }
+                }
+                setRightData(initRightTreeData)
+            }
+            if (context === 'left') {
+                setCheckedKeys(checkedKeys)
+            }
+            return;
+        }
+        const data = (context === 'left' ? leftData : rightData)
+        const newDeptList = data?.map(item => {
+            item = Object.assign({}, item)
+            if (item.children) {
+                item.children = item.children?.filter(res => (res.title.indexOf(val) > -1))
+            }
+            return item
+        }).filter(item => {
+            if (item.children?.length > 0 || val.length == 0) {
+                item = Object.assign({}, item)
+                item.children?.filter(e => (
+                    e.title.indexOf(val) > -1 ? '' : item.title.indexOf(val) > -1
+                ))
+            } else {
+                item = item.title.indexOf(val) > -1
+            }
+            return item
+        })
+        if (context === 'left') {
+            setLeftData(newDeptList)
+            setNewList(newDeptList)
+        }
+        if (context === 'right') {
+            setRightData(newDeptList)
+        }
+    };
 
     const items = () => {
         return (
@@ -162,7 +340,36 @@ const Filter = props => {
     // No collapse Version
     return (
         <div>
-            <Title level={4}>Genomic Terms Density Control</Title>
+            <Title level={4}>Custom your search</Title>
+            <div>
+                <div>
+                    <h3>
+                    {displayLeftTree ? 'All Related Terms' : 'Current Terms in Graph'}
+                    </h3>
+                    <Input.Search
+                        placeholder="Search"
+                        onSearch={(value) => onSearch(value, displayLeftTree ? 'left' : 'right')}
+                    />
+                    <Tree
+                        checkable={displayLeftTree}
+                        blockNode
+                        height={200}
+                        onExpand={onExpand}
+                        expandedKeys={expandedKeys}
+                        autoExpandParent={autoExpandParent}
+                        onCheck={onCheckHandler}
+                        checkedKeys={checkedKeysHandler}
+                        onSelect={onSelectHandler}
+                        selectedKeys={selectedKeysHandler}
+                        // Add other props based on the currentTreeData
+                        treeData={currentTreeData}
+                    />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Button onClick={buttonClick} type="primary" style={{ marginTop: '20px' }}>Apply</Button>
+                    <Button onClick={toggleTreeDisplay} style={{ marginTop: '20px' }}>Show current terms in graph only</Button>
+                </div>
+            </div>
                <div>
                    <Row>
                        <Col span={12}>Frequency</Col>

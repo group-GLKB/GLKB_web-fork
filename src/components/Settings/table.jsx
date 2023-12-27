@@ -60,7 +60,6 @@ const App = (props) => {
     const [rightData, setRightData] = useState(initRightTreeData)
     const [leftData, setLeftData] = useState(existingNodes);
     const tableClass = props.isTableOpen ? "table open" : "table";
-    
     const existingNodeList = []
     for (var i = 0; i < rightData.length; i++) {
         existingNodeList.push(rightData[i].children.map(child => child.key).join('|'))
@@ -89,6 +88,7 @@ const App = (props) => {
             const filteredList = checkedKeys.filter(item => !isNaN(item))
             const newNode = filteredList.filter(id => !existingList.includes(id)).join('|')
             if (newNode) {
+                console.log(newNode)
                 drawNewGraph(existing, newNode)
             }
             props.setGraphData(checkedKeys)

@@ -72,6 +72,11 @@ const Settings = props => {
                     visibleArticles={props.visibleArticles}
                     visibleTerms={props.visibleTerms}
                     visibleRelations={props.visibleRelations}
+                    data = {props.data}
+                    setData = {props.setData}
+                    allNodes = {props.allNodes}
+                    setGraphData = {props.setGraphData}
+                    graphShownData = {props.graphShownData}
                 />  
             </div>
             {/*<Button*/}
@@ -80,7 +85,7 @@ const Settings = props => {
             {/*>*/}
             {/*    { !props.isOpen ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}*/}
             {/*</Button>*/}
-            <Table 
+            {/* <Table 
                 isTableOpen = {props.isTableOpen}
                 toggleTable = {props.toggleTable}
                 data = {props.data}
@@ -88,7 +93,7 @@ const Settings = props => {
                 allNodes = {props.allNodes}
                 setGraphData = {props.setGraphData}
                 graphShownData = {props.graphShownData}
-            />
+            /> */}
         </div>
         
   );

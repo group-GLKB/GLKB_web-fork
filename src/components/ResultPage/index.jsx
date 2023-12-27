@@ -215,7 +215,15 @@ const ResultPage = () => {
             for (var i = 0; i < graphData.length; i++) {
                 nodeIdsToKeep.push(graphData[i])
             }
-            const filteredNodes = data.nodes.filter(node => nodeIdsToKeep.includes(node.data.id));
+            const nodeIds = data.nodes.filter(node => nodeIdsToKeep.includes(node.data.id));
+            const uniqueIds = new Set();
+            const filteredNodes = [];
+            nodeIds.forEach(node => {
+            if (!uniqueIds.has(node.data.id)) {
+                uniqueIds.add(node.data.id);
+                filteredNodes.push(node);
+            }
+            });
             const filteredEdges = data.edges.filter(edge =>
                 nodeIdsToKeep.includes(edge.data.source) && nodeIdsToKeep.includes(edge.data.target)
             );
