@@ -1,0 +1,49 @@
+/* NavBar.css */
+
+.navbar {
+    background-color: #00274c; /* University of Michigan blue */
+    color: white;
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+
+}
+
+.navbar-container {
+    width: 100%;
+    max-width: 1200px; /* Maximum width of the content */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo a {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    margin-right: 1rem;
+    /* Add more styling for the logo as needed */
+}
+
+.logo img {
+    width: 120px;  /* or any desired width */
+    height: auto;  /* to maintain the aspect ratio */
+}
+
+.search-bar {
+    display: flex;
+}
+
+.search-bar input {
+    padding: 0.5rem;
+    margin-right: 0.5rem;
+    /* Add more styling for the input as needed */
+}
+
+.search-bar button {
+    padding: 0.5rem;
+    background-color: #ffcb05; /* University of Michigan maize */
+    border: none;
+    cursor: pointer;
+    /* Add more styling for the button as needed */
+}
