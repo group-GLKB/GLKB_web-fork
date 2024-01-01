@@ -4,59 +4,127 @@
     background-color: #00274c; /* University of Michigan blue */
     color: white;
     display: flex;
-    justify-content: center;
+    justify-content: left;
     padding: 1rem;
-
+    height: 100px;
 }
 
+
 .navbar-container {
-    width: 100%;
-    max-width: 1200px; /* Maximum width of the content */
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.logo a {
+.left-section {
+    display: flex;
+    align-items: center;
+    justify-content: left;
+}
+
+.left-section input {
+    padding: 0.5rem;
+    margin-right: 0.5rem;
+    /* Add more styling for the input as needed */
+    border: 1px solid #ccc; /* Border color for the input */
+    border-radius: 4px; /* Rounded corners for the input */
+}
+
+.nav-button a{
     color: white;
     text-decoration: none;
     font-weight: bold;
-    margin-right: 1rem;
-    /* Add more styling for the logo as needed */
+    /*margin-right: 3rem; !* Space after the logo *!*/
+    margin-left: 3rem;
+    margin-right: 2rem;
+    width: 120px;
+    font-size: 20px;
+    align-items: center;
+    white-space: normal;
 }
 
 .logo img {
     width: 120px;  /* or any desired width */
     height: auto;  /* to maintain the aspect ratio */
+    margin-left: 2.5rem;
+
 }
 
-.search-bar {
+/* Logo and Navigation Links */
+.logo, .nav-links {
     display: flex;
+    align-items: center; /* Vertically center items */
 }
 
-.search-bar input {
-    padding: 0.5rem;
-    margin-right: 0.5rem;
-    /* Add more styling for the input as needed */
+.center-section {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: auto;
 }
 
-.search-bar button {
-    padding: 0.5rem;
+.center-section button {
+    padding: 0.5rem 1rem;
     background-color: #ffcb05; /* University of Michigan maize */
     border: none;
     cursor: pointer;
-    /* Add more styling for the button as needed */
+    border-radius: 4px;
+    height: 2.5rem;
 }
 
-
-.search-tag {
-    padding: 5px 10px;
-    margin-right: 5px;
-    background-color: #007bff;
-    border-radius: 20px;
-    display: inline-block;
-    color: white;
+.center-section input {
+    padding: 0.5rem;
+    margin-right: 0.5rem;
+    /* Add more styling for the input as needed */
+    border: 1px solid white; /* Border color for the input */
+    border-radius: 4px; /* Rounded corners for the input */
+    flex-grow: 1;
 }
+
+/*.search-bar {*/
+/*    display: flex;*/
+/*    align-items: center;*/
+/*    width: 100%;*/
+/*}*/
+
+/*.search-bar input {*/
+/*    padding: 0.5rem;*/
+/*    margin-right: 0.5rem;*/
+/*    !* Add more styling for the input as needed *!*/
+/*    border: 1px solid #ccc; !* Border color for the input *!*/
+/*    border-radius: 4px; !* Rounded corners for the input *!*/
+/*}*/
+
+/*.search-bar button {*/
+/*    padding: 0.5rem 1rem;*/
+/*    background-color: #ffcb05; !* University of Michigan maize *!*/
+/*    border: none;*/
+/*    cursor: pointer;*/
+/*    border-radius: 4px;*/
+/*    height: 2.5rem;*/
+/*    !* Add more styling for the button as needed *!*/
+/*}*/
+
+/*!* Search Button *!*/
+/*.search-button {*/
+/*    background-color: #ffcb05; !* University of Michigan maize *!*/
+/*    color: #00274c; !* University of Michigan blue *!*/
+/*    border: none; !* No border for the button *!*/
+/*    padding: 0.5rem 1rem; !* Padding inside the button *!*/
+/*    border-radius: 4px; !* Rounded corners for the button *!*/
+/*    cursor: pointer; !* Cursor to indicate it's clickable *!*/
+/*}*/
+
+
+/*.search-tag {*/
+/*    padding: 5px 10px;*/
+/*    margin-right: 5px;*/
+/*    background-color: #007bff;*/
+/*    border-radius: 15px;*/
+/*    display: inline-block;*/
+/*    color: white;*/
+/*}*/
 
 
 .search-input {
@@ -67,12 +135,15 @@
     flex-wrap: wrap;
     align-items: center;
     cursor: text;
+    width: 400px;
+    background-color:#FFFFFF;
+    height: 2.5rem;
 }
 
 .search-tag {
     padding: 5px 10px;
     background-color: #007bff;
-    border-radius: 20px;
+    border-radius: 15px;
     margin-right: 5px;
     color: white;
     display: flex;
@@ -84,6 +155,7 @@
     outline: none;
     min-width: 60px; /* Minimum width for typing */
     flex-grow: 1;
+    color: #00274c;
     /* Other styles to match your design */
 }
 

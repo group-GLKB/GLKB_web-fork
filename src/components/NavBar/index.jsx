@@ -48,21 +48,24 @@ const NavBar = () => {
 
     return (
         <nav className="navbar">
-            <div className="navbar-container">
-                {/* ... logo and other links ... */}
 
-                <div className="search-bar">
+                {/* Grouped logo and navigation buttons */}
+                <div className="left-section">
                     <div className="logo">
                         <a href="/">
                             <img src={MedSchoolLogo} alt="MedSchoolLogo" />
                         </a>
                     </div>
-                    <div className="logo">
+                    <div className="nav-button">
                         <a href="/">Home</a>
                     </div>
-                    <div className="logo">
+                    <div className="nav-button">
                         <a href="https://glkb.dcmb.med.umich.edu/docs" target="_blank">API Doc</a>
                     </div>
+                </div>
+
+                {/* Centered search bar */}
+                <div className="center-section">
                     <div className="search-input" onClick={() => inputRef.current && inputRef.current.focus()}>
                         {tags.map((tag, index) => (
                             <span key={index} className="search-tag">
@@ -80,10 +83,49 @@ const NavBar = () => {
                             aria-multiline="false"
                         />
                     </div>
-                    <button type="button" onClick={handleSearch}>Search</button>
+                    <button onClick={handleSearch}>Search</button>
                 </div>
-            </div>
+
         </nav>
+
+
+        // <nav className="navbar">
+        //     <div className="navbar-container">
+        //         {/* ... logo and other links ... */}
+        //
+        //         <div className="search-bar">
+        //             <div className="logo">
+        //                 <a href="/">
+        //                     <img src={MedSchoolLogo} alt="MedSchoolLogo" />
+        //                 </a>
+        //             </div>
+        //             <div className="nav-button">
+        //                 <a href="/">Home</a>
+        //             </div>
+        //             <div className="nav-button">
+        //                 <a href="https://glkb.dcmb.med.umich.edu/docs" target="_blank">API</a>
+        //             </div>
+        //             <div className="search-input" onClick={() => inputRef.current && inputRef.current.focus()}>
+        //                 {tags.map((tag, index) => (
+        //                     <span key={index} className="search-tag">
+        //                         {tag}
+        //                         <span className="delete-tag" onClick={() => setTags(tags.filter((_, i) => i !== index))}>&times;</span>
+        //                     </span>
+        //                 ))}
+        //                 <span
+        //                     ref={inputRef}
+        //                     contentEditable
+        //                     className="editable-input"
+        //                     onInput={handleInputChange}
+        //                     onKeyDown={handleKeyDown}
+        //                     role="textbox"
+        //                     aria-multiline="false"
+        //                 />
+        //             </div>
+        //             <button type="button" onClick={handleSearch}>Search</button>
+        //         </div>
+        //     </div>
+        // </nav>
     );
 };
 
