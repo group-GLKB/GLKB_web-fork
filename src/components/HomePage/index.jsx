@@ -8,6 +8,7 @@ import GLKBLogoImg from '../../img/glkb_logo.png'
 import UMLogo from '../../img/um_logo.jpg'
 import MedSchoolLogo from '../../img/MedSchoolLogo.png'
 import { DingtalkCircleFilled } from '@ant-design/icons';
+import NavBar from "../NavBar";
 
 const { Search } = Input;
 
@@ -79,6 +80,7 @@ const HomePage = () => {
     const tagChild = tags.map(forMap);
 
     return (
+
     // <div className="home-container">
     //     <div className="home-head-container">
     //         <img src={GLKBLogoImg} style={{ height: 100 }} />
@@ -146,35 +148,39 @@ const HomePage = () => {
     //         </div>
     //     </div>
     // </div>
+
+
+        // version 2
         <div>
-            {/* Navigation Bar */}
-            <Menu
-                mode="horizontal"
-                style={{
-                    backgroundColor: '#f0f2f5',
-                    //borderBottom: '1px solid #e8e8e8',
-                    borderBottom :'none',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                    padding: '0 40px',
-                    fontSize: '25px',
-                    lineHeight: '50px',
-                    transition: 'background-color 0.3s ease',
-                }}
-            >
-                <Menu.Item key="home" >
-                    Home
-                </Menu.Item>
-                {/*<Menu.Item key="about">*/}
-                {/*    <a href="https://google.com" target="_blank" rel="noopener noreferrer">*/}
-                {/*        About*/}
-                {/*    </a>*/}
-                {/*</Menu.Item>*/}
-                <Menu.Item key="API">
-                    <a href="https://glkb.dcmb.med.umich.edu/docs" target="_blank" rel="noopener noreferrer">
-                        API Doc
-                    </a>
-                </Menu.Item>
-            </Menu>
+            {/*/!* Navigation Bar *!/*/}
+            {/*<Menu*/}
+            {/*    mode="horizontal"*/}
+            {/*    style={{*/}
+            {/*        backgroundColor: '#f0f2f5',*/}
+            {/*        //borderBottom: '1px solid #e8e8e8',*/}
+            {/*        borderBottom :'none',*/}
+            {/*        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',*/}
+            {/*        padding: '0 40px',*/}
+            {/*        fontSize: '25px',*/}
+            {/*        lineHeight: '50px',*/}
+            {/*        transition: 'background-color 0.3s ease',*/}
+            {/*    }}*/}
+            {/*>*/}
+            {/*    <Menu.Item key="home" >*/}
+            {/*        Home*/}
+            {/*    </Menu.Item>*/}
+            {/*    /!*<Menu.Item key="about">*!/*/}
+            {/*    /!*    <a href="https://google.com" target="_blank" rel="noopener noreferrer">*!/*/}
+            {/*    /!*        About*!/*/}
+            {/*    /!*    </a>*!/*/}
+            {/*    /!*</Menu.Item>*!/*/}
+            {/*    <Menu.Item key="API">*/}
+            {/*        <a href="https://glkb.dcmb.med.umich.edu/docs" target="_blank" rel="noopener noreferrer">*/}
+            {/*            API Doc*/}
+            {/*        </a>*/}
+            {/*    </Menu.Item>*/}
+            {/*</Menu>*/}
+            <NavBar/>
 
             {/* Filter Bar */}
             <div className="line"></div>

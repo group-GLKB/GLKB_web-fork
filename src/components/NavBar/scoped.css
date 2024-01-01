@@ -47,3 +47,54 @@
     cursor: pointer;
     /* Add more styling for the button as needed */
 }
+
+
+.search-tag {
+    padding: 5px 10px;
+    margin-right: 5px;
+    background-color: #007bff;
+    border-radius: 20px;
+    display: inline-block;
+    color: white;
+}
+
+
+.search-input {
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    cursor: text;
+}
+
+.search-tag {
+    padding: 5px 10px;
+    background-color: #007bff;
+    border-radius: 20px;
+    margin-right: 5px;
+    color: white;
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.editable-input {
+    outline: none;
+    min-width: 60px; /* Minimum width for typing */
+    flex-grow: 1;
+    /* Other styles to match your design */
+}
+
+
+.delete-tag {
+    cursor: pointer;
+    padding: 0 5px;
+    position: absolute;
+    right: -5px;
+    top: -10px;
+    background-color: red;
+    border-radius: 50%;
+    color: white;
+}
