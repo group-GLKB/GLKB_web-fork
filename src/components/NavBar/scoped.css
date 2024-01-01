@@ -25,16 +25,14 @@
 .left-section input {
     padding: 0.5rem;
     margin-right: 0.5rem;
-    /* Add more styling for the input as needed */
-    border: 1px solid #ccc; /* Border color for the input */
-    border-radius: 4px; /* Rounded corners for the input */
+    border: 1px solid #ccc;
+    border-radius: 4px;
 }
 
 .nav-button a{
     color: white;
     text-decoration: none;
     font-weight: bold;
-    /*margin-right: 3rem; !* Space after the logo *!*/
     margin-left: 3rem;
     margin-right: 2rem;
     width: 120px;
@@ -44,17 +42,12 @@
 }
 
 .logo img {
-    width: 120px;  /* or any desired width */
-    height: auto;  /* to maintain the aspect ratio */
+    width: 120px;
+    height: auto;
     margin-left: 2.5rem;
 
 }
 
-/* Logo and Navigation Links */
-.logo, .nav-links {
-    display: flex;
-    align-items: center; /* Vertically center items */
-}
 
 .center-section {
     flex-grow: 1;
@@ -76,55 +69,10 @@
 .center-section input {
     padding: 0.5rem;
     margin-right: 0.5rem;
-    /* Add more styling for the input as needed */
-    border: 1px solid white; /* Border color for the input */
-    border-radius: 4px; /* Rounded corners for the input */
+    border: 1px solid white;
+    border-radius: 4px;
     flex-grow: 1;
 }
-
-/*.search-bar {*/
-/*    display: flex;*/
-/*    align-items: center;*/
-/*    width: 100%;*/
-/*}*/
-
-/*.search-bar input {*/
-/*    padding: 0.5rem;*/
-/*    margin-right: 0.5rem;*/
-/*    !* Add more styling for the input as needed *!*/
-/*    border: 1px solid #ccc; !* Border color for the input *!*/
-/*    border-radius: 4px; !* Rounded corners for the input *!*/
-/*}*/
-
-/*.search-bar button {*/
-/*    padding: 0.5rem 1rem;*/
-/*    background-color: #ffcb05; !* University of Michigan maize *!*/
-/*    border: none;*/
-/*    cursor: pointer;*/
-/*    border-radius: 4px;*/
-/*    height: 2.5rem;*/
-/*    !* Add more styling for the button as needed *!*/
-/*}*/
-
-/*!* Search Button *!*/
-/*.search-button {*/
-/*    background-color: #ffcb05; !* University of Michigan maize *!*/
-/*    color: #00274c; !* University of Michigan blue *!*/
-/*    border: none; !* No border for the button *!*/
-/*    padding: 0.5rem 1rem; !* Padding inside the button *!*/
-/*    border-radius: 4px; !* Rounded corners for the button *!*/
-/*    cursor: pointer; !* Cursor to indicate it's clickable *!*/
-/*}*/
-
-
-/*.search-tag {*/
-/*    padding: 5px 10px;*/
-/*    margin-right: 5px;*/
-/*    background-color: #007bff;*/
-/*    border-radius: 15px;*/
-/*    display: inline-block;*/
-/*    color: white;*/
-/*}*/
 
 
 .search-input {
