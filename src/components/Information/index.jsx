@@ -42,18 +42,18 @@ const Information = props => {
         }
         async function searchInfoEdge(content) {
             let detailServ = new DetailService()
-            console.log(content)
+            // console.log(content)
             const response = await detailServ.Eid2Detail(content[0], content[1])
-            console.log(response.data)
+            //console.log(response.data)
             // const sample_data = [[{"node1":"Neoplasms","node2":"Breast Neoplasms","number of citations":1,"relationship label":"Semantic_relationship","relationship type":"Negative_Correlation"},
             //     [["Tumor suppression effect of Solanum nigrum polysaccharide fraction on Breast cancer via immunomodulation. (2016)","https://pubmed.ncbi.nlm.nih.gov/27365117/"]]],
             //     [{"node1":"Breast Neoplasms","node2":"Neoplasms","number of citations":2,"relationship label":"Semantic_relationship","relationship type":"Positive_Correlation"},
             //         [["Immunohistochemical expression of metallothionein in invasive breast cancer in relation to proliferative activity, histology and prognosis. (1996)","https://pubmed.ncbi.nlm.nih.gov/8604236/"],["Long-term exposure to elevated levels of circulating TIMP-1 but not mammary TIMP-1 suppresses growth of mammary carcinomas in transgenic mice. (2004)","https://pubmed.ncbi.nlm.nih.gov/15166086/"]]],
             //     [{"node1":"Breast Neoplasms","node2":"Neoplasms","number of citations":1,"relationship label":"Semantic_relationship","relationship type":"Negative_Correlation"},[["Effect of catechol estrogens on rat mammary tumors. (1979)","https://pubmed.ncbi.nlm.nih.gov/115583/"]]],
             //     ]
-            const sample_data = [[{"node1":"Neoplasms","node2":"Breast Neoplasms","number of citations":1,"relationship label":"Semantic_relationship","relationship type":"Negative_Correlation"},[["Tumor suppression effect of Solanum nigrum polysaccharide fraction on Breast cancer via immunomodulation. (2016)","https://pubmed.ncbi.nlm.nih.gov/27365117/",6,2016]]],[{"node1":"Breast Neoplasms","node2":"Neoplasms","number of citations":2,"relationship label":"Semantic_relationship","relationship type":"Positive_Correlation"},[["Immunohistochemical expression of metallothionein in invasive breast cancer in relation to proliferative activity, histology and prognosis. (1996)","https://pubmed.ncbi.nlm.nih.gov/8604236/",11,1996],["Long-term exposure to elevated levels of circulating TIMP-1 but not mammary TIMP-1 suppresses growth of mammary carcinomas in transgenic mice. (2004)","https://pubmed.ncbi.nlm.nih.gov/15166086/",8,2004]]],[{"node1":"Breast Neoplasms","node2":"Neoplasms","number of citations":1,"relationship label":"Semantic_relationship","relationship type":"Negative_Correlation"},[["Effect of catechol estrogens on rat mammary tumors. (1979)","https://pubmed.ncbi.nlm.nih.gov/115583/",2,1979]]],[{"node1":"Breast Neoplasms","node2":"Neoplasms","number of citations":null,"relationship label":"Hierarchical_structure","relationship type":"subclass_of"},[]]];
-            setEdgeDetail(sample_data);
-            //setEdgeDetail(response.data)
+            // const sample_data = [[{"node1":"Neoplasms","node2":"Breast Neoplasms","number of citations":1,"relationship label":"Semantic_relationship","relationship type":"Negative_Correlation"},[["Tumor suppression effect of Solanum nigrum polysaccharide fraction on Breast cancer via immunomodulation. (2016)","https://pubmed.ncbi.nlm.nih.gov/27365117/",6,2016]]],[{"node1":"Breast Neoplasms","node2":"Neoplasms","number of citations":2,"relationship label":"Semantic_relationship","relationship type":"Positive_Correlation"},[["Immunohistochemical expression of metallothionein in invasive breast cancer in relation to proliferative activity, histology and prognosis. (1996)","https://pubmed.ncbi.nlm.nih.gov/8604236/",11,1996],["Long-term exposure to elevated levels of circulating TIMP-1 but not mammary TIMP-1 suppresses growth of mammary carcinomas in transgenic mice. (2004)","https://pubmed.ncbi.nlm.nih.gov/15166086/",8,2004]]],[{"node1":"Breast Neoplasms","node2":"Neoplasms","number of citations":1,"relationship label":"Semantic_relationship","relationship type":"Negative_Correlation"},[["Effect of catechol estrogens on rat mammary tumors. (1979)","https://pubmed.ncbi.nlm.nih.gov/115583/",2,1979]]],[{"node1":"Breast Neoplasms","node2":"Neoplasms","number of citations":null,"relationship label":"Hierarchical_structure","relationship type":"subclass_of"},[]]];
+            // setEdgeDetail(sample_data);
+            setEdgeDetail(response.data)
             setNodeDetail({})
         }
         if (props.detailId) {
@@ -187,23 +187,25 @@ const Information = props => {
                     {Object.keys(nodeDetail).length !== 0 && (
 
                         <div className='article-container'>
-                            <Title level={4}>Node Details</Title>
+                            <Title level={4}>{nodeDetail[0].name.charAt(0).toUpperCase() + nodeDetail[0].name.slice(1)}</Title>
+                            {/*<Title level={4}>{nodeDetail[0].name}</Title>*/}
                             <Descriptions bordered column={1}  size="small" className="custom-descriptions">
                                 <Descriptions.Item label="Entity ID">{nodeDetail[0].element_id}</Descriptions.Item>
-                                <Descriptions.Item label="Name">{nodeDetail[0].name}</Descriptions.Item>
                                 <Descriptions.Item label="Aliases">{nodeDetail[0].aliases}</Descriptions.Item>
                                 <Descriptions.Item label="Description">{nodeDetail[0].description}</Descriptions.Item>
                                 <Descriptions.Item label="Type">{nodeDetail[0].type}</Descriptions.Item>
                                 <Descriptions.Item label="External ID">{renderExternal()}</Descriptions.Item>
                             </Descriptions>
-                            {/*<div className='article-titile'>Entity ID: {nodeDetail[0].element_id}</div>*/}
-                            {/*<div className='article-titile'>Name: {nodeDetail[0].name}</div>*/}
-                            {/*<div className='article-titile'>Aliases: {nodeDetail[0].aliases}</div>*/}
-                            {/*<div className='article-titile'>Description: {nodeDetail[0].description}</div>*/}
-                            {/*<div className='article-titile'>Type: {nodeDetail[0].type}</div>*/}
-                            {/*<div className='article-titile'>*/}
-                            {/*External ID: {renderExternal()}*/}
-                            {/*</div>*/}
+                            {/*This is the version with the "Node Details Header*/}
+                            {/*<Title level={4}>Node Details</Title>*/}
+                            {/*<Descriptions bordered column={1}  size="small" className="custom-descriptions">*/}
+                            {/*    <Descriptions.Item label="Entity ID">{nodeDetail[0].element_id}</Descriptions.Item>*/}
+                            {/*    <Descriptions.Item label="Name">{nodeDetail[0].name}</Descriptions.Item>*/}
+                            {/*    <Descriptions.Item label="Aliases">{nodeDetail[0].aliases}</Descriptions.Item>*/}
+                            {/*    <Descriptions.Item label="Description">{nodeDetail[0].description}</Descriptions.Item>*/}
+                            {/*    <Descriptions.Item label="Type">{nodeDetail[0].type}</Descriptions.Item>*/}
+                            {/*    <Descriptions.Item label="External ID">{renderExternal()}</Descriptions.Item>*/}
+                            {/*</Descriptions>*/}
                         </div>
                     )}
                     {Object.keys(edgeDetail).length !== 0 && (

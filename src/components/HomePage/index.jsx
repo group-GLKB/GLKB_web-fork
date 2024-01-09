@@ -8,16 +8,14 @@ import GLKBLogoImg from '../../img/glkb_logo.png'
 import UMLogo from '../../img/um_logo.jpg'
 import MedSchoolLogo from '../../img/MedSchoolLogo.png'
 import { DingtalkCircleFilled } from '@ant-design/icons';
+import NavBar from '../NavBar';
 
 const { Search } = Input;
 
 const HomePage = () => {
     let nevigate = useNavigate();
     const handleSearch = async (v) => {
-        const alltags = tags.join("|")
-        console.log(alltags)
-        // console.log(v)
-        nevigate(`/result?q=${alltags}`)
+        nevigate(`/result?q=${v}`)
     }
 
     const [tags, setTags] = useState([]);
@@ -147,8 +145,13 @@ const HomePage = () => {
     //     </div>
     // </div>
         <div>
+            <NavBar 
+                handleSearchTags = {handleSearch}
+                tags = {tags}
+                setTags = {setTags}    
+            />
             {/* Navigation Bar */}
-            <Menu
+            {/* <Menu
                 mode="horizontal"
                 style={{
                     backgroundColor: '#f0f2f5',
@@ -169,15 +172,15 @@ const HomePage = () => {
                 {/*        About*/}
                 {/*    </a>*/}
                 {/*</Menu.Item>*/}
-                <Menu.Item key="API">
+                {/* <Menu.Item key="API">
                     <a href="https://glkb.dcmb.med.umich.edu/docs" target="_blank" rel="noopener noreferrer">
                         API Doc
                     </a>
                 </Menu.Item>
-            </Menu>
-
+            </Menu> */}
+        
             {/* Filter Bar */}
-            <div className="line"></div>
+            {/* <div className="line"></div>
 
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '140px'}}>
                 <div style={{ textAlign: 'left', width: '600px', padding: '20px', background: '#F6F6F6', borderRadius: '14px'}}>
@@ -205,7 +208,7 @@ const HomePage = () => {
                         </TweenOneGroup>
                     </div>
                 </div>
-            </div>
+            </div> */}
         </div>
     )
 }

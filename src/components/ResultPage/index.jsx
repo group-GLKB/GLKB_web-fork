@@ -9,6 +9,7 @@ import './scoped.css'
 
 
 import GLKBLogoImg from '../../img/glkb_logo.png'
+import NavBar from '../NavBar';
 import UMLogo from '../../img/um_logo.jpg'
 import queryString from 'query-string'
 import Settings from "../Settings";
@@ -383,6 +384,11 @@ const ResultPage = () => {
     console.log(graphShownData)
     return (
         <div className="result-container">
+            <NavBar 
+                handleSearchTags = {handleSearch}
+                tags = {tags}
+                setTags = {setTags}
+            />
             {/* Navigation Bar */}
             {/*<div className="heading-container">*/}
             {/*    <Row>*/}
@@ -409,33 +415,33 @@ const ResultPage = () => {
             {/*    padding: '25px',*/}
             {/*    borderBottom: 'none'*/}
             {/*}} >*/}
-            <Menu
-                mode="horizontal"
-                style={{
-                    backgroundColor: '#f0f2f5',
-                    //borderBottom: '1px solid #e8e8e8',
-                    borderBottom :'none',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                    padding: '0 40px',
-                    fontSize: '25px',
-                    lineHeight: '50px',
-                    transition: 'background-color 0.3s ease',
-                }}
-            >
-                <Menu.Item key="home" href="./Homepage">
-                    Home
-                </Menu.Item>
-                {/*<Menu.Item key="about">*/}
-                {/*    <a href="https://google.com" target="_blank" rel="noopener noreferrer">*/}
-                {/*        About*/}
-                {/*    </a>*/}
-                {/*</Menu.Item>*/}
-                <Menu.Item key="API">
-                    <a href="https://glkb.dcmb.med.umich.edu/docs" target="_blank" rel="noopener noreferrer">
-                        API Doc
-                    </a>
-                </Menu.Item>
-            </Menu>
+            {/*<Menu*/}
+            {/*    mode="horizontal"*/}
+            {/*    style={{*/}
+            {/*        backgroundColor: '#f0f2f5',*/}
+            {/*        //borderBottom: '1px solid #e8e8e8',*/}
+            {/*        borderBottom :'none',*/}
+            {/*        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',*/}
+            {/*        padding: '0 40px',*/}
+            {/*        fontSize: '25px',*/}
+            {/*        lineHeight: '50px',*/}
+            {/*        transition: 'background-color 0.3s ease',*/}
+            {/*    }}*/}
+            {/*>*/}
+            {/*    <Menu.Item key="home" href="./Homepage">*/}
+            {/*        Home*/}
+            {/*    </Menu.Item>*/}
+            {/*    /!*<Menu.Item key="about">*!/*/}
+            {/*    /!*    <a href="https://google.com" target="_blank" rel="noopener noreferrer">*!/*/}
+            {/*    /!*        About*!/*/}
+            {/*    /!*    </a>*!/*/}
+            {/*    /!*</Menu.Item>*!/*/}
+            {/*    <Menu.Item key="API">*/}
+            {/*        <a href="https://glkb.dcmb.med.umich.edu/docs" target="_blank" rel="noopener noreferrer">*/}
+            {/*            API Doc*/}
+            {/*        </a>*/}
+            {/*    </Menu.Item>*/}
+            {/*</Menu>*/}
             {/*<header>*/}
             {/*    <nav>*/}
             {/*        <ul className="navbar-nav ms-auto" id="right-nav-text">*/}
@@ -455,7 +461,7 @@ const ResultPage = () => {
 
 
             {/* Filter Bar */}
-            <div className="line"></div>
+            {/* <div className="line"></div>
 
             <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '180px'}}>
                 <div style={{
@@ -489,7 +495,7 @@ const ResultPage = () => {
                         </TweenOneGroup>
                     </div>
                 </div>
-            </div>
+            </div> */}
             {/* Main Content */}
             <div className='main-content'>
                 {!searchFlag && (

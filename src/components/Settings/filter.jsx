@@ -3,6 +3,7 @@ import './scoped.css'
 import { Row, Col, Slider, Collapse, Transfer, InputNumber, Typography, Button, Modal, Tree, Input} from 'antd';
 import { DownOutlined, SmileOutlined } from '@ant-design/icons';
 import { NewGraph } from '../../service/NewNode'
+import { render } from '@testing-library/react';
 const { Panel } = Collapse;
 const { Title } = Typography;
 
@@ -197,6 +198,7 @@ const Filter = props => {
                         tempKeys.push(newList[i].children[j].key)
                     }
                 }
+                console.log(checkedKeys)
                 const tempCheckedKeys = checkedKeys.filter(key => tempKeys.includes(key))
                 setCheckedKeys(checkedKeys.filter(key => !tempCheckedKeys.includes(key)).concat(checkedKeysValue));
                 console.log(checkedKeys);
@@ -204,7 +206,6 @@ const Filter = props => {
             }
         }
         setCheckedKeys(checkedKeysValue);
-        console.log(checkedKeys)
     };
 
     const onSelect = (selectedKeysValue, info) => {
@@ -296,29 +297,31 @@ const Filter = props => {
     };
 
     const items = () => {
-        return (
-            <div className="legend-container">
-                <h3>shape</h3>
-                <div className="legend-column">
+    return (
+        <div className="legend-container">
+            <div className="legend-section">
+                <div className="legend-row">
                     {shapeData.map((item, index) => (
-                    <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
+                        <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
                     ))}
-                </div>
-                <h3>frequency</h3>
-                <div className="legend-column">
                     {sizeData.map((item, index) => (
-                    <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
-                    ))}
-                </div>
-                <h3 color='black'>label</h3>
-                <div className="legend-column">
-                    {legendData.map((item, index) => (
-                    <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
+                        <LegendItem key={index} label={item.label} size={item.size} color={item.color}/>
                     ))}
                 </div>
             </div>
-        )
-    }
+            <div className="legend-section">
+                <div className="legend-row">
+                    {legendData.map((item, index) => (
+                        <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+    
+    
 
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -336,6 +339,12 @@ const Filter = props => {
     // minGtdcNoc={props.minGtdcNoc} 
     // maxGtdcNoc={props.maxGtdcNoc}
 
+    const renderTreeNode = (node) => {
+        return {
+            ...node,
+            checkable: !node.children,
+        };
+    };
 
     // No collapse Version
     return (
@@ -349,8 +358,10 @@ const Filter = props => {
                     <Input.Search
                         placeholder="Search"
                         onSearch={(value) => onSearch(value, displayLeftTree ? 'left' : 'right')}
+                        style={{ marginBottom: '20px' }}
                     />
                     <Tree
+                        // checkStrictly={true}
                         checkable={displayLeftTree}
                         blockNode
                         height={200}
@@ -362,7 +373,7 @@ const Filter = props => {
                         onSelect={onSelectHandler}
                         selectedKeys={selectedKeysHandler}
                         // Add other props based on the currentTreeData
-                        treeData={currentTreeData}
+                        treeData={currentTreeData.map(renderTreeNode)}
                     />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -370,7 +381,7 @@ const Filter = props => {
                     <Button onClick={toggleTreeDisplay} style={{ marginTop: '20px' }}>Show current terms in graph only</Button>
                 </div>
             </div>
-               <div>
+               <div style={{ marginTop: '20px' }}>
                    <Row>
                        <Col span={12}>Frequency</Col>
                        <Col span={6}>
@@ -380,26 +391,21 @@ const Filter = props => {
                            <InputNumber defaultValue={props.maxGtdcFreq} value={props.gtdcFreq[1]} onBlur={props.handleGtdcFreq2} onPressEnter={props.handleGtdcFreq2} min={props.minGtdcFreq} max={props.maxGtdcFreq}/>
                        </Col>
                    </Row>
-                   <Slider range value={props.gtdcFreq} onChange={props.handleGtdcFreq} min={props.minGtdcFreq} max={props.maxGtdcFreq}/>
+                   <Slider range tooltip={{open:false}} value={props.gtdcFreq} onChange={props.handleGtdcFreq} min={props.minGtdcFreq} max={props.maxGtdcFreq}/>
                </div>
-            <div>
-                <Row>
-                    <Col span={12}>Number of Citations</Col>
-                    <Col span={6}>
-                        <InputNumber defaultValue={props.minGtdcNoc} value={props.gtdcNoc[0]} onBlur={props.handleGtdcNoc1} onPressEnter={props.handleGtdcNoc1} min={props.minGtdcNoc} max={props.maxGtdcNoc}/>
-                    </Col>
-                    <Col span={6}>
-                        <InputNumber defaultValue={props.maxGtdcNoc} value={props.gtdcNoc[1]} onBlur={props.handleGtdcNoc2} onPressEnter={props.handleGtdcNoc2} min={props.minGtdcNoc} max={props.maxGtdcNoc}/>
-                    </Col>
-                </Row>
-                <Slider range value={props.gtdcNoc} onChange={props.handleGtdcNoc} min={props.minGtdcNoc} max={props.maxGtdcNoc} />
-            </div>
-            <Button type="primary" onClick={showModal}>
-                Legends
-            </Button>
-            <Modal title="legends" open={isModalOpen} onOk={handleOk} onCancel={handleCancel}>
-                {items()}
-            </Modal>
+                <div style={{ marginTop: '20px' }}>
+                    <Row>
+                        <Col span={12}>Citations</Col>
+                        <Col span={6}>
+                            <InputNumber defaultValue={props.minGtdcNoc} value={props.gtdcNoc[0]} onBlur={props.handleGtdcNoc1} onPressEnter={props.handleGtdcNoc1} min={props.minGtdcNoc} max={props.maxGtdcNoc}/>
+                        </Col>
+                        <Col span={6}>
+                            <InputNumber defaultValue={props.maxGtdcNoc} value={props.gtdcNoc[1]} onBlur={props.handleGtdcNoc2} onPressEnter={props.handleGtdcNoc2} min={props.minGtdcNoc} max={props.maxGtdcNoc}/>
+                        </Col>
+                    </Row>
+                    <Slider range tooltip={{open:false}} value={props.gtdcNoc} onChange={props.handleGtdcNoc} min={props.minGtdcNoc} max={props.maxGtdcNoc} />
+                </div>
+            {items()}
         </div>
 
     );
