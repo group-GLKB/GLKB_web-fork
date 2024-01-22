@@ -189,7 +189,7 @@ const Information = props => {
                         <div className='article-container'>
                             <Title level={4}>{nodeDetail[0].name.charAt(0).toUpperCase() + nodeDetail[0].name.slice(1)}</Title>
                             {/*<Title level={4}>{nodeDetail[0].name}</Title>*/}
-                            <Descriptions bordered column={1}  size="small" className="custom-descriptions">
+                            <Descriptions column={1}  size="small" className="custom-descriptions">
                                 <Descriptions.Item label="Entity ID">{nodeDetail[0].element_id}</Descriptions.Item>
                                 <Descriptions.Item label="Aliases">{nodeDetail[0].aliases}</Descriptions.Item>
                                 <Descriptions.Item label="Description">{nodeDetail[0].description}</Descriptions.Item>
@@ -216,7 +216,7 @@ const Information = props => {
                                     <Panel header={`Edge ${index + 1}: ${edge[0].node1} - ${edge[0].node2}`} key={index}>
                                         <div className='edge-article-container'>
                                             {/*<Descriptions title="Edge Details" bordered column={1}>*/}
-                                            <Descriptions bordered column={1}>
+                                            <Descriptions column={1}>
                                                 <Descriptions.Item label="Node 1">{edge[0].node1}</Descriptions.Item>
                                                 <Descriptions.Item label="Node 2">{edge[0].node2}</Descriptions.Item>
                                                 <Descriptions.Item label="Relationship Label">{edge[0]['relationship label']}</Descriptions.Item>
@@ -268,7 +268,6 @@ const Information = props => {
                             <Title level={4}>Related Articles</Title>
                             <List
                                 size="small"
-                                bordered
                                 dataSource={urls} // Assuming 'urls' is an array of URL strings or objects
                                 renderItem={item => (
                                     <List.Item>

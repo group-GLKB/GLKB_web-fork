@@ -164,14 +164,14 @@ const Filter = props => {
     };
 
     const shapeData = [
-        { label: 'query terms', size: 20, color: 'black' },
-        { label: 'non-query terms', size: 20, color: 'black' },
+        { label: 'query terms', size: 20, color: '#A9A9A9' },
+        { label: 'non-query terms', size: 20, color: '#A9A9A9' },
     ]
       
     const sizeData = [
-        { label: 'frequency < 30', size: 5, color: 'black' },
-        { label: '30 <= frequency < 60', size: 10, color: 'black' },
-        { label: 'frequency >= 60', size: 20, color: 'black' }
+        { label: 'frequency < 30', size: 5, color: '#A9A9A9' },
+        { label: '30 <= frequency < 60', size: 10, color: '#A9A9A9' },
+        { label: 'frequency >= 60', size: 20, color: '#A9A9A9' }
     ];
 
     const legendData = [
@@ -301,9 +301,11 @@ const Filter = props => {
         <div className="legend-container">
             <div className="legend-section">
                 <div className="legend-row">
+                    <h3>Shape:</h3>
                     {shapeData.map((item, index) => (
                         <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
                     ))}
+                    <h3 style={{marginLeft: '10px'}}>Frequency:</h3>
                     {sizeData.map((item, index) => (
                         <LegendItem key={index} label={item.label} size={item.size} color={item.color}/>
                     ))}
@@ -311,6 +313,7 @@ const Filter = props => {
             </div>
             <div className="legend-section">
                 <div className="legend-row">
+                    <h3>Label:</h3>
                     {legendData.map((item, index) => (
                         <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
                     ))}
@@ -348,8 +351,8 @@ const Filter = props => {
 
     // No collapse Version
     return (
-        <div>
-            <Title level={4}>Custom your search</Title>
+        <div style={{marginLeft: '10px'}}>
+            <Title level={2}>Customize your search</Title>
             <div>
                 <div>
                     <h3>
@@ -378,9 +381,10 @@ const Filter = props => {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Button onClick={buttonClick} type="primary" style={{ marginTop: '20px' }}>Apply</Button>
-                    <Button onClick={toggleTreeDisplay} style={{ marginTop: '20px' }}>Show current terms in graph only</Button>
+                    <Button onClick={toggleTreeDisplay} style={{ marginTop: '20px' }}>{displayLeftTree ? 'Show current terms' : 'Show all terms'}</Button>
                 </div>
             </div>
+            <h3 style={{ marginTop: '20px' }}>Adjust geonomic term density</h3>
                <div style={{ marginTop: '20px' }}>
                    <Row>
                        <Col span={12}>Frequency</Col>

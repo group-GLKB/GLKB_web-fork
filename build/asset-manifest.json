@@ -1,8 +1,8 @@
 {
   "files": {
-    "main.css": "/static/css/main.d9429635.chunk.css",
-    "main.js": "/static/js/main.d43a96d2.chunk.js",
-    "main.js.map": "/static/js/main.d43a96d2.chunk.js.map",
+    "main.css": "/static/css/main.9f163168.chunk.css",
+    "main.js": "/static/js/main.756814ea.chunk.js",
+    "main.js.map": "/static/js/main.756814ea.chunk.js.map",
     "runtime-main.js": "/static/js/runtime-main.d78e8d5c.js",
     "runtime-main.js.map": "/static/js/runtime-main.d78e8d5c.js.map",
     "static/css/2.2f1b0f0e.chunk.css": "/static/css/2.2f1b0f0e.chunk.css",
@@ -10,7 +10,7 @@
     "static/js/2.94da7ecc.chunk.js.map": "/static/js/2.94da7ecc.chunk.js.map",
     "index.html": "/index.html",
     "static/css/2.2f1b0f0e.chunk.css.map": "/static/css/2.2f1b0f0e.chunk.css.map",
-    "static/css/main.d9429635.chunk.css.map": "/static/css/main.d9429635.chunk.css.map",
+    "static/css/main.9f163168.chunk.css.map": "/static/css/main.9f163168.chunk.css.map",
     "static/js/2.94da7ecc.chunk.js.LICENSE.txt": "/static/js/2.94da7ecc.chunk.js.LICENSE.txt",
     "static/media/MedSchoolLogo.65898f5f.png": "/static/media/MedSchoolLogo.65898f5f.png",
     "static/media/glkb_logo.98cc616c.png": "/static/media/glkb_logo.98cc616c.png",
@@ -20,7 +20,7 @@
     "static/js/runtime-main.d78e8d5c.js",
     "static/css/2.2f1b0f0e.chunk.css",
     "static/js/2.94da7ecc.chunk.js",
-    "static/css/main.d9429635.chunk.css",
-    "static/js/main.d43a96d2.chunk.js"
+    "static/css/main.9f163168.chunk.css",
+    "static/js/main.756814ea.chunk.js"
   ]
 }

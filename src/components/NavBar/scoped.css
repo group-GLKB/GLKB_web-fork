@@ -22,6 +22,12 @@
     justify-content: left;
 }
 
+.right-section {
+    display: flex;
+    align-items: center;
+    justify-content: right;
+}
+
 .left-section input {
     padding: 0.5rem;
     margin-right: 0.5rem;
@@ -59,7 +65,7 @@
 
 .center-section button {
     padding: 0.5rem 1rem;
-    background-color: #ffcb05; /* University of Michigan maize */
+    background-color: #007bff; /* University of Michigan maize */
     border: none;
     cursor: pointer;
     border-radius: 4px;

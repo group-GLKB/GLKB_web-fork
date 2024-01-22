@@ -61,9 +61,6 @@ const NavBar = (props) => {
                     {/* <div className="nav-button">
                         <a href="/">Home</a>
                     </div> */}
-                    <div className="nav-button">
-                        <a href="https://glkb.dcmb.med.umich.edu/docs" target="_blank">API Doc</a>
-                    </div>
                 </div>
 
                 <div className="center-section">
@@ -86,7 +83,9 @@ const NavBar = (props) => {
                     </div>
                     <button onClick={handleSearch}>Search</button>
                 </div>
-
+                <div className="nav-button right-section">
+                    <a href="https://glkb.dcmb.med.umich.edu/docs" target="_blank">API Doc</a>
+                </div>
         </nav>
 
     );
