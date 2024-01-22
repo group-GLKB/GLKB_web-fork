@@ -1,0 +1,126 @@
+/* NavBar.css */
+
+.navbar {
+    background-color: #00274c; /* University of Michigan blue */
+    color: white;
+    display: flex;
+    justify-content: left;
+    padding: 1rem;
+    height: 100px;
+}
+
+
+.navbar-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.left-section {
+    display: flex;
+    align-items: center;
+    justify-content: left;
+}
+
+.right-section {
+    display: flex;
+    align-items: center;
+    justify-content: right;
+}
+
+.left-section input {
+    padding: 0.5rem;
+    margin-right: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.nav-button a{
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    margin-left: 3rem;
+    margin-right: 2rem;
+    width: 120px;
+    font-size: 20px;
+    align-items: center;
+    white-space: normal;
+}
+
+.logo img {
+    width: 120px;
+    height: auto;
+    margin-left: 2.5rem;
+
+}
+
+
+.center-section {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: auto;
+}
+
+.center-section button {
+    padding: 0.5rem 1rem;
+    background-color: #007bff; /* University of Michigan maize */
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    height: 2.5rem;
+}
+
+.center-section input {
+    padding: 0.5rem;
+    margin-right: 0.5rem;
+    border: 1px solid white;
+    border-radius: 4px;
+    flex-grow: 1;
+}
+
+
+.search-input {
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    cursor: text;
+    width: 400px;
+    background-color:#FFFFFF;
+    height: 2.5rem;
+}
+
+.search-tag {
+    padding: 5px 10px;
+    background-color: #007bff;
+    border-radius: 15px;
+    margin-right: 5px;
+    color: white;
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.editable-input {
+    outline: none;
+    min-width: 60px; /* Minimum width for typing */
+    flex-grow: 1;
+    color: #00274c;
+    /* Other styles to match your design */
+}
+
+
+.delete-tag {
+    cursor: pointer;
+    padding: 0 5px;
+    position: absolute;
+    right: -5px;
+    top: -10px;
+    background-color: red;
+    border-radius: 50%;
+    color: white;
+}
