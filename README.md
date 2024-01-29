@@ -32,3 +32,7 @@ The latest version is pushed at the branch yijia/4/revise-right-form-header
 Only revise the file src/components/Information/index.jsx
 
 ##NOTE!!: Suggest merging branch 4 to master first and then 5
+
+
+## 2024-1-29 Note:
+Branch 5 update with styling search bar and search bar logic
