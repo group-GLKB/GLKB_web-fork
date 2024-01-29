@@ -69,7 +69,7 @@ const Information = props => {
 
     const nodeForMap = (url) => {
         return(
-            <div>
+            <div className="custom-div-url">
                 <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>{url[0]}</a>
                 {/*<span> (Number of Citation: {url[2]}, Date: {url[3]})</span>*/}
                 <p>Number of Citations: {url[2]}, Date: {url[3]}</p>
@@ -191,7 +191,24 @@ const Information = props => {
                             {/*<Title level={4}>{nodeDetail[0].name}</Title>*/}
                             <Descriptions column={1}  size="small" className="custom-descriptions">
                                 <Descriptions.Item label="Entity ID">{nodeDetail[0].element_id}</Descriptions.Item>
-                                <Descriptions.Item label="Aliases">{nodeDetail[0].aliases}</Descriptions.Item>
+                                {/*<Descriptions.Item label="Aliases">{nodeDetail[0].aliases}</Descriptions.Item>*/}
+                                <Descriptions.Item label="Aliases">
+                                    {/*<dl>*/}
+                                    {/*    <dt>Coffee</dt>*/}
+                                    {/*    <dt>Milk</dt>*/}
+                                    {/*</dl>*/}
+                                    {/*<ul>*/}
+                                    {/*    <li>Coffee</li>*/}
+                                    {/*    <li>Tea</li>*/}
+                                    {/*    <li>Milk</li>*/}
+                                    {/*</ul>*/}
+                                    <ul>
+                                        {nodeDetail[0].aliases.map((alias) => (
+                                            <li>{alias}</li>
+                                        ))}
+                                    </ul>
+
+                                </Descriptions.Item>
                                 <Descriptions.Item label="Description">{nodeDetail[0].description}</Descriptions.Item>
                                 <Descriptions.Item label="Type">{nodeDetail[0].type}</Descriptions.Item>
                                 <Descriptions.Item label="External ID">{renderExternal()}</Descriptions.Item>
@@ -277,6 +294,13 @@ const Information = props => {
                                     </List.Item>
                                 )}
                             />
+
+                            {/*{*/}
+                            {/*    urls.map((url)=>{*/}
+
+                            {/*    });*/}
+                            {/*}*/}
+
                         </div>
                     )}
                     {Object.keys(edgeDetail).length !== 0 && (
@@ -284,10 +308,10 @@ const Information = props => {
                             <Title level={4}>Related Articles</Title>
                             <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
                                 {edgeDetail.map((edge, edgeIndex) => (
-                                    <Panel header={`Edge ${edgeIndex + 1}`} key={edgeIndex}>
+                                    <Panel header={`Edge ${edgeIndex + 1}: ${edge[0].node1} - ${edge[0].node2}`} key={edgeIndex}>
                                         {edge[1] && edge[1].length > 0 ? (
                                             edge[1].map((url, urlIndex) => (
-                                                <div key={urlIndex}>
+                                                <div key={urlIndex} className="custom-div-edge">
                                                     <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>
                                                         {url[0]}
                                                     </a>

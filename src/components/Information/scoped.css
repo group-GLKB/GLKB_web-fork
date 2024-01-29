@@ -175,3 +175,21 @@ all {
 .custom-descriptions {
     font-size: 14px;
 }
+
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+.custom-div-edge {
+    /*margin: 1px; !* Adjusts the space outside the div *!*/
+    padding: 0; /* Adjusts the space inside the div */
+    border: none;
+    margin-bottom: -13px;
+}
+
+.custom-div-url {
+    padding: 0; /* Adjusts the space inside the div */
+    border: none;
+    margin-bottom: -17px;
+}
