@@ -35,4 +35,6 @@ Only revise the file src/components/Information/index.jsx
 
 
 ## 2024-1-29 Note:
-Branch 5 update with styling search bar and search bar logic
+Branch to Merge: Branch 6
+
+Branch 6 update with styling search bar and search bar logic
