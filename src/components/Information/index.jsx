@@ -186,11 +186,12 @@ const Information = props => {
                     )}
                     {Object.keys(nodeDetail).length !== 0 && (
 
-                        <div className='article-container'>
-                            <div className='fixed-row'>
+                        <div >
+                            {/*<div className='fixed-row'>*/}
+                            <div className="sticky-title">
                                 <Title level={4} >{nodeDetail[0].name.charAt(0).toUpperCase() + nodeDetail[0].name.slice(1)}</Title>
                             </div>
-
+                            <div className='article-container'>
                                 {/*<Title level={4}>{nodeDetail[0].name}</Title>*/}
                                 <Descriptions column={1}  size="small" className="custom-descriptions">
                                     <Descriptions.Item label="Entity ID">{nodeDetail[0].element_id}</Descriptions.Item>
@@ -198,7 +199,13 @@ const Information = props => {
 
                                     <Descriptions.Item label="Type">{nodeDetail[0].type}</Descriptions.Item>
                                     <Descriptions.Item label="External ID">{renderExternal()}</Descriptions.Item>
-                                    <Descriptions.Item label="Description">{nodeDetail[0].description}</Descriptions.Item>
+                                    {/*<Descriptions.Item label="Description">{nodeDetail[0].description}</Descriptions.Item>*/}
+                                    {
+                                        nodeDetail[0].description && nodeDetail[0].description.trim() !== "" && (
+                                            <Descriptions.Item label="Description">{nodeDetail[0].description}</Descriptions.Item>
+                                        )
+                                    }
+
                                     <Descriptions.Item label="Aliases">
                                         <ul>
                                             {nodeDetail[0].aliases.map((alias) => (
@@ -207,6 +214,7 @@ const Information = props => {
                                         </ul>
                                     </Descriptions.Item>
                                 </Descriptions>
+                            </div>
 
 
                             {/*This is the version with the "Node Details Header*/}
@@ -274,23 +282,29 @@ const Information = props => {
                         />
                     )} */}
                     {Object.keys(nodeDetail).length !== 0 && (
-                        <div className='article-container'>
+                        <div>
                             {/*<div className='article-titile'>Related Articles</div>*/}
                             {/*{urls}*/}
                             {/*<div className='article-title'>Related Articles</div>*/}
-                            <Title level={4}>Related Articles</Title>
-                            <List
+                            {/*<Title level={4}>Related Articles</Title>*/}
+                            <div className="sticky-title">
+                                <Title level={4}>Related Articles</Title>
+                            </div>
+                            <div className='article-container'>
+                                <List
 
-                                size="small"
-                                dataSource={urls} // Assuming 'urls' is an array of URL strings or objects
-                                renderItem={item => (
-                                    <List.Item>
-                                        {/* Render your URL or article title here */}
-                                        {/* Example: <a href={item.url}>{item.title}</a> */}
-                                        {item}
-                                    </List.Item>
-                                )}
-                            />
+                                    size="small"
+                                    dataSource={urls} // Assuming 'urls' is an array of URL strings or objects
+                                    renderItem={item => (
+                                        <List.Item>
+                                            {/* Render your URL or article title here */}
+                                            {/* Example: <a href={item.url}>{item.title}</a> */}
+                                            {item}
+                                        </List.Item>
+                                    )}
+                                />
+                            </div>
+
 
                             {/*{*/}
                             {/*    urls.map((url)=>{*/}
@@ -302,7 +316,10 @@ const Information = props => {
                     )}
                     {Object.keys(edgeDetail).length !== 0 && (
                         <div className='article-container'>
-                            <Title level={4}>Related Articles</Title>
+                            <div className="sticky-title">
+                                <Title level={4}>Related Articles</Title>
+                            </div>
+
                             <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
                                 {edgeDetail.map((edge, edgeIndex) => (
                                     <Panel header={`Edge ${edgeIndex + 1}: ${edge[0].node1} - ${edge[0].node2}`} key={edgeIndex}>

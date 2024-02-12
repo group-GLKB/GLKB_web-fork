@@ -1,3 +1,14 @@
+
+/* Sticky class for the section titles */
+.sticky-title {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
+    padding: 10px 0;
+    height: 45px;
+}
 all {
     font-family: 'Mundial' !important;
     font-style: normal !important;
@@ -11,12 +22,13 @@ all {
     right: -33vw;
     height: 45vh;
     width: 25vw;
-	/* margin-right: 2vw; */
-	/* border-radius: 21px; */
+    /* margin-right: 2vw; */
+    /* border-radius: 21px; */
     opacity: 0.95;
     transition: right 0.3s ease-in-out;
     background-color: #F7F7F7;
-     /*background-color: red; */
+    /*background-color: red; */
+
 }
 
 /* Smaller screens (e.g., mobile devices) */
@@ -50,10 +62,12 @@ all {
     right: 25vw;
 }
 .information.open {
-	right: 0;
-    overflow-y: scroll;
-    -ms-overflow-style: none;
+    right: 0;
+    /*overflow-y: scroll;*/
+    -ms-overflow-style: -ms-autohiding-scrollbar;
     scrollbar-width: none;
+    overflow-y: auto;
+    max-height: 500px;
 }
 
 .article-container {
@@ -74,7 +88,7 @@ all {
 
 .fixed-row {
     position: fixed; /* This makes the row fixed at the top */
-     /* Aligns the fixed row to the top */
+    /* Aligns the fixed row to the top */
     /*width: 100%; !* Ensure the row is full width *!*/
     z-index: 10; /* Keeps the row above the scrollable content */
     background: transparent; /* Set a background to ensure text isn't seen through */
@@ -166,17 +180,19 @@ all {
     right: -33vw;
     height: 42vh;
     width: 25vw;
-	/* margin-right: 2vw; */
-	/* border-radius: 21px; */
+    /* margin-right: 2vw; */
+    /* border-radius: 21px; */
     opacity: 0.95;
     transition: right 0.3s ease-in-out;
     background-color: #F7F7F7
 }
 .related.open {
-	right: 0;
+    right: 0;
     overflow-y: scroll;
     -ms-overflow-style: none;
     scrollbar-width: none;
+    /*overflow-y: auto;*/
+    max-height: 500px;
 }
 
 .custom-descriptions .ant-descriptions-title {
