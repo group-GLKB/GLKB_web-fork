@@ -59,6 +59,26 @@ all {
 .article-container {
     margin: 3%;
     height: 45vh;
+    position: relative;
+}
+
+.constom-sticky {
+    position: sticky;
+    /*top: 0;*/
+    /*left: 0;*/
+    /*right: 0; !* Ensures the title stretches across the container *!*/
+    background: white; /* Or any color, ensures text readability when scrolling */
+    z-index: 10; /* Ensures the title stays above the descriptions */
+    /*padding: 16px; !* Optional: Adjust as needed *!*/
+}
+
+.fixed-row {
+    position: fixed; /* This makes the row fixed at the top */
+     /* Aligns the fixed row to the top */
+    /*width: 100%; !* Ensure the row is full width *!*/
+    z-index: 10; /* Keeps the row above the scrollable content */
+    background: transparent; /* Set a background to ensure text isn't seen through */
+
 }
 
 .edge-article-container {

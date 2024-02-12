@@ -187,32 +187,28 @@ const Information = props => {
                     {Object.keys(nodeDetail).length !== 0 && (
 
                         <div className='article-container'>
-                            <Title level={4}>{nodeDetail[0].name.charAt(0).toUpperCase() + nodeDetail[0].name.slice(1)}</Title>
-                            {/*<Title level={4}>{nodeDetail[0].name}</Title>*/}
-                            <Descriptions column={1}  size="small" className="custom-descriptions">
-                                <Descriptions.Item label="Entity ID">{nodeDetail[0].element_id}</Descriptions.Item>
-                                {/*<Descriptions.Item label="Aliases">{nodeDetail[0].aliases}</Descriptions.Item>*/}
-                                <Descriptions.Item label="Aliases">
-                                    {/*<dl>*/}
-                                    {/*    <dt>Coffee</dt>*/}
-                                    {/*    <dt>Milk</dt>*/}
-                                    {/*</dl>*/}
-                                    {/*<ul>*/}
-                                    {/*    <li>Coffee</li>*/}
-                                    {/*    <li>Tea</li>*/}
-                                    {/*    <li>Milk</li>*/}
-                                    {/*</ul>*/}
-                                    <ul>
-                                        {nodeDetail[0].aliases.map((alias) => (
-                                            <li>{alias}</li>
-                                        ))}
-                                    </ul>
+                            <div className='fixed-row'>
+                                <Title level={4} >{nodeDetail[0].name.charAt(0).toUpperCase() + nodeDetail[0].name.slice(1)}</Title>
+                            </div>
 
-                                </Descriptions.Item>
-                                <Descriptions.Item label="Description">{nodeDetail[0].description}</Descriptions.Item>
-                                <Descriptions.Item label="Type">{nodeDetail[0].type}</Descriptions.Item>
-                                <Descriptions.Item label="External ID">{renderExternal()}</Descriptions.Item>
-                            </Descriptions>
+                                {/*<Title level={4}>{nodeDetail[0].name}</Title>*/}
+                                <Descriptions column={1}  size="small" className="custom-descriptions">
+                                    <Descriptions.Item label="Entity ID">{nodeDetail[0].element_id}</Descriptions.Item>
+                                    {/*<Descriptions.Item label="Aliases">{nodeDetail[0].aliases}</Descriptions.Item>*/}
+
+                                    <Descriptions.Item label="Type">{nodeDetail[0].type}</Descriptions.Item>
+                                    <Descriptions.Item label="External ID">{renderExternal()}</Descriptions.Item>
+                                    <Descriptions.Item label="Description">{nodeDetail[0].description}</Descriptions.Item>
+                                    <Descriptions.Item label="Aliases">
+                                        <ul>
+                                            {nodeDetail[0].aliases.map((alias) => (
+                                                <li>{alias}</li>
+                                            ))}
+                                        </ul>
+                                    </Descriptions.Item>
+                                </Descriptions>
+
+
                             {/*This is the version with the "Node Details Header*/}
                             {/*<Title level={4}>Node Details</Title>*/}
                             {/*<Descriptions bordered column={1}  size="small" className="custom-descriptions">*/}
@@ -284,6 +280,7 @@ const Information = props => {
                             {/*<div className='article-title'>Related Articles</div>*/}
                             <Title level={4}>Related Articles</Title>
                             <List
+
                                 size="small"
                                 dataSource={urls} // Assuming 'urls' is an array of URL strings or objects
                                 renderItem={item => (
