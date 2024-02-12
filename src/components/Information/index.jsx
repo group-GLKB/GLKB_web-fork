@@ -230,27 +230,32 @@ const Information = props => {
                         </div>
                     )}
                     {Object.keys(edgeDetail).length !== 0 && (
-                        <div className='article-container'>
-                            <Title level={4}>Edges Detail</Title>
-                            <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
-                                {edgeDetail.map((edge, index) => (
-                                    <Panel header={`Edge ${index + 1}: ${edge[0].node1} - ${edge[0].node2}`} key={index}>
-                                        <div className='edge-article-container'>
-                                            {/*<Descriptions title="Edge Details" bordered column={1}>*/}
-                                            <Descriptions column={1}>
-                                                <Descriptions.Item label="Node 1">{edge[0].node1}</Descriptions.Item>
-                                                <Descriptions.Item label="Node 2">{edge[0].node2}</Descriptions.Item>
-                                                <Descriptions.Item label="Relationship Label">{edge[0]['relationship label']}</Descriptions.Item>
-                                                <Descriptions.Item label="Relationship Type">{edge[0]['relationship type']}</Descriptions.Item>
-                                                <Descriptions.Item label="Number of Citations">
-                                                    {/*{edge[0]['number of citations']}*/}
-                                                    {edge[0]['number of citations'] !== null ? edge[0]['number of citations'] : 'N/A'}
-                                                </Descriptions.Item>
-                                            </Descriptions>
-                                        </div>
-                                    </Panel>
-                                ))}
-                            </Collapse>
+                        <div >
+                            <div className="sticky-title">
+                                <Title level={4}>Edges Detail</Title>
+                            </div>
+                            <div className='article-container'>
+                                <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
+                                    {edgeDetail.map((edge, index) => (
+                                        <Panel header={`Edge ${index + 1}: ${edge[0].node1} - ${edge[0].node2}`} key={index}>
+                                            <div className='edge-article-container'>
+                                                {/*<Descriptions title="Edge Details" bordered column={1}>*/}
+                                                <Descriptions column={1}>
+                                                    <Descriptions.Item label="Node 1">{edge[0].node1}</Descriptions.Item>
+                                                    <Descriptions.Item label="Node 2">{edge[0].node2}</Descriptions.Item>
+                                                    <Descriptions.Item label="Relationship Label">{edge[0]['relationship label']}</Descriptions.Item>
+                                                    <Descriptions.Item label="Relationship Type">{edge[0]['relationship type']}</Descriptions.Item>
+                                                    <Descriptions.Item label="Number of Citations">
+                                                        {/*{edge[0]['number of citations']}*/}
+                                                        {edge[0]['number of citations'] !== null ? edge[0]['number of citations'] : 'N/A'}
+                                                    </Descriptions.Item>
+                                                </Descriptions>
+                                            </div>
+                                        </Panel>
+                                    ))}
+                                </Collapse>
+
+                            </div>
                         </div>
                     )}
 
@@ -315,29 +320,31 @@ const Information = props => {
                         </div>
                     )}
                     {Object.keys(edgeDetail).length !== 0 && (
-                        <div className='article-container'>
+                        <div>
                             <div className="sticky-title">
                                 <Title level={4}>Related Articles</Title>
                             </div>
+                            <div className='article-container'>
+                                <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
+                                    {edgeDetail.map((edge, edgeIndex) => (
+                                        <Panel header={`Edge ${edgeIndex + 1}: ${edge[0].node1} - ${edge[0].node2}`} key={edgeIndex}>
+                                            {edge[1] && edge[1].length > 0 ? (
+                                                edge[1].map((url, urlIndex) => (
+                                                    <div key={urlIndex} className="custom-div-edge">
+                                                        <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>
+                                                            {url[0]}
+                                                        </a>
+                                                        <p> Number of Citations: {url[2]}, Date: {url[3]}</p>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div>N/A</div>
+                                            )}
+                                        </Panel>
+                                    ))}
+                                </Collapse>
 
-                            <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
-                                {edgeDetail.map((edge, edgeIndex) => (
-                                    <Panel header={`Edge ${edgeIndex + 1}: ${edge[0].node1} - ${edge[0].node2}`} key={edgeIndex}>
-                                        {edge[1] && edge[1].length > 0 ? (
-                                            edge[1].map((url, urlIndex) => (
-                                                <div key={urlIndex} className="custom-div-edge">
-                                                    <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>
-                                                        {url[0]}
-                                                    </a>
-                                                    <p> Number of Citations: {url[2]}, Date: {url[3]}</p>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <div>N/A</div>
-                                        )}
-                                    </Panel>
-                                ))}
-                            </Collapse>
+                            </div>
                         </div>
                     )}
 
