@@ -37,7 +37,7 @@ Only revise the file src/components/Information/index.jsx
 ## 2024-1-29 Note:
 Branch 5 update with styling search bar and search bar logic
 
-##2024-2-12
+## 2024-2-12
 Branch 7 Revise the styling of the title of the information form on the right
 
 The title is extracted on the top. Stick to the top is half implemented where
