@@ -10,6 +10,7 @@ import MedSchoolLogo from '../../img/MedSchoolLogo.png'
 import { DingtalkCircleFilled } from '@ant-design/icons';
 import NavBar from '../NavBar';
 
+
 const { Search } = Input;
 
 const HomePage = () => {
@@ -27,6 +28,7 @@ const HomePage = () => {
                 tags = {tags}
                 setTags = {setTags}    
             />
+
         </div>
     )
 }

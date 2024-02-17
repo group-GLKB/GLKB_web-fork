@@ -2,7 +2,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import './scoped.css'; // Make sure to import the CSS file
-import MedSchoolLogo from '../../img/MedSchoolLogo.png';
+// import MedSchoolLogo from '../../img/MedSchoolLogo.png';
+import UMLogo from '../../img/block-m-feed.jpg'
 
 const NavBar = (props) => {
     const [input, setInput] = useState('');
@@ -25,6 +26,10 @@ const NavBar = (props) => {
                 // If there is no input but there are tags, trigger search
                 handleSearch();
             }
+            else if (tags.length === 0) {
+                window.location.href ="/";
+                return;
+            }
         } else if (e.key === 'Backspace' && !input) {
             // Delete the last tag if there is no input
             e.preventDefault();
@@ -39,6 +44,13 @@ const NavBar = (props) => {
     }, [tags]);
 
     const handleSearch = () => {
+        if (tags.length === 0) {
+            // Redirect to the homepage
+            // Assuming you are using React Router for navigation
+            // this.props.history.push('google.com');
+            window.location.href ="/";
+            return; // Stop further execution
+        }
         // Perform search using the tags array
         console.log(tags.join("|"));
         props.setTags(tags)
@@ -48,12 +60,14 @@ const NavBar = (props) => {
         // setTags([]);
     };
 
+    console.log(tags)
+
     return (
         <nav className="navbar">
                 <div className="left-section">
                     <div className="logo">
                         <a href="/">
-                            <img src={MedSchoolLogo} alt="MedSchoolLogo" />
+                            <img src={UMLogo} alt="UMLogo" style={{ width: 'auto', height: '90px' }} />
                         </a>
                     </div>
                     {/* <div className="nav-button">
@@ -88,5 +102,4 @@ const NavBar = (props) => {
 
     );
 };
-
 export default NavBar;
