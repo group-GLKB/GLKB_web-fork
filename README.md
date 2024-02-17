@@ -1,3 +1,4 @@
+
 # GLKB_web
 
 ## NavBar Connecting to Backend API (branch 5)
@@ -45,3 +46,4 @@ when the list is super long the title will scroll away.
 
 Branch 7 also revise the api for retrieving info, please revise back to the original
 one that should be used for deployment(when merging to the master branch)
+
