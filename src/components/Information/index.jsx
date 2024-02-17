@@ -99,6 +99,7 @@ const Information = props => {
                         <div className='article-container'>
                             <Title level={4}>{nodeDetail[0].name.charAt(0).toUpperCase() + nodeDetail[0].name.slice(1)}</Title>
                             {/*<Title level={4}>{nodeDetail[0].name}</Title>*/}
+
                             <Descriptions column={1}  size="small" className="custom-descriptions">
                                 <Descriptions.Item label="Entity ID">{nodeDetail[0].element_id}</Descriptions.Item>
                                 <Descriptions.Item label="Aliases">{nodeDetail[0].aliases}</Descriptions.Item>
