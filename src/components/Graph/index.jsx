@@ -20,141 +20,30 @@ function Graph(props) {
   const [height, setHeight] = useState('80vh');
  
   useEffect(() => {
-    let curMinAdcFreq = Number.MAX_SAFE_INTEGER;
-    let curMaxAdcFreq = Number.MIN_SAFE_INTEGER;
-    let curMinAdcPd = Number.MAX_SAFE_INTEGER;
-    let curMaxAdcPd = Number.MIN_SAFE_INTEGER;
-    let curMinAdcNoc = Number.MAX_SAFE_INTEGER;
-    let curMaxAdcNoc = Number.MIN_SAFE_INTEGER;
     let curMinGtdcFreq = Number.MAX_SAFE_INTEGER;
     let curMaxGtdcFreq = Number.MIN_SAFE_INTEGER;
     let curMinGtdcNoc = Number.MAX_SAFE_INTEGER;
     let curMaxGtdcNoc = Number.MIN_SAFE_INTEGER;
-    let articleArray = [];
-    let termArray = [];
-    let relationArray = [];
-    const articleSet = new Set();
-    const termSet = new Set();
-    const relationSet = new Set();
     for (let i of props.data.nodes) {
-      if (i.data.label == "Article") {
-        curMinAdcFreq = Math.min(curMinAdcFreq, i.data.frequency);
-        curMaxAdcFreq = Math.max(curMaxAdcFreq, i.data.frequency);
-        curMinAdcPd = Math.min(curMinAdcPd, i.data.date);
-        curMaxAdcPd = Math.max(curMaxAdcPd, i.data.date);
-        curMinAdcNoc = Math.min(curMinAdcNoc, i.data.n_citation);
-        curMaxAdcNoc = Math.max(curMaxAdcNoc, i.data.n_citation);
-        if (!articleSet.has(i.data.display)) {
-          let temp = {
-            key: (articleArray.length + 1).toString(),
-            title: i.data.display,
-            description: 'article'
-          }
-          articleArray.push(temp)
-          articleSet.add(i.data.display)
-        }
-      }
-      else if (i.data.label != "Event") {
-        curMinGtdcFreq = Math.min(curMinGtdcFreq, i.data.frequency);
-        curMaxGtdcFreq = Math.max(curMaxGtdcFreq, i.data.frequency);
-        curMinGtdcNoc = Math.min(curMinGtdcNoc, i.data.n_citation);
-        curMaxGtdcNoc = Math.max(curMaxGtdcNoc, i.data.n_citation);
-        if (!termSet.has(i.data.display)) {
-          let temp = {
-            key: (termArray.length + 1).toString(),
-            title: i.data.display,
-            description: 'genomic',
-            label: i.data.label
-          }
-          termArray.push(temp)
-          termSet.add(i.data.display)
-        }
-      }
-      else {
-        if (!articleSet.has(i.data.display)) {
-          let temp = {
-            key: (articleArray.length + 1).toString(),
-            title: i.data.display
-          }
-          articleArray.push(temp);
-          articleSet.add(i.data.display);
-        }
-      }
+      curMinGtdcFreq = Math.min(curMinGtdcFreq, i.data.frequency);
+      curMaxGtdcFreq = Math.max(curMaxGtdcFreq, i.data.frequency);
+      curMinGtdcNoc = Math.min(curMinGtdcNoc, i.data.n_citation);
+      curMaxGtdcNoc = Math.max(curMaxGtdcNoc, i.data.n_citation);
     }
-    for (let i of props.data.edges) {
-      if (!relationSet.has(i.data.label)) {
-        let temp = {
-          key: (relationArray.length + 1).toString(),
-          title: i.data.label
-        }
-        relationArray.push(temp);
-        relationSet.add(i.data.label);
-      }
-      if (i.data.dates.length != 0) {
-        curMinAdcPd = Math.min(curMinAdcPd, i.data.dates[0].year);
-        curMaxAdcPd = Math.max(curMaxAdcPd, i.data.dates[0].year);
-      }
-    }
-    props.handleMinAdcFreq(curMinAdcFreq);
-    props.handleMaxAdcFreq(curMaxAdcFreq);
-    props.handleAdcFreq([curMinAdcFreq, curMaxAdcFreq]);
-    props.handleMinAdcPd(curMinAdcPd);
-    props.handleMaxAdcPd(curMaxAdcPd);
-    props.handleAdcPd([curMinAdcPd, curMaxAdcPd]);
-    props.handleMinAdcNoc(curMinAdcNoc);
-    props.handleMaxAdcNoc(curMaxAdcNoc);
-    props.handleAdcNoc([curMinAdcNoc, curMaxAdcNoc]);
     props.handleMinGtdcFreq(curMinGtdcFreq);
     props.handleMaxGtdcFreq(curMaxGtdcFreq);
     props.handleGtdcFreq([curMinGtdcFreq, curMaxGtdcFreq]);
     props.handleMinGtdcNoc(curMinGtdcNoc);
     props.handleMaxGtdcNoc(curMaxGtdcNoc);
     props.handleGtdcNoc([curMinGtdcNoc, curMaxGtdcNoc]);
-    props.setArticleNodes(articleArray);
-    props.setVisibleArticles(articleArray);
-    props.setTermNodes(termArray);
-    props.setVisibleTerms(termArray);
-    props.setRelationNodes(relationArray);
-    props.setVisibleRelations(relationArray);
   }, [props.data]);
-
-  
-  let articleView={"edges":[], "nodes":[]}
-  let termView={"edges":[], "nodes":[]}
-  let articleTermView={"edges":[], "nodes":[]}
-  for (var i in props.data.nodes) {
-    if (props.data.nodes[i].data.label === "Article") {
-      articleView.nodes.push(props.data.nodes[i])
-    }
-    if (props.data.nodes[i].data.label !== "Article" && props.data.nodes[i].data.label !== "Event" ) {
-      termView.nodes.push(props.data.nodes[i])
-    }
-    if (props.data.nodes[i].data.label !== "Event" ) {
-      articleTermView.nodes.push(props.data.nodes[i])
-    }
-  }
-  for (var i in props.data.edges) {
-    if (props.data.edges[i].data.label === "Cite") {
-      articleView.edges.push(props.data.edges[i])
-    }
-    if (props.data.edges[i].data.label !== "Cite" && props.data.edges[i].data.label !== "Contain_vocab" ) {
-      if (termView.nodes.includes(props.data.nodes.find((node) => node.data.id === props.data.edges[i].data.source)) && termView.nodes.includes(props.data.nodes.find((node) => node.data.id === props.data.edges[i].data.target))) {
-        termView.edges.push(props.data.edges[i])
-      }
-    }
-    if (props.data.edges[i].data.label === "Contain_vocab") {
-      articleTermView.edges.push(props.data.edges[i])
-    }
-  }
-  // console.log(articleView)
   
   const graphData = useMemo(() => {
     let elements = {edges: [], nodes: []}
     for (let i in props.data.nodes) {
       let node = props.data.nodes[i].data
       if (node.frequency >= props.gtdcFreq[0] && node.frequency <= props.gtdcFreq[1] && 
-          node.n_citation >= props.gtdcNoc[0] && node.n_citation <= props.gtdcNoc[1] &&
-          props.visibleTerms.find(item => item.title === node.display)) {
+          node.n_citation >= props.gtdcNoc[0] && node.n_citation <= props.gtdcNoc[1]) {
             elements.nodes.push(props.data.nodes[i])
           }
     }
@@ -162,45 +51,17 @@ function Graph(props) {
     for (let i in props.data.edges) {
       let edge = props.data.edges[i].data
       if (elements.nodes.find((node) => node.data.id === edge.source) != undefined &&
-      elements.nodes.find((node) => node.data.id === edge.target) != undefined &&
-      props.visibleRelations.find(item => item.title === edge.label)) {
+      elements.nodes.find((node) => node.data.id === edge.target) != undefined) {
         elements.edges.push(props.data.edges[i])
       }
     }
-    if (elements.edges.length != 0) {
-      for (let i = 0; i < elements.edges.length; i++) {
-        elements.edges[i].data.weight = 0;
-        if (elements.edges[i].data.dates.length != 0) {
-          for (var j = 0; j < elements.edges[i].data.dates.length; j++) {
-            if (elements.edges[i].data.dates[j].year >= props.adcPd[0] && elements.edges[i].data.dates[j].year <= props.adcPd[1]) {
-              elements.edges[i].data.weight += elements.edges[i].data.dates[j].weight;
-            }
-          }
-        }
-        if (elements.edges[i].data.weight <= 0) {
-          elements.edges[i].data.weight = 1;
-        }
-      }
-    }
     return elements;
-  }, [props.adcFreq, props.adcPd, props.adcNoc, props.gtdcFreq, props.gtdcNoc, props.visibleArticles, props.visibleTerms, props.visibleRelations])
+  }, [props.gtdcFreq, props.gtdcNoc])
 
-  let label = [['Anatomy', 0],['Article', 0],['Chemicals and Drugs', 0],['Diseases', 0],['GO', 0],['Genes and Gene Products', 0],['Journal', 0],['Organisms', 0],['Pathway', 0]]
   let id = []
   for (var i in graphData.nodes) {
-    if (label.find(pair => pair.includes(graphData.nodes[i].data.label)) == undefined) {
-      label.push([graphData.nodes[i].data.label, graphData.nodes[i].data.frequency])
-    }
-    if (label.find(pair => pair.includes(graphData.nodes[i].data.label))[1] < graphData.nodes[i].data.frequency) {
-      label.find(pair => pair.includes(graphData.nodes[i].data.label))[1] = graphData.nodes[i].data.frequency
-    }
     id.push([graphData.nodes[i].data.id, graphData.nodes[i].data.label, graphData.nodes[i].data.frequency, graphData.nodes[i].data.n_citation, graphData.nodes[i].data.key_nodes])
   }
-  // console.log(label)
-  const colorDif = 360 / 9
-  // console.log(eventStyle)
-
-  // console.log(graphData);
 
   const layout = {
     name: 'cola',
@@ -219,27 +80,6 @@ function Graph(props) {
   };
 
   const styleSheet = [
-    // {
-    //   selector: 'node[label = "Event"]',
-    //   style: {
-    //     backgroundColor: 'hsl(0, 100%, 50%)',
-    //     width: 10,
-    //     height: 10,
-    //     label: 'data(name)',
-
-    //     // "width": "mapData(score, 0, 0.006769776522008331, 20, 60)",
-    //     // "height": "mapData(score, 0, 0.006769776522008331, 20, 60)",
-    //     // "text-valign": "center",
-    //     // "text-halign": "center",
-    //     'overlay-padding': '8px',
-    //     'z-index': '10',
-    //     //text props
-    //     'text-outline-color': '#4a56a6',
-    //     'text-outline-width': '2px',
-    //     color: 'white',
-    //     fontSize: 10,
-    //   },
-    // },
     {
       selector: 'node.hover',
       style: {
@@ -354,7 +194,7 @@ function Graph(props) {
     },
     {
         selector: 'node.semitransp',
-        style:{ 'opacity': '0.5' }
+        style:{ 'opacity': '0.2' }
     },
     {
         selector: 'edge.highlight',
@@ -366,9 +206,6 @@ function Graph(props) {
     }
   ];
   for (var i in id) {
-    const index = label.findIndex((pair) => {
-      return pair[0] === id[i][1]
-    })
     let labelColor = ''
     let size = ''
     let shape = ''
@@ -455,14 +292,6 @@ function Graph(props) {
             cy={(cy) => {
               myCyRef = cy;
               cy.unbind("click");
-              // cy.bind("click", props.handleSelectNode)
-    //         cy.nodes('[label = "Event"]').style({'background-color': 'white',
-    // 'color': 'black'});
-              // cy.on('mouseover', 'node', function(e){
-              //     var sel = e.target;
-              //     cy.elements().difference(sel.incomers()).not(sel).addClass('semitransp');
-              //     sel.addClass('highlight').incomers().addClass('highlight');
-              // });
               cy.on('click', function(e){
                 var sel = e.target;
                 if (sel.isNode) {
@@ -481,7 +310,6 @@ function Graph(props) {
                   if (props.informationOpen) {
                     props.handleInformation();
                   }
-                  props.closeTable();
                 }
               });
               cy.on('mouseover', 'node', function(e){

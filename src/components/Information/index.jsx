@@ -42,7 +42,6 @@ const Information = props => {
         }
         async function searchInfoEdge(content) {
             let detailServ = new DetailService()
-            // console.log(content)
             const response = await detailServ.Eid2Detail(content[0], content[1])
             //console.log(response.data)
             // const sample_data = [[{"node1":"Neoplasms","node2":"Breast Neoplasms","number of citations":1,"relationship label":"Semantic_relationship","relationship type":"Negative_Correlation"},
@@ -69,7 +68,7 @@ const Information = props => {
 
     const nodeForMap = (url) => {
         return(
-            <div>
+            <div className="custom-div-url">
                 <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>{url[0]}</a>
                 {/*<span> (Number of Citation: {url[2]}, Date: {url[3]})</span>*/}
                 <p>Number of Citations: {url[2]}, Date: {url[3]}</p>
@@ -121,42 +120,6 @@ const Information = props => {
         console.log(edgeDetail);
 
     }
-    // if (!detail) {
-    //     return <div>Loading</div>
-    // }
-
-//     return (
-//         <div>
-//             <div className={informationClass}>
-//                 {Object.keys(props.detail).length != 0 && props.detailType == "article" && (
-//                     <Article
-//                         title={props.detail.title}
-//                         authors={props.detail.authors}
-//                         pmid={props.detail.pmid}
-//                         abstract={props.detail.abstract}
-//                         abstract_list={props.detail.abstract_list}
-//                     />
-//                 )}
-//                 {Object.keys(props.detail).length != 0 && props.detailType == "term" && (
-//                     <Term
-//                         entity_id={props.detail.element_id}
-//                         name={props.detail.name}
-//                         aliases={props.detail.aliases}
-//                         description={props.detail.description}
-//                         type={props.detail.type}
-//                         external_id={props.detail.external_sources}
-//                     />
-//                 )}
-//             </div>
-//             <Button
-//                 onClick={props.toggleSidebar}
-//                 className={buttonClass}
-//             >
-//                 { !props.isOpen ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
-//             </Button>
-//         </div>
-
-//   );
         return (
             <div>
                 <div className={informationClass}>
@@ -186,50 +149,64 @@ const Information = props => {
                     )}
                     {Object.keys(nodeDetail).length !== 0 && (
 
-                        <div className='article-container'>
-                            <Title level={4}>{nodeDetail[0].name.charAt(0).toUpperCase() + nodeDetail[0].name.slice(1)}</Title>
-                            {/*<Title level={4}>{nodeDetail[0].name}</Title>*/}
-                            <Descriptions column={1}  size="small" className="custom-descriptions">
-                                <Descriptions.Item label="Entity ID">{nodeDetail[0].element_id}</Descriptions.Item>
-                                <Descriptions.Item label="Aliases">{nodeDetail[0].aliases}</Descriptions.Item>
-                                <Descriptions.Item label="Description">{nodeDetail[0].description}</Descriptions.Item>
-                                <Descriptions.Item label="Type">{nodeDetail[0].type}</Descriptions.Item>
-                                <Descriptions.Item label="External ID">{renderExternal()}</Descriptions.Item>
-                            </Descriptions>
-                            {/*This is the version with the "Node Details Header*/}
-                            {/*<Title level={4}>Node Details</Title>*/}
-                            {/*<Descriptions bordered column={1}  size="small" className="custom-descriptions">*/}
-                            {/*    <Descriptions.Item label="Entity ID">{nodeDetail[0].element_id}</Descriptions.Item>*/}
-                            {/*    <Descriptions.Item label="Name">{nodeDetail[0].name}</Descriptions.Item>*/}
-                            {/*    <Descriptions.Item label="Aliases">{nodeDetail[0].aliases}</Descriptions.Item>*/}
-                            {/*    <Descriptions.Item label="Description">{nodeDetail[0].description}</Descriptions.Item>*/}
-                            {/*    <Descriptions.Item label="Type">{nodeDetail[0].type}</Descriptions.Item>*/}
-                            {/*    <Descriptions.Item label="External ID">{renderExternal()}</Descriptions.Item>*/}
-                            {/*</Descriptions>*/}
+                        <div >
+                            {/*<div className='fixed-row'>*/}
+                            <div className="sticky-title">
+                                <Title level={4} >{nodeDetail[0].name.charAt(0).toUpperCase() + nodeDetail[0].name.slice(1)}</Title>
+                            </div>
+                            <div className='article-container'>
+                                {/*<Title level={4}>{nodeDetail[0].name}</Title>*/}
+                                <Descriptions column={1}  size="small" className="custom-descriptions">
+                                    <Descriptions.Item label="Entity ID">{nodeDetail[0].element_id}</Descriptions.Item>
+                                    {/*<Descriptions.Item label="Aliases">{nodeDetail[0].aliases}</Descriptions.Item>*/}
+
+                                    <Descriptions.Item label="Type">{nodeDetail[0].type}</Descriptions.Item>
+                                    <Descriptions.Item label="External ID">{renderExternal()}</Descriptions.Item>
+                                    {/*<Descriptions.Item label="Description">{nodeDetail[0].description}</Descriptions.Item>*/}
+                                    {
+                                        nodeDetail[0].description && nodeDetail[0].description.trim() !== "" && (
+                                            <Descriptions.Item label="Description">{nodeDetail[0].description}</Descriptions.Item>
+                                        )
+                                    }
+
+                                    <Descriptions.Item label="Aliases">
+                                        <ul>
+                                            {nodeDetail[0].aliases.map((alias) => (
+                                                <li>{alias}</li>
+                                            ))}
+                                        </ul>
+                                    </Descriptions.Item>
+                                </Descriptions>
+                            </div>
                         </div>
                     )}
                     {Object.keys(edgeDetail).length !== 0 && (
-                        <div className='article-container'>
-                            <Title level={4}>Edges Detail</Title>
-                            <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
-                                {edgeDetail.map((edge, index) => (
-                                    <Panel header={`Edge ${index + 1}: ${edge[0].node1} - ${edge[0].node2}`} key={index}>
-                                        <div className='edge-article-container'>
-                                            {/*<Descriptions title="Edge Details" bordered column={1}>*/}
-                                            <Descriptions column={1}>
-                                                <Descriptions.Item label="Node 1">{edge[0].node1}</Descriptions.Item>
-                                                <Descriptions.Item label="Node 2">{edge[0].node2}</Descriptions.Item>
-                                                <Descriptions.Item label="Relationship Label">{edge[0]['relationship label']}</Descriptions.Item>
-                                                <Descriptions.Item label="Relationship Type">{edge[0]['relationship type']}</Descriptions.Item>
-                                                <Descriptions.Item label="Number of Citations">
-                                                    {/*{edge[0]['number of citations']}*/}
-                                                    {edge[0]['number of citations'] !== null ? edge[0]['number of citations'] : 'N/A'}
-                                                </Descriptions.Item>
-                                            </Descriptions>
-                                        </div>
-                                    </Panel>
-                                ))}
-                            </Collapse>
+                        <div >
+                            <div className="sticky-title">
+                                <Title level={4}>Edges Detail</Title>
+                            </div>
+                            <div className='article-container'>
+                                <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
+                                    {edgeDetail.map((edge, index) => (
+                                        <Panel header={`Edge ${index + 1}: ${edge[0].node1} - ${edge[0].node2}`} key={index}>
+                                            <div className='edge-article-container'>
+                                                {/*<Descriptions title="Edge Details" bordered column={1}>*/}
+                                                <Descriptions column={1}>
+                                                    <Descriptions.Item label="Node 1">{edge[0].node1}</Descriptions.Item>
+                                                    <Descriptions.Item label="Node 2">{edge[0].node2}</Descriptions.Item>
+                                                    <Descriptions.Item label="Relationship Label">{edge[0]['relationship label']}</Descriptions.Item>
+                                                    <Descriptions.Item label="Relationship Type">{edge[0]['relationship type']}</Descriptions.Item>
+                                                    <Descriptions.Item label="Number of Citations">
+                                                        {/*{edge[0]['number of citations']}*/}
+                                                        {edge[0]['number of citations'] !== null ? edge[0]['number of citations'] : 'N/A'}
+                                                    </Descriptions.Item>
+                                                </Descriptions>
+                                            </div>
+                                        </Panel>
+                                    ))}
+                                </Collapse>
+
+                            </div>
                         </div>
                     )}
 
@@ -261,45 +238,64 @@ const Information = props => {
                         />
                     )} */}
                     {Object.keys(nodeDetail).length !== 0 && (
-                        <div className='article-container'>
+                        <div>
                             {/*<div className='article-titile'>Related Articles</div>*/}
                             {/*{urls}*/}
                             {/*<div className='article-title'>Related Articles</div>*/}
-                            <Title level={4}>Related Articles</Title>
-                            <List
-                                size="small"
-                                dataSource={urls} // Assuming 'urls' is an array of URL strings or objects
-                                renderItem={item => (
-                                    <List.Item>
-                                        {/* Render your URL or article title here */}
-                                        {/* Example: <a href={item.url}>{item.title}</a> */}
-                                        {item}
-                                    </List.Item>
-                                )}
-                            />
+                            {/*<Title level={4}>Related Articles</Title>*/}
+                            <div className="sticky-title">
+                                <Title level={4}>Related Articles</Title>
+                            </div>
+                            <div className='article-container'>
+                                <List
+
+                                    size="small"
+                                    dataSource={urls} // Assuming 'urls' is an array of URL strings or objects
+                                    renderItem={item => (
+                                        <List.Item>
+                                            {/* Render your URL or article title here */}
+                                            {/* Example: <a href={item.url}>{item.title}</a> */}
+                                            {item}
+                                        </List.Item>
+                                    )}
+                                />
+                            </div>
+
+
+                            {/*{*/}
+                            {/*    urls.map((url)=>{*/}
+
+                            {/*    });*/}
+                            {/*}*/}
+
                         </div>
                     )}
                     {Object.keys(edgeDetail).length !== 0 && (
-                        <div className='article-container'>
-                            <Title level={4}>Related Articles</Title>
-                            <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
-                                {edgeDetail.map((edge, edgeIndex) => (
-                                    <Panel header={`Edge ${edgeIndex + 1}`} key={edgeIndex}>
-                                        {edge[1] && edge[1].length > 0 ? (
-                                            edge[1].map((url, urlIndex) => (
-                                                <div key={urlIndex}>
-                                                    <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>
-                                                        {url[0]}
-                                                    </a>
-                                                    <p> Number of Citations: {url[2]}, Date: {url[3]}</p>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <div>N/A</div>
-                                        )}
-                                    </Panel>
-                                ))}
-                            </Collapse>
+                        <div>
+                            <div className="sticky-title">
+                                <Title level={4}>Related Articles</Title>
+                            </div>
+                            <div className='article-container'>
+                                <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
+                                    {edgeDetail.map((edge, edgeIndex) => (
+                                        <Panel header={`Edge ${edgeIndex + 1}: ${edge[0].node1} - ${edge[0].node2}`} key={edgeIndex}>
+                                            {edge[1] && edge[1].length > 0 ? (
+                                                edge[1].map((url, urlIndex) => (
+                                                    <div key={urlIndex} className="custom-div-edge">
+                                                        <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>
+                                                            {url[0]}
+                                                        </a>
+                                                        <p> Number of Citations: {url[2]}, Date: {url[3]}</p>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div>N/A</div>
+                                            )}
+                                        </Panel>
+                                    ))}
+                                </Collapse>
+
+                            </div>
                         </div>
                     )}
 
@@ -309,4 +305,5 @@ const Information = props => {
 
       );
 };
+
 export default Information;
