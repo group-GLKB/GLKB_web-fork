@@ -60,12 +60,11 @@ all {
 .legend-container {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: left;
     position: fixed;
     bottom: 0;
-    left: 24.5vw;
+    left: 30vw;
     right: 0;
-    background-color: #f0f0f0;
     padding: 10px;
     width: 50vw;
     border-radius: 21px;
@@ -74,13 +73,13 @@ all {
 .legend-section {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: left;
     margin: 0 10px;
 }
 
 .legend-row {
     display: flex;
-    justify-content: center;
+    justify-content: left;
     flex-wrap: wrap;
 }
 
@@ -113,5 +112,12 @@ all {
 
 .legend-label {
     font-size: 14px;
+}
+
+.legend-subtitle {
+    display: flex;
+    font-size: 14px;
+    font-weight: 800;
+    width: 100px;
 }
   
