@@ -48,8 +48,6 @@ const NavBar = (props) => {
         // setTags([]);
     };
 
-    console.log(tags)
-
     return (
         <nav className="navbar">
                 <div className="left-section">
