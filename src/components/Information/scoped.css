@@ -7,12 +7,12 @@ all {
 
 .information {
     position: fixed;
-    top: 10vh;
+    top: 100px;
     right: -33vw;
     height: 45vh;
     width: 25vw;
-	margin-right: 2vw;
-	border-radius: 21px;
+	/* margin-right: 2vw; */
+	/* border-radius: 21px; */
     opacity: 0.95;
     transition: right 0.3s ease-in-out;
     background-color: #F7F7F7;
@@ -47,7 +47,7 @@ all {
     transition: right 0.3s ease-in-out;
 }
 .information-button.open {
-    right: 27vw;
+    right: 25vw;
 }
 .information.open {
 	right: 0;
@@ -144,10 +144,10 @@ all {
     position: fixed;
     top: 58vh;
     right: -33vw;
-    height: 35vh;
+    height: 42vh;
     width: 25vw;
-	margin-right: 2vw;
-	border-radius: 21px;
+	/* margin-right: 2vw; */
+	/* border-radius: 21px; */
     opacity: 0.95;
     transition: right 0.3s ease-in-out;
     background-color: #F7F7F7
@@ -165,7 +165,7 @@ all {
 }
 
 .custom-descriptions .ant-descriptions-item-label {
-    width: 5%;
+    width: 20%;
 }
 
 .custom-descriptions .ant-descriptions-item-content {

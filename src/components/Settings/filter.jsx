@@ -3,19 +3,11 @@ import './scoped.css'
 import { Row, Col, Slider, Collapse, Transfer, InputNumber, Typography, Button, Modal, Tree, Input} from 'antd';
 import { DownOutlined, SmileOutlined } from '@ant-design/icons';
 import { NewGraph } from '../../service/NewNode'
+import { render } from '@testing-library/react';
 const { Panel } = Collapse;
 const { Title } = Typography;
 
 const Filter = props => {
-    const panelStyle = {
-        marginLeft: 10,
-        marginRight: 9,
-        marginBottom: 11,
-        border: 'none',
-        borderRadius: 8,
-        background: '#EEEEEE'
-    };
-
     const graphNodes = [];
     if (props.data.nodes) {
         for (let i = 0; i < props.data.nodes.length; i++) {
@@ -42,6 +34,8 @@ const Filter = props => {
         if (props.graphShownData != {}) {
             initRightTreeData = []
             if (props.graphShownData.nodes) {
+                let uniqueLabelsSet = new Set(props.graphShownData.nodes.map(node => node.data.label));
+                setUniqueLabelsArray([...uniqueLabelsSet]);
                 for (let i = 0; i < props.graphShownData.nodes.length; i++) {
                     const node = props.graphShownData.nodes[i];
                     const label = node.data.label;
@@ -62,12 +56,6 @@ const Filter = props => {
 
 
     /* source is visible nodes, target is invisible nodes */
-    const [selectedArticleKeys, setSelectedArticleKeys] = useState([]);
-    const [selectedTermKeys, setSelectedTermKeys] = useState([]);
-    const [selectedRelationKeys, setSelectedRelationKeys] = useState([]);
-    const [invisibleArticleKey, setInvisibleArticleKey] = useState([]);
-    const [invisibleTermKey, setInvisibleTermKey] = useState([]);
-    const [invisibleRelationKey, setInvisibleRelationKey] = useState([]);
     const [displayLeftTree, setDisplayLeftTree] = useState(true);
     const [expandedKeys, setExpandedKeys] = useState([]);
     const [autoExpandParent, setAutoExpandParent] = useState(false);
@@ -76,70 +64,13 @@ const Filter = props => {
     const [leftData, setLeftData] = useState(existingNodes);
     const [rightData, setRightData] = useState(initRightTreeData)
     const [newList, setNewList] = useState();
+    const [uniqueLabelsArray, setUniqueLabelsArray] = useState([]);
 
     const toggleTreeDisplay = () => {
         setDisplayLeftTree((prevDisplayLeftTree) => !prevDisplayLeftTree);
     };
 
     const currentTreeData = displayLeftTree ? leftData : rightData;
-
-    const onArticleChange = (nextTargetKeys, direction, moveKeys) => {
-        if (direction == "right") {
-            let temp = props.visibleArticles
-            for (let key of moveKeys) {
-                temp = temp.filter(item => item.key != key)
-            }
-            props.setVisibleArticles(temp)
-        } else {
-            for (let key of moveKeys) {
-                let temp = props.articleNodes.find(item => item.key == key)
-                props.setVisibleArticles([...props.visibleArticles, temp])
-            }
-        }
-        setInvisibleArticleKey(nextTargetKeys);
-    };
-    const onTermChange = (nextTargetKeys, direction, moveKeys) => {
-        if (direction == "right") {
-            let temp = props.visibleTerms
-            for (let key of moveKeys) {
-                temp = temp.filter(item => item.key != key)
-            }
-            props.setVisibleTerms(temp)
-        } else {
-            for (let key of moveKeys) {
-                let temp = props.termNodes.find(item => item.key == key)
-                props.setVisibleTerms([...props.visibleTerms, temp])
-            }
-        }
-        setInvisibleTermKey(nextTargetKeys);
-    };
-    const onRelationChange = (nextTargetKeys, direction, moveKeys) => {
-        if (direction == "right") {
-            let temp = props.visibleRelations
-            for (let key of moveKeys) {
-                console.log(key)
-                temp = temp.filter(item => item.key != key)
-            } 
-            props.setVisibleRelations(temp)
-        } else {
-            for (let key of moveKeys) {
-                let temp = props.relationNodes.find(item => item.key == key)
-                props.setVisibleRelations([...props.visibleRelations, temp])
-            }
-        }
-        setInvisibleRelationKey(nextTargetKeys);
-    };
-    const onArticleSelectChange = (sourceSelectedKeys, targetSelectedKeys) => {
-        setSelectedArticleKeys([...sourceSelectedKeys, ...targetSelectedKeys]);
-    };
-    const onTermSelectChange = (sourceSelectedKeys, targetSelectedKeys) => {
-        setSelectedTermKeys([...sourceSelectedKeys, ...targetSelectedKeys]);
-    };
-    const onRelationSelectChange = (sourceSelectedKeys, targetSelectedKeys) => {
-        setSelectedRelationKeys([...sourceSelectedKeys, ...targetSelectedKeys]);
-    };
-    const onScroll = (direction, e) => {
-    };
 
     const existingNodeList = []
     for (var i = 0; i < rightData.length; i++) {
@@ -163,17 +94,17 @@ const Filter = props => {
     };
 
     const shapeData = [
-        { label: 'query terms', size: 20, color: 'black' },
-        { label: 'non-query terms', size: 20, color: 'black' },
+        { label: 'query terms', size: 20, color: '#A9A9A9' },
+        { label: 'non-query terms', size: 20, color: '#A9A9A9' },
     ]
       
     const sizeData = [
-        { label: 'frequency < 30', size: 5, color: 'black' },
-        { label: '30 <= frequency < 60', size: 10, color: 'black' },
-        { label: 'frequency >= 60', size: 20, color: 'black' }
+        { label: 'frequency < 30', size: 5, color: '#A9A9A9' },
+        { label: '30 <= frequency < 60', size: 10, color: '#A9A9A9' },
+        { label: 'frequency >= 60', size: 20, color: '#A9A9A9' }
     ];
 
-    const legendData = [
+    const legendDataAll = [
         { label: 'Anatomy', size: 20, color: '#E43333' },
         { label: 'Chemicals and Drugs', size: 20, color: '#E8882F' },
         { label: 'Diseases', size: 20, color: '#67BE48' },
@@ -182,6 +113,8 @@ const Filter = props => {
         { label: 'Organisms', size: 20, color: '#9B58C5' },
         { label: 'Pathway', size: 20, color: '#D829B1' },
     ];
+
+    const legendData = legendDataAll.filter(item => uniqueLabelsArray.includes(item.label));
 
     const onExpand = (expandedKeysValue) => {
         setExpandedKeys(expandedKeysValue);
@@ -197,6 +130,7 @@ const Filter = props => {
                         tempKeys.push(newList[i].children[j].key)
                     }
                 }
+                console.log(checkedKeys)
                 const tempCheckedKeys = checkedKeys.filter(key => tempKeys.includes(key))
                 setCheckedKeys(checkedKeys.filter(key => !tempCheckedKeys.includes(key)).concat(checkedKeysValue));
                 console.log(checkedKeys);
@@ -204,7 +138,6 @@ const Filter = props => {
             }
         }
         setCheckedKeys(checkedKeysValue);
-        console.log(checkedKeys)
     };
 
     const onSelect = (selectedKeysValue, info) => {
@@ -296,51 +229,48 @@ const Filter = props => {
     };
 
     const items = () => {
-        return (
-            <div className="legend-container">
-                <h3>shape</h3>
-                <div className="legend-column">
+    return (
+        <div className="legend-container">
+            <div className="legend-section">
+                <div className="legend-row">
+                    <div className='legend-subtitle'>Shape:</div>
                     {shapeData.map((item, index) => (
-                    <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
-                    ))}
-                </div>
-                <h3>frequency</h3>
-                <div className="legend-column">
-                    {sizeData.map((item, index) => (
-                    <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
-                    ))}
-                </div>
-                <h3 color='black'>label</h3>
-                <div className="legend-column">
-                    {legendData.map((item, index) => (
-                    <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
+                        <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
                     ))}
                 </div>
             </div>
-        )
-    }
-
-    const [isModalOpen, setIsModalOpen] = useState(false);
-
-    const showModal = () => {
-        setIsModalOpen(true);
+            <div className="legend-section">
+                <div className="legend-row">
+                    <div className='legend-subtitle'>Frequency:</div>
+                    {sizeData.map((item, index) => (
+                        <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
+                    ))}
+                </div>
+            </div>
+            <div className="legend-section">
+                <div className="legend-row">
+                    <div className='legend-subtitle'>Label:</div>
+                    {legendData.map((item, index) => (
+                        <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
+                    ))}
+                </div>
+            </div>
+        </div>
+        );
     };
 
-    const handleOk = () => {
-        setIsModalOpen(false);
-    };
 
-    const handleCancel = () => {
-        setIsModalOpen(false);
+    const renderTreeNode = (node) => {
+        return {
+            ...node,
+            checkable: !node.children,
+        };
     };
-    // minGtdcNoc={props.minGtdcNoc} 
-    // maxGtdcNoc={props.maxGtdcNoc}
-
 
     // No collapse Version
     return (
-        <div>
-            <Title level={4}>Custom your search</Title>
+        <div style={{marginLeft: '10px'}}>
+            <Title level={2}>Customize your search</Title>
             <div>
                 <div>
                     <h3>
@@ -349,8 +279,10 @@ const Filter = props => {
                     <Input.Search
                         placeholder="Search"
                         onSearch={(value) => onSearch(value, displayLeftTree ? 'left' : 'right')}
+                        style={{ marginBottom: '20px' }}
                     />
                     <Tree
+                        // checkStrictly={true}
                         checkable={displayLeftTree}
                         blockNode
                         height={200}
@@ -362,196 +294,42 @@ const Filter = props => {
                         onSelect={onSelectHandler}
                         selectedKeys={selectedKeysHandler}
                         // Add other props based on the currentTreeData
-                        treeData={currentTreeData}
+                        treeData={currentTreeData.map(renderTreeNode)}
                     />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Button onClick={buttonClick} type="primary" style={{ marginTop: '20px' }}>Apply</Button>
-                    <Button onClick={toggleTreeDisplay} style={{ marginTop: '20px' }}>Show current terms in graph only</Button>
+                    <Button onClick={buttonClick} type="primary" style={{ marginTop: '20px', width: '20%', textAlign: 'center'}}>Apply</Button>
+                    <Button onClick={toggleTreeDisplay} style={{ marginTop: '20px', width: '50%' }}>{displayLeftTree ? 'Show current terms' : 'Show all terms'}</Button>
                 </div>
             </div>
-               <div>
+            <h3 style={{ marginTop: '20px' }}>Adjust geonomic term density</h3>
+               <div style={{ marginTop: '20px' }}>
                    <Row>
                        <Col span={12}>Frequency</Col>
                        <Col span={6}>
-                           <InputNumber defaultValue={props.minGtdcFreq} value={props.gtdcFreq[0]} onBlur={props.handleGtdcFreq1} onPressEnter={props.handleGtdcFreq1} min={props.minGtdcFreq} max={props.maxGtdcFreq}/>
+                           <InputNumber style={{width: '100%'}} defaultValue={props.minGtdcFreq} value={props.gtdcFreq[0]} onBlur={props.handleGtdcFreq1} onPressEnter={props.handleGtdcFreq1} min={props.minGtdcFreq} max={props.maxGtdcFreq}/>
                        </Col>
                        <Col span={6}>
-                           <InputNumber defaultValue={props.maxGtdcFreq} value={props.gtdcFreq[1]} onBlur={props.handleGtdcFreq2} onPressEnter={props.handleGtdcFreq2} min={props.minGtdcFreq} max={props.maxGtdcFreq}/>
+                           <InputNumber style={{width: '100%'}} defaultValue={props.maxGtdcFreq} value={props.gtdcFreq[1]} onBlur={props.handleGtdcFreq2} onPressEnter={props.handleGtdcFreq2} min={props.minGtdcFreq} max={props.maxGtdcFreq}/>
                        </Col>
                    </Row>
-                   <Slider range value={props.gtdcFreq} onChange={props.handleGtdcFreq} min={props.minGtdcFreq} max={props.maxGtdcFreq}/>
+                   <Slider range tooltip={{open:false}} value={props.gtdcFreq} onChange={props.handleGtdcFreq} min={props.minGtdcFreq} max={props.maxGtdcFreq}/>
                </div>
-            <div>
-                <Row>
-                    <Col span={12}>Number of Citations</Col>
-                    <Col span={6}>
-                        <InputNumber defaultValue={props.minGtdcNoc} value={props.gtdcNoc[0]} onBlur={props.handleGtdcNoc1} onPressEnter={props.handleGtdcNoc1} min={props.minGtdcNoc} max={props.maxGtdcNoc}/>
-                    </Col>
-                    <Col span={6}>
-                        <InputNumber defaultValue={props.maxGtdcNoc} value={props.gtdcNoc[1]} onBlur={props.handleGtdcNoc2} onPressEnter={props.handleGtdcNoc2} min={props.minGtdcNoc} max={props.maxGtdcNoc}/>
-                    </Col>
-                </Row>
-                <Slider range value={props.gtdcNoc} onChange={props.handleGtdcNoc} min={props.minGtdcNoc} max={props.maxGtdcNoc} />
-            </div>
-            <Button type="primary" onClick={showModal}>
-                Legends
-            </Button>
-            <Modal title="legends" open={isModalOpen} onOk={handleOk} onCancel={handleCancel}>
-                {items()}
-            </Modal>
+                <div style={{ marginTop: '20px' }}>
+                    <Row>
+                        <Col span={12}>Citations</Col>
+                        <Col span={6}>
+                            <InputNumber style={{width: '100%'}} defaultValue={props.minGtdcNoc} value={props.gtdcNoc[0]} onBlur={props.handleGtdcNoc1} onPressEnter={props.handleGtdcNoc1} min={props.minGtdcNoc} max={props.maxGtdcNoc}/>
+                        </Col>
+                        <Col span={6}>
+                            <InputNumber style={{width: '100%'}} defaultValue={props.maxGtdcNoc} value={props.gtdcNoc[1]} onBlur={props.handleGtdcNoc2} onPressEnter={props.handleGtdcNoc2} min={props.minGtdcNoc} max={props.maxGtdcNoc}/>
+                        </Col>
+                    </Row>
+                    <Slider range tooltip={{open:false}} value={props.gtdcNoc} onChange={props.handleGtdcNoc} min={props.minGtdcNoc} max={props.maxGtdcNoc} />
+                </div>
+            {items()}
         </div>
 
     );
-
-  //   return (
-  //       <Collapse expandIconPosition='end' size='small' ghost defaultActiveKey={1}>
-  //
-  //           {/* Article Density Control */}
-  //           {/* <Panel header="Articles Density Control" key="1">
-  //               <div>
-  //                   <div>
-  //                       <Row>
-  //                           <Col span={12}>Frequency</Col>
-  //                           <Col span={6}>
-  //                               <InputNumber defaultValue={props.minAdcFreq} value={props.adcFreq[0]} onBlur={props.handleAdcFreq1} onPressEnter={props.handleAdcFreq1} min={props.minAdcFreq} max={props.maxAdcFreq}/>
-  //                           </Col>
-  //                           <Col span={6}>
-  //                               <InputNumber defaultValue={props.maxAdcFreq} value={props.adcFreq[1]} onBlur={props.handleAdcFreq2} onPressEnter={props.handleAdcFreq2} min={props.minAdcFreq} max={props.maxAdcFreq}/>
-  //                           </Col>
-  //                       </Row>
-  //                       <Slider range value={props.adcFreq} onChange={props.handleAdcFreq} min={props.minAdcFreq} max={props.maxAdcFreq}/>
-  //                   </div>
-  //
-  //                   <div>
-  //                       <Row>
-  //                           <Col span={12}>
-  //                               Publication Date
-  //                           </Col>
-  //                           <Col span={6}>
-  //                               <InputNumber value={props.adcPd[0]} onBlur={props.handleAdcPd1} onPressEnter={props.handleAdcPd1} min={props.minAdcPd} max={props.maxAdcPd}/>
-  //                           </Col>
-  //                           <Col span={6}>
-  //                               <InputNumber value={props.adcPd[1]} onBlur={props.handleAdcPd2} onPressEnter={props.handleAdcPd2} min={props.minAdcPd} max={props.maxAdcPd}/>
-  //                           </Col>
-  //                       </Row>
-  //                       <Slider range value={props.adcPd} onChange={props.handleAdcPd}  min={props.minAdcPd} max={props.maxAdcPd}/>
-  //                   </div>
-  //
-  //                   <div>
-  //                       <Row>
-  //                           <Col span={12}>Number of Citations</Col>
-  //                           <Col span={6}>
-  //                               <InputNumber value={props.adcNoc[0]} onBlur={props.handleAdcNoc1} onPressEnter={props.handleAdcNoc1} min={props.minAdcNoc} max={props.maxAdcNoc}/>
-  //                           </Col>
-  //                           <Col span={6}>
-  //                               <InputNumber value={props.adcNoc[1]} onBlur={props.handleAdcNoc2} onPressEnter={props.handleAdcNoc2} min={props.minAdcNoc} max={props.maxAdcNoc}/>
-  //                           </Col>
-  //                       </Row>
-  //                       <Slider range value={props.adcNoc} onChange={props.handleAdcNoc} min={props.minAdcNoc} max={props.maxAdcNoc} />
-  //                   </div>
-  //               </div>
-  //           </Panel> */}
-  //
-  //           {/* Genomic Terms Density Control */}
-  //           {/*<Panel header="Genomic Terms Density Control" key="1">*/}
-  //           <Panel header={<Title level={4} style={{ marginBottom: 0 }}>Genomic Terms Density Control</Title>}  key="1">
-  //               <div>
-  //                   <div>
-  //                       <Row>
-  //                           <Col span={12}>Frequency</Col>
-  //                           <Col span={6}>
-  //                               <InputNumber defaultValue={props.minGtdcFreq} value={props.gtdcFreq[0]} onBlur={props.handleGtdcFreq1} onPressEnter={props.handleGtdcFreq1} min={props.minGtdcFreq} max={props.maxGtdcFreq}/>
-  //                           </Col>
-  //                           <Col span={6}>
-  //                               <InputNumber defaultValue={props.maxGtdcFreq} value={props.gtdcFreq[1]} onBlur={props.handleGtdcFreq2} onPressEnter={props.handleGtdcFreq2} min={props.minGtdcFreq} max={props.maxGtdcFreq}/>
-  //                           </Col>
-  //                       </Row>
-  //                       <Slider range value={props.gtdcFreq} onChange={props.handleGtdcFreq} min={props.minGtdcFreq} max={props.maxGtdcFreq}/>
-  //                   </div>
-  //                   {/*<div>*/}
-  //                   {/*    <Row>*/}
-  //                   {/*        <Col span={12}>Recency</Col>*/}
-  //                   {/*        <Col span={6}>*/}
-  //                   {/*            <InputNumber value={props.adcPd[0]} onBlur={props.handleAdcPd1} onPressEnter={props.handleAdcPd1} min={props.minAdcPd} max={props.maxAdcPd}/>*/}
-  //                   {/*        </Col>*/}
-  //                   {/*        <Col span={6}>*/}
-  //                   {/*            <InputNumber value={props.adcPd[1]} onBlur={props.handleAdcPd2} onPressEnter={props.handleAdcPd2} min={props.minAdcPd} max={props.maxAdcPd}/>*/}
-  //                   {/*        </Col>*/}
-  //                   {/*    </Row>*/}
-  //                   {/*    <Slider range value={props.adcPd} onChange={props.handleAdcPd}  min={props.minAdcPd} max={props.maxAdcPd}/>*/}
-  //                   {/*</div>*/}
-  //                   <div>
-  //                       <Row>
-  //                           <Col span={12}>Number of Citations</Col>
-  //                           <Col span={6}>
-  //                               <InputNumber defaultValue={props.minGtdcNoc} value={props.gtdcNoc[0]} onBlur={props.handleGtdcNoc1} onPressEnter={props.handleGtdcNoc1} min={props.minGtdcNoc} max={props.maxGtdcNoc}/>
-  //                           </Col>
-  //                           <Col span={6}>
-  //                               <InputNumber defaultValue={props.maxGtdcNoc} value={props.gtdcNoc[1]} onBlur={props.handleGtdcNoc2} onPressEnter={props.handleGtdcNoc2} min={props.minGtdcNoc} max={props.maxGtdcNoc}/>
-  //                           </Col>
-  //                       </Row>
-  //                       <Slider range value={props.gtdcNoc} onChange={props.handleGtdcNoc} min={props.minGtdcNoc} max={props.maxGtdcNoc} />
-  //                   </div>
-  //               </div>
-  //           </Panel>
-  //
-  //           {/* Articles Visibility */}
-  //           {/* <Panel header="Articles Visibility" key="3" style={panelStyle}>
-  //               <div>
-  //                   <Transfer
-  //                       dataSource={props.articleNodes}
-  //                       titles={['Visible Nodes', 'Invisible Nodes']}
-  //                       targetKeys={invisibleArticleKey}
-  //                       selectedKeys={selectedArticleKeys}
-  //                       onChange={onArticleChange}
-  //                       onSelectChange={onArticleSelectChange}
-  //                       onScroll={onScroll}
-  //                       render={(item) => item.title}
-  //                       showSelectAll = 'false'
-  //                       showSearch = 'true'
-  //                   />
-  //               </div>
-  //           </Panel>
-  //
-  //           {/* Genomic Terms Visibility */}
-  //           {/* <Panel header="Genomic Terms Visibility" key="4" style={panelStyle}>
-  //               <div>
-  //                   <Transfer
-  //                       dataSource={props.termNodes}
-  //                       titles={['Visible Nodes', 'Invisible Nodes']}
-  //                       targetKeys={invisibleTermKey}
-  //                       selectedKeys={selectedTermKeys}
-  //                       onChange={onTermChange}
-  //                       onSelectChange={onTermSelectChange}
-  //                       onScroll={onScroll}
-  //                       render={(item) => item.title}
-  //                       showSelectAll = 'false'
-  //                       showSearch = 'true'
-  //                   />
-  //               </div>
-  //           </Panel> */}
-  //
-  //           {/* Relations Visibility */}
-  //           {/* <Panel header="Relations Visibility" key="5" style={panelStyle}>
-  //               <div>
-  //                   <Transfer
-  //                       dataSource={props.relationNodes}
-  //                       titles={['Visible Nodes', 'Invisible Nodes']}
-  //                       targetKeys={invisibleRelationKey}
-  //                       selectedKeys={selectedRelationKeys}
-  //                       onChange={onRelationChange}
-  //                       onSelectChange={onRelationSelectChange}
-  //                       onScroll={onScroll}
-  //                       render={(item) => item.title}
-  //                       showSelectAll = 'false'
-  //                       showSearch = 'true'
-  //                   />
-  //               </div>
-  //           </Panel>  */}
-  //       </Collapse>
-  //
-  //
-  // );
 };
 export default Filter;
