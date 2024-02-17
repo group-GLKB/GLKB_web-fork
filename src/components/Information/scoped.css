@@ -1,3 +1,13 @@
+/* Sticky class for the section titles */
+.sticky-title {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
+    padding: 10px 0;
+    height: 45px;
+}
 all {
     font-family: 'Mundial' !important;
     font-style: normal !important;
@@ -11,12 +21,13 @@ all {
     right: -33vw;
     height: 45vh;
     width: 25vw;
-	/* margin-right: 2vw; */
-	/* border-radius: 21px; */
+    /* margin-right: 2vw; */
+    /* border-radius: 21px; */
     opacity: 0.95;
     transition: right 0.3s ease-in-out;
     background-color: #F7F7F7;
-     /*background-color: red; */
+    /*background-color: red; */
+
 }
 
 /* Smaller screens (e.g., mobile devices) */
@@ -50,15 +61,37 @@ all {
     right: 25vw;
 }
 .information.open {
-	right: 0;
-    overflow-y: scroll;
-    -ms-overflow-style: none;
+    right: 0;
+    /*overflow-y: scroll;*/
+    -ms-overflow-style: -ms-autohiding-scrollbar;
     scrollbar-width: none;
+    overflow-y: auto;
+    max-height: 500px;
 }
 
 .article-container {
     margin: 3%;
     height: 45vh;
+    position: relative;
+}
+
+.constom-sticky {
+    position: sticky;
+    /*top: 0;*/
+    /*left: 0;*/
+    /*right: 0; !* Ensures the title stretches across the container *!*/
+    background: white; /* Or any color, ensures text readability when scrolling */
+    z-index: 10; /* Ensures the title stays above the descriptions */
+    /*padding: 16px; !* Optional: Adjust as needed *!*/
+}
+
+.fixed-row {
+    position: fixed; /* This makes the row fixed at the top */
+    /* Aligns the fixed row to the top */
+    /*width: 100%; !* Ensure the row is full width *!*/
+    z-index: 10; /* Keeps the row above the scrollable content */
+    background: transparent; /* Set a background to ensure text isn't seen through */
+
 }
 
 .edge-article-container {
@@ -146,17 +179,19 @@ all {
     right: -33vw;
     height: 42vh;
     width: 25vw;
-	/* margin-right: 2vw; */
-	/* border-radius: 21px; */
+    /* margin-right: 2vw; */
+    /* border-radius: 21px; */
     opacity: 0.95;
     transition: right 0.3s ease-in-out;
     background-color: #F7F7F7
 }
 .related.open {
-	right: 0;
+    right: 0;
     overflow-y: scroll;
     -ms-overflow-style: none;
     scrollbar-width: none;
+    /*overflow-y: auto;*/
+    max-height: 500px;
 }
 
 .custom-descriptions .ant-descriptions-title {
@@ -174,4 +209,23 @@ all {
 
 .custom-descriptions {
     font-size: 14px;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+.custom-div-edge {
+    /*margin: 1px; !* Adjusts the space outside the div *!*/
+    padding: 0; /* Adjusts the space inside the div */
+    border: none;
+    margin-bottom: -13px;
+}
+
+.custom-div-url {
+    padding: 0; /* Adjusts the space inside the div */
+    border: none;
+    margin-bottom: -17px;
+
 }
