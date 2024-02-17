@@ -122,8 +122,9 @@
     position: absolute;
     right: -5px;
     top: -10px;
-    background-color: #FFCB05;
+    /*background-color: #FFCB05; (Maize*/
+    background-color: red;
     border-radius: 50%;
-    color: black;
+    color: white;
     background-size: 20%;
 }

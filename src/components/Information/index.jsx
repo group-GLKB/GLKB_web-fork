@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import './scoped.css'
-import Article from './article'
-import Term from './term'
 import { DetailService } from '../../service/Detail'
 import { Button } from 'antd';
 import { Descriptions, List, Collapse, Divider, Typography} from 'antd';

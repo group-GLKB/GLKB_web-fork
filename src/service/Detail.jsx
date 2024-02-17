@@ -7,8 +7,8 @@ export class DetailService {
         console.log('node to detail')
         let res = []
         await axios
-            .get('/frontend/frontend_node_detail/' + nid)
-            // .get('/api/frontend/frontend_node_detail/' + nid)
+            // .get('/frontend/frontend_node_detail/' + nid)
+            .get('/api/frontend/frontend_node_detail/' + nid)
             .then(function (response) {
                 res = response
             })
@@ -21,8 +21,8 @@ export class DetailService {
         console.log('edge to detail')
         let res = []
         await axios
-            .get('/frontend/frontend_rel_detail_mult/' + Source + '/' + Target)
-            // .get('/api/frontend/frontend_rel_detail_mult/' + Source + '/' + Target)
+            // .get('/frontend/frontend_rel_detail_mult/' + Source + '/' + Target)
+            .get('/api/frontend/frontend_rel_detail_mult/' + Source + '/' + Target)
             .then(function (response) {
                 res = response
             })

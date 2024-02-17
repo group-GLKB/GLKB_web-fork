@@ -15,7 +15,6 @@ import queryString from 'query-string'
 import Settings from "../Settings";
 import Graph from "../Graph";
 import Information from '../Information';
-import NavBar from "../NavBar";
 import axios from 'axios'
 // import graphData from '../Graph/test_graph.json';
 
