@@ -1,4 +1,3 @@
-
 /* Sticky class for the section titles */
 .sticky-title {
     position: -webkit-sticky;
@@ -228,4 +227,5 @@ ul {
     padding: 0; /* Adjusts the space inside the div */
     border: none;
     margin-bottom: -17px;
+
 }

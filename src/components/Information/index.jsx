@@ -42,7 +42,6 @@ const Information = props => {
         }
         async function searchInfoEdge(content) {
             let detailServ = new DetailService()
-            // console.log(content)
             const response = await detailServ.Eid2Detail(content[0], content[1])
             //console.log(response.data)
             // const sample_data = [[{"node1":"Neoplasms","node2":"Breast Neoplasms","number of citations":1,"relationship label":"Semantic_relationship","relationship type":"Negative_Correlation"},
@@ -121,42 +120,6 @@ const Information = props => {
         console.log(edgeDetail);
 
     }
-    // if (!detail) {
-    //     return <div>Loading</div>
-    // }
-
-//     return (
-//         <div>
-//             <div className={informationClass}>
-//                 {Object.keys(props.detail).length != 0 && props.detailType == "article" && (
-//                     <Article
-//                         title={props.detail.title}
-//                         authors={props.detail.authors}
-//                         pmid={props.detail.pmid}
-//                         abstract={props.detail.abstract}
-//                         abstract_list={props.detail.abstract_list}
-//                     />
-//                 )}
-//                 {Object.keys(props.detail).length != 0 && props.detailType == "term" && (
-//                     <Term
-//                         entity_id={props.detail.element_id}
-//                         name={props.detail.name}
-//                         aliases={props.detail.aliases}
-//                         description={props.detail.description}
-//                         type={props.detail.type}
-//                         external_id={props.detail.external_sources}
-//                     />
-//                 )}
-//             </div>
-//             <Button
-//                 onClick={props.toggleSidebar}
-//                 className={buttonClass}
-//             >
-//                 { !props.isOpen ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
-//             </Button>
-//         </div>
-
-//   );
         return (
             <div>
                 <div className={informationClass}>
@@ -215,18 +178,6 @@ const Information = props => {
                                     </Descriptions.Item>
                                 </Descriptions>
                             </div>
-
-
-                            {/*This is the version with the "Node Details Header*/}
-                            {/*<Title level={4}>Node Details</Title>*/}
-                            {/*<Descriptions bordered column={1}  size="small" className="custom-descriptions">*/}
-                            {/*    <Descriptions.Item label="Entity ID">{nodeDetail[0].element_id}</Descriptions.Item>*/}
-                            {/*    <Descriptions.Item label="Name">{nodeDetail[0].name}</Descriptions.Item>*/}
-                            {/*    <Descriptions.Item label="Aliases">{nodeDetail[0].aliases}</Descriptions.Item>*/}
-                            {/*    <Descriptions.Item label="Description">{nodeDetail[0].description}</Descriptions.Item>*/}
-                            {/*    <Descriptions.Item label="Type">{nodeDetail[0].type}</Descriptions.Item>*/}
-                            {/*    <Descriptions.Item label="External ID">{renderExternal()}</Descriptions.Item>*/}
-                            {/*</Descriptions>*/}
                         </div>
                     )}
                     {Object.keys(edgeDetail).length !== 0 && (
@@ -354,4 +305,5 @@ const Information = props => {
 
       );
 };
+
 export default Information;
