@@ -6,8 +6,7 @@ import 'antd/dist/reset.css';
 import {Col, Row, Input, Spin, Tag, Menu} from 'antd';
 import {TweenOneGroup} from 'rc-tween-one';
 import './scoped.css'
-
-
+import NavBarWhite from '../Units/NavBarWhite'
 import GLKBLogoImg from '../../img/glkb_logo.png'
 import NavBar from '../NavBar';
 import UMLogo from '../../img/um_logo.jpg'
@@ -16,20 +15,22 @@ import Settings from "../Settings";
 import Graph from "../Graph";
 import Information from '../Information';
 import axios from 'axios'
-// import graphData from '../Graph/test_graph.json';
+import sampleGraphData from './sampleData.json';
+import SearchBarKnowledge from "../Units/SearchBarKnowledge";
 
 const {Search} = Input;
 
 const ResultPage = () => {
     const urlParams = new URLSearchParams(window.location.search);
-    const alltags = urlParams.get('q');
+    const alltags = urlParams.get('data');
+
+    console.log(JSON.parse(alltags)[0])
     const otags = alltags.split('|')
     const [tags, setTags] = useState(otags);
     const [detailId, setDetailId] = useState(null);
     const [allNodes, setAllNodes] = useState([]);
     const [data, setData] = useState({});
     const [graphData, setGraphData] = useState();
-
     /* ====== range initialization functions ====== */
     const [minGtdcFreq, setMinGtdcFreq] = useState(Infinity);
     const handleMinGtdcFreq = (value) => {
@@ -87,11 +88,31 @@ const ResultPage = () => {
     const [graphShownData, setGraphShownData] = useState();
 
     useEffect(() => {
-        const parsed = location.search.slice(3)
-        console.log(parsed)
-        if (parsed) {
-            search(parsed)
+        // const parsed = location.search.slice(3)
+        // console.log(parsed)
+        // if (parsed) {
+        //     search(parsed)
+        // } else {
+        // }
+        const urlParams = new URLSearchParams(window.location.search);
+        const resultString = urlParams.get('data');
+
+        if (resultString) {
+            // Parse the JSON string into JavaScript objects
+            const resultData = JSON.parse(resultString);
+            
+            // Check if alltags is an array and has at least two elements
+            if (Array.isArray(resultData) && resultData.length >= 2) {
+                // Set data and allNodes using the parsed values
+                setData(resultData[0]);
+                setAllNodes(resultData[1]);
+            } else {
+                console.error('Invalid data format in URL parameters');
+                // Handle the case where data is in an unexpected format
+            }
         } else {
+            console.error('No "data" parameter found in URL');
+            // Handle the case where no "data" parameter is present in the URL
         }
     }, [location])
 
@@ -105,9 +126,11 @@ const ResultPage = () => {
         let cypherServ = new CypherService()
         const response = await cypherServ.Article2Cypher(content)
         console.log('function -> ', response)
-        // setData(graphData)
-        setData(response.data[0])
-        setAllNodes(response.data[1])
+        console.log(sampleGraphData)
+        setData(sampleGraphData[0])
+        setAllNodes(sampleGraphData[1])
+        // setData(response.data[0])
+        // setAllNodes(response.data[1])
         setSearchFlag(true)
     }
 
@@ -137,6 +160,7 @@ const ResultPage = () => {
         } else {
             if (data.edges) {
                 setGraphShownData(data)
+                setSearchFlag(true)
             }
         }
     }, [graphData, data])
@@ -150,6 +174,17 @@ const ResultPage = () => {
         }
         console.log(temp_id)
         setDetailId(temp_id);
+    }
+
+    let selectedID;
+
+    async function handleSelectNodeID(targetID) {
+        let temp_id = targetID[0];
+        if (!informationOpen) {
+            handleInformation();
+        }
+        setDetailId(temp_id);
+        selectedID = temp_id;
     }
 
     let nevigate = useNavigate();
@@ -169,11 +204,13 @@ const ResultPage = () => {
     return (
         <div className="result-container">
 
-            <NavBar 
+            {/*<NavBar 
                 handleSearchTags = {handleSearch}
                 tags = {tags}
                 setTags = {setTags}
-            />
+    />*/}
+            <NavBarWhite />
+            <SearchBarKnowledge />
             {/* Main Content */}
             <div className='main-content'>
                 {!searchFlag && (
@@ -185,6 +222,7 @@ const ResultPage = () => {
                     <div className='result-content'>
                         <Graph
                             data={graphShownData}
+                            selectedID={selectedID}
                             minGtdcFreq={minGtdcFreq}
                             maxGtdcFreq={maxGtdcFreq}
                             minGtdcNoc={minGtdcNoc}
@@ -220,6 +258,7 @@ const ResultPage = () => {
                                 graphShownData={graphShownData}
                                 setData={setData}
                                 setGraphData={setGraphData}
+                                handleSelectNodeID={handleSelectNodeID}
                             />
                         </span>
                         <span>

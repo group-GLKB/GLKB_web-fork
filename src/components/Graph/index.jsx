@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import CytoscapeComponent from 'react-cytoscapejs';
 import Cytoscape from 'cytoscape';
 import cola from 'cytoscape-cola';
@@ -146,6 +146,7 @@ function Graph(props) {
         // length: 1,
         // "line-color": "#6774cb",
         'line-color': '#008080',
+        'line-style': 'solid',
         // 'target-arrow-color': '#6774cb',
         // 'target-arrow-shape': 'triangle',
         // 'curve-style': 'bezier',
@@ -163,6 +164,7 @@ function Graph(props) {
         // length: 1,
         // "line-color": "#6774cb",
         'line-color': '#E0B0FF',
+        'line-style': 'dotted',
         // 'target-arrow-color': '#6774cb',
         // 'target-arrow-shape': 'triangle',
         // 'curve-style': 'bezier',
@@ -180,6 +182,7 @@ function Graph(props) {
         // length: 1,
         // "line-color": "#6774cb",
         'line-color': '#E0B0FF',
+        'line-style': 'dashed',
         // 'target-arrow-color': '#6774cb',
         // 'target-arrow-shape': 'triangle',
         // 'curve-style': 'bezier',
@@ -209,26 +212,28 @@ function Graph(props) {
     let labelColor = ''
     let size = ''
     let shape = ''
+    let borderWidth = ''
+    let borderColor = ''
     switch(id[i][1]) {
-      case 'Anatomy':
+      case 'AnatomicalEntity':
         labelColor = '#E43333'
       break;
-      case 'Chemicals and Drugs':
+      case 'ChemicalEntity':
         labelColor = '#E8882F'
       break;
-      case 'Diseases':
+      case 'DiseaseOrPhenotypicFeature':
         labelColor = '#67BE48'
       break;
-      case 'Genes and Gene Products':
+      case 'Gene':
         labelColor = '#46ACAC'
       break;
-      case 'GO':
+      case 'BiologicalProcessOrActivity':
         labelColor = '#5782C2'
       break;
-      case 'Organisms':
+      case 'MeshTerm':
         labelColor = '#9B58C5'
       break;
-      case 'Pathway':
+      case 'SequenceVariant':
         labelColor = '#D829B1'
       break;
     }
@@ -240,7 +245,8 @@ function Graph(props) {
       size = 5
     }
     if (id[i][4] == "true") {
-      shape = 'triangle'
+      borderWidth = '1px'
+      borderColor = 'red'
     } else {
       shape = 'ellipse'
     }
@@ -251,6 +257,8 @@ function Graph(props) {
         backgroundColor: labelColor, 
         backgroundOpacity: 1,
         shape: shape, 
+        borderWidth: borderWidth,
+        borderColor: borderColor,
         // backgroundColor: 'hsl(' + index*colorDif + ', 100%, ' + 50/label[index][1] * id[i][2] + '%)',
         width: size,
         height: size,
@@ -273,7 +281,7 @@ function Graph(props) {
   }
   // console.log(styleSheet)
 
-  let myCyRef;
+  const myCyRef = useRef(null);
   return (
       <div>
         <div>
@@ -290,7 +298,7 @@ function Graph(props) {
             layout={layout}
             stylesheet={styleSheet}
             cy={(cy) => {
-              myCyRef = cy;
+              myCyRef.current = cy;
               cy.unbind("click");
               cy.on('click', function(e){
                 var sel = e.target;
@@ -336,6 +344,7 @@ function Graph(props) {
                 }
               });
             }}
+
           />
         </div>
       </div>

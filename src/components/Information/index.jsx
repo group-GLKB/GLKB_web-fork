@@ -69,7 +69,7 @@ const Information = props => {
             <div className="custom-div-url">
                 <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>{url[0]}</a>
                 {/*<span> (Number of Citation: {url[2]}, Date: {url[3]})</span>*/}
-                <p>Number of Citations: {url[2]}, Date: {url[3]}</p>
+                <p>Cited by: {url[2]}, Year: {url[3]}</p>
             </div>
         )
     }
@@ -150,11 +150,11 @@ const Information = props => {
                         <div >
                             {/*<div className='fixed-row'>*/}
                             <div className="sticky-title">
-                                <Title level={4} >{nodeDetail[0].name.charAt(0).toUpperCase() + nodeDetail[0].name.slice(1)}</Title>
+                                <h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>{nodeDetail[0].name.charAt(0).toUpperCase() + nodeDetail[0].name.slice(1)}</h3>
                             </div>
                             <div className='article-container'>
                                 {/*<Title level={4}>{nodeDetail[0].name}</Title>*/}
-                                <Descriptions column={1}  size="small" className="custom-descriptions">
+                                <Descriptions column={1}  size="small" className="custom-descriptions" style={{borderRadius: '10px'}}>
                                     <Descriptions.Item label="Entity ID">{nodeDetail[0].element_id}</Descriptions.Item>
                                     {/*<Descriptions.Item label="Aliases">{nodeDetail[0].aliases}</Descriptions.Item>*/}
 
@@ -181,7 +181,7 @@ const Information = props => {
                     {Object.keys(edgeDetail).length !== 0 && (
                         <div >
                             <div className="sticky-title">
-                                <Title level={4}>Edges Detail</Title>
+                                <h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Edges Detail</h3>
                             </div>
                             <div className='article-container'>
                                 <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
@@ -242,7 +242,7 @@ const Information = props => {
                             {/*<div className='article-title'>Related Articles</div>*/}
                             {/*<Title level={4}>Related Articles</Title>*/}
                             <div className="sticky-title">
-                                <Title level={4}>Related Articles</Title>
+                                <h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Related Articles</h3>
                             </div>
                             <div className='article-container'>
                                 <List
@@ -271,7 +271,7 @@ const Information = props => {
                     {Object.keys(edgeDetail).length !== 0 && (
                         <div>
                             <div className="sticky-title">
-                                <Title level={4}>Related Articles</Title>
+                                <h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Related Articles</h3>
                             </div>
                             <div className='article-container'>
                                 <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
@@ -283,7 +283,7 @@ const Information = props => {
                                                         <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>
                                                             {url[0]}
                                                         </a>
-                                                        <p> Number of Citations: {url[2]}, Date: {url[3]}</p>
+                                                        <p> Cited by: {url[2]}, Year: {url[3]}</p>
                                                     </div>
                                                 ))
                                             ) : (

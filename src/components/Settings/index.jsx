@@ -34,6 +34,7 @@ const Settings = props => {
                     allNodes = {props.allNodes}
                     setGraphData = {props.setGraphData}
                     graphShownData = {props.graphShownData}
+                    handleSelectNodeID={props.handleSelectNodeID}
                 />  
             </div>
         </div>
