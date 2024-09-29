@@ -35,7 +35,9 @@ const HomePage = () => {
             {/* <NavBarWhite/> */}
             <div className="content">
                 <img src={logo}  alt="Logo" />
-                <SearchBarKnowledge />
+                <SearchBarKnowledge 
+                    chipData = {[]}
+                />
             </div>
 
             <div className="footer">

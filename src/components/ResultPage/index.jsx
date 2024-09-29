@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from 'react'
 import {useNavigate} from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import {CypherService} from '../../service/Cypher'
 import {DetailService} from '../../service/Detail'
 import 'antd/dist/reset.css';
@@ -21,11 +22,15 @@ import SearchBarKnowledge from "../Units/SearchBarKnowledge";
 const {Search} = Input;
 
 const ResultPage = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const alltags = urlParams.get('data');
-
-    console.log(JSON.parse(alltags)[0])
-    const otags = alltags.split('|')
+    // const urlParams = new URLSearchParams(window.location.search);
+    // const alltags = urlParams.get('data');
+    const location = useLocation();
+    const search_data = location.state.search_data;
+    const chipDataID = location.state.chipDataID;
+    // const { result } = location.state;
+    // console.log(location.state)
+    // const otags = alltags.split('|')
+    const otags = ""
     const [tags, setTags] = useState(otags);
     const [detailId, setDetailId] = useState(null);
     const [allNodes, setAllNodes] = useState([]);
@@ -84,37 +89,32 @@ const ResultPage = () => {
 
 
     const [searchFlag, setSearchFlag] = useState(false)
+    const [chipData, setChipData] = useState([]);
+    const [chipDataIDResult, setChipDataIDResult] = useState([]);
     const [informationOpen, setInformationOpen] = useState(false);
     const [graphShownData, setGraphShownData] = useState();
-
+    const [displayArticleGraph, setDisplayArticleGraph] = useState(false);
     useEffect(() => {
-        // const parsed = location.search.slice(3)
-        // console.log(parsed)
-        // if (parsed) {
-        //     search(parsed)
-        // } else {
-        // }
-        const urlParams = new URLSearchParams(window.location.search);
-        const resultString = urlParams.get('data');
-
-        if (resultString) {
-            // Parse the JSON string into JavaScript objects
-            const resultData = JSON.parse(resultString);
-            
-            // Check if alltags is an array and has at least two elements
-            if (Array.isArray(resultData) && resultData.length >= 2) {
-                // Set data and allNodes using the parsed values
-                setData(resultData[0]);
-                setAllNodes(resultData[1]);
-            } else {
-                console.error('Invalid data format in URL parameters');
-                // Handle the case where data is in an unexpected format
-            }
-        } else {
-            console.error('No "data" parameter found in URL');
-            // Handle the case where no "data" parameter is present in the URL
+        if (search_data) {
+            let chipResultData = search_data.triplets.map(triplet => {
+                let chip_str = [
+                    `${triplet.source[1]}`,
+                    `${triplet.rel}`,
+                    `${triplet.target[1]}`
+                ].join("-");
+                return chip_str;
+            });
+        
+            setChipData(chipResultData)
+            search(search_data)
         }
-    }, [location])
+        if (chipDataID) {
+            const newArray = [];
+            chipDataID.forEach(idArray => {newArray.push(idArray)});
+            console.log(newArray)
+            setChipDataIDResult(newArray);
+        }
+    }, [search_data, chipDataID])
 
     const initialize = () => {
         setSearchFlag(false)
@@ -122,15 +122,15 @@ const ResultPage = () => {
 
     async function search(content) {
         setSearchFlag(false)
-        nevigate(`/result?q=${content}`)
+        // nevigate(`/result?q=${content}`)
         let cypherServ = new CypherService()
-        const response = await cypherServ.Article2Cypher(content)
+        const response = await cypherServ.Triplet2Cypher(content)
         console.log('function -> ', response)
-        console.log(sampleGraphData)
-        setData(sampleGraphData[0])
-        setAllNodes(sampleGraphData[1])
-        // setData(response.data[0])
-        // setAllNodes(response.data[1])
+        // console.log(sampleGraphData)
+        // setData(sampleGraphData[0])
+        // setAllNodes(sampleGraphData[1])
+        setData(response[0])
+        setAllNodes(response[1])
         setSearchFlag(true)
     }
 
@@ -168,9 +168,9 @@ const ResultPage = () => {
     async function handleSelect(target) {
         let temp_id
         if (target.article_source) {
-            temp_id = [target.source, target.target];
+            temp_id = ["edge", ...target.eid];
         } else {
-            temp_id = target.id
+            temp_id = ["node", ...target.database_id];
         }
         console.log(temp_id)
         setDetailId(temp_id);
@@ -198,7 +198,6 @@ const ResultPage = () => {
     const handleInformation = () => {
         setInformationOpen(!informationOpen);
     };
-
     console.log(graphShownData)
 
     return (
@@ -210,7 +209,12 @@ const ResultPage = () => {
                 setTags = {setTags}
     />*/}
             <NavBarWhite />
-            <SearchBarKnowledge />
+            <SearchBarKnowledge 
+                chipData = {chipData}
+                chipDataIDResult = {chipDataIDResult}
+                displayArticleGraph = {displayArticleGraph}
+                setDisplayArticleGraph = {setDisplayArticleGraph}
+            />
             {/* Main Content */}
             <div className='main-content'>
                 {!searchFlag && (
@@ -259,6 +263,11 @@ const ResultPage = () => {
                                 setData={setData}
                                 setGraphData={setGraphData}
                                 handleSelectNodeID={handleSelectNodeID}
+                                search={search}
+                                search_data={search_data}
+                                displayArticleGraph={displayArticleGraph}
+                                setDisplayArticleGraph={setDisplayArticleGraph}
+                                setDetailId={setDetailId}
                             />
                         </span>
                         <span>
@@ -266,6 +275,7 @@ const ResultPage = () => {
                                 isOpen={informationOpen}
                                 toggleSidebar={handleInformation}
                                 detailId={detailId}
+                                displayArticleGraph={displayArticleGraph}
                             />
                         </span>
                     </div>

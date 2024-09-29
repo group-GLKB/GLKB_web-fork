@@ -1,0 +1,62 @@
+Gene
+Traceback (most recent call last):
+  File "/var/www/glkb/glkb-alg/extract_sentence.py", line 29, in <module>
+    pd.DataFrame(result, columns=['ent_id', 'ent_name', 'ent_definition']).to_pickle(f'/nfs/turbo/umms-drjieliu/proj/medlineKG/data/glkb_processed_data/openai_definitions/vocab_sents/{label}.pk')
+  File "/home/hyhao/miniconda3/envs/glkb-backend/lib/python3.8/site-packages/pandas/core/generic.py", line 2955, in to_pickle
+    to_pickle(
+  File "/home/hyhao/miniconda3/envs/glkb-backend/lib/python3.8/site-packages/pandas/io/pickle.py", line 95, in to_pickle
+    with get_handle(
+  File "/home/hyhao/miniconda3/envs/glkb-backend/lib/python3.8/site-packages/pandas/io/common.py", line 737, in get_handle
+    check_parent_directory(str(handle))
+  File "/home/hyhao/miniconda3/envs/glkb-backend/lib/python3.8/site-packages/pandas/io/common.py", line 600, in check_parent_directory
+    raise OSError(rf"Cannot save file into a non-existent directory: '{parent}'")
+OSError: Cannot save file into a non-existent directory: '/nfs/turbo/umms-drjieliu/proj/medlineKG/data/glkb_processed_data/openai_definitions/vocab_sents'
+Gene
+Traceback (most recent call last):
+  File "/var/www/glkb/glkb-alg/extract_sentence.py", line 29, in <module>
+    pd.DataFrame(result, columns=['ent_id', 'ent_name', 'ent_definition']).to_pickle(f'/nfs/turbo/umms-drjieliu/proj/medlineKG/data/glkb_processed_data/openai_definitions/{label}.pk')
+  File "/home/hyhao/miniconda3/envs/glkb-backend/lib/python3.8/site-packages/pandas/core/generic.py", line 2955, in to_pickle
+    to_pickle(
+  File "/home/hyhao/miniconda3/envs/glkb-backend/lib/python3.8/site-packages/pandas/io/pickle.py", line 95, in to_pickle
+    with get_handle(
+  File "/home/hyhao/miniconda3/envs/glkb-backend/lib/python3.8/site-packages/pandas/io/common.py", line 737, in get_handle
+    check_parent_directory(str(handle))
+  File "/home/hyhao/miniconda3/envs/glkb-backend/lib/python3.8/site-packages/pandas/io/common.py", line 600, in check_parent_directory
+    raise OSError(rf"Cannot save file into a non-existent directory: '{parent}'")
+OSError: Cannot save file into a non-existent directory: '/nfs/turbo/umms-drjieliu/proj/medlineKG/data/glkb_processed_data/openai_definitions'
+Gene
+DiseaseOrPhenotypicFeature
+ChemicalEntity
+Traceback (most recent call last):
+  File "/var/www/glkb/glkb-alg/extract_sentence.py", line 42, in <module>
+    with GraphDatabase.driver(config.glkb_url, auth=("neo4j", "password"), max_connection_lifetime=1000) as driver:
+NameError: name 'config' is not defined
+/var/www/glkb/glkb-alg/extract_sentence.py:56: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+  unique_vocabs['external_id'] = unique_vocabs['id'].apply(lambda x: set([x]))
+Traceback (most recent call last):
+  File "/var/www/glkb/glkb-alg/extract_sentence.py", line 76, in <module>
+    res = client.embeddings.create(input=texts, model="text-embedding-3-small")
+  File "/home/hyhao/miniconda3/envs/glkb-backend/lib/python3.8/site-packages/openai/resources/embeddings.py", line 113, in create
+    return self._post(
+  File "/home/hyhao/miniconda3/envs/glkb-backend/lib/python3.8/site-packages/openai/_base_client.py", line 1200, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+  File "/home/hyhao/miniconda3/envs/glkb-backend/lib/python3.8/site-packages/openai/_base_client.py", line 889, in request
+    return self._request(
+  File "/home/hyhao/miniconda3/envs/glkb-backend/lib/python3.8/site-packages/openai/_base_client.py", line 980, in _request
+    raise self._make_status_error_from_response(err.response) from None
+openai.BadRequestError: Error code: 400 - {'error': {'message': "This model's maximum context length is 8192 tokens, however you requested 13615 tokens (13615 in your prompt; 0 for the completion). Please reduce your prompt; or completion length.", 'type': 'invalid_request_error', 'param': None, 'code': None}}
+Traceback (most recent call last):
+  File "/var/www/glkb/glkb-alg/extract_subgraph.py", line 10, in <module>
+    writer = csv.writer(f)
+NameError: name 'csv' is not defined
+/var/www/glkb/glkb-alg/extract_sentence.py:56: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+  unique_vocabs['external_id'] = unique_vocabs['id'].apply(lambda x: set([x]))
+mesh:D044349

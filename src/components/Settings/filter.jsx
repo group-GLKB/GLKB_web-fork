@@ -4,6 +4,7 @@ import { Row, Col, Slider, Collapse, Transfer, InputNumber, Typography, Button, 
 import { DownOutlined, SmileOutlined } from '@ant-design/icons';
 import { CaretRightOutlined, PlusCircleOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { NewGraph } from '../../service/NewNode'
+import {CypherService} from '../../service/Cypher'
 import { render } from '@testing-library/react';
 const { Panel } = Collapse;
 const { Title } = Typography;
@@ -61,6 +62,16 @@ const Filter = props => {
         }
     },[props.graphShownData])
 
+    async function entityToArticle(content) {
+        let cypherServ = new CypherService()
+        const response = await cypherServ.Term2Article(content)
+        console.log('Term2Article -> ', response)
+        props.setData(response)
+    }
+
+    async function articleToEntity() {
+        props.search(props.search_data);
+    }
 
     /* source is visible nodes, target is invisible nodes */
     const [displayLeftTree, setDisplayLeftTree] = useState(true);
@@ -73,7 +84,6 @@ const Filter = props => {
     const [newList, setNewList] = useState();
     const [uniqueLabelsArray, setUniqueLabelsArray] = useState([...uniqueLabelsSet]);
     const [uniqueEdgeLabelsArray, setUniqueEdgeLabelsArray] = useState([...uniqueEdgeLabelsSet])
-    const [displayArticleGraph, setDisplayArticleGraph] = useState(false);
 
     const toggleTreeDisplay = () => {
         setDisplayLeftTree((prevDisplayLeftTree) => !prevDisplayLeftTree);
@@ -314,7 +324,7 @@ const Filter = props => {
 
 
     const leftPanel = () => {
-        if (!displayArticleGraph) {
+        if (!props.displayArticleGraph) {
             return (
                 <div style={{marginLeft: '10px', overflow: 'auto', height: '85vh'}}>
                 <Collapse defaultActiveKey={['1']} ghost expandIcon={({ isActive }) => <CaretRightOutlined style={{color: '#014484', fontSize: 20}} rotate={isActive ? 90 : 0} />}>
@@ -424,7 +434,15 @@ const Filter = props => {
     };
 
     const changeLeftPanel = () => {
-        setDisplayArticleGraph(!displayArticleGraph);
+        if (!props.displayArticleGraph) {
+            props.setDisplayArticleGraph(true);
+            props.setDetailId(null);
+            entityToArticle(props.data);
+        } else {
+            props.setDisplayArticleGraph(false);
+            props.setDetailId(null);
+            articleToEntity();
+        }
     }
 
     // No collapse Version
@@ -433,7 +451,7 @@ const Filter = props => {
             {leftPanel()}
             <div className='legend-container'>
                 <button onClick={changeLeftPanel} style={{borderWidth: '2px', width: '278px', height: '43px', borderRadius: '10px'}}>
-                    {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
+                    {props.displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
                 </button>
             </div>
         </div>

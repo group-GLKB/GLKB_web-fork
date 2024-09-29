@@ -7,8 +7,8 @@ export class NewGraph {
         console.log('add nodes')
         let res = []
         await axios
-            .get('/frontend/frontend_add_nodes?existing=' + existing + "&new=" + newNode)
-            // .get('/api/frontend/frontend_add_nodes?existing=' + existing + "&new=" + newNode)
+            //.get('/frontend/frontend_add_nodes?existing=' + existing + "&new=" + newNode)
+            .get('/api/frontend/frontend_add_nodes?existing=' + existing + "&new=" + newNode)
             .then(function (response) {
                 res = response
             })

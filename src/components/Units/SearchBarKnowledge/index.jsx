@@ -1,16 +1,20 @@
 import React, {useEffect, useState} from 'react';
 import { Stack, Chip, TextField, Button, Select, MenuItem, FormControl,
     InputLabel, Box, Container, Typography, Autocomplete, Card, Grid} from '@mui/material';
+import { createFilterOptions } from '@mui/material/Autocomplete';
 import { FormGroup, FormControlLabel, Switch } from '@mui/material';
 import {CypherService} from '../../../service/Cypher'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import {useNavigate} from 'react-router-dom';
+import {matchSorter} from 'match-sorter'
 
-export default function SearchBarKnowledge() {
-
+export default function SearchBarKnowledge(props) {
+    const navigate = useNavigate();
     const [relationship, setRelationship] = React.useState('');
     const [sourceNodeOptions, setSourceNodeOptions] = React.useState([]);
     const [targetNodeOptions, setTargetNodeOptions] = React.useState([]);
     const [chipData, setChipData] =React.useState([]);
+    const [chipDataID, setChipDataID] = React.useState([]);
     const [triplets, setTriplets] = React.useState(["", "", ""]); // Represent source, rel, target
     const [expanded, setExpanded] = React.useState(false);
     const [maxArticles, setMaxArticles] = React.useState(0);
@@ -24,7 +28,6 @@ export default function SearchBarKnowledge() {
 
     const showAdvance = true;
     const relationTypes = ["Associate", "Bind", "Comparison", "Cotreatment", "PositiveCorrelation", "NegativeCorrelation"];
-
     const example_data = {
         "triplets": [
             {
@@ -130,18 +133,25 @@ export default function SearchBarKnowledge() {
 
 
     useEffect(() => {
+        setChipData(props.chipData);
+        if (props.chipDataIDResult) {
+            setChipDataID(props.chipDataIDResult);
+        }
+    }, [props.chipData])
+
+    useEffect(() => {
         if (sourceNodeData.length > 0) {
             setSourceNodeOptions([
-                ...sourceNodeOptions, 
+                // ...sourceNodeOptions, 
                 ...sourceNodeData.map(node => [node.database_id, node.name])
             ]);
         }
     }, [sourceNodeData]);
 
     let sourceTimer;
-    const updateSource = (value) => {
+    const updateSource = (event, value) => {
         if (value.trim() === '') {
-            setSourceNodeOptions([]);
+            //setSourceNodeOptions([]);
         } else {
             // setSourceNodeOptions([
             //     `Option ${value}`,
@@ -152,28 +162,33 @@ export default function SearchBarKnowledge() {
             // setSourceNodeOptions([
             //     value
             // ]);
-            clearTimeout(sourceTimer);
-            sourceTimer = setTimeout(() => {
+            if (event.type == "click") {
                 sourceEntitySearch(value);
                 const newTriplet = [value, triplets[1], triplets[2]];
                 setTriplets(newTriplet);
-            }, 1000);
-
+            } else {
+                clearTimeout(sourceTimer);
+                sourceTimer = setTimeout(() => {
+                    sourceEntitySearch(value);
+                    const newTriplet = [value, triplets[1], triplets[2]];
+                    setTriplets(newTriplet);
+                }, 1000);
+            }
         }
     };
     useEffect(() => {
         if (targetNodeData.length > 0) {
             setTargetNodeOptions([
-                ...targetNodeOptions, 
+                //...targetNodeOptions, 
                 ...targetNodeData.map(node => [node.database_id, node.name])
             ]);
         }
     }, [targetNodeData]);
 
     let targetTimer;
-    const updateTarget = (value) => {
+    const updateTarget = (event, value) => {
         if (value.trim() === '') {
-            setTargetNodeOptions([]);
+            //setTargetNodeOptions([]);
         } else {
             // setSourceNodeOptions([
             //     `Option ${value}`,
@@ -184,13 +199,18 @@ export default function SearchBarKnowledge() {
             // setTargetNodeOptions([
             //     value
             // ]);
-            clearTimeout(targetTimer);
-            targetTimer = setTimeout(() => {
+            if (event.type == "click") {
                 targetEntitySearch(value);
                 const newTriplet = [triplets[0], triplets[1], value];
                 setTriplets(newTriplet);
-            }, 1000)
-
+            } else {
+                clearTimeout(targetTimer);
+                targetTimer = setTimeout(() => {
+                    targetEntitySearch(value);
+                    const newTriplet = [triplets[0], triplets[1], value];
+                    setTriplets(newTriplet);
+                }, 1000)
+            }
         }
     };
 
@@ -226,8 +246,14 @@ export default function SearchBarKnowledge() {
 
     //This function is called after clicked on the delete cross button on the chip
     const handleDelete = (data) => {
-        const newChipData = chipData.filter(chip => chip !== data);
-        setChipData(newChipData);
+        const index = chipData.indexOf(data);
+
+        if (index !== -1) {
+            const newChipData = chipData.filter((chip, idx) => idx !== index);
+            const newChipDataID = chipDataID.filter((id, idx) => idx !== index);
+            setChipData(newChipData);
+            setChipDataID(newChipDataID);
+        }
     };
 
 
@@ -252,17 +278,32 @@ export default function SearchBarKnowledge() {
     const handleAddTriplet = () =>{
         if (triplets[0] === "" && triplets[1] === "" && triplets[2] === "") return;
         // let newKey = chipData.length;
-        let chip_str = triplets.map(item => item === "" ? "null" : ("{" + item + "}")).join("| ");
+        let chip_str = triplets.map((item, index) => {
+            if (index == 1 && item == "") {
+                return "[any relationships]"
+            } else if (index == 2 && item == "") {
+                return "()"
+            } else if (index == 1) {
+                return "[" + item + "]"
+            } else {
+                return "(" + item + ")"
+            }
+        }).join("-");
         console.log(chip_str)
         if (chipData.includes((chip_str))) return;
         // chipData.push({key:newKey, label:''})
         // const newData = [...chipData, {key:newKey, label:chip_str}]
+        console.log(chipData);
         const newData = [...chipData, chip_str];
         setChipData(newData);
+        const sourceID = getIdFromName(triplets[0], sourceNodeOptions);
+        const targetID = getIdFromName(triplets[2], targetNodeOptions);
+        console.log(chipDataID);
+        setChipDataID([...chipDataID, [sourceID, targetID]]);
     }
 
     // This function is called after clicking on the search button
-    const handleSearch = () => {
+    const handleSearch = async () => {
         // Here should trigger search result api and route to the result page
         console.log("searching result with data: ");
         console.log(chipData); // Here need to trim the data before send to backend
@@ -273,13 +314,14 @@ export default function SearchBarKnowledge() {
         console.log(moreRel);
         //Create search result based on the status
         let search_data = {
-            "triplets": chipData.map(triplet =>{
+            "triplets": chipData.map((triplet, index) =>{
                 // console.log(triplet)
-                const parts = triplet.replace(/{|}/g, "").split("| ");
+                const parts = triplet.replace(/{|}/g, "").split("-");
+                console.log(triplet)
                 return {
-                    "source": [Number(getIdFromName(parts[0].trim(), sourceNodeOptions)), parts[0].trim()],
+                    "source": [Number(chipDataID[index][0]), parts[0].trim()],
                     "rel": parts[1].trim(),
-                    "target": [Number(getIdFromName(parts[2].trim(), targetNodeOptions)), parts[2].trim()]
+                    "target": [Number(chipDataID[index][1]), parts[2].trim()]
                 };
             }),
             "params": {
@@ -287,24 +329,31 @@ export default function SearchBarKnowledge() {
                 "max_terms": maxBioTerms,
                 "max_rels": maxRel,
                 "more_terms": moreNodes===true ? "True":"False",
-                "more_rels": moreRel===true ? "True":"False"
+                "more_rels": moreRel===true ? "True":"False",
+                "merge": "True"
             }
         };
         console.log(search_data);
-        search(search_data)
+        // let cypherServ = new CypherService()
+        // const response = await cypherServ.Triplet2Cypher(search_data)
+        navigate('/result', { state: { search_data, chipDataID } });
+        if (props.displayArticleGraph) {
+            props.setDisplayArticleGraph(false);
+        }
     };
 
-    async function search(content) {
-        let cypherServ = new CypherService()
-        const response = await cypherServ.Triplet2Cypher(content)
-        console.log('function -> ', response)
-        //console.log(sampleGraphData)
-        // setData(sampleGraphData[0])
-        // setAllNodes(sampleGraphData[1])
-        // // setData(response.data[0])
-        // // setAllNodes(response.data[1])
-        // setSearchFlag(true)
-    }
+    // async function search(content) {
+    //     navigate('/result', { state: { content } });
+    //     // let cypherServ = new CypherService()
+    //     // const response = await cypherServ.Triplet2Cypher(content)
+    //     // console.log('function -> ', response)
+    //     //console.log(sampleGraphData)
+    //     // setData(sampleGraphData[0])
+    //     // setAllNodes(sampleGraphData[1])
+    //     // // setData(response.data[0])
+    //     // // setAllNodes(response.data[1])
+    //     // setSearchFlag(true)
+    // }
 
     async function sourceEntitySearch(content) {
         let cypherServ = new CypherService()
@@ -341,7 +390,8 @@ export default function SearchBarKnowledge() {
         fontSize: '16px', // Adjust font size as needed
     };
 
-
+    // const filterOptions = (options, { inputValue }) => matchSorter(options, inputValue);
+    const filterOptions = (options, { inputValue }) => options;
 
     return (
         <Container maxWidth="md">
@@ -350,18 +400,21 @@ export default function SearchBarKnowledge() {
                 <Box display="flex" alignItems="center" gap={2} p={2}>
                     <FormControl fullWidth>
                     <Autocomplete
+                        freeSolo
+                        autoHighlight={true}
+                        filterOptions={filterOptions}
                         // inputValue={inputValue}
                         onInputChange={(event, newInputValue) => {
-                            updateSource(newInputValue);
+                            updateSource(event, newInputValue);
                         }}
-                        options={sourceNodeOptions.length > 0 ? sourceNodeOptions.map(option => option[1]) : []}
+                        options={sourceNodeOptions.length > 0 ? sourceNodeOptions.map(option => (option[1])) : []}
                         renderInput={(params) => (
-                            <TextField {...params} label="Source Node" variant="outlined" />
+                            <TextField {...params} label="Name" variant="outlined" />
                         )}
                     />
                     </FormControl>
 
-                    <FormControl fullWidth>
+                    {/* <FormControl fullWidth>
                         <InputLabel id="relationship-label">Relationship(Optional)</InputLabel>
                         <Select
                             labelId="relationship-label"
@@ -377,22 +430,25 @@ export default function SearchBarKnowledge() {
                     </FormControl>
                     <FormControl fullWidth>
                         <Autocomplete
+                            freeSolo
+                            autoHighlight={true}
+                            filterOptions={filterOptions}
                             // inputValue={inputValue}
                             onInputChange={(event, newInputValue) => {
-                                updateTarget(newInputValue);
+                                updateTarget(event, newInputValue);
                             }}
                             options={targetNodeOptions.length > 0 ? targetNodeOptions.map(option => option[1]) : []}
                             renderInput={(params) => (
                                 <TextField {...params} label="Target Node" variant="outlined" />
                             )}
                         />
-                    </FormControl>
+                    </FormControl> */}
 
 
                     <Button variant="contained" color="primary"
                             sx={{ minWidth:'120px', backgroundColor: '#8BB5D1', color: 'black', '&:hover': { backgroundColor: '#4A7298' } }}
                             onClick={handleAddTriplet}>
-                        Add Triplet
+                        Add Node
                     </Button>
                 </Box>
                 <Box display="flex" alignItems="center" gap={2} p={2}>
@@ -404,8 +460,7 @@ export default function SearchBarKnowledge() {
                             <Stack direction="row" spacing={1} sx={{ marginY: 2 }}>
                                 {chipData.map((data) => (
                                     <Chip
-
-                                        label={data}
+                                        label={data.replace(/{|}/g, "").split("-")[0].slice(1, -1).trim()}
                                         // variant="outlined"
                                         // onClick={handleClick}
                                         onDelete={() => handleDelete(data)}
@@ -423,7 +478,7 @@ export default function SearchBarKnowledge() {
                     </Button>
                 </Box>
 
-                {showAdvance && (
+                {/* {showAdvance && (
                 <Box style={boxStyle}>
                     <Button
                         variant="text"
@@ -433,11 +488,11 @@ export default function SearchBarKnowledge() {
                         sx={{width:'200px'}}
                     >
                         Advanced Search
-                    </Button>
+                    </Button> */}
                     {/*<Button variant="contained"  style={buttonStyle}>*/}
                     {/*    Advanced Search*/}
                     {/*</Button>*/}
-                    <Box style={formGroupStyle}>
+                    {/* <Box style={formGroupStyle}>
                         <Grid container spacing={1} alignItems="center">
                             <Grid item xs={6}>
                                 <TextField
@@ -495,12 +550,12 @@ export default function SearchBarKnowledge() {
                                 />
                             </Grid>
                         </Grid>
-                    </Box>
+                    </Box> */}
                     {/*<Button variant="contained" color="primary" style={buttonStyle}>*/}
                     {/*    Search*/}
                     {/*</Button>*/}
-                </Box>
-                )}
+                {/* </Box>
+                )} */}
 
                 {/* ... more UI components as needed ... */}
             </Box>

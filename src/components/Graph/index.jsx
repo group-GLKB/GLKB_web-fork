@@ -62,6 +62,7 @@ function Graph(props) {
   for (var i in graphData.nodes) {
     id.push([graphData.nodes[i].data.id, graphData.nodes[i].data.label, graphData.nodes[i].data.frequency, graphData.nodes[i].data.n_citation, graphData.nodes[i].data.key_nodes])
   }
+  console.log(graphData)
 
   const layout = {
     name: 'cola',
@@ -101,7 +102,7 @@ function Graph(props) {
       },
     },
     {
-      selector: 'edge[label="Contain_vocab"]',
+      selector: 'edge[label="Contain_term"]',
       style: {
         "curve-style": "haystack",
         // "curve-style": "unbundled-bezier",
@@ -114,7 +115,7 @@ function Graph(props) {
         'line-color': '#FF7F50',
         // 'target-arrow-color': '#6774cb',
         // 'target-arrow-shape': 'triangle',
-        // 'curve-style': 'bezier',
+        'curve-style': 'bezier',
       },
     },
     {
@@ -131,7 +132,7 @@ function Graph(props) {
         'line-color': '#008080',
         // 'target-arrow-color': '#6774cb',
         // 'target-arrow-shape': 'triangle',
-        // 'curve-style': 'bezier',
+        'curve-style': 'bezier',
       },
     },
     {
@@ -149,7 +150,7 @@ function Graph(props) {
         'line-style': 'solid',
         // 'target-arrow-color': '#6774cb',
         // 'target-arrow-shape': 'triangle',
-        // 'curve-style': 'bezier',
+        'curve-style': 'bezier',
       },
     },
     {
@@ -167,7 +168,7 @@ function Graph(props) {
         'line-style': 'dotted',
         // 'target-arrow-color': '#6774cb',
         // 'target-arrow-shape': 'triangle',
-        // 'curve-style': 'bezier',
+        'curve-style': 'bezier',
       },
     },
     {
@@ -185,7 +186,7 @@ function Graph(props) {
         'line-style': 'dashed',
         // 'target-arrow-color': '#6774cb',
         // 'target-arrow-shape': 'triangle',
-        // 'curve-style': 'bezier',
+        'curve-style': 'bezier',
       },
     },
     {
