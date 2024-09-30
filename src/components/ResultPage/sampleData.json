@@ -1,0 +1,175 @@
+[
+    {
+      "nodes": [
+        {
+          "data": {
+            "id": "91717148",
+            "label": "ThingWithTaxon",
+            "frequency": 7,
+            "is_vocab": "true",
+            "visible": "true",
+            "key_nodes": "false",
+            "display": "CYP1A1",
+            "name": "CYP1A1",
+            "source": "hgnc",
+            "element_id": "hgnc:2595",
+            "n_citation": 6754
+          }
+        },
+        {
+          "data": {
+            "id": "91687666",
+            "label": "ThingWithTaxon",
+            "frequency": 2,
+            "is_vocab": "true",
+            "visible": "true",
+            "key_nodes": "false",
+            "display": "acute myeloid...",
+            "name": "acute myeloid leukemia",
+            "source": "mondo",
+            "element_id": "mondo:0018874",
+            "n_citation": 52097
+          }
+        },
+        {
+          "data": {
+            "id": "92079547",
+            "label": "Entity",
+            "frequency": 2,
+            "is_vocab": "true",
+            "visible": "true",
+            "key_nodes": "false",
+            "display": "Leukemia,...",
+            "name": "Leukemia, Myeloid, Acute",
+            "source": "mesh",
+            "element_id": "mesh:D015470",
+            "n_citation": 61887
+          }
+        },
+        {
+          "data": {
+            "id": "92103686",
+            "label": "ThingWithTaxon",
+            "frequency": 2,
+            "is_vocab": "true",
+            "visible": "true",
+            "key_nodes": "false",
+            "display": "Acute myeloid...",
+            "name": "Acute myeloid leukemia",
+            "source": "hp",
+            "element_id": "hp:0004808",
+            "n_citation": 52239
+          }
+        },
+        {
+          "data": {
+            "id": "91691817",
+            "label": "ThingWithTaxon",
+            "frequency": 1,
+            "is_vocab": "true",
+            "visible": "true",
+            "key_nodes": "false",
+            "display": "acute myeloid...",
+            "name": "acute myeloid leukemia",
+            "source": "doid",
+            "element_id": "doid:9119",
+            "n_citation": 44156
+          }
+        }
+      ],
+      "edges": [
+        {
+          "data": {
+            "label": "Semantic_relationship",
+            "source": "91687666",
+            "target": "91717148",
+            "type": "Associate",
+            "article_source": ["22200898", "16493615", "17560011", "22846179"],
+            "dates": [],
+            "eid": ["2580712326"],
+            "weight": 4
+          }
+        },
+        {
+          "data": {
+            "label": "Semantic_relationship",
+            "source": "92079547",
+            "target": "91717148",
+            "type": "Associate",
+            "article_source": ["24498651", "26491362", "22846179"],
+            "dates": [],
+            "eid": ["2579417198"],
+            "weight": 3
+          }
+        },
+        {
+          "data": {
+            "label": "Semantic_relationship",
+            "source": "92103686",
+            "target": "91717148",
+            "type": "Associate",
+            "article_source": ["22200898", "16493615", "17560011", "22846179"],
+            "dates": [],
+            "eid": ["2576689324"],
+            "weight": 4
+          }
+        },
+        {
+          "data": {
+            "label": "Semantic_relationship",
+            "source": "91691817",
+            "target": "91717148",
+            "type": "Associate",
+            "article_source": ["24498651", "26491362", "22846179"],
+            "dates": [],
+            "eid": ["2575982017"],
+            "weight": 3
+          }
+        },
+        {
+          "data": {
+            "label": "Semantic_relationship",
+            "source": "91687666",
+            "target": "91717148",
+            "type": "PositiveCorrelation",
+            "article_source": ["18414197", "15194533"],
+            "dates": [],
+            "eid": ["2602415657"],
+            "weight": 2
+          }
+        },
+        {
+          "data": {
+            "label": "Semantic_relationship",
+            "source": "92079547",
+            "target": "91717148",
+            "type": "PositiveCorrelation",
+            "article_source": ["18414197"],
+            "dates": [],
+            "eid": ["2601736087"],
+            "weight": 1
+          }
+        },
+        {
+          "data": {
+            "label": "Semantic_relationship",
+            "source": "92103686",
+            "target": "91717148",
+            "type": "PositiveCorrelation",
+            "article_source": ["15194533"],
+            "dates": [],
+            "eid": ["2599499020"],
+            "weight": 1
+          }
+        }
+      ]
+    },
+    [
+      {"id": "91717148", "name": "CYP1A1", "type": "ThingWithTaxon"},
+      {"id": "91687666", "name": "acute myeloid leukemia", "type": "ThingWithTaxon"},
+      {"id": "92079547", "name": "Leukemia, Myeloid, Acute", "type": "Entity"},
+      {"id": "92103686", "name": "Acute myeloid leukemia", "type": "ThingWithTaxon"},
+      {"id": "91691817", "name": "acute myeloid leukemia", "type": "ThingWithTaxon"}
+    ]
+  ]
+  
