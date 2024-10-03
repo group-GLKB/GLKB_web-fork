@@ -8,7 +8,7 @@ function NavBarWhite() {
         <nav className="navigation-bar">
             <div className="logo" >
                 <Link to="/">
-                    <img src={logo_l} alt="Logo" style={{width: '80px', height: 'auto'}}/>
+                    <img src={logo_l} alt="Logo" style={{width: 'auto', height: '30px'}}/>
                 </Link>
                 {/* <a>Genomic Literature Knowledge Base</a> */}
             </div>

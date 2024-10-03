@@ -446,7 +446,7 @@ export default function SearchBarKnowledge(props) {
 
 
                     <Button variant="contained" color="primary"
-                            sx={{ minWidth:'120px', backgroundColor: '#8BB5D1', color: 'black', '&:hover': { backgroundColor: '#4A7298' } }}
+                            sx={{ minWidth:'60px', backgroundColor: '#8BB5D1', color: 'black', '&:hover': { backgroundColor: '#4A7298' } }}
                             onClick={handleAddTriplet}>
                         Add Node
                     </Button>
@@ -472,7 +472,7 @@ export default function SearchBarKnowledge(props) {
                     </FormControl>
 
                     <Button variant="contained" color="primary"
-                            sx={{ minWidth:'100px', backgroundColor: '#F7EFAE', color: 'black', '&:hover': { backgroundColor: '#F3C846' } }}
+                            sx={{ minWidth:'60px', backgroundColor: '#F7EFAE', color: 'black', '&:hover': { backgroundColor: '#F3C846' } }}
                             onClick={handleSearch}>
                         Search
                     </Button>

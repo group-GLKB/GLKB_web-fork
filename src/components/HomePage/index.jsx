@@ -42,7 +42,7 @@ const HomePage = () => {
 
             <div className="footer">
                 <img src={umLogo} alt="Michigan Medicine Logo" className="footer-img" />
-                <p>© 2022 U-M Liu Lab, Department of Computational Medicine and Bioinformatics</p>
+                <p>© 2024 U-M Liu Lab, Department of Computational Medicine and Bioinformatics</p>
             </div>
         </div>
     )
