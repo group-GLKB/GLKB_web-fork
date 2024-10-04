@@ -16,8 +16,8 @@ export class CypherService {
             }
         }
         await axios
-            .get("/api/frontend/frontend_term2graph?query=" + content)
-            //.get("/frontend/frontend_term2graph?query=" + content)
+            // .get("/api/frontend/frontend_term2graph?query=" + content)
+            .get("/frontend/frontend_term2graph?query=" + content)
             .then(function (response) {
                 res = response
             })
@@ -38,8 +38,8 @@ export class CypherService {
             }
         };
         await axios
-            .post("/api/frontend/frontend_triplet2graph", JSON.stringify(content), config)
-            //.post("/frontend/frontend_triplet2graph", JSON.stringify(content), config)
+            // .post("/api/frontend/frontend_triplet2graph", JSON.stringify(content), config)
+            .post("/frontend/frontend_triplet2graph", JSON.stringify(content), config)
             .then(function (response) {
                 res = response.data;
                 let queryParams = new URLSearchParams();
@@ -73,8 +73,8 @@ export class CypherService {
             }
         }
         await axios
-            .get("/api/frontend/entity_search?query=" + content)
-            //.get("/frontend/entity_search?query=" + content)
+            // .get("/api/frontend/entity_search?query=" + content)
+            .get("/frontend/entity_search?query=" + content)
             .then(function (response) {
                 res = response
             })
@@ -95,8 +95,8 @@ export class CypherService {
             }
         };
         await axios
-            .post("/api/frontend/frontend_ent2art_graph", JSON.stringify(content), config)
-            //.post("/frontend/frontend_ent2art_graph", JSON.stringify(content), config)
+            // .post("/api/frontend/frontend_ent2art_graph", JSON.stringify(content), config)
+            .post("/frontend/frontend_ent2art_graph", JSON.stringify(content), config)
             .then(function (response) {
                 res = response.data;
                 console.log('response', response.data);

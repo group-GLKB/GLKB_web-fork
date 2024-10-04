@@ -327,7 +327,7 @@ const Filter = props => {
         if (!props.displayArticleGraph) {
             return (
                 <div style={{marginLeft: '10px', overflow: 'auto', height: '85vh'}}>
-                <Collapse defaultActiveKey={['1']} ghost expandIcon={({ isActive }) => <CaretRightOutlined style={{color: '#014484', fontSize: 20}} rotate={isActive ? 90 : 0} />}>
+                <Collapse defaultActiveKey={['1', '2']} ghost expandIcon={({ isActive }) => <CaretRightOutlined style={{color: '#014484', fontSize: 20}} rotate={isActive ? 90 : 0} />}>
                     <Panel key="1" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Node types</h3>}>
                         {legendData.map((item, index) => (
                                 <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
@@ -338,8 +338,11 @@ const Filter = props => {
                                 <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
                             ))}
                     </Panel>
-                    <Panel key="3" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Node citations</h3>}>
-                    {/* <div>
+                    <Panel key="3" header={<h3 style={{ color: '#014484', fontSize: 20, fontWeight: 'bold' }}>Suggested questions</h3>}>
+
+                    </Panel>
+                    {/* <Panel key="3" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Node citations</h3>}>
+                    <div>
                     <Row>
                         <Col span={12}>Frequency</Col>
                         <Col span={6}>
@@ -350,7 +353,7 @@ const Filter = props => {
                         </Col>
                     </Row>
                     <Slider range tooltip={{open:false}} value={props.gtdcFreq} onChange={props.handleGtdcFreq} min={props.minGtdcFreq} max={props.maxGtdcFreq}/>
-                </div> */}
+                </div>
                     <div>
                         <Row>
                             <Col span={12}>Citations</Col>
@@ -363,8 +366,8 @@ const Filter = props => {
                         </Row>
                         <Slider range tooltip={{open:false}} value={props.gtdcNoc} onChange={props.handleGtdcNoc} min={props.minGtdcNoc} max={props.maxGtdcNoc} />
                     </div>
-                    </Panel>
-                    <Panel key="4" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Node display</h3>}>
+                    </Panel> */}
+                    {/* <Panel key="4" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Node display</h3>}>
                     <Tree
                             // checkStrictly={true}
                             checkable
@@ -380,14 +383,14 @@ const Filter = props => {
                             // Add other props based on the currentTreeData
                             treeData={leftData.map(renderTreeNode)}
                         />
-                    </Panel>
+                    </Panel> */}
                 </Collapse>
             </div>
             );
         } else {
             return (
                 <div style={{marginLeft: '10px', overflow: 'auto', height: '85vh'}}>
-                    <Collapse defaultActiveKey={['1']} ghost expandIcon={({ isActive }) => <CaretRightOutlined style={{color: '#014484', fontSize: 20}} rotate={isActive ? 90 : 0} />}>
+                    <Collapse defaultActiveKey={['1', '2']} ghost expandIcon={({ isActive }) => <CaretRightOutlined style={{color: '#014484', fontSize: 20}} rotate={isActive ? 90 : 0} />}>
                         <Panel key="1" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Node citations</h3>}>
                         <div>
                             <Row>
@@ -402,7 +405,8 @@ const Filter = props => {
                             <Slider range tooltip={{open:false}} value={props.gtdcNoc} onChange={props.handleGtdcNoc} min={props.minGtdcNoc} max={props.maxGtdcNoc} />
                         </div>
                         </Panel>
-                        <Panel key="2" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Node display</h3>}>
+                        <Panel key="2" header={<h3 style={{ color: '#014484', fontSize: 20, fontWeight: 'bold' }}>Suggested questions</h3>}></Panel>
+                        {/* <Panel key="2" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Node display</h3>}>
                         <Tree
                                 // checkStrictly={true}
                                 checkable
@@ -418,7 +422,7 @@ const Filter = props => {
                                 // Add other props based on the currentTreeData
                                 treeData={leftData.map(renderTreeNode)}
                             />
-                        </Panel>
+                        </Panel> */}
                     </Collapse>
                 </div>
             )

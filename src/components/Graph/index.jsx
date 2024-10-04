@@ -86,7 +86,7 @@ function Graph(props) {
       style: {
         'border-width': '6px',
         'border-color': '#AAD8FF',
-        'border-opacity': '0.5',
+        'border-opacity': '0.3',
         'background-color': '#77828C',
         width: 10,
         height: 10,
@@ -109,7 +109,7 @@ function Graph(props) {
     // "control-point-distances": 120,
     // "control-point-weights": 0.2,
         'width': 1,
-        'opacity': 'mapData(weight, 1, 100, 0.1, 1)',
+        'opacity': 'mapData(weight, 1, 100, 0.3, 1)',
         // length: 1,
         // "line-color": "#6774cb",
         'line-color': '#FF7F50',
@@ -126,7 +126,7 @@ function Graph(props) {
     // "control-point-distances": 120,
     // "control-point-weights": 0.2,
     'width': 1,
-    'opacity': 'mapData(weight, 1, 100, 0.1, 1)',
+    'opacity': 'mapData(weight, 1, 100, 0.3, 1)',
         // length: 1,
         // "line-color": "#6774cb",
         'line-color': '#008080',
@@ -143,7 +143,7 @@ function Graph(props) {
     // "control-point-distances": 120,
     // "control-point-weights": 0.2,
         width: 1,
-        'opacity': 'mapData(weight, 1, 100, 0.1, 1)',
+        'opacity': 'mapData(weight, 1, 100, 0.3, 1)',
         // length: 1,
         // "line-color": "#6774cb",
         'line-color': '#008080',
@@ -161,7 +161,7 @@ function Graph(props) {
     // "control-point-distances": 120,
     // "control-point-weights": 0.2,
         width: 1,
-        'opacity': 'mapData(weight, 1, 100, 0.1, 1)',
+        'opacity': 'mapData(weight, 1, 100, 0.3, 1)',
         // length: 1,
         // "line-color": "#6774cb",
         'line-color': '#E0B0FF',
@@ -179,7 +179,7 @@ function Graph(props) {
     // "control-point-distances": 120,
     // "control-point-weights": 0.2,
         'width': 1,
-        'opacity': 'mapData(weight, 1, 100, 0.1, 1)',
+        'opacity': 'mapData(weight, 1, 100, 0.3, 1)',
         // length: 1,
         // "line-color": "#6774cb",
         'line-color': '#E0B0FF',
@@ -193,7 +193,7 @@ function Graph(props) {
       selector: 'node.highlight',
       style: {
           'border-color': '#FFF',
-          'border-width': '2px'
+          'border-width': '1px'
       }
     },
     {
