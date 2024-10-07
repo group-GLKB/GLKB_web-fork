@@ -243,11 +243,14 @@ all {
 .search-bar-container {
     top: 64px;
     padding: 10px 0;
+    display: flex;
+    justify-content: center;
 }
 
-.navbar-wrapper {
-    top: 0;
-    z-index: 1000;
+.search-bar-wrapper {
+    width: 50vw;
+    min-width: 600px; /* Adjust this value as needed */
+    max-width: 1000px; /* Adjust this value as needed */
 }
 
 /* Misc */

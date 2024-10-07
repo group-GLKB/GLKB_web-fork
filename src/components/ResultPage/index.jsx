@@ -362,13 +362,15 @@ const ResultPage = () => {
                 <NavBarWhite />
             </div>
             <div className="search-bar-container">
-                <SearchBarKnowledge
-                    chipData={chipData}
-                    chipDataIDResult={chipDataIDResult}
-                    displayArticleGraph={displayArticleGraph}
-                    setDisplayArticleGraph={setDisplayArticleGraph}
-                    onSearch={search} // Pass the search function
-                />
+                <div className="search-bar-wrapper">
+                    <SearchBarKnowledge
+                        chipData={chipData}
+                        chipDataIDResult={chipDataIDResult}
+                        displayArticleGraph={displayArticleGraph}
+                        setDisplayArticleGraph={setDisplayArticleGraph}
+                        onSearch={search}
+                    />
+                </div>
             </div>
             <div className='main-content'>
                 {!searchFlag && (
