@@ -410,6 +410,14 @@ export default function SearchBarKnowledge(props) {
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
     const isMediumScreen = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
+    const processChipData = (data) => {
+        if (typeof data === 'string') {
+            return data.replace(/[()]/g, '');
+        }
+        // If it's not a string, return it as is or apply appropriate processing
+        return data;
+    };
+
     return (
         <Container maxWidth={isSmallScreen ? "xs" : isMediumScreen ? "sm" : "md"}>
             <Box sx={{ marginTop: 2, marginBottom: 2 }}>
@@ -426,7 +434,7 @@ export default function SearchBarKnowledge(props) {
                             renderInput={(params) => (
                                 <TextField 
                                     {...params} 
-                                    label="Name" 
+                                    label="Type in a biomedical term and select from dropdown menu" 
                                     variant="outlined" 
                                     size="small" 
                                     fullWidth 

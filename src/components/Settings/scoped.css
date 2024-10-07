@@ -9,7 +9,7 @@ all {
     position: fixed;
     top: 60px;
     left: -33vw;
-    height: 100vh - 60px;
+    height: calc(100vh - 60px);
     width: 25vw;
 	  /* margin-left: 2vw; */
     padding: 1%;
