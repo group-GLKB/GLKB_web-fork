@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import './scoped.css'
-import { Row, Col, Slider, Collapse, Transfer, InputNumber, Typography, Button, Modal, Tree, Input, Menu, Checkbox, Dropdown, Space } from 'antd';
+import { Row, Col, Slider, Collapse, Transfer, InputNumber, Typography, Button, Modal, Tree, Input, Menu, Checkbox, Dropdown, Space, Spin } from 'antd';
 import { DownOutlined, SmileOutlined } from '@ant-design/icons';
 import { CaretRightOutlined, PlusCircleOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { NewGraph } from '../../service/NewNode'
@@ -335,6 +335,10 @@ const Filter = props => {
 
     const [cypherService] = useState(new CypherService());
 
+    const [loading1, setLoading1] = useState(false);
+    const [loading2, setLoading2] = useState(false);
+    const [loading3, setLoading3] = useState(false);
+
     useEffect(() => {
         if (props.graphShownData && props.graphShownData.nodes) {
             const nodes = props.graphShownData.nodes;
@@ -371,21 +375,27 @@ const Filter = props => {
     };
 
     const updateAnswer1 = async () => {
+        setLoading1(true);
         const question = `How is ${entityA1.name} associated with ${entityB1.name}?`;
         const answer = await generateAnswer(question, [entityA1.id, entityB1.id]);
         setAnswer1(answer);
+        setLoading1(false);
     };
 
     const updateAnswer2 = async () => {
+        setLoading2(true);
         const question = `What is ${entityA2.name}?`;
         const answer = await generateAnswer(question, [entityA2.id]);
         setAnswer2(answer);
+        setLoading2(false);
     };
 
     const updateAnswer3 = async () => {
+        setLoading3(true);
         const question = `How is article ${article.name} related to ${entityA2.name}?`;
         const answer = await generateAnswer(question, [entityA2.id], article.id);
         setAnswer3(answer);
+        setLoading3(false);
     };
 
     const handleMenuClickA1 = (e) => {
@@ -468,18 +478,22 @@ const Filter = props => {
                                 </div>
                                 <Button onClick={updateAnswer1} style={{ marginBottom: '10px' }}>Generate Answer</Button>
                                 <h4>Answer:</h4>
-                                <Typography.Paragraph
-                                    ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
-                                    style={{ 
-                                        maxHeight: '150px', 
-                                        overflowY: 'auto', 
-                                        border: '1px solid #d9d9d9', 
-                                        borderRadius: '4px', 
-                                        padding: '8px' 
-                                    }}
-                                >
-                                    {answer1}
-                                </Typography.Paragraph>
+                                {loading1 ? (
+                                    <Spin tip="Generating answer..." />
+                                ) : (
+                                    <Typography.Paragraph
+                                        ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
+                                        style={{ 
+                                            maxHeight: '230px', 
+                                            overflowY: 'auto', 
+                                            border: '1px solid #d9d9d9', 
+                                            borderRadius: '4px', 
+                                            padding: '8px' 
+                                        }}
+                                    >
+                                        {answer1}
+                                    </Typography.Paragraph>
+                                )}
                             </div>
 
                             <div>
@@ -497,18 +511,22 @@ const Filter = props => {
                                 </div>
                                 <Button onClick={updateAnswer2} style={{ marginBottom: '10px' }}>Generate Answer</Button>
                                 <h4>Answer:</h4>
-                                <Typography.Paragraph
-                                    ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
-                                    style={{ 
-                                        maxHeight: '150px', 
-                                        overflowY: 'auto', 
-                                        border: '1px solid #d9d9d9', 
-                                        borderRadius: '4px', 
-                                        padding: '8px' 
-                                    }}
-                                >
-                                    {answer2}
-                                </Typography.Paragraph>
+                                {loading2 ? (
+                                    <Spin tip="Generating answer..." />
+                                ) : (
+                                    <Typography.Paragraph
+                                        ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
+                                        style={{ 
+                                            maxHeight: '230px', 
+                                            overflowY: 'auto', 
+                                            border: '1px solid #d9d9d9', 
+                                            borderRadius: '4px', 
+                                            padding: '8px' 
+                                        }}
+                                    >
+                                        {answer2}
+                                    </Typography.Paragraph>
+                                )}
                             </div>
                     </Panel>
                     {/* <Panel key="3" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Node citations</h3>}>
@@ -593,18 +611,22 @@ const Filter = props => {
                                         </div>
                                         <Button onClick={updateAnswer1} style={{ marginBottom: '10px' }}>Generate Answer</Button>
                                         <h4>Answer:</h4>
-                                        <Typography.Paragraph
-                                            ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
-                                            style={{ 
-                                                maxHeight: '150px', 
-                                                overflowY: 'auto', 
-                                                border: '1px solid #d9d9d9', 
-                                                borderRadius: '4px', 
-                                                padding: '8px' 
-                                            }}
-                                        >
-                                            {answer1}
-                                        </Typography.Paragraph>
+                                        {loading1 ? (
+                                            <Spin tip="Generating answer..." />
+                                        ) : (
+                                            <Typography.Paragraph
+                                                ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
+                                                style={{ 
+                                                    maxHeight: '230px', 
+                                                    overflowY: 'auto', 
+                                                    border: '1px solid #d9d9d9', 
+                                                    borderRadius: '4px', 
+                                                    padding: '8px' 
+                                                }}
+                                            >
+                                                {answer1}
+                                            </Typography.Paragraph>
+                                        )}
                                     </div>
 
                                     <div>
@@ -622,18 +644,22 @@ const Filter = props => {
                                         </div>
                                         <Button onClick={updateAnswer2} style={{ marginBottom: '10px' }}>Generate Answer</Button>
                                         <h4>Answer:</h4>
-                                        <Typography.Paragraph
-                                            ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
-                                            style={{ 
-                                                maxHeight: '150px', 
-                                                overflowY: 'auto', 
-                                                border: '1px solid #d9d9d9', 
-                                                borderRadius: '4px', 
-                                                padding: '8px' 
-                                            }}
-                                        >
-                                            {answer2}
-                                        </Typography.Paragraph>
+                                        {loading2 ? (
+                                            <Spin tip="Generating answer..." />
+                                        ) : (
+                                            <Typography.Paragraph
+                                                ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
+                                                style={{ 
+                                                    maxHeight: '230px', 
+                                                    overflowY: 'auto', 
+                                                    border: '1px solid #d9d9d9', 
+                                                    borderRadius: '4px', 
+                                                    padding: '8px' 
+                                                }}
+                                            >
+                                                {answer2}
+                                            </Typography.Paragraph>
+                                        )}
                                     </div>
                                 </>
                             )}
@@ -662,18 +688,22 @@ const Filter = props => {
                                     </div>
                                     <Button onClick={updateAnswer3} style={{ marginBottom: '10px' }}>Generate Answer</Button>
                                     <h4>Answer:</h4>
-                                    <Typography.Paragraph
-                                        ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
-                                        style={{ 
-                                            maxHeight: '150px', 
-                                            overflowY: 'auto', 
-                                            border: '1px solid #d9d9d9', 
-                                            borderRadius: '4px', 
-                                            padding: '8px' 
-                                        }}
-                                    >
-                                        {answer3}
-                                    </Typography.Paragraph>
+                                    {loading3 ? (
+                                        <Spin tip="Generating answer..." />
+                                    ) : (
+                                        <Typography.Paragraph
+                                            ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
+                                            style={{ 
+                                                maxHeight: '230px', 
+                                                overflowY: 'auto', 
+                                                border: '1px solid #d9d9d9', 
+                                                borderRadius: '4px', 
+                                                padding: '8px' 
+                                            }}
+                                        >
+                                            {answer3}
+                                        </Typography.Paragraph>
+                                    )}
                                 </div>
                             )}
                         </Panel>
