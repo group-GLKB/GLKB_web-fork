@@ -16,8 +16,8 @@ export class CypherService {
             }
         }
         await axios
-            // .get("/api/frontend/frontend_term2graph?query=" + content)
-            .get("/frontend/frontend_term2graph?query=" + content)
+            .get("/api/frontend/frontend_term2graph?query=" + content)
+            // .get("/frontend/frontend_term2graph?query=" + content)
             .then(function (response) {
                 res = response
             })
@@ -38,8 +38,8 @@ export class CypherService {
             }
         };
         await axios
-            // .post("/api/frontend/frontend_triplet2graph", JSON.stringify(content), config)
-            .post("/frontend/frontend_triplet2graph", JSON.stringify(content), config)
+            .post("/api/frontend/frontend_triplet2graph", JSON.stringify(content), config)
+            // .post("/frontend/frontend_triplet2graph", JSON.stringify(content), config)
             .then(function (response) {
                 res = response.data;
                 let queryParams = new URLSearchParams();
@@ -73,8 +73,8 @@ export class CypherService {
             }
         }
         await axios
-            // .get("/api/frontend/entity_search?query=" + content)
-            .get("/frontend/entity_search?query=" + content)
+            .get("/api/frontend/entity_search?query=" + content)
+            // .get("/frontend/entity_search?query=" + content)
             .then(function (response) {
                 res = response
             })
@@ -95,8 +95,8 @@ export class CypherService {
             }
         };
         await axios
-            // .post("/api/frontend/frontend_ent2art_graph", JSON.stringify(content), config)
-            .post("/frontend/frontend_ent2art_graph", JSON.stringify(content), config)
+            .post("/api/frontend/frontend_ent2art_graph", JSON.stringify(content), config)
+            // .post("/frontend/frontend_ent2art_graph", JSON.stringify(content), config)
             .then(function (response) {
                 res = response.data;
                 console.log('response', response.data);
@@ -105,6 +105,22 @@ export class CypherService {
                 console.log('error', error);
             });
         
+        return res;
+    }
+
+    async generateAnswer(params) {
+        console.log('generating answer');
+        console.log('params:', params.toString());
+        let res = '';
+        try {
+            const response = await axios.get("/api/frontend/frontend_qa", { params });
+            // const response = await axios.get("/frontend/frontend_qa", { params });
+            res = response.data;
+            console.log('response:', res);
+        } catch (error) {
+            console.error('Error fetching answer:', error);
+            res = 'An error occurred while fetching the answer.';
+        }
         return res;
     }
 }

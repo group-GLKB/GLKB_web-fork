@@ -40,6 +40,7 @@ const Settings = props => {
                     displayArticleGraph={props.displayArticleGraph}
                     setDisplayArticleGraph={props.setDisplayArticleGraph}
                     setDetailId={props.setDetailId}
+                    graphData={props.graphShownData}
                 />  
             </div>
         </div>

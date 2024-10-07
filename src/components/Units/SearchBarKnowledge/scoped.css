@@ -14,6 +14,10 @@
 .input-field {
     border-radius: 4px;
     border: 1px solid #d9d9d9;
+    /* Reduce the width of the input field */
+    width: 200px;
+    /* Add some padding to maintain usability */
+    padding: 4px 8px;
 }
 
 .log-box {
@@ -26,6 +30,11 @@
     z-index: 1000;
     padding: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    /* Limit the height of the log box and add scrolling */
+    max-height: 150px;
+    overflow-y: auto;
+    /* Match the width of the input field */
+    width: 200px;
 }
 
 .dropdown-field {

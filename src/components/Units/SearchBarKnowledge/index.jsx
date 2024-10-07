@@ -7,6 +7,8 @@ import {CypherService} from '../../../service/Cypher'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import {useNavigate} from 'react-router-dom';
 import {matchSorter} from 'match-sorter'
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 
 export default function SearchBarKnowledge(props) {
     const navigate = useNavigate();
@@ -142,8 +144,7 @@ export default function SearchBarKnowledge(props) {
     useEffect(() => {
         if (sourceNodeData.length > 0) {
             setSourceNodeOptions([
-                // ...sourceNodeOptions, 
-                ...sourceNodeData.map(node => [node.database_id, node.name])
+                ...sourceNodeData.map(node => [node.database_id, `${node.name} (${node.element_id})`])
             ]);
         }
     }, [sourceNodeData]);
@@ -153,16 +154,7 @@ export default function SearchBarKnowledge(props) {
         if (value.trim() === '') {
             //setSourceNodeOptions([]);
         } else {
-            // setSourceNodeOptions([
-            //     `Option ${value}`,
-            //     `Option ${value + "4"}`,
-            //     `Option ${value + "$$$$"}`,
-            // ]);
-            // TODO: Connect and set this to call API to autocomplete
-            // setSourceNodeOptions([
-            //     value
-            // ]);
-            if (event.type == "click") {
+            if (event && event.type === "click") {
                 sourceEntitySearch(value);
                 const newTriplet = [value, triplets[1], triplets[2]];
                 setTriplets(newTriplet);
@@ -179,8 +171,7 @@ export default function SearchBarKnowledge(props) {
     useEffect(() => {
         if (targetNodeData.length > 0) {
             setTargetNodeOptions([
-                //...targetNodeOptions, 
-                ...targetNodeData.map(node => [node.database_id, node.name])
+                ...targetNodeData.map(node => [node.database_id, `${node.name} (${node.element_id})`])
             ]);
         }
     }, [targetNodeData]);
@@ -264,8 +255,8 @@ export default function SearchBarKnowledge(props) {
 
     function getIdFromName(name, nodeOptions) {
         for (let option of nodeOptions) {
-            // Check if the name matches
-            if (option[1] === name) {
+            // Check if the name matches (ignoring the element_id part)
+            if (option[1].split(' (')[0] === name) {
                 // Return the corresponding ID
                 return option[0];
             }
@@ -275,9 +266,8 @@ export default function SearchBarKnowledge(props) {
     }
 
     //This function is called after click on Add Triplet button, adding three fields of the triplets to ChipData
-    const handleAddTriplet = () =>{
+    const handleAddTriplet = () => {
         if (triplets[0] === "" && triplets[1] === "" && triplets[2] === "") return;
-        // let newKey = chipData.length;
         let chip_str = triplets.map((item, index) => {
             if (index == 1 && item == "") {
                 return "[any relationships]"
@@ -291,8 +281,6 @@ export default function SearchBarKnowledge(props) {
         }).join("-");
         console.log(chip_str)
         if (chipData.includes((chip_str))) return;
-        // chipData.push({key:newKey, label:''})
-        // const newData = [...chipData, {key:newKey, label:chip_str}]
         console.log(chipData);
         const newData = [...chipData, chip_str];
         setChipData(newData);
@@ -300,6 +288,12 @@ export default function SearchBarKnowledge(props) {
         const targetID = getIdFromName(triplets[2], targetNodeOptions);
         console.log(chipDataID);
         setChipDataID([...chipDataID, [sourceID, targetID]]);
+
+        // Clear the inputs after adding the triplet
+        setTriplets(["", "", ""]);
+        setRelationship("");
+        setSourceNodeOptions([]);
+        setTargetNodeOptions([]);
     }
 
     // This function is called after clicking on the search button
@@ -393,302 +387,78 @@ export default function SearchBarKnowledge(props) {
     // const filterOptions = (options, { inputValue }) => matchSorter(options, inputValue);
     const filterOptions = (options, { inputValue }) => options;
 
+    const theme = useTheme();
+    const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+    const isMediumScreen = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+
     return (
-        <Container maxWidth="md">
-            <Box sx={{ marginTop: 4 }}>
-
-                <Box display="flex" alignItems="center" gap={2} p={2}>
-                    <FormControl fullWidth>
-                    <Autocomplete
-                        freeSolo
-                        autoHighlight={true}
-                        filterOptions={filterOptions}
-                        // inputValue={inputValue}
-                        onInputChange={(event, newInputValue) => {
-                            updateSource(event, newInputValue);
-                        }}
-                        options={sourceNodeOptions.length > 0 ? sourceNodeOptions.map(option => (option[1])) : []}
-                        renderInput={(params) => (
-                            <TextField {...params} label="Name" variant="outlined" />
-                        )}
-                    />
-                    </FormControl>
-
-                    {/* <FormControl fullWidth>
-                        <InputLabel id="relationship-label">Relationship(Optional)</InputLabel>
-                        <Select
-                            labelId="relationship-label"
-                            id="relationship"
-                            value={relationship}
-                            label="Relationship"
-                            onChange={updateRelationship}
-                        >
-                            {relationTypes.map((type)=>(
-                                <MenuItem value={type}>{type}</MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                    <FormControl fullWidth>
+        <Container maxWidth={isSmallScreen ? "xs" : isMediumScreen ? "sm" : "md"}>
+            <Box sx={{ marginTop: 2, marginBottom: 2 }}>
+                <Box display="flex" alignItems="center" gap={2} flexDirection={isSmallScreen ? 'column' : 'row'}>
+                    <FormControl sx={{ flexGrow: 1, width: isSmallScreen ? '100%' : 'auto' }}>
                         <Autocomplete
                             freeSolo
                             autoHighlight={true}
                             filterOptions={filterOptions}
-                            // inputValue={inputValue}
                             onInputChange={(event, newInputValue) => {
-                                updateTarget(event, newInputValue);
+                                updateSource(event, newInputValue);
                             }}
-                            options={targetNodeOptions.length > 0 ? targetNodeOptions.map(option => option[1]) : []}
+                            options={sourceNodeOptions.length > 0 ? sourceNodeOptions.map(option => (option[1])) : []}
                             renderInput={(params) => (
-                                <TextField {...params} label="Target Node" variant="outlined" />
+                                <TextField {...params} label="Name" variant="outlined" size="small" fullWidth />
                             )}
+                            value={triplets[0]}
+                            onChange={(event, newValue) => {
+                                const newTriplet = [newValue ? newValue.split(' (')[0] : "", triplets[1], triplets[2]];
+                                setTriplets(newTriplet);
+                            }}
                         />
-                    </FormControl> */}
-
-
-                    <Button variant="contained" color="primary"
-                            sx={{ minWidth:'60px', backgroundColor: '#8BB5D1', color: 'black', '&:hover': { backgroundColor: '#4A7298' } }}
-                            onClick={handleAddTriplet}>
-                        Add Node
-                    </Button>
-                </Box>
-                <Box display="flex" alignItems="center" gap={2} p={2}>
-                    {/* Data display area with chips */}
-                    <FormControl>
-                        <Card variant="outlined"
-                                sx={{ width:'650px'}}
-                        >
-                            <Stack direction="row" spacing={1} sx={{ marginY: 2 }}>
-                                {chipData.map((data) => (
-                                    <Chip
-                                        label={data.replace(/{|}/g, "").split("-")[0].slice(1, -1).trim()}
-                                        // variant="outlined"
-                                        // onClick={handleClick}
-                                        onDelete={() => handleDelete(data)}
-                                    />
-                                ))}
-                            </Stack>
-                        </Card>
-
                     </FormControl>
 
-                    <Button variant="contained" color="primary"
-                            sx={{ minWidth:'60px', backgroundColor: '#F7EFAE', color: 'black', '&:hover': { backgroundColor: '#F3C846' } }}
-                            onClick={handleSearch}>
-                        Search
-                    </Button>
+                    <Box display="flex" gap={2} flexDirection={isSmallScreen ? 'column' : 'row'} width={isSmallScreen ? '100%' : 'auto'}>
+                        <Button variant="contained" color="primary"
+                                sx={{ 
+                                    minWidth: '60px', 
+                                    height: '40px', 
+                                    backgroundColor: '#8BB5D1', 
+                                    color: 'black', 
+                                    '&:hover': { backgroundColor: '#4A7298' },
+                                    width: isSmallScreen ? '100%' : 'auto'
+                                }}
+                                onClick={handleAddTriplet}>
+                            Add Biomedical Term
+                        </Button>
+
+                        <Button variant="contained" color="primary"
+                                sx={{ 
+                                    minWidth: '60px', 
+                                    height: '40px', 
+                                    backgroundColor: '#F7EFAE', 
+                                    color: 'black', 
+                                    '&:hover': { backgroundColor: '#F3C846' },
+                                    width: isSmallScreen ? '100%' : 'auto'
+                                }}
+                                onClick={handleSearch}>
+                            Search
+                        </Button>
+                    </Box>
                 </Box>
 
-                {/* {showAdvance && (
-                <Box style={boxStyle}>
-                    <Button
-                        variant="text"
-                        endIcon={<ExpandLessIcon />}
-                        style={buttonStyle}
-                        onClick={handleToggle}
-                        sx={{width:'200px'}}
-                    >
-                        Advanced Search
-                    </Button> */}
-                    {/*<Button variant="contained"  style={buttonStyle}>*/}
-                    {/*    Advanced Search*/}
-                    {/*</Button>*/}
-                    {/* <Box style={formGroupStyle}>
-                        <Grid container spacing={1} alignItems="center">
-                            <Grid item xs={6}>
-                                <TextField
-                                    id="max-articles"
-                                    label="Maximum articles:"
-                                    type="number"
-                                    variant="outlined"
-                                    // size="small"
-                                    onChange={(event) => updateMaxArticles(event)}
-                                    // InputLabelProps={{ shrink: true }}
+                <Box sx={{ mt: 1 }}>
+                    <Card variant="outlined" sx={{ p: 1 }}>
+                        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                            {chipData.map((data) => (
+                                <Chip
+                                    key={data}
+                                    label={data.replace(/{|}/g, "").split("-")[0].slice(1, -1).trim()}
+                                    onDelete={() => handleDelete(data)}
+                                    size="small"
                                 />
-                            </Grid>
-                            <Grid item xs={4}>
-                                <FormControlLabel
-                                    control={<Switch
-                                        checked = {moreNodes}
-                                        onChange = {(event)=>updateMoreNodes(event)}
-                                    />}
-                                    label="More nodes"
-                                    labelPlacement="start"
-                                />
-                            </Grid>
-
-                            <Grid item xs={6}>
-                                <TextField
-                                    label="Maximum biomedical terms:"
-                                    variant="outlined"
-                                    type="number"
-                                    // size="small"
-                                    margin="normal"
-                                    onChange={(event) => updateMaxBioTerms(event)}
-                                    // InputLabelProps={{ shrink: true }}
-                                />
-                            </Grid>
-                            <Grid item xs={4}>
-                                <FormControlLabel
-                                    control={<Switch
-                                        checked = {moreRel}
-                                        onChange = {(event)=>updateMoreRel(event)}
-                                    />}
-                                    label="More relationships"
-                                    labelPlacement="start"
-                                />
-                            </Grid>
-
-                            <Grid item xs={6}>
-                                <TextField
-                                    label="Maximum relationships:"
-                                    variant="outlined"
-                                    // size="small"
-                                    type="number"
-                                    margin="normal"
-                                    onChange={(event) => updateMaxRel(event)}
-                                    // InputLabelProps={{ shrink: true }}
-                                />
-                            </Grid>
-                        </Grid>
-                    </Box> */}
-                    {/*<Button variant="contained" color="primary" style={buttonStyle}>*/}
-                    {/*    Search*/}
-                    {/*</Button>*/}
-                {/* </Box>
-                )} */}
-
-                {/* ... more UI components as needed ... */}
+                            ))}
+                        </Stack>
+                    </Card>
+                </Box>
             </Box>
-
         </Container>
     );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//
-//
-// import React, { useState } from 'react';
-// import { Input, Select,  Space, SelectProps } from 'antd';
-// import './scoped.css'; // Import the CSS file for styling
-// import Button from '@mui/material/Button';
-//
-// import Chip from '@mui/material/Chip';
-// import Stack from '@mui/material/Stack';
-//
-//
-// const { Option } = Select;
-//
-//
-// const SearchBarKnowledge = () => {
-//     const [inputValue, setInputValue] = useState('');
-//     const [showLog, setShowLog] = useState(false);
-//
-//     const handleInputChangeField1 = (e) => {
-//         const value = e.target.value;
-//         setInputValue(value);
-//         setShowLog(value !== ''); // Set showLog to false when the input is empty
-//     };
-//
-//     for (let i = 10; i < 36; i++) {
-//         options.push({
-//             label: i.toString(36) + i,
-//             value: i.toString(36) + i,
-//         });
-//     }
-//
-//
-//     const handleChange = (value) => {
-//         console.log(`selected ${value}`);
-//     };
-//
-//     const handleDelete = () => {
-//         console.info('You clicked the delete icon.');
-//     };
-//
-//     return (
-//         <div className="search-bar-container">
-//             <Select
-//                 mode="tags"
-//                 style={{ width: '100%' }}
-//                 placeholder="Tags Mode"
-//                 onChange={handleChange}
-//                 options={options}
-//             />
-//             <Space style={{ width: '100%' }} direction="vertical">
-//                 <Select
-//                     mode="multiple"
-//                     allowClear
-//                     style={{ width: '100%' }}
-//                     placeholder="Please select"
-//                     defaultValue={['a10', 'c12']}
-//                     onChange={handleChange}
-//                     options={options}
-//                 />
-//                 <Select
-//                     mode="multiple"
-//                     style={{ width: '100%' }}
-//                     placeholder="Please select"
-//                     defaultValue={['a10', 'c12']}
-//                 />
-//             </Space>
-//             <div className="input-container">
-//                 <Input
-//                     className="input-field"
-//                     placeholder="First Field"
-//                     value={inputValue}
-//                     onChange={handleInputChangeField1}
-//                 />
-//                 {showLog && (
-//                     <div className="log-box">
-//                         Log: {inputValue}
-//                     </div>
-//                 )}
-//             </div>
-//             <Select
-//                 className="dropdown-field"
-//                 defaultValue="Relationship"
-//                 onChange={setInputValue}
-//                 style={{ width: 200 }}
-//             >
-//                 <Option value="1">1</Option>
-//                 <Option value="2">2</Option>
-//                 <Option value="3">3</Option>
-//             </Select>
-//             <div className="input-container">
-//                 <Input
-//                     className="input-field"
-//                     placeholder="Third Field"
-//                 />
-//             </div>
-//             <Button variant="contained">Hello World</Button>
-//
-//                 {/*<Button className="add-button" type="primary">Add triplet</Button>*/}
-//             <Stack direction="row" spacing={1}>
-//                 <Chip label="Deletable" onDelete={handleDelete} />
-//                 <Chip label="Deletable" variant="outlined" onDelete={handleDelete} />
-//             </Stack>
-//
-//         </div>
-//     );
-// };
-//
-// export default SearchBarKnowledge;

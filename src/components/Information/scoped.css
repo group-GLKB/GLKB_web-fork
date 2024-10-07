@@ -1,13 +1,23 @@
 /* Sticky class for the section titles */
 .sticky-title {
-    position: -webkit-sticky;
     position: sticky;
     top: 0;
-    background: white;
-    z-index: 10;
     padding: 10px 0;
-    height: 45px;
+    background-color: #F7F7F7; /* Match the panel background color */
+    z-index: 100; /* Ensure it stays on top of other content */
 }
+
+.sticky-title h3 {
+    margin: 0;
+    padding: 10px;
+    background-color: #F7F7F7; /* Keep the text background transparent */
+    font-family: 'Mundial';
+    font-style: normal;
+    font-weight: 600;
+    font-size: 18px;
+    line-height: 23px;
+}
+
 all {
     font-family: 'Mundial' !important;
     font-style: normal !important;
@@ -16,58 +26,56 @@ all {
 }
 
 .information {
-    position: fixed;
-    top: 108px;
-    right: -33vw;
-    height: 45vh;
-    width: 25vw;
-    /* margin-right: 2vw; */
-    /* border-radius: 21px; */
-    opacity: 0.95;
-    transition: right 0.3s ease-in-out;
-    background-color: #F7F7F7;
-    /*background-color: red; */
-    border-radius: 10px;
-}
-
-/* Smaller screens (e.g., mobile devices) */
-@media (max-width: 600px) {
-    .information {
-        width: 20vw; /* Larger width for smaller screens */
-        right: -33vw; /* Adjust right position accordingly */
-        top: 10vh; /* Adjust position as needed */
-        height: 80vh; /* Adjust height as needed */
-    }
-}
-
-/* Larger screens */
-@media (min-width: 1200px) {
-    .information {
-        width: 25vw; /* Smaller width for larger screens */
-        right: -33vw; /* Adjust right position accordingly */
-        /* You can adjust height, top, and other properties as needed */
-    }
-}
-
-.information-button {
-    position: fixed;
-    top: 20vh;
-    right: 0;
-    z-index: 1;
-    opacity: 0.95;
-    transition: right 0.3s ease-in-out;
-}
-.information-button.open {
-    right: 25vw;
-}
-.information.open {
-    right: 0;
-    /*overflow-y: scroll;*/
-    -ms-overflow-style: -ms-autohiding-scrollbar;
-    scrollbar-width: none;
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
     overflow-y: auto;
-    max-height: 500px;
-    border-radius: 10px;
+    padding: 20px;
+    box-sizing: border-box;
+    position: fixed;
+    top: 60px;
+    right: 0;
+    height: calc(100vh - 60px); /* Full height minus top offset */
+    background-color: #F7F7F7;
+    border-radius: 0px;
+    display: flex;
+    flex-direction: column;
+}
+
+.information-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px;
+    position: relative; /* Add this to create a positioning context */
+}
+
+/* Remove any styles for .related if it's no longer used */
+
+.ant-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.ant-card-body {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.ant-collapse {
+    border: none;
+    background-color: transparent;
+}
+
+.ant-collapse-content {
+    overflow: visible;
+}
+
+.custom-descriptions {
+    background-color: white;
+    padding: 10px;
+    margin-bottom: 10px;
 }
 
 .article-container {
@@ -103,7 +111,7 @@ all {
 }
 
 .article-title {
-    font-family: 'Source Sans Pro';
+    font-family: 'Mundial';
     font-style: normal;
     font-weight: 600;
     font-size: 20px;
@@ -112,7 +120,7 @@ all {
 }
 
 .article-authors {
-    font-family: 'Source Sans Pro';
+    font-family: 'Mundial';
     font-style: normal;
     font-weight: 300;
     font-size: 18px;
@@ -120,7 +128,7 @@ all {
 }
 
 .article-id {
-    font-family: 'Source Sans Pro';
+    font-family: 'Mundial';
     font-style: normal;
     font-weight: 400;
     font-size: 18px;
@@ -129,7 +137,7 @@ all {
 }
 
 .abstract-title {
-    font-family: 'Source Sans Pro';
+    font-family: 'Mundial';
     font-style: normal;
     font-weight: 600;
     font-size: 18px;
@@ -137,7 +145,7 @@ all {
 }
 
 .abstract-content {
-    font-family: 'Source Sans Pro';
+    font-family: 'Mundial';
     font-style: normal;
     font-weight: 300;
     font-size: 16px;
@@ -176,51 +184,6 @@ all {
     margin-bottom: 3%;
 }
 
-.related {
-    position: fixed;
-    top: 58vh;
-    right: -33vw;
-    height: 42vh;
-    width: 25vw;
-    /* margin-right: 2vw; */
-    /* border-radius: 21px; */
-    opacity: 0.95;
-    transition: right 0.3s ease-in-out;
-    background-color: #F7F7F7;
-    border-radius: 10px;
-}
-.related.open {
-    right: 0;
-    overflow-y: scroll;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-    /*overflow-y: auto;*/
-    max-height: 500px;
-    border-radius: 10px;
-}
-
-.custom-descriptions .ant-descriptions-title {
-    font-size: 18px;
-    font-weight: bold;
-}
-
-.custom-descriptions .ant-descriptions-item-label {
-    width: 30%;
-}
-
-.custom-descriptions .ant-descriptions-item-content {
-    width: 70%;
-}
-
-.custom-descriptions {
-    font-size: 14px;
-}
-
-ul {
-    list-style: none;
-    padding: 0;
-}
-
 .custom-div-edge {
     /*margin: 1px; !* Adjusts the space outside the div *!*/
     padding: 0; /* Adjusts the space inside the div */
@@ -232,5 +195,17 @@ ul {
     padding: 0; /* Adjusts the space inside the div */
     border: none;
     margin-bottom: -17px;
+}
 
+.loading-message {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    font-size: 16px;
+    color: #666;
+    text-align: center;
+    padding: 20px;
+    font-style: italic;
+    line-height: 1.5;
 }

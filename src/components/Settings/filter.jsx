@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import './scoped.css'
-import { Row, Col, Slider, Collapse, Transfer, InputNumber, Typography, Button, Modal, Tree, Input, Menu, Checkbox} from 'antd';
+import { Row, Col, Slider, Collapse, Transfer, InputNumber, Typography, Button, Modal, Tree, Input, Menu, Checkbox, Dropdown, Space } from 'antd';
 import { DownOutlined, SmileOutlined } from '@ant-design/icons';
 import { CaretRightOutlined, PlusCircleOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { NewGraph } from '../../service/NewNode'
@@ -186,7 +186,7 @@ const Filter = props => {
         { label: 'BiologicalProcessOrActivity', size: 20, color: '#5782C2' },
         { label: 'MeshTerm', size: 20, color: '#9B58C5' },
         { label: 'SequenceVariant', size: 20, color: '#D829B1' },
-    ];
+    ]
 
     const edgeDataAll = [
         {label: 'Semantic_relationship', size: 'solid', color: 'black'},
@@ -322,12 +322,117 @@ const Filter = props => {
     //     );
     // };
 
+    // suggested questions
+    const [entityItems, setEntityItems] = useState([]);
+    const [articleItems, setArticleItems] = useState([]);
+    const [entityA1, setEntityA1] = useState({ name: 'Term A', id: null });
+    const [entityB1, setEntityB1] = useState({ name: 'Term B', id: null });
+    const [entityA2, setEntityA2] = useState({ name: 'Term', id: null });
+    const [article, setArticle] = useState({ name: 'Article', id: null });
+    const [answer1, setAnswer1] = useState("Select terms from the dropdown menu and click 'Generate Answer' to see the result.");
+    const [answer2, setAnswer2] = useState("Select a term from the dropdown menu and click 'Generate Answer' to see the result.");
+    const [answer3, setAnswer3] = useState("Select an article and a term from the dropdown menus and click 'Generate Answer' to see the result.");
+
+    const [cypherService] = useState(new CypherService());
+
+    useEffect(() => {
+        if (props.graphShownData && props.graphShownData.nodes) {
+            const nodes = props.graphShownData.nodes;
+            
+            // Filter out 'Article' nodes for entity items
+            const entityNodes = nodes.filter(node => node.data.label !== 'Article');
+            const items = entityNodes.map((node) => ({
+                key: node.data.id,
+                label: node.data.name || node.data.id,
+                id: node.data.database_id[0] || node.data.id
+            }));
+            setEntityItems(items);
+
+            if (props.displayArticleGraph) {
+                const articleNodes = nodes.filter(node => node.data.label === 'Article');
+                const articleItems = articleNodes.map((node) => ({
+                    key: node.data.id,
+                    label: `PMID ${node.data.pubmed_id}`,
+                    id: node.data.database_id[0] || node.data.id
+                }));
+                setArticleItems(articleItems);
+            }
+        }
+    }, [props.graphShownData, props.displayArticleGraph]);
+
+    const generateAnswer = async (question, terms, article = null) => {
+        const params = new URLSearchParams();
+        params.append('question', question);
+        terms.forEach(term => params.append('term', term));
+        if (article) {
+            params.append('article', article);
+        }
+        return await cypherService.generateAnswer(params);
+    };
+
+    const updateAnswer1 = async () => {
+        const question = `How is ${entityA1.name} associated with ${entityB1.name}?`;
+        const answer = await generateAnswer(question, [entityA1.id, entityB1.id]);
+        setAnswer1(answer);
+    };
+
+    const updateAnswer2 = async () => {
+        const question = `What is ${entityA2.name}?`;
+        const answer = await generateAnswer(question, [entityA2.id]);
+        setAnswer2(answer);
+    };
+
+    const updateAnswer3 = async () => {
+        const question = `How is article ${article.name} related to ${entityA2.name}?`;
+        const answer = await generateAnswer(question, [entityA2.id], article.id);
+        setAnswer3(answer);
+    };
+
+    const handleMenuClickA1 = (e) => {
+        const selectedEntity = entityItems.find(item => item.key === e.key);
+        setEntityA1({ name: selectedEntity.label, id: selectedEntity.id });
+    };
+
+    const handleMenuClickB1 = (e) => {
+        const selectedEntity = entityItems.find(item => item.key === e.key);
+        setEntityB1({ name: selectedEntity.label, id: selectedEntity.id });
+    };
+
+    const handleMenuClickA2 = (e) => {
+        const selectedEntity = entityItems.find(item => item.key === e.key);
+        setEntityA2({ name: selectedEntity.label, id: selectedEntity.id });
+    };
+
+    const handleMenuClickArticle = (e) => {
+        const selectedArticle = articleItems.find(item => item.key === e.key);
+        setArticle({ name: selectedArticle.label, id: selectedArticle.id });
+    };
+
+    const menuPropsA1 = {
+        items: entityItems.map(item => ({ key: item.key, label: item.label })),
+        onClick: handleMenuClickA1,
+    };
+
+    const menuPropsB1 = {
+        items: entityItems.map(item => ({ key: item.key, label: item.label })),
+        onClick: handleMenuClickB1,
+    };
+
+    const menuPropsA2 = {
+        items: entityItems.map(item => ({ key: item.key, label: item.label })),
+        onClick: handleMenuClickA2,
+    };
+
+    const menuPropsArticle = {
+        items: articleItems.map(item => ({ key: item.key, label: item.label })),
+        onClick: handleMenuClickArticle,
+    };
 
     const leftPanel = () => {
         if (!props.displayArticleGraph) {
             return (
                 <div style={{marginLeft: '10px', overflow: 'auto', height: '85vh'}}>
-                <Collapse defaultActiveKey={['1', '2']} ghost expandIcon={({ isActive }) => <CaretRightOutlined style={{color: '#014484', fontSize: 20}} rotate={isActive ? 90 : 0} />}>
+                    <Collapse defaultActiveKey={['1', '2', '3']} ghost expandIcon={({ isActive }) => <CaretRightOutlined style={{color: '#014484', fontSize: 20}} rotate={isActive ? 90 : 0} />}>
                     <Panel key="1" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Node types</h3>}>
                         {legendData.map((item, index) => (
                                 <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
@@ -338,8 +443,73 @@ const Filter = props => {
                                 <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
                             ))}
                     </Panel>
-                    <Panel key="3" header={<h3 style={{ color: '#014484', fontSize: 20, fontWeight: 'bold' }}>Suggested questions</h3>}>
+                        <Panel key="3" header={<h3 style={{ color: '#014484', fontSize: 20, fontWeight: 'bold' }}>Suggested questions</h3>}>
+                            <div style={{ marginBottom: '20px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                                    How is
+                                    <Dropdown menu={menuPropsA1} trigger={['click']}>
+                                        <a onClick={(e) => e.preventDefault()}>
+                                            <Space>
+                                                {entityA1.name}
+                                                <DownOutlined />
+                                            </Space>
+                                        </a>
+                                    </Dropdown>
+                                    associated with
+                                    <Dropdown menu={menuPropsB1} trigger={['click']}>
+                                        <a onClick={(e) => e.preventDefault()}>
+                                            <Space>
+                                                {entityB1.name}
+                                                <DownOutlined />
+                                            </Space>
+                                        </a>
+                                    </Dropdown>
+                                    ?
+                                </div>
+                                <Button onClick={updateAnswer1} style={{ marginBottom: '10px' }}>Generate Answer</Button>
+                                <h4>Answer:</h4>
+                                <Typography.Paragraph
+                                    ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
+                                    style={{ 
+                                        maxHeight: '150px', 
+                                        overflowY: 'auto', 
+                                        border: '1px solid #d9d9d9', 
+                                        borderRadius: '4px', 
+                                        padding: '8px' 
+                                    }}
+                                >
+                                    {answer1}
+                                </Typography.Paragraph>
+                            </div>
 
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                                    What is
+                                    <Dropdown menu={menuPropsA2} trigger={['click']}>
+                                        <a onClick={(e) => e.preventDefault()}>
+                                            <Space>
+                                                {entityA2.name}
+                                                <DownOutlined />
+                                            </Space>
+                                        </a>
+                                    </Dropdown>
+                                    ?
+                                </div>
+                                <Button onClick={updateAnswer2} style={{ marginBottom: '10px' }}>Generate Answer</Button>
+                                <h4>Answer:</h4>
+                                <Typography.Paragraph
+                                    ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
+                                    style={{ 
+                                        maxHeight: '150px', 
+                                        overflowY: 'auto', 
+                                        border: '1px solid #d9d9d9', 
+                                        borderRadius: '4px', 
+                                        padding: '8px' 
+                                    }}
+                                >
+                                    {answer2}
+                                </Typography.Paragraph>
+                            </div>
                     </Panel>
                     {/* <Panel key="3" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Node citations</h3>}>
                     <div>
@@ -391,21 +561,122 @@ const Filter = props => {
             return (
                 <div style={{marginLeft: '10px', overflow: 'auto', height: '85vh'}}>
                     <Collapse defaultActiveKey={['1', '2']} ghost expandIcon={({ isActive }) => <CaretRightOutlined style={{color: '#014484', fontSize: 20}} rotate={isActive ? 90 : 0} />}>
-                        <Panel key="1" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Node citations</h3>}>
-                        <div>
-                            <Row>
-                                <Col span={12}>Citations</Col>
-                                <Col span={6}>
-                                    <InputNumber style={{width: '100%'}} defaultValue={props.minGtdcNoc} value={props.gtdcNoc[0]} onBlur={props.handleGtdcNoc1} onPressEnter={props.handleGtdcNoc1} min={props.minGtdcNoc} max={props.maxGtdcNoc}/>
-                                </Col>
-                                <Col span={6}>
-                                    <InputNumber style={{width: '100%'}} defaultValue={props.maxGtdcNoc} value={props.gtdcNoc[1]} onBlur={props.handleGtdcNoc2} onPressEnter={props.handleGtdcNoc2} min={props.minGtdcNoc} max={props.maxGtdcNoc}/>
-                                </Col>
-                            </Row>
-                            <Slider range tooltip={{open:false}} value={props.gtdcNoc} onChange={props.handleGtdcNoc} min={props.minGtdcNoc} max={props.maxGtdcNoc} />
-                        </div>
+                        <Panel key="1" header={<h3 style={{ color: '#014484', fontSize: 20, fontWeight: 'bold' }}>Node types</h3>}>
+                            {legendData.map((item, index) => (
+                                <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
+                            ))}
                         </Panel>
-                        <Panel key="2" header={<h3 style={{ color: '#014484', fontSize: 20, fontWeight: 'bold' }}>Suggested questions</h3>}></Panel>
+                        <Panel key="2" header={<h3 style={{ color: '#014484', fontSize: 20, fontWeight: 'bold' }}>Suggested questions</h3>}>
+                            {!props.displayArticleGraph && (
+                                <>
+                                    <div style={{ marginBottom: '20px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                                            How is
+                                            <Dropdown menu={menuPropsA1} trigger={['click']}>
+                                                <a onClick={(e) => e.preventDefault()}>
+                                                    <Space>
+                                                        {entityA1.name}
+                                                        <DownOutlined />
+                                                    </Space>
+                                                </a>
+                                            </Dropdown>
+                                            associated with
+                                            <Dropdown menu={menuPropsB1} trigger={['click']}>
+                                                <a onClick={(e) => e.preventDefault()}>
+                                                    <Space>
+                                                        {entityB1.name}
+                                                        <DownOutlined />
+                                                    </Space>
+                                                </a>
+                                            </Dropdown>
+                                            ?
+                                        </div>
+                                        <Button onClick={updateAnswer1} style={{ marginBottom: '10px' }}>Generate Answer</Button>
+                                        <h4>Answer:</h4>
+                                        <Typography.Paragraph
+                                            ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
+                                            style={{ 
+                                                maxHeight: '150px', 
+                                                overflowY: 'auto', 
+                                                border: '1px solid #d9d9d9', 
+                                                borderRadius: '4px', 
+                                                padding: '8px' 
+                                            }}
+                                        >
+                                            {answer1}
+                                        </Typography.Paragraph>
+                                    </div>
+
+                                    <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                                            What is
+                                            <Dropdown menu={menuPropsA2} trigger={['click']}>
+                                                <a onClick={(e) => e.preventDefault()}>
+                                                    <Space>
+                                                        {entityA2.name}
+                                                        <DownOutlined />
+                                                    </Space>
+                                                </a>
+                                            </Dropdown>
+                                            ?
+                                        </div>
+                                        <Button onClick={updateAnswer2} style={{ marginBottom: '10px' }}>Generate Answer</Button>
+                                        <h4>Answer:</h4>
+                                        <Typography.Paragraph
+                                            ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
+                                            style={{ 
+                                                maxHeight: '150px', 
+                                                overflowY: 'auto', 
+                                                border: '1px solid #d9d9d9', 
+                                                borderRadius: '4px', 
+                                                padding: '8px' 
+                                            }}
+                                        >
+                                            {answer2}
+                                        </Typography.Paragraph>
+                                    </div>
+                                </>
+                            )}
+                            {props.displayArticleGraph && (
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                                        How is article
+                                        <Dropdown menu={menuPropsArticle} trigger={['click']}>
+                                            <a onClick={(e) => e.preventDefault()}>
+                                                <Space>
+                                                    {article.name}
+                                                    <DownOutlined />
+                                                </Space>
+                                            </a>
+                                        </Dropdown>
+                                        related to
+                                        <Dropdown menu={menuPropsA2} trigger={['click']}>
+                                            <a onClick={(e) => e.preventDefault()}>
+                                                <Space>
+                                                    {entityA2.name}
+                                                    <DownOutlined />
+                                                </Space>
+                                            </a>
+                                        </Dropdown>
+                                        ?
+                                    </div>
+                                    <Button onClick={updateAnswer3} style={{ marginBottom: '10px' }}>Generate Answer</Button>
+                                    <h4>Answer:</h4>
+                                    <Typography.Paragraph
+                                        ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
+                                        style={{ 
+                                            maxHeight: '150px', 
+                                            overflowY: 'auto', 
+                                            border: '1px solid #d9d9d9', 
+                                            borderRadius: '4px', 
+                                            padding: '8px' 
+                                        }}
+                                    >
+                                        {answer3}
+                                    </Typography.Paragraph>
+                                </div>
+                            )}
+                        </Panel>
                         {/* <Panel key="2" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Node display</h3>}>
                         <Tree
                                 // checkStrictly={true}
@@ -453,11 +724,11 @@ const Filter = props => {
     return (
         <div>
             {leftPanel()}
-            <div className='legend-container'>
-                <button onClick={changeLeftPanel} style={{borderWidth: '2px', width: '278px', height: '43px', borderRadius: '10px'}}>
+            {/* <div className='legend-container'>
+                <button onClick={changeLeftPanel} style={{width: '278px', height: '43px', borderRadius: '10px'}}>
                     {props.displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
                 </button>
-            </div>
+            </div> */}
         </div>
 
     );

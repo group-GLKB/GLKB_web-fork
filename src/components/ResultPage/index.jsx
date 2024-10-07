@@ -1,10 +1,10 @@
-import React, {useEffect, useState} from 'react'
+import React, {useEffect, useState, useRef} from 'react'
 import {useNavigate} from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 import {CypherService} from '../../service/Cypher'
 import {DetailService} from '../../service/Detail'
 import 'antd/dist/reset.css';
-import {Col, Row, Input, Spin, Tag, Menu} from 'antd';
+import {Col, Row, Input, Spin, Tag, Menu, Button} from 'antd';
 import {TweenOneGroup} from 'rc-tween-one';
 import './scoped.css'
 import NavBarWhite from '../Units/NavBarWhite'
@@ -18,8 +18,21 @@ import Information from '../Information';
 import axios from 'axios'
 import sampleGraphData from './sampleData.json';
 import SearchBarKnowledge from "../Units/SearchBarKnowledge";
+import { FloatButton } from "antd";
+import { PlusOutlined, MinusOutlined, InfoCircleOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ApartmentOutlined, FileTextOutlined } from '@ant-design/icons';
+import { styled } from '@mui/material/styles';
 
 const {Search} = Input;
+
+const StyledButton = styled(Button)(({ theme }) => ({
+    backgroundColor: '#8BB5D1',
+    color: 'black',
+    '&:hover': {
+        backgroundColor: '#4A7298',
+    },
+    minWidth: '60px',
+    height: '40px',
+}));
 
 const ResultPage = () => {
     // const urlParams = new URLSearchParams(window.location.search);
@@ -91,9 +104,67 @@ const ResultPage = () => {
     const [searchFlag, setSearchFlag] = useState(false)
     const [chipData, setChipData] = useState([]);
     const [chipDataIDResult, setChipDataIDResult] = useState([]);
-    const [informationOpen, setInformationOpen] = useState(false);
+    const [informationOpen, setInformationOpen] = useState(true);
     const [graphShownData, setGraphShownData] = useState();
     const [displayArticleGraph, setDisplayArticleGraph] = useState(false);
+    const [isSettingsVisible, setIsSettingsVisible] = useState(true);
+    const [isInformationVisible, setIsInformationVisible] = useState(true);
+
+    const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+    const containerRef = useRef(null);
+    const SETTINGS_PANEL_WIDTH = '25vw';
+    const INFORMATION_PANEL_WIDTH = '25vw';
+    const MIN_PANEL_WIDTH = 400; // Minimum width for panels
+    const [settingsWidth, setSettingsWidth] = useState(400);
+    const [informationWidth, setInformationWidth] = useState(400);
+    const settingsRef = useRef(null);
+    const informationRef = useRef(null);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setWindowWidth(window.innerWidth);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    useEffect(() => {
+        if (containerRef.current) {
+            const minWidth = 1200; // Should match the CSS min-width
+            if (windowWidth < minWidth) {
+                containerRef.current.style.width = `${minWidth}px`;
+            } else {
+                containerRef.current.style.width = '100vw';
+            }
+        }
+
+        // Check and collapse settings panel if necessary
+        if (settingsWidth < MIN_PANEL_WIDTH) {
+            setIsSettingsVisible(false);
+        }
+
+        // Check and collapse information panel if necessary
+        if (informationWidth < MIN_PANEL_WIDTH) {
+            setIsInformationVisible(false);
+        }
+    }, [windowWidth, settingsWidth, informationWidth]);
+
+    useEffect(() => {
+        const updateWidths = () => {
+            if (settingsRef.current) {
+                setSettingsWidth(settingsRef.current.offsetWidth);
+            }
+            if (informationRef.current) {
+                setInformationWidth(informationRef.current.offsetWidth);
+            }
+        };
+
+        updateWidths();
+        window.addEventListener('resize', updateWidths);
+        return () => window.removeEventListener('resize', updateWidths);
+    }, []);
+
     useEffect(() => {
         if (search_data) {
             let chipResultData = search_data.triplets.map(triplet => {
@@ -114,7 +185,40 @@ const ResultPage = () => {
             console.log(newArray)
             setChipDataIDResult(newArray);
         }
+        // Set information panel to open by default
+        setInformationOpen(true);
     }, [search_data, chipDataID])
+
+    useEffect(() => {
+        const updateWidths = () => {
+            if (settingsRef.current) {
+                setSettingsWidth(settingsRef.current.offsetWidth);
+            }
+            if (informationRef.current) {
+                setInformationWidth(informationRef.current.offsetWidth);
+            }
+        };
+
+        updateWidths();
+        window.addEventListener('resize', updateWidths);
+        return () => window.removeEventListener('resize', updateWidths);
+    }, []);
+
+    useEffect(() => {
+        const root = document.documentElement;
+        root.style.setProperty('--settings-panel-width', SETTINGS_PANEL_WIDTH);
+        root.style.setProperty('--information-panel-width', INFORMATION_PANEL_WIDTH);
+    }, []);
+
+    useEffect(() => {
+        if (windowWidth < 1500) {
+            setIsSettingsVisible(false);
+            setIsInformationVisible(false);
+        } else {
+            setIsSettingsVisible(true);
+            setIsInformationVisible(true);
+        }
+    }, [windowWidth]);
 
     const initialize = () => {
         setSearchFlag(false)
@@ -200,22 +304,54 @@ const ResultPage = () => {
     };
     console.log(graphShownData)
 
-    return (
-        <div className="result-container">
+    const toggleSettings = () => {
+        setIsSettingsVisible(!isSettingsVisible);
+    };
 
-            {/*<NavBar 
-                handleSearchTags = {handleSearch}
-                tags = {tags}
-                setTags = {setTags}
-    />*/}
-            <NavBarWhite />
-            <SearchBarKnowledge 
-                chipData = {chipData}
-                chipDataIDResult = {chipDataIDResult}
-                displayArticleGraph = {displayArticleGraph}
-                setDisplayArticleGraph = {setDisplayArticleGraph}
-            />
-            {/* Main Content */}
+    const toggleInformation = () => {
+        setIsInformationVisible(!isInformationVisible);
+    };
+
+    const changeLeftPanel = () => {
+        if (!displayArticleGraph) {
+            setDisplayArticleGraph(true);
+            setDetailId(null);
+            entityToArticle(data);
+        } else {
+            setDisplayArticleGraph(false);
+            setDetailId(null);
+            articleToEntity();
+        }
+    }
+
+    async function entityToArticle(content) {
+        let cypherServ = new CypherService()
+        const response = await cypherServ.Term2Article(content)
+        console.log('Term2Article -> ', response)
+        setData(response)
+    }
+
+    async function articleToEntity() {
+        search(search_data);
+    }
+
+    const expandInformation = () => {
+        setIsInformationVisible(true);
+    };
+
+    return (
+        <div className="result-container" ref={containerRef}>
+            <div className="navbar-wrapper">
+                <NavBarWhite />
+            </div>
+            <div className="search-bar-container">
+                <SearchBarKnowledge 
+                    chipData={chipData}
+                    chipDataIDResult={chipDataIDResult}
+                    displayArticleGraph={displayArticleGraph}
+                    setDisplayArticleGraph={setDisplayArticleGraph}
+                />
+            </div>
             <div className='main-content'>
                 {!searchFlag && (
                     <div className='loading-container'>
@@ -224,6 +360,15 @@ const ResultPage = () => {
                 )}
                 {searchFlag && (
                     <div className='result-content'>
+                        <div className="graph-controls">
+                            <StyledButton 
+                                onClick={changeLeftPanel} 
+                                variant="contained"
+                                startIcon={displayArticleGraph ? <ApartmentOutlined /> : <FileTextOutlined />}
+                            >
+                                {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
+                            </StyledButton>
+                        </div>
                         <Graph
                             data={graphShownData}
                             selectedID={selectedID}
@@ -242,8 +387,10 @@ const ResultPage = () => {
                             handleSelect={handleSelect}
                             handleInformation={handleInformation}
                             informationOpen={informationOpen}
+                            expandInformation={expandInformation}
+                            className={`graph-container ${!isSettingsVisible ? 'expanded-left' : ''} ${!isInformationVisible ? 'expanded-right' : ''}`}
                         />
-                        <span>
+                        <div ref={settingsRef} className={`floating-settings ${isSettingsVisible ? 'open' : ''}`}>
                             <Settings
                                 minGtdcFreq={minGtdcFreq}
                                 maxGtdcFreq={maxGtdcFreq}
@@ -268,22 +415,31 @@ const ResultPage = () => {
                                 displayArticleGraph={displayArticleGraph}
                                 setDisplayArticleGraph={setDisplayArticleGraph}
                                 setDetailId={setDetailId}
+                                onClose={() => setIsSettingsVisible(false)}
                             />
-                        </span>
-                        <span>
+                        </div>
+                        <div ref={informationRef} className={`floating-information ${isInformationVisible ? 'open' : ''}`}>
                             <Information
                                 isOpen={informationOpen}
                                 toggleSidebar={handleInformation}
                                 detailId={detailId}
                                 displayArticleGraph={displayArticleGraph}
                             />
-                        </span>
+                        </div>
+                        <FloatButton
+                            icon={isSettingsVisible ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
+                            onClick={toggleSettings}
+                            className={`settings-float-button ${!isSettingsVisible ? 'collapsed' : ''}`}
+                        />
+                        <FloatButton
+                            icon={isInformationVisible ? <MinusOutlined /> : <InfoCircleOutlined />}
+                            onClick={toggleInformation}
+                            className={`information-float-button ${!isInformationVisible ? 'collapsed' : ''}`}
+                        />
                     </div>
                 )}
-
             </div>
         </div>
-
     )
 }
 
