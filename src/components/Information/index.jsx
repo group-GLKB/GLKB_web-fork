@@ -16,6 +16,7 @@ const Information = ({ width, ...props }) => {
     const [edgeDetail, setEdgeDetail] = useState({});
     const [urlList, seturlList] = useState({});
     const [activeKey, setActiveKey] = useState(0);
+    const [isLoading, setIsLoading] = useState(false);
 
     const merge = true;
 
@@ -35,10 +36,15 @@ const Information = ({ width, ...props }) => {
         setNodeDetails({});
         console.log("detail changed");
         async function searchInfoNode(content) {
+            setIsLoading(true);
             let detailServ = new DetailService()
-            const response = await detailServ.Nid2Detail(content)
-            setNodeDetail(response.data)
-            setEdgeDetail({})
+            try {
+                const response = await detailServ.Nid2Detail(content)
+                setNodeDetail(response.data)
+                setEdgeDetail({})
+            } finally {
+                setIsLoading(false);
+            }
         }
         async function searchMergeInfoNode(content) {
             let detailServ = new DetailService()
@@ -78,6 +84,8 @@ const Information = ({ width, ...props }) => {
             else {
                 searchInfoEdge(props.detailId.slice(1));
             }
+        } else {
+            setIsLoading(false);
         }
     }, [props.detailId]);
 
@@ -189,6 +197,12 @@ const Information = ({ width, ...props }) => {
     const LoadingMessage = () => (
         <div className="loading-message">
             <Spin size="small" style={{ marginRight: '10px' }} />
+            <Text>Loading details...</Text>
+        </div>
+    );
+
+    const NoSelectionMessage = () => (
+        <div className="no-selection-message">
             <Text>Select a node or edge to view details</Text>
         </div>
     );
@@ -247,7 +261,9 @@ const Information = ({ width, ...props }) => {
                 title={getPanelTitle()}
                 className="information-content"
             >
-                {Object.keys(nodeDetails).length === 0 && Object.keys(edgeDetail).length === 0 ? (
+                {!props.detailId ? (
+                    <NoSelectionMessage />
+                ) : isLoading ? (
                     <LoadingMessage />
                 ) : (
                     <Collapse

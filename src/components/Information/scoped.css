@@ -197,7 +197,7 @@ all {
     margin-bottom: -17px;
 }
 
-.loading-message {
+.loading-message, .no-selection-message {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -206,6 +206,13 @@ all {
     color: #666;
     text-align: center;
     padding: 20px;
-    font-style: italic;
     line-height: 1.5;
+}
+
+.loading-message {
+    font-style: italic;
+}
+
+.no-selection-message {
+    font-style: normal;
 }
