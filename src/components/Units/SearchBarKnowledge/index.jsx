@@ -9,6 +9,7 @@ import {useNavigate} from 'react-router-dom';
 import {matchSorter} from 'match-sorter'
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
+import { debounce } from 'lodash'; // Add this import
 
 export default function SearchBarKnowledge(props) {
     const navigate = useNavigate();
@@ -26,6 +27,7 @@ export default function SearchBarKnowledge(props) {
     const [moreRel, setMoreRel] = React.useState(false);
     const [sourceNodeData, setSourceNodeData] = React.useState([]);
     const [targetNodeData, setTargetNodeData] = React.useState([]);
+    const [tripletLimitReached, setTripletLimitReached] = React.useState(false);
 
 
     const showAdvance = true;
@@ -149,25 +151,37 @@ export default function SearchBarKnowledge(props) {
         }
     }, [sourceNodeData]);
 
-    let sourceTimer;
+    // Create debounced search functions
+    const debouncedSourceEntitySearch = React.useCallback(
+        debounce((value) => {
+            sourceEntitySearch(value);
+        }, 300),
+        []
+    );
+
+    const debouncedTargetEntitySearch = React.useCallback(
+        debounce((value) => {
+            targetEntitySearch(value);
+        }, 300),
+        []
+    );
+
     const updateSource = (event, value) => {
-        if (value.trim() === '') {
-            //setSourceNodeOptions([]);
+        if (value === null || value.trim() === '') {
+            setSourceNodeOptions([]);
+            const newTriplet = ["", triplets[1], triplets[2]];
+            setTriplets(newTriplet);
         } else {
             if (event && event.type === "click") {
                 sourceEntitySearch(value);
-                const newTriplet = [value, triplets[1], triplets[2]];
-                setTriplets(newTriplet);
             } else {
-                clearTimeout(sourceTimer);
-                sourceTimer = setTimeout(() => {
-                    sourceEntitySearch(value);
-                    const newTriplet = [value, triplets[1], triplets[2]];
-                    setTriplets(newTriplet);
-                }, 1000);
+                debouncedSourceEntitySearch(value);
             }
+            const newTriplet = [value, triplets[1], triplets[2]];
+            setTriplets(newTriplet);
         }
     };
+
     useEffect(() => {
         if (targetNodeData.length > 0) {
             setTargetNodeOptions([
@@ -176,32 +190,19 @@ export default function SearchBarKnowledge(props) {
         }
     }, [targetNodeData]);
 
-    let targetTimer;
     const updateTarget = (event, value) => {
-        if (value.trim() === '') {
-            //setTargetNodeOptions([]);
+        if (value === null || value.trim() === '') {
+            setTargetNodeOptions([]);
+            const newTriplet = [triplets[0], triplets[1], ""];
+            setTriplets(newTriplet);
         } else {
-            // setSourceNodeOptions([
-            //     `Option ${value}`,
-            //     `Option ${value + "4"}`,
-            //     `Option ${value + "$$$$"}`,
-            // ]);
-            // TODO: Connect and set this to call API to autocomplete
-            // setTargetNodeOptions([
-            //     value
-            // ]);
-            if (event.type == "click") {
+            if (event && event.type === "click") {
                 targetEntitySearch(value);
-                const newTriplet = [triplets[0], triplets[1], value];
-                setTriplets(newTriplet);
             } else {
-                clearTimeout(targetTimer);
-                targetTimer = setTimeout(() => {
-                    targetEntitySearch(value);
-                    const newTriplet = [triplets[0], triplets[1], value];
-                    setTriplets(newTriplet);
-                }, 1000)
+                debouncedTargetEntitySearch(value);
             }
+            const newTriplet = [triplets[0], triplets[1], value];
+            setTriplets(newTriplet);
         }
     };
 
@@ -245,6 +246,11 @@ export default function SearchBarKnowledge(props) {
             setChipData(newChipData);
             setChipDataID(newChipDataID);
         }
+
+        // Check if the limit is no longer reached after deleting
+        if (newChipData.length < 5) {
+            setTripletLimitReached(false);
+        }
     };
 
 
@@ -268,6 +274,10 @@ export default function SearchBarKnowledge(props) {
     //This function is called after click on Add Triplet button, adding three fields of the triplets to ChipData
     const handleAddTriplet = () => {
         if (triplets[0] === "" && triplets[1] === "" && triplets[2] === "") return;
+        if (chipData.length >= 5) {
+            setTripletLimitReached(true);
+            return;
+        }
         let chip_str = triplets.map((item, index) => {
             if (index == 1 && item == "") {
                 return "[any relationships]"
@@ -294,6 +304,11 @@ export default function SearchBarKnowledge(props) {
         setRelationship("");
         setSourceNodeOptions([]);
         setTargetNodeOptions([]);
+
+        // Check if the limit is reached after adding
+        if (newData.length >= 5) {
+            setTripletLimitReached(true);
+        }
     }
 
     // This function is called after clicking on the search button
@@ -405,27 +420,40 @@ export default function SearchBarKnowledge(props) {
                             }}
                             options={sourceNodeOptions.length > 0 ? sourceNodeOptions.map(option => (option[1])) : []}
                             renderInput={(params) => (
-                                <TextField {...params} label="Name" variant="outlined" size="small" fullWidth />
+                                <TextField 
+                                    {...params} 
+                                    label="Name" 
+                                    variant="outlined" 
+                                    size="small" 
+                                    fullWidth 
+                                    disabled={tripletLimitReached}
+                                    helperText={tripletLimitReached ? "Maximum of 5 triplets reached" : ""}
+                                />
                             )}
                             value={triplets[0]}
                             onChange={(event, newValue) => {
                                 const newTriplet = [newValue ? newValue.split(' (')[0] : "", triplets[1], triplets[2]];
                                 setTriplets(newTriplet);
                             }}
+                            disabled={tripletLimitReached}
                         />
                     </FormControl>
 
                     <Box display="flex" gap={2} flexDirection={isSmallScreen ? 'column' : 'row'} width={isSmallScreen ? '100%' : 'auto'}>
-                        <Button variant="contained" color="primary"
-                                sx={{ 
-                                    minWidth: '60px', 
-                                    height: '40px', 
-                                    backgroundColor: '#8BB5D1', 
-                                    color: 'black', 
-                                    '&:hover': { backgroundColor: '#4A7298' },
-                                    width: isSmallScreen ? '100%' : 'auto'
-                                }}
-                                onClick={handleAddTriplet}>
+                        <Button 
+                            variant="contained" 
+                            color="primary"
+                            sx={{ 
+                                minWidth: '60px', 
+                                height: '40px', 
+                                backgroundColor: '#8BB5D1', 
+                                color: 'black', 
+                                '&:hover': { backgroundColor: '#4A7298' },
+                                width: isSmallScreen ? '100%' : 'auto'
+                            }}
+                            onClick={handleAddTriplet}
+                            disabled={tripletLimitReached}
+                        >
                             Add Biomedical Term
                         </Button>
 
@@ -444,8 +472,8 @@ export default function SearchBarKnowledge(props) {
                     </Box>
                 </Box>
 
-                <Box sx={{ mt: 1 }}>
-                    <Card variant="outlined" sx={{ p: 1 }}>
+                <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Card variant="outlined" sx={{ p: 1, flexGrow: 1, mr: 2 }}>
                         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                             {chipData.map((data) => (
                                 <Chip
@@ -457,6 +485,9 @@ export default function SearchBarKnowledge(props) {
                             ))}
                         </Stack>
                     </Card>
+                    <Typography variant="body2" sx={{ minWidth: '40px', textAlign: 'right' }}>
+                        {`${chipData.length}/5 added terms`}
+                    </Typography>
                 </Box>
             </Box>
         </Container>
