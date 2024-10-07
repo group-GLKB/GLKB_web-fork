@@ -1,11 +1,11 @@
-import React, {useEffect, useState, useRef} from 'react'
-import {useNavigate} from 'react-router-dom';
+import React, { useEffect, useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
-import {CypherService} from '../../service/Cypher'
-import {DetailService} from '../../service/Detail'
+import { CypherService } from '../../service/Cypher'
+import { DetailService } from '../../service/Detail'
 import 'antd/dist/reset.css';
-import {Col, Row, Input, Spin, Tag, Menu, Button} from 'antd';
-import {TweenOneGroup} from 'rc-tween-one';
+import { Col, Row, Input, Spin, Tag, Menu, Button } from 'antd';
+import { TweenOneGroup } from 'rc-tween-one';
 import './scoped.css'
 import NavBarWhite from '../Units/NavBarWhite'
 import GLKBLogoImg from '../../img/glkb_logo.png'
@@ -22,7 +22,7 @@ import { FloatButton } from "antd";
 import { PlusOutlined, MinusOutlined, InfoCircleOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ApartmentOutlined, FileTextOutlined } from '@ant-design/icons';
 import { styled } from '@mui/material/styles';
 
-const {Search} = Input;
+const { Search } = Input;
 
 const StyledButton = styled(Button)(({ theme }) => ({
     backgroundColor: '#8BB5D1',
@@ -120,6 +120,10 @@ const ResultPage = () => {
     const settingsRef = useRef(null);
     const informationRef = useRef(null);
 
+    // New state variables for caching
+    const [cachedTermGraph, setCachedTermGraph] = useState(null);
+    const [cachedArticleGraph, setCachedArticleGraph] = useState(null);
+
     useEffect(() => {
         const handleResize = () => {
             setWindowWidth(window.innerWidth);
@@ -175,13 +179,13 @@ const ResultPage = () => {
                 ].join("-");
                 return chip_str;
             });
-        
+
             setChipData(chipResultData)
             search(search_data)
         }
         if (chipDataID) {
             const newArray = [];
-            chipDataID.forEach(idArray => {newArray.push(idArray)});
+            chipDataID.forEach(idArray => { newArray.push(idArray) });
             console.log(newArray)
             setChipDataIDResult(newArray);
         }
@@ -226,16 +230,19 @@ const ResultPage = () => {
 
     async function search(content) {
         setSearchFlag(false)
-        // nevigate(`/result?q=${content}`)
-        let cypherServ = new CypherService()
-        const response = await cypherServ.Triplet2Cypher(content)
-        console.log('function -> ', response)
-        // console.log(sampleGraphData)
-        // setData(sampleGraphData[0])
-        // setAllNodes(sampleGraphData[1])
-        setData(response[0])
-        setAllNodes(response[1])
-        setSearchFlag(true)
+        if (cachedTermGraph) {
+            setData(cachedTermGraph[0]);
+            setAllNodes(cachedTermGraph[1]);
+            setSearchFlag(true);
+        } else {
+            let cypherServ = new CypherService()
+            const response = await cypherServ.Triplet2Cypher(content)
+            console.log('function -> ', response)
+            setData(response[0])
+            setAllNodes(response[1])
+            setCachedTermGraph(response);
+            setSearchFlag(true)
+        }
     }
 
     useEffect(() => {
@@ -248,10 +255,10 @@ const ResultPage = () => {
             const uniqueIds = new Set();
             const filteredNodes = [];
             nodeIds.forEach(node => {
-            if (!uniqueIds.has(node.data.id)) {
-                uniqueIds.add(node.data.id);
-                filteredNodes.push(node);
-            }
+                if (!uniqueIds.has(node.data.id)) {
+                    uniqueIds.add(node.data.id);
+                    filteredNodes.push(node);
+                }
             });
             const filteredEdges = data.edges.filter(edge =>
                 nodeIdsToKeep.includes(edge.data.source) && nodeIdsToKeep.includes(edge.data.target)
@@ -325,14 +332,24 @@ const ResultPage = () => {
     }
 
     async function entityToArticle(content) {
-        let cypherServ = new CypherService()
-        const response = await cypherServ.Term2Article(content)
-        console.log('Term2Article -> ', response)
-        setData(response)
+        if (cachedArticleGraph) {
+            setData(cachedArticleGraph);
+        } else {
+            let cypherServ = new CypherService()
+            const response = await cypherServ.Term2Article(content)
+            console.log('Term2Article -> ', response)
+            setData(response)
+            setCachedArticleGraph(response);
+        }
     }
 
     async function articleToEntity() {
-        search(search_data);
+        if (cachedTermGraph) {
+            setData(cachedTermGraph[0]);
+            setAllNodes(cachedTermGraph[1]);
+        } else {
+            search(search_data);
+        }
     }
 
     const expandInformation = () => {
@@ -345,7 +362,7 @@ const ResultPage = () => {
                 <NavBarWhite />
             </div>
             <div className="search-bar-container">
-                <SearchBarKnowledge 
+                <SearchBarKnowledge
                     chipData={chipData}
                     chipDataIDResult={chipDataIDResult}
                     displayArticleGraph={displayArticleGraph}
@@ -355,14 +372,14 @@ const ResultPage = () => {
             <div className='main-content'>
                 {!searchFlag && (
                     <div className='loading-container'>
-                        <Spin size='large'/>
+                        <Spin size='large' />
                     </div>
                 )}
                 {searchFlag && (
                     <div className='result-content'>
                         <div className="graph-controls">
-                            <StyledButton 
-                                onClick={changeLeftPanel} 
+                            <StyledButton
+                                onClick={changeLeftPanel}
                                 variant="contained"
                                 startIcon={displayArticleGraph ? <ApartmentOutlined /> : <FileTextOutlined />}
                             >

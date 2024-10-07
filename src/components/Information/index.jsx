@@ -75,7 +75,7 @@ const Information = ({ width, ...props }) => {
                     searchMergeInfoNode(props.detailId.slice(1))
                 }
             }
-            else{
+            else {
                 searchInfoEdge(props.detailId.slice(1));
             }
         }
@@ -102,7 +102,7 @@ const Information = ({ width, ...props }) => {
     }
 
     const nodeForMap = (url) => {
-        return(
+        return (
             <div className="custom-div-url">
                 <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>{url[0]}</a>
                 {/*<span> (Number of Citation: {url[2]}, Date: {url[3]})</span>*/}
@@ -148,7 +148,7 @@ const Information = ({ width, ...props }) => {
                     console.log(nodeDetail.external_sources[source])
                     elements.push(
                         <div>
-                          {source}: {nodeDetail.external_sources[source]}
+                            {source}: {nodeDetail.external_sources[source]}
                         </div>
                     );
                 }
@@ -160,7 +160,7 @@ const Information = ({ width, ...props }) => {
 
     // if (Object.keys(nodeDetails).length !== 0) {
     //     (nodeDetails.map((nodeDetail) => nodeDetail.data)).map((node, index) => console.log(node[0].type))
-    
+
     // }
     if (Object.keys(edgeDetail).length !== 0) {
         console.log(edgeDetail);
@@ -194,7 +194,7 @@ const Information = ({ width, ...props }) => {
     );
 
     const renderNodeDetails = (node) => (
-        <Descriptions column={1} size="small" className="custom-descriptions" style={{borderRadius: '10px'}}>
+        <Descriptions column={1} size="small" className="custom-descriptions" style={{ borderRadius: '10px' }}>
             <Descriptions.Item label="Entity ID">{node.element_id}</Descriptions.Item>
             <Descriptions.Item label="Type">{node.type.join('; ')}</Descriptions.Item>
             {/* <Descriptions.Item label="External ID">
@@ -214,7 +214,7 @@ const Information = ({ width, ...props }) => {
     );
 
     const renderArticleDetails = (article) => (
-        <Descriptions column={1} size="small" className="custom-descriptions" style={{borderRadius: '10px'}}>
+        <Descriptions column={1} size="small" className="custom-descriptions" style={{ borderRadius: '10px' }}>
             <Descriptions.Item label="Title">{article.title}</Descriptions.Item>
             <Descriptions.Item label="PubMedID">{article.pmid}</Descriptions.Item>
             <Descriptions.Item label="Authors">
@@ -250,18 +250,18 @@ const Information = ({ width, ...props }) => {
                 {Object.keys(nodeDetails).length === 0 && Object.keys(edgeDetail).length === 0 ? (
                     <LoadingMessage />
                 ) : (
-                    <Collapse 
-                        defaultActiveKey={['1', '2']} 
-                        ghost 
+                    <Collapse
+                        defaultActiveKey={['1', '2']}
+                        ghost
                         expandIcon={({ isActive }) => (
-                            <CaretRightOutlined 
-                                style={{color: '#014484', fontSize: 20}} 
-                                rotate={isActive ? 90 : 0} 
+                            <CaretRightOutlined
+                                style={{ color: '#014484', fontSize: 20 }}
+                                rotate={isActive ? 90 : 0}
                             />
                         )}
                     >
-                        <Panel 
-                            header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Details</h3>} 
+                        <Panel
+                            header={<h3 style={{ color: '#014484', fontSize: 20, fontWeight: 'bold' }}>Details</h3>}
                             key="1"
                         >
                             {Object.keys(nodeDetails).length !== 0 && merge && (
@@ -293,8 +293,8 @@ const Information = ({ width, ...props }) => {
                                 </Collapse>
                             )}
                         </Panel>
-                        <Panel 
-                            header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Related Articles</h3>} 
+                        <Panel
+                            header={<h3 style={{ color: '#014484', fontSize: 20, fontWeight: 'bold' }}>Related Articles</h3>}
                             key="2"
                         >
                             {Object.keys(nodeDetails).length !== 0 && (

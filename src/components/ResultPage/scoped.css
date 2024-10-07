@@ -82,13 +82,13 @@ all {
 
 .floating-settings {
     left: 0;
-    border-radius: 0 10px 10px 0;
+    border-radius: 0 0px 0px 0;
     transform: translateX(-100%);
 }
 
 .floating-information {
     right: 0;
-    border-radius: 10px 0 0 10px;
+    border-radius: 0px 0 0 0px;
     transform: translateX(100%);
 }
 
