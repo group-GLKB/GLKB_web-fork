@@ -14,7 +14,7 @@ all {
     display: flex;
     flex-direction: column;
     overflow-x: auto;
-    padding-top: 64px;
+    /* Remove padding-top */
 }
 
 .result-content {
@@ -69,15 +69,17 @@ all {
 .floating-settings,
 .floating-information {
     position: fixed;
-    top: 60px;
-    height: calc(100vh - 60px);
+    top: 64px; /* Position directly below navbar */
+    height: calc(100vh - 64px); /* Full height minus navbar height */
     width: var(--settings-panel-width);
     max-width: 25vw;
     min-width: 400px;
     transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
     background-color: #F7F7F7;
-    overflow-y: auto;
-    z-index: 1000;
+    overflow: hidden; /* Change from overflow-y: auto to overflow: hidden */
+    z-index: 999; /* Below the navbar */
+    display: flex;
+    flex-direction: column;
 }
 
 .floating-settings {
@@ -97,17 +99,32 @@ all {
     transform: translateX(0);
 }
 
-.floating-settings.hidden,
-.floating-information.hidden {
-    opacity: 0;
-    pointer-events: none;
+/* Add these new styles for the panel content */
+.floating-settings > div,
+.floating-information > div {
+    height: 100%;
+    overflow-y: auto;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Hide scrollbars for the panel content */
+.floating-settings > div::-webkit-scrollbar,
+.floating-information > div::-webkit-scrollbar {
+    display: none;
+}
+
+.floating-settings > div,
+.floating-information > div {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 /* Float buttons */
 .settings-float-button,
 .information-float-button {
     position: fixed;
-    top: 50%;
+    top: 50%; /* Center vertically */
     transform: translateY(-50%);
     transition: 0.3s ease-in-out;
     z-index: 1001;
@@ -132,16 +149,18 @@ all {
 /* Graph container */
 .graph-container {
     padding: 1%;
-    height: calc(75vh - 120px);
-    overflow-y: scroll;
-    margin: 60px calc(var(--information-panel-width) + 20px) 0 calc(var(--settings-panel-width) + 20px);
+    height: calc(100vh - 124px); /* Adjusted height */
+    overflow-y: auto;
+    margin-top: 124px; /* Sum of navbar and search bar heights */
+    margin-left: calc(var(--settings-panel-width) + 20px);
+    margin-right: calc(var(--information-panel-width) + 20px);
     min-width: 560px;
     transition: margin 0.3s ease-in-out;
     position: relative;
     z-index: 1;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
 }
 
 .graph-container.expanded-left {
@@ -230,26 +249,32 @@ all {
 }
 
 /* Fixed elements */
-.search-bar-container,
 .navbar-wrapper {
     position: fixed;
+    top: 0;
     left: 0;
     right: 0;
-    z-index: 10;
+    height: 64px; /* Set a fixed height for the navbar */
+    z-index: 1000;
     background-color: #fff;
-    overflow: hidden;
 }
 
 .search-bar-container {
-    top: 64px;
+    position: fixed;
+    top: 64px; /* Position right below the navbar */
+    left: 0;
+    right: 0;
+    height: 60px; /* Set a fixed height for the search bar container */
     padding: 10px 0;
     display: flex;
     justify-content: center;
+    z-index: 998; /* Below the floating panels */
+    background-color: #fff;
 }
 
 .search-bar-wrapper {
     width: 50vw;
-    min-width: 600px; /* Adjust this value as needed */
+    min-width: 750px; /* Adjust this value as needed */
     max-width: 1000px; /* Adjust this value as needed */
 }
 

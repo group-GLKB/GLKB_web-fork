@@ -124,6 +124,8 @@ const ResultPage = () => {
     const [cachedTermGraph, setCachedTermGraph] = useState(null);
     const [cachedArticleGraph, setCachedArticleGraph] = useState(null);
 
+    const graphContainerRef = useRef(null);
+
     useEffect(() => {
         const handleResize = () => {
             setWindowWidth(window.innerWidth);
@@ -223,6 +225,24 @@ const ResultPage = () => {
             setIsInformationVisible(true);
         }
     }, [windowWidth]);
+
+    useEffect(() => {
+        const updateGraphPosition = () => {
+            if (graphContainerRef.current) {
+                const searchBarHeight = document.querySelector('.search-bar-container').offsetHeight;
+                const navbarHeight = document.querySelector('.navbar-wrapper').offsetHeight;
+                const topOffset = navbarHeight + searchBarHeight;
+                
+                graphContainerRef.current.style.setProperty('--top-offset', `${topOffset}px`);
+                graphContainerRef.current.style.setProperty('--graph-height', `calc(100vh - ${topOffset}px)`);
+            }
+        };
+
+        window.addEventListener('resize', updateGraphPosition);
+        updateGraphPosition(); // Initial call
+
+        return () => window.removeEventListener('resize', updateGraphPosition);
+    }, []);
 
     const initialize = () => {
         setSearchFlag(false)
@@ -409,6 +429,7 @@ const ResultPage = () => {
                             informationOpen={informationOpen}
                             expandInformation={expandInformation}
                             className={`graph-container ${!isSettingsVisible ? 'expanded-left' : ''} ${!isInformationVisible ? 'expanded-right' : ''}`}
+                            ref={graphContainerRef}
                         />
                         <div ref={settingsRef} className={`floating-settings ${isSettingsVisible ? 'open' : ''}`}>
                             <Settings
