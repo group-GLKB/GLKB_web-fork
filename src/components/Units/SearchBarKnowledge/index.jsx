@@ -155,14 +155,14 @@ export default function SearchBarKnowledge(props) {
     const debouncedSourceEntitySearch = React.useCallback(
         debounce((value) => {
             sourceEntitySearch(value);
-        }, 300),
+        }, 200),
         []
     );
 
     const debouncedTargetEntitySearch = React.useCallback(
         debounce((value) => {
             targetEntitySearch(value);
-        }, 300),
+        }, 200),
         []
     );
 
@@ -245,11 +245,11 @@ export default function SearchBarKnowledge(props) {
             const newChipDataID = chipDataID.filter((id, idx) => idx !== index);
             setChipData(newChipData);
             setChipDataID(newChipDataID);
-        }
 
-        // Check if the limit is no longer reached after deleting
-        if (newChipData.length < 5) {
-            setTripletLimitReached(false);
+            // Check if the limit is no longer reached after deleting
+            if (newChipData.length < 5) {
+                setTripletLimitReached(false);
+            }
         }
     };
 
@@ -313,18 +313,16 @@ export default function SearchBarKnowledge(props) {
 
     // This function is called after clicking on the search button
     const handleSearch = async () => {
-        // Here should trigger search result api and route to the result page
         console.log("searching result with data: ");
-        console.log(chipData); // Here need to trim the data before send to backend
+        console.log(chipData);
         console.log(maxArticles);
         console.log(maxRel);
         console.log(maxBioTerms);
         console.log(moreNodes);
         console.log(moreRel);
-        //Create search result based on the status
+
         let search_data = {
-            "triplets": chipData.map((triplet, index) =>{
-                // console.log(triplet)
+            "triplets": chipData.map((triplet, index) => {
                 const parts = triplet.replace(/{|}/g, "").split("-");
                 console.log(triplet)
                 return {
@@ -337,15 +335,21 @@ export default function SearchBarKnowledge(props) {
                 "max_articles": maxArticles,
                 "max_terms": maxBioTerms,
                 "max_rels": maxRel,
-                "more_terms": moreNodes===true ? "True":"False",
-                "more_rels": moreRel===true ? "True":"False",
+                "more_terms": moreNodes === true ? "True" : "False",
+                "more_rels": moreRel === true ? "True" : "False",
                 "merge": "True"
             }
         };
         console.log(search_data);
-        // let cypherServ = new CypherService()
-        // const response = await cypherServ.Triplet2Cypher(search_data)
-        navigate('/result', { state: { search_data, chipDataID } });
+
+        // If we're on the result page, use the provided search function
+        if (props.onSearch) {
+            props.onSearch(search_data);
+        } else {
+            // If we're on the home page, navigate to the result page
+            navigate('/result', { state: { search_data, chipDataID } });
+        }
+
         if (props.displayArticleGraph) {
             props.setDisplayArticleGraph(false);
         }
@@ -356,11 +360,11 @@ export default function SearchBarKnowledge(props) {
     //     // let cypherServ = new CypherService()
     //     // const response = await cypherServ.Triplet2Cypher(content)
     //     // console.log('function -> ', response)
-    //     //console.log(sampleGraphData)
-    //     // setData(sampleGraphData[0])
-    //     // setAllNodes(sampleGraphData[1])
-    //     // // setData(response.data[0])
-    //     // // setAllNodes(response.data[1])
+    //     // //console.log(sampleGraphData)
+    //     // // setData(sampleGraphData[0])
+    //     // // setAllNodes(sampleGraphData[1])
+    //     // setData(response.data[0])
+    //     // setAllNodes(response.data[1])
     //     // setSearchFlag(true)
     // }
 
@@ -406,6 +410,14 @@ export default function SearchBarKnowledge(props) {
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
     const isMediumScreen = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
+    const processChipData = (data) => {
+        if (typeof data === 'string') {
+            return data.replace(/[()]/g, '');
+        }
+        // If it's not a string, return it as is or apply appropriate processing
+        return data;
+    };
+
     return (
         <Container maxWidth={isSmallScreen ? "xs" : isMediumScreen ? "sm" : "md"}>
             <Box sx={{ marginTop: 2, marginBottom: 2 }}>
@@ -422,7 +434,7 @@ export default function SearchBarKnowledge(props) {
                             renderInput={(params) => (
                                 <TextField 
                                     {...params} 
-                                    label="Name" 
+                                    label="Type in a biomedical term and select from dropdown menu" 
                                     variant="outlined" 
                                     size="small" 
                                     fullWidth 

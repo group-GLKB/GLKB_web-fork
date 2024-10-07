@@ -34,3 +34,39 @@
     max-width: 200px;
     margin-bottom: 10px;
 }
+
+.search-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 600px; /* Adjust this value to match your search bar width */
+    margin: 0 auto;
+}
+
+.example-queries {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    margin-top: 20px;
+}
+
+.example-query-button {
+    margin-bottom: 10px;
+    white-space: normal;
+    height: auto;
+    padding: 6px 12px;
+    text-align: left;
+}
+
+@media (min-width: 768px) {
+    .example-queries {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .example-query-button {
+        width: 32%; /* Adjust as needed to fit three buttons side by side */
+    }
+}

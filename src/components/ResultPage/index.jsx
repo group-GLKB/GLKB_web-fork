@@ -120,7 +120,7 @@ const ResultPage = () => {
     const settingsRef = useRef(null);
     const informationRef = useRef(null);
 
-    // New state variables for caching
+    // Modify these state variables for caching
     const [cachedTermGraph, setCachedTermGraph] = useState(null);
     const [cachedArticleGraph, setCachedArticleGraph] = useState(null);
 
@@ -230,19 +230,19 @@ const ResultPage = () => {
 
     async function search(content) {
         setSearchFlag(false)
-        if (cachedTermGraph) {
-            setData(cachedTermGraph[0]);
-            setAllNodes(cachedTermGraph[1]);
-            setSearchFlag(true);
-        } else {
-            let cypherServ = new CypherService()
-            const response = await cypherServ.Triplet2Cypher(content)
-            console.log('function -> ', response)
-            setData(response[0])
-            setAllNodes(response[1])
-            setCachedTermGraph(response);
-            setSearchFlag(true)
-        }
+        // Clear the cached graphs
+        setCachedTermGraph(null);
+        setCachedArticleGraph(null);
+        // Reset display to term graph
+        setDisplayArticleGraph(false);
+        
+        let cypherServ = new CypherService()
+        const response = await cypherServ.Triplet2Cypher(content)
+        console.log('function -> ', response)
+        setData(response[0])
+        setAllNodes(response[1])
+        setCachedTermGraph(response); // Cache the new term graph
+        setSearchFlag(true)
     }
 
     useEffect(() => {
@@ -367,6 +367,7 @@ const ResultPage = () => {
                     chipDataIDResult={chipDataIDResult}
                     displayArticleGraph={displayArticleGraph}
                     setDisplayArticleGraph={setDisplayArticleGraph}
+                    onSearch={search} // Pass the search function
                 />
             </div>
             <div className='main-content'>

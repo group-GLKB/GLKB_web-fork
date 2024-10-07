@@ -1,0 +1,149 @@
+[
+    {
+        "triplets": [
+            {
+                "source": [
+                    91689747,
+                    "(SPRY2)"
+                ],
+                "rel": "",
+                "target": [
+                    0, ""
+                ]
+            },
+            {
+                "source": [
+                    91683743,
+                    "(RFX6)"
+                ],
+                "rel": "",
+                "target": [
+                    0,
+                    ""
+                ]
+            },
+            {
+                "source": [
+                    91737592,
+                    "(HNF4A)"
+                ],
+                "rel": "",
+                "target": [
+                    0,
+                    ""
+                ]
+            },
+            {
+                "source": [
+                    91691908,
+                    "(type 2 diabetes mellitus)"
+                ],
+                "rel": "",
+                "target": [
+                    0,
+                    ""
+                ]
+            }
+        ],
+        "params": {
+            "max_articles": 50,
+            "max_terms": 20,
+            "max_rels": 100,
+            "more_terms": "True",
+            "more_rels": "True",
+            "merge": "True"
+        }
+    },
+
+    {
+        "triplets": [
+            {
+                "source": [
+                    91705649,
+                    "(TP53)"
+                ],
+                "rel": "",
+                "target": [
+                    0,
+                    ""
+                ]
+            },
+            {
+                "source": [
+                    91689683,
+                    "(SOX2)"
+                ],
+                "rel": "",
+                "target": [
+                    0,
+                    ""
+                ]
+            },
+            {
+                "source": [
+                    91661004,
+                    "(breast cancer)"
+                ],
+                "rel": "",
+                "target": [
+                    0,
+                    ""
+                ]
+            }
+        ],
+        "params": {
+            "max_articles": 50,
+            "max_terms": 20,
+            "max_rels": 100,
+            "more_terms": "True",
+            "more_rels": "True",
+            "merge": "True"
+        }
+    },
+
+    {
+        "triplets": [
+            {
+                "source": [
+                    91717377,
+                    "(CYP2C19)"
+                ],
+                "rel": "",
+                "target": [
+                    0,
+                    ""
+                ]
+            },
+            {
+                "source": [
+                    92090265,
+                    "(Cardiovascular Abnormalities)"
+                ],
+                "rel": "",
+                "target": [
+                    0,
+                    ""
+                ]
+            },
+            {
+                "source": [
+                    92231875,
+                    "(clopidogrel)"
+                ],
+                "rel": "",
+                "target": [
+                    0,
+                    ""
+                ]
+            }
+        ],
+        "params": {
+            "max_articles": 50,
+            "max_terms": 20,
+            "max_rels": 100,
+            "more_terms": "True",
+            "more_rels": "True",
+            "merge": "True"
+        }
+    }
+]
