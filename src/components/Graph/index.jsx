@@ -239,11 +239,11 @@ function Graph(props) {
       break;
     }
     if (id[i][2] >= 60) {
-      size = 20
+      size = 40
     } else if (id[i][2] < 60 && id[i][2] >= 30) {
-      size = 10
+      size = 30
     } else {
-      size = 5
+      size = 20
     }
     if (id[i][4] == "true") {
       borderWidth = '1px'
@@ -312,7 +312,7 @@ function Graph(props) {
 
                   // Reduce opacity of non-highlighted elements
                   
-                }
+                } 
                 if (sel === cy) {
                   cy.elements().removeClass('semitransp');
                   cy.elements().removeClass('highlight');
@@ -333,7 +333,7 @@ function Graph(props) {
                 var node = evt.target;
                 props.handleSelect(node.data());
                 if (!props.informationOpen) {
-                  props.handleInformation();
+                  props.expandInformation();
                 }
               });
               cy.bind('click', 'edge', (evt) => {
@@ -341,7 +341,7 @@ function Graph(props) {
                 console.log(edge.data());
                 props.handleSelect(edge.data());
                 if (!props.informationOpen) {
-                  props.handleInformation();
+                  props.expandInformation();
                 }
               });
             }}

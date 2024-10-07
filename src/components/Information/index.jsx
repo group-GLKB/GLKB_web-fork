@@ -1,20 +1,16 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import './scoped.css'
 import { DetailService } from '../../service/Detail'
-import { Button } from 'antd';
-import { Descriptions, List, Collapse, Divider, Typography} from 'antd';
-import {
-    ConsoleSqlOutlined,
-    MenuFoldOutlined,
-    MenuUnfoldOutlined
-} from '@ant-design/icons';
+import { Descriptions, List, Collapse, Typography, Spin, Card, Tabs } from 'antd';
+import { CaretRightOutlined } from '@ant-design/icons';
 
 const { Panel } = Collapse;
-const { Title } = Typography;
-const Information = props => {
-    const informationClass = props.isOpen ? "information open" : "information";
-    const buttonClass = props.isOpen ? "information-button open" : "information-button";
-    const relatedClass = props.isOpen ? "related open" : "related";
+const { Title, Text } = Typography;
+const { TabPane } = Tabs;
+
+const Information = ({ width, ...props }) => {
+    const informationClass = "information open";
+    const relatedClass = "related open";
     const [nodeDetails, setNodeDetails] = useState({});
     const [nodeDetail, setNodeDetail] = useState({});
     const [edgeDetail, setEdgeDetail] = useState({});
@@ -170,276 +166,174 @@ const Information = props => {
         console.log(edgeDetail);
 
     }
-        return (
-            <div>
-                {props.displayArticleGraph === displayArticleGraphRef.current && (
-                    <div className={informationClass}>
-                        {/* {Object.keys(detail).length != 0 && props.detailType == "article" && 'title' in detail && (
-                            <Article
-                                title={detail.title}
-                                authors={detail.authors}
-                                pmid={detail.pmid}
-                                abstract={detail.abstract}
-                                abstract_list={detail.abstract_list}
+
+    // Updated function to get the panel title
+    const getPanelTitle = () => {
+        if (Object.keys(edgeDetail).length > 0 && edgeDetail[0] && edgeDetail[0][0]) {
+            const { node1, node2 } = edgeDetail[0][0];
+            return `Relationship: ${node1} - ${node2}`;
+        } else if (Object.keys(nodeDetails).length > 0 && nodeDetails[0] && nodeDetails[0][0]) {
+            if ('database_id' in nodeDetails[0][0]) {
+                // This is a regular node
+                return nodeDetails[0][0].name;
+            } else if ('pmid' in nodeDetails[0][0]) {
+                // This is an article node
+                return nodeDetails[0][0].title;
+            }
+        } else if (Object.keys(nodeDetail).length > 0 && nodeDetail[0]) {
+            return nodeDetail[0].name;
+        }
+        return "Term/Relationship Details";
+    };
+
+    const LoadingMessage = () => (
+        <div className="loading-message">
+            <Spin size="small" style={{ marginRight: '10px' }} />
+            <Text>Select a node or edge to view details</Text>
+        </div>
+    );
+
+    const renderNodeDetails = (node) => (
+        <Descriptions column={1} size="small" className="custom-descriptions" style={{borderRadius: '10px'}}>
+            <Descriptions.Item label="Entity ID">{node.element_id}</Descriptions.Item>
+            <Descriptions.Item label="Type">{node.type.join('; ')}</Descriptions.Item>
+            {/* <Descriptions.Item label="External ID">
+                {Object.entries(node.external_sources).map(([source, id]) => (
+                    <div key={source}>{source}: {id}</div>
+                ))}
+            </Descriptions.Item> */}
+            {node.description && node.description.trim() !== "" && (
+                <Descriptions.Item label="Description">{node.description}</Descriptions.Item>
+            )}
+            {node.aliases && node.aliases.length > 0 && (
+                <Descriptions.Item label="Aliases">
+                    {node.aliases.join('; ')}
+                </Descriptions.Item>
+            )}
+        </Descriptions>
+    );
+
+    const renderArticleDetails = (article) => (
+        <Descriptions column={1} size="small" className="custom-descriptions" style={{borderRadius: '10px'}}>
+            <Descriptions.Item label="Title">{article.title}</Descriptions.Item>
+            <Descriptions.Item label="PubMedID">{article.pmid}</Descriptions.Item>
+            <Descriptions.Item label="Authors">
+                <ul>
+                    {article.authors && article.authors.map((author, index) => (
+                        <li key={index}>{author}</li>
+                    ))}
+                </ul>
+            </Descriptions.Item>
+            <Descriptions.Item label="N_citation">{article.n_citation}</Descriptions.Item>
+            <Descriptions.Item label="Abstract">{article.abstract}</Descriptions.Item>
+        </Descriptions>
+    );
+
+    const renderEdgeDetails = (edge) => (
+        <Descriptions column={1}>
+            <Descriptions.Item label="Term 1">{edge.node1}</Descriptions.Item>
+            <Descriptions.Item label="Term 2">{edge.node2}</Descriptions.Item>
+            <Descriptions.Item label="Relationship Label">{edge['relationship label']}</Descriptions.Item>
+            <Descriptions.Item label="Relationship Type">{edge['relationship type']}</Descriptions.Item>
+            <Descriptions.Item label="Number of Citations">
+                {edge['number of citations'] !== null ? edge['number of citations'] : 'N/A'}
+            </Descriptions.Item>
+        </Descriptions>
+    );
+
+    return (
+        <div className="information" style={{ width }}>
+            <Card
+                title={getPanelTitle()}
+                className="information-content"
+            >
+                {Object.keys(nodeDetails).length === 0 && Object.keys(edgeDetail).length === 0 ? (
+                    <LoadingMessage />
+                ) : (
+                    <Collapse 
+                        defaultActiveKey={['1', '2']} 
+                        ghost 
+                        expandIcon={({ isActive }) => (
+                            <CaretRightOutlined 
+                                style={{color: '#014484', fontSize: 20}} 
+                                rotate={isActive ? 90 : 0} 
                             />
                         )}
-                        {Object.keys(detail).length != 0 && props.detailType == "term" && 'element_id' in detail && (
-                            <Term
-                                entity_id={detail.element_id}
-                                name={detail.name}
-                                aliases={detail.aliases}
-                                description={detail.description}
-                                type={detail.type}
-                                external_id={detail.external_sources}
-                            />
-                        )} */}
-                        {Object.keys(nodeDetails).length === 0 && Object.keys(edgeDetail).length === 0 && (
-                        <div className='article-container'>
-                                <div>Loading... or you have not yet select any node or edge</div>
-                        </div>
-                        )}
-                        {Object.keys(nodeDetail).length !== 0 && !merge &&(
-
-                            <div >
-                                {/*<div className='fixed-row'>*/}
-                                <div className="sticky-title">
-                                    <h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>{nodeDetail[0].name.charAt(0).toUpperCase() + nodeDetail[0].name.slice(1)}</h3>
-                                </div>
-                                <div className='article-container'>
-                                    {/*<Title level={4}>{nodeDetail[0].name}</Title>*/}
-                                    <Descriptions column={1}  size="small" className="custom-descriptions" style={{borderRadius: '10px'}}>
-                                        <Descriptions.Item label="Entity ID">{nodeDetail[0].element_id}</Descriptions.Item>
-                                        {/*<Descriptions.Item label="Aliases">{nodeDetail[0].aliases}</Descriptions.Item>*/}
-
-                                        <Descriptions.Item label="Type">{nodeDetail[0].type}</Descriptions.Item>
-                                        <Descriptions.Item label="External ID">{renderExternal()}</Descriptions.Item>
-                                        {/*<Descriptions.Item label="Description">{nodeDetail[0].description}</Descriptions.Item>*/}
-                                        {
-                                            nodeDetail[0].description && nodeDetail[0].description.trim() !== "" && (
-                                                <Descriptions.Item label="Description">{nodeDetail[0].description}</Descriptions.Item>
-                                            )
-                                        }
-
-                                        <Descriptions.Item label="Aliases">
-                                            <ul>
-                                                {nodeDetail[0].aliases.map((alias) => (
-                                                    <li>{alias}</li>
-                                                ))}
-                                            </ul>
-                                        </Descriptions.Item>
-                                    </Descriptions>
-                                </div>
-                            </div>
-                        )}
-                        {Object.keys(nodeDetails).length !== 0 && merge && nodeDetails[0].some(entity => 'database_id' in entity) && (
-
-                            <div>
-                                {/*<div className='fixed-row'>*/}
-                                <div className="sticky-title">
-                                    <h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>{nodeDetails[0][0].name.toUpperCase()}</h3>
-                                </div>
-                                <div className='article-container'>
+                    >
+                        <Panel 
+                            header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Details</h3>} 
+                            key="1"
+                        >
+                            {Object.keys(nodeDetails).length !== 0 && merge && (
+                                nodeDetails[0].some(entity => 'database_id' in entity) ? (
                                     <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
-                                        {(nodeDetails[0]).map((node, index) => (
-                                            <Panel header={node.name} key={index}>
-                                                <div className='edge-article-container'>
-                                                    {/*<Descriptions title="Edge Details" bordered column={1}>*/}
-                                                    <Descriptions column={1}  size="small" className="custom-descriptions" style={{borderRadius: '10px'}}>
-                                                        <Descriptions.Item label="Entity ID">{node.element_id}</Descriptions.Item>
-                                                        {/*<Descriptions.Item label="Aliases">{node[0].aliases}</Descriptions.Item>*/}
-
-                                                        <Descriptions.Item label="Type">{node.type}</Descriptions.Item>
-                                                        <Descriptions.Item label="External ID">{                                        
-                                                            <ul>
-                                                                {Object.keys(node.external_sources).map((source) => (
-                                                                    <li>
-                                                                        {source} : {node.external_sources[source]}
-                                                                    </li>
-                                                                ))}
-                                                            </ul> 
-                                                        }</Descriptions.Item>
-                                                        {/*<Descriptions.Item label="Description">{node[0].description}</Descriptions.Item>*/}
-                                                        {
-                                                            node.description && node.description.trim() !== "" && (
-                                                                <Descriptions.Item label="Description">{node.description}</Descriptions.Item>
-                                                            )
-                                                        }
-
-                                                        <Descriptions.Item label="Aliases">
-                                                            <ul>
-                                                                {node.aliases.map((alias) => (
-                                                                    <li>{alias}</li>
-                                                                ))}
-                                                            </ul>
-                                                        </Descriptions.Item>
-                                                    </Descriptions>
-                                                </div>
+                                        {nodeDetails[0].map((node, index) => (
+                                            <Panel header={node.element_id} key={index}>
+                                                {renderNodeDetails(node)}
                                             </Panel>
                                         ))}
                                     </Collapse>
-                                </div>
-                            </div>
-                        )}
-
-                        {Object.keys(nodeDetails).length !== 0 && merge && !nodeDetails[0].some(entity => 'database_id' in entity) && (
-
-                        <div>
-                            {/*<div className='fixed-row'>*/}
-                            <div className="sticky-title">
-                                <h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>{nodeDetails[0][0].pmid}</h3>
-                            </div>
-                            <div className='article-container'>
+                                ) : (
+                                    <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
+                                        {nodeDetails[0].map((article, index) => (
+                                            <Panel header={article.title} key={index}>
+                                                {renderArticleDetails(article)}
+                                            </Panel>
+                                        ))}
+                                    </Collapse>
+                                )
+                            )}
+                            {Object.keys(edgeDetail).length !== 0 && (
                                 <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
-                                    {(nodeDetails[0]).map((node, index) => (
-                                        <Panel header={node.title} key={index}>
-                                            <div className='edge-article-container'>
-                                                {/*<Descriptions title="Edge Details" bordered column={1}>*/}
-                                                <Descriptions column={1}  size="small" className="custom-descriptions" style={{borderRadius: '10px'}}>
-                                                    <Descriptions.Item label="Title">{node.title}</Descriptions.Item>
-                                                    {/*<Descriptions.Item label="Aliases">{node[0].aliases}</Descriptions.Item>*/}
-
-                                                    <Descriptions.Item label="Pmid">{node.pmid}</Descriptions.Item>
-                                                    <Descriptions.Item label="Authors">{                                        
-                                                        <ul>
-                                                            {node.authors != null && (node.authors).map((author) => (
-                                                                <li>
-                                                                    {author}
-                                                                </li>
-                                                            ))}
-                                                        </ul> 
-                                                    }</Descriptions.Item>
-                                                    <Descriptions.Item label="N_citation">{node.n_citation}</Descriptions.Item>
-                                                    <Descriptions.Item label="Abstract">{node.abstract}</Descriptions.Item>
-                                                </Descriptions>
-                                            </div>
+                                    {edgeDetail.map((edge, index) => (
+                                        <Panel header={`Relationship ${index + 1}: ${edge[0]['relationship type']}`} key={index}>
+                                            {renderEdgeDetails(edge[0])}
                                         </Panel>
                                     ))}
                                 </Collapse>
-                            </div>
-                        </div>
-                        )}
-
-                        {Object.keys(edgeDetail).length !== 0 && (
-                            <div >
-                                <div className="sticky-title">
-                                    <h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Edges Detail</h3>
-                                </div>
-                                <div className='article-container'>
-                                    <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
-                                        {edgeDetail.map((edge, index) => (
-                                            <Panel header={`Edge ${index + 1}: ${edge[0].node1} - ${edge[0].node2}`} key={index}>
-                                                <div className='edge-article-container'>
-                                                    {/*<Descriptions title="Edge Details" bordered column={1}>*/}
-                                                    <Descriptions column={1}>
-                                                        <Descriptions.Item label="Node 1">{edge[0].node1}</Descriptions.Item>
-                                                        <Descriptions.Item label="Node 2">{edge[0].node2}</Descriptions.Item>
-                                                        <Descriptions.Item label="Relationship Label">{edge[0]['relationship label']}</Descriptions.Item>
-                                                        <Descriptions.Item label="Relationship Type">{edge[0]['relationship type']}</Descriptions.Item>
-                                                        <Descriptions.Item label="Number of Citations">
-                                                            {/*{edge[0]['number of citations']}*/}
-                                                            {edge[0]['number of citations'] !== null ? edge[0]['number of citations'] : 'N/A'}
-                                                        </Descriptions.Item>
-                                                    </Descriptions>
-                                                </div>
-                                            </Panel>
-                                        ))}
-                                    </Collapse>
-
-                                </div>
-                            </div>
-                        )}
-
-                    </div>
+                            )}
+                        </Panel>
+                        <Panel 
+                            header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Related Articles</h3>} 
+                            key="2"
+                        >
+                            {Object.keys(nodeDetails).length !== 0 && (
+                                <List
+                                    size="small"
+                                    dataSource={urls}
+                                    renderItem={item => (
+                                        <List.Item>
+                                            {item}
+                                        </List.Item>
+                                    )}
+                                />
+                            )}
+                            {Object.keys(edgeDetail).length !== 0 && (
+                                <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
+                                    {edgeDetail.map((edge, edgeIndex) => (
+                                        <Panel header={`Relationship ${edgeIndex + 1}: ${edge[0]['relationship type']}`} key={edgeIndex}>
+                                            {edge[1] && edge[1].length > 0 ? (
+                                                edge[1].map((url, urlIndex) => (
+                                                    <div key={urlIndex} className="custom-div-edge">
+                                                        <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>
+                                                            {url[0]}
+                                                        </a>
+                                                        <p> Cited by: {url[2]}, Year: {url[3]}</p>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div>N/A</div>
+                                            )}
+                                        </Panel>
+                                    ))}
+                                </Collapse>
+                            )}
+                        </Panel>
+                    </Collapse>
                 )}
-                
-                <Button
-                    onClick={props.toggleSidebar}
-                    className={buttonClass}
-                >
-                    { !props.isOpen ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
-                </Button>
-                {props.displayArticleGraph === displayArticleGraphRef.current && (
-                    <div className={relatedClass}>
-                        {/* {Object.keys(detail).length != 0 && props.detailType == "article" && 'title' in detail && (
-                            <Article
-                                title={detail.title}
-                                authors={detail.authors}
-                                pmid={detail.pmid}
-                                abstract={detail.abstract}
-                                abstract_list={detail.abstract_list}
-                            />
-                        )}
-                        {Object.keys(detail).length != 0 && props.detailType == "term" && 'element_id' in detail && (
-                            <Term
-                                entity_id={detail.element_id}
-                                name={detail.name}
-                                aliases={detail.aliases}
-                                description={detail.description}
-                                type={detail.type}
-                                external_id={detail.external_sources}
-                            />
-                        )} */}
-                        {Object.keys(nodeDetails).length !== 0 && (
-                            <div>
-                                {/*<div className='article-titile'>Related Articles</div>*/}
-                                {/*{urls}*/}
-                                {/*<div className='article-title'>Related Articles</div>*/}
-                                {/*<Title level={4}>Related Articles</Title>*/}
-                                <div className="sticky-title">
-                                    <h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Related Articles</h3>
-                                </div>
-                                <div className='article-container'>
-                                    <List
-
-                                        size="small"
-                                        dataSource={urls} // Assuming 'urls' is an array of URL strings or objects
-                                        renderItem={item => (
-                                            <List.Item>
-                                                {/* Render your URL or article title here */}
-                                                {/* Example: <a href={item.url}>{item.title}</a> */}
-                                                {item}
-                                            </List.Item>
-                                        )}
-                                    />
-                                </div>
-                            </div>
-                        )}
-                        {Object.keys(edgeDetail).length !== 0 && (
-                            <div>
-                                <div className="sticky-title">
-                                    <h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Related Articles</h3>
-                                </div>
-                                <div className='article-container'>
-                                    <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
-                                        {edgeDetail.map((edge, edgeIndex) => (
-                                            <Panel header={`Edge ${edgeIndex + 1}: ${edge[0].node1} - ${edge[0].node2}`} key={edgeIndex}>
-                                                {edge[1] && edge[1].length > 0 ? (
-                                                    edge[1].map((url, urlIndex) => (
-                                                        <div key={urlIndex} className="custom-div-edge">
-                                                            <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>
-                                                                {url[0]}
-                                                            </a>
-                                                            <p> Cited by: {url[2]}, Year: {url[3]}</p>
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <div>N/A</div>
-                                                )}
-                                            </Panel>
-                                        ))}
-                                    </Collapse>
-
-                                </div>
-                            </div>
-                        )}
-
-                    </div>
-                )}
-                
-            </div>
-
-
-      );
+            </Card>
+        </div>
+    );
 };
 
 export default Information;
