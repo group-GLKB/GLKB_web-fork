@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import './scoped.css'; // This is where you will import your CSS from
-import logo_l from '../../../img/glkb_logo.png'
+import logo_l from '../../../img/glkb_home_logo.png'
 
 function NavBarWhite({ showLogo = true }) {
     return (

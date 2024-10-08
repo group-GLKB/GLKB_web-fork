@@ -5,13 +5,12 @@
     padding: 0.5rem 1rem;
     /*background-color: #fff; !* Change this as per your color scheme *!*/
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Optional: for a slight shadow under the nav bar */
-    background-color: #FFFFFF; /* Change this as per your color scheme */
-
+    background-color: #4a7298; /* Changed from #FFFFFF to #4a7298 */
 }
 
 .navigation-bar .logo a{
     font-size: 30px;
-    color: #3D739C;
+    color: #ffffff; /* Changed from #3D739C to white for better contrast */
     margin-left: 10px;
     align-items: center;
     text-decoration: none;
@@ -25,7 +24,7 @@
 .navigation-bar .nav-links a {
     text-decoration: none;
     margin-left: 20px;
-    color: #3D739C;
+    color: #ffffff; /* Changed from #3D739C to white for better contrast */
     font-size: 20px;
     font-weight: 800;
      /* Change this as per your color scheme */
@@ -33,5 +32,5 @@
 }
 
 .navigation-bar .nav-links a:hover {
-    color: #555; /* Change for hover effect */
+    color: #e0e0e0; /* Changed from #555 to a light gray for hover effect */
 }

@@ -2,9 +2,10 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import 'antd/dist/reset.css';
 import { TweenOneGroup } from "rc-tween-one";
-import {Input, Col, Row, Spin, Tag, Menu, Button} from 'antd';
+import {Input, Col, Row, Spin, Tag, Menu, Button, Space, Divider} from 'antd';
 import Joyride, { ACTIONS, EVENTS, STATUS } from 'react-joyride';
 import './scoped.css'
+import { GithubOutlined } from '@ant-design/icons';
 import GLKBLogoImg from '../../img/glkb_logo.png'
 import UMLogo from '../../img/um_logo.jpg'
 import MedSchoolLogo from '../../img/MedSchoolLogo.png'
@@ -13,7 +14,7 @@ import NavBar from '../NavBar';
 import NavBarWhite from '../Units/NavBarWhite';
 import SearchBarKnowledge from "../Units/SearchBarKnowledge";
 import logo from "../../img/logo.svg";
-import umLogo from "../../img/um_logo.jpg";
+import umLogo from "../../img/MedSchoolLogo.png";
 import exampleQueries from '../../components/Units/SearchBarKnowledge/example_query.json';
 
 const { Search } = Input;
@@ -157,9 +158,31 @@ const HomePage = () => {
                 </div>
             </div>
 
-            <div className="footer">
-                <img src={umLogo} alt="Michigan Medicine Logo" className="footer-img" />
-                <p>© 2024 U-M Liu Lab, Department of Computational Medicine and Bioinformatics</p>
+            <div className="footer" style={{ 
+                backgroundColor: '#4a7298', 
+                padding: '20px 0', 
+                marginTop: '40px'
+            }}>
+                <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
+                    <Row justify="space-between" align="middle" gutter={[0, 16]}>
+                        <Col xs={24} sm={12}>
+                            <Space align="center" size="large">
+                                <img src={umLogo} alt="Michigan Medicine Logo" style={{ height: '40px' }} />
+                                <a href="https://jieliu6.github.io/" target="_blank" rel="noopener noreferrer" style={{ color: '#ffffff', fontSize: '16px' }}>Liu Lab, University of Michigan</a>
+                            </Space>
+                        </Col>
+                        <Col xs={24} sm={12} style={{ textAlign: 'right' }}>
+                            <Space align="center" size="large">
+                                <GithubOutlined style={{ fontSize: '24px', color: '#ffffff' }} />
+                                <a href="https://github.com/yuanhao96/GLKB" target="_blank" rel="noopener noreferrer" style={{ color: '#ffffff', fontSize: '16px' }}>GLKB GitHub Repository</a>
+                            </Space>
+                        </Col>
+                    </Row>
+                    <Divider style={{ margin: '20px 0', borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+                    <p style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.8)', fontSize: '14px', margin: 0 }}>
+                        © 2024 Department of Computational Medicine and Bioinformatics, University of Michigan
+                    </p>
+                </div>
             </div>
         </div>
     )

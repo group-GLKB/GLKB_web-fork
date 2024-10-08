@@ -9,7 +9,7 @@
     flex-direction: column;
     align-items: center;
     flex: 1;
-    padding-top: 200px; /* Increased padding-top to move content lower */
+    padding-top: 150px; /* Increased padding-top to move content lower */
 }
 
 .content img {
