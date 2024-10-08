@@ -143,6 +143,18 @@ const HomePage = () => {
                 >
                     Take a Guided Tour to GLKB
                 </Button>
+                <div className="glkb-introduction">
+                    <p>
+                        Genomic Literature Knowledge Base (GLKB) is a database that consolidates 263,714,413 biomedical terms, 
+                        14,634,427 biomedical relationships, and 10,667,370 genomic events from 33 million PubMed abstracts 
+                        and nine well-established biomedical repositories.
+                    </p>
+                    <p>
+                        <a href="https://www.biorxiv.org/content/10.1101/2024.09.22.614323v1.abstract" target="_blank" rel="noopener noreferrer">
+                            Learn more from the original article &gt;&gt;
+                        </a>
+                    </p>
+                </div>
             </div>
 
             <div className="footer">

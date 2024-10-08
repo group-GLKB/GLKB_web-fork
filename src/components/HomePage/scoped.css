@@ -91,3 +91,23 @@
 .content {
     margin-top: 60px; /* Height of the nav bar */
 }
+.glkb-introduction {
+    max-width: 750px;
+    margin: 20px auto;
+    text-align: center;
+    padding: 0 20px;
+}
+
+.glkb-introduction p {
+    margin-bottom: 10px;
+}
+
+.glkb-introduction a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.glkb-introduction a:hover {
+    text-decoration: underline;
+}
+
