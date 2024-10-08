@@ -273,8 +273,8 @@ all {
 }
 
 .search-bar-wrapper {
-    width: 50vw;
-    min-width: 750px; /* Adjust this value as needed */
+    width: 47vw;
+    min-width: 720px; /* Adjust this value as needed */
     max-width: 1000px; /* Adjust this value as needed */
 }
 
