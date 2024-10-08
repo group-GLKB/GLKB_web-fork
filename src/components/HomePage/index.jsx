@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import 'antd/dist/reset.css';
 import { TweenOneGroup } from "rc-tween-one";
 import {Input, Col, Row, Spin, Tag, Menu, Button} from 'antd';
+import Joyride, { ACTIONS, EVENTS, STATUS } from 'react-joyride';
 import './scoped.css'
 import GLKBLogoImg from '../../img/glkb_logo.png'
 import UMLogo from '../../img/um_logo.jpg'
@@ -20,6 +21,7 @@ const { Search } = Input;
 const HomePage = () => {
     let navigate = useNavigate();
     const [tags, setTags] = useState([]);
+    const [runTour, setRunTour] = useState(false);
 
     const handleSearch = async (v) => {
         navigate(`/result?q=${v}`)
@@ -37,8 +39,76 @@ const HomePage = () => {
         }
     }
 
+    const handleJoyrideCallback = (data) => {
+        const { status, type, action } = data;
+        const finishedStatuses = [STATUS.FINISHED, STATUS.SKIPPED];
+
+        if (finishedStatuses.includes(status)) {
+            setRunTour(false);
+        }
+
+        // Automatically advance to the next step when the tour starts
+        if (type === EVENTS.STEP_AFTER && action === ACTIONS.START) {
+            setRunTour(true);
+        }
+    };
+
+    const steps = [
+        {
+            target: '.content img',  // Targeting the logo
+            content: 'Welcome to GLKB! Let\'s explore how to use the search and visualize the biomedical knowledge from 33 million+ Pubmed articles and nine well-curated databases.',
+            placement: 'bottom',
+        },
+        {
+            target: '.search-autocomplete-box',  // Targeting the autocomplete box
+            content: 'Start typing here to see autocomplete suggestions for your search terms.',
+            placement: 'bottom',
+        },
+        {
+            target: '.add-biomedical-term-button',  // Updated target
+            content: 'After selecting a term, click here to add it to your search query.',
+            placement: 'bottom',
+        },
+        {
+            target: '.log-box',  // New step
+            content: 'Your added terms will appear here, at most five terms can be added in one search. You can remove terms when you no longer need them.',
+            placement: 'bottom',
+        },
+        {
+            target: '.search-button',  // Updated target
+            content: 'Once you finish adding terms, click here to perform the search.',
+            placement: 'bottom',
+        },
+        {
+            target: '.example-queries',
+            content: 'Not sure where to start? Try one of these example queries to see how it works.',
+            placement: 'top',
+        },
+        {
+            target: '.example-query-button:first-child',
+            content: 'Click on an example query to see it in action.',
+            placement: 'bottom',
+        }
+    ];
+
     return (
         <div className="HomePageContainer">
+            <Joyride
+                steps={steps}
+                run={runTour}
+                continuous={true}
+                showSkipButton={true}
+                showProgress={true}
+                callback={handleJoyrideCallback}
+                styles={{
+                    options: {
+                        primaryColor: '#007bff',
+                    }
+                }}
+                disableOverlayClose={true}
+                disableCloseOnEsc={true}
+                spotlightClicks={true}
+            />
             <NavBarWhite showLogo={false} />
             <div className="content">
                 <img src={logo} alt="Logo" />
@@ -67,6 +137,12 @@ const HomePage = () => {
                         </Button>
                     </div>
                 </div>
+                <Button 
+                    onClick={() => setRunTour(true)}
+                    style={{ marginTop: '20px' }}
+                >
+                    Take a Guided Tour to GLKB
+                </Button>
             </div>
 
             <div className="footer">

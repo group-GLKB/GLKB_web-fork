@@ -440,6 +440,7 @@ export default function SearchBarKnowledge(props) {
                                     fullWidth 
                                     disabled={tripletLimitReached}
                                     helperText={tripletLimitReached ? "Maximum of 5 triplets reached" : ""}
+                                    className="search-autocomplete-box"  // Add this line
                                 />
                             )}
                             value={triplets[0]}
@@ -465,27 +466,32 @@ export default function SearchBarKnowledge(props) {
                             }}
                             onClick={handleAddTriplet}
                             disabled={tripletLimitReached}
+                            className="add-biomedical-term-button"  // Add this line
                         >
                             Add Biomedical Term
                         </Button>
 
-                        <Button variant="contained" color="primary"
-                                sx={{ 
-                                    minWidth: '60px', 
-                                    height: '40px', 
-                                    backgroundColor: '#F7EFAE', 
-                                    color: 'black', 
-                                    '&:hover': { backgroundColor: '#F3C846' },
-                                    width: isSmallScreen ? '100%' : 'auto'
-                                }}
-                                onClick={handleSearch}>
+                        <Button 
+                            variant="contained" 
+                            color="primary"
+                            sx={{ 
+                                minWidth: '60px', 
+                                height: '40px', 
+                                backgroundColor: '#F7EFAE', 
+                                color: 'black', 
+                                '&:hover': { backgroundColor: '#F3C846' },
+                                width: isSmallScreen ? '100%' : 'auto'
+                            }}
+                            onClick={handleSearch}
+                            className="search-button"  // Add this line
+                        >
                             Search
                         </Button>
                     </Box>
                 </Box>
 
                 <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Card variant="outlined" sx={{ p: 1, flexGrow: 1, mr: 2 }}>
+                    <Card variant="outlined" sx={{ p: 1, flexGrow: 1, mr: 2 }} className="log-box">
                         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                             {chipData.map((data) => (
                                 <Chip

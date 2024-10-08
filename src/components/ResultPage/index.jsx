@@ -21,7 +21,6 @@ import SearchBarKnowledge from "../Units/SearchBarKnowledge";
 import { FloatButton } from "antd";
 import { PlusOutlined, MinusOutlined, InfoCircleOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ApartmentOutlined, FileTextOutlined } from '@ant-design/icons';
 import { styled } from '@mui/material/styles';
-import Joyride, { STATUS } from 'react-joyride';
 
 const { Search } = Input;
 
@@ -130,46 +129,6 @@ const ResultPage = () => {
     const [cachedArticleGraph, setCachedArticleGraph] = useState(null);
 
     const graphContainerRef = useRef(null);
-
-    const [runTour, setRunTour] = useState(false);
-
-    // Define the steps for your tour
-    const steps = [
-        {
-            target: '.search-bar-container',
-            content: 'Start your search here. Enter your query to find relevant information.',
-            disableBeacon: true,
-        },
-        {
-            target: '.graph-controls',
-            content: 'Use this button to switch between biomedical term graph and article graph.',
-        },
-        {
-            target: '.graph-container',
-            content: 'This is the main visualization area. Explore connections between terms or articles here.',
-        },
-        {
-            target: '.settings-float-button',
-            content: 'Click here to open the settings panel and adjust graph parameters.',
-        },
-        {
-            target: '.information-float-button',
-            content: 'Click here to view detailed information about selected nodes or edges.',
-        },
-    ];
-
-    // Function to handle tour events
-    const handleJoyrideCallback = (data) => {
-        const { status } = data;
-        if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
-            setRunTour(false);
-        }
-    };
-
-    // Start the tour when the component mounts
-    useEffect(() => {
-        setRunTour(true);
-    }, []);
 
     useEffect(() => {
         const handleResize = () => {
@@ -422,19 +381,6 @@ const ResultPage = () => {
 
     return (
         <div className="result-container" ref={containerRef}>
-            <Joyride
-                steps={steps}
-                run={runTour}
-                continuous={true}
-                showSkipButton={true}
-                showProgress={true}
-                callback={handleJoyrideCallback}
-                styles={{
-                    options: {
-                        primaryColor: '#99c7b1',
-                    }
-                }}
-            />
             <div className="navbar-wrapper">
                 <NavBarWhite />
             </div>
