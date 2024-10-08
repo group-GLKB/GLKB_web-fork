@@ -143,12 +143,16 @@ const ResultPage = () => {
             disableBeacon: true,
         },
         {
-            target: '.graph-controls',
+            target: '.graph-container-wrapper',
+            content: 'This is the main graph visualization area. You can interact with nodes and edges here.',
+        },
+        {
+            target: '.graph-control-button',
             content: 'Switch between biomedical term graph and article graph views.',
         },
         {
             target: '.floating-settings',
-            content: 'Access graph settings and summary about the nodes and edges here.',
+            content: 'Modify graph visualization and access node and edge summaries here.',
         },
         {
             target: '.floating-information',
@@ -468,6 +472,7 @@ const ResultPage = () => {
                                 onClick={changeLeftPanel}
                                 variant="contained"
                                 startIcon={displayArticleGraph ? <ApartmentOutlined /> : <FileTextOutlined />}
+                                className="graph-control-button"
                             >
                                 {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
                             </StyledButton>
@@ -479,28 +484,32 @@ const ResultPage = () => {
                                 Take a Guided Tour to the Result
                             </Button>
                         </div>
-                        <Graph
-                            data={graphShownData}
-                            selectedID={selectedID}
-                            minGtdcFreq={minGtdcFreq}
-                            maxGtdcFreq={maxGtdcFreq}
-                            minGtdcNoc={minGtdcNoc}
-                            maxGtdcNoc={maxGtdcNoc}
-                            gtdcFreq={gtdcFreq}
-                            handleGtdcFreq={handleGtdcFreq}
-                            handleMinGtdcFreq={handleMinGtdcFreq}
-                            handleMaxGtdcFreq={handleMaxGtdcFreq}
-                            gtdcNoc={gtdcNoc}
-                            handleGtdcNoc={handleGtdcNoc}
-                            handleMinGtdcNoc={handleMinGtdcNoc}
-                            handleMaxGtdcNoc={handleMaxGtdcNoc}
-                            handleSelect={handleSelect}
-                            handleInformation={handleInformation}
-                            informationOpen={informationOpen}
-                            expandInformation={expandInformation}
-                            className="graph-container"
-                            ref={graphContainerRef}
-                        />
+                        <div className='graph-container-wrapper'>
+                            <div className="graph-container">
+                                <Graph
+                                    data={graphShownData}
+                                    selectedID={selectedID}
+                                    minGtdcFreq={minGtdcFreq}
+                                    maxGtdcFreq={maxGtdcFreq}
+                                    minGtdcNoc={minGtdcNoc}
+                                    maxGtdcNoc={maxGtdcNoc}
+                                    gtdcFreq={gtdcFreq}
+                                    handleGtdcFreq={handleGtdcFreq}
+                                    handleMinGtdcFreq={handleMinGtdcFreq}
+                                    handleMaxGtdcFreq={handleMaxGtdcFreq}
+                                    gtdcNoc={gtdcNoc}
+                                    handleGtdcNoc={handleGtdcNoc}
+                                    handleMinGtdcNoc={handleMinGtdcNoc}
+                                    handleMaxGtdcNoc={handleMaxGtdcNoc}
+                                    handleSelect={handleSelect}
+                                    handleInformation={handleInformation}
+                                    informationOpen={informationOpen}
+                                    expandInformation={expandInformation}
+                                    className="graph"
+                                    ref={graphContainerRef}
+                                />
+                            </div>
+                        </div>
                         <div ref={settingsRef} className={`floating-settings ${isSettingsVisible ? 'open' : ''}`}>
                             <Settings
                                 minGtdcFreq={minGtdcFreq}

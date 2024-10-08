@@ -149,21 +149,19 @@ all {
 }
 
 /* Graph container */
-.graph-container {
-    position: fixed;
-    overflow: hidden;
-    padding: 1%;
-    height: calc(100vh - var(--top-offset)); /* Use dynamic height */
-    overflow-y: auto;
-    margin-top: var(--top-offset); /* Use dynamic top margin */
-    margin-left: calc(var(--settings-panel-width) + 20px);
-    margin-right: calc(var(--information-panel-width) + 20px);
-    min-width: 560px;
-    transition: margin 0.3s ease-in-out;
-    z-index: 1;
+.graph-container-wrapper {
+    width: 50vw;
+    height: 50vw; /* Assuming you want a square container */
+    margin: 0 auto; /* This centers the container horizontally */
     display: flex;
     justify-content: center;
-    align-items: flex-start;
+    align-items: center;
+}
+
+.graph-container {
+    width: 100%;
+    height: 100%;
+    /* ... any existing styles for graph-container ... */
 }
 
 .graph-container.expanded-left {
@@ -267,7 +265,7 @@ all {
     top: 64px; /* Position right below the navbar */
     left: 0;
     right: 0;
-    height: 60px; /* Set a fixed height for the search bar container */
+    height: auto; /* Change from fixed height to auto */
     padding: 10px 0;
     display: flex;
     justify-content: center;
@@ -279,6 +277,7 @@ all {
     width: 47vw;
     min-width: 720px; /* Adjust this value as needed */
     max-width: 1000px; /* Adjust this value as needed */
+    padding: 0 15px; /* Add some horizontal padding */
 }
 
 .start-tour-button {
@@ -291,7 +290,7 @@ all {
     transition: background-color 0.3s ease;
     height: auto;
     min-height: 40px;
-    white-space: normal;
+    white-space: nowrap;
 }
 
 /* Misc */
@@ -336,37 +335,39 @@ all {
 
 .graph-controls {
     position: fixed;
-    bottom: 50px;
+    bottom: 50px; /* Position at the bottom of the page */
     left: 50%;
     transform: translateX(-50%);
-    z-index: 10;
     display: flex;
-    flex-wrap: wrap;
     justify-content: center;
     align-items: center;
-    width: 100%;
-    max-width: 1200px;
-    padding: 0 20px;
+    padding: 10px;
+    background-color: #f0f0f0;
+    border-radius: 8px;
+    z-index: 1002; /* Ensure it's above other elements */
+    width: auto;
+    max-width: 90%;
 }
 
 .graph-controls .ant-btn {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    margin: 5px;
-    white-space: normal;
-    height: auto;
-    min-height: 40px;
+    margin: 0 5px;
+    white-space: nowrap;
 }
+
+.start-tour-button {
+    white-space: nowrap;
+}
+
+/* Remove the existing .convert-graph-button styles as they're no longer needed */
 
 @media (max-width: 768px) {
     .graph-controls {
         flex-direction: column;
         align-items: stretch;
-        bottom: 70px;
+        bottom: 10px; /* Adjust for mobile */
     }
 
-    .graph-controls .ant-btn,
-    .start-tour-button {
-        width: 100%;
+    .graph-controls .ant-btn {
         margin: 5px 0;
     }
 }

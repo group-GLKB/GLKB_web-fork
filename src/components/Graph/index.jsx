@@ -283,23 +283,32 @@ function Graph(props) {
   // console.log(styleSheet)
 
   const myCyRef = useRef(null);
+
+  useEffect(() => {
+    if (myCyRef.current) {
+      myCyRef.current.fit();
+      myCyRef.current.center();
+    }
+  }, [graphData]);
+
   return (
       <div>
         <div>
           <CytoscapeComponent
             key={JSON.stringify(graphData)}
             elements={CytoscapeComponent.normalizeElements(graphData)}
-            // pan={{ x: 200, y: 200 }}
             style={{ width: width, height: height }}
             zoomingEnabled={true}
             maxZoom={2}
-            minZoom={0.5}
+            minZoom={0.1} // Reduced minZoom to allow further zooming out
             autounselectify={false}
             boxSelectionEnabled={true}
             layout={layout}
             stylesheet={styleSheet}
             cy={(cy) => {
               myCyRef.current = cy;
+              cy.fit(); // Add this line to fit the graph initially
+              cy.center(); // Add this line to center the graph initially
               cy.unbind("click");
               cy.on('click', function(e){
                 var sel = e.target;
