@@ -5,7 +5,7 @@ import { TweenOneGroup } from "rc-tween-one";
 import {Input, Col, Row, Spin, Tag, Menu, Button, Space, Divider} from 'antd';
 import Joyride, { ACTIONS, EVENTS, STATUS } from 'react-joyride';
 import './scoped.css'
-import { GithubOutlined } from '@ant-design/icons';
+import { GithubOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import GLKBLogoImg from '../../img/glkb_logo.png'
 import UMLogo from '../../img/um_logo.jpg'
 import MedSchoolLogo from '../../img/MedSchoolLogo.png'
@@ -113,7 +113,7 @@ const HomePage = () => {
             <NavBarWhite showLogo={false} />
             <div className="content">
                 <img src={logo} alt="Logo" />
-                <div className="search-section">
+                <div className="search-section" style={{ width: '80%', maxWidth: '1000px' }}>
                     <SearchBarKnowledge 
                         chipData = {[]}
                     />
@@ -141,6 +141,7 @@ const HomePage = () => {
                 <Button 
                     onClick={() => setRunTour(true)}
                     style={{ marginTop: '20px' }}
+                    icon={<QuestionCircleOutlined />}
                 >
                     Take a Guided Tour to GLKB
                 </Button>
