@@ -45,8 +45,9 @@ all {
 .information-content {
     flex-grow: 1;
     overflow-y: auto;
-    padding: 10px;
-    position: relative; /* Add this to create a positioning context */
+    /* padding: 10px; */
+    position: relative;
+    margin-top: -20px; /* Added negative margin to move content up */
 }
 
 /* Remove any styles for .related if it's no longer used */

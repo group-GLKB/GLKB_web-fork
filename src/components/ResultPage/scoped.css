@@ -15,6 +15,8 @@ all {
     flex-direction: column;
     overflow-x: auto;
     /* Remove padding-top */
+    position: relative;
+    z-index: 1;
 }
 
 .result-content {
@@ -69,8 +71,8 @@ all {
 .floating-settings,
 .floating-information {
     position: fixed;
-    top: 64px; /* Position directly below navbar */
-    height: calc(100vh - 64px); /* Full height minus navbar height */
+    top: 34px; /* Position directly below navbar */
+    height: calc(100vh - 34px); /* Full height minus navbar height */
     width: var(--settings-panel-width);
     max-width: 25vw;
     min-width: 400px;
@@ -148,6 +150,8 @@ all {
 
 /* Graph container */
 .graph-container {
+    position: fixed;
+    overflow: hidden;
     padding: 1%;
     height: calc(100vh - var(--top-offset)); /* Use dynamic height */
     overflow-y: auto;
@@ -156,7 +160,6 @@ all {
     margin-right: calc(var(--information-panel-width) + 20px);
     min-width: 560px;
     transition: margin 0.3s ease-in-out;
-    position: relative;
     z-index: 1;
     display: flex;
     justify-content: center;
@@ -278,6 +281,19 @@ all {
     max-width: 1000px; /* Adjust this value as needed */
 }
 
+.start-tour-button {
+    margin-left: 10px;
+    z-index: 1002;
+    color: black;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    height: auto;
+    min-height: 40px;
+    white-space: normal;
+}
+
 /* Misc */
 .no-border-menu {
     border-bottom: none !important;
@@ -299,8 +315,8 @@ all {
 /* Convert to article graph button */
 .convert-graph-button {
     position: fixed;
-    top: 120px; /* Adjust this value to position the button below the search bar */
-    left: 50%;
+    /* top: 120px; */
+    /* left: 50%; */
     transform: translateX(-50%);
     z-index: 1002;
     padding: 10px 20px;
@@ -319,13 +335,38 @@ all {
 }
 
 .graph-controls {
-    position: absolute;
+    position: fixed;
     bottom: 50px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 1200px;
+    padding: 0 20px;
 }
 
 .graph-controls .ant-btn {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    margin: 5px;
+    white-space: normal;
+    height: auto;
+    min-height: 40px;
+}
+
+@media (max-width: 768px) {
+    .graph-controls {
+        flex-direction: column;
+        align-items: stretch;
+        bottom: 70px;
+    }
+
+    .graph-controls .ant-btn,
+    .start-tour-button {
+        width: 100%;
+        margin: 5px 0;
+    }
 }

@@ -19,8 +19,9 @@ import axios from 'axios'
 import sampleGraphData from './sampleData.json';
 import SearchBarKnowledge from "../Units/SearchBarKnowledge";
 import { FloatButton } from "antd";
-import { PlusOutlined, MinusOutlined, InfoCircleOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ApartmentOutlined, FileTextOutlined } from '@ant-design/icons';
+import { PlusOutlined, MinusOutlined, InfoCircleOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ApartmentOutlined, FileTextOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { styled } from '@mui/material/styles';
+import Joyride, { STATUS } from 'react-joyride';
 
 const { Search } = Input;
 
@@ -130,6 +131,46 @@ const ResultPage = () => {
 
     const graphContainerRef = useRef(null);
 
+    // Add new state for the tour
+    const [runTour, setRunTour] = useState(false);
+    const [tourKey, setTourKey] = useState(0); // Add this new state
+
+    // Define the steps for the guided tour
+    const steps = [
+        {
+            target: '.search-bar-wrapper',
+            content: 'Modify or start a new search here.',
+            disableBeacon: true,
+        },
+        {
+            target: '.graph-controls',
+            content: 'Switch between biomedical term graph and article graph views.',
+        },
+        {
+            target: '.floating-settings',
+            content: 'Access graph settings and summary about the nodes and edges here.',
+        },
+        {
+            target: '.floating-information',
+            content: 'View detailed information about selected nodes or edges.',
+        },
+    ];
+
+    // Handle tour events
+    const handleJoyrideCallback = (data) => {
+        const { status } = data;
+        if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+            setRunTour(false);
+            setTourKey(prevKey => prevKey + 1); // Increment the key when tour ends
+        }
+    };
+
+    // Add this new function to start the tour
+    const startTour = () => {
+        setRunTour(true);
+        setTourKey(prevKey => prevKey + 1); // Increment the key when starting the tour
+    };
+
     useEffect(() => {
         const handleResize = () => {
             setWindowWidth(window.innerWidth);
@@ -237,7 +278,11 @@ const ResultPage = () => {
                 const navbarHeight = document.querySelector('.navbar-wrapper').offsetHeight;
                 const topOffset = navbarHeight + searchBarHeight;
                 
-                graphContainerRef.current.style.setProperty('--top-offset', `${topOffset}px`);
+                graphContainerRef.current.style.position = 'fixed';
+                graphContainerRef.current.style.top = `${topOffset}px`;
+                graphContainerRef.current.style.left = isSettingsVisible ? SETTINGS_PANEL_WIDTH : '0';
+                graphContainerRef.current.style.right = isInformationVisible ? INFORMATION_PANEL_WIDTH : '0';
+                graphContainerRef.current.style.bottom = '0';
             }
         };
 
@@ -245,7 +290,7 @@ const ResultPage = () => {
         updateGraphPosition(); // Initial call
 
         return () => window.removeEventListener('resize', updateGraphPosition);
-    }, []);
+    }, [isSettingsVisible, isInformationVisible]);
 
     const initialize = () => {
         setSearchFlag(false)
@@ -381,6 +426,21 @@ const ResultPage = () => {
 
     return (
         <div className="result-container" ref={containerRef}>
+            <Joyride
+                steps={steps}
+                run={runTour}
+                continuous={true}
+                showSkipButton={true}
+                showProgress={true}
+                styles={{
+                    options: {
+                        primaryColor: '#007bff',
+                        zIndex: 10000,
+                    },
+                }}
+                callback={handleJoyrideCallback}
+                key={tourKey} // Add this key prop
+            />
             <div className="navbar-wrapper">
                 <NavBarWhite />
             </div>
@@ -411,6 +471,13 @@ const ResultPage = () => {
                             >
                                 {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
                             </StyledButton>
+                            <Button
+                                icon={<QuestionCircleOutlined />}
+                                onClick={startTour}
+                                className="start-tour-button"
+                            >
+                                Take a Guided Tour to the Result
+                            </Button>
                         </div>
                         <Graph
                             data={graphShownData}
@@ -431,7 +498,7 @@ const ResultPage = () => {
                             handleInformation={handleInformation}
                             informationOpen={informationOpen}
                             expandInformation={expandInformation}
-                            className={`graph-container ${!isSettingsVisible ? 'expanded-left' : ''} ${!isInformationVisible ? 'expanded-right' : ''}`}
+                            className="graph-container"
                             ref={graphContainerRef}
                         />
                         <div ref={settingsRef} className={`floating-settings ${isSettingsVisible ? 'open' : ''}`}>

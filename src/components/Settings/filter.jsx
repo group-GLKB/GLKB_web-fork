@@ -162,7 +162,9 @@ const Filter = props => {
                         )}
                     <div className="legend-label" style={{ marginLeft: '10px' }}>{label}</div>
                 </div>
-                {label.includes("relationship") ? (<Checkbox value={label} defaultChecked={boolEdgeValues[label]}></Checkbox>) : (<Checkbox value={label} defaultChecked={boolValues[label]} onChange={onChangeNode}></Checkbox>)}
+                {!label.includes("relationship") && (
+                    <Checkbox value={label} defaultChecked={boolValues[label]} onChange={onChangeNode}></Checkbox>
+                )}
             </div>
         );
     };

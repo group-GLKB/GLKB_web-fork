@@ -16,7 +16,7 @@ function NavBarWhite({ showLogo = true }) {
             </div>
             <div className="nav-links">
                 {/* These links will be aligned to the right */}
-                <a href="https://www.google.com" target="_blank" >About</a>
+                {/* <a href="https://www.google.com" target="_blank" >About</a> */}
                 <a href="https://glkb.dcmb.med.umich.edu/api/docs" target="_blank" >API Doc</a>
                 <a href="mailto:hyhao@umich.edu">Contact Us</a>
             </div>
