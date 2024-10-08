@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import './scoped.css'
 import { Row, Col, Slider, Collapse, Transfer, InputNumber, Typography, Button, Modal, Tree, Input, Menu, Checkbox, Dropdown, Space, Spin } from 'antd';
-import { DownOutlined, SmileOutlined } from '@ant-design/icons';
+import { DownOutlined, SmileOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { CaretRightOutlined, PlusCircleOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { NewGraph } from '../../service/NewNode'
 import {CypherService} from '../../service/Cypher'
 import { render } from '@testing-library/react';
+import { Tooltip } from 'antd';
 const { Panel } = Collapse;
 const { Title } = Typography;
 
@@ -149,20 +150,28 @@ const Filter = props => {
         }
     }
 
-    const LegendItem = ({ label, size, color }) => {
+    const LegendItem = ({ label, size, color, explanation }) => {
         const isQueryTerms = label === 'query terms';
+        const isRelationship = label.includes("relationship");
         
         return (
             <div className="legend-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                    {label.includes("relationship") ? (
-                            <div style={{ marginLeft: "0px", width: "30px", height: "0", borderBottom: '0.5px black', borderBottom: size}}></div>
-                        ) : (
-                            <div className="legend-circle" style={{ backgroundColor: color, width: size, height: size, marginLeft: size === 5 ? "6px" : size === 10 ? "4px" : "0" }}></div>
+                    {isRelationship ? (
+                        <div style={{ marginLeft: "0px", width: "30px", height: "0", borderBottom: '0.5px black', borderBottom: size}}></div>
+                    ) : (
+                        <div className="legend-circle" style={{ backgroundColor: color, width: size, height: size, marginLeft: size === 5 ? "6px" : size === 10 ? "4px" : "0" }}></div>
+                    )}
+                    <div className="legend-label" style={{ marginLeft: '10px' }}>
+                        {label}
+                        {isRelationship && (
+                            <Tooltip title={explanation}>
+                                <InfoCircleOutlined style={{ marginLeft: '5px', color: '#1890ff' }} />
+                            </Tooltip>
                         )}
-                    <div className="legend-label" style={{ marginLeft: '10px' }}>{label}</div>
+                    </div>
                 </div>
-                {!label.includes("relationship") && (
+                {!isRelationship && (
                     <Checkbox value={label} defaultChecked={boolValues[label]} onChange={onChangeNode}></Checkbox>
                 )}
             </div>
@@ -191,9 +200,9 @@ const Filter = props => {
     ]
 
     const edgeDataAll = [
-        {label: 'Semantic_relationship', size: 'solid', color: 'black'},
-        {label: 'Curated_relationship', size: 'dashed', color: 'black'},
-        {label: 'Hierarchical_relationship', size: 'dotted', color: 'black'},
+        {label: 'Semantic_relationship', size: 'solid', color: 'black', explanation: 'Relationships extracted from PubMed abstracts.'},
+        {label: 'Curated_relationship', size: 'dashed', color: 'black', explanation: 'Manually annotated relationships from biomedical repositories.'},
+        {label: 'Hierarchical_relationship', size: 'dotted', color: 'black', explanation: 'Relationships that represent a hierarchy.'},
     ]
 
     const legendData = legendDataAll.filter(item => uniqueLabelsArray.includes(item.label));
@@ -452,7 +461,7 @@ const Filter = props => {
                     </Panel>
                     <Panel key="2" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Relationship types</h3>}>
                         {legendEdgeData.map((item, index) => (
-                                <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
+                                <LegendItem key={index} label={item.label} size={item.size} color={item.color} explanation={item.explanation} />
                             ))}
                     </Panel>
                         <Panel key="3" header={<h3 style={{ color: '#014484', fontSize: 20, fontWeight: 'bold' }}>Suggested questions</h3>}>
