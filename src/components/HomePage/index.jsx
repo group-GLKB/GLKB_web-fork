@@ -9,7 +9,7 @@ import UMLogo from '../../img/um_logo.jpg'
 import MedSchoolLogo from '../../img/MedSchoolLogo.png'
 import { DingtalkCircleFilled } from '@ant-design/icons';
 import NavBar from '../NavBar';
-import NavBarWhite from '../Units/SearchBarKnowledge'
+import NavBarWhite from '../Units/NavBarWhite';
 import SearchBarKnowledge from "../Units/SearchBarKnowledge";
 import logo from "../../img/logo.svg";
 import umLogo from "../../img/um_logo.jpg";
@@ -39,6 +39,7 @@ const HomePage = () => {
 
     return (
         <div className="HomePageContainer">
+            <NavBarWhite showLogo={false} />
             <div className="content">
                 <img src={logo} alt="Logo" />
                 <div className="search-section">

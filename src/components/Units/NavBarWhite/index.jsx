@@ -3,13 +3,15 @@ import { Link } from 'react-router-dom';
 import './scoped.css'; // This is where you will import your CSS from
 import logo_l from '../../../img/glkb_logo.png'
 
-function NavBarWhite() {
+function NavBarWhite({ showLogo = true }) {
     return (
         <nav className="navigation-bar">
-            <div className="logo" >
-                <Link to="/">
-                    <img src={logo_l} alt="Logo" style={{width: 'auto', height: '40px'}}/>
-                </Link>
+            <div className="logo">
+                {showLogo && (
+                    <Link to="/">
+                        <img src={logo_l} alt="Logo" style={{width: 'auto', height: '40px'}}/>
+                    </Link>
+                )}
                 {/* <a>Genomic Literature Knowledge Base</a> */}
             </div>
             <div className="nav-links">

@@ -25,10 +25,14 @@ import { styled } from '@mui/material/styles';
 const { Search } = Input;
 
 const StyledButton = styled(Button)(({ theme }) => ({
-    backgroundColor: '#8BB5D1',
+    backgroundColor: '#99c7b1',
     color: 'black',
     '&:hover': {
-        backgroundColor: '#4A7298',
+        backgroundColor: '#577265',
+        color: 'black',
+    },
+    '&:focus': {
+        color: 'black',
     },
     minWidth: '60px',
     height: '40px',
@@ -234,7 +238,6 @@ const ResultPage = () => {
                 const topOffset = navbarHeight + searchBarHeight;
                 
                 graphContainerRef.current.style.setProperty('--top-offset', `${topOffset}px`);
-                graphContainerRef.current.style.setProperty('--graph-height', `calc(100vh - ${topOffset}px)`);
             }
         };
 

@@ -149,9 +149,9 @@ all {
 /* Graph container */
 .graph-container {
     padding: 1%;
-    height: calc(100vh - 124px); /* Adjusted height */
+    height: calc(100vh - var(--top-offset)); /* Use dynamic height */
     overflow-y: auto;
-    margin-top: 124px; /* Sum of navbar and search bar heights */
+    margin-top: var(--top-offset); /* Use dynamic top margin */
     margin-left: calc(var(--settings-panel-width) + 20px);
     margin-right: calc(var(--information-panel-width) + 20px);
     min-width: 560px;
@@ -304,12 +304,18 @@ all {
     transform: translateX(-50%);
     z-index: 1002;
     padding: 10px 20px;
-    color: white;
+    color: black;
+    background-color: #99c7b1;
     border: none;
     border-radius: 5px;
     cursor: pointer;
     font-size: 14px;
     transition: background-color 0.3s ease;
+}
+
+.convert-graph-button:hover {
+    background-color: #577265;
+    color: black;
 }
 
 .graph-controls {
