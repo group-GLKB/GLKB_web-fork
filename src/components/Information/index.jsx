@@ -230,7 +230,11 @@ const Information = ({ width, ...props }) => {
     const renderArticleDetails = (article) => (
         <Descriptions column={1} size="small" className="custom-descriptions" style={{ borderRadius: '10px' }}>
             <Descriptions.Item label="Title">{article.title}</Descriptions.Item>
-            <Descriptions.Item label="PubMedID">{article.pmid}</Descriptions.Item>
+            <Descriptions.Item label="PubMedID">
+                <a href={`https://www.ncbi.nlm.nih.gov/pubmed/${article.pmid}`} target="_blank" rel="noopener noreferrer">
+                    {article.pmid}
+                </a>
+            </Descriptions.Item>
             <Descriptions.Item label="Authors">
                 <ul>
                     {article.authors && article.authors.map((author, index) => (
@@ -252,14 +256,36 @@ const Information = ({ width, ...props }) => {
             <Descriptions.Item label="Number of Citations">
                 {edge['number of citations'] !== null ? edge['number of citations'] : 'N/A'}
             </Descriptions.Item>
+            {edge['relationship label'] === 'Curated_relationship' && (
+                <Descriptions.Item label="Source">{edge['source']}</Descriptions.Item>
+            )}
         </Descriptions>
     );
+
+    const showRelatedArticles = () => {
+        if (Object.keys(edgeDetail).length !== 0) {
+            return !edgeDetail.every(edge => edge[0]['relationship label'] === 'Curated_relationship');
+        }
+        return true;
+    };
 
     return (
         <div className="information" style={{ width }}>
             <Card
                 title={getPanelTitle()}
                 className="information-content"
+                headStyle={{
+                    backgroundColor: '#4a7298',
+                    color: 'white',
+                    fontSize: '18px',
+                    fontWeight: 'bold',
+                    borderTopLeftRadius: '10px',
+                    borderTopRightRadius: '10px',
+                }}
+                bodyStyle={{
+                    padding: '0',
+                    backgroundColor: '#F7F7F7',
+                }}
             >
                 {!props.detailId ? (
                     <NoSelectionMessage />
@@ -271,13 +297,13 @@ const Information = ({ width, ...props }) => {
                         ghost
                         expandIcon={({ isActive }) => (
                             <CaretRightOutlined
-                                style={{ color: '#014484', fontSize: 20 }}
+                                style={{ color: '#4a7298', fontSize: 16 }}
                                 rotate={isActive ? 90 : 0}
                             />
                         )}
                     >
                         <Panel
-                            header={<h3 style={{ color: '#014484', fontSize: 20, fontWeight: 'bold' }}>Details</h3>}
+                            header={<h3 className="panel-header">Details</h3>}
                             key="1"
                         >
                             {Object.keys(nodeDetails).length !== 0 && merge && (
@@ -302,49 +328,51 @@ const Information = ({ width, ...props }) => {
                             {Object.keys(edgeDetail).length !== 0 && (
                                 <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
                                     {edgeDetail.map((edge, index) => (
-                                        <Panel header={`Relationship ${index + 1}: ${edge[0]['relationship type']}`} key={index}>
+                                        <Panel header={<span>Relationship {index + 1}: <i>{edge[0]['relationship type']}</i></span>} key={index}>
                                             {renderEdgeDetails(edge[0])}
                                         </Panel>
                                     ))}
                                 </Collapse>
                             )}
                         </Panel>
-                        <Panel
-                            header={<h3 style={{ color: '#014484', fontSize: 20, fontWeight: 'bold' }}>Related Articles</h3>}
-                            key="2"
-                        >
-                            {Object.keys(nodeDetails).length !== 0 && (
-                                <List
-                                    size="small"
-                                    dataSource={urls}
-                                    renderItem={item => (
-                                        <List.Item>
-                                            {item}
-                                        </List.Item>
-                                    )}
-                                />
-                            )}
-                            {Object.keys(edgeDetail).length !== 0 && (
-                                <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
-                                    {edgeDetail.map((edge, edgeIndex) => (
-                                        <Panel header={`Relationship ${edgeIndex + 1}: ${edge[0]['relationship type']}`} key={edgeIndex}>
-                                            {edge[1] && edge[1].length > 0 ? (
-                                                edge[1].map((url, urlIndex) => (
-                                                    <div key={urlIndex} className="custom-div-edge">
-                                                        <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>
-                                                            {url[0]}
-                                                        </a>
-                                                        <p> Cited by: {url[2]}, Year: {url[3]}</p>
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <div>N/A</div>
-                                            )}
-                                        </Panel>
-                                    ))}
-                                </Collapse>
-                            )}
-                        </Panel>
+                        {showRelatedArticles() && (
+                            <Panel
+                                header={<h3 className="panel-header">Related Articles</h3>}
+                                key="2"
+                            >
+                                {Object.keys(nodeDetails).length !== 0 && (
+                                    <List
+                                        size="small"
+                                        dataSource={urls}
+                                        renderItem={item => (
+                                            <List.Item>
+                                                {item}
+                                            </List.Item>
+                                        )}
+                                    />
+                                )}
+                                {Object.keys(edgeDetail).length !== 0 && (
+                                    <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
+                                        {edgeDetail.map((edge, edgeIndex) => (
+                                            <Panel header={<span>Relationship {edgeIndex + 1}: <i>{edge[0]['relationship type']}</i></span>} key={edgeIndex}>
+                                                {edge[1] && edge[1].length > 0 ? (
+                                                    edge[1].map((url, urlIndex) => (
+                                                        <div key={urlIndex} className="custom-div-edge">
+                                                            <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>
+                                                                {url[0]}
+                                                            </a>
+                                                            <p> Cited by: {url[2]}, Year: {url[3]}</p>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div>N/A</div>
+                                                )}
+                                            </Panel>
+                                        ))}
+                                    </Collapse>
+                                )}
+                            </Panel>
+                        )}
                     </Collapse>
                 )}
             </Card>
