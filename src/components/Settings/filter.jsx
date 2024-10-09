@@ -201,7 +201,7 @@ const Filter = props => {
 
     const edgeDataAll = [
         {label: 'Semantic_relationship', size: 'solid', color: 'black', explanation: 'Relationships extracted from PubMed abstracts.'},
-        {label: 'Curated_relationship', size: 'dashed', color: 'black', explanation: 'Manually annotated relationships from biomedical repositories.'},
+        {label: 'Curated_relationship', size: 'dashed', color: 'black', explanation: 'Manually annotated relationships from data repositories.'},
         {label: 'Hierarchical_relationship', size: 'dotted', color: 'black', explanation: 'Relationships that represent a hierarchy.'},
     ]
 

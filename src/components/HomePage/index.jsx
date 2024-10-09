@@ -145,18 +145,6 @@ const HomePage = () => {
                 >
                     Take a Guided Tour to GLKB
                 </Button>
-                <div className="glkb-introduction" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'left', padding: '20px' }}>
-                    <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>About GLKB</h2>
-                    <p>
-                        The Genomic Literature Knowledge Base (GLKB) is a comprehensive and powerful resource that integrates over 263 million biomedical terms and more than 14.6 million biomedical relationships.
-                        This collection is curated from 33 million PubMed abstracts and nine well-established biomedical repositories, offering an unparalleled wealth of knowledge for researchers and practitioners in the field.
-                    </p>
-                    <p style={{ textAlign: 'center', marginTop: '20px' }}>
-                        <a href="https://www.biorxiv.org/content/10.1101/2024.09.22.614323v1.abstract" target="_blank" rel="noopener noreferrer" style={{ fontWeight: 'bold' }}>
-                            Learn more about GLKB in our original article &gt;&gt;
-                        </a>
-                    </p>
-                </div>
             </div>
 
             <div className="footer" style={{ 
@@ -166,7 +154,7 @@ const HomePage = () => {
                 width: '100%'
             }}>
                 <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
-                    <Row justify="space-between" align="middle" gutter={[0, 16]}>
+                    {/* <Row justify="space-between" align="middle" gutter={[0, 16]}>
                         <Col xs={24} sm={12}>
                             <Space align="center" size="large">
                                 <img src={umLogo} alt="Michigan Medicine Logo" style={{ height: '40px' }} />
@@ -179,10 +167,10 @@ const HomePage = () => {
                                 <a href="https://github.com/yuanhao96/GLKB" target="_blank" rel="noopener noreferrer" style={{ color: '#ffffff', fontSize: '16px' }}>GLKB GitHub Repository</a>
                             </Space>
                         </Col>
-                    </Row>
+                    </Row> */}
                     <Divider style={{ margin: '20px 0', borderColor: 'rgba(255, 255, 255, 0.2)' }} />
                     <p style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.8)', fontSize: '14px', margin: 0 }}>
-                        © 2024 Department of Computational Medicine and Bioinformatics, University of Michigan
+                        © 2024 Liu Lab, Department of Computational Medicine and Bioinformatics, University of Michigan
                     </p>
                 </div>
             </div>

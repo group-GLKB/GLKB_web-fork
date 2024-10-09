@@ -12,13 +12,11 @@ function NavBarWhite({ showLogo = true }) {
                         <img src={logo_l} alt="Logo" style={{width: 'auto', height: '40px'}}/>
                     </Link>
                 )}
-                {/* <a>Genomic Literature Knowledge Base</a> */}
             </div>
             <div className="nav-links">
-                {/* These links will be aligned to the right */}
-                {/* <a href="https://www.google.com" target="_blank" >About</a> */}
+                <Link to="/about">About</Link>
                 <a href="https://glkb.dcmb.med.umich.edu/api/docs" target="_blank" >API Doc</a>
-                <a href="mailto:hyhao@umich.edu">Contact Us</a>
+                <a href="https://jieliu6.github.io/" target="_blank">Contact Us</a>
             </div>
         </nav>
     );

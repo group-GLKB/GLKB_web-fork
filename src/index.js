@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import HomePage from './components/HomePage'
+import AboutPage from './components/AboutPage'  // Add this import
 import { Provider } from 'react-globally'
 import { createBrowserHistory } from 'history';
 
@@ -24,7 +25,8 @@ ReactDOM.render(
                 <Router>
                     <Routes>
                         <Route path='/result' element={<ResultPage />} />
-                        <Route eaxt path="/" element={<HomePage />} />
+                        <Route path="/" element={<HomePage />} />
+                        <Route path="/about" element={<AboutPage />} />
                     </Routes>
                 </Router>,
     //     </Provider>
