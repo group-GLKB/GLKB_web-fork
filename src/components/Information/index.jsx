@@ -109,12 +109,44 @@ const Information = ({ width, ...props }) => {
         console.log("changed");
     }
 
+    const formatAuthors = (authors) => {
+        if (!authors) return 'N/A';
+        
+        if (!Array.isArray(authors)) {
+            return authors.length > 50 ? authors.substring(0, 47) + '...' : authors;
+        }
+
+        let authorString = '';
+        let moreAuthors = false;
+
+        for (let author of authors) {
+            if ((authorString + author).length > 47) {
+                moreAuthors = true;
+                break;
+            }
+            if (authorString) authorString += ', ';
+            authorString += author;
+        }
+
+        if (moreAuthors) {
+            authorString += '...';
+        }
+
+        return authorString;
+    };
+
     const nodeForMap = (url) => {
         return (
-            <div className="custom-div-url">
+            <div className="custom-div-url" style={{ paddingBottom: '8px' }}>
                 <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>{url[0]}</a>
-                {/*<span> (Number of Citation: {url[2]}, Date: {url[3]})</span>*/}
-                <p>Cited by: {url[2]}, Year: {url[3]}</p>
+                <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
+                    <span title="Cited by">Cited by: {url[2]} </span> |
+                    <span title="Year">Year: {url[3]} </span> |
+                    <span title="Journal">Journal: {url[4].length > 20 ? url[4].substring(0, 20) + '...' : url[4]} </span>
+                </p>
+                <p className="info-row" title={url[5].join(', ')} style={{ color: '#555555', margin: '2px 0' }}>
+                    Authors: {formatAuthors(url[5])}
+                </p>
             </div>
         )
     }
@@ -242,7 +274,8 @@ const Information = ({ width, ...props }) => {
                     ))}
                 </ul>
             </Descriptions.Item>
-            <Descriptions.Item label="N_citation">{article.n_citation}</Descriptions.Item>
+            <Descriptions.Item label="Cited by">{article.n_citation}</Descriptions.Item>
+            <Descriptions.Item label="Journal">{article.journal}</Descriptions.Item>
             <Descriptions.Item label="Abstract">{article.abstract}</Descriptions.Item>
         </Descriptions>
     );
@@ -345,7 +378,7 @@ const Information = ({ width, ...props }) => {
                                         size="small"
                                         dataSource={urls}
                                         renderItem={item => (
-                                            <List.Item>
+                                            <List.Item className="related-article-item">
                                                 {item}
                                             </List.Item>
                                         )}
@@ -356,14 +389,27 @@ const Information = ({ width, ...props }) => {
                                         {edgeDetail.map((edge, edgeIndex) => (
                                             <Panel header={<span>Relationship {edgeIndex + 1}: <i>{edge[0]['relationship type']}</i></span>} key={edgeIndex}>
                                                 {edge[1] && edge[1].length > 0 ? (
-                                                    edge[1].map((url, urlIndex) => (
-                                                        <div key={urlIndex} className="custom-div-edge">
-                                                            <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>
-                                                                {url[0]}
-                                                            </a>
-                                                            <p> Cited by: {url[2]}, Year: {url[3]}</p>
-                                                        </div>
-                                                    ))
+                                                    <List
+                                                        size="small"
+                                                        dataSource={edge[1]}
+                                                        renderItem={(url, urlIndex) => (
+                                                            <List.Item key={urlIndex} className="related-article-item" style={{ paddingBottom: '8px' }}>
+                                                                <div className="custom-div-edge">
+                                                                    <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>
+                                                                        {url[0]}
+                                                                    </a>
+                                                                    <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
+                                                                        <span title="Cited by">Cited by: {url[2]} </span> | 
+                                                                        <span title="Year">Year: {url[3]} </span> | 
+                                                                        <span title="Journal">Journal: {url[4].length > 20 ? url[4].substring(0, 20) + '...' : url[4]} </span>
+                                                                    </p>
+                                                                    <p className="info-row" title={url[5].join(', ')} style={{ color: '#555555', margin: '2px 0' }}>
+                                                                        Authors: {formatAuthors(url[5])}
+                                                                    </p>
+                                                                </div>
+                                                            </List.Item>
+                                                        )}
+                                                    />
                                                 ) : (
                                                     <div>N/A</div>
                                                 )}

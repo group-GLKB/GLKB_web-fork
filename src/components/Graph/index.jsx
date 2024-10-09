@@ -176,7 +176,7 @@ function Graph(props) {
         'text-valign': 'center',
         'text-halign': 'right',
         'text-margin-x': 5,  // Add this line to move text to the right of the node
-        'color': '#333333',  // Change this to dark grey
+        'color': '#202020',  // Change this to dark grey
         'font-size': '10px',  // Make the font smaller
         'text-outline-width': 2,
         'text-outline-color': '#fff',
@@ -240,7 +240,7 @@ function Graph(props) {
         'text-valign': 'center',
         'text-halign': 'right',
         'text-margin-x': 5,  // Add this line to move text to the right of the node
-        'color': '#333333',  // Change this to dark grey
+        'color': '#202020',  // Change this to dark grey
         'font-size': '10px',  // Make the font smaller
       },
     })
