@@ -286,9 +286,11 @@ const Information = ({ width, ...props }) => {
             <Descriptions.Item label="Term 2">{edge.node2}</Descriptions.Item>
             <Descriptions.Item label="Relationship Label">{edge['relationship label']}</Descriptions.Item>
             <Descriptions.Item label="Relationship Type">{edge['relationship type']}</Descriptions.Item>
-            <Descriptions.Item label="Number of Citations">
+            {edge['relationship label'] !== 'Curated_relationship' && (
+                <Descriptions.Item label="Number of Citations">
                 {edge['number of citations'] !== null ? edge['number of citations'] : 'N/A'}
             </Descriptions.Item>
+            )}
             {edge['relationship label'] === 'Curated_relationship' && (
                 <Descriptions.Item label="Source">{edge['source']}</Descriptions.Item>
             )}

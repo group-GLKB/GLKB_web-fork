@@ -145,15 +145,15 @@ const HomePage = () => {
                 >
                     Take a Guided Tour to GLKB
                 </Button>
-                <div className="glkb-introduction">
+                <div className="glkb-introduction" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'left', padding: '20px' }}>
+                    <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>About GLKB</h2>
                     <p>
-                        Genomic Literature Knowledge Base (GLKB) is a database that consolidates 263,714,413 biomedical terms, 
-                        14,634,427 biomedical relationships, and 10,667,370 genomic events from 33 million PubMed abstracts 
-                        and nine well-established biomedical repositories.
+                        The Genomic Literature Knowledge Base (GLKB) is a comprehensive and powerful resource that integrates over 263 million biomedical terms and more than 14.6 million biomedical relationships.
+                        This collection is curated from 33 million PubMed abstracts and nine well-established biomedical repositories, offering an unparalleled wealth of knowledge for researchers and practitioners in the field.
                     </p>
-                    <p>
-                        <a href="https://www.biorxiv.org/content/10.1101/2024.09.22.614323v1.abstract" target="_blank" rel="noopener noreferrer">
-                            Learn more from the original article &gt;&gt;
+                    <p style={{ textAlign: 'center', marginTop: '20px' }}>
+                        <a href="https://www.biorxiv.org/content/10.1101/2024.09.22.614323v1.abstract" target="_blank" rel="noopener noreferrer" style={{ fontWeight: 'bold' }}>
+                            Learn more about GLKB in our original article &gt;&gt;
                         </a>
                     </p>
                 </div>
@@ -161,8 +161,9 @@ const HomePage = () => {
 
             <div className="footer" style={{ 
                 backgroundColor: '#4a7298', 
-                padding: '20px 0', 
-                marginTop: '40px'
+                padding: '20px 0',
+                marginTop: '40px',
+                width: '100%'
             }}>
                 <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
                     <Row justify="space-between" align="middle" gutter={[0, 16]}>

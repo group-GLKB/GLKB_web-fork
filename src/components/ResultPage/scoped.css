@@ -75,7 +75,7 @@ all {
     height: calc(100vh); /* Full height minus navbar height */
     width: var(--settings-panel-width);
     max-width: 25vw;
-    min-width: 400px;
+    min-width: 400px !important; /* Add !important to ensure this takes precedence */
     transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
     /* Remove the background-color property */
     overflow: hidden;

@@ -120,7 +120,7 @@ const ResultPage = () => {
     const SETTINGS_PANEL_WIDTH = '25vw';
     const INFORMATION_PANEL_WIDTH = '25vw';
     const MIN_PANEL_WIDTH = 400; // Minimum width for panels
-    const [settingsWidth, setSettingsWidth] = useState(400);
+    const [settingsWidth, setSettingsWidth] = useState('25vw');
     const [informationWidth, setInformationWidth] = useState(400);
     const settingsRef = useRef(null);
     const informationRef = useRef(null);
@@ -208,10 +208,10 @@ const ResultPage = () => {
     useEffect(() => {
         const updateWidths = () => {
             if (settingsRef.current) {
-                setSettingsWidth(settingsRef.current.offsetWidth);
+                setSettingsWidth(Math.max(settingsRef.current.offsetWidth, 400));
             }
             if (informationRef.current) {
-                setInformationWidth(informationRef.current.offsetWidth);
+                setInformationWidth(Math.max(informationRef.current.offsetWidth, 400));
             }
         };
 
@@ -428,6 +428,17 @@ const ResultPage = () => {
         setIsInformationVisible(true);
     };
 
+    useEffect(() => {
+        const updateSettingsWidth = () => {
+            const vw25 = window.innerWidth * 0.25;
+            setSettingsWidth(vw25 < 400 ? '400px' : '25vw');
+        };
+
+        updateSettingsWidth();
+        window.addEventListener('resize', updateSettingsWidth);
+        return () => window.removeEventListener('resize', updateSettingsWidth);
+    }, []);
+
     return (
         <div className="result-container" ref={containerRef}>
             <Joyride
@@ -510,7 +521,7 @@ const ResultPage = () => {
                                 />
                             </div>
                         </div>
-                        <div ref={settingsRef} className={`floating-settings ${isSettingsVisible ? 'open' : ''}`}>
+                        <div ref={settingsRef} className={`floating-settings ${isSettingsVisible ? 'open' : ''}`} style={{ width: settingsWidth, minWidth: '400px' }}>
                             <Settings
                                 minGtdcFreq={minGtdcFreq}
                                 maxGtdcFreq={maxGtdcFreq}
@@ -536,9 +547,10 @@ const ResultPage = () => {
                                 setDisplayArticleGraph={setDisplayArticleGraph}
                                 setDetailId={setDetailId}
                                 onClose={() => setIsSettingsVisible(false)}
+                                width={settingsWidth}
                             />
                         </div>
-                        <div ref={informationRef} className={`floating-information ${isInformationVisible ? 'open' : ''}`}>
+                        <div ref={informationRef} className={`floating-information ${isInformationVisible ? 'open' : ''}`} style={{ minWidth: '400px' }}>
                             <Information
                                 isOpen={informationOpen}
                                 toggleSidebar={handleInformation}

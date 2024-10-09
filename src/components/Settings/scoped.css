@@ -11,6 +11,7 @@ all {
     left: 0;
     height: calc(100vh - 60px);
     width: 25vw;
+    min-width: 400px; /* Add this line */
     padding: 20px;
     box-sizing: border-box;
     z-index: 1;
@@ -261,4 +262,10 @@ all {
     background-color: #f0f0f0;
     padding: 10px;
     border-radius: 4px;
+}
+
+@media screen and (max-width: 1600px) { /* Adjust this value as needed */
+    .settings {
+        width: 400px; /* Set a fixed width for smaller screens */
+    }
 }
