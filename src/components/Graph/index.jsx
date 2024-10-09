@@ -2,17 +2,11 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import CytoscapeComponent from 'react-cytoscapejs';
 import Cytoscape from 'cytoscape';
 import cola from 'cytoscape-cola';
-import euler from 'cytoscape-euler';
-import springy from 'cytoscape-springy'
-import d3Force from 'cytoscape-d3-force';
 import fcose from 'cytoscape-fcose';
 import './scoped.css'
 
 Cytoscape.use(fcose);
 Cytoscape.use(cola);
-Cytoscape.use(euler);
-Cytoscape.use(d3Force);
-Cytoscape.use(springy);
 
 function Graph(props) {
 
@@ -60,7 +54,14 @@ function Graph(props) {
 
   let id = []
   for (var i in graphData.nodes) {
-    id.push([graphData.nodes[i].data.id, graphData.nodes[i].data.label, graphData.nodes[i].data.frequency, graphData.nodes[i].data.n_citation, graphData.nodes[i].data.key_nodes])
+    id.push([
+      graphData.nodes[i].data.id,
+      graphData.nodes[i].data.display,
+      graphData.nodes[i].data.frequency,
+      graphData.nodes[i].data.n_citation,
+      graphData.nodes[i].data.key_nodes,
+      graphData.nodes[i].data.label  // Add this line to include the label
+    ])
   }
   console.log(graphData)
 
@@ -69,15 +70,8 @@ function Graph(props) {
     egdeLengthVal: 200,
     nodeSpacing: 25,
     bundleEdges: true,
-    // fit: true,
-    // circle: true,
-    // directed: true,
-    // padding: 50,
-    // // spacingFactor: 1.5,
     animate: false,
     animationDuration: 1,
-    // avoidOverlap: true,
-    // nodeDimensionsIncludeLabels: false,
   };
 
   const styleSheet = [
@@ -88,8 +82,8 @@ function Graph(props) {
         'border-color': '#AAD8FF',
         'border-opacity': '0.3',
         'background-color': '#77828C',
-        width: 10,
-        height: 10,
+        width: 'mapData(width, 20, 40, 30, 50)',
+        height: 'mapData(height, 20, 40, 30, 50)',
         //text props
         'text-outline-color': '#77828C',
         'text-outline-width': 8,
@@ -105,16 +99,9 @@ function Graph(props) {
       selector: 'edge[label="Contain_term"]',
       style: {
         "curve-style": "haystack",
-        // "curve-style": "unbundled-bezier",
-    // "control-point-distances": 120,
-    // "control-point-weights": 0.2,
         'width': 1,
         'opacity': 'mapData(weight, 1, 100, 0.3, 1)',
-        // length: 1,
-        // "line-color": "#6774cb",
-        'line-color': '#FF7F50',
-        // 'target-arrow-color': '#6774cb',
-        // 'target-arrow-shape': 'triangle',
+        'line-color': '#FF7F50',  // Coral
         'curve-style': 'bezier',
       },
     },
@@ -122,16 +109,9 @@ function Graph(props) {
       selector: 'edge[label="co_occur"]',
       style: {
         "curve-style": "haystack",
-        // "curve-style": "unbundled-bezier",
-    // "control-point-distances": 120,
-    // "control-point-weights": 0.2,
-    'width': 1,
-    'opacity': 'mapData(weight, 1, 100, 0.3, 1)',
-        // length: 1,
-        // "line-color": "#6774cb",
-        'line-color': '#008080',
-        // 'target-arrow-color': '#6774cb',
-        // 'target-arrow-shape': 'triangle',
+        'width': 1,
+        'opacity': 'mapData(weight, 1, 100, 0.3, 1)',
+        'line-color': '#008080',  // Teal
         'curve-style': 'bezier',
       },
     },
@@ -139,17 +119,10 @@ function Graph(props) {
       selector: 'edge[label="Semantic_relationship"]',
       style: {
         "curve-style": "haystack",
-        // "curve-style": "unbundled-bezier",
-    // "control-point-distances": 120,
-    // "control-point-weights": 0.2,
         width: 1,
         'opacity': 'mapData(weight, 1, 100, 0.3, 1)',
-        // length: 1,
-        // "line-color": "#6774cb",
-        'line-color': '#008080',
+        'line-color': '#4682B4',  // Steel Blue
         'line-style': 'solid',
-        // 'target-arrow-color': '#6774cb',
-        // 'target-arrow-shape': 'triangle',
         'curve-style': 'bezier',
       },
     },
@@ -157,17 +130,10 @@ function Graph(props) {
       selector: 'edge[label="Hierarchical_structure"]',
       style: {
         "curve-style": "haystack",
-        // "curve-style": "unbundled-bezier",
-    // "control-point-distances": 120,
-    // "control-point-weights": 0.2,
         width: 1,
         'opacity': 'mapData(weight, 1, 100, 0.3, 1)',
-        // length: 1,
-        // "line-color": "#6774cb",
-        'line-color': '#E0B0FF',
+        'line-color': '#E0B0FF',  // Mauve
         'line-style': 'dotted',
-        // 'target-arrow-color': '#6774cb',
-        // 'target-arrow-shape': 'triangle',
         'curve-style': 'bezier',
       },
     },
@@ -175,17 +141,10 @@ function Graph(props) {
       selector: 'edge[label="Curated_relationship"]',
       style: {
         "curve-style": "haystack",
-        // "curve-style": "unbundled-bezier",
-    // "control-point-distances": 120,
-    // "control-point-weights": 0.2,
         'width': 1,
         'opacity': 'mapData(weight, 1, 100, 0.3, 1)',
-        // length: 1,
-        // "line-color": "#6774cb",
-        'line-color': '#E0B0FF',
+        'line-color': '#32CD32',  // Lime Green
         'line-style': 'dashed',
-        // 'target-arrow-color': '#6774cb',
-        // 'target-arrow-shape': 'triangle',
         'curve-style': 'bezier',
       },
     },
@@ -207,7 +166,22 @@ function Graph(props) {
     {
         selector: 'edge.semitransp',
         style:{ 'opacity': '0.2' }
-    }
+    },
+    {
+      selector: 'node',
+      style: {
+        'transition-property': 'width, height, border-width, border-color',
+        'transition-duration': '0.3s',
+        'label': 'data(name)',
+        'text-valign': 'center',
+        'text-halign': 'right',
+        'text-margin-x': 5,  // Add this line to move text to the right of the node
+        'color': '#202020',  // Change this to dark grey
+        'font-size': '10px',  // Make the font smaller
+        'text-outline-width': 2,
+        'text-outline-color': '#fff',
+      },
+    },
   ];
   for (var i in id) {
     let labelColor = ''
@@ -215,7 +189,7 @@ function Graph(props) {
     let shape = ''
     let borderWidth = ''
     let borderColor = ''
-    switch(id[i][1]) {
+    switch(id[i][5]) {  // Change this to use index 5 (label) instead of 1 (name)
       case 'AnatomicalEntity':
         labelColor = '#E43333'
       break;
@@ -258,48 +232,48 @@ function Graph(props) {
         backgroundColor: labelColor, 
         backgroundOpacity: 1,
         shape: shape, 
-        borderWidth: borderWidth,
-        borderColor: borderColor,
-        // backgroundColor: 'hsl(' + index*colorDif + ', 100%, ' + 50/label[index][1] * id[i][2] + '%)',
+        borderWidth: borderWidth ? borderWidth : 0,
+        borderColor: borderColor ? borderColor : 'transparent',
         width: size,
         height: size,
-        label: 'data(display)',
-        // height: 1+Math.log(id[i][2]),
-        // width: 1+Math.log(id[i][2]),
-        // "width": "mapData(score, 0, 0.006769776522008331, 20, 60)",
-        // "height": "mapData(score, 0, 0.006769776522008331, 20, 60)",
-        // "text-valign": "center",
-        // "text-halign": "center",
-        'overlay-padding': '8px',
-        'z-index': '10',
-        //text props
-        'text-outline-color': 'white',
-        'text-outline-width': '2px',
-        color: '#666666',
-        fontSize: 10,
+        label: id[i][1],
+        'text-valign': 'center',
+        'text-halign': 'right',
+        'text-margin-x': 5,  // Add this line to move text to the right of the node
+        'color': '#202020',  // Change this to dark grey
+        'font-size': '10px',  // Make the font smaller
       },
     })
   }
   // console.log(styleSheet)
 
   const myCyRef = useRef(null);
+
+  useEffect(() => {
+    if (myCyRef.current) {
+      myCyRef.current.fit();
+      myCyRef.current.center();
+    }
+  }, [graphData]);
+
   return (
       <div>
         <div>
           <CytoscapeComponent
             key={JSON.stringify(graphData)}
             elements={CytoscapeComponent.normalizeElements(graphData)}
-            // pan={{ x: 200, y: 200 }}
             style={{ width: width, height: height }}
             zoomingEnabled={true}
             maxZoom={2}
-            minZoom={0.5}
+            minZoom={0.1}
             autounselectify={false}
             boxSelectionEnabled={true}
             layout={layout}
             stylesheet={styleSheet}
             cy={(cy) => {
               myCyRef.current = cy;
+              // cy.fit();
+              // cy.center();
               cy.unbind("click");
               cy.on('click', function(e){
                 var sel = e.target;

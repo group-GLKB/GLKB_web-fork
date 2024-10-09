@@ -1,18 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import './scoped.css'
-import { Col, Row, Collapse, InputNumber, Slider, Transfer, DatePicker, Button } from 'antd';
-import {
-    MenuFoldOutlined,
-    MenuUnfoldOutlined
-} from '@ant-design/icons';
 import Filter from './filter';
 
-const { Panel } = Collapse;
-
 const Settings = props => {
-    //const settingsClass = props.isOpen ? "settings open" : "settings";
     const settingsClass = "settings open";
-    //const buttonClass = props.isOpen ? "settings-button open" : "settings-button";
     return (
         <div>
             <div className={settingsClass}>
@@ -47,4 +38,5 @@ const Settings = props => {
         
   );
 };
+
 export default Settings;

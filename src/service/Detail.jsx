@@ -38,7 +38,7 @@ export class DetailService {
         const queryString = nid.map(id => `nid=${id}`).join('&');
         let res = []
         await axios
-            // .get('frontend/frontend_multi_node_detail?' + queryString)
+            // .get('/frontend/frontend_multi_node_detail?' + queryString)
             .get('/api/frontend/frontend_multi_node_detail?' + queryString)
             .then(function (response) {
                 res = response

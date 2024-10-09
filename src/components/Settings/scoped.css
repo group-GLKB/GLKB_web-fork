@@ -8,23 +8,89 @@ all {
 .settings {
     position: fixed;
     top: 60px;
-    left: -33vw;
+    left: 0;
     height: calc(100vh - 60px);
     width: 25vw;
-	  /* margin-left: 2vw; */
-    padding: 1%;
-	/* border-radius: 21px; */
-    z-index: 1;
-    opacity: 0.95;
-    transition: left 0.3s ease-in-out;
-    background-color: #F8F8F8;
-    width: 100%;
-    height: 100%;
-    overflow-x: hidden;
-    overflow-y: auto;
+    min-width: 400px; /* Add this line */
     padding: 20px;
     box-sizing: border-box;
+    z-index: 1;
+    transition: left 0.3s ease-in-out;
+    background-color: transparent;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
+
+.settings-content {
+    height: 100%;
+}
+
+.settings-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    background-color: #FFFFFF;
+}
+
+.ant-card-body {
+    padding: 0 !important;
+    background-color: #FFFFFF !important;
+}
+
+.ant-collapse {
+    background-color: transparent !important;
+}
+
+.ant-collapse-content {
+    background-color: #FFFFFF !important;
+}
+
+.panel-header {
+    color: #4a7298;
+    font-size: 16px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.ant-collapse-item {
+    border-bottom: 1px solid #e8e8e8;
+    margin-bottom: 10px;
+}
+
+.ant-collapse-item:last-child {
+    border-bottom: none;
+}
+
+.ant-collapse-header {
+    padding: 12px 16px !important;
+}
+
+.ant-collapse-content-box {
+    padding: 0 16px 16px !important;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    background-color: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.legend-circle {
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.legend-label {
+    font-size: 14px;
+}
+
+/* Add any additional styles for suggested questions and other components */
 
 /* Adjust any fixed-width elements */
 .settings .ant-slider,
@@ -156,3 +222,50 @@ all {
     width: 100px;
 }
   
+.suggested-questions {
+    padding: 10px 0;
+}
+
+.question-section {
+    background-color: white;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.question-section h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: black;
+}
+
+.question-inputs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.question-inputs .ant-btn {
+    flex: 1;
+}
+
+.answer {
+    margin-top: 10px;
+}
+
+.answer h4 {
+    margin-bottom: 5px;
+}
+
+.ant-typography {
+    background-color: #f0f0f0;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+@media screen and (max-width: 1600px) { /* Adjust this value as needed */
+    .settings {
+        width: 400px; /* Set a fixed width for smaller screens */
+    }
+}

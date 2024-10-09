@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import './scoped.css'
-import { Row, Col, Slider, Collapse, Transfer, InputNumber, Typography, Button, Modal, Tree, Input, Menu, Checkbox, Dropdown, Space } from 'antd';
-import { DownOutlined, SmileOutlined } from '@ant-design/icons';
+import { Row, Col, Slider, Collapse, Transfer, InputNumber, Typography, Button, Modal, Tree, Input, Menu, Checkbox, Dropdown, Space, Spin, Card } from 'antd';
+import { DownOutlined, SmileOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { CaretRightOutlined, PlusCircleOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { NewGraph } from '../../service/NewNode'
 import {CypherService} from '../../service/Cypher'
 import { render } from '@testing-library/react';
+import { Tooltip } from 'antd';
 const { Panel } = Collapse;
 const { Title } = Typography;
 
@@ -149,20 +150,30 @@ const Filter = props => {
         }
     }
 
-    const LegendItem = ({ label, size, color }) => {
+    const LegendItem = ({ label, size, color, explanation }) => {
         const isQueryTerms = label === 'query terms';
+        const isRelationship = label.includes("relationship");
         
         return (
             <div className="legend-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                    {label.includes("relationship") ? (
-                            <div style={{ marginLeft: "0px", width: "30px", height: "0", borderBottom: '0.5px black', borderBottom: size}}></div>
-                        ) : (
-                            <div className="legend-circle" style={{ backgroundColor: color, width: size, height: size, marginLeft: size === 5 ? "6px" : size === 10 ? "4px" : "0" }}></div>
+                    {isRelationship ? (
+                        <div style={{ marginLeft: "0px", width: "30px", height: "0", borderBottom: '0.5px black', borderBottom: size}}></div>
+                    ) : (
+                        <div className="legend-circle" style={{ backgroundColor: color, width: size, height: size, marginLeft: size === 5 ? "6px" : size === 10 ? "4px" : "0" }}></div>
+                    )}
+                    <div className="legend-label" style={{ marginLeft: '10px' }}>
+                        {label}
+                        {isRelationship && (
+                            <Tooltip title={explanation}>
+                                <InfoCircleOutlined style={{ marginLeft: '5px', color: '#1890ff' }} />
+                            </Tooltip>
                         )}
-                    <div className="legend-label" style={{ marginLeft: '10px' }}>{label}</div>
+                    </div>
                 </div>
-                {label.includes("relationship") ? (<Checkbox value={label} defaultChecked={boolEdgeValues[label]}></Checkbox>) : (<Checkbox value={label} defaultChecked={boolValues[label]} onChange={onChangeNode}></Checkbox>)}
+                {!isRelationship && (
+                    <Checkbox value={label} defaultChecked={boolValues[label]} onChange={onChangeNode}></Checkbox>
+                )}
             </div>
         );
     };
@@ -189,9 +200,9 @@ const Filter = props => {
     ]
 
     const edgeDataAll = [
-        {label: 'Semantic_relationship', size: 'solid', color: 'black'},
-        {label: 'Curated_relationship', size: 'dashed', color: 'black'},
-        {label: 'Hierarchical_relationship', size: 'dotted', color: 'black'},
+        {label: 'Semantic_relationship', size: 'solid', color: 'black', explanation: 'Relationships extracted from PubMed abstracts.'},
+        {label: 'Curated_relationship', size: 'dashed', color: 'black', explanation: 'Manually annotated relationships from biomedical repositories.'},
+        {label: 'Hierarchical_relationship', size: 'dotted', color: 'black', explanation: 'Relationships that represent a hierarchy.'},
     ]
 
     const legendData = legendDataAll.filter(item => uniqueLabelsArray.includes(item.label));
@@ -335,6 +346,10 @@ const Filter = props => {
 
     const [cypherService] = useState(new CypherService());
 
+    const [loading1, setLoading1] = useState(false);
+    const [loading2, setLoading2] = useState(false);
+    const [loading3, setLoading3] = useState(false);
+
     useEffect(() => {
         if (props.graphShownData && props.graphShownData.nodes) {
             const nodes = props.graphShownData.nodes;
@@ -371,21 +386,27 @@ const Filter = props => {
     };
 
     const updateAnswer1 = async () => {
+        setLoading1(true);
         const question = `How is ${entityA1.name} associated with ${entityB1.name}?`;
         const answer = await generateAnswer(question, [entityA1.id, entityB1.id]);
         setAnswer1(answer);
+        setLoading1(false);
     };
 
     const updateAnswer2 = async () => {
+        setLoading2(true);
         const question = `What is ${entityA2.name}?`;
         const answer = await generateAnswer(question, [entityA2.id]);
         setAnswer2(answer);
+        setLoading2(false);
     };
 
     const updateAnswer3 = async () => {
+        setLoading3(true);
         const question = `How is article ${article.name} related to ${entityA2.name}?`;
         const answer = await generateAnswer(question, [entityA2.id], article.id);
         setAnswer3(answer);
+        setLoading3(false);
     };
 
     const handleMenuClickA1 = (e) => {
@@ -428,279 +449,6 @@ const Filter = props => {
         onClick: handleMenuClickArticle,
     };
 
-    const leftPanel = () => {
-        if (!props.displayArticleGraph) {
-            return (
-                <div style={{marginLeft: '10px', overflow: 'auto', height: '85vh'}}>
-                    <Collapse defaultActiveKey={['1', '2', '3']} ghost expandIcon={({ isActive }) => <CaretRightOutlined style={{color: '#014484', fontSize: 20}} rotate={isActive ? 90 : 0} />}>
-                    <Panel key="1" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Node types</h3>}>
-                        {legendData.map((item, index) => (
-                                <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
-                            ))}
-                    </Panel>
-                    <Panel key="2" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Relationship types</h3>}>
-                        {legendEdgeData.map((item, index) => (
-                                <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
-                            ))}
-                    </Panel>
-                        <Panel key="3" header={<h3 style={{ color: '#014484', fontSize: 20, fontWeight: 'bold' }}>Suggested questions</h3>}>
-                            <div style={{ marginBottom: '20px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                                    How is
-                                    <Dropdown menu={menuPropsA1} trigger={['click']}>
-                                        <a onClick={(e) => e.preventDefault()}>
-                                            <Space>
-                                                {entityA1.name}
-                                                <DownOutlined />
-                                            </Space>
-                                        </a>
-                                    </Dropdown>
-                                    associated with
-                                    <Dropdown menu={menuPropsB1} trigger={['click']}>
-                                        <a onClick={(e) => e.preventDefault()}>
-                                            <Space>
-                                                {entityB1.name}
-                                                <DownOutlined />
-                                            </Space>
-                                        </a>
-                                    </Dropdown>
-                                    ?
-                                </div>
-                                <Button onClick={updateAnswer1} style={{ marginBottom: '10px' }}>Generate Answer</Button>
-                                <h4>Answer:</h4>
-                                <Typography.Paragraph
-                                    ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
-                                    style={{ 
-                                        maxHeight: '150px', 
-                                        overflowY: 'auto', 
-                                        border: '1px solid #d9d9d9', 
-                                        borderRadius: '4px', 
-                                        padding: '8px' 
-                                    }}
-                                >
-                                    {answer1}
-                                </Typography.Paragraph>
-                            </div>
-
-                            <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                                    What is
-                                    <Dropdown menu={menuPropsA2} trigger={['click']}>
-                                        <a onClick={(e) => e.preventDefault()}>
-                                            <Space>
-                                                {entityA2.name}
-                                                <DownOutlined />
-                                            </Space>
-                                        </a>
-                                    </Dropdown>
-                                    ?
-                                </div>
-                                <Button onClick={updateAnswer2} style={{ marginBottom: '10px' }}>Generate Answer</Button>
-                                <h4>Answer:</h4>
-                                <Typography.Paragraph
-                                    ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
-                                    style={{ 
-                                        maxHeight: '150px', 
-                                        overflowY: 'auto', 
-                                        border: '1px solid #d9d9d9', 
-                                        borderRadius: '4px', 
-                                        padding: '8px' 
-                                    }}
-                                >
-                                    {answer2}
-                                </Typography.Paragraph>
-                            </div>
-                    </Panel>
-                    {/* <Panel key="3" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Node citations</h3>}>
-                    <div>
-                    <Row>
-                        <Col span={12}>Frequency</Col>
-                        <Col span={6}>
-                            <InputNumber style={{width: '100%'}} defaultValue={props.minGtdcFreq} value={props.gtdcFreq[0]} onBlur={props.handleGtdcFreq1} onPressEnter={props.handleGtdcFreq1} min={props.minGtdcFreq} max={props.maxGtdcFreq}/>
-                        </Col>
-                        <Col span={6}>
-                            <InputNumber style={{width: '100%'}} defaultValue={props.maxGtdcFreq} value={props.gtdcFreq[1]} onBlur={props.handleGtdcFreq2} onPressEnter={props.handleGtdcFreq2} min={props.minGtdcFreq} max={props.maxGtdcFreq}/>
-                        </Col>
-                    </Row>
-                    <Slider range tooltip={{open:false}} value={props.gtdcFreq} onChange={props.handleGtdcFreq} min={props.minGtdcFreq} max={props.maxGtdcFreq}/>
-                </div>
-                    <div>
-                        <Row>
-                            <Col span={12}>Citations</Col>
-                            <Col span={6}>
-                                <InputNumber style={{width: '100%'}} defaultValue={props.minGtdcNoc} value={props.gtdcNoc[0]} onBlur={props.handleGtdcNoc1} onPressEnter={props.handleGtdcNoc1} min={props.minGtdcNoc} max={props.maxGtdcNoc}/>
-                            </Col>
-                            <Col span={6}>
-                                <InputNumber style={{width: '100%'}} defaultValue={props.maxGtdcNoc} value={props.gtdcNoc[1]} onBlur={props.handleGtdcNoc2} onPressEnter={props.handleGtdcNoc2} min={props.minGtdcNoc} max={props.maxGtdcNoc}/>
-                            </Col>
-                        </Row>
-                        <Slider range tooltip={{open:false}} value={props.gtdcNoc} onChange={props.handleGtdcNoc} min={props.minGtdcNoc} max={props.maxGtdcNoc} />
-                    </div>
-                    </Panel> */}
-                    {/* <Panel key="4" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Node display</h3>}>
-                    <Tree
-                            // checkStrictly={true}
-                            checkable
-                            blockNode
-                            height={200}
-                            onExpand={onExpand}
-                            expandedKeys={expandedKeys}
-                            autoExpandParent={autoExpandParent}
-                            onCheck={onCheck}
-                            checkedKeys={checkedKeys}
-                            onSelect={onSelect}
-                            selectedKeys={selectedKeys}
-                            // Add other props based on the currentTreeData
-                            treeData={leftData.map(renderTreeNode)}
-                        />
-                    </Panel> */}
-                </Collapse>
-            </div>
-            );
-        } else {
-            return (
-                <div style={{marginLeft: '10px', overflow: 'auto', height: '85vh'}}>
-                    <Collapse defaultActiveKey={['1', '2']} ghost expandIcon={({ isActive }) => <CaretRightOutlined style={{color: '#014484', fontSize: 20}} rotate={isActive ? 90 : 0} />}>
-                        <Panel key="1" header={<h3 style={{ color: '#014484', fontSize: 20, fontWeight: 'bold' }}>Node types</h3>}>
-                            {legendData.map((item, index) => (
-                                <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
-                            ))}
-                        </Panel>
-                        <Panel key="2" header={<h3 style={{ color: '#014484', fontSize: 20, fontWeight: 'bold' }}>Suggested questions</h3>}>
-                            {!props.displayArticleGraph && (
-                                <>
-                                    <div style={{ marginBottom: '20px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                                            How is
-                                            <Dropdown menu={menuPropsA1} trigger={['click']}>
-                                                <a onClick={(e) => e.preventDefault()}>
-                                                    <Space>
-                                                        {entityA1.name}
-                                                        <DownOutlined />
-                                                    </Space>
-                                                </a>
-                                            </Dropdown>
-                                            associated with
-                                            <Dropdown menu={menuPropsB1} trigger={['click']}>
-                                                <a onClick={(e) => e.preventDefault()}>
-                                                    <Space>
-                                                        {entityB1.name}
-                                                        <DownOutlined />
-                                                    </Space>
-                                                </a>
-                                            </Dropdown>
-                                            ?
-                                        </div>
-                                        <Button onClick={updateAnswer1} style={{ marginBottom: '10px' }}>Generate Answer</Button>
-                                        <h4>Answer:</h4>
-                                        <Typography.Paragraph
-                                            ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
-                                            style={{ 
-                                                maxHeight: '150px', 
-                                                overflowY: 'auto', 
-                                                border: '1px solid #d9d9d9', 
-                                                borderRadius: '4px', 
-                                                padding: '8px' 
-                                            }}
-                                        >
-                                            {answer1}
-                                        </Typography.Paragraph>
-                                    </div>
-
-                                    <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                                            What is
-                                            <Dropdown menu={menuPropsA2} trigger={['click']}>
-                                                <a onClick={(e) => e.preventDefault()}>
-                                                    <Space>
-                                                        {entityA2.name}
-                                                        <DownOutlined />
-                                                    </Space>
-                                                </a>
-                                            </Dropdown>
-                                            ?
-                                        </div>
-                                        <Button onClick={updateAnswer2} style={{ marginBottom: '10px' }}>Generate Answer</Button>
-                                        <h4>Answer:</h4>
-                                        <Typography.Paragraph
-                                            ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
-                                            style={{ 
-                                                maxHeight: '150px', 
-                                                overflowY: 'auto', 
-                                                border: '1px solid #d9d9d9', 
-                                                borderRadius: '4px', 
-                                                padding: '8px' 
-                                            }}
-                                        >
-                                            {answer2}
-                                        </Typography.Paragraph>
-                                    </div>
-                                </>
-                            )}
-                            {props.displayArticleGraph && (
-                                <div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                                        How is article
-                                        <Dropdown menu={menuPropsArticle} trigger={['click']}>
-                                            <a onClick={(e) => e.preventDefault()}>
-                                                <Space>
-                                                    {article.name}
-                                                    <DownOutlined />
-                                                </Space>
-                                            </a>
-                                        </Dropdown>
-                                        related to
-                                        <Dropdown menu={menuPropsA2} trigger={['click']}>
-                                            <a onClick={(e) => e.preventDefault()}>
-                                                <Space>
-                                                    {entityA2.name}
-                                                    <DownOutlined />
-                                                </Space>
-                                            </a>
-                                        </Dropdown>
-                                        ?
-                                    </div>
-                                    <Button onClick={updateAnswer3} style={{ marginBottom: '10px' }}>Generate Answer</Button>
-                                    <h4>Answer:</h4>
-                                    <Typography.Paragraph
-                                        ellipsis={{ rows: 4, expandable: true, symbol: 'Read more' }}
-                                        style={{ 
-                                            maxHeight: '150px', 
-                                            overflowY: 'auto', 
-                                            border: '1px solid #d9d9d9', 
-                                            borderRadius: '4px', 
-                                            padding: '8px' 
-                                        }}
-                                    >
-                                        {answer3}
-                                    </Typography.Paragraph>
-                                </div>
-                            )}
-                        </Panel>
-                        {/* <Panel key="2" header={<h3 style={{color: '#014484', fontSize: 20, fontWeight: 'bold'}}>Node display</h3>}>
-                        <Tree
-                                // checkStrictly={true}
-                                checkable
-                                blockNode
-                                height={200}
-                                onExpand={onExpand}
-                                expandedKeys={expandedKeys}
-                                autoExpandParent={autoExpandParent}
-                                onCheck={onCheck}
-                                checkedKeys={checkedKeys}
-                                onSelect={onSelect}
-                                selectedKeys={selectedKeys}
-                                // Add other props based on the currentTreeData
-                                treeData={leftData.map(renderTreeNode)}
-                            />
-                        </Panel> */}
-                    </Collapse>
-                </div>
-            )
-        }
-    }
-
-
     const renderTreeNode = (node) => {
         return {
             ...node,
@@ -722,15 +470,110 @@ const Filter = props => {
 
     // No collapse Version
     return (
-        <div>
-            {leftPanel()}
-            {/* <div className='legend-container'>
-                <button onClick={changeLeftPanel} style={{width: '278px', height: '43px', borderRadius: '10px'}}>
-                    {props.displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
-                </button>
-            </div> */}
-        </div>
+        <div className="settings-content">
+            <Card
+                title="Graph Settings"
+                className="settings-card"
+                headStyle={{
+                    backgroundColor: '#4a7298',
+                    color: 'white',
+                    fontSize: '18px',
+                    fontWeight: 'bold',
+                    borderTopLeftRadius: '10px',
+                    borderTopRightRadius: '10px',
+                }}
+            >
+                <Collapse
+                    defaultActiveKey={['1', '2', '3']}
+                    ghost
+                    expandIcon={({ isActive }) => (
+                        <CaretRightOutlined
+                            style={{ color: '#4a7298', fontSize: 16 }}
+                            rotate={isActive ? 90 : 0}
+                        />
+                    )}
+                >
+                    <Panel key="1" header={<h3 className="panel-header">Node types</h3>}>
+                        {legendData.map((item, index) => (
+                            <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
+                        ))}
+                    </Panel>
+                    <Panel key="2" header={<h3 className="panel-header">Relationship types</h3>}>
+                        {legendEdgeData.map((item, index) => (
+                            <LegendItem key={index} label={item.label} size={item.size} color={item.color} explanation={item.explanation} />
+                        ))}
+                    </Panel>
+                    <Panel key="3" header={<h3 className="panel-header">Suggested questions</h3>}>
+                        <div className="suggested-questions">
+                            {props.displayArticleGraph ? (
+                                <div className="question-section">
+                                    <h4>How is an article related to a term?</h4>
+                                    <div className="question-inputs">
+                                        <Dropdown menu={menuPropsArticle} trigger={['click']}>
+                                            <Button>{article.name} <DownOutlined /></Button>
+                                        </Dropdown>
+                                        <Dropdown menu={menuPropsA2} trigger={['click']}>
+                                            <Button>{entityA2.name} <DownOutlined /></Button>
+                                        </Dropdown>
+                                    </div>
+                                    <Button onClick={updateAnswer3} loading={loading3}>Generate Answer</Button>
+                                    {answer3 && (
+                                        <div className="answer">
+                                            <h4>Answer:</h4>
+                                            <Typography.Paragraph ellipsis={{ rows: 3, expandable: true, symbol: 'more' }}>
+                                                {answer3}
+                                            </Typography.Paragraph>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="question-section">
+                                        <h4>How are two terms associated?</h4>
+                                        <div className="question-inputs">
+                                            <Dropdown menu={menuPropsA1} trigger={['click']}>
+                                                <Button>{entityA1.name} <DownOutlined /></Button>
+                                            </Dropdown>
+                                            <Dropdown menu={menuPropsB1} trigger={['click']}>
+                                                <Button>{entityB1.name} <DownOutlined /></Button>
+                                            </Dropdown>
+                                        </div>
+                                        <Button onClick={updateAnswer1} loading={loading1}>Generate Answer</Button>
+                                        {answer1 && (
+                                            <div className="answer">
+                                                <h4>Answer:</h4>
+                                                <Typography.Paragraph ellipsis={{ rows: 3, expandable: true, symbol: 'more' }}>
+                                                    {answer1}
+                                                </Typography.Paragraph>
+                                            </div>
+                                        )}
+                                    </div>
 
+                                    <div className="question-section">
+                                        <h4>What is a specific term?</h4>
+                                        <div className="question-inputs">
+                                            <Dropdown menu={menuPropsA2} trigger={['click']}>
+                                                <Button>{entityA2.name} <DownOutlined /></Button>
+                                            </Dropdown>
+                                        </div>
+                                        <Button onClick={updateAnswer2} loading={loading2}>Generate Answer</Button>
+                                        {answer2 && (
+                                            <div className="answer">
+                                                <h4>Answer:</h4>
+                                                <Typography.Paragraph ellipsis={{ rows: 3, expandable: true, symbol: 'more' }}>
+                                                    {answer2}
+                                                </Typography.Paragraph>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </Panel>
+                </Collapse>
+            </Card>
+        </div>
     );
 };
+
 export default Filter;

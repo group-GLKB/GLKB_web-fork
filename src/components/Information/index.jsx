@@ -16,6 +16,7 @@ const Information = ({ width, ...props }) => {
     const [edgeDetail, setEdgeDetail] = useState({});
     const [urlList, seturlList] = useState({});
     const [activeKey, setActiveKey] = useState(0);
+    const [isLoading, setIsLoading] = useState(false);
 
     const merge = true;
 
@@ -35,10 +36,15 @@ const Information = ({ width, ...props }) => {
         setNodeDetails({});
         console.log("detail changed");
         async function searchInfoNode(content) {
+            setIsLoading(true);
             let detailServ = new DetailService()
-            const response = await detailServ.Nid2Detail(content)
-            setNodeDetail(response.data)
-            setEdgeDetail({})
+            try {
+                const response = await detailServ.Nid2Detail(content)
+                setNodeDetail(response.data)
+                setEdgeDetail({})
+            } finally {
+                setIsLoading(false);
+            }
         }
         async function searchMergeInfoNode(content) {
             let detailServ = new DetailService()
@@ -78,6 +84,8 @@ const Information = ({ width, ...props }) => {
             else {
                 searchInfoEdge(props.detailId.slice(1));
             }
+        } else {
+            setIsLoading(false);
         }
     }, [props.detailId]);
 
@@ -101,12 +109,44 @@ const Information = ({ width, ...props }) => {
         console.log("changed");
     }
 
+    const formatAuthors = (authors) => {
+        if (!authors) return 'N/A';
+        
+        if (!Array.isArray(authors)) {
+            return authors.length > 50 ? authors.substring(0, 47) + '...' : authors;
+        }
+
+        let authorString = '';
+        let moreAuthors = false;
+
+        for (let author of authors) {
+            if ((authorString + author).length > 47) {
+                moreAuthors = true;
+                break;
+            }
+            if (authorString) authorString += ', ';
+            authorString += author;
+        }
+
+        if (moreAuthors) {
+            authorString += '...';
+        }
+
+        return authorString;
+    };
+
     const nodeForMap = (url) => {
         return (
-            <div className="custom-div-url">
+            <div className="custom-div-url" style={{ paddingBottom: '8px' }}>
                 <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>{url[0]}</a>
-                {/*<span> (Number of Citation: {url[2]}, Date: {url[3]})</span>*/}
-                <p>Cited by: {url[2]}, Year: {url[3]}</p>
+                <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
+                    <span title="Cited by">Cited by: {url[2]} </span> |
+                    <span title="Year">Year: {url[3]} </span> |
+                    <span title="Journal">Journal: {url[4].length > 20 ? url[4].substring(0, 20) + '...' : url[4]} </span>
+                </p>
+                <p className="info-row" title={url[5].join(', ')} style={{ color: '#555555', margin: '2px 0' }}>
+                    Authors: {formatAuthors(url[5])}
+                </p>
             </div>
         )
     }
@@ -189,6 +229,12 @@ const Information = ({ width, ...props }) => {
     const LoadingMessage = () => (
         <div className="loading-message">
             <Spin size="small" style={{ marginRight: '10px' }} />
+            <Text>Loading details...</Text>
+        </div>
+    );
+
+    const NoSelectionMessage = () => (
+        <div className="no-selection-message">
             <Text>Select a node or edge to view details</Text>
         </div>
     );
@@ -216,7 +262,11 @@ const Information = ({ width, ...props }) => {
     const renderArticleDetails = (article) => (
         <Descriptions column={1} size="small" className="custom-descriptions" style={{ borderRadius: '10px' }}>
             <Descriptions.Item label="Title">{article.title}</Descriptions.Item>
-            <Descriptions.Item label="PubMedID">{article.pmid}</Descriptions.Item>
+            <Descriptions.Item label="PubMedID">
+                <a href={`https://www.ncbi.nlm.nih.gov/pubmed/${article.pmid}`} target="_blank" rel="noopener noreferrer">
+                    {article.pmid}
+                </a>
+            </Descriptions.Item>
             <Descriptions.Item label="Authors">
                 <ul>
                     {article.authors && article.authors.map((author, index) => (
@@ -224,7 +274,8 @@ const Information = ({ width, ...props }) => {
                     ))}
                 </ul>
             </Descriptions.Item>
-            <Descriptions.Item label="N_citation">{article.n_citation}</Descriptions.Item>
+            <Descriptions.Item label="Cited by">{article.n_citation}</Descriptions.Item>
+            <Descriptions.Item label="Journal">{article.journal}</Descriptions.Item>
             <Descriptions.Item label="Abstract">{article.abstract}</Descriptions.Item>
         </Descriptions>
     );
@@ -235,19 +286,45 @@ const Information = ({ width, ...props }) => {
             <Descriptions.Item label="Term 2">{edge.node2}</Descriptions.Item>
             <Descriptions.Item label="Relationship Label">{edge['relationship label']}</Descriptions.Item>
             <Descriptions.Item label="Relationship Type">{edge['relationship type']}</Descriptions.Item>
-            <Descriptions.Item label="Number of Citations">
+            {edge['relationship label'] !== 'Curated_relationship' && (
+                <Descriptions.Item label="Number of Citations">
                 {edge['number of citations'] !== null ? edge['number of citations'] : 'N/A'}
             </Descriptions.Item>
+            )}
+            {edge['relationship label'] === 'Curated_relationship' && (
+                <Descriptions.Item label="Source">{edge['source']}</Descriptions.Item>
+            )}
         </Descriptions>
     );
+
+    const showRelatedArticles = () => {
+        if (Object.keys(edgeDetail).length !== 0) {
+            return !edgeDetail.every(edge => edge[0]['relationship label'] === 'Curated_relationship');
+        }
+        return true;
+    };
 
     return (
         <div className="information" style={{ width }}>
             <Card
                 title={getPanelTitle()}
                 className="information-content"
+                headStyle={{
+                    backgroundColor: '#4a7298',
+                    color: 'white',
+                    fontSize: '18px',
+                    fontWeight: 'bold',
+                    borderTopLeftRadius: '10px',
+                    borderTopRightRadius: '10px',
+                }}
+                bodyStyle={{
+                    padding: '0',
+                    backgroundColor: '#F7F7F7',
+                }}
             >
-                {Object.keys(nodeDetails).length === 0 && Object.keys(edgeDetail).length === 0 ? (
+                {!props.detailId ? (
+                    <NoSelectionMessage />
+                ) : isLoading ? (
                     <LoadingMessage />
                 ) : (
                     <Collapse
@@ -255,13 +332,13 @@ const Information = ({ width, ...props }) => {
                         ghost
                         expandIcon={({ isActive }) => (
                             <CaretRightOutlined
-                                style={{ color: '#014484', fontSize: 20 }}
+                                style={{ color: '#4a7298', fontSize: 16 }}
                                 rotate={isActive ? 90 : 0}
                             />
                         )}
                     >
                         <Panel
-                            header={<h3 style={{ color: '#014484', fontSize: 20, fontWeight: 'bold' }}>Details</h3>}
+                            header={<h3 className="panel-header">Details</h3>}
                             key="1"
                         >
                             {Object.keys(nodeDetails).length !== 0 && merge && (
@@ -286,49 +363,64 @@ const Information = ({ width, ...props }) => {
                             {Object.keys(edgeDetail).length !== 0 && (
                                 <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
                                     {edgeDetail.map((edge, index) => (
-                                        <Panel header={`Relationship ${index + 1}: ${edge[0]['relationship type']}`} key={index}>
+                                        <Panel header={<span>Relationship {index + 1}: <i>{edge[0]['relationship type']}</i></span>} key={index}>
                                             {renderEdgeDetails(edge[0])}
                                         </Panel>
                                     ))}
                                 </Collapse>
                             )}
                         </Panel>
-                        <Panel
-                            header={<h3 style={{ color: '#014484', fontSize: 20, fontWeight: 'bold' }}>Related Articles</h3>}
-                            key="2"
-                        >
-                            {Object.keys(nodeDetails).length !== 0 && (
-                                <List
-                                    size="small"
-                                    dataSource={urls}
-                                    renderItem={item => (
-                                        <List.Item>
-                                            {item}
-                                        </List.Item>
-                                    )}
-                                />
-                            )}
-                            {Object.keys(edgeDetail).length !== 0 && (
-                                <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
-                                    {edgeDetail.map((edge, edgeIndex) => (
-                                        <Panel header={`Relationship ${edgeIndex + 1}: ${edge[0]['relationship type']}`} key={edgeIndex}>
-                                            {edge[1] && edge[1].length > 0 ? (
-                                                edge[1].map((url, urlIndex) => (
-                                                    <div key={urlIndex} className="custom-div-edge">
-                                                        <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>
-                                                            {url[0]}
-                                                        </a>
-                                                        <p> Cited by: {url[2]}, Year: {url[3]}</p>
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <div>N/A</div>
-                                            )}
-                                        </Panel>
-                                    ))}
-                                </Collapse>
-                            )}
-                        </Panel>
+                        {showRelatedArticles() && (
+                            <Panel
+                                header={<h3 className="panel-header">Related Articles</h3>}
+                                key="2"
+                            >
+                                {Object.keys(nodeDetails).length !== 0 && (
+                                    <List
+                                        size="small"
+                                        dataSource={urls}
+                                        renderItem={item => (
+                                            <List.Item className="related-article-item">
+                                                {item}
+                                            </List.Item>
+                                        )}
+                                    />
+                                )}
+                                {Object.keys(edgeDetail).length !== 0 && (
+                                    <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
+                                        {edgeDetail.map((edge, edgeIndex) => (
+                                            <Panel header={<span>Relationship {edgeIndex + 1}: <i>{edge[0]['relationship type']}</i></span>} key={edgeIndex}>
+                                                {edge[1] && edge[1].length > 0 ? (
+                                                    <List
+                                                        size="small"
+                                                        dataSource={edge[1]}
+                                                        renderItem={(url, urlIndex) => (
+                                                            <List.Item key={urlIndex} className="related-article-item" style={{ paddingBottom: '8px' }}>
+                                                                <div className="custom-div-edge">
+                                                                    <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>
+                                                                        {url[0]}
+                                                                    </a>
+                                                                    <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
+                                                                        <span title="Cited by">Cited by: {url[2]} </span> | 
+                                                                        <span title="Year">Year: {url[3]} </span> | 
+                                                                        <span title="Journal">Journal: {url[4].length > 20 ? url[4].substring(0, 20) + '...' : url[4]} </span>
+                                                                    </p>
+                                                                    <p className="info-row" title={url[5].join(', ')} style={{ color: '#555555', margin: '2px 0' }}>
+                                                                        Authors: {formatAuthors(url[5])}
+                                                                    </p>
+                                                                </div>
+                                                            </List.Item>
+                                                        )}
+                                                    />
+                                                ) : (
+                                                    <div>N/A</div>
+                                                )}
+                                            </Panel>
+                                        ))}
+                                    </Collapse>
+                                )}
+                            </Panel>
+                        )}
                     </Collapse>
                 )}
             </Card>

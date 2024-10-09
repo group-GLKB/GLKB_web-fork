@@ -19,16 +19,21 @@ import axios from 'axios'
 import sampleGraphData from './sampleData.json';
 import SearchBarKnowledge from "../Units/SearchBarKnowledge";
 import { FloatButton } from "antd";
-import { PlusOutlined, MinusOutlined, InfoCircleOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ApartmentOutlined, FileTextOutlined } from '@ant-design/icons';
+import { PlusOutlined, MinusOutlined, InfoCircleOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ApartmentOutlined, FileTextOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { styled } from '@mui/material/styles';
+import Joyride, { STATUS } from 'react-joyride';
 
 const { Search } = Input;
 
 const StyledButton = styled(Button)(({ theme }) => ({
-    backgroundColor: '#8BB5D1',
+    backgroundColor: '#99c7b1',
     color: 'black',
     '&:hover': {
-        backgroundColor: '#4A7298',
+        backgroundColor: '#577265',
+        color: 'black',
+    },
+    '&:focus': {
+        color: 'black',
     },
     minWidth: '60px',
     height: '40px',
@@ -115,7 +120,7 @@ const ResultPage = () => {
     const SETTINGS_PANEL_WIDTH = '25vw';
     const INFORMATION_PANEL_WIDTH = '25vw';
     const MIN_PANEL_WIDTH = 400; // Minimum width for panels
-    const [settingsWidth, setSettingsWidth] = useState(400);
+    const [settingsWidth, setSettingsWidth] = useState('25vw');
     const [informationWidth, setInformationWidth] = useState(400);
     const settingsRef = useRef(null);
     const informationRef = useRef(null);
@@ -123,6 +128,52 @@ const ResultPage = () => {
     // Modify these state variables for caching
     const [cachedTermGraph, setCachedTermGraph] = useState(null);
     const [cachedArticleGraph, setCachedArticleGraph] = useState(null);
+
+    const graphContainerRef = useRef(null);
+
+    // Add new state for the tour
+    const [runTour, setRunTour] = useState(false);
+    const [tourKey, setTourKey] = useState(0); // Add this new state
+
+    // Define the steps for the guided tour
+    const steps = [
+        {
+            target: '.search-bar-wrapper',
+            content: 'Modify or start a new search here.',
+            disableBeacon: true,
+        },
+        {
+            target: '.graph-container-wrapper',
+            content: 'This is the main graph visualization area. You can interact with nodes and edges here.',
+        },
+        {
+            target: '.graph-control-button',
+            content: 'Switch between biomedical term graph and article graph views.',
+        },
+        {
+            target: '.floating-settings',
+            content: 'Modify graph visualization and access node and edge summaries here.',
+        },
+        {
+            target: '.floating-information',
+            content: 'View detailed information about selected nodes or edges.',
+        },
+    ];
+
+    // Handle tour events
+    const handleJoyrideCallback = (data) => {
+        const { status } = data;
+        if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+            setRunTour(false);
+            setTourKey(prevKey => prevKey + 1); // Increment the key when tour ends
+        }
+    };
+
+    // Add this new function to start the tour
+    const startTour = () => {
+        setRunTour(true);
+        setTourKey(prevKey => prevKey + 1); // Increment the key when starting the tour
+    };
 
     useEffect(() => {
         const handleResize = () => {
@@ -157,10 +208,10 @@ const ResultPage = () => {
     useEffect(() => {
         const updateWidths = () => {
             if (settingsRef.current) {
-                setSettingsWidth(settingsRef.current.offsetWidth);
+                setSettingsWidth(Math.max(settingsRef.current.offsetWidth, 400));
             }
             if (informationRef.current) {
-                setInformationWidth(informationRef.current.offsetWidth);
+                setInformationWidth(Math.max(informationRef.current.offsetWidth, 400));
             }
         };
 
@@ -223,6 +274,27 @@ const ResultPage = () => {
             setIsInformationVisible(true);
         }
     }, [windowWidth]);
+
+    useEffect(() => {
+        const updateGraphPosition = () => {
+            if (graphContainerRef.current) {
+                const searchBarHeight = document.querySelector('.search-bar-container').offsetHeight;
+                const navbarHeight = document.querySelector('.navbar-wrapper').offsetHeight;
+                const topOffset = navbarHeight + searchBarHeight;
+                
+                graphContainerRef.current.style.position = 'fixed';
+                graphContainerRef.current.style.top = `${topOffset}px`;
+                graphContainerRef.current.style.left = isSettingsVisible ? SETTINGS_PANEL_WIDTH : '0';
+                graphContainerRef.current.style.right = isInformationVisible ? INFORMATION_PANEL_WIDTH : '0';
+                graphContainerRef.current.style.bottom = '0';
+            }
+        };
+
+        window.addEventListener('resize', updateGraphPosition);
+        updateGraphPosition(); // Initial call
+
+        return () => window.removeEventListener('resize', updateGraphPosition);
+    }, [isSettingsVisible, isInformationVisible]);
 
     const initialize = () => {
         setSearchFlag(false)
@@ -356,19 +428,47 @@ const ResultPage = () => {
         setIsInformationVisible(true);
     };
 
+    useEffect(() => {
+        const updateSettingsWidth = () => {
+            const vw25 = window.innerWidth * 0.25;
+            setSettingsWidth(vw25 < 400 ? '400px' : '25vw');
+        };
+
+        updateSettingsWidth();
+        window.addEventListener('resize', updateSettingsWidth);
+        return () => window.removeEventListener('resize', updateSettingsWidth);
+    }, []);
+
     return (
         <div className="result-container" ref={containerRef}>
+            <Joyride
+                steps={steps}
+                run={runTour}
+                continuous={true}
+                showSkipButton={true}
+                showProgress={true}
+                styles={{
+                    options: {
+                        primaryColor: '#007bff',
+                        zIndex: 10000,
+                    },
+                }}
+                callback={handleJoyrideCallback}
+                key={tourKey} // Add this key prop
+            />
             <div className="navbar-wrapper">
                 <NavBarWhite />
             </div>
             <div className="search-bar-container">
-                <SearchBarKnowledge
-                    chipData={chipData}
-                    chipDataIDResult={chipDataIDResult}
-                    displayArticleGraph={displayArticleGraph}
-                    setDisplayArticleGraph={setDisplayArticleGraph}
-                    onSearch={search} // Pass the search function
-                />
+                <div className="search-bar-wrapper">
+                    <SearchBarKnowledge
+                        chipData={chipData}
+                        chipDataIDResult={chipDataIDResult}
+                        displayArticleGraph={displayArticleGraph}
+                        setDisplayArticleGraph={setDisplayArticleGraph}
+                        onSearch={search}
+                    />
+                </div>
             </div>
             <div className='main-content'>
                 {!searchFlag && (
@@ -383,32 +483,45 @@ const ResultPage = () => {
                                 onClick={changeLeftPanel}
                                 variant="contained"
                                 startIcon={displayArticleGraph ? <ApartmentOutlined /> : <FileTextOutlined />}
+                                className="graph-control-button"
                             >
                                 {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
                             </StyledButton>
+                            <Button
+                                icon={<QuestionCircleOutlined />}
+                                onClick={startTour}
+                                className="start-tour-button"
+                            >
+                                Take a Guided Tour to the Result
+                            </Button>
                         </div>
-                        <Graph
-                            data={graphShownData}
-                            selectedID={selectedID}
-                            minGtdcFreq={minGtdcFreq}
-                            maxGtdcFreq={maxGtdcFreq}
-                            minGtdcNoc={minGtdcNoc}
-                            maxGtdcNoc={maxGtdcNoc}
-                            gtdcFreq={gtdcFreq}
-                            handleGtdcFreq={handleGtdcFreq}
-                            handleMinGtdcFreq={handleMinGtdcFreq}
-                            handleMaxGtdcFreq={handleMaxGtdcFreq}
-                            gtdcNoc={gtdcNoc}
-                            handleGtdcNoc={handleGtdcNoc}
-                            handleMinGtdcNoc={handleMinGtdcNoc}
-                            handleMaxGtdcNoc={handleMaxGtdcNoc}
-                            handleSelect={handleSelect}
-                            handleInformation={handleInformation}
-                            informationOpen={informationOpen}
-                            expandInformation={expandInformation}
-                            className={`graph-container ${!isSettingsVisible ? 'expanded-left' : ''} ${!isInformationVisible ? 'expanded-right' : ''}`}
-                        />
-                        <div ref={settingsRef} className={`floating-settings ${isSettingsVisible ? 'open' : ''}`}>
+                        <div className='graph-container-wrapper'>
+                            <div className="graph-container">
+                                <Graph
+                                    data={graphShownData}
+                                    selectedID={selectedID}
+                                    minGtdcFreq={minGtdcFreq}
+                                    maxGtdcFreq={maxGtdcFreq}
+                                    minGtdcNoc={minGtdcNoc}
+                                    maxGtdcNoc={maxGtdcNoc}
+                                    gtdcFreq={gtdcFreq}
+                                    handleGtdcFreq={handleGtdcFreq}
+                                    handleMinGtdcFreq={handleMinGtdcFreq}
+                                    handleMaxGtdcFreq={handleMaxGtdcFreq}
+                                    gtdcNoc={gtdcNoc}
+                                    handleGtdcNoc={handleGtdcNoc}
+                                    handleMinGtdcNoc={handleMinGtdcNoc}
+                                    handleMaxGtdcNoc={handleMaxGtdcNoc}
+                                    handleSelect={handleSelect}
+                                    handleInformation={handleInformation}
+                                    informationOpen={informationOpen}
+                                    expandInformation={expandInformation}
+                                    className="graph"
+                                    ref={graphContainerRef}
+                                />
+                            </div>
+                        </div>
+                        <div ref={settingsRef} className={`floating-settings ${isSettingsVisible ? 'open' : ''}`} style={{ width: settingsWidth, minWidth: '400px' }}>
                             <Settings
                                 minGtdcFreq={minGtdcFreq}
                                 maxGtdcFreq={maxGtdcFreq}
@@ -434,9 +547,10 @@ const ResultPage = () => {
                                 setDisplayArticleGraph={setDisplayArticleGraph}
                                 setDetailId={setDetailId}
                                 onClose={() => setIsSettingsVisible(false)}
+                                width={settingsWidth}
                             />
                         </div>
-                        <div ref={informationRef} className={`floating-information ${isInformationVisible ? 'open' : ''}`}>
+                        <div ref={informationRef} className={`floating-information ${isInformationVisible ? 'open' : ''}`} style={{ minWidth: '400px' }}>
                             <Information
                                 isOpen={informationOpen}
                                 toggleSidebar={handleInformation}
