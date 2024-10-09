@@ -482,10 +482,6 @@ const Filter = props => {
                     borderTopLeftRadius: '10px',
                     borderTopRightRadius: '10px',
                 }}
-                bodyStyle={{
-                    padding: '0',
-                    backgroundColor: '#F7F7F7',
-                }}
             >
                 <Collapse
                     defaultActiveKey={['1', '2', '3']}

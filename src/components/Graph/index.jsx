@@ -258,25 +258,10 @@ function Graph(props) {
         backgroundColor: labelColor, 
         backgroundOpacity: 1,
         shape: shape, 
-        borderWidth: borderWidth,
-        borderColor: borderColor,
-        // backgroundColor: 'hsl(' + index*colorDif + ', 100%, ' + 50/label[index][1] * id[i][2] + '%)',
-        width: size,
-        height: size,
-        label: 'data(display)',
-        // height: 1+Math.log(id[i][2]),
-        // width: 1+Math.log(id[i][2]),
-        // "width": "mapData(score, 0, 0.006769776522008331, 20, 60)",
-        // "height": "mapData(score, 0, 0.006769776522008331, 20, 60)",
-        // "text-valign": "center",
-        // "text-halign": "center",
-        'overlay-padding': '8px',
-        'z-index': '10',
-        //text props
-        'text-outline-color': 'white',
-        'text-outline-width': '2px',
-        color: '#666666',
-        fontSize: 10,
+        // Replace these lines
+        borderWidth: borderWidth ? borderWidth : 0,
+        borderColor: borderColor ? borderColor : 'transparent',
+        // ... rest of the style properties
       },
     })
   }

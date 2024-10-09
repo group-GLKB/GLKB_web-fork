@@ -77,8 +77,8 @@ all {
     max-width: 25vw;
     min-width: 400px;
     transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-    background-color: #F7F7F7;
-    overflow: hidden; /* Change from overflow-y: auto to overflow: hidden */
+    /* Remove the background-color property */
+    overflow: hidden;
     z-index: 999; /* Below the navbar */
     display: flex;
     flex-direction: column;
@@ -150,7 +150,7 @@ all {
 
 /* Graph container */
 .graph-container-wrapper {
-    width: 50vw;
+    /* width: 50vw; */
     height: 50vw; /* Assuming you want a square container */
     margin: 0 auto; /* This centers the container horizontally */
     display: flex;
