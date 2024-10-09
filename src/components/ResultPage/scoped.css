@@ -71,7 +71,7 @@ all {
 .floating-settings,
 .floating-information {
     position: fixed;
-    top: 34px; /* Position directly below navbar */
+    top: 0px; /* Position directly below navbar */
     height: calc(100vh - 34px); /* Full height minus navbar height */
     width: var(--settings-panel-width);
     max-width: 25vw;
@@ -150,9 +150,11 @@ all {
 
 /* Graph container */
 .graph-container-wrapper {
-    /* width: 50vw; */
-    height: 50vw; /* Assuming you want a square container */
-    margin: 0 auto; /* This centers the container horizontally */
+    position: fixed;
+    top: 124px; /* Navbar height (64px) + Search bar height (60px) */
+    left: 0;
+    right: 0;
+    bottom: 0;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -335,14 +337,14 @@ all {
 
 .graph-controls {
     position: fixed;
-    bottom: 50px; /* Position at the bottom of the page */
+    bottom: 20px; /* Slightly higher from the bottom */
     left: 50%;
     transform: translateX(-50%);
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 10px;
-    background-color: #f0f0f0;
+    background-color: rgba(240, 240, 240, 0.9); /* Semi-transparent background */
     border-radius: 8px;
     z-index: 1002; /* Ensure it's above other elements */
     width: auto;
