@@ -28,6 +28,7 @@ export default function SearchBarKnowledge(props) {
     const [sourceNodeData, setSourceNodeData] = React.useState([]);
     const [targetNodeData, setTargetNodeData] = React.useState([]);
     const [tripletLimitReached, setTripletLimitReached] = React.useState(false);
+    const [selectedSource, setSelectedSource] = React.useState(null);
 
 
     const showAdvance = true;
@@ -171,6 +172,7 @@ export default function SearchBarKnowledge(props) {
             setSourceNodeOptions([]);
             const newTriplet = ["", triplets[1], triplets[2]];
             setTriplets(newTriplet);
+            setSelectedSource(null);
         } else {
             if (event && event.type === "click") {
                 sourceEntitySearch(value);
@@ -440,13 +442,14 @@ export default function SearchBarKnowledge(props) {
                                     fullWidth 
                                     disabled={tripletLimitReached}
                                     helperText={tripletLimitReached ? "Maximum of 5 triplets reached" : ""}
-                                    className="search-autocomplete-box"  // Add this line
+                                    className="search-autocomplete-box"
                                 />
                             )}
                             value={triplets[0]}
                             onChange={(event, newValue) => {
                                 const newTriplet = [newValue ? newValue.split(' (')[0] : "", triplets[1], triplets[2]];
                                 setTriplets(newTriplet);
+                                setSelectedSource(newValue);
                             }}
                             disabled={tripletLimitReached}
                         />
@@ -465,8 +468,8 @@ export default function SearchBarKnowledge(props) {
                                 width: isSmallScreen ? '100%' : 'auto'
                             }}
                             onClick={handleAddTriplet}
-                            disabled={tripletLimitReached}
-                            className="add-biomedical-term-button"  // Add this line
+                            disabled={tripletLimitReached || !selectedSource}
+                            className="add-biomedical-term-button"
                         >
                             Add Biomedical Term
                         </Button>

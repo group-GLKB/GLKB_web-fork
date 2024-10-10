@@ -168,7 +168,7 @@ const HomePage = () => {
                             </Space>
                         </Col>
                     </Row> */}
-                    <Divider style={{ margin: '20px 0', borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+                    {/* <Divider style={{ margin: '20px 0', borderColor: 'rgba(255, 255, 255, 0.2)' }} /> */}
                     <p style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.8)', fontSize: '14px', margin: 0 }}>
                         © 2024 Liu Lab, Department of Computational Medicine and Bioinformatics, University of Michigan
                     </p>
