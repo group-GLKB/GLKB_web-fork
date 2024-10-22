@@ -468,6 +468,54 @@ const Filter = props => {
         }
     }
 
+    // New state for user question
+    const [userQuestion, setUserQuestion] = useState("");
+    const [customAnswer, setCustomAnswer] = useState(""); // State to store the custom question answer
+
+    // New function to handle question submission
+    const handleUserQuestionSubmit = async () => {
+        // Use props.data instead of props.graphForQuestions
+        const questionData = {
+            question: {
+                question: userQuestion,
+                graph: props.data  // Use the current graph data from props
+            }
+        };
+        
+        try {
+            const response = await cypherService.generateFreeAnswer(questionData);
+            setCustomAnswer(response.answer);
+            console.log('Answer:', response.answer);
+        } catch (error) {
+            console.error('Error submitting question:', error);
+            setCustomAnswer('An error occurred while generating the answer.');
+        }
+    };
+
+    // Function to handle templated question submissions
+    const handleTemplatedQuestionSubmit = async (questionType) => {
+        let answer;
+        switch (questionType) {
+            case 'association':
+                const question1 = `How is ${entityA1.name} associated with ${entityB1.name}?`;
+                answer = await generateAnswer(question1, [entityA1.id, entityB1.id]);
+                setAnswer1(answer);
+                break;
+            case 'specificTerm':
+                const question2 = `What is ${entityA2.name}?`;
+                answer = await generateAnswer(question2, [entityA2.id]);
+                setAnswer2(answer);
+                break;
+            case 'articleRelation':
+                const question3 = `How is article ${article.name} related to ${entityA2.name}?`;
+                answer = await generateAnswer(question3, [entityA2.id], article.id);
+                setAnswer3(answer);
+                break;
+            default:
+                break;
+        }
+    };
+
     // No collapse Version
     return (
         <div className="settings-content">
@@ -503,7 +551,7 @@ const Filter = props => {
                             <LegendItem key={index} label={item.label} size={item.size} color={item.color} explanation={item.explanation} />
                         ))}
                     </Panel>
-                    <Panel key="3" header={<h3 className="panel-header">Suggested questions</h3>}>
+                    <Panel key="3" header={<h3 className="panel-header">Ask the graph</h3>}>
                         <div className="suggested-questions">
                             {props.displayArticleGraph ? (
                                 <div className="question-section">
@@ -516,7 +564,7 @@ const Filter = props => {
                                             <Button>{entityA2.name} <DownOutlined /></Button>
                                         </Dropdown>
                                     </div>
-                                    <Button onClick={updateAnswer3} loading={loading3}>Generate Answer</Button>
+                                    <Button onClick={() => handleTemplatedQuestionSubmit('articleRelation')} loading={loading3}>Generate Answer</Button>
                                     {answer3 && (
                                         <div className="answer">
                                             <h4>Answer:</h4>
@@ -525,6 +573,27 @@ const Filter = props => {
                                             </Typography.Paragraph>
                                         </div>
                                     )}
+
+                                    {/* Added custom question section for article graph */}
+                                    <div className="question-section" style={{ marginTop: '20px' }}>
+                                        <h4>Ask your own question:</h4>
+                                        <div className="question-inputs">
+                                            <Input 
+                                                placeholder="Type your question here..." 
+                                                value={userQuestion} 
+                                                onChange={(e) => setUserQuestion(e.target.value)} 
+                                            />
+                                            <Button onClick={handleUserQuestionSubmit}>Submit Question</Button>
+                                        </div>
+                                        {customAnswer && (
+                                            <div className="answer">
+                                                <h4>Custom Question Answer:</h4>
+                                                <Typography.Paragraph ellipsis={{ rows: 3, expandable: true, symbol: 'more' }}>
+                                                    {customAnswer}
+                                                </Typography.Paragraph>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             ) : (
                                 <>
@@ -538,7 +607,7 @@ const Filter = props => {
                                                 <Button>{entityB1.name} <DownOutlined /></Button>
                                             </Dropdown>
                                         </div>
-                                        <Button onClick={updateAnswer1} loading={loading1}>Generate Answer</Button>
+                                        <Button onClick={() => handleTemplatedQuestionSubmit('association')} loading={loading1}>Generate Answer</Button>
                                         {answer1 && (
                                             <div className="answer">
                                                 <h4>Answer:</h4>
@@ -556,12 +625,35 @@ const Filter = props => {
                                                 <Button>{entityA2.name} <DownOutlined /></Button>
                                             </Dropdown>
                                         </div>
-                                        <Button onClick={updateAnswer2} loading={loading2}>Generate Answer</Button>
+                                        <Button onClick={() => handleTemplatedQuestionSubmit('specificTerm')} loading={loading2}>Generate Answer</Button>
                                         {answer2 && (
                                             <div className="answer">
                                                 <h4>Answer:</h4>
                                                 <Typography.Paragraph ellipsis={{ rows: 3, expandable: true, symbol: 'more' }}>
                                                     {answer2}
+                                                </Typography.Paragraph>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Custom Question Input Section styled like templated questions */}
+                                    <div className="question-section">
+                                        <h4>Ask your own question:</h4>
+                                        <div className="question-inputs">
+                                            <Input 
+                                                placeholder="Type your question here..." 
+                                                value={userQuestion} 
+                                                onChange={(e) => setUserQuestion(e.target.value)} 
+                                            />
+                                            <Button onClick={handleUserQuestionSubmit}>Submit Question</Button>
+                                        </div>
+
+                                        {/* Display the answer for the custom question within the same section */}
+                                        {customAnswer && (
+                                            <div className="answer">
+                                                <h4>Custom Question Answer:</h4>
+                                                <Typography.Paragraph ellipsis={{ rows: 3, expandable: true, symbol: 'more' }}>
+                                                    {customAnswer}
                                                 </Typography.Paragraph>
                                             </div>
                                         )}
