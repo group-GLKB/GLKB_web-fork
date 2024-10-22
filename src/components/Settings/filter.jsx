@@ -472,14 +472,15 @@ const Filter = props => {
     const [userQuestion, setUserQuestion] = useState("");
     const [customAnswer, setCustomAnswer] = useState(""); // State to store the custom question answer
 
-    // New function to handle question submission
+    // Add new loading state
+    const [loadingCustom, setLoadingCustom] = useState(false);
+
+    // Update the handleUserQuestionSubmit function
     const handleUserQuestionSubmit = async () => {
-        // Use props.data instead of props.graphForQuestions
+        setLoadingCustom(true);
         const questionData = {
-            question: {
-                question: userQuestion,
-                graph: props.data  // Use the current graph data from props
-            }
+            question: userQuestion,
+            graph: props.data
         };
         
         try {
@@ -489,6 +490,8 @@ const Filter = props => {
         } catch (error) {
             console.error('Error submitting question:', error);
             setCustomAnswer('An error occurred while generating the answer.');
+        } finally {
+            setLoadingCustom(false);
         }
     };
 
@@ -583,7 +586,7 @@ const Filter = props => {
                                                 value={userQuestion} 
                                                 onChange={(e) => setUserQuestion(e.target.value)} 
                                             />
-                                            <Button onClick={handleUserQuestionSubmit}>Submit Question</Button>
+                                            <Button onClick={handleUserQuestionSubmit} loading={loadingCustom}>Submit Question</Button>
                                         </div>
                                         {customAnswer && (
                                             <div className="answer">
@@ -645,7 +648,7 @@ const Filter = props => {
                                                 value={userQuestion} 
                                                 onChange={(e) => setUserQuestion(e.target.value)} 
                                             />
-                                            <Button onClick={handleUserQuestionSubmit}>Submit Question</Button>
+                                            <Button onClick={handleUserQuestionSubmit} loading={loadingCustom}>Submit Question</Button>
                                         </div>
 
                                         {/* Display the answer for the custom question within the same section */}
