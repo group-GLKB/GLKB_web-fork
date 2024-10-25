@@ -28,7 +28,8 @@ export default function SearchBarKnowledge(props) {
     const [sourceNodeData, setSourceNodeData] = React.useState([]);
     const [targetNodeData, setTargetNodeData] = React.useState([]);
     const [tripletLimitReached, setTripletLimitReached] = React.useState(false);
-
+    const [selectedSource, setSelectedSource] = useState(null);
+    const [inputValue, setInputValue] = useState('');
 
     const showAdvance = true;
     const relationTypes = ["Associate", "Bind", "Comparison", "Cotreatment", "PositiveCorrelation", "NegativeCorrelation"];
@@ -167,17 +168,21 @@ export default function SearchBarKnowledge(props) {
     );
 
     const updateSource = (event, value) => {
+        console.log("updateSource called with value:", value);
         if (value === null || value.trim() === '') {
             setSourceNodeOptions([]);
             const newTriplet = ["", triplets[1], triplets[2]];
             setTriplets(newTriplet);
+            setSelectedSource(null);
         } else {
+            const searchValue = value.split(' (')[0];
+            console.log("Search value:", searchValue);
             if (event && event.type === "click") {
-                sourceEntitySearch(value);
+                sourceEntitySearch(searchValue);
             } else {
-                debouncedSourceEntitySearch(value);
+                debouncedSourceEntitySearch(searchValue);
             }
-            const newTriplet = [value, triplets[1], triplets[2]];
+            const newTriplet = [searchValue, triplets[1], triplets[2]];
             setTriplets(newTriplet);
         }
     };
@@ -273,39 +278,31 @@ export default function SearchBarKnowledge(props) {
 
     //This function is called after click on Add Triplet button, adding three fields of the triplets to ChipData
     const handleAddTriplet = () => {
-        if (triplets[0] === "" && triplets[1] === "" && triplets[2] === "") return;
-        if (chipData.length >= 5) {
-            setTripletLimitReached(true);
-            return;
-        }
-        let chip_str = triplets.map((item, index) => {
-            if (index == 1 && item == "") {
-                return "[any relationships]"
-            } else if (index == 2 && item == "") {
-                return "()"
-            } else if (index == 1) {
-                return "[" + item + "]"
-            } else {
-                return "(" + item + ")"
-            }
-        }).join("-");
-        console.log(chip_str)
-        if (chipData.includes((chip_str))) return;
-        console.log(chipData);
+        console.log("Adding triplet:", triplets);
+        if (triplets[0] === "" || chipData.length >= 5) return;
+        
+        let chip_str = `(${triplets[0]})-[any relationships]-()`;
+        if (chipData.includes(chip_str)) return;
+        
         const newData = [...chipData, chip_str];
         setChipData(newData);
-        const sourceID = getIdFromName(triplets[0], sourceNodeOptions);
-        const targetID = getIdFromName(triplets[2], targetNodeOptions);
-        console.log(chipDataID);
-        setChipDataID([...chipDataID, [sourceID, targetID]]);
-
+        
+        const sourceNode = sourceNodeData.find(node => 
+            node.name.toLowerCase() === triplets[0].toLowerCase() ||
+            node.aliases.some(alias => alias.toLowerCase() === triplets[0].toLowerCase())
+        );
+        
+        console.log("Found source node:", sourceNode);
+        setChipDataID([...chipDataID, [sourceNode, null]]);
+        
         // Clear the inputs after adding the triplet
         setTriplets(["", "", ""]);
         setRelationship("");
         setSourceNodeOptions([]);
         setTargetNodeOptions([]);
+        setSelectedSource(null);
+        setInputValue("");
 
-        // Check if the limit is reached after adding
         if (newData.length >= 5) {
             setTripletLimitReached(true);
         }
@@ -313,22 +310,20 @@ export default function SearchBarKnowledge(props) {
 
     // This function is called after clicking on the search button
     const handleSearch = async () => {
-        console.log("searching result with data: ");
-        console.log(chipData);
-        console.log(maxArticles);
-        console.log(maxRel);
-        console.log(maxBioTerms);
-        console.log(moreNodes);
-        console.log(moreRel);
-
+        console.log("Searching with chip data:", chipData);
+        console.log("Chip data IDs:", chipDataID);
         let search_data = {
             "triplets": chipData.map((triplet, index) => {
                 const parts = triplet.replace(/{|}/g, "").split("-");
-                console.log(triplet)
+                const sourceNode = chipDataID[index][0];
+                const targetNode = chipDataID[index][1];
+                console.log("Processing triplet:", triplet);
+                console.log("Source node:", sourceNode);
+                console.log("Target node:", targetNode);
                 return {
-                    "source": [Number(chipDataID[index][0]), parts[0].trim()],
+                    "source": [Number(sourceNode ? sourceNode.database_id : 0), parts[0].trim()],
                     "rel": parts[1].trim(),
-                    "target": [Number(chipDataID[index][1]), parts[2].trim()]
+                    "target": [Number(targetNode ? targetNode.database_id : 0), parts[2].trim()]
                 };
             }),
             "params": {
@@ -340,7 +335,7 @@ export default function SearchBarKnowledge(props) {
                 "merge": "True"
             }
         };
-        console.log(search_data);
+        console.log("Search data:", search_data);
 
         // If we're on the result page, use the provided search function
         if (props.onSearch) {
@@ -428,9 +423,11 @@ export default function SearchBarKnowledge(props) {
                             autoHighlight={true}
                             filterOptions={filterOptions}
                             onInputChange={(event, newInputValue) => {
+                                console.log("Input changed to:", newInputValue);
+                                setInputValue(newInputValue);
                                 updateSource(event, newInputValue);
                             }}
-                            options={sourceNodeOptions.length > 0 ? sourceNodeOptions.map(option => (option[1])) : []}
+                            options={sourceNodeOptions.map(option => option[1])}
                             renderInput={(params) => (
                                 <TextField 
                                     {...params} 
@@ -440,13 +437,19 @@ export default function SearchBarKnowledge(props) {
                                     fullWidth 
                                     disabled={tripletLimitReached}
                                     helperText={tripletLimitReached ? "Maximum of 5 triplets reached" : ""}
-                                    className="search-autocomplete-box"  // Add this line
+                                    className="search-autocomplete-box"
+                                    // Remove onKeyDown prop
                                 />
                             )}
-                            value={triplets[0]}
+                            value={selectedSource}
+                            inputValue={inputValue}
                             onChange={(event, newValue) => {
-                                const newTriplet = [newValue ? newValue.split(' (')[0] : "", triplets[1], triplets[2]];
-                                setTriplets(newTriplet);
+                                console.log("Selected value:", newValue);
+                                setSelectedSource(newValue);
+                                if (newValue) {
+                                    const newTriplet = [newValue.split(' (')[0], triplets[1], triplets[2]];
+                                    setTriplets(newTriplet);
+                                }
                             }}
                             disabled={tripletLimitReached}
                         />
@@ -465,8 +468,8 @@ export default function SearchBarKnowledge(props) {
                                 width: isSmallScreen ? '100%' : 'auto'
                             }}
                             onClick={handleAddTriplet}
-                            disabled={tripletLimitReached}
-                            className="add-biomedical-term-button"  // Add this line
+                            disabled={tripletLimitReached || !selectedSource}
+                            className="add-biomedical-term-button"
                         >
                             Add Biomedical Term
                         </Button>
@@ -483,7 +486,8 @@ export default function SearchBarKnowledge(props) {
                                 width: isSmallScreen ? '100%' : 'auto'
                             }}
                             onClick={handleSearch}
-                            className="search-button"  // Add this line
+                            disabled={chipData.length === 0}
+                            className="search-button"
                         >
                             Search
                         </Button>

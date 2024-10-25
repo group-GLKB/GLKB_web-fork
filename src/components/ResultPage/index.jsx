@@ -300,12 +300,14 @@ const ResultPage = () => {
         setSearchFlag(false)
     }
 
+    // Add new state for storing graph data
+    const [graphForQuestions, setGraphForQuestions] = useState(null);
+
+    // Modify the search function to store the graph data
     async function search(content) {
         setSearchFlag(false)
-        // Clear the cached graphs
         setCachedTermGraph(null);
         setCachedArticleGraph(null);
-        // Reset display to term graph
         setDisplayArticleGraph(false);
         
         let cypherServ = new CypherService()
@@ -313,7 +315,9 @@ const ResultPage = () => {
         console.log('function -> ', response)
         setData(response[0])
         setAllNodes(response[1])
-        setCachedTermGraph(response); // Cache the new term graph
+        // Store just the graph data, not the entire response
+        setGraphForQuestions(response[0]) 
+        setCachedTermGraph(response);
         setSearchFlag(true)
     }
 
@@ -417,6 +421,7 @@ const ResultPage = () => {
 
     async function articleToEntity() {
         if (cachedTermGraph) {
+            // Use the cached response array correctly
             setData(cachedTermGraph[0]);
             setAllNodes(cachedTermGraph[1]);
         } else {
@@ -548,6 +553,7 @@ const ResultPage = () => {
                                 setDetailId={setDetailId}
                                 onClose={() => setIsSettingsVisible(false)}
                                 width={settingsWidth}
+                                graphForQuestions={graphForQuestions}
                             />
                         </div>
                         <div ref={informationRef} className={`floating-information ${isInformationVisible ? 'open' : ''}`} style={{ minWidth: '400px' }}>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import './scoped.css'
 import { DetailService } from '../../service/Detail'
-import { Descriptions, List, Collapse, Typography, Spin, Card, Tabs } from 'antd';
+import { Descriptions, List, Collapse, Typography, Spin, Card, Tabs, Empty } from 'antd';
 import { CaretRightOutlined } from '@ant-design/icons';
 
 const { Panel } = Collapse;
@@ -47,30 +47,30 @@ const Information = ({ width, ...props }) => {
             }
         }
         async function searchMergeInfoNode(content) {
+            setIsLoading(true);
             let detailServ = new DetailService()
-            const response = await detailServ.MergeNid2Detail(content)
-            console.log(response)
-            // const details = responses.map(response => response.data);
-            // console.log(details)
-            setNodeDetails(response.data);
-            console.log(nodeDetails)
-            setEdgeDetail({});
+            try {
+                const response = await detailServ.MergeNid2Detail(content)
+                console.log(response)
+                setNodeDetails(response.data);
+                console.log(nodeDetails)
+                setEdgeDetail({});
+            } finally {
+                setIsLoading(false);
+            }
         }
         async function searchInfoEdge(content) {
+            setIsLoading(true);
             console.log(content)
             let detailServ = new DetailService()
-            const response = await detailServ.MergeEid2Detail(content)
-            console.log(response.data)
-            // const sample_data = [[{"node1":"Neoplasms","node2":"Breast Neoplasms","number of citations":1,"relationship label":"Semantic_relationship","relationship type":"Negative_Correlation"},
-            //     [["Tumor suppression effect of Solanum nigrum polysaccharide fraction on Breast cancer via immunomodulation. (2016)","https://pubmed.ncbi.nlm.nih.gov/27365117/"]]],
-            //     [{"node1":"Breast Neoplasms","node2":"Neoplasms","number of citations":2,"relationship label":"Semantic_relationship","relationship type":"Positive_Correlation"},
-            //         [["Immunohistochemical expression of metallothionein in invasive breast cancer in relation to proliferative activity, histology and prognosis. (1996)","https://pubmed.ncbi.nlm.nih.gov/8604236/"],["Long-term exposure to elevated levels of circulating TIMP-1 but not mammary TIMP-1 suppresses growth of mammary carcinomas in transgenic mice. (2004)","https://pubmed.ncbi.nlm.nih.gov/15166086/"]]],
-            //     [{"node1":"Breast Neoplasms","node2":"Neoplasms","number of citations":1,"relationship label":"Semantic_relationship","relationship type":"Negative_Correlation"},[["Effect of catechol estrogens on rat mammary tumors. (1979)","https://pubmed.ncbi.nlm.nih.gov/115583/"]]],
-            //     ]
-            // const sample_data = [[{"node1":"Neoplasms","node2":"Breast Neoplasms","number of citations":1,"relationship label":"Semantic_relationship","relationship type":"Negative_Correlation"},[["Tumor suppression effect of Solanum nigrum polysaccharide fraction on Breast cancer via immunomodulation. (2016)","https://pubmed.ncbi.nlm.nih.gov/27365117/",6,2016]]],[{"node1":"Breast Neoplasms","node2":"Neoplasms","number of citations":2,"relationship label":"Semantic_relationship","relationship type":"Positive_Correlation"},[["Immunohistochemical expression of metallothionein in invasive breast cancer in relation to proliferative activity, histology and prognosis. (1996)","https://pubmed.ncbi.nlm.nih.gov/8604236/",11,1996],["Long-term exposure to elevated levels of circulating TIMP-1 but not mammary TIMP-1 suppresses growth of mammary carcinomas in transgenic mice. (2004)","https://pubmed.ncbi.nlm.nih.gov/15166086/",8,2004]]],[{"node1":"Breast Neoplasms","node2":"Neoplasms","number of citations":1,"relationship label":"Semantic_relationship","relationship type":"Negative_Correlation"},[["Effect of catechol estrogens on rat mammary tumors. (1979)","https://pubmed.ncbi.nlm.nih.gov/115583/",2,1979]]],[{"node1":"Breast Neoplasms","node2":"Neoplasms","number of citations":null,"relationship label":"Hierarchical_structure","relationship type":"subclass_of"},[]]];
-            // setEdgeDetail(sample_data);
-            setEdgeDetail(response.data)
-            setNodeDetails({})
+            try {
+                const response = await detailServ.MergeEid2Detail(content)
+                console.log(response.data)
+                setEdgeDetail(response.data)
+                setNodeDetails({})
+            } finally {
+                setIsLoading(false);
+            }
         }
         if (props.detailId) {
             console.log(props.detailId)
@@ -227,8 +227,17 @@ const Information = ({ width, ...props }) => {
     };
 
     const LoadingMessage = () => (
-        <div className="loading-message">
-            <Spin size="small" style={{ marginRight: '10px' }} />
+        <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            padding: '20px',
+            flexDirection: 'column',
+            gap: '10px',
+            height: '100%',
+            minHeight: '300px'  // Adjust this value based on your needs
+        }}>
+            <Spin size="large" />
             <Text>Loading details...</Text>
         </div>
     );
@@ -320,10 +329,11 @@ const Information = ({ width, ...props }) => {
                 bodyStyle={{
                     padding: '0',
                     backgroundColor: '#F7F7F7',
+                    minHeight: '200px', // Add minimum height to prevent layout shift
                 }}
             >
                 {!props.detailId ? (
-                    <NoSelectionMessage />
+                    <Empty description="Select a node or edge to view details" style={{ margin: '40px 0' }} />
                 ) : isLoading ? (
                     <LoadingMessage />
                 ) : (
