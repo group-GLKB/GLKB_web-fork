@@ -22,6 +22,7 @@ import { FloatButton } from "antd";
 import { PlusOutlined, MinusOutlined, InfoCircleOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ApartmentOutlined, FileTextOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { styled } from '@mui/material/styles';
 import Joyride, { STATUS } from 'react-joyride';
+import SearchBarNeighborhood from "../Units/SearchBarNeighborhood";
 
 const { Search } = Input;
 
@@ -222,18 +223,59 @@ const ResultPage = () => {
 
     useEffect(() => {
         if (search_data) {
-            let chipResultData = search_data.triplets.map(triplet => {
-                let chip_str = [
-                    `${triplet.source[1]}`,
-                    `${triplet.rel}`,
-                    `${triplet.target[1]}`
-                ].join("-");
-                return chip_str;
-            });
-
-            setChipData(chipResultData)
-            search(search_data)
+            const searchType = location.state.searchType;
+            
+            if (searchType === 'neighbor') {
+                handleNeighborSearch(search_data);
+            } else {
+                // Default to triplet search
+                handleTripletSearch(search_data);
+            }
         }
+    }, [search_data]);
+
+    const handleNeighborSearch = async (searchData) => {
+        try {
+            let cypherServ = new CypherService();
+            const neighborData = await cypherServ.Neighbor2Cypher(
+                searchData.source.database_id,
+                searchData.params.type,
+                searchData.params.limit,
+                searchData.params.rel_type
+            );
+
+            // Add validation check for neighborData
+            if (!Array.isArray(neighborData) || neighborData.length < 2) {
+                console.error('Invalid neighbor data format:', neighborData);
+                return;
+            }
+
+            const graphData = neighborData[0];  // Contains nodes and edges
+            const nodesList = neighborData[1];  // Contains simplified node list
+
+            setData(graphData);
+            setAllNodes(nodesList);
+            setSearchFlag(true);
+        } catch (error) {
+            console.error('Error fetching neighbor data:', error);
+            // Add error handling UI here
+        }
+    };
+
+    const handleTripletSearch = async (searchData) => {
+        try {
+            let cypherServ = new CypherService();
+            const response = await cypherServ.Triplet2Cypher(searchData);
+            setData(response[0]);
+            setAllNodes(response[1]);
+            setSearchFlag(true);
+        } catch (error) {
+            console.error('Error fetching triplet data:', error);
+            // Add error handling UI here
+        }
+    };
+
+    useEffect(() => {
         if (chipDataID) {
             const newArray = [];
             chipDataID.forEach(idArray => { newArray.push(idArray) });
@@ -242,7 +284,7 @@ const ResultPage = () => {
         }
         // Set information panel to open by default
         setInformationOpen(true);
-    }, [search_data, chipDataID])
+    }, [chipDataID])
 
     useEffect(() => {
         const updateWidths = () => {
@@ -281,7 +323,7 @@ const ResultPage = () => {
                 const searchBarHeight = document.querySelector('.search-bar-container').offsetHeight;
                 const navbarHeight = document.querySelector('.navbar-wrapper').offsetHeight;
                 const topOffset = navbarHeight + searchBarHeight;
-                
+
                 graphContainerRef.current.style.position = 'fixed';
                 graphContainerRef.current.style.top = `${topOffset}px`;
                 graphContainerRef.current.style.left = isSettingsVisible ? SETTINGS_PANEL_WIDTH : '0';
@@ -309,14 +351,14 @@ const ResultPage = () => {
         setCachedTermGraph(null);
         setCachedArticleGraph(null);
         setDisplayArticleGraph(false);
-        
+
         let cypherServ = new CypherService()
         const response = await cypherServ.Triplet2Cypher(content)
         console.log('function -> ', response)
         setData(response[0])
         setAllNodes(response[1])
         // Store just the graph data, not the entire response
-        setGraphForQuestions(response[0]) 
+        setGraphForQuestions(response[0])
         setCachedTermGraph(response);
         setSearchFlag(true)
     }
@@ -420,12 +462,17 @@ const ResultPage = () => {
     }
 
     async function articleToEntity() {
-        if (cachedTermGraph) {
-            // Use the cached response array correctly
-            setData(cachedTermGraph[0]);
-            setAllNodes(cachedTermGraph[1]);
+        if (searchType === 'neighbor') {
+            // Handle neighborhood search case
+            handleNeighborSearch(search_data);
         } else {
-            search(search_data);
+            // Handle triplet search case
+            if (cachedTermGraph) {
+                setData(cachedTermGraph[0]);
+                setAllNodes(cachedTermGraph[1]);
+            } else {
+                search(search_data);
+            }
         }
     }
 
@@ -443,6 +490,15 @@ const ResultPage = () => {
         window.addEventListener('resize', updateSettingsWidth);
         return () => window.removeEventListener('resize', updateSettingsWidth);
     }, []);
+
+    // Add state to track search type
+    const [searchType, setSearchType] = useState('triplet'); // default to triplet
+
+    useEffect(() => {
+        if (location.state?.searchType) {
+            setSearchType(location.state.searchType);
+        }
+    }, [location.state]);
 
     return (
         <div className="result-container" ref={containerRef}>
@@ -466,13 +522,22 @@ const ResultPage = () => {
             </div>
             <div className="search-bar-container">
                 <div className="search-bar-wrapper">
-                    <SearchBarKnowledge
-                        chipData={chipData}
-                        chipDataIDResult={chipDataIDResult}
-                        displayArticleGraph={displayArticleGraph}
-                        setDisplayArticleGraph={setDisplayArticleGraph}
-                        onSearch={search}
-                    />
+                    {searchType === 'neighbor' ? (
+                        <SearchBarNeighborhood
+                            onSearch={(data) => {
+                                setSearchFlag(false);
+                                handleNeighborSearch(data);
+                            }}
+                        />
+                    ) : (
+                        <SearchBarKnowledge
+                            chipData={chipData}
+                            chipDataIDResult={chipDataIDResult}
+                            displayArticleGraph={displayArticleGraph}
+                            setDisplayArticleGraph={setDisplayArticleGraph}
+                            onSearch={search}
+                        />
+                    )}
                 </div>
             </div>
             <div className='main-content'>

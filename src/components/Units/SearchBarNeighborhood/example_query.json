@@ -1,0 +1,66 @@
+[{
+        "source": {
+            "aliases": [],
+            "database_id": "91705649",
+            "description": "tumor protein p53",
+            "element_id": "hgnc:11998",
+            "external_sources": {
+                "hgnc": "11998"
+            },
+            "n_citations": 100947,
+            "name": "TP53",
+            "type": "Gene"
+        },
+        "params": {
+            "type": "SequenceVariant",
+            "limit": 10,
+            "rel_type": "semantic relationships"
+        }
+    },
+    {
+        "source": {
+            "aliases": [
+                "Alzheimer disease",
+                "Alzheimer Disease",
+                "Alzheimer's disease"
+            ],
+            "database_id": "92102500",
+            "description": "A degenerative disease of the brain characterized by the insidious onset of dementia. Impairment of memory, judgment, attention span, and problem solving skills are followed by severe apraxia and a global loss of cognitive abilities. The condition primarily occurs after age 60, and is marked pathologically by severe cortical atrophy and the triad of senile plaques, neurofibrillary tangles, and neuropil threads.",
+            "element_id": "hp:0002511",
+            "external_sources": {
+                "doid": "10652",
+                "hp": "0002511",
+                "mesh": "D000544",
+                "mondo": "0004975"
+            },
+            "n_citations": 16719,
+            "name": "Alzheimer disease",
+            "type": "DiseaseOrPhenotypicFeature"
+        },
+        "params": {
+            "type": "Gene",
+            "limit": 10,
+            "rel_type": "semantic relationships"
+        }
+    },
+    {
+        "source": {
+            "aliases": [],
+            "database_id": "91689683",
+            "description": "SRY-box transcription factor 2",
+            "element_id": "hgnc:11195",
+            "external_sources": {
+                "hgnc": "11195"
+            },
+            "n_citations": 8799,
+            "name": "SOX2",
+            "type": "Gene"
+        },
+        "params": {
+            "type": "Vocabulary",
+            "limit": 30,
+            "rel_type": "curated relationships"
+        }
+    }
+
+]
