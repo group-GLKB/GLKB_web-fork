@@ -19,6 +19,7 @@ import umLogo from "../../img/MedSchoolLogo.png";
 import exampleQueries from '../../components/Units/SearchBarKnowledge/example_query.json';
 import { Button, Box } from '@mui/material'; // Import MUI components
 import neighborhoodExamples from '../../components/Units/SearchBarNeighborhood/example_query.json';  // Add this import
+import { trackEvent } from '../Units/analytics';
 
 const { Search } = Input;
 
@@ -29,15 +30,21 @@ const HomePage = () => {
     const [activeButton, setActiveButton] = useState('triplet');  // Changed default to 'triplet'
 
     const handleSearch = async (v) => {
+        // Track searches
+        trackEvent('Search', 'Search Performed', activeButton);
+        
         navigate('/result', { 
             state: { 
                 search_data: v,
-                searchType: activeButton  // Pass the active button state
+                searchType: activeButton
             } 
         });
     }
 
     const handleExampleQuery = (index) => {
+        // Track example query clicks
+        trackEvent('Search', 'Example Query Click', `Example ${index + 1}`);
+        
         if (activeButton === 'triplet') {
             if (exampleQueries && exampleQueries.length > index) {
                 const exampleQuery = exampleQueries[index];

@@ -4,6 +4,9 @@ import HomePage from './components/HomePage'
 import AboutPage from './components/AboutPage'  // Add this import
 import { Provider } from 'react-globally'
 import { createBrowserHistory } from 'history';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { initGA, trackPageView } from './components/Units/analytics';
 
 import ResultPage from './components/ResultPage'
 import { Result } from 'antd'

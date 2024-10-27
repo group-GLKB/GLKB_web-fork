@@ -23,6 +23,7 @@ import { PlusOutlined, MinusOutlined, InfoCircleOutlined, MenuFoldOutlined, Menu
 import { styled } from '@mui/material/styles';
 import Joyride, { STATUS } from 'react-joyride';
 import SearchBarNeighborhood from "../Units/SearchBarNeighborhood";
+import { trackEvent } from '../Units/analytics';
 
 const { Search } = Input;
 
@@ -172,8 +173,10 @@ const ResultPage = () => {
 
     // Add this new function to start the tour
     const startTour = () => {
+        // Track tour starts
+        trackEvent('Tour', 'Start Tour', 'Result Page');
         setRunTour(true);
-        setTourKey(prevKey => prevKey + 1); // Increment the key when starting the tour
+        setTourKey(prevKey => prevKey + 1);
     };
 
     useEffect(() => {
@@ -438,6 +441,11 @@ const ResultPage = () => {
     };
 
     const changeLeftPanel = () => {
+        // Track graph type changes
+        trackEvent('Graph', 'Change Graph Type', 
+            displayArticleGraph ? 'Term Graph' : 'Article Graph'
+        );
+
         if (!displayArticleGraph) {
             setDisplayArticleGraph(true);
             setDetailId(null);
