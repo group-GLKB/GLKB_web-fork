@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { CypherService } from '../../service/Cypher'
 import { DetailService } from '../../service/Detail'
 import 'antd/dist/reset.css';
-import { Col, Row, Input, Spin, Tag, Menu, Button } from 'antd';
+import { Col, Row, Input, Spin, Tag, Menu, Button, Tooltip } from 'antd';
 import { TweenOneGroup } from 'rc-tween-one';
 import './scoped.css'
 import NavBarWhite from '../Units/NavBarWhite'
@@ -388,11 +388,15 @@ const ResultPage = () => {
                 nodes: filteredNodes,
                 edges: filteredEdges
             };
-            setGraphShownData(filteredData)
+            setGraphShownData(filteredData);
+            setNodeCount(filteredNodes.length);
+            setTotalNodeCount(data.nodes?.length || 0);
         } else {
             if (data.edges) {
-                setGraphShownData(data)
-                setSearchFlag(true)
+                setGraphShownData(data);
+                setNodeCount(data.nodes?.length || 0);
+                setTotalNodeCount(data.nodes?.length || 0);
+                setSearchFlag(true);
             }
         }
     }, [graphData, data])
@@ -508,6 +512,21 @@ const ResultPage = () => {
         }
     }, [location.state]);
 
+    // Add new state for node count
+    const [totalNodeCount, setTotalNodeCount] = useState(0);
+    const [nodeCount, setNodeCount] = useState(0);
+    const NODE_LIMIT = 10;
+
+    const getButtonTooltip = () => {
+        if (totalNodeCount > NODE_LIMIT) {
+            return `Cannot convert to article graph when there are more than ${NODE_LIMIT} nodes in the original graph (total: ${totalNodeCount} nodes). Please modify your search to reduce the number of nodes.`;
+        } else if (displayArticleGraph) {
+            return "Convert back to biomedical term graph";
+        } else {
+            return "Convert to article graph";
+        }
+    };
+
     return (
         <div className="result-container" ref={containerRef}>
             <Joyride
@@ -557,14 +576,19 @@ const ResultPage = () => {
                 {searchFlag && (
                     <div className='result-content'>
                         <div className="graph-controls">
-                            <StyledButton
-                                onClick={changeLeftPanel}
-                                variant="contained"
-                                startIcon={displayArticleGraph ? <ApartmentOutlined /> : <FileTextOutlined />}
-                                className="graph-control-button"
-                            >
-                                {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
-                            </StyledButton>
+                            <Tooltip title={getButtonTooltip()}>
+                                <span>
+                                    <StyledButton
+                                        onClick={changeLeftPanel}
+                                        variant="contained"
+                                        startIcon={displayArticleGraph ? <ApartmentOutlined /> : <FileTextOutlined />}
+                                        className="graph-control-button"
+                                        disabled={totalNodeCount > NODE_LIMIT && !displayArticleGraph}
+                                    >
+                                        {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
+                                    </StyledButton>
+                                </span>
+                            </Tooltip>
                             <Button
                                 icon={<QuestionCircleOutlined />}
                                 onClick={startTour}
