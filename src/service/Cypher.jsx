@@ -37,19 +37,16 @@ export class CypherService {
                 'Access-Control-Allow-Origin': '*'
             }
         };
+        
+        if (content.params && !content.params.type) {
+            content.params.type = 'All';
+        }
+        
         await axios
             .post("/api/frontend/frontend_triplet2graph", JSON.stringify(content), config)
             // .post("/frontend/frontend_triplet2graph", JSON.stringify(content), config)
             .then(function (response) {
                 res = response.data;
-                let queryParams = new URLSearchParams();
-                // queryParams.append('data', JSON.stringify(res));
-                // let queryString = queryParams.toString();
-                // let resultPageURL = '/result?' + JSON.stringify(content);
-
-                // Redirect the user to the result page
-                // window.location.href = resultPageURL;
-                // window.location.href = '/result'
                 console.log('response', response.data);
             })
             .catch(function (error) {
@@ -59,9 +56,10 @@ export class CypherService {
         return res;
     }
 
-    async Entity2Cypher(content) {
+    async Entity2Cypher(content, type = 'All') {
         console.log('entity to cypher')
-        console.log(content)
+        console.log('content:', content)
+        console.log('type:', type)
         let res = []
         var config = {
             headers: {
@@ -69,12 +67,13 @@ export class CypherService {
                 'Access-Control-Allow-Origin': '*'
             },
             params: {
-                query: content
+                query: content,
+                ent_type: type
             }
         }
         await axios
-            .get("/api/frontend/entity_search?query=" + content)
-            // .get("/frontend/entity_search?query=" + content)
+            .get("/api/frontend/entity_search", config)
+            // .get("/frontend/entity_search", config)
             .then(function (response) {
                 res = response
             })

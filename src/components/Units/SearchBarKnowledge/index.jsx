@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import { Stack, Chip, TextField, Button, Select, MenuItem, FormControl,
     InputLabel, Box, Container, Typography, Autocomplete, Card, Grid} from '@mui/material';
 import { createFilterOptions } from '@mui/material/Autocomplete';
@@ -10,6 +10,7 @@ import {matchSorter} from 'match-sorter'
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { debounce } from 'lodash'; // Add this import
+import { Select as AntSelect, Tooltip } from 'antd';  // Add this import
 
 export default function SearchBarKnowledge(props) {
     const navigate = useNavigate();
@@ -30,6 +31,7 @@ export default function SearchBarKnowledge(props) {
     const [tripletLimitReached, setTripletLimitReached] = React.useState(false);
     const [selectedSource, setSelectedSource] = useState(null);
     const [inputValue, setInputValue] = useState('');
+    const [termType, setTermType] = useState('All');  // Add this state
 
     const showAdvance = true;
     const relationTypes = ["Associate", "Bind", "Comparison", "Cotreatment", "PositiveCorrelation", "NegativeCorrelation"];
@@ -152,39 +154,49 @@ export default function SearchBarKnowledge(props) {
         }
     }, [sourceNodeData]);
 
-    // Create debounced search functions
-    const debouncedSourceEntitySearch = React.useCallback(
-        debounce((value) => {
-            sourceEntitySearch(value);
-        }, 200),
+    // Simple debounced search function
+    const debouncedSearch = useCallback(
+        debounce((searchFn) => searchFn(), 200),
         []
     );
 
-    const debouncedTargetEntitySearch = React.useCallback(
-        debounce((value) => {
-            targetEntitySearch(value);
-        }, 200),
-        []
-    );
+    // Main search function that always uses current term type
+    const performSearch = async (searchValue) => {
+        console.log('Performing search with:', { searchValue, termType });
+        let cypherServ = new CypherService();
+        const response = await cypherServ.Entity2Cypher(searchValue, termType);
+        setSourceNodeData(response.data);
+        setSourceNodeOptions([
+            ...response.data.map(node => [node.database_id, `${node.name} (${node.element_id})`])
+        ]);
+    };
 
-    const updateSource = (event, value) => {
-        console.log("updateSource called with value:", value);
-        if (value === null || value.trim() === '') {
+    const updateSource = (event, newInputValue) => {
+        console.log("updateSource called with:", { newInputValue, termType });
+        
+        if (newInputValue === null || newInputValue.trim() === '') {
             setSourceNodeOptions([]);
             const newTriplet = ["", triplets[1], triplets[2]];
             setTriplets(newTriplet);
             setSelectedSource(null);
-        } else {
-            const searchValue = value.split(' (')[0];
-            console.log("Search value:", searchValue);
-            if (event && event.type === "click") {
-                sourceEntitySearch(searchValue);
-            } else {
-                debouncedSourceEntitySearch(searchValue);
-            }
-            const newTriplet = [searchValue, triplets[1], triplets[2]];
-            setTriplets(newTriplet);
+            setInputValue('');
+            return;
         }
+
+        const searchValue = newInputValue.split(' (')[0];
+        setInputValue(newInputValue);
+        
+        // Always create a new search function with current values
+        const searchFn = () => performSearch(searchValue);
+        
+        if (event && event.type === "click") {
+            searchFn();
+        } else {
+            debouncedSearch(searchFn);
+        }
+        
+        const newTriplet = [searchValue, triplets[1], triplets[2]];
+        setTriplets(newTriplet);
     };
 
     useEffect(() => {
@@ -364,15 +376,17 @@ export default function SearchBarKnowledge(props) {
     // }
 
     async function sourceEntitySearch(content) {
+        console.log('Searching with term type:', termType);  // Debug log
         let cypherServ = new CypherService()
-        const response = await cypherServ.Entity2Cypher(content)
+        const response = await cypherServ.Entity2Cypher(content, termType)  // Always pass current termType
         console.log('source -> ', response)
         setSourceNodeData(response.data)
     }
 
     async function targetEntitySearch(content) {
+        console.log('Searching with term type:', termType);  // Debug log
         let cypherServ = new CypherService()
-        const response = await cypherServ.Entity2Cypher(content)
+        const response = await cypherServ.Entity2Cypher(content, termType)  // Always pass current termType
         console.log('target -> ', response)
         setTargetNodeData(response.data)
     }
@@ -413,10 +427,40 @@ export default function SearchBarKnowledge(props) {
         return data;
     };
 
+    // Effect to re-search when term type changes
+    useEffect(() => {
+        if (inputValue) {
+            const searchValue = inputValue.split(' (')[0];
+            performSearch(searchValue);
+        }
+    }, [termType]);
+
     return (
         <Container maxWidth={isSmallScreen ? "xs" : isMediumScreen ? "sm" : "md"}>
             <Box sx={{ marginTop: 2, marginBottom: 2 }}>
                 <Box display="flex" alignItems="center" gap={2} flexDirection={isSmallScreen ? 'column' : 'row'}>
+                    <Box sx={{ width: isSmallScreen ? '100%' : '200px' }}>
+                        <Tooltip 
+                            title="Type of the input biomedical term"
+                            placement="top"
+                        >
+                            <AntSelect
+                                className="term-type-dropdown"
+                                style={{ width: '100%' }}
+                                value={termType}
+                                onChange={setTermType}
+                                options={[
+                                    { value: 'Gene', label: 'Gene' },
+                                    { value: 'Disease', label: 'Disease' },
+                                    { value: 'Chemical', label: 'Chemical' },
+                                    { value: 'MeSH', label: 'MeSH' },
+                                    { value: 'Variant', label: 'Variant' },
+                                    { value: 'All', label: 'All' },
+                                ]}
+                            />
+                        </Tooltip>
+                    </Box>
+
                     <FormControl sx={{ flexGrow: 1, width: isSmallScreen ? '100%' : 'auto' }}>
                         <Autocomplete
                             freeSolo

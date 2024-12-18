@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Box, Container, TextField, Button, Autocomplete } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { CypherService } from '../../../service/Cypher';
@@ -17,37 +17,47 @@ export default function SearchBarNeighborhood(props) {
     const [searchType, setSearchType] = useState('Vocabulary');
     const [searchLimit, setSearchLimit] = useState(10);
     const [relationType, setRelationType] = useState('semantic relationships');
+    const [termType, setTermType] = useState('All');
 
-    // Create debounced search function
-    const debouncedSourceEntitySearch = useCallback(
-        debounce((value) => {
-            sourceEntitySearch(value);
-        }, 200),
+    // Simple debounced search function
+    const debouncedSearch = useCallback(
+        debounce((searchFn) => searchFn(), 200),
         []
     );
 
-    const updateSource = (event, value) => {
-        if (value === null || value.trim() === '') {
-            setSourceNodeOptions([]);
-            setSelectedSource(null);
-        } else {
-            const searchValue = value.split(' (')[0];
-            if (event && event.type === "click") {
-                sourceEntitySearch(searchValue);
-            } else {
-                debouncedSourceEntitySearch(searchValue);
-            }
-        }
-    };
-
-    async function sourceEntitySearch(content) {
-        let cypherServ = new CypherService()
-        const response = await cypherServ.Entity2Cypher(content)
-        setSourceNodeData(response.data)
+    // Main search function that always uses current term type
+    const performSearch = async (searchValue) => {
+        console.log('Performing search with:', { searchValue, termType });
+        let cypherServ = new CypherService();
+        const response = await cypherServ.Entity2Cypher(searchValue, termType);
+        setSourceNodeData(response.data);
         setSourceNodeOptions([
             ...response.data.map(node => [node.database_id, `${node.name} (${node.element_id})`])
         ]);
-    }
+    };
+
+    const updateSource = (event, newInputValue) => {
+        console.log("updateSource called with:", { newInputValue, termType });
+        
+        if (newInputValue === null || newInputValue.trim() === '') {
+            setSourceNodeOptions([]);
+            setSelectedSource(null);
+            setInputValue('');
+            return;
+        }
+
+        const searchValue = newInputValue.split(' (')[0];
+        setInputValue(newInputValue);
+        
+        // Always create a new search function with current values
+        const searchFn = () => performSearch(searchValue);
+        
+        if (event && event.type === "click") {
+            searchFn();
+        } else {
+            debouncedSearch(searchFn);
+        }
+    };
 
     const handleSearch = async () => {
         if (!selectedSource) return;
@@ -81,35 +91,67 @@ export default function SearchBarNeighborhood(props) {
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
+    // Effect to re-search when term type changes
+    useEffect(() => {
+        if (inputValue) {
+            const searchValue = inputValue.split(' (')[0];
+            performSearch(searchValue);
+        }
+    }, [termType]);
+
     return (
         <Container maxWidth={isSmallScreen ? "xs" : "md"}>
             <Box sx={{ marginTop: 2, marginBottom: 2 }}>
-                {/* First row with Autocomplete */}
-                <Box sx={{ mb: 2 }}>
-                    <Autocomplete
-                        freeSolo
-                        autoHighlight={true}
-                        onInputChange={(event, newInputValue) => {
-                            setInputValue(newInputValue);
-                            updateSource(event, newInputValue);
-                        }}
-                        options={sourceNodeOptions.map(option => option[1])}
-                        renderInput={(params) => (
-                            <TextField 
-                                {...params} 
-                                label="Type in a biomedical term and select from dropdown menu" 
-                                variant="outlined" 
-                                size="small" 
-                                fullWidth 
-                                className="search-autocomplete-box"
+                {/* First row with term type and Autocomplete */}
+                <Box sx={{ mb: 2, display: 'flex', gap: 2, flexDirection: isSmallScreen ? 'column' : 'row' }}>
+                    <Box sx={{ width: isSmallScreen ? '100%' : '200px' }}>
+                        <Tooltip 
+                            title="Type of the input biomedical term"
+                            placement="top"
+                        >
+                            <Select
+                                className="term-type-dropdown"
+                                style={{ width: '100%' }}
+                                value={termType}
+                                onChange={setTermType}
+                                options={[
+                                    { value: 'Gene', label: 'Gene' },
+                                    { value: 'Disease', label: 'Disease' },
+                                    { value: 'Chemical', label: 'Chemical' },
+                                    { value: 'MeSH', label: 'MeSH' },
+                                    { value: 'Variant', label: 'Variant' },
+                                    { value: 'All', label: 'All' },
+                                ]}
                             />
-                        )}
-                        value={selectedSource}
-                        inputValue={inputValue}
-                        onChange={(event, newValue) => {
-                            setSelectedSource(newValue);
-                        }}
-                    />
+                        </Tooltip>
+                    </Box>
+
+                    <Box sx={{ flexGrow: 1 }}>
+                        <Autocomplete
+                            freeSolo
+                            autoHighlight={true}
+                            onInputChange={(event, newInputValue) => {
+                                setInputValue(newInputValue);
+                                updateSource(event, newInputValue);
+                            }}
+                            options={sourceNodeOptions.map(option => option[1])}
+                            renderInput={(params) => (
+                                <TextField 
+                                    {...params} 
+                                    label="Type in a biomedical term and select from dropdown menu" 
+                                    variant="outlined" 
+                                    size="small" 
+                                    fullWidth 
+                                    className="search-autocomplete-box"
+                                />
+                            )}
+                            value={selectedSource}
+                            inputValue={inputValue}
+                            onChange={(event, newValue) => {
+                                setSelectedSource(newValue);
+                            }}
+                        />
+                    </Box>
                 </Box>
 
                 {/* Second row with dropdowns and search button */}
@@ -148,8 +190,8 @@ export default function SearchBarNeighborhood(props) {
                                     onChange={setSearchLimit}
                                     options={[
                                         { value: 10, label: '10 results' },
+                                        { value: 15, label: '15 results' },
                                         { value: 20, label: '20 results' },
-                                        { value: 30, label: '30 results' },
                                     ]}
                                 />
                             </Tooltip>
