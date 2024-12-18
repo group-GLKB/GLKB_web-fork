@@ -9,15 +9,17 @@ Cytoscape.use(fcose);
 Cytoscape.use(cola);
 
 function Graph(props) {
-
   const [width, setWith] = useState('100%');
   const [height, setHeight] = useState('80vh');
  
   useEffect(() => {
+    if (!props.data || !props.data.nodes) return;
+
     let curMinGtdcFreq = Number.MAX_SAFE_INTEGER;
     let curMaxGtdcFreq = Number.MIN_SAFE_INTEGER;
     let curMinGtdcNoc = Number.MAX_SAFE_INTEGER;
     let curMaxGtdcNoc = Number.MIN_SAFE_INTEGER;
+    
     for (let i of props.data.nodes) {
       curMinGtdcFreq = Math.min(curMinGtdcFreq, i.data.frequency);
       curMaxGtdcFreq = Math.max(curMaxGtdcFreq, i.data.frequency);
@@ -33,6 +35,10 @@ function Graph(props) {
   }, [props.data]);
   
   const graphData = useMemo(() => {
+    if (!props.data || !props.data.nodes || !props.data.edges) {
+      return { edges: [], nodes: [] };
+    }
+
     let elements = {edges: [], nodes: []}
     for (let i in props.data.nodes) {
       let node = props.data.nodes[i].data
@@ -50,7 +56,12 @@ function Graph(props) {
       }
     }
     return elements;
-  }, [props.gtdcFreq, props.gtdcNoc])
+  }, [props.data, props.gtdcFreq, props.gtdcNoc])
+
+  // Add early return if no data
+  if (!props.data || !props.data.nodes) {
+    return <div>Loading...</div>;
+  }
 
   let id = []
   for (var i in graphData.nodes) {

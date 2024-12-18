@@ -4,7 +4,7 @@ import { Row, Col, Slider, Collapse, Transfer, InputNumber, Typography, Button, 
 import { DownOutlined, SmileOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { CaretRightOutlined, PlusCircleOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { NewGraph } from '../../service/NewNode'
-import {CypherService} from '../../service/Cypher'
+import { CypherService } from '../../service/Cypher'
 import { render } from '@testing-library/react';
 import { Tooltip } from 'antd';
 const { Panel } = Collapse;
@@ -33,11 +33,11 @@ const Filter = props => {
         props.allNodes.forEach((node, index) => {
             const type = node.type.split(';')[0];
             if (!groupedNodes[type]) {
-              groupedNodes[type] = { key: type, title: type, children: [] };
+                groupedNodes[type] = { key: type, title: type, children: [] };
             }
-            groupedNodes[type].children.push({ key: node.id, title: node.name, icon: <PlusCircleOutlined style={{color: 'green'}}/>});
-          });
-          
+            groupedNodes[type].children.push({ key: node.id, title: node.name, icon: <PlusCircleOutlined style={{ color: 'green' }} /> });
+        });
+
         existingNodes = Object.values(groupedNodes);
     }
     let initRightTreeData = [];
@@ -48,7 +48,7 @@ const Filter = props => {
                 for (let i = 0; i < props.graphShownData.nodes.length; i++) {
                     const node = props.graphShownData.nodes[i];
                     const label = node.data.label;
-                    const newNode = { key: node.data.id, title: node.data.display, icon: <MinusCircleOutlined style={{color: 'red'}}/> };
+                    const newNode = { key: node.data.id, title: node.data.display, icon: <MinusCircleOutlined style={{ color: 'red' }} /> };
 
                     const labelData = initRightTreeData.find(group => group.key === label);
 
@@ -61,7 +61,7 @@ const Filter = props => {
             }
             setRightData(initRightTreeData)
         }
-    },[props.graphShownData])
+    }, [props.graphShownData])
 
     async function entityToArticle(content) {
         let cypherServ = new CypherService()
@@ -100,7 +100,7 @@ const Filter = props => {
         if (currentEdgeLabelsSet) {
             if (currentEdgeLabelsSet.has(label))
                 boolEdgeValues[label] = true;
-            else 
+            else
                 boolEdgeValues[label] = false;
         } else {
             boolEdgeValues[label] = true;
@@ -110,13 +110,13 @@ const Filter = props => {
         if (currentLabelsSet) {
             if (currentLabelsSet.has(label))
                 boolValues[label] = true;
-            else 
+            else
                 boolValues[label] = false;
         } else {
             boolValues[label] = true;
         }
     });
-    
+
 
 
     const existingNodeList = []
@@ -153,12 +153,12 @@ const Filter = props => {
     const LegendItem = ({ label, size, color, explanation }) => {
         const isQueryTerms = label === 'query terms';
         const isRelationship = label.includes("relationship");
-        
+
         return (
             <div className="legend-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                     {isRelationship ? (
-                        <div style={{ marginLeft: "0px", width: "30px", height: "0", borderBottom: '0.5px black', borderBottom: size}}></div>
+                        <div style={{ marginLeft: "0px", width: "30px", height: "0", borderBottom: '0.5px black', borderBottom: size }}></div>
                     ) : (
                         <div className="legend-circle" style={{ backgroundColor: color, width: size, height: size, marginLeft: size === 5 ? "6px" : size === 10 ? "4px" : "0" }}></div>
                     )}
@@ -182,7 +182,7 @@ const Filter = props => {
         { label: 'query terms', size: 20, color: '#A9A9A9' },
         { label: 'non-query terms', size: 20, color: '#A9A9A9' },
     ]
-      
+
     const sizeData = [
         { label: 'frequency < 30', size: 5, color: '#A9A9A9' },
         { label: '30 <= frequency < 60', size: 10, color: '#A9A9A9' },
@@ -200,9 +200,9 @@ const Filter = props => {
     ]
 
     const edgeDataAll = [
-        {label: 'Semantic_relationship', size: 'solid', color: 'black', explanation: 'Relationships extracted from PubMed abstracts.'},
-        {label: 'Curated_relationship', size: 'dashed', color: 'black', explanation: 'Manually annotated relationships from data repositories.'},
-        {label: 'Hierarchical_relationship', size: 'dotted', color: 'black', explanation: 'Relationships that represent a hierarchy.'},
+        { label: 'Semantic_relationship', size: 'solid', color: 'black', explanation: 'Relationships extracted from PubMed abstracts.' },
+        { label: 'Curated_relationship', size: 'dashed', color: 'black', explanation: 'Manually annotated relationships from data repositories.' },
+        { label: 'Hierarchical_relationship', size: 'dotted', color: 'black', explanation: 'Relationships that represent a hierarchy.' },
     ]
 
     const legendData = legendDataAll.filter(item => uniqueLabelsArray.includes(item.label));
@@ -252,10 +252,10 @@ const Filter = props => {
         console.log(response)
         const newData = JSON.parse(JSON.stringify(props.data));
         for (var i = 0; i < response.data.nodes.length; i++) {
-            newData.nodes.push({'data': response.data.nodes[i]})
+            newData.nodes.push({ 'data': response.data.nodes[i] })
         }
         for (var i = 0; i < response.data.links.length; i++) {
-            newData.edges.push({'data': response.data.links[i]})
+            newData.edges.push({ 'data': response.data.links[i] })
         }
         props.setData(newData)
     }
@@ -275,9 +275,9 @@ const Filter = props => {
                         const node = props.graphShownData.nodes[i];
                         const label = node.data.label;
                         const newNode = { key: node.data.id, title: node.data.display };
-    
+
                         const labelData = initRightTreeData.find(group => group.key === label);
-    
+
                         if (labelData) {
                             labelData.children.push(newNode);
                         } else {
@@ -353,7 +353,7 @@ const Filter = props => {
     useEffect(() => {
         if (props.graphShownData && props.graphShownData.nodes) {
             const nodes = props.graphShownData.nodes;
-            
+
             // Filter out 'Article' nodes for entity items
             const entityNodes = nodes.filter(node => node.data.label !== 'Article');
             const items = entityNodes.map((node) => ({
@@ -482,7 +482,7 @@ const Filter = props => {
             question: userQuestion,
             graph: props.data
         };
-        
+
         try {
             const response = await cypherService.generateFreeAnswer(questionData);
             setCustomAnswer(response.answer);
@@ -581,10 +581,10 @@ const Filter = props => {
                                     <div className="question-section" style={{ marginTop: '20px' }}>
                                         <h4>Ask your own question:</h4>
                                         <div className="question-inputs">
-                                            <Input 
-                                                placeholder="Type your question here..." 
-                                                value={userQuestion} 
-                                                onChange={(e) => setUserQuestion(e.target.value)} 
+                                            <Input
+                                                placeholder="Type your question here..."
+                                                value={userQuestion}
+                                                onChange={(e) => setUserQuestion(e.target.value)}
                                             />
                                             <Button onClick={handleUserQuestionSubmit} loading={loadingCustom}>Submit Question</Button>
                                         </div>
@@ -643,10 +643,10 @@ const Filter = props => {
                                     <div className="question-section">
                                         <h4>Ask your own question:</h4>
                                         <div className="question-inputs">
-                                            <Input 
-                                                placeholder="Type your question here..." 
-                                                value={userQuestion} 
-                                                onChange={(e) => setUserQuestion(e.target.value)} 
+                                            <Input
+                                                placeholder="Type your question here..."
+                                                value={userQuestion}
+                                                onChange={(e) => setUserQuestion(e.target.value)}
                                             />
                                             <Button onClick={handleUserQuestionSubmit} loading={loadingCustom}>Submit Question</Button>
                                         </div>

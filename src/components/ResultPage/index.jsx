@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { CypherService } from '../../service/Cypher'
 import { DetailService } from '../../service/Detail'
 import 'antd/dist/reset.css';
-import { Col, Row, Input, Spin, Tag, Menu, Button } from 'antd';
+import { Col, Row, Input, Spin, Tag, Menu, Button, Tooltip } from 'antd';
 import { TweenOneGroup } from 'rc-tween-one';
 import './scoped.css'
 import NavBarWhite from '../Units/NavBarWhite'
@@ -22,6 +22,8 @@ import { FloatButton } from "antd";
 import { PlusOutlined, MinusOutlined, InfoCircleOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ApartmentOutlined, FileTextOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { styled } from '@mui/material/styles';
 import Joyride, { STATUS } from 'react-joyride';
+import SearchBarNeighborhood from "../Units/SearchBarNeighborhood";
+import { trackEvent } from '../Units/analytics';
 
 const { Search } = Input;
 
@@ -171,8 +173,10 @@ const ResultPage = () => {
 
     // Add this new function to start the tour
     const startTour = () => {
+        // Track tour starts
+        trackEvent('Tour', 'Start Tour', 'Result Page');
         setRunTour(true);
-        setTourKey(prevKey => prevKey + 1); // Increment the key when starting the tour
+        setTourKey(prevKey => prevKey + 1);
     };
 
     useEffect(() => {
@@ -222,18 +226,59 @@ const ResultPage = () => {
 
     useEffect(() => {
         if (search_data) {
-            let chipResultData = search_data.triplets.map(triplet => {
-                let chip_str = [
-                    `${triplet.source[1]}`,
-                    `${triplet.rel}`,
-                    `${triplet.target[1]}`
-                ].join("-");
-                return chip_str;
-            });
-
-            setChipData(chipResultData)
-            search(search_data)
+            const searchType = location.state.searchType;
+            
+            if (searchType === 'neighbor') {
+                handleNeighborSearch(search_data);
+            } else {
+                // Default to triplet search
+                handleTripletSearch(search_data);
+            }
         }
+    }, [search_data]);
+
+    const handleNeighborSearch = async (searchData) => {
+        try {
+            let cypherServ = new CypherService();
+            const neighborData = await cypherServ.Neighbor2Cypher(
+                searchData.source.database_id,
+                searchData.params.type,
+                searchData.params.limit,
+                searchData.params.rel_type
+            );
+
+            // Add validation check for neighborData
+            if (!Array.isArray(neighborData) || neighborData.length < 2) {
+                console.error('Invalid neighbor data format:', neighborData);
+                return;
+            }
+
+            const graphData = neighborData[0];  // Contains nodes and edges
+            const nodesList = neighborData[1];  // Contains simplified node list
+
+            setData(graphData);
+            setAllNodes(nodesList);
+            setSearchFlag(true);
+        } catch (error) {
+            console.error('Error fetching neighbor data:', error);
+            // Add error handling UI here
+        }
+    };
+
+    const handleTripletSearch = async (searchData) => {
+        try {
+            let cypherServ = new CypherService();
+            const response = await cypherServ.Triplet2Cypher(searchData);
+            setData(response[0]);
+            setAllNodes(response[1]);
+            setSearchFlag(true);
+        } catch (error) {
+            console.error('Error fetching triplet data:', error);
+            // Add error handling UI here
+        }
+    };
+
+    useEffect(() => {
         if (chipDataID) {
             const newArray = [];
             chipDataID.forEach(idArray => { newArray.push(idArray) });
@@ -242,7 +287,7 @@ const ResultPage = () => {
         }
         // Set information panel to open by default
         setInformationOpen(true);
-    }, [search_data, chipDataID])
+    }, [chipDataID])
 
     useEffect(() => {
         const updateWidths = () => {
@@ -281,7 +326,7 @@ const ResultPage = () => {
                 const searchBarHeight = document.querySelector('.search-bar-container').offsetHeight;
                 const navbarHeight = document.querySelector('.navbar-wrapper').offsetHeight;
                 const topOffset = navbarHeight + searchBarHeight;
-                
+
                 graphContainerRef.current.style.position = 'fixed';
                 graphContainerRef.current.style.top = `${topOffset}px`;
                 graphContainerRef.current.style.left = isSettingsVisible ? SETTINGS_PANEL_WIDTH : '0';
@@ -309,14 +354,14 @@ const ResultPage = () => {
         setCachedTermGraph(null);
         setCachedArticleGraph(null);
         setDisplayArticleGraph(false);
-        
+
         let cypherServ = new CypherService()
         const response = await cypherServ.Triplet2Cypher(content)
         console.log('function -> ', response)
         setData(response[0])
         setAllNodes(response[1])
         // Store just the graph data, not the entire response
-        setGraphForQuestions(response[0]) 
+        setGraphForQuestions(response[0])
         setCachedTermGraph(response);
         setSearchFlag(true)
     }
@@ -343,11 +388,15 @@ const ResultPage = () => {
                 nodes: filteredNodes,
                 edges: filteredEdges
             };
-            setGraphShownData(filteredData)
+            setGraphShownData(filteredData);
+            setNodeCount(filteredNodes.length);
+            setTotalNodeCount(data.nodes?.length || 0);
         } else {
             if (data.edges) {
-                setGraphShownData(data)
-                setSearchFlag(true)
+                setGraphShownData(data);
+                setNodeCount(data.nodes?.length || 0);
+                setTotalNodeCount(data.nodes?.length || 0);
+                setSearchFlag(true);
             }
         }
     }, [graphData, data])
@@ -396,6 +445,11 @@ const ResultPage = () => {
     };
 
     const changeLeftPanel = () => {
+        // Track graph type changes
+        trackEvent('Graph', 'Change Graph Type', 
+            displayArticleGraph ? 'Term Graph' : 'Article Graph'
+        );
+
         if (!displayArticleGraph) {
             setDisplayArticleGraph(true);
             setDetailId(null);
@@ -420,12 +474,17 @@ const ResultPage = () => {
     }
 
     async function articleToEntity() {
-        if (cachedTermGraph) {
-            // Use the cached response array correctly
-            setData(cachedTermGraph[0]);
-            setAllNodes(cachedTermGraph[1]);
+        if (searchType === 'neighbor') {
+            // Handle neighborhood search case
+            handleNeighborSearch(search_data);
         } else {
-            search(search_data);
+            // Handle triplet search case
+            if (cachedTermGraph) {
+                setData(cachedTermGraph[0]);
+                setAllNodes(cachedTermGraph[1]);
+            } else {
+                search(search_data);
+            }
         }
     }
 
@@ -443,6 +502,30 @@ const ResultPage = () => {
         window.addEventListener('resize', updateSettingsWidth);
         return () => window.removeEventListener('resize', updateSettingsWidth);
     }, []);
+
+    // Add state to track search type
+    const [searchType, setSearchType] = useState('triplet'); // default to triplet
+
+    useEffect(() => {
+        if (location.state?.searchType) {
+            setSearchType(location.state.searchType);
+        }
+    }, [location.state]);
+
+    // Add new state for node count
+    const [totalNodeCount, setTotalNodeCount] = useState(0);
+    const [nodeCount, setNodeCount] = useState(0);
+    const NODE_LIMIT = 10;
+
+    const getButtonTooltip = () => {
+        if (totalNodeCount > NODE_LIMIT) {
+            return `Cannot convert to article graph when there are more than ${NODE_LIMIT} nodes in the original graph (total: ${totalNodeCount} nodes). Please modify your search to reduce the number of nodes.`;
+        } else if (displayArticleGraph) {
+            return "Convert back to biomedical term graph";
+        } else {
+            return "Convert to article graph";
+        }
+    };
 
     return (
         <div className="result-container" ref={containerRef}>
@@ -466,13 +549,22 @@ const ResultPage = () => {
             </div>
             <div className="search-bar-container">
                 <div className="search-bar-wrapper">
-                    <SearchBarKnowledge
-                        chipData={chipData}
-                        chipDataIDResult={chipDataIDResult}
-                        displayArticleGraph={displayArticleGraph}
-                        setDisplayArticleGraph={setDisplayArticleGraph}
-                        onSearch={search}
-                    />
+                    {searchType === 'neighbor' ? (
+                        <SearchBarNeighborhood
+                            onSearch={(data) => {
+                                setSearchFlag(false);
+                                handleNeighborSearch(data);
+                            }}
+                        />
+                    ) : (
+                        <SearchBarKnowledge
+                            chipData={chipData}
+                            chipDataIDResult={chipDataIDResult}
+                            displayArticleGraph={displayArticleGraph}
+                            setDisplayArticleGraph={setDisplayArticleGraph}
+                            onSearch={search}
+                        />
+                    )}
                 </div>
             </div>
             <div className='main-content'>
@@ -484,14 +576,19 @@ const ResultPage = () => {
                 {searchFlag && (
                     <div className='result-content'>
                         <div className="graph-controls">
-                            <StyledButton
-                                onClick={changeLeftPanel}
-                                variant="contained"
-                                startIcon={displayArticleGraph ? <ApartmentOutlined /> : <FileTextOutlined />}
-                                className="graph-control-button"
-                            >
-                                {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
-                            </StyledButton>
+                            <Tooltip title={getButtonTooltip()}>
+                                <span>
+                                    <StyledButton
+                                        onClick={changeLeftPanel}
+                                        variant="contained"
+                                        startIcon={displayArticleGraph ? <ApartmentOutlined /> : <FileTextOutlined />}
+                                        className="graph-control-button"
+                                        disabled={totalNodeCount > NODE_LIMIT && !displayArticleGraph}
+                                    >
+                                        {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
+                                    </StyledButton>
+                                </span>
+                            </Tooltip>
                             <Button
                                 icon={<QuestionCircleOutlined />}
                                 onClick={startTour}

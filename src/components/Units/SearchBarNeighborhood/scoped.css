@@ -1,0 +1,44 @@
+.search-autocomplete-box {
+    background-color: white;
+    border-radius: 4px;
+}
+
+.search-autocomplete-box .MuiOutlinedInput-root {
+    border-radius: 4px;
+    border: 1px solid #d9d9d9;
+}
+
+.search-autocomplete-box .MuiOutlinedInput-root:hover {
+    border-color: #40a9ff;
+}
+
+.search-autocomplete-box .MuiOutlinedInput-root.Mui-focused {
+    border-color: #1890ff;
+}
+
+.search-button {
+    min-height: 40px;
+    transition: background-color 0.3s ease;
+}
+
+/* Autocomplete dropdown styles */
+.MuiAutocomplete-popper {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.MuiAutocomplete-option {
+    padding: 8px 16px;
+}
+
+.MuiAutocomplete-option:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* Responsive styles */
+@media (max-width: 600px) {
+    .search-button {
+        width: 100%;
+    }
+}
+
