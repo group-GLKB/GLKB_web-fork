@@ -244,7 +244,8 @@ const ResultPage = () => {
                 searchData.source.database_id,
                 searchData.params.type,
                 searchData.params.limit,
-                searchData.params.rel_type
+                searchData.params.rel_type,
+                searchData.source.name
             );
 
             // Add validation check for neighborData

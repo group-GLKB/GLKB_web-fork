@@ -34,48 +34,6 @@ function Graph(props) {
     props.handleGtdcNoc([curMinGtdcNoc, curMaxGtdcNoc]);
   }, [props.data]);
   
-  const graphData = useMemo(() => {
-    if (!props.data || !props.data.nodes || !props.data.edges) {
-      return { edges: [], nodes: [] };
-    }
-
-    let elements = {edges: [], nodes: []}
-    for (let i in props.data.nodes) {
-      let node = props.data.nodes[i].data
-      if (node.frequency >= props.gtdcFreq[0] && node.frequency <= props.gtdcFreq[1] && 
-          node.n_citation >= props.gtdcNoc[0] && node.n_citation <= props.gtdcNoc[1]) {
-            elements.nodes.push(props.data.nodes[i])
-          }
-    }
-
-    for (let i in props.data.edges) {
-      let edge = props.data.edges[i].data
-      if (elements.nodes.find((node) => node.data.id === edge.source) != undefined &&
-      elements.nodes.find((node) => node.data.id === edge.target) != undefined) {
-        elements.edges.push(props.data.edges[i])
-      }
-    }
-    return elements;
-  }, [props.data, props.gtdcFreq, props.gtdcNoc])
-
-  // Add early return if no data
-  if (!props.data || !props.data.nodes) {
-    return <div>Loading...</div>;
-  }
-
-  let id = []
-  for (var i in graphData.nodes) {
-    id.push([
-      graphData.nodes[i].data.id,
-      graphData.nodes[i].data.display,
-      graphData.nodes[i].data.frequency,
-      graphData.nodes[i].data.n_citation,
-      graphData.nodes[i].data.key_nodes,
-      graphData.nodes[i].data.label  // Add this line to include the label
-    ])
-  }
-  console.log(graphData)
-
   const layout = {
     name: 'cola',
     egdeLengthVal: 200,
@@ -83,6 +41,14 @@ function Graph(props) {
     bundleEdges: true,
     animate: false,
     animationDuration: 1,
+    maxSimulationTime: 1500,
+    padding: 50,
+    randomize: false,
+    avoidOverlap: true,
+    handleDisconnected: true,
+    flow: { axis: 'y', minSeparation: 100 },
+    alignmentConstraint: { axis: 'y', offsets: [] },
+    relativePlacementConstraint: { axis: 'x', offsets: [] }
   };
 
   const styleSheet = [
@@ -193,7 +159,114 @@ function Graph(props) {
         'text-outline-color': '#fff',
       },
     },
+    {
+      selector: '$node > node',
+      style: {
+        'padding-top': '10px',
+        'padding-left': '10px',
+        'padding-bottom': '10px',
+        'padding-right': '10px',
+        'background-color': '#f0f0f0',  // Light gray
+        'background-opacity': 0.15,      // More transparent
+        'border-color': '#d3d3d3',
+        'border-width': '1px',
+        'text-valign': 'top',
+        'text-halign': 'center',
+      }
+    },
+    {
+      selector: 'node.group-node',
+      style: {
+        'background-color': '#e0e0e0',   // Light gray
+        'background-opacity': 0.1,        // Very transparent
+        'shape': 'roundrectangle',
+        'text-valign': 'top',
+        'text-halign': 'center',
+        'font-weight': 'normal',         // Changed from bold to normal
+        'font-size': '12px',             // Reduced from 14px
+        'color': '#666666',              // Light gray text color
+        'text-opacity': 0.7,             // Semi-transparent text
+        'padding': '20px'
+      }
+    }
   ];
+
+  const graphData = useMemo(() => {
+    if (!props.data || !props.data.nodes || !props.data.edges) {
+      return { edges: [], nodes: [] };
+    }
+
+    let elements = { edges: [], nodes: [] };
+    
+    // Count nodes in each group first
+    const groupCounts = {};
+    props.data.nodes.forEach(node => {
+      if (node.data.group) {
+        groupCounts[node.data.group] = (groupCounts[node.data.group] || 0) + 1;
+      }
+    });
+
+    // Only create group nodes for groups with multiple nodes
+    Object.entries(groupCounts).forEach(([group, count]) => {
+      if (count > 1) {  // Only create group if it has more than one node
+        elements.nodes.push({
+          data: {
+            id: `group-${group}`,
+            label: group,
+            name: group
+          },
+          classes: ['group-node']
+        });
+      }
+    });
+
+    // Add regular nodes with parent references (only if group has multiple nodes)
+    for (let i in props.data.nodes) {
+      let node = props.data.nodes[i].data;
+      if (node.frequency >= props.gtdcFreq[0] && 
+          node.frequency <= props.gtdcFreq[1] && 
+          node.n_citation >= props.gtdcNoc[0] && 
+          node.n_citation <= props.gtdcNoc[1]) {
+        elements.nodes.push({
+          ...props.data.nodes[i],
+          data: {
+            ...props.data.nodes[i].data,
+            parent: node.group && groupCounts[node.group] > 1 ? `group-${node.group}` : undefined
+          }
+        });
+      }
+    }
+
+    // Add edges (unchanged)
+    for (let i in props.data.edges) {
+      let edge = props.data.edges[i].data;
+      if (elements.nodes.find((node) => node.data.id === edge.source) != undefined &&
+          elements.nodes.find((node) => node.data.id === edge.target) != undefined) {
+        elements.edges.push(props.data.edges[i]);
+      }
+    }
+
+    return elements;
+  }, [props.data, props.gtdcFreq, props.gtdcNoc]);
+
+  // Add early return if no data
+  if (!props.data || !props.data.nodes) {
+    return <div>Loading...</div>;
+  }
+
+  let id = []
+  for (var i in graphData.nodes) {
+    id.push([
+      graphData.nodes[i].data.id,
+      graphData.nodes[i].data.display,
+      graphData.nodes[i].data.frequency,
+      graphData.nodes[i].data.n_citation,
+      graphData.nodes[i].data.key_nodes,
+      graphData.nodes[i].data.label  // Add this line to include the label
+    ])
+  }
+  console.log(graphData)
+
   for (var i in id) {
     let labelColor = ''
     let size = ''
@@ -288,15 +361,12 @@ function Graph(props) {
               cy.unbind("click");
               cy.on('click', function(e){
                 var sel = e.target;
-                if (sel.isNode) {
+                if (sel.isNode && !sel.hasClass('group-node')) {
                   sel.visibility = 'hidden'
                   cy.elements().removeClass('semitransp');
                   cy.elements().removeClass('highlight');
                   cy.elements().difference(sel.outgoers().union(sel.incomers())).not(sel).addClass('semitransp');
                   sel.addClass('highlight').outgoers().union(sel.incomers()).addClass('highlight');
-
-                  // Reduce opacity of non-highlighted elements
-                  
                 } 
                 if (sel === cy) {
                   cy.elements().removeClass('semitransp');
@@ -316,9 +386,12 @@ function Graph(props) {
               });
               cy.bind('click', 'node', (evt) => {
                 var node = evt.target;
-                props.handleSelect(node.data());
-                if (!props.informationOpen) {
-                  props.expandInformation();
+                // Skip if this is a group node
+                if (!node.hasClass('group-node')) {
+                  props.handleSelect(node.data());
+                  if (!props.informationOpen) {
+                    props.expandInformation();
+                  }
                 }
               });
               cy.bind('click', 'edge', (evt) => {

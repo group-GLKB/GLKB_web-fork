@@ -16,8 +16,8 @@ export class CypherService {
             }
         }
         await axios
-            .get("/api/frontend/frontend_term2graph?query=" + content)
-            // .get("/frontend/frontend_term2graph?query=" + content)
+            // .get("/api/frontend/frontend_term2graph?query=" + content)
+            .get("/frontend/frontend_term2graph?query=" + content)
             .then(function (response) {
                 res = response
             })
@@ -43,8 +43,8 @@ export class CypherService {
         }
         
         await axios
-            .post("/api/frontend/frontend_triplet2graph", JSON.stringify(content), config)
-            // .post("/frontend/frontend_triplet2graph", JSON.stringify(content), config)
+            // .post("/api/frontend/frontend_triplet2graph", JSON.stringify(content), config)
+            .post("/frontend/frontend_triplet2graph", JSON.stringify(content), config)
             .then(function (response) {
                 res = response.data;
                 console.log('response', response.data);
@@ -72,8 +72,8 @@ export class CypherService {
             }
         }
         await axios
-            .get("/api/frontend/entity_search", config)
-            // .get("/frontend/entity_search", config)
+            // .get("/api/frontend/entity_search", config)
+            .get("/frontend/entity_search", config)
             .then(function (response) {
                 res = response
             })
@@ -94,8 +94,8 @@ export class CypherService {
             }
         };
         await axios
-            .post("/api/frontend/frontend_ent2art_graph", JSON.stringify(content), config)
-            // .post("/frontend/frontend_ent2art_graph", JSON.stringify(content), config)
+            // .post("/api/frontend/frontend_ent2art_graph", JSON.stringify(content), config)
+            .post("/frontend/frontend_ent2art_graph", JSON.stringify(content), config)
             .then(function (response) {
                 res = response.data;
                 console.log('response', response.data);
@@ -112,8 +112,8 @@ export class CypherService {
         console.log('params:', params.toString());
         let res = '';
         try {
-            const response = await axios.get("/api/frontend/frontend_qa", { params });
-            // const response = await axios.get("/frontend/frontend_qa", { params });
+            // const response = await axios.get("/api/frontend/frontend_qa", { params });
+            const response = await axios.get("/frontend/frontend_qa", { params });
             res = response.data;
             console.log('response:', res);
         } catch (error) {
@@ -143,9 +143,9 @@ export class CypherService {
         }
     }
 
-    async Neighbor2Cypher(nid, type, limit, rel_type) {
+    async Neighbor2Cypher(nid, type, limit, rel_type, name) {
         console.log('neighbor to cypher')
-        console.log({ nid, type, limit, rel_type })
+        console.log({ nid, type, limit, rel_type, name })
         let res = []
         var config = {
             headers: {
@@ -154,14 +154,15 @@ export class CypherService {
             },
             params: {
                 nid: nid,
+                name: name,
                 type: type,
                 limit: limit,
                 rel_type: rel_type
             }
         }
         await axios
-            // .get("/frontend/frontend_neighbor_graph", config)
-            .get("/api/frontend/frontend_neighbor_graph", config)
+            .get("/frontend/frontend_neighbor_graph", config)
+            // .get("/api/frontend/frontend_neighbor_graph", config)
             .then(function (response) {
                 res = response.data
             })

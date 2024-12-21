@@ -68,7 +68,10 @@ export default function SearchBarNeighborhood(props) {
         );
 
         const search_data = {
-            source: sourceNode,
+            source: {
+                ...sourceNode,
+                name: selectedSource.split(' (')[0]
+            },
             params: {
                 type: searchType,
                 limit: searchLimit,
@@ -82,7 +85,7 @@ export default function SearchBarNeighborhood(props) {
             navigate('/result', { 
                 state: { 
                     search_data,
-                    searchType: 'neighbor'  // Add this to differentiate from triplet search
+                    searchType: 'neighbor'
                 } 
             });
         }
