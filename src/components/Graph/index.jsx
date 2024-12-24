@@ -35,36 +35,65 @@ function Graph(props) {
   }, [props.data]);
   
   const layout = {
-    name: 'cola',
-    egdeLengthVal: 200,
-    nodeSpacing: 25,
-    bundleEdges: true,
-    animate: false,
-    animationDuration: 1,
-    maxSimulationTime: 1500,
+    name: 'fcose',
+    fit: true,
     padding: 50,
-    randomize: false,
-    avoidOverlap: true,
-    handleDisconnected: true,
-    flow: { axis: 'y', minSeparation: 100 },
-    alignmentConstraint: { axis: 'y', offsets: [] },
-    relativePlacementConstraint: { axis: 'x', offsets: [] }
+    idealEdgeLength: 150,
+    nodeRepulsion: 8000,
+    edgeElasticity: 0.45,
+    tile: true,
+    tilingPaddingVertical: 10,
+    tilingPaddingHorizontal: 10,
+    quality: "default",
+    animate: true,
+    animationDuration: 1000,
+    randomize: true,
+    gravity: 0.25,
+    gravityRangeCompound: 1.5,
+    gravityCompound: 1.0,
+    alignmentConstraint: { vertical: [], horizontal: [] },
+    relativePlacementConstraint: [],
+    numIter: 2500,
+    nodeSeparation: 75
   };
 
   const styleSheet = [
     {
+      selector: 'node',
+      style: {
+        'transition-property': 'width, height, border-width, border-color, background-color',
+        'transition-duration': '0.2s',
+        'label': 'data(name)',
+        'text-valign': 'center',
+        'text-halign': 'right',
+        'text-margin-x': 8,
+        'color': '#333333',
+        'font-size': '11px',
+        'text-max-width': '150px',
+        'text-wrap': 'ellipsis',
+        'font-family': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif'
+      }
+    },
+    {
       selector: 'node.hover',
       style: {
-        'border-width': '6px',
+        'border-width': '4px', // Reduced from 6px
         'border-color': '#AAD8FF',
-        'border-opacity': '0.3',
+        'border-opacity': '0.5',
         'background-color': '#77828C',
-        width: 'mapData(width, 20, 40, 30, 50)',
-        height: 'mapData(height, 20, 40, 30, 50)',
-        //text props
-        'text-outline-color': '#77828C',
-        'text-outline-width': 8,
-      },
+        'transition-property': 'border-width, border-color, background-color',
+        'transition-duration': '0.15s',
+        'z-index': 999
+      }
+    },
+    {
+      selector: 'edge',
+      style: {
+        'curve-style': 'bezier',
+        'width': 2,
+        'transition-property': 'opacity, line-color, width',
+        'transition-duration': '0.2s'
+      }
     },
     {
       selector: "node[type='device']",
@@ -75,19 +104,17 @@ function Graph(props) {
     {
       selector: 'edge[label="Contain_term"]',
       style: {
-        "curve-style": "haystack",
-        'width': 1,
-        'opacity': 'mapData(weight, 1, 100, 0.3, 1)',
-        'line-color': '#FF7F50',  // Coral
-        'curve-style': 'bezier',
-      },
+        'width': 3,
+        'opacity': 'mapData(weight, 1, 100, 0.5, 1)',
+        'line-color': 'rgba(255, 127, 80, 0.8)'
+      }
     },
     {
       selector: 'edge[label="co_occur"]',
       style: {
         "curve-style": "haystack",
-        'width': 1,
-        'opacity': 'mapData(weight, 1, 100, 0.3, 1)',
+        'width': 3,
+        'opacity': 'mapData(weight, 1, 100, 0.4, 1)',
         'line-color': '#008080',  // Teal
         'curve-style': 'bezier',
       },
@@ -96,8 +123,8 @@ function Graph(props) {
       selector: 'edge[label="Semantic_relationship"]',
       style: {
         "curve-style": "haystack",
-        width: 1,
-        'opacity': 'mapData(weight, 1, 100, 0.3, 1)',
+        width: 3,
+        'opacity': 'mapData(weight, 1, 100, 0.4, 1)',
         'line-color': '#4682B4',  // Steel Blue
         'line-style': 'solid',
         'curve-style': 'bezier',
@@ -107,8 +134,8 @@ function Graph(props) {
       selector: 'edge[label="Hierarchical_structure"]',
       style: {
         "curve-style": "haystack",
-        width: 1,
-        'opacity': 'mapData(weight, 1, 100, 0.3, 1)',
+        width: 3,
+        'opacity': 'mapData(weight, 1, 100, 0.4, 1)',
         'line-color': '#E0B0FF',  // Mauve
         'line-style': 'dotted',
         'curve-style': 'bezier',
@@ -118,8 +145,8 @@ function Graph(props) {
       selector: 'edge[label="Curated_relationship"]',
       style: {
         "curve-style": "haystack",
-        'width': 1,
-        'opacity': 'mapData(weight, 1, 100, 0.3, 1)',
+        'width': 3,
+        'opacity': 'mapData(weight, 1, 100, 0.4, 1)',
         'line-color': '#32CD32',  // Lime Green
         'line-style': 'dashed',
         'curve-style': 'bezier',
@@ -145,48 +172,58 @@ function Graph(props) {
         style:{ 'opacity': '0.2' }
     },
     {
-      selector: 'node',
-      style: {
-        'transition-property': 'width, height, border-width, border-color',
-        'transition-duration': '0.3s',
-        'label': 'data(name)',
-        'text-valign': 'center',
-        'text-halign': 'right',
-        'text-margin-x': 5,  // Add this line to move text to the right of the node
-        'color': '#202020',  // Change this to dark grey
-        'font-size': '10px',  // Make the font smaller
-        'text-outline-width': 2,
-        'text-outline-color': '#fff',
-      },
-    },
-    {
       selector: '$node > node',
       style: {
         'padding-top': '10px',
         'padding-left': '10px',
         'padding-bottom': '10px',
         'padding-right': '10px',
-        'background-color': '#f0f0f0',  // Light gray
-        'background-opacity': 0.15,      // More transparent
+        'background-color': '#f0f0f0',
+        'background-opacity': 0.15,
         'border-color': '#d3d3d3',
-        'border-width': '1px',
-        'text-valign': 'top',
+        'border-width': '1px'
+      }
+    },
+    {
+      selector: 'node:childless',
+      style: {
+        'shape': 'roundrectangle',
+        'border-radius': '4px',
+        'width': 'label',
+        'height': '25px',
+        'padding': '10px',
+        'text-valign': 'center',
         'text-halign': 'center',
+        'text-margin-x': 0,
+        'color': '#ffffff',
+        'font-size': '11px',
+        'text-wrap': 'ellipsis',
+        'text-max-width': '120px',
+        'font-family': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif'
       }
     },
     {
       selector: 'node.group-node',
       style: {
-        'background-color': '#e0e0e0',   // Light gray
-        'background-opacity': 0.1,        // Very transparent
+        'background-color': '#e6e6e6',
+        'background-opacity': 0.25,
         'shape': 'roundrectangle',
-        'text-valign': 'top',
+        'text-valign': 'center',
         'text-halign': 'center',
-        'font-weight': 'normal',         // Changed from bold to normal
-        'font-size': '12px',             // Reduced from 14px
-        'color': '#666666',              // Light gray text color
-        'text-opacity': 0.7,             // Semi-transparent text
-        'padding': '20px'
+        'text-margin-x': 0,
+        'text-margin-y': 0,
+        'font-weight': 'bold',
+        'font-size': '16px',
+        'color': '#555555',
+        'text-opacity': 0.8,
+        'padding': '25px',
+        'border-width': '1px',
+        'border-color': '#d3d3d3',
+        'border-opacity': 0.8,
+        'text-wrap': 'none',
+        'width': 'label',
+        'height': '35px',
+        'compound-sizing-wrt-labels': 'include'
       }
     }
   ];
@@ -311,21 +348,26 @@ function Graph(props) {
     }
     // console.log(index)
     styleSheet.push({
-      selector: 'node[id = "' + id[i][0] + '"]',
+      selector: 'node[id = "' + id[i][0] + '"]:childless',
       style: {
         backgroundColor: labelColor, 
-        backgroundOpacity: 1,
-        shape: shape, 
+        backgroundOpacity: 0.9,
+        shape: 'roundrectangle',
+        borderRadius: '4px',
         borderWidth: borderWidth ? borderWidth : 0,
         borderColor: borderColor ? borderColor : 'transparent',
-        width: size,
-        height: size,
+        'min-width': size,
+        'min-height': Math.max(25, size * 0.5),
         label: id[i][1],
         'text-valign': 'center',
-        'text-halign': 'right',
-        'text-margin-x': 5,  // Add this line to move text to the right of the node
-        'color': '#202020',  // Change this to dark grey
-        'font-size': '10px',  // Make the font smaller
+        'text-halign': 'center',
+        'color': '#ffffff',
+        'font-size': '11px',
+        'text-wrap': 'ellipsis',
+        'text-max-width': '120px',
+        width: 'label',
+        height: '25px',
+        padding: '10px'
       },
     })
   }
