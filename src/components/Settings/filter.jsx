@@ -350,6 +350,12 @@ const Filter = props => {
     const [loading2, setLoading2] = useState(false);
     const [loading3, setLoading3] = useState(false);
 
+    // Add loading states for each question type
+    const [loadingAssociation, setLoadingAssociation] = useState(false);
+    const [loadingSpecificTerm, setLoadingSpecificTerm] = useState(false);
+    const [loadingArticleRelation, setLoadingArticleRelation] = useState(false);
+    const [loadingCustomQuestion, setLoadingCustomQuestion] = useState(false);
+
     useEffect(() => {
         if (props.graphShownData && props.graphShownData.nodes) {
             const nodes = props.graphShownData.nodes;
@@ -386,27 +392,36 @@ const Filter = props => {
     };
 
     const updateAnswer1 = async () => {
-        setLoading1(true);
-        const question = `How is ${entityA1.name} associated with ${entityB1.name}?`;
-        const answer = await generateAnswer(question, [entityA1.id, entityB1.id]);
-        setAnswer1(answer);
-        setLoading1(false);
+        setLoadingAssociation(true);
+        try {
+            const question = `How is ${entityA1.name} associated with ${entityB1.name}?`;
+            const answer = await generateAnswer(question, [entityA1.id, entityB1.id]);
+            setAnswer1(answer);
+        } finally {
+            setLoadingAssociation(false);
+        }
     };
 
     const updateAnswer2 = async () => {
-        setLoading2(true);
-        const question = `What is ${entityA2.name}?`;
-        const answer = await generateAnswer(question, [entityA2.id]);
-        setAnswer2(answer);
-        setLoading2(false);
+        setLoadingSpecificTerm(true);
+        try {
+            const question = `What is ${entityA2.name}?`;
+            const answer = await generateAnswer(question, [entityA2.id]);
+            setAnswer2(answer);
+        } finally {
+            setLoadingSpecificTerm(false);
+        }
     };
 
     const updateAnswer3 = async () => {
-        setLoading3(true);
-        const question = `How is article ${article.name} related to ${entityA2.name}?`;
-        const answer = await generateAnswer(question, [entityA2.id], article.id);
-        setAnswer3(answer);
-        setLoading3(false);
+        setLoadingArticleRelation(true);
+        try {
+            const question = `How is article ${article.name} related to ${entityA2.name}?`;
+            const answer = await generateAnswer(question, [entityA2.id], article.id);
+            setAnswer3(answer);
+        } finally {
+            setLoadingArticleRelation(false);
+        }
     };
 
     const handleMenuClickA1 = (e) => {
@@ -472,26 +487,21 @@ const Filter = props => {
     const [userQuestion, setUserQuestion] = useState("");
     const [customAnswer, setCustomAnswer] = useState(""); // State to store the custom question answer
 
-    // Add new loading state
-    const [loadingCustom, setLoadingCustom] = useState(false);
-
     // Update the handleUserQuestionSubmit function
     const handleUserQuestionSubmit = async () => {
-        setLoadingCustom(true);
-        const questionData = {
-            question: userQuestion,
-            graph: props.data
-        };
-
+        setLoadingCustomQuestion(true);
         try {
+            const questionData = {
+                question: userQuestion,
+                graph: props.data
+            };
             const response = await cypherService.generateFreeAnswer(questionData);
             setCustomAnswer(response.answer);
-            console.log('Answer:', response.answer);
         } catch (error) {
             console.error('Error submitting question:', error);
             setCustomAnswer('An error occurred while generating the answer.');
         } finally {
-            setLoadingCustom(false);
+            setLoadingCustomQuestion(false);
         }
     };
 
@@ -567,7 +577,12 @@ const Filter = props => {
                                             <Button>{entityA2.name} <DownOutlined /></Button>
                                         </Dropdown>
                                     </div>
-                                    <Button onClick={() => handleTemplatedQuestionSubmit('articleRelation')} loading={loading3}>Generate Answer</Button>
+                                    <Button 
+                                        onClick={updateAnswer3} 
+                                        loading={loadingArticleRelation}
+                                    >
+                                        Generate Answer
+                                    </Button>
                                     {answer3 && (
                                         <div className="answer">
                                             <h4>Answer:</h4>
@@ -577,7 +592,6 @@ const Filter = props => {
                                         </div>
                                     )}
 
-                                    {/* Added custom question section for article graph */}
                                     <div className="question-section" style={{ marginTop: '20px' }}>
                                         <h4>Ask your own question:</h4>
                                         <div className="question-inputs">
@@ -586,7 +600,12 @@ const Filter = props => {
                                                 value={userQuestion}
                                                 onChange={(e) => setUserQuestion(e.target.value)}
                                             />
-                                            <Button onClick={handleUserQuestionSubmit} loading={loadingCustom}>Submit Question</Button>
+                                            <Button 
+                                                onClick={handleUserQuestionSubmit} 
+                                                loading={loadingCustomQuestion}
+                                            >
+                                                Submit Question
+                                            </Button>
                                         </div>
                                         {customAnswer && (
                                             <div className="answer">
@@ -610,7 +629,12 @@ const Filter = props => {
                                                 <Button>{entityB1.name} <DownOutlined /></Button>
                                             </Dropdown>
                                         </div>
-                                        <Button onClick={() => handleTemplatedQuestionSubmit('association')} loading={loading1}>Generate Answer</Button>
+                                        <Button 
+                                            onClick={updateAnswer1} 
+                                            loading={loadingAssociation}
+                                        >
+                                            Generate Answer
+                                        </Button>
                                         {answer1 && (
                                             <div className="answer">
                                                 <h4>Answer:</h4>
@@ -628,7 +652,12 @@ const Filter = props => {
                                                 <Button>{entityA2.name} <DownOutlined /></Button>
                                             </Dropdown>
                                         </div>
-                                        <Button onClick={() => handleTemplatedQuestionSubmit('specificTerm')} loading={loading2}>Generate Answer</Button>
+                                        <Button 
+                                            onClick={updateAnswer2} 
+                                            loading={loadingSpecificTerm}
+                                        >
+                                            Generate Answer
+                                        </Button>
                                         {answer2 && (
                                             <div className="answer">
                                                 <h4>Answer:</h4>
@@ -639,7 +668,6 @@ const Filter = props => {
                                         )}
                                     </div>
 
-                                    {/* Custom Question Input Section styled like templated questions */}
                                     <div className="question-section">
                                         <h4>Ask your own question:</h4>
                                         <div className="question-inputs">
@@ -648,10 +676,14 @@ const Filter = props => {
                                                 value={userQuestion}
                                                 onChange={(e) => setUserQuestion(e.target.value)}
                                             />
-                                            <Button onClick={handleUserQuestionSubmit} loading={loadingCustom}>Submit Question</Button>
+                                            <Button 
+                                                onClick={handleUserQuestionSubmit} 
+                                                loading={loadingCustomQuestion}
+                                            >
+                                                Submit Question
+                                            </Button>
                                         </div>
 
-                                        {/* Display the answer for the custom question within the same section */}
                                         {customAnswer && (
                                             <div className="answer">
                                                 <h4>Custom Question Answer:</h4>

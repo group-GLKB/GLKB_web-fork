@@ -192,6 +192,15 @@ const HomePage = () => {
                 styles={{
                     options: {
                         primaryColor: '#007bff',
+                    },
+                    tooltip: {
+                        textAlign: 'left',
+                        content: {
+                            textAlign: 'left'
+                        }
+                    },
+                    tooltipContent: {
+                        textAlign: 'left'
                     }
                 }}
                 disableOverlayClose={true}

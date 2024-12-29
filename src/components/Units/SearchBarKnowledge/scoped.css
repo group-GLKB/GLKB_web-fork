@@ -21,20 +21,16 @@
 }
 
 .log-box {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: white;
-    border: 1px solid #d9d9d9;
-    z-index: 1000;
-    padding: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    /* Limit the height of the log box and add scrolling */
-    max-height: 150px;
-    overflow-y: auto;
-    /* Match the width of the input field */
-    width: 200px;
+    height: 40px; /* Set fixed height to match input */
+    display: flex; /* Enable flex layout */
+    align-items: center; /* Center content vertically */
+    position: relative;
+    width: auto;
+    margin-top: 8px;
+    padding: 8px; /* Add padding to match input field */
+    min-height: unset; /* Remove min-height */
+    max-height: unset; /* Remove max-height */
+    overflow: visible; /* Allow content to expand if needed */
 }
 
 .dropdown-field {

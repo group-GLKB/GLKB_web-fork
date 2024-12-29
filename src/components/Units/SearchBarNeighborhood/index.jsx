@@ -141,7 +141,7 @@ export default function SearchBarNeighborhood(props) {
                             renderInput={(params) => (
                                 <TextField 
                                     {...params} 
-                                    label="Type in a biomedical term and select from dropdown menu" 
+                                    label="Type in a biomedical term" 
                                     variant="outlined" 
                                     size="small" 
                                     fullWidth 

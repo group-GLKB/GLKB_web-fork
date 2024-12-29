@@ -2,7 +2,7 @@ all {
     font-family: 'Mundial' !important;
     font-style: normal !important;
     font-weight: 300 !important;
-    font-size: 15px !important;
+    font-size: 16px !important;
 }
 
 .settings {
@@ -49,7 +49,7 @@ all {
 
 .panel-header {
     color: #4a7298;
-    font-size: 16px;
+    font-size: 17px;
     font-weight: bold;
     margin: 0;
 }
@@ -87,7 +87,7 @@ all {
 }
 
 .legend-label {
-    font-size: 14px;
+    font-size: 15px;
 }
 
 /* Add any additional styles for suggested questions and other components */
@@ -126,15 +126,18 @@ all {
     position: fixed;
     top: 20vh;
     left: 0;
-    z-index: 1;
+    z-index: 2;
     opacity: 0.95;
     transition: left 0.3s ease-in-out;
 }
+
 .settings-button.open {
-    left: 24vw;
+    left: calc(25vw - 30px);
+    min-left: 370px;
 }
+
 .settings.open {
-	left: -1vw;
+    left: 0;
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
@@ -212,12 +215,12 @@ all {
 }
 
 .legend-label {
-    font-size: 14px;
+    font-size: 15px;
 }
 
 .legend-subtitle {
     display: flex;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 800;
     width: 100px;
 }

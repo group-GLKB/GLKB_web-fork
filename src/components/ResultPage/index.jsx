@@ -24,6 +24,7 @@ import { styled } from '@mui/material/styles';
 import Joyride, { STATUS } from 'react-joyride';
 import SearchBarNeighborhood from "../Units/SearchBarNeighborhood";
 import { trackEvent } from '../Units/analytics';
+import { debounce } from 'lodash';
 
 const { Search } = Input;
 
@@ -180,13 +181,31 @@ const ResultPage = () => {
     };
 
     useEffect(() => {
-        const handleResize = () => {
-            setWindowWidth(window.innerWidth);
-        };
+        const debouncedHandleResize = debounce(() => {
+            if (containerRef.current) {
+                const minWidth = 1200;
+                if (windowWidth < minWidth) {
+                    containerRef.current.style.width = `${minWidth}px`;
+                } else {
+                    containerRef.current.style.width = '100vw';
+                }
+            }
 
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+            // Update panel widths
+            if (settingsRef.current) {
+                setSettingsWidth(Math.max(settingsRef.current.offsetWidth, 400));
+            }
+            if (informationRef.current) {
+                setInformationWidth(Math.max(informationRef.current.offsetWidth, 400));
+            }
+        }, 100); // 100ms delay
+
+        window.addEventListener('resize', debouncedHandleResize);
+        return () => {
+            window.removeEventListener('resize', debouncedHandleResize);
+            debouncedHandleResize.cancel();
+        };
+    }, [windowWidth]);
 
     useEffect(() => {
         if (containerRef.current) {
@@ -445,20 +464,28 @@ const ResultPage = () => {
         setIsInformationVisible(!isInformationVisible);
     };
 
-    const changeLeftPanel = () => {
+    const [isGraphLoading, setIsGraphLoading] = useState(false);
+
+    const changeLeftPanel = async () => {
         // Track graph type changes
         trackEvent('Graph', 'Change Graph Type', 
             displayArticleGraph ? 'Term Graph' : 'Article Graph'
         );
 
-        if (!displayArticleGraph) {
-            setDisplayArticleGraph(true);
-            setDetailId(null);
-            entityToArticle(data);
-        } else {
-            setDisplayArticleGraph(false);
-            setDetailId(null);
-            articleToEntity();
+        setIsGraphLoading(true); // Start loading
+        
+        try {
+            if (!displayArticleGraph) {
+                setDisplayArticleGraph(true);
+                setDetailId(null);
+                await entityToArticle(data);
+            } else {
+                setDisplayArticleGraph(false);
+                setDetailId(null);
+                await articleToEntity();
+            }
+        } finally {
+            setIsGraphLoading(false); // End loading regardless of success/failure
         }
     }
 
@@ -541,9 +568,18 @@ const ResultPage = () => {
                         primaryColor: '#007bff',
                         zIndex: 10000,
                     },
+                    tooltip: {
+                        textAlign: 'left',
+                        content: {
+                            textAlign: 'left'
+                        }
+                    },
+                    tooltipContent: {
+                        textAlign: 'left'
+                    }
                 }}
                 callback={handleJoyrideCallback}
-                key={tourKey} // Add this key prop
+                key={tourKey}
             />
             <div className="navbar-wrapper">
                 <NavBarWhite />
@@ -569,12 +605,12 @@ const ResultPage = () => {
                 </div>
             </div>
             <div className='main-content'>
-                {!searchFlag && (
+                {(!searchFlag || isGraphLoading) && (
                     <div className='loading-container'>
                         <Spin size='large' />
                     </div>
                 )}
-                {searchFlag && (
+                {searchFlag && !isGraphLoading && (
                     <div className='result-content'>
                         <div className="graph-controls">
                             <Tooltip title={getButtonTooltip()}>
@@ -600,28 +636,42 @@ const ResultPage = () => {
                         </div>
                         <div className='graph-container-wrapper'>
                             <div className="graph-container">
-                                <Graph
-                                    data={graphShownData}
-                                    selectedID={selectedID}
-                                    minGtdcFreq={minGtdcFreq}
-                                    maxGtdcFreq={maxGtdcFreq}
-                                    minGtdcNoc={minGtdcNoc}
-                                    maxGtdcNoc={maxGtdcNoc}
-                                    gtdcFreq={gtdcFreq}
-                                    handleGtdcFreq={handleGtdcFreq}
-                                    handleMinGtdcFreq={handleMinGtdcFreq}
-                                    handleMaxGtdcFreq={handleMaxGtdcFreq}
-                                    gtdcNoc={gtdcNoc}
-                                    handleGtdcNoc={handleGtdcNoc}
-                                    handleMinGtdcNoc={handleMinGtdcNoc}
-                                    handleMaxGtdcNoc={handleMaxGtdcNoc}
-                                    handleSelect={handleSelect}
-                                    handleInformation={handleInformation}
-                                    informationOpen={informationOpen}
-                                    expandInformation={expandInformation}
-                                    className="graph"
-                                    ref={graphContainerRef}
-                                />
+                                {graphShownData && (graphShownData.nodes?.length === 0 || !graphShownData.nodes) ? (
+                                    <div className="empty-graph-message" style={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        left: '50%',
+                                        transform: 'translate(-50%, -50%)',
+                                        textAlign: 'center',
+                                        color: '#666'
+                                    }}>
+                                        <h2>No Results Found</h2>
+                                        <p>Try modifying your search criteria or adjusting the filters.</p>
+                                    </div>
+                                ) : (
+                                    <Graph
+                                        data={graphShownData}
+                                        selectedID={selectedID}
+                                        minGtdcFreq={minGtdcFreq}
+                                        maxGtdcFreq={maxGtdcFreq}
+                                        minGtdcNoc={minGtdcNoc}
+                                        maxGtdcNoc={maxGtdcNoc}
+                                        gtdcFreq={gtdcFreq}
+                                        handleGtdcFreq={handleGtdcFreq}
+                                        handleMinGtdcFreq={handleMinGtdcFreq}
+                                        handleMaxGtdcFreq={handleMaxGtdcFreq}
+                                        gtdcNoc={gtdcNoc}
+                                        handleGtdcNoc={handleGtdcNoc}
+                                        handleMinGtdcNoc={handleMinGtdcNoc}
+                                        handleMaxGtdcNoc={handleMaxGtdcNoc}
+                                        handleSelect={handleSelect}
+                                        handleInformation={handleInformation}
+                                        informationOpen={informationOpen}
+                                        expandInformation={expandInformation}
+                                        className="graph"
+                                        ref={graphContainerRef}
+                                    />
+                                )}
                             </div>
                         </div>
                         <div ref={settingsRef} className={`floating-settings ${isSettingsVisible ? 'open' : ''}`} style={{ width: settingsWidth, minWidth: '400px' }}>
