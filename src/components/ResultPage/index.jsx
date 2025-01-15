@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 import { CypherService } from '../../service/Cypher'
@@ -421,16 +421,16 @@ const ResultPage = () => {
         }
     }, [graphData, data])
 
-    async function handleSelect(target) {
-        let temp_id
+    // Memoize handleSelect
+    const handleSelect = useCallback((target) => {
+        let temp_id;
         if (target.article_source) {
             temp_id = ["edge", ...target.eid];
         } else {
             temp_id = ["node", ...target.database_id];
         }
-        console.log(temp_id)
         setDetailId(temp_id);
-    }
+    }, []);
 
     let selectedID;
 

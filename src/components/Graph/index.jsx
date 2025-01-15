@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import CytoscapeComponent from 'react-cytoscapejs';
 import Cytoscape from 'cytoscape';
 import cola from 'cytoscape-cola';
@@ -8,7 +8,8 @@ import './scoped.css'
 Cytoscape.use(fcose);
 Cytoscape.use(cola);
 
-function Graph(props) {
+// Wrap the entire Graph component with React.memo
+const Graph = React.memo(function Graph(props) {
   const [width, setWith] = useState('100%');
   const [height, setHeight] = useState('80vh');
  
@@ -382,74 +383,88 @@ function Graph(props) {
     }
   }, [graphData]);
 
+  // Memoize the click handlers
+  const handleNodeClick = useCallback((node) => {
+    if (!node.hasClass('group-node')) {
+      props.handleSelect(node.data());
+      if (!props.informationOpen) {
+        props.expandInformation();
+      }
+    }
+  }, [props.handleSelect, props.informationOpen, props.expandInformation]);
+
+  const handleEdgeClick = useCallback((edge) => {
+    props.handleSelect(edge.data());
+    if (!props.informationOpen) {
+      props.expandInformation();
+    }
+  }, [props.handleSelect, props.informationOpen, props.expandInformation]);
+
+  // Memoize the Cytoscape initialization callback
+  const cyInitCallback = useCallback((cy) => {
+    myCyRef.current = cy;
+
+    cy.unbind("click");
+    cy.on('click', function(e){
+      var sel = e.target;
+      if (sel.isNode && !sel.hasClass('group-node')) {
+        sel.visibility = 'hidden'
+        cy.elements().removeClass('semitransp');
+        cy.elements().removeClass('highlight');
+        cy.elements().difference(sel.outgoers().union(sel.incomers())).not(sel).addClass('semitransp');
+        sel.addClass('highlight').outgoers().union(sel.incomers()).addClass('highlight');
+      } 
+      if (sel === cy) {
+        cy.elements().removeClass('semitransp');
+        cy.elements().removeClass('highlight');
+        if (props.informationOpen) {
+          props.handleInformation();
+        }
+      }
+    });
+
+    cy.on('mouseover', 'node', function(e){
+      var sel = e.target;
+      sel.addClass('hover');
+    });
+    
+    cy.on('mouseout', 'node', function(e){
+      var sel = e.target;
+      sel.removeClass('hover');
+    });
+
+    cy.bind('click', 'node', (evt) => handleNodeClick(evt.target));
+    cy.bind('click', 'edge', (evt) => handleEdgeClick(evt.target));
+  }, [handleNodeClick, handleEdgeClick, props.handleInformation, props.informationOpen]);
+
   return (
+    <div>
       <div>
-        <div>
-          <CytoscapeComponent
-            key={JSON.stringify(graphData)}
-            elements={CytoscapeComponent.normalizeElements(graphData)}
-            style={{ width: width, height: height }}
-            zoomingEnabled={true}
-            maxZoom={2}
-            minZoom={0.1}
-            autounselectify={false}
-            boxSelectionEnabled={true}
-            layout={layout}
-            stylesheet={styleSheet}
-            cy={(cy) => {
-              myCyRef.current = cy;
-              // cy.fit();
-              // cy.center();
-              cy.unbind("click");
-              cy.on('click', function(e){
-                var sel = e.target;
-                if (sel.isNode && !sel.hasClass('group-node')) {
-                  sel.visibility = 'hidden'
-                  cy.elements().removeClass('semitransp');
-                  cy.elements().removeClass('highlight');
-                  cy.elements().difference(sel.outgoers().union(sel.incomers())).not(sel).addClass('semitransp');
-                  sel.addClass('highlight').outgoers().union(sel.incomers()).addClass('highlight');
-                } 
-                if (sel === cy) {
-                  cy.elements().removeClass('semitransp');
-                  cy.elements().removeClass('highlight');
-                  if (props.informationOpen) {
-                    props.handleInformation();
-                  }
-                }
-              });
-              cy.on('mouseover', 'node', function(e){
-                  var sel = e.target;
-                  sel.addClass('hover');
-              });
-              cy.on('mouseout', 'node', function(e){
-                  var sel = e.target;
-                  sel.removeClass('hover');
-              });
-              cy.bind('click', 'node', (evt) => {
-                var node = evt.target;
-                // Skip if this is a group node
-                if (!node.hasClass('group-node')) {
-                  props.handleSelect(node.data());
-                  if (!props.informationOpen) {
-                    props.expandInformation();
-                  }
-                }
-              });
-              cy.bind('click', 'edge', (evt) => {
-                var edge = evt.target;
-                console.log(edge.data());
-                props.handleSelect(edge.data());
-                if (!props.informationOpen) {
-                  props.expandInformation();
-                }
-              });
-            }}
-
-          />
-        </div>
+        <CytoscapeComponent
+          key={JSON.stringify(graphData)}
+          elements={CytoscapeComponent.normalizeElements(graphData)}
+          style={{ width: width, height: height }}
+          zoomingEnabled={true}
+          maxZoom={2}
+          minZoom={0.1}
+          autounselectify={false}
+          boxSelectionEnabled={true}
+          layout={layout}
+          stylesheet={styleSheet}
+          cy={cyInitCallback}
+        />
       </div>
+    </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison function for React.memo
+  return (
+    prevProps.data === nextProps.data &&
+    prevProps.gtdcFreq[0] === nextProps.gtdcFreq[0] &&
+    prevProps.gtdcFreq[1] === nextProps.gtdcFreq[1] &&
+    prevProps.gtdcNoc[0] === nextProps.gtdcNoc[0] &&
+    prevProps.gtdcNoc[1] === nextProps.gtdcNoc[1]
+  );
+});
 
-export default Graph
+export default Graph;
