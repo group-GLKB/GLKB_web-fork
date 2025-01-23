@@ -107,7 +107,7 @@ const Graph = React.memo(function Graph(props) {
       style: {
         'width': 3,
         'opacity': 'mapData(weight, 1, 100, 0.5, 1)',
-        'line-color': 'rgba(255, 127, 80, 0.8)'
+        'line-color': '#D3D3D3'  // Light grey
       }
     },
     {
@@ -116,7 +116,7 @@ const Graph = React.memo(function Graph(props) {
         "curve-style": "haystack",
         'width': 3,
         'opacity': 'mapData(weight, 1, 100, 0.4, 1)',
-        'line-color': '#008080',  // Teal
+        'line-color': '#D3D3D3',  // Light grey
         'curve-style': 'bezier',
       },
     },
@@ -126,7 +126,7 @@ const Graph = React.memo(function Graph(props) {
         "curve-style": "haystack",
         width: 3,
         'opacity': 'mapData(weight, 1, 100, 0.4, 1)',
-        'line-color': '#4682B4',  // Steel Blue
+        'line-color': '#D3D3D3',  // Light grey
         'line-style': 'solid',
         'curve-style': 'bezier',
       },
@@ -137,7 +137,7 @@ const Graph = React.memo(function Graph(props) {
         "curve-style": "haystack",
         width: 3,
         'opacity': 'mapData(weight, 1, 100, 0.4, 1)',
-        'line-color': '#E0B0FF',  // Mauve
+        'line-color': '#D3D3D3',  // Light grey
         'line-style': 'dotted',
         'curve-style': 'bezier',
       },
@@ -148,7 +148,7 @@ const Graph = React.memo(function Graph(props) {
         "curve-style": "haystack",
         'width': 3,
         'opacity': 'mapData(weight, 1, 100, 0.4, 1)',
-        'line-color': '#32CD32',  // Lime Green
+        'line-color': '#D3D3D3',  // Light grey
         'line-style': 'dashed',
         'curve-style': 'bezier',
       },
@@ -313,26 +313,29 @@ const Graph = React.memo(function Graph(props) {
     let borderColor = ''
     switch(id[i][5]) {  // Change this to use index 5 (label) instead of 1 (name)
       case 'AnatomicalEntity':
-        labelColor = '#E43333'
-      break;
+        labelColor = '#374B73'  // Navy blue
+        break;
       case 'ChemicalEntity':
-        labelColor = '#E8882F'
-      break;
+        labelColor = '#94B0DA'  // Light blue
+        break;
       case 'DiseaseOrPhenotypicFeature':
-        labelColor = '#67BE48'
-      break;
+        labelColor = '#E3E8F0'  // Pale blue
+        break;
       case 'Gene':
-        labelColor = '#46ACAC'
-      break;
+        labelColor = '#E07A5F'  // Coral/salmon
+        break;
       case 'BiologicalProcessOrActivity':
-        labelColor = '#5782C2'
-      break;
+        labelColor = '#3D405B'  // Dark slate
+        break;
       case 'MeshTerm':
-        labelColor = '#9B58C5'
-      break;
+        labelColor = '#81B29A'  // Sage green
+        break;
       case 'SequenceVariant':
-        labelColor = '#D829B1'
-      break;
+        labelColor = '#F2CC8F'  // Warm sand
+        break;
+      case 'Article':
+        labelColor = '#C4C4C4'  // Light grey for articles
+        break;
     }
     if (id[i][2] >= 60) {
       size = 40
@@ -362,7 +365,7 @@ const Graph = React.memo(function Graph(props) {
         label: id[i][1],
         'text-valign': 'center',
         'text-halign': 'center',
-        'color': '#ffffff',
+        'color': '#000000',
         'font-size': '11px',
         'text-wrap': 'ellipsis',
         'text-max-width': '120px',

@@ -190,13 +190,14 @@ const Filter = props => {
     ];
 
     const legendDataAll = [
-        { label: 'AnatomicalEntity', size: 20, color: '#E43333' },
-        { label: 'ChemicalEntity', size: 20, color: '#E8882F' },
-        { label: 'DiseaseOrPhenotypicFeature', size: 20, color: '#67BE48' },
-        { label: 'Gene', size: 20, color: '#46ACAC' },
-        { label: 'BiologicalProcessOrActivity', size: 20, color: '#5782C2' },
-        { label: 'MeshTerm', size: 20, color: '#9B58C5' },
-        { label: 'SequenceVariant', size: 20, color: '#D829B1' },
+        { label: 'AnatomicalEntity', size: 20, color: '#374B73' },        // Navy blue
+        { label: 'ChemicalEntity', size: 20, color: '#94B0DA' },          // Light blue
+        { label: 'DiseaseOrPhenotypicFeature', size: 20, color: '#E3E8F0' }, // Pale blue
+        { label: 'Gene', size: 20, color: '#E07A5F' },                    // Coral/salmon
+        { label: 'BiologicalProcessOrActivity', size: 20, color: '#3D405B' }, // Dark slate
+        { label: 'MeshTerm', size: 20, color: '#81B29A' },               // Sage green
+        { label: 'SequenceVariant', size: 20, color: '#F2CC8F' },        // Warm sand
+        { label: 'Article', size: 20, color: '#C4C4C4' },                // Light grey
     ]
 
     const edgeDataAll = [
