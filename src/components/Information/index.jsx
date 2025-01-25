@@ -15,14 +15,14 @@ const Information = ({ width, ...props }) => {
     const [nodeDetail, setNodeDetail] = useState({});
     const [edgeDetail, setEdgeDetail] = useState({});
     const [urlList, seturlList] = useState({});
-    const [activeKey, setActiveKey] = useState(0);
+    const [activeKey, setActiveKey] = useState(['0']);
     const [isLoading, setIsLoading] = useState(false);
 
     const merge = true;
 
     const handleCollapseChange = key => {
-        // Make the edge collapse panel act same time with the article collapse component
-        setActiveKey(key);
+        console.log('Collapse change - new key:', key);
+        setActiveKey(Array.isArray(key) ? key : [key]);
     };
 
     const handleClick = (event, link) => {
@@ -84,18 +84,27 @@ const Information = ({ width, ...props }) => {
             else {
                 searchInfoEdge(props.detailId.slice(1));
             }
+            setActiveKey(['2', '3', '0']);
         } else {
             setIsLoading(false);
         }
     }, [props.detailId]);
 
+    useEffect(() => {
+        if (Object.keys(nodeDetails).length !== 0 && nodeDetails[0] && nodeDetails[0][0]) {
+            if (!('title' in nodeDetails[0][0])) {
+                console.log('Regular node details loaded, setting activeKey to 0');
+                setActiveKey(['0']);
+            }
+        }
+    }, [nodeDetails]);
 
-    // useEffect(() => {
-    //     setNodeDetails({});
-    //     setNodeDetail({});
-    //     setEdgeDetail({});
-    //     console.log('displayArticleGraph changed:', nodeDetails);
-    // },[props.displayArticleGraph])
+    useEffect(() => {
+        if (Object.keys(edgeDetail).length > 0) {
+            console.log('Edge detail loaded, setting activeKey to 0');
+            setActiveKey(['0']);
+        }
+    }, [edgeDetail]);
 
     const displayArticleGraphRef = useRef(props.displayArticleGraph);
     const [, forceUpdate] = useState({});
@@ -138,7 +147,13 @@ const Information = ({ width, ...props }) => {
     const nodeForMap = (url) => {
         return (
             <div className="custom-div-url" style={{ paddingBottom: '8px' }}>
-                <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>{url[0]}</a>
+                <a 
+                    href={url[1]} 
+                    onClick={(event) => handleClick(event, url[1])}
+                    style={{ color: '#4a7298' }}
+                >
+                    {url[0]}
+                </a>
                 <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
                     <span title="Cited by">Cited by: {url[2]} </span> |
                     <span title="Year">Year: {url[3]} </span> |
@@ -248,25 +263,51 @@ const Information = ({ width, ...props }) => {
         </div>
     );
 
-    const renderNodeDetails = (node) => (
-        <Descriptions column={1} size="small" className="custom-descriptions" style={{ borderRadius: '10px' }}>
-            <Descriptions.Item label="Entity ID">{node.element_id}</Descriptions.Item>
-            <Descriptions.Item label="Type">{node.type.join('; ')}</Descriptions.Item>
-            {/* <Descriptions.Item label="External ID">
-                {Object.entries(node.external_sources).map(([source, id]) => (
-                    <div key={source}>{source}: {id}</div>
-                ))}
-            </Descriptions.Item> */}
-            {node.description && node.description.trim() !== "" && (
-                <Descriptions.Item label="Description">{node.description}</Descriptions.Item>
-            )}
-            {node.aliases && node.aliases.length > 0 && (
-                <Descriptions.Item label="Aliases">
-                    {node.aliases.join('; ')}
-                </Descriptions.Item>
-            )}
-        </Descriptions>
-    );
+    const renderNodeDetails = (node) => {
+        // Check if this is an article node (has 'title' property)
+        if ('title' in node) {
+            return (
+                <Descriptions column={1} size="small" className="custom-descriptions" style={{ borderRadius: '10px' }}>
+                    <Descriptions.Item label="Title">{node.title}</Descriptions.Item>
+                    <Descriptions.Item label="PubMedID">
+                        <a 
+                            href={`https://www.ncbi.nlm.nih.gov/pubmed/${node.pmid}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            style={{ color: '#4a7298' }}
+                        >
+                            {node.pmid}
+                        </a>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Authors">
+                        {node.authors.join('; ')}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Journal">{node.journal}</Descriptions.Item>
+                    <Descriptions.Item label="Year">{node.date}</Descriptions.Item>
+                    <Descriptions.Item label="Cited by">{node.n_citation}</Descriptions.Item>
+                    {node.abstract && (
+                        <Descriptions.Item label="Abstract">{node.abstract}</Descriptions.Item>
+                    )}
+                </Descriptions>
+            );
+        }
+        
+        // Regular node rendering
+        return (
+            <Descriptions column={1} size="small" className="custom-descriptions" style={{ borderRadius: '10px' }}>
+                <Descriptions.Item label="Entity ID">{node.element_id}</Descriptions.Item>
+                <Descriptions.Item label="Type">{node.type.join('; ')}</Descriptions.Item>
+                {node.description && node.description.trim() !== "" && (
+                    <Descriptions.Item label="Description">{node.description}</Descriptions.Item>
+                )}
+                {node.aliases && node.aliases.length > 0 && (
+                    <Descriptions.Item label="Aliases">
+                        {node.aliases.join('; ')}
+                    </Descriptions.Item>
+                )}
+            </Descriptions>
+        );
+    };
 
     const renderArticleDetails = (article) => (
         <Descriptions column={1} size="small" className="custom-descriptions" style={{ borderRadius: '10px' }}>
@@ -327,9 +368,9 @@ const Information = ({ width, ...props }) => {
                     borderTopRightRadius: '10px',
                 }}
                 bodyStyle={{
-                    padding: '0',
+                    padding: '16px',
                     backgroundColor: '#F7F7F7',
-                    minHeight: '200px', // Add minimum height to prevent layout shift
+                    minHeight: '200px',
                 }}
             >
                 {!props.detailId ? (
@@ -337,101 +378,161 @@ const Information = ({ width, ...props }) => {
                 ) : isLoading ? (
                     <LoadingMessage />
                 ) : (
-                    <Collapse
-                        defaultActiveKey={['1', '2']}
-                        ghost
-                        expandIcon={({ isActive }) => (
-                            <CaretRightOutlined
-                                style={{ color: '#4a7298', fontSize: 16 }}
-                                rotate={isActive ? 90 : 0}
-                            />
+                    <>
+                        {/* Article Node Details - Direct Display */}
+                        {Object.keys(nodeDetails).length !== 0 && nodeDetails[0] && nodeDetails[0][0] && 'title' in nodeDetails[0][0] && (
+                            <div>
+                                {renderNodeDetails(nodeDetails[0][0])}
+                                {/* Related Articles for Article Node */}
+                                {urls.length > 0 && (
+                                    <div style={{ paddingLeft: '12px' }}>
+                                        <h4 style={{ 
+                                            color: '#8c8c8c', 
+                                            marginTop: '20px', 
+                                            marginBottom: '10px',
+                                            fontWeight: 'normal',
+                                            fontSize: '14px',
+                                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
+                                        }}>Related Articles</h4>
+                                        <List
+                                            size="small"
+                                            dataSource={urls}
+                                            renderItem={item => (
+                                                <List.Item className="related-article-item">
+                                                    {item}
+                                                </List.Item>
+                                            )}
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         )}
-                    >
-                        <Panel
-                            header={<h3 className="panel-header">Details</h3>}
-                            key="1"
-                        >
-                            {Object.keys(nodeDetails).length !== 0 && merge && (
-                                nodeDetails[0].some(entity => 'database_id' in entity) ? (
-                                    <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
-                                        {nodeDetails[0].map((node, index) => (
-                                            <Panel header={node.element_id} key={index}>
-                                                {renderNodeDetails(node)}
-                                            </Panel>
-                                        ))}
-                                    </Collapse>
-                                ) : (
-                                    <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
-                                        {nodeDetails[0].map((article, index) => (
-                                            <Panel header={article.title} key={index}>
-                                                {renderArticleDetails(article)}
-                                            </Panel>
-                                        ))}
-                                    </Collapse>
-                                )
-                            )}
-                            {Object.keys(edgeDetail).length !== 0 && (
-                                <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
-                                    {edgeDetail.map((edge, index) => (
-                                        <Panel header={<span>Relationship {index + 1}: <i>{edge[0]['relationship type']}</i></span>} key={index}>
-                                            {renderEdgeDetails(edge[0])}
-                                        </Panel>
-                                    ))}
-                                </Collapse>
-                            )}
-                        </Panel>
-                        {showRelatedArticles() && (
-                            <Panel
-                                header={<h3 className="panel-header">Related Articles</h3>}
-                                key="2"
-                            >
-                                {Object.keys(nodeDetails).length !== 0 && (
-                                    <List
-                                        size="small"
-                                        dataSource={urls}
-                                        renderItem={item => (
-                                            <List.Item className="related-article-item">
-                                                {item}
-                                            </List.Item>
+
+                        {/* Regular Node Details - Direct Display */}
+                        {Object.keys(nodeDetails).length !== 0 && nodeDetails[0] && nodeDetails[0][0] && !('title' in nodeDetails[0][0]) && (
+                            <div>
+                                {nodeDetails[0].map((node, index) => (
+                                    <div key={index}>
+                                        {renderNodeDetails(node)}
+                                        {/* Add Related Articles section for nodes */}
+                                        {urls.length > 0 && (
+                                            <div style={{ paddingLeft: '12px' }}>
+                                                <h4 style={{ 
+                                                    color: '#8c8c8c', 
+                                                    marginTop: '20px', 
+                                                    marginBottom: '10px',
+                                                    fontWeight: 'normal',
+                                                    fontSize: '14px',
+                                                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
+                                                }}>Related Articles</h4>
+                                                <List
+                                                    size="small"
+                                                    dataSource={urls}
+                                                    renderItem={item => (
+                                                        <List.Item className="related-article-item">
+                                                            {item}
+                                                        </List.Item>
+                                                    )}
+                                                />
+                                            </div>
                                         )}
-                                    />
-                                )}
-                                {Object.keys(edgeDetail).length !== 0 && (
-                                    <Collapse accordion activeKey={activeKey} onChange={handleCollapseChange}>
-                                        {edgeDetail.map((edge, edgeIndex) => (
-                                            <Panel header={<span>Relationship {edgeIndex + 1}: <i>{edge[0]['relationship type']}</i></span>} key={edgeIndex}>
-                                                {edge[1] && edge[1].length > 0 ? (
-                                                    <List
-                                                        size="small"
-                                                        dataSource={edge[1]}
-                                                        renderItem={(url, urlIndex) => (
-                                                            <List.Item key={urlIndex} className="related-article-item" style={{ paddingBottom: '8px' }}>
-                                                                <div className="custom-div-edge">
-                                                                    <a href={url[1]} onClick={(event) => handleClick(event, url[1])}>
-                                                                        {url[0]}
-                                                                    </a>
-                                                                    <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
-                                                                        <span title="Cited by">Cited by: {url[2]} </span> | 
-                                                                        <span title="Year">Year: {url[3]} </span> | 
-                                                                        <span title="Journal">Journal: {url[4].length > 20 ? url[4].substring(0, 20) + '...' : url[4]} </span>
-                                                                    </p>
-                                                                    <p className="info-row" title={url[5].join(', ')} style={{ color: '#555555', margin: '2px 0' }}>
-                                                                        Authors: {formatAuthors(url[5])}
-                                                                    </p>
-                                                                </div>
-                                                            </List.Item>
-                                                        )}
-                                                    />
-                                                ) : (
-                                                    <div>N/A</div>
-                                                )}
-                                            </Panel>
-                                        ))}
-                                    </Collapse>
-                                )}
-                            </Panel>
+                                    </div>
+                                ))}
+                            </div>
                         )}
-                    </Collapse>
+
+                        {/* Edge Details - With Collapse */}
+                        {Object.keys(edgeDetail).length !== 0 && (
+                            <Collapse 
+                                accordion 
+                                activeKey={activeKey}
+                                onChange={handleCollapseChange}
+                            >
+                                {edgeDetail.map((edge, index) => (
+                                    <Panel 
+                                        header={<span>Relationship {index + 1}: <i>{edge[0]['relationship type']}</i></span>} 
+                                        key={`${index}`}
+                                    >
+                                        {/* Edge Details */}
+                                        {renderEdgeDetails(edge[0])}
+
+                                        {/* Related Sentences */}
+                                        {edge[2] && edge[2].length > 0 && (
+                                            <div>
+                                                <h4 style={{ 
+                                                    color: '#8c8c8c', 
+                                                    marginTop: '20px', 
+                                                    marginBottom: '10px',
+                                                    fontWeight: 'normal',
+                                                    fontSize: '14px',
+                                                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
+                                                }}>Related Sentences</h4>
+                                                <List
+                                                    size="small"
+                                                    dataSource={edge[2]}
+                                                    renderItem={(item, index) => (
+                                                        <List.Item key={index} className="related-article-item" style={{ paddingBottom: '8px' }}>
+                                                            <div className="custom-div-edge">
+                                                                <div style={{ whiteSpace: 'pre-wrap' }}>{item[0]}</div>
+                                                                <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
+                                                                    <a 
+                                                                        href={item[1]} 
+                                                                        onClick={(event) => handleClick(event, item[1])}
+                                                                        style={{ color: '#4a7298' }}
+                                                                    >
+                                                                        View Source
+                                                                    </a>
+                                                                </p>
+                                                            </div>
+                                                        </List.Item>
+                                                    )}
+                                                />
+                                            </div>
+                                        )}
+
+                                        {/* Related Articles */}
+                                        {edge[1] && edge[1].length > 0 && (
+                                            <div>
+                                                <h4 style={{ 
+                                                    color: '#8c8c8c', 
+                                                    marginTop: '20px', 
+                                                    marginBottom: '10px',
+                                                    fontWeight: 'normal',
+                                                    fontSize: '14px',
+                                                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
+                                                }}>Related Articles</h4>
+                                                <List
+                                                    size="small"
+                                                    dataSource={edge[1]}
+                                                    renderItem={(url, urlIndex) => (
+                                                        <List.Item key={urlIndex} className="related-article-item" style={{ paddingBottom: '8px' }}>
+                                                            <div className="custom-div-edge">
+                                                                <a 
+                                                                    href={url[1]} 
+                                                                    onClick={(event) => handleClick(event, url[1])}
+                                                                    style={{ color: '#4a7298' }}
+                                                                >
+                                                                    {url[0]}
+                                                                </a>
+                                                                <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
+                                                                    <span title="Cited by">Cited by: {url[2]} </span> | 
+                                                                    <span title="Year">Year: {url[3]} </span> | 
+                                                                    <span title="Journal">Journal: {url[4].length > 20 ? url[4].substring(0, 20) + '...' : url[4]} </span>
+                                                                </p>
+                                                                <p className="info-row" title={url[5].join(', ')} style={{ color: '#555555', margin: '2px 0' }}>
+                                                                    Authors: {formatAuthors(url[5])}
+                                                                </p>
+                                                            </div>
+                                                        </List.Item>
+                                                    )}
+                                                />
+                                            </div>
+                                        )}
+                                    </Panel>
+                                ))}
+                            </Collapse>
+                        )}
+                    </>
                 )}
             </Card>
         </div>
