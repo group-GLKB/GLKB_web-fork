@@ -1,0 +1,350 @@
+.result-container {
+    min-width: 1200px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.navbar-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    height: 64px;
+}
+
+.main-content {
+    padding-top: 64px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 64px);
+}
+
+.loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.result-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 2rem;
+    align-items: center;
+}
+
+.llm-agent-container {
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 120px);
+}
+
+.chat-and-references {
+    display: flex;
+    flex: 1;
+    gap: 2rem;
+    margin-bottom: 1rem;
+    width: 100%;
+    height: calc(100vh - 200px);
+}
+
+.chat-container {
+    flex: 2;
+    min-width: 600px;
+    max-width: 1000px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 1rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    height: 100%;
+}
+
+.references-container {
+    flex: 1;
+    width: 400px;
+    min-width: 400px;
+    max-width: 500px;
+    overflow-y: auto;
+    padding: 1rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    height: 100%;
+}
+
+.references-container h3 {
+    margin: 0;
+    padding: 10px 0;
+    font-size: 16px;
+    font-weight: normal;
+    color: rgba(0, 0, 0, 0.85);
+    border-bottom: 1px solid #f0f0f0;
+    position: sticky;
+    top: 0;
+    background-color: white;
+    z-index: 1;
+}
+
+.references-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.reference-item {
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.reference-item:last-child {
+    border-bottom: none;
+}
+
+.reference-item h4 {
+    margin: 0;
+    color: rgba(0, 0, 0, 0.85);
+    font-size: 14px;
+    font-weight: normal;
+    line-height: 1.5;
+}
+
+.reference-metadata {
+    margin: 4px 0;
+    color: rgba(0, 0, 0, 0.45);
+    font-size: 12px;
+}
+
+.reference-authors {
+    margin: 4px 0;
+    color: rgba(0, 0, 0, 0.65);
+    font-size: 12px;
+}
+
+.reference-item a {
+    color: #1890ff;
+    text-decoration: none;
+    font-size: 12px;
+}
+
+.reference-item a:hover {
+    color: #40a9ff;
+}
+
+.message {
+    margin: 0.5rem 0;
+    padding: 0.8rem;
+    border-radius: 8px;
+    max-width: 80%;
+    white-space: pre-wrap;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.message.user {
+    background-color: #e3f2fd;
+    margin-left: auto;
+    cursor: default;
+}
+
+.message.assistant {
+    background-color: #f5f5f5;
+    margin-right: auto;
+}
+
+.message.assistant:hover {
+    background-color: #eeeeee;
+}
+
+.message.assistant.selected {
+    background-color: #e0e0e0;
+    border: 1px solid #ccc;
+}
+
+.input-form {
+    width: 100%;
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: white;
+    border-top: 1px solid #e0e0e0;
+    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    bottom: 0;
+}
+
+.message-input {
+    flex-grow: 1;
+    padding: 0.8rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.send-button {
+    padding: 0.8rem 1.5rem;
+    background-color: #99c7b1;
+    color: black;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+}
+
+.send-button:hover {
+    background-color: #577265;
+    color: white;
+}
+
+@media (max-width: 1200px) {
+    .result-container {
+        min-width: 100%;
+    }
+
+    .chat-and-references {
+        flex-direction: column;
+        height: calc(100vh - 160px);
+    }
+
+    .chat-container {
+        min-width: 100%;
+        height: 65vh;
+        flex: unset;
+    }
+
+    .references-container {
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+        height: 25vh;
+        flex: unset;
+    }
+
+    .messages-container {
+        flex: 1;
+        overflow-y: auto;
+    }
+}
+
+/* Add these new styles */
+.chat-header {
+    padding: 0.5rem;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.clear-button {
+    background-color: #f5f5f5;
+    border: 1px solid #e0e0e0;
+}
+
+.clear-button:hover {
+    background-color: #e0e0e0;
+    color: #666;
+}
+
+.messages-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+/* Update chat-container to accommodate the header */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.message-wrapper {
+    padding: 8px 16px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.message-wrapper.user {
+    justify-content: flex-end;
+}
+
+.message-wrapper.user .message {
+    background-color: rgba(247, 247, 248);
+    border-radius: 8px;
+    padding: 8px 16px;
+    max-width: 800px;
+}
+
+.message-wrapper.assistant {
+    background-color: transparent;
+    justify-content: flex-start;
+}
+
+.message-wrapper.assistant .message {
+    padding: 8px 0;
+}
+
+.message {
+    padding: 8px 0;
+    max-width: 800px;
+    width: fit-content;
+}
+
+.message.selected {
+    border-radius: 6px;
+    outline: 1px solid #4096ff;
+}
+
+.system-icon {
+    width: 24px;
+    height: 24px;
+    margin-right: 8px;
+    border-radius: 3px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.reference-button-wrapper {
+    padding: 4px 16px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.reference-button {
+    font-size: 12px;
+    padding: 4px 12px;
+    height: auto;
+    background: transparent;
+    border: 1px solid #e0e0e0;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.reference-button:hover {
+    background: #f5f5f5;
+    border-color: #d0d0d0;
+    color: #444;
+}
+
+.reference-button.selected {
+    background: #e6f4ff;
+    border-color: #91caff;
+    color: #1677ff;
+}
+
+.reference-button .anticon {
+    font-size: 14px;
+} 

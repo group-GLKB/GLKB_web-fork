@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-route
 import ResultPage from './components/ResultPage'
 import { Result } from 'antd'
 import { initGA, trackPageView } from './components/Units/analytics';
+import LLMAgent from './components/LLMAgent'
 
 const initState = {
     searchType: ''
@@ -31,6 +32,7 @@ function AppWithAnalytics() {
             <Route path='/result' element={<ResultPage />} />
             <Route path="/" element={<HomePage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/llm-agent" element={<LLMAgent />} />
         </Routes>
     );
 }
