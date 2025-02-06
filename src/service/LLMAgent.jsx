@@ -1,23 +1,106 @@
 import axios from 'axios';
 
 export class LLMAgentService {
-    constructor() {}
+    constructor() {
+        this.messages = [];
+        console.log('LLMAgentService initialized with empty messages:', this.messages);
+    }
 
-    async sendQuestion(question) {
-        console.log('Sending question to LLM agent');
+    async processStream(response, onUpdate) {
         try {
-            const response = await axios.post('/frontend/llm_agent', {
-            // const response = await axios.post('/api/frontend/llm_agent', {
-                question: question
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            console.log('Starting to process stream...');
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) {
+                    console.log('Stream complete');
+                    break;
+                }
+
+                const chunk = decoder.decode(value, { stream: true });
+                buffer += chunk;
+                
+                // Process each line as it comes
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || ''; // Keep the last incomplete line
+
+                for (const line of lines) {
+                    if (!line.trim() || !line.startsWith('data: ')) continue;
+                    
+                    try {
+                        const jsonStr = line.substring(6);
+                        const data = JSON.parse(jsonStr);
+                        console.log('Processing data:', data);
+
+                        // Immediately send updates for steps
+                        if (data.step === 'Planning') {
+                            // Don't wait for the promise to resolve
+                            onUpdate({
+                                type: 'step',
+                                step: data.step,
+                                content: data.content
+                            });
+                        } else if (data.step === 'Complete') {
+                            // Only wait for the final update
+                            await onUpdate({
+                                type: 'final',
+                                answer: data.response,
+                                references: data.references || [],
+                                messages: data.messages || []
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Error parsing stream chunk:', e, 'Line:', line);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error processing stream:', error);
+            throw error;
+        }
+    }
+
+    async chat(question, onUpdate) {
+        try {
+            // Add user message to history
+            this.messages.push({
+                role: 'user',
+                content: question
+            });
+            console.log('Added user message to history. Current messages:', this.messages);
+
+            console.log('Sending request to server with messages:', {
+                question,
+                messages: this.messages
             });
             
-            return {
-                answer: response.data.response,
-                references: response.data.references || [],
-                messages: response.data.messages || []
-            };
+            // const response = await fetch('/frontend/llm_agent', {
+            const response = await fetch('/api/frontend/llm_agent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    question,
+                    messages: this.messages
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            await this.processStream(response, onUpdate);
         } catch (error) {
-            console.error('LLM Agent error:', error);
+            console.error('Chat error:', error);
+            onUpdate({
+                type: 'error',
+                error: error.message
+            });
             throw error;
         }
     }
@@ -25,8 +108,8 @@ export class LLMAgentService {
     async getAnswer(question) {
         console.log('Getting answer from LLM agent');
         try {
-            const response = await axios.get('/frontend/llm_agent', {
-            // const response = await axios.get('/api/frontend/llm_agent', {
+            // const response = await axios.get('/frontend/llm_agent', {
+            const response = await axios.get('/api/frontend/llm_agent', {
                 params: {
                     question: question
                 }
@@ -41,5 +124,20 @@ export class LLMAgentService {
             console.error('LLM Agent error:', error);
             throw error;
         }
+    }
+
+    // Add method to update messages when receiving assistant response
+    updateMessages(assistantMessage) {
+        this.messages.push({
+            role: 'assistant',
+            content: assistantMessage
+        });
+        console.log('Added assistant message to history. Current messages:', this.messages);
+    }
+
+    // Add method to clear history
+    clearHistory() {
+        this.messages = [];
+        console.log('Cleared message history:', this.messages);
     }
 } 
