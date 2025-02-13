@@ -12,7 +12,7 @@ import { useTheme } from '@mui/material/styles';
 import { debounce } from 'lodash'; // Add this import
 import { Select as AntSelect, Tooltip } from 'antd';  // Add this import
 
-export default function SearchBarKnowledge(props) {
+const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const navigate = useNavigate();
     const [relationship, setRelationship] = React.useState('');
     const [sourceNodeOptions, setSourceNodeOptions] = React.useState([]);
@@ -138,6 +138,39 @@ export default function SearchBarKnowledge(props) {
             'database_id': '494065120',
             'description': 'Transcriptional Regulation by TP53'}];
 
+    // Initialize with props.initialContent if available
+    useEffect(() => {
+        if (props.initialContent) {
+            // Set initial triplets from the search content
+            const initialTriplets = props.initialContent.triplets;
+            if (initialTriplets) {
+                // Remove extra brackets when creating chip data
+                setChipData(initialTriplets.map(triplet => {
+                    const sourceName = triplet.source[1].replace(/[()]/g, '');
+                    const targetName = triplet.target[1] ? triplet.target[1].replace(/[()]/g, '') : '';
+                    return `(${sourceName})-[${triplet.rel}]-(${targetName})`;
+                }));
+                
+                setChipDataID(initialTriplets.map(triplet => [
+                    { database_id: triplet.source[0], name: triplet.source[1].replace(/[()]/g, '') },
+                    triplet.target[0] ? { 
+                        database_id: triplet.target[0], 
+                        name: triplet.target[1].replace(/[()]/g, '') 
+                    } : null
+                ]));
+            }
+
+            // Set initial parameters
+            const params = props.initialContent.params;
+            if (params) {
+                setMaxArticles(params.max_articles || 0);
+                setMaxBioTerms(params.max_terms || 0);
+                setMaxRel(params.max_rels || 0);
+                setMoreNodes(params.more_terms === "True");
+                setMoreRel(params.more_rels === "True");
+            }
+        }
+    }, [props.initialContent]);
 
     useEffect(() => {
         setChipData(props.chipData);
@@ -293,15 +326,17 @@ export default function SearchBarKnowledge(props) {
         console.log("Adding triplet:", triplets);
         if (triplets[0] === "" || chipData.length >= 5) return;
         
-        let chip_str = `(${triplets[0]})-[any relationships]-()`;
+        // Remove any existing brackets from the source name
+        const sourceName = triplets[0].replace(/[()]/g, '');
+        let chip_str = `(${sourceName})-[any relationships]-()`;
         if (chipData.includes(chip_str)) return;
         
         const newData = [...chipData, chip_str];
         setChipData(newData);
         
         const sourceNode = sourceNodeData.find(node => 
-            node.name.toLowerCase() === triplets[0].toLowerCase() ||
-            node.aliases.some(alias => alias.toLowerCase() === triplets[0].toLowerCase())
+            node.name.toLowerCase() === sourceName.toLowerCase() ||
+            node.aliases.some(alias => alias.toLowerCase() === sourceName.toLowerCase())
         );
         
         console.log("Found source node:", sourceNode);
@@ -435,6 +470,43 @@ export default function SearchBarKnowledge(props) {
         }
     }, [termType]);
 
+    // Add this new method
+    React.useImperativeHandle(ref, () => ({
+        fillWithExample: (exampleQuery) => {
+            // Clear existing chips
+            setChipData([]);
+            setChipDataID([]);
+            
+            // Add each triplet from the example
+            exampleQuery.triplets.forEach(triplet => {
+                const sourceName = triplet.source[1].replace(/[()]/g, '');
+                let chip_str;
+                
+                if (triplet.target && triplet.target[1]) {
+                    const targetName = triplet.target[1].replace(/[()]/g, '');
+                    chip_str = `(${sourceName})-[${triplet.rel || 'any relationships'}]-(${targetName})`;
+                } else {
+                    chip_str = `(${sourceName})-[any relationships]-()`;
+                }
+                
+                setChipData(prev => [...prev, chip_str]);
+                setChipDataID(prev => [...prev, [
+                    { database_id: triplet.source[0], name: sourceName },
+                    triplet.target ? { database_id: triplet.target[0], name: triplet.target[1] } : null
+                ]]);
+            });
+
+            // Set any parameters if they exist
+            if (exampleQuery.params) {
+                setMaxArticles(exampleQuery.params.max_articles || 0);
+                setMaxBioTerms(exampleQuery.params.max_terms || 0);
+                setMaxRel(exampleQuery.params.max_rels || 0);
+                setMoreNodes(exampleQuery.params.more_terms === "True");
+                setMoreRel(exampleQuery.params.more_rels === "True");
+            }
+        }
+    }));
+
     return (
         <Container maxWidth={isSmallScreen ? "xs" : isMediumScreen ? "sm" : "md"}>
             <Box sx={{ marginTop: 2, marginBottom: 2 }}>
@@ -558,4 +630,6 @@ export default function SearchBarKnowledge(props) {
             </Box>
         </Container>
     );
-}
+});
+
+export default SearchBarKnowledge;

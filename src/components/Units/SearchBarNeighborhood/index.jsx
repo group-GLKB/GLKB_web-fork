@@ -8,7 +8,7 @@ import { useTheme } from '@mui/material/styles';
 import { Select, Tooltip, Typography } from 'antd';
 import 'antd/dist/reset.css';  // Make sure you have antd styles imported
 
-export default function SearchBarNeighborhood(props) {
+const SearchBarNeighborhood = React.forwardRef((props, ref) => {
     const navigate = useNavigate();
     const [sourceNodeOptions, setSourceNodeOptions] = useState([]);
     const [sourceNodeData, setSourceNodeData] = useState([]);
@@ -101,6 +101,41 @@ export default function SearchBarNeighborhood(props) {
             performSearch(searchValue);
         }
     }, [termType]);
+
+    // Initialize with props.initialContent if available
+    useEffect(() => {
+        if (props.initialContent) {
+            const { source, params } = props.initialContent;
+            if (source) {
+                setSelectedSource(`${source.name} (${source.element_id})`);
+                setInputValue(`${source.name} (${source.element_id})`);
+                setSourceNodeData([source]);
+            }
+            if (params) {
+                setSearchType(params.type || 'Vocabulary');
+                setSearchLimit(params.limit || 10);
+                setRelationType(params.rel_type || 'semantic relationships');
+            }
+        }
+    }, [props.initialContent]);
+
+    // Add this new method
+    React.useImperativeHandle(ref, () => ({
+        fillWithExample: (exampleQuery) => {
+            // Set the source term
+            const sourceName = `${exampleQuery.source.name} (${exampleQuery.source.element_id})`;
+            setSelectedSource(sourceName);
+            setInputValue(sourceName);
+            setSourceNodeData([exampleQuery.source]);
+
+            // Set the parameters
+            if (exampleQuery.params) {
+                setSearchType(exampleQuery.params.type || 'Vocabulary');
+                setSearchLimit(exampleQuery.params.limit || 10);
+                setRelationType(exampleQuery.params.rel_type || 'semantic relationships');
+            }
+        }
+    }));
 
     return (
         <Container maxWidth={isSmallScreen ? "xs" : "md"}>
@@ -248,4 +283,6 @@ export default function SearchBarNeighborhood(props) {
             </Box>
         </Container>
     );
-}
+});
+
+export default SearchBarNeighborhood;

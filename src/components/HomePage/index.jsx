@@ -29,6 +29,10 @@ const HomePage = () => {
     const [runTour, setRunTour] = useState(false);
     const [activeButton, setActiveButton] = useState('triplet');  // Changed default to 'triplet'
 
+    // Add refs for the search components
+    const searchBarKnowledgeRef = useRef(null);
+    const searchBarNeighborhoodRef = useRef(null);
+
     const handleSearch = async (v) => {
         // Track searches
         trackEvent('Search', 'Search Performed', activeButton);
@@ -48,33 +52,18 @@ const HomePage = () => {
         if (activeButton === 'triplet') {
             if (exampleQueries && exampleQueries.length > index) {
                 const exampleQuery = exampleQueries[index];
-                console.log('Example Query Data:', {
-                    search_data: exampleQuery,
-                    chipDataID: exampleQuery.triplets.map(triplet => [triplet.source[0], triplet.target[0]]),
-                    searchType: 'triplet'
-                });
-                navigate('/result', { 
-                    state: { 
-                        search_data: exampleQuery,
-                        chipDataID: exampleQuery.triplets.map(triplet => [triplet.source[0], triplet.target[0]]),
-                        searchType: 'triplet'
-                    } 
-                });
+                // Fill the search bar instead of navigating
+                if (searchBarKnowledgeRef.current) {
+                    searchBarKnowledgeRef.current.fillWithExample(exampleQuery);
+                }
             }
         } else {
-            // Use the imported neighborhood examples
             if (neighborhoodExamples && neighborhoodExamples.length > index) {
                 const exampleQuery = neighborhoodExamples[index];
-                console.log('Neighbor Example Query Data:', {
-                    search_data: exampleQuery,
-                    searchType: 'neighbor'
-                });
-                navigate('/result', { 
-                    state: { 
-                        search_data: exampleQuery,
-                        searchType: 'neighbor'
-                    } 
-                });
+                // Fill the search bar instead of navigating
+                if (searchBarNeighborhoodRef.current) {
+                    searchBarNeighborhoodRef.current.fillWithExample(exampleQuery);
+                }
             }
         }
     }
@@ -160,13 +149,6 @@ const HomePage = () => {
                 target: '.example-queries',
                 content: 'Not sure where to start? Try one of these example queries to see how it works.',
                 placement: 'top',
-            },
-            {
-                target: '.example-query-button:first-child',
-                content: activeButton === 'triplet'
-                    ? 'Click an example to see how multiple terms relate to each other.'
-                    : 'Click an example to explore terms related to a specific entity.',
-                placement: 'bottom',
             }
         ];
 
@@ -244,6 +226,7 @@ const HomePage = () => {
                 <div className="search-section" style={{ width: '80%', maxWidth: '1000px' }}>
                     {activeButton === 'triplet' ? (
                         <SearchBarKnowledge 
+                            ref={searchBarKnowledgeRef}
                             chipData={[]} 
                             onSearch={(data) => {
                                 console.log('Triplet Search Data:', {
@@ -260,6 +243,7 @@ const HomePage = () => {
                         />
                     ) : (
                         <SearchBarNeighborhood 
+                            ref={searchBarNeighborhoodRef}
                             onSearch={(data) => {
                                 console.log('Neighbor Search Data:', {
                                     search_data: data,

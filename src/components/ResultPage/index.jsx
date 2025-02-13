@@ -243,14 +243,18 @@ const ResultPage = () => {
         return () => window.removeEventListener('resize', updateWidths);
     }, []);
 
+    // Add new state for search content
+    const [searchContent, setSearchContent] = useState(null);
+
     useEffect(() => {
         if (search_data) {
+            // Store the initial search content
+            setSearchContent(search_data);
             const searchType = location.state.searchType;
             
             if (searchType === 'neighbor') {
                 handleNeighborSearch(search_data);
             } else {
-                // Default to triplet search
                 handleTripletSearch(search_data);
             }
         }
@@ -467,12 +471,11 @@ const ResultPage = () => {
     const [isGraphLoading, setIsGraphLoading] = useState(false);
 
     const changeLeftPanel = async () => {
-        // Track graph type changes
         trackEvent('Graph', 'Change Graph Type', 
             displayArticleGraph ? 'Term Graph' : 'Article Graph'
         );
 
-        setIsGraphLoading(true); // Start loading
+        setIsGraphLoading(true);
         
         try {
             if (!displayArticleGraph) {
@@ -482,10 +485,11 @@ const ResultPage = () => {
             } else {
                 setDisplayArticleGraph(false);
                 setDetailId(null);
-                await articleToEntity();
+                // Pass the original search content when switching back
+                await articleToEntity(searchContent);
             }
         } finally {
-            setIsGraphLoading(false); // End loading regardless of success/failure
+            setIsGraphLoading(false);
         }
     }
 
@@ -501,17 +505,15 @@ const ResultPage = () => {
         }
     }
 
-    async function articleToEntity() {
+    async function articleToEntity(content) {
         if (searchType === 'neighbor') {
-            // Handle neighborhood search case
-            handleNeighborSearch(search_data);
+            handleNeighborSearch(content);
         } else {
-            // Handle triplet search case
             if (cachedTermGraph) {
                 setData(cachedTermGraph[0]);
                 setAllNodes(cachedTermGraph[1]);
             } else {
-                search(search_data);
+                search(content);
             }
         }
     }
@@ -588,18 +590,24 @@ const ResultPage = () => {
                 <div className="search-bar-wrapper">
                     {searchType === 'neighbor' ? (
                         <SearchBarNeighborhood
+                            initialContent={searchContent} // Pass initial content
                             onSearch={(data) => {
+                                setSearchContent(data); // Update stored content
                                 setSearchFlag(false);
                                 handleNeighborSearch(data);
                             }}
                         />
                     ) : (
                         <SearchBarKnowledge
+                            initialContent={searchContent} // Pass initial content
                             chipData={chipData}
                             chipDataIDResult={chipDataIDResult}
                             displayArticleGraph={displayArticleGraph}
                             setDisplayArticleGraph={setDisplayArticleGraph}
-                            onSearch={search}
+                            onSearch={(data) => {
+                                setSearchContent(data); // Update stored content
+                                search(data);
+                            }}
                         />
                     )}
                 </div>
