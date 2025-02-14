@@ -268,9 +268,12 @@ all {
     left: 0;
     right: 0;
     height: auto; /* Change from fixed height to auto */
-    padding: 10px 0;
     display: flex;
     justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 1rem;
+    padding-bottom: 1rem;
     z-index: 998; /* Below the floating panels */
     background-color: #fff;
 }
@@ -336,19 +339,8 @@ all {
 }
 
 .graph-controls {
-    position: fixed;
-    bottom: 20px; /* Slightly higher from the bottom */
-    left: 50%;
-    transform: translateX(-50%);
     display: flex;
     justify-content: center;
-    align-items: center;
-    padding: 10px;
-    background-color: rgba(240, 240, 240, 0.9); /* Semi-transparent background */
-    border-radius: 8px;
-    z-index: 1002; /* Ensure it's above other elements */
-    width: auto;
-    max-width: 90%;
 }
 
 .graph-controls .ant-btn {

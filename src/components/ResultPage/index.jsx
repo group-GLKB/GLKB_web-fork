@@ -611,6 +611,30 @@ const ResultPage = () => {
                         />
                     )}
                 </div>
+                {searchFlag && !isGraphLoading && (
+                    <div className="graph-controls">
+                        <Tooltip title={getButtonTooltip()}>
+                            <span>
+                                <StyledButton
+                                    onClick={changeLeftPanel}
+                                    variant="contained"
+                                    startIcon={displayArticleGraph ? <ApartmentOutlined /> : <FileTextOutlined />}
+                                    className="graph-control-button"
+                                    disabled={totalNodeCount > NODE_LIMIT && !displayArticleGraph}
+                                >
+                                    {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
+                                </StyledButton>
+                            </span>
+                        </Tooltip>
+                        <Button
+                            icon={<QuestionCircleOutlined />}
+                            onClick={startTour}
+                            className="start-tour-button"
+                        >
+                            Take a Guided Tour to the Result
+                        </Button>
+                    </div>
+                )}
             </div>
             <div className='main-content'>
                 {(!searchFlag || isGraphLoading) && (
@@ -620,28 +644,6 @@ const ResultPage = () => {
                 )}
                 {searchFlag && !isGraphLoading && (
                     <div className='result-content'>
-                        <div className="graph-controls">
-                            <Tooltip title={getButtonTooltip()}>
-                                <span>
-                                    <StyledButton
-                                        onClick={changeLeftPanel}
-                                        variant="contained"
-                                        startIcon={displayArticleGraph ? <ApartmentOutlined /> : <FileTextOutlined />}
-                                        className="graph-control-button"
-                                        disabled={totalNodeCount > NODE_LIMIT && !displayArticleGraph}
-                                    >
-                                        {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
-                                    </StyledButton>
-                                </span>
-                            </Tooltip>
-                            <Button
-                                icon={<QuestionCircleOutlined />}
-                                onClick={startTour}
-                                className="start-tour-button"
-                            >
-                                Take a Guided Tour to the Result
-                            </Button>
-                        </div>
                         <div className='graph-container-wrapper'>
                             <div className="graph-container">
                                 {graphShownData && (graphShownData.nodes?.length === 0 || !graphShownData.nodes) ? (
