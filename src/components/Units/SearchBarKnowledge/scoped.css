@@ -21,16 +21,14 @@
 }
 
 .log-box {
-    height: 40px; /* Set fixed height to match input */
-    display: flex; /* Enable flex layout */
-    align-items: center; /* Center content vertically */
-    position: relative;
-    width: auto;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    background-color: white;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    padding: 8px;
     margin-top: 8px;
-    padding: 8px; /* Add padding to match input field */
-    min-height: unset; /* Remove min-height */
-    max-height: unset; /* Remove max-height */
-    overflow: visible; /* Allow content to expand if needed */
 }
 
 .dropdown-field {
@@ -46,4 +44,82 @@
     border-radius: 4px;
 }
 
+/* Update title styles to match SearchBarNeighborhood */
+.search-bar-title.MuiTypography-root {
+    color: #333333 !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    margin-bottom: 8px !important;
+    padding: 4px 8px !important;
+    background-color: #f5f5f5 !important;
+    border-radius: 4px !important;
+    display: inline-block !important;
+}
+
 /* Add any additional styles you may need */
+
+/* Base styles for search components */
+.search-autocomplete-box {
+    background-color: white;
+    border-radius: 4px;
+}
+
+.search-autocomplete-box .MuiOutlinedInput-root {
+    border-radius: 4px;
+    border: 1px solid #d9d9d9;
+    height: 40px;
+}
+
+.search-autocomplete-box .MuiOutlinedInput-root:hover {
+    border-color: #40a9ff;
+}
+
+.search-autocomplete-box .MuiOutlinedInput-root.Mui-focused {
+    border-color: #1890ff;
+}
+
+/* Dropdown styles */
+.term-type-dropdown {
+    background-color: white;
+    border-radius: 4px;
+    height: 40px;
+}
+
+.term-type-dropdown:hover .ant-select-selector {
+    border-color: #40a9ff !important;
+}
+
+/* Common button styles */
+.search-button,
+.add-biomedical-term-button {
+    min-height: 40px;
+    transition: background-color 0.3s ease;
+}
+
+/* Chip styles */
+.MuiChip-root {
+    margin: 2px;
+}
+
+/* Autocomplete dropdown styles */
+.MuiAutocomplete-popper {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.MuiAutocomplete-option {
+    padding: 8px 16px;
+}
+
+.MuiAutocomplete-option:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* Responsive styles */
+@media (max-width: 600px) {
+    .search-button,
+    .add-biomedical-term-button {
+        width: 100%;
+    }
+}

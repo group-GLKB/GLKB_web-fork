@@ -5,8 +5,8 @@ import { CypherService } from '../../../service/Cypher';
 import { debounce } from 'lodash';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
-import { Select, Tooltip, Typography } from 'antd';
-import 'antd/dist/reset.css';  // Make sure you have antd styles imported
+import { Select as AntSelect, Tooltip, Typography } from 'antd';
+import 'antd/dist/reset.css';
 
 const SearchBarNeighborhood = React.forwardRef((props, ref) => {
     const navigate = useNavigate();
@@ -138,32 +138,37 @@ const SearchBarNeighborhood = React.forwardRef((props, ref) => {
     }));
 
     return (
-        <Container maxWidth={isSmallScreen ? "xs" : "md"}>
-            <Box sx={{ marginTop: 2, marginBottom: 2 }}>
-                {/* First row with term type and Autocomplete */}
-                <Box sx={{ mb: 2, display: 'flex', gap: 2, flexDirection: isSmallScreen ? 'column' : 'row' }}>
-                    <Box sx={{ width: isSmallScreen ? '100%' : '200px' }}>
-                        <Tooltip 
-                            title="Type of the input biomedical term"
-                            placement="top"
-                        >
-                            <Select
-                                className="term-type-dropdown"
-                                style={{ width: '100%' }}
-                                value={termType}
-                                onChange={setTermType}
-                                options={[
-                                    { value: 'Gene', label: 'Gene' },
-                                    { value: 'Disease', label: 'Disease' },
-                                    { value: 'Chemical', label: 'Chemical' },
-                                    { value: 'MeSH', label: 'MeSH' },
-                                    { value: 'Variant', label: 'Variant' },
-                                    { value: 'All', label: 'All' },
-                                ]}
-                            />
-                        </Tooltip>
+        <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 2 }}>
+            <Box sx={{ mb: 2, backgroundColor: 'transparent' }}>
+                {/* First row with term type and search input */}
+                <Box sx={{ 
+                    display: 'flex', 
+                    gap: 2, 
+                    flexDirection: isSmallScreen ? 'column' : 'row',
+                    backgroundColor: 'transparent'
+                }}>
+                    {/* Entity Type Selector */}
+                    <Box sx={{ 
+                        width: isSmallScreen ? '100%' : '200px',
+                        backgroundColor: 'transparent'
+                    }}>
+                        <AntSelect
+                            className="term-type-dropdown"
+                            style={{ width: '100%' }}
+                            value={termType}
+                            onChange={setTermType}
+                            options={[
+                                { value: 'Gene', label: 'Gene' },
+                                { value: 'Disease', label: 'Disease' },
+                                { value: 'Chemical', label: 'Chemical' },
+                                { value: 'MeSH', label: 'MeSH' },
+                                { value: 'Variant', label: 'Variant' },
+                                { value: 'All', label: 'Any Biomedical Terms' },
+                            ]}
+                        />
                     </Box>
 
+                    {/* Search Input */}
                     <Box sx={{ flexGrow: 1 }}>
                         <Autocomplete
                             freeSolo
@@ -176,7 +181,7 @@ const SearchBarNeighborhood = React.forwardRef((props, ref) => {
                             renderInput={(params) => (
                                 <TextField 
                                     {...params} 
-                                    label="Type in a biomedical term" 
+                                    placeholder="Type in a biomedical term"
                                     variant="outlined" 
                                     size="small" 
                                     fullWidth 
@@ -192,86 +197,75 @@ const SearchBarNeighborhood = React.forwardRef((props, ref) => {
                     </Box>
                 </Box>
 
-                {/* Second row with dropdowns and search button */}
-                <Box display="flex" gap={2} flexDirection={isSmallScreen ? 'column' : 'row'}>
-                    <Box display="flex" gap={1} flexDirection={isSmallScreen ? 'column' : 'row'} sx={{ flexGrow: 1 }}>
-                        <Box>
-                            <Tooltip 
-                                title="Select the type of related biomedical terms related to the selected term. 'Vocabulary' will search for all biomedical terms related to the selected term."
-                                placement="top"
-                            >
-                                <Select
-                                    className="term-type-dropdown"
-                                    style={{ minWidth: '150px' }}
-                                    value={searchType}
-                                    onChange={setSearchType}
-                                    options={[
-                                        { value: 'Gene', label: 'Gene' },
-                                        { value: 'ChemicalEntity', label: 'Chemical Entity' },
-                                        { value: 'DiseaseOrPhenotypicFeature', label: 'Disease/Phenotype' },
-                                        { value: 'SequenceVariant', label: 'Sequence Variant' },
-                                        { value: 'Vocabulary', label: 'Vocabulary' },
-                                    ]}
-                                />
-                            </Tooltip>
-                        </Box>
+                {/* Second row with filters and search button */}
+                <Box sx={{ 
+                    mt: 2,
+                    display: 'flex', 
+                    gap: 2, 
+                    flexDirection: isSmallScreen ? 'column' : 'row'
+                }}>
+                    <Box sx={{ 
+                        display: 'flex', 
+                        gap: 2, 
+                        flexGrow: 1,
+                        flexDirection: isSmallScreen ? 'column' : 'row'
+                    }}>
+                        {/* Search Type */}
+                        <Tooltip title="Select the type of related biomedical terms">
+                            <AntSelect
+                                className="term-type-dropdown"
+                                style={{ minWidth: '150px' }}
+                                value={searchType}
+                                onChange={setSearchType}
+                                options={[
+                                    { value: 'Gene', label: 'Gene' },
+                                    { value: 'ChemicalEntity', label: 'Chemical Entity' },
+                                    { value: 'DiseaseOrPhenotypicFeature', label: 'Disease/Phenotype' },
+                                    { value: 'SequenceVariant', label: 'Sequence Variant' },
+                                    { value: 'Vocabulary', label: 'Vocabulary' },
+                                ]}
+                            />
+                        </Tooltip>
 
-                        <Box>
-                            <Tooltip 
-                                title="Choose how many results to display in the neighborhood graph"
-                                placement="top"
-                            >
-                                <Select
-                                    className="results-limit-dropdown"
-                                    style={{ minWidth: '100px' }}
-                                    value={searchLimit}
-                                    onChange={setSearchLimit}
-                                    options={[
-                                        { value: 10, label: '10 results' },
-                                        { value: 15, label: '15 results' },
-                                        { value: 20, label: '20 results' },
-                                    ]}
-                                />
-                            </Tooltip>
-                        </Box>
+                        {/* Result Limit */}
+                        <Tooltip title="Choose how many results to display">
+                            <AntSelect
+                                className="term-type-dropdown"
+                                style={{ minWidth: '120px' }}
+                                value={searchLimit}
+                                onChange={setSearchLimit}
+                                options={[
+                                    { value: 10, label: '10 results' },
+                                    { value: 15, label: '15 results' },
+                                    { value: 20, label: '20 results' },
+                                ]}
+                            />
+                        </Tooltip>
 
-                        <Box>
-                            <Tooltip 
-                                title={
-                                    <div>
-                                        <p>Choose the type of relationships to display:</p>
-                                        <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
-                                            <li>Curated: Manually verified relationships from databases</li>
-                                            <li>Semantic: Extracted relationships from literature</li>
-                                        </ul>
-                                    </div>
-                                }
-                                placement="top"
-                            >
-                                <Select
-                                    className="relationship-type-dropdown"
-                                    style={{ minWidth: '180px' }}
-                                    value={relationType}
-                                    onChange={setRelationType}
-                                    options={[
-                                        { value: 'curated relationships', label: 'Curated Relationships' },
-                                        { value: 'semantic relationships', label: 'Semantic Relationships' },
-                                    ]}
-                                />
-                            </Tooltip>
-                        </Box>
+                        {/* Relationship Type */}
+                        <Tooltip title="Choose the type of relationships to display">
+                            <AntSelect
+                                className="term-type-dropdown"
+                                style={{ minWidth: '180px' }}
+                                value={relationType}
+                                onChange={setRelationType}
+                                options={[
+                                    { value: 'curated relationships', label: 'Curated Relationships' },
+                                    { value: 'semantic relationships', label: 'Semantic Relationships' },
+                                ]}
+                            />
+                        </Tooltip>
                     </Box>
 
+                    {/* Search Button */}
                     <Button 
                         variant="contained" 
-                        color="primary"
                         sx={{ 
-                            minWidth: '60px', 
-                            height: '40px', 
-                            backgroundColor: '#F7EFAE', 
-                            color: 'black', 
-                            '&:hover': { backgroundColor: '#F3C846' },
-                            width: isSmallScreen ? '100%' : 'auto'
+                            minWidth: '120px',
+                            height: '40px',
+                            backgroundColor: '#F7EFAE',
+                            color: 'black',
+                            '&:hover': { backgroundColor: '#F3C846' }
                         }}
                         onClick={handleSearch}
                         disabled={!selectedSource}
