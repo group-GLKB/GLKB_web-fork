@@ -628,23 +628,43 @@ const ResultPage = () => {
 
         return (
             <div className="legend-item">
-                <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    gap: '10px'
+                }}>
                     {isRelationship ? (
-                        <div style={{ marginLeft: "0px", width: "30px", height: "0", borderBottom: size, borderColor: color }}></div>
+                        <div style={{ 
+                            width: "30px", 
+                            height: "0", 
+                            borderBottom: size, 
+                            borderColor: color,
+                            marginRight: '10px'
+                        }}></div>
                     ) : (
-                        <div className="legend-circle" style={{ backgroundColor: color, width: size, height: size, marginLeft: size === 5 ? "6px" : size === 10 ? "4px" : "0" }}></div>
+                        <div className="legend-circle" style={{ 
+                            backgroundColor: color, 
+                            width: size, 
+                            height: size, 
+                            marginLeft: size === 5 ? "6px" : size === 10 ? "4px" : "0"
+                        }}></div>
                     )}
-                    <div className="legend-label">
+                    <div className="legend-label" style={{ marginLeft: '5px' }}>
                         {label}
                         {isRelationship && (
                             <Tooltip title={explanation}>
-                                <InfoCircleOutlined style={{ marginLeft: '5px', color: '#1890ff' }} />
+                                <InfoCircleOutlined style={{ marginLeft: '8px', color: '#1890ff' }} />
                             </Tooltip>
                         )}
                     </div>
                 </div>
                 {!isRelationship && !isQueryTerms && (
-                    <Checkbox value={label} checked={boolValues[label]} onChange={onChangeNode} />
+                    <Checkbox 
+                        value={label} 
+                        checked={boolValues[label]} 
+                        onChange={onChangeNode}
+                        style={{ marginLeft: 'auto' }}
+                    />
                 )}
             </div>
         );
@@ -764,7 +784,12 @@ const ResultPage = () => {
                 {searchFlag && !isGraphLoading && (
                     <div className='result-content'>
                         <div className='graph-container-wrapper'>
-                            <div className="graph-container">
+                            <div className="graph-container" style={{
+                                position: 'relative',
+                                width: '100%',
+                                height: '100%',
+                                overflow: 'hidden'
+                            }}>
                                 {graphShownData && (graphShownData.nodes?.length === 0 || !graphShownData.nodes) ? (
                                     <div className="empty-graph-message" style={{
                                         position: 'absolute',
@@ -799,6 +824,10 @@ const ResultPage = () => {
                                         expandInformation={expandInformation}
                                         className="graph"
                                         ref={graphContainerRef}
+                                        style={{
+                                            width: '100%',
+                                            height: '100%'
+                                        }}
                                     />
                                 )}
                             </div>

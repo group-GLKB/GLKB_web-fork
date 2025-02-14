@@ -5674,6 +5674,11 @@ cytoscape-euler@^1.2.2:
   resolved "https://registry.npmjs.org/cytoscape-euler/-/cytoscape-euler-1.2.2.tgz"
   integrity sha512-A24ZGrFpqCOutTIlGoXA5kmjFj68iy7HvqXuhcZUL1a7Z8bL59Bl2bB7hkSvFcCZBVCNcArxKr+YlB8bJo9Ftw==
 
+cytoscape-expand-collapse@^4.1.1:
+  version "4.1.1"
+  resolved "https://registry.yarnpkg.com/cytoscape-expand-collapse/-/cytoscape-expand-collapse-4.1.1.tgz#ab97f918bec923f5a61f905c261b7011f4ba2b28"
+  integrity sha512-MI4/GsA6Rf6RRzNR1aCitBLSnxiIKLxvZyCzF+oti/zn/ui1jmf769VcEFAEbjjsAtwteGsTmczI+niCMWJNvA==
+
 cytoscape-fcose@^2.2.0:
   version "2.2.0"
   resolved "https://registry.npmjs.org/cytoscape-fcose/-/cytoscape-fcose-2.2.0.tgz"

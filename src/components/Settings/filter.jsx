@@ -427,12 +427,16 @@ const Filter = props => {
 
     const handleMenuClickA1 = (e) => {
         const selectedEntity = entityItems.find(item => item.key === e.key);
-        setEntityA1({ name: selectedEntity.label, id: selectedEntity.id });
+        if (selectedEntity.id !== entityB1.id) {
+            setEntityA1({ name: selectedEntity.label, id: selectedEntity.id });
+        }
     };
 
     const handleMenuClickB1 = (e) => {
         const selectedEntity = entityItems.find(item => item.key === e.key);
-        setEntityB1({ name: selectedEntity.label, id: selectedEntity.id });
+        if (selectedEntity.id !== entityA1.id) {
+            setEntityB1({ name: selectedEntity.label, id: selectedEntity.id });
+        }
     };
 
     const handleMenuClickA2 = (e) => {
@@ -446,12 +450,16 @@ const Filter = props => {
     };
 
     const menuPropsA1 = {
-        items: entityItems.map(item => ({ key: item.key, label: item.label })),
+        items: entityItems
+            .filter(item => item.id !== entityB1.id)
+            .map(item => ({ key: item.key, label: item.label })),
         onClick: handleMenuClickA1,
     };
 
     const menuPropsB1 = {
-        items: entityItems.map(item => ({ key: item.key, label: item.label })),
+        items: entityItems
+            .filter(item => item.id !== entityA1.id)
+            .map(item => ({ key: item.key, label: item.label })),
         onClick: handleMenuClickB1,
     };
 

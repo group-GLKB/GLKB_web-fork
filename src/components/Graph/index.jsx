@@ -38,24 +38,24 @@ const Graph = React.memo(function Graph(props) {
   const layout = {
     name: 'fcose',
     fit: true,
-    padding: 50,
-    idealEdgeLength: 150,
-    nodeRepulsion: 8000,
+    padding: 30,
+    idealEdgeLength: 100,
+    nodeRepulsion: 4500,
     edgeElasticity: 0.45,
     tile: true,
-    tilingPaddingVertical: 10,
-    tilingPaddingHorizontal: 10,
+    tilingPaddingVertical: 5,
+    tilingPaddingHorizontal: 5,
     quality: "default",
     animate: true,
-    animationDuration: 1000,
-    randomize: true,
-    gravity: 0.25,
+    animationDuration: 500,
+    randomize: false,
+    gravity: 0.5,
     gravityRangeCompound: 1.5,
     gravityCompound: 1.0,
     alignmentConstraint: { vertical: [], horizontal: [] },
     relativePlacementConstraint: [],
-    numIter: 2500,
-    nodeSeparation: 75
+    numIter: 2000,
+    nodeSeparation: 30
   };
 
   const styleSheet = [
@@ -455,6 +455,11 @@ const Graph = React.memo(function Graph(props) {
           layout={layout}
           stylesheet={styleSheet}
           cy={cyInitCallback}
+          userZoomingEnabled={true}
+          userPanningEnabled={true}
+          autoungrabify={false}
+          fit={true}
+          pan={{ x: 0, y: 0 }}
         />
       </div>
     </div>
