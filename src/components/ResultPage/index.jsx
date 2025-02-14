@@ -19,7 +19,7 @@ import axios from 'axios'
 import sampleGraphData from './sampleData.json';
 import SearchBarKnowledge from "../Units/SearchBarKnowledge";
 import { FloatButton } from "antd";
-import { PlusOutlined, MinusOutlined, InfoCircleOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ApartmentOutlined, FileTextOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { PlusOutlined, MinusOutlined, InfoCircleOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ApartmentOutlined, FileTextOutlined, QuestionCircleOutlined, CaretRightOutlined } from '@ant-design/icons';
 import { styled } from '@mui/material/styles';
 import Joyride, { STATUS } from 'react-joyride';
 import SearchBarNeighborhood from "../Units/SearchBarNeighborhood";
@@ -721,12 +721,26 @@ const ResultPage = () => {
                             />
                         </div>
                         <FloatButton
-                            icon={isSettingsVisible ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
+                            icon={<CaretRightOutlined 
+                                style={{ 
+                                    color: '#4a7298', 
+                                    fontSize: 16,
+                                    transform: isSettingsVisible ? 'rotate(180deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.3s'
+                                }} 
+                            />}
                             onClick={toggleSettings}
                             className={`settings-float-button ${!isSettingsVisible ? 'collapsed' : ''}`}
                         />
                         <FloatButton
-                            icon={isInformationVisible ? <MinusOutlined /> : <InfoCircleOutlined />}
+                            icon={<CaretRightOutlined 
+                                style={{ 
+                                    color: '#4a7298', 
+                                    fontSize: 16,
+                                    transform: isInformationVisible ? 'rotate(0deg)' : 'rotate(180deg)',
+                                    transition: 'transform 0.3s'
+                                }} 
+                            />}
                             onClick={toggleInformation}
                             className={`information-float-button ${!isInformationVisible ? 'collapsed' : ''}`}
                         />
