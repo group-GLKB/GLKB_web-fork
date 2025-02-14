@@ -534,7 +534,7 @@ const Filter = props => {
     return (
         <div className="settings-content">
             <Card
-                title="Graph Settings"
+                title="Ask the Graph"
                 className="settings-card"
                 headStyle={{
                     backgroundColor: '#4a7298',
@@ -545,160 +545,111 @@ const Filter = props => {
                     borderTopRightRadius: '10px',
                 }}
             >
-                <Collapse
-                    defaultActiveKey={['1', '2', '3']}
-                    ghost
-                    expandIcon={({ isActive }) => (
-                        <CaretRightOutlined
-                            style={{ color: '#4a7298', fontSize: 16 }}
-                            rotate={isActive ? 90 : 0}
-                        />
-                    )}
-                >
-                    <Panel key="1" header={<h3 className="panel-header">Node types</h3>}>
-                        {legendData.map((item, index) => (
-                            <LegendItem key={index} label={item.label} size={item.size} color={item.color} />
-                        ))}
-                    </Panel>
-                    <Panel key="2" header={<h3 className="panel-header">Relationship types</h3>}>
-                        {legendEdgeData.map((item, index) => (
-                            <LegendItem key={index} label={item.label} size={item.size} color={item.color} explanation={item.explanation} />
-                        ))}
-                    </Panel>
-                    <Panel key="3" header={<h3 className="panel-header">Ask the graph</h3>}>
-                        <div className="suggested-questions">
-                            {props.displayArticleGraph ? (
-                                <div className="question-section">
-                                    <h4>How is an article related to a term?</h4>
-                                    <div className="question-inputs">
-                                        <Dropdown menu={menuPropsArticle} trigger={['click']}>
-                                            <Button>{article.name} <DownOutlined /></Button>
-                                        </Dropdown>
-                                        <Dropdown menu={menuPropsA2} trigger={['click']}>
-                                            <Button>{entityA2.name} <DownOutlined /></Button>
-                                        </Dropdown>
-                                    </div>
-                                    <Button 
-                                        onClick={updateAnswer3} 
-                                        loading={loadingArticleRelation}
-                                    >
-                                        Generate Answer
-                                    </Button>
-                                    {answer3 && (
-                                        <div className="answer">
-                                            <h4>Answer:</h4>
-                                            <Typography.Paragraph ellipsis={{ rows: 3, expandable: true, symbol: 'more' }}>
-                                                {answer3}
-                                            </Typography.Paragraph>
-                                        </div>
-                                    )}
+                <div className="suggested-questions">
+                    <div className="question-section">
+                        <h4>Ask a question about the graph:</h4>
+                        <div className="question-inputs">
+                            <Input
+                                placeholder="Type your question here..."
+                                value={userQuestion}
+                                onChange={(e) => setUserQuestion(e.target.value)}
+                            />
+                            <Button 
+                                onClick={handleUserQuestionSubmit} 
+                                loading={loadingCustomQuestion}
+                            >
+                                Submit Question
+                            </Button>
+                        </div>
+                        {customAnswer && (
+                            <div className="answer">
+                                <h4>Custom Question Answer:</h4>
+                                <Typography.Paragraph ellipsis={{ rows: 3, expandable: true, symbol: 'more' }}>
+                                    {customAnswer}
+                                </Typography.Paragraph>
+                            </div>
+                        )}
+                    </div>
 
-                                    <div className="question-section" style={{ marginTop: '20px' }}>
-                                        <h4>Ask your own question:</h4>
-                                        <div className="question-inputs">
-                                            <Input
-                                                placeholder="Type your question here..."
-                                                value={userQuestion}
-                                                onChange={(e) => setUserQuestion(e.target.value)}
-                                            />
-                                            <Button 
-                                                onClick={handleUserQuestionSubmit} 
-                                                loading={loadingCustomQuestion}
-                                            >
-                                                Submit Question
-                                            </Button>
-                                        </div>
-                                        {customAnswer && (
-                                            <div className="answer">
-                                                <h4>Custom Question Answer:</h4>
-                                                <Typography.Paragraph ellipsis={{ rows: 3, expandable: true, symbol: 'more' }}>
-                                                    {customAnswer}
-                                                </Typography.Paragraph>
-                                            </div>
-                                        )}
-                                    </div>
+                    {props.displayArticleGraph ? (
+                        <div className="question-section">
+                            <h4>How is an article related to a term?</h4>
+                            <div className="question-inputs">
+                                <Dropdown menu={menuPropsArticle} trigger={['click']}>
+                                    <Button>{article.name} <DownOutlined /></Button>
+                                </Dropdown>
+                                <Dropdown menu={menuPropsA2} trigger={['click']}>
+                                    <Button>{entityA2.name} <DownOutlined /></Button>
+                                </Dropdown>
+                            </div>
+                            <Button 
+                                onClick={updateAnswer3} 
+                                loading={loadingArticleRelation}
+                            >
+                                Generate Answer
+                            </Button>
+                            {answer3 && (
+                                <div className="answer">
+                                    <h4>Answer:</h4>
+                                    <Typography.Paragraph ellipsis={{ rows: 3, expandable: true, symbol: 'more' }}>
+                                        {answer3}
+                                    </Typography.Paragraph>
                                 </div>
-                            ) : (
-                                <>
-                                    <div className="question-section">
-                                        <h4>How are two terms associated?</h4>
-                                        <div className="question-inputs">
-                                            <Dropdown menu={menuPropsA1} trigger={['click']}>
-                                                <Button>{entityA1.name} <DownOutlined /></Button>
-                                            </Dropdown>
-                                            <Dropdown menu={menuPropsB1} trigger={['click']}>
-                                                <Button>{entityB1.name} <DownOutlined /></Button>
-                                            </Dropdown>
-                                        </div>
-                                        <Button 
-                                            onClick={updateAnswer1} 
-                                            loading={loadingAssociation}
-                                        >
-                                            Generate Answer
-                                        </Button>
-                                        {answer1 && (
-                                            <div className="answer">
-                                                <h4>Answer:</h4>
-                                                <Typography.Paragraph ellipsis={{ rows: 3, expandable: true, symbol: 'more' }}>
-                                                    {answer1}
-                                                </Typography.Paragraph>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="question-section">
-                                        <h4>What is a specific term?</h4>
-                                        <div className="question-inputs">
-                                            <Dropdown menu={menuPropsA2} trigger={['click']}>
-                                                <Button>{entityA2.name} <DownOutlined /></Button>
-                                            </Dropdown>
-                                        </div>
-                                        <Button 
-                                            onClick={updateAnswer2} 
-                                            loading={loadingSpecificTerm}
-                                        >
-                                            Generate Answer
-                                        </Button>
-                                        {answer2 && (
-                                            <div className="answer">
-                                                <h4>Answer:</h4>
-                                                <Typography.Paragraph ellipsis={{ rows: 3, expandable: true, symbol: 'more' }}>
-                                                    {answer2}
-                                                </Typography.Paragraph>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="question-section">
-                                        <h4>Ask your own question:</h4>
-                                        <div className="question-inputs">
-                                            <Input
-                                                placeholder="Type your question here..."
-                                                value={userQuestion}
-                                                onChange={(e) => setUserQuestion(e.target.value)}
-                                            />
-                                            <Button 
-                                                onClick={handleUserQuestionSubmit} 
-                                                loading={loadingCustomQuestion}
-                                            >
-                                                Submit Question
-                                            </Button>
-                                        </div>
-
-                                        {customAnswer && (
-                                            <div className="answer">
-                                                <h4>Custom Question Answer:</h4>
-                                                <Typography.Paragraph ellipsis={{ rows: 3, expandable: true, symbol: 'more' }}>
-                                                    {customAnswer}
-                                                </Typography.Paragraph>
-                                            </div>
-                                        )}
-                                    </div>
-                                </>
                             )}
                         </div>
-                    </Panel>
-                </Collapse>
+                    ) : (
+                        <>
+                            <div className="question-section">
+                                <h4>How are two terms associated?</h4>
+                                <div className="question-inputs">
+                                    <Dropdown menu={menuPropsA1} trigger={['click']}>
+                                        <Button>{entityA1.name} <DownOutlined /></Button>
+                                    </Dropdown>
+                                    <Dropdown menu={menuPropsB1} trigger={['click']}>
+                                        <Button>{entityB1.name} <DownOutlined /></Button>
+                                    </Dropdown>
+                                </div>
+                                <Button 
+                                    onClick={updateAnswer1} 
+                                    loading={loadingAssociation}
+                                >
+                                    Generate Answer
+                                </Button>
+                                {answer1 && (
+                                    <div className="answer">
+                                        <h4>Answer:</h4>
+                                        <Typography.Paragraph ellipsis={{ rows: 3, expandable: true, symbol: 'more' }}>
+                                            {answer1}
+                                        </Typography.Paragraph>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="question-section">
+                                <h4>What is a specific term?</h4>
+                                <div className="question-inputs">
+                                    <Dropdown menu={menuPropsA2} trigger={['click']}>
+                                        <Button>{entityA2.name} <DownOutlined /></Button>
+                                    </Dropdown>
+                                </div>
+                                <Button 
+                                    onClick={updateAnswer2} 
+                                    loading={loadingSpecificTerm}
+                                >
+                                    Generate Answer
+                                </Button>
+                                {answer2 && (
+                                    <div className="answer">
+                                        <h4>Answer:</h4>
+                                        <Typography.Paragraph ellipsis={{ rows: 3, expandable: true, symbol: 'more' }}>
+                                            {answer2}
+                                        </Typography.Paragraph>
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
             </Card>
         </div>
     );

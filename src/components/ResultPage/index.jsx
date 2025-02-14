@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { CypherService } from '../../service/Cypher'
 import { DetailService } from '../../service/Detail'
 import 'antd/dist/reset.css';
-import { Col, Row, Input, Spin, Tag, Menu, Button, Tooltip } from 'antd';
+import { Col, Row, Input, Spin, Tag, Menu, Button, Tooltip, Checkbox } from 'antd';
 import { TweenOneGroup } from 'rc-tween-one';
 import './scoped.css'
 import NavBarWhite from '../Units/NavBarWhite'
@@ -557,6 +557,125 @@ const ResultPage = () => {
         }
     };
 
+    // Add legend-related state and functions
+    const [uniqueLabelsSet, setUniqueLabelsSet] = useState(new Set());
+    const [uniqueEdgeLabelsSet, setUniqueEdgeLabelsSet] = useState(new Set());
+    const [uniqueLabelsArray, setUniqueLabelsArray] = useState([]);
+    const [uniqueEdgeLabelsArray, setUniqueEdgeLabelsArray] = useState([]);
+    const [boolValues, setBoolValues] = useState({});
+    const [boolEdgeValues, setBoolEdgeValues] = useState({});
+
+    useEffect(() => {
+        if (data.edges) {
+            const edgeLabelsSet = new Set(data.edges.map(edge => edge.data.label));
+            setUniqueEdgeLabelsSet(edgeLabelsSet);
+            setUniqueEdgeLabelsArray([...edgeLabelsSet]);
+        }
+        if (data.nodes) {
+            const labelsSet = new Set(data.nodes.map(node => node.data.label));
+            setUniqueLabelsSet(labelsSet);
+            setUniqueLabelsArray([...labelsSet]);
+        }
+    }, [data]);
+
+    useEffect(() => {
+        if (graphShownData?.nodes && graphShownData?.edges) {
+            const currentLabelsSet = new Set(graphShownData.nodes.map(node => node.data.label));
+            const currentEdgeLabelsSet = new Set(graphShownData.edges.map(edge => edge.data.label));
+
+            const newBoolValues = {};
+            const newBoolEdgeValues = {};
+
+            uniqueEdgeLabelsArray.forEach(label => {
+                newBoolEdgeValues[label] = currentEdgeLabelsSet ? currentEdgeLabelsSet.has(label) : true;
+            });
+
+            uniqueLabelsArray.forEach(label => {
+                newBoolValues[label] = currentLabelsSet ? currentLabelsSet.has(label) : true;
+            });
+
+            setBoolValues(newBoolValues);
+            setBoolEdgeValues(newBoolEdgeValues);
+        }
+    }, [graphShownData, uniqueLabelsArray, uniqueEdgeLabelsArray]);
+
+    const onChangeNode = (e) => {
+        if (!e.target.checked) {
+            const tempKeys = [];
+            for (let i = 0; i < graphShownData.nodes.length; i++) {
+                if (graphShownData.nodes[i].data.label !== e.target.value) {
+                    tempKeys.push(graphShownData.nodes[i].data.id);
+                }
+            }
+            setGraphData(tempKeys);
+            setBoolValues({ ...boolValues, [e.target.value]: false });
+        } else {
+            const tempKeys = [];
+            for (let i = 0; i < data.nodes.length; i++) {
+                if (data.nodes[i].data.label === e.target.value) {
+                    tempKeys.push(data.nodes[i].data.id);
+                }
+            }
+            const currentKeys = graphData || [];
+            setGraphData([...currentKeys, ...tempKeys]);
+            setBoolValues({ ...boolValues, [e.target.value]: true });
+        }
+    };
+
+    const LegendItem = ({ label, size, color, explanation }) => {
+        const isQueryTerms = label === 'query terms';
+        const isRelationship = label.includes("relationship");
+
+        return (
+            <div className="legend-item">
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {isRelationship ? (
+                        <div style={{ marginLeft: "0px", width: "30px", height: "0", borderBottom: size, borderColor: color }}></div>
+                    ) : (
+                        <div className="legend-circle" style={{ backgroundColor: color, width: size, height: size, marginLeft: size === 5 ? "6px" : size === 10 ? "4px" : "0" }}></div>
+                    )}
+                    <div className="legend-label">
+                        {label}
+                        {isRelationship && (
+                            <Tooltip title={explanation}>
+                                <InfoCircleOutlined style={{ marginLeft: '5px', color: '#1890ff' }} />
+                            </Tooltip>
+                        )}
+                    </div>
+                </div>
+                {!isRelationship && !isQueryTerms && (
+                    <Checkbox value={label} checked={boolValues[label]} onChange={onChangeNode} />
+                )}
+            </div>
+        );
+    };
+
+    const legendDataAll = [
+        { label: 'AnatomicalEntity', size: 20, color: '#374B73' },
+        { label: 'ChemicalEntity', size: 20, color: '#94B0DA' },
+        { label: 'DiseaseOrPhenotypicFeature', size: 20, color: '#E3E8F0' },
+        { label: 'Gene', size: 20, color: '#E07A5F' },
+        { label: 'BiologicalProcessOrActivity', size: 20, color: '#3D405B' },
+        { label: 'MeshTerm', size: 20, color: '#81B29A' },
+        { label: 'SequenceVariant', size: 20, color: '#F2CC8F' },
+        { label: 'Article', size: 20, color: '#C4C4C4' },
+    ];
+
+    const edgeDataAll = [
+        { label: 'Semantic_relationship', size: 'solid 2px', color: 'black', explanation: 'Relationships extracted from PubMed abstracts.' },
+        { label: 'Curated_relationship', size: 'dashed 2px', color: 'black', explanation: 'Manually annotated relationships from data repositories.' },
+        { label: 'Hierarchical_relationship', size: 'dotted 2px', color: 'black', explanation: 'Relationships that represent a hierarchy.' },
+    ];
+
+    const legendData = legendDataAll.filter(item => uniqueLabelsArray.includes(item.label));
+    const legendEdgeData = edgeDataAll.filter(item => uniqueEdgeLabelsArray.includes(item.label));
+
+    const [isLegendVisible, setIsLegendVisible] = useState(false);
+
+    const toggleLegend = () => {
+        setIsLegendVisible(!isLegendVisible);
+    };
+
     return (
         <div className="result-container" ref={containerRef}>
             <Joyride
@@ -684,6 +803,48 @@ const ResultPage = () => {
                                 )}
                             </div>
                         </div>
+                        {isLegendVisible && (
+                            <div className="graph-legend">
+                                <div className="legend-section">
+                                    <div className="legend-subsection">
+                                        <div className="legend-subtitle">Node Types</div>
+                                        <div className="legend-row">
+                                            {legendData.map((item, index) => (
+                                                <LegendItem 
+                                                    key={index} 
+                                                    label={item.label} 
+                                                    size={item.size} 
+                                                    color={item.color} 
+                                                    onChangeNode={onChangeNode}
+                                                    boolValues={boolValues}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="legend-subsection">
+                                        <div className="legend-subtitle">Relationship Types</div>
+                                        <div className="legend-row">
+                                            {legendEdgeData.map((item, index) => (
+                                                <LegendItem 
+                                                    key={index} 
+                                                    label={item.label} 
+                                                    size={item.size} 
+                                                    color={item.color} 
+                                                    explanation={item.explanation} 
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        <Button
+                            className="legend-toggle-button"
+                            onClick={toggleLegend}
+                            icon={isLegendVisible ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
+                        >
+                            Legend
+                        </Button>
                         <div ref={settingsRef} className={`floating-settings ${isSettingsVisible ? 'open' : ''}`} style={{ width: settingsWidth, minWidth: '400px' }}>
                             <Settings
                                 minGtdcFreq={minGtdcFreq}
@@ -723,26 +884,38 @@ const ResultPage = () => {
                             />
                         </div>
                         <FloatButton
-                            icon={<CaretRightOutlined 
-                                style={{ 
-                                    color: '#4a7298', 
-                                    fontSize: 16,
-                                    transform: isSettingsVisible ? 'rotate(180deg)' : 'rotate(0deg)',
-                                    transition: 'transform 0.3s'
-                                }} 
-                            />}
+                            icon={isSettingsVisible ? 
+                                <MenuFoldOutlined 
+                                    style={{ 
+                                        color: '#4a7298', 
+                                        fontSize: 16,
+                                    }} 
+                                /> : 
+                                <MenuUnfoldOutlined 
+                                    style={{ 
+                                        color: '#4a7298', 
+                                        fontSize: 16,
+                                    }} 
+                                />
+                            }
                             onClick={toggleSettings}
                             className={`settings-float-button ${!isSettingsVisible ? 'collapsed' : ''}`}
                         />
                         <FloatButton
-                            icon={<CaretRightOutlined 
-                                style={{ 
-                                    color: '#4a7298', 
-                                    fontSize: 16,
-                                    transform: isInformationVisible ? 'rotate(0deg)' : 'rotate(180deg)',
-                                    transition: 'transform 0.3s'
-                                }} 
-                            />}
+                            icon={isInformationVisible ? 
+                                <MenuUnfoldOutlined 
+                                    style={{ 
+                                        color: '#4a7298', 
+                                        fontSize: 16,
+                                    }} 
+                                /> : 
+                                <MenuFoldOutlined 
+                                    style={{ 
+                                        color: '#4a7298', 
+                                        fontSize: 16,
+                                    }} 
+                                />
+                            }
                             onClick={toggleInformation}
                             className={`information-float-button ${!isInformationVisible ? 'collapsed' : ''}`}
                         />
