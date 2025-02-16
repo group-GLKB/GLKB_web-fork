@@ -94,6 +94,7 @@ export class CypherService {
             }
         };
         await axios
+            // .post("/api/frontend/frontend_ent2art_graph", JSON.stringify(content), config)
             .post("/frontend/frontend_ent2art_graph", JSON.stringify(content), config)
             .then(function (response) {
                 res = response.data;

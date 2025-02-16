@@ -361,9 +361,24 @@ const Filter = props => {
         if (props.graphShownData && props.graphShownData.nodes) {
             const nodes = props.graphShownData.nodes;
 
-            // Filter out 'Article' nodes for entity items
-            const entityNodes = nodes.filter(node => node.data.label !== 'Article');
-            const items = entityNodes.map((node) => ({
+            // Group nodes by their parent/group
+            const groupedNodes = {};
+            nodes.forEach(node => {
+                if (node.data.label !== 'Article' && 
+                    node.data.name && 
+                    node.data.database_id && 
+                    node.data.database_id.length > 0) {
+                    
+                    const groupKey = node.data.parent || node.data.id;
+                    if (!groupedNodes[groupKey]) {
+                        // Store only the first node from each group
+                        groupedNodes[groupKey] = node;
+                    }
+                }
+            });
+
+            // Create items from the first node of each group
+            const items = Object.values(groupedNodes).map((node) => ({
                 key: node.data.id,
                 label: node.data.name || node.data.id,
                 id: node.data.database_id[0] || node.data.id
@@ -371,10 +386,19 @@ const Filter = props => {
             setEntityItems(items);
 
             if (props.displayArticleGraph) {
+                // For articles, group by parent and take first child
+                const articleGroups = {};
                 const articleNodes = nodes.filter(node => node.data.label === 'Article');
-                const articleItems = articleNodes.map((node) => ({
+                articleNodes.forEach(node => {
+                    const groupKey = node.data.parent || node.data.id;
+                    if (!articleGroups[groupKey]) {
+                        articleGroups[groupKey] = node;
+                    }
+                });
+
+                const articleItems = Object.values(articleGroups).map((node) => ({
                     key: node.data.id,
-                    label: `PMID ${node.data.pubmed_id}`,
+                    label: node.data.display || `PMID ${node.data.pubmed_id}`,
                     id: node.data.database_id[0] || node.data.id
                 }));
                 setArticleItems(articleItems);
