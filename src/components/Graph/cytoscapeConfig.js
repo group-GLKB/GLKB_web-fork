@@ -4,6 +4,17 @@ import euler from 'cytoscape-euler';
 import springy from 'cytoscape-springy';
 import d3Force from 'cytoscape-d3-force';
 import fcose from 'cytoscape-fcose';
+import expandCollapse from 'cytoscape-expand-collapse';
+
+// Register the plugins
+if (typeof Cytoscape("core", "expandCollapse") === "undefined") {
+    expandCollapse(Cytoscape);
+}
+Cytoscape.use(fcose);
+Cytoscape.use(cola);
+Cytoscape.use(euler);
+Cytoscape.use(d3Force);
+Cytoscape.use(springy);
 
 export function initializeCytoscape() {
     Cytoscape.use(fcose);
@@ -11,6 +22,7 @@ export function initializeCytoscape() {
     Cytoscape.use(euler);
     Cytoscape.use(d3Force);
     Cytoscape.use(springy);
+    Cytoscape.use(expandCollapse);
 }
 
 export function createLayout() {
@@ -23,6 +35,31 @@ export function createLayout() {
         animationDuration: 1,
         groupCompoundPadding: 50,
         groupNodePadding: 100,
+    };
+}
+
+export function createExpandCollapseConfig() {
+    return {
+        layoutBy: {
+            name: 'fcose',
+            animate: 'end',
+            randomize: false,
+            fit: true
+        },
+        fisheye: false,
+        animate: true,
+        undoable: false,
+        cueEnabled: true,
+        expandCollapseCuePosition: 'top-left',
+        expandCollapseCueSize: 12,
+        expandCollapseCueLineSize: 20,
+        expandCueImage: undefined,
+        collapseCueImage: undefined,
+        expandCollapseCueSensitivity: 1,
+        edgeTypeInfo: 'edgeType',
+        groupEdgesOfSameTypeOnCollapse: false,
+        allowNestedEdgeCollapse: true,
+        zIndex: 999
     };
 }
 
@@ -48,20 +85,33 @@ export function createStyleSheet(nodeIds) {
             }
         },
         {
-            selector: '.group-node',
+            selector: '$node > node',
             style: {
-                'label': 'data(name)',
+                'padding': '20px',
                 'text-valign': 'top',
                 'text-halign': 'center',
-                'text-wrap': 'wrap',
-                'font-size': '14px',
-                'text-max-width': '200px',
-                'padding': '20px',
                 'background-color': '#f5f5f5',
                 'border-color': '#ccc',
                 'border-width': '1px',
                 'border-opacity': 0.5,
-                'background-opacity': 0.2
+                'background-opacity': 0.2,
+                'compound-sizing-wrt-labels': 'include',
+                'text-margin-y': '-5px'
+            }
+        },
+        {
+            selector: 'node.group-node',
+            style: {
+                'label': 'data(display)',
+                'text-valign': 'top',
+                'text-halign': 'center',
+                'font-size': '14px',
+                'font-weight': 'bold',
+                'text-margin-y': '-10px',
+                'color': '#666',
+                'text-background-color': '#fff',
+                'text-background-opacity': 0.8,
+                'text-background-padding': '3px'
             }
         },
         {
@@ -80,6 +130,25 @@ export function createStyleSheet(nodeIds) {
             selector: '.hover',
             style: {
                 'border-width': '2px',
+                'border-color': '#000'
+            }
+        },
+        {
+            selector: 'node.cy-expand-collapse-collapsed-node',
+            style: {
+                'background-color': '#f5f5f5',
+                'border-color': '#ccc',
+                'border-width': '1px',
+                'border-opacity': 0.5,
+                'background-opacity': 0.2,
+                'shape': 'roundrectangle',
+                'padding': '20px'
+            }
+        },
+        {
+            selector: '.expand-collapse-cue',
+            style: {
+                'background-color': '#000',
                 'border-color': '#000'
             }
         }

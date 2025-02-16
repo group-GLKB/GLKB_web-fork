@@ -3,7 +3,15 @@ import CytoscapeComponent from 'react-cytoscapejs';
 import Cytoscape from 'cytoscape';
 import cola from 'cytoscape-cola';
 import fcose from 'cytoscape-fcose';
+import expandCollapse from 'cytoscape-expand-collapse';
 import './scoped.css'
+import { createExpandCollapseConfig } from './cytoscapeConfig';
+import { trackEvent } from '../Units/analytics';
+
+// Register the plugin if not already registered
+if (typeof Cytoscape("core", "expandCollapse") === "undefined") {
+    expandCollapse(Cytoscape);
+}
 
 Cytoscape.use(fcose);
 Cytoscape.use(cola);
@@ -236,41 +244,28 @@ const Graph = React.memo(function Graph(props) {
 
     let elements = { edges: [], nodes: [] };
 
-    // First, collect all unique groups and create group nodes
-    const groups = new Set();
+    // Process nodes and create group nodes if needed
     props.data.nodes.forEach(node => {
-      if (node.data.parent) {
-        groups.add(node.data.parent);
-      }
-    });
+      // Add the regular node
+      elements.nodes.push({
+        data: {
+          ...node.data,
+          id: node.data.id,
+          parent: node.data.parent // Include parent reference if it exists
+        }
+      });
 
-    // Create group nodes first
-    groups.forEach(groupId => {
-      // Find a node that belongs to this group to get the group name
-      const nodeInGroup = props.data.nodes.find(node => node.data.parent === groupId);
-      if (nodeInGroup) {
+      // If this node has a group but the group node doesn't exist yet, create it
+      if (node.data.parent && !elements.nodes.find(n => n.data.id === node.data.parent)) {
         elements.nodes.push({
           data: {
-            id: groupId,
-            display: nodeInGroup.data.group, // Use the full group name
-            name: nodeInGroup.data.group,    // Store the full name
+            id: node.data.parent,
+            display: node.data.group, // Use group name as display label
             isGroup: true
           },
           classes: 'group-node'
         });
       }
-    });
-
-    // Then add all regular nodes
-    props.data.nodes.forEach(node => {
-      elements.nodes.push({
-        data: {
-          ...node.data,
-          id: node.data.id,
-          parent: node.data.parent,
-          display: node.data.display || node.data.name // Use display or fallback to name
-        }
-      });
     });
 
     // Process edges
@@ -391,7 +386,20 @@ const Graph = React.memo(function Graph(props) {
   // Memoize the click handlers
   const handleNodeClick = useCallback((node) => {
     if (!node.hasClass('group-node')) {
-      props.handleSelect(node.data());
+      // Extract only the necessary data from the node
+      const nodeData = {
+        id: node.data('id'),
+        name: node.data('name'),
+        label: node.data('label'),
+        database_id: node.data('database_id'),
+        frequency: node.data('frequency'),
+        n_citation: node.data('n_citation'),
+        key_nodes: node.data('key_nodes'),
+        parent: node.data('parent'),
+        display: node.data('display')
+      };
+      
+      props.handleSelect(nodeData);
       if (!props.informationOpen) {
         props.expandInformation();
       }
@@ -399,7 +407,18 @@ const Graph = React.memo(function Graph(props) {
   }, [props.handleSelect, props.informationOpen, props.expandInformation]);
 
   const handleEdgeClick = useCallback((edge) => {
-    props.handleSelect(edge.data());
+    // Extract only the necessary data from the edge
+    const edgeData = {
+      id: edge.data('id'),
+      source: edge.data('source'),
+      target: edge.data('target'),
+      label: edge.data('label'),
+      weight: edge.data('weight'),
+      eid: edge.data('eid'),
+      article_source: edge.data('article_source')
+    };
+    
+    props.handleSelect(edgeData);
     if (!props.informationOpen) {
       props.expandInformation();
     }
@@ -408,6 +427,30 @@ const Graph = React.memo(function Graph(props) {
   // Memoize the Cytoscape initialization callback
   const cyInitCallback = useCallback((cy) => {
     myCyRef.current = cy;
+
+    // Initialize expand-collapse API
+    const api = cy.expandCollapse(createExpandCollapseConfig());
+
+    // Add collapse/expand event handlers without tracking
+    cy.on('expandcollapse.beforecollapse', 'node', function(event) {
+        const node = event.target;
+    });
+
+    cy.on('expandcollapse.afterexpand', 'node', function(event) {
+        const node = event.target;
+    });
+
+    // Double click to expand/collapse
+    cy.on('dblclick', 'node', function(event) {
+        const node = event.target;
+        if (node.isParent()) {
+            if (node.hasClass('cy-expand-collapse-collapsed-node')) {
+                api.expand(node);
+            } else {
+                api.collapse(node);
+            }
+        }
+    });
 
     cy.unbind("click");
     cy.on('click', function (e) {
@@ -446,7 +489,6 @@ const Graph = React.memo(function Graph(props) {
     <div>
       <div>
         <CytoscapeComponent
-          key={JSON.stringify(graphData)}
           elements={CytoscapeComponent.normalizeElements(graphData)}
           style={{ width: width, height: height }}
           zoomingEnabled={true}
