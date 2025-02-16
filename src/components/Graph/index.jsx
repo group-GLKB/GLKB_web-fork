@@ -291,7 +291,8 @@ const Graph = React.memo(function Graph(props) {
           'text-wrap': 'none',
           'width': 'label',
           'height': '35px',
-          'compound-sizing-wrt-labels': 'include'
+          'compound-sizing-wrt-labels': 'include',
+          'label': 'data(display)'
         }
       }
     ];
