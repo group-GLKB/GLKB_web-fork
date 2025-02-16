@@ -21,6 +21,8 @@ export function createLayout() {
         bundleEdges: true,
         animate: false,
         animationDuration: 1,
+        groupCompoundPadding: 50,
+        groupNodePadding: 100,
     };
 }
 
@@ -29,23 +31,33 @@ export function createStyleSheet(nodeIds) {
         {
             selector: 'node',
             style: {
-                'label': 'data(label)',
+                'label': 'data(display)',
                 'text-valign': 'center',
                 'text-halign': 'center',
                 'text-wrap': 'wrap',
-                'text-max-width': '100px',
-                'font-size': '8px',
-                'color': '#000000',
+                'font-size': '12px',
+                'text-max-width': '100px'
             }
         },
         {
             selector: 'edge',
             style: {
-                'width': 1,
+                'width': 'data(weight)',
                 'line-color': '#ccc',
-                'target-arrow-color': '#ccc',
-                'target-arrow-shape': 'triangle',
                 'curve-style': 'bezier'
+            }
+        },
+        {
+            selector: '$node > node',
+            style: {
+                'padding': '20px',
+                'text-valign': 'top',
+                'text-halign': 'center',
+                'background-color': '#f5f5f5',
+                'border-color': '#ccc',
+                'border-width': '1px',
+                'border-opacity': 0.5,
+                'background-opacity': 0.2
             }
         },
         {

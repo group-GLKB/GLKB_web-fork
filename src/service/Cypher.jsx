@@ -85,7 +85,7 @@ export class CypherService {
     
     async Term2Article(content) {
         console.log('term to article');
-        console.log(content);
+        console.log('Request content:', content);
         let res = [];
         var config = {
             headers: {
@@ -94,11 +94,27 @@ export class CypherService {
             }
         };
         await axios
-            // .post("/api/frontend/frontend_ent2art_graph", JSON.stringify(content), config)
             .post("/frontend/frontend_ent2art_graph", JSON.stringify(content), config)
             .then(function (response) {
                 res = response.data;
-                console.log('response', response.data);
+                // Log detailed edge information
+                console.log('Response data details:', {
+                    totalEdges: response.data.edges?.length,
+                    edgeSample: response.data.edges?.slice(0, 3).map(e => ({
+                        source: e.data?.source,
+                        target: e.data?.target,
+                        type: e.data?.type,
+                        id: e.data?.id
+                    })),
+                    uniqueSources: new Set(response.data.edges?.map(e => e.data?.source)).size,
+                    uniqueTargets: new Set(response.data.edges?.map(e => e.data?.target)).size,
+                    duplicateEdges: response.data.edges?.filter((e1, i) => 
+                        response.data.edges.findIndex(e2 => 
+                            e2.data?.source === e1.data?.source && 
+                            e2.data?.target === e1.data?.target
+                        ) !== i
+                    ).length
+                });
             })
             .catch(function (error) {
                 console.log('error', error);
