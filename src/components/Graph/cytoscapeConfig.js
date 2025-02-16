@@ -48,11 +48,15 @@ export function createStyleSheet(nodeIds) {
             }
         },
         {
-            selector: '$node > node',
+            selector: '.group-node',
             style: {
-                'padding': '20px',
+                'label': 'data(name)',
                 'text-valign': 'top',
                 'text-halign': 'center',
+                'text-wrap': 'wrap',
+                'font-size': '14px',
+                'text-max-width': '200px',
+                'padding': '20px',
                 'background-color': '#f5f5f5',
                 'border-color': '#ccc',
                 'border-width': '1px',

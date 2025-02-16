@@ -236,28 +236,41 @@ const Graph = React.memo(function Graph(props) {
 
     let elements = { edges: [], nodes: [] };
 
-    // Process nodes and create group nodes if needed
+    // First, collect all unique groups and create group nodes
+    const groups = new Set();
     props.data.nodes.forEach(node => {
-      // Add the regular node
-      elements.nodes.push({
-        data: {
-          ...node.data,
-          id: node.data.id,
-          parent: node.data.parent // Include parent reference if it exists
-        }
-      });
+      if (node.data.parent) {
+        groups.add(node.data.parent);
+      }
+    });
 
-      // If this node has a group but the group node doesn't exist yet, create it
-      if (node.data.parent && !elements.nodes.find(n => n.data.id === node.data.parent)) {
+    // Create group nodes first
+    groups.forEach(groupId => {
+      // Find a node that belongs to this group to get the group name
+      const nodeInGroup = props.data.nodes.find(node => node.data.parent === groupId);
+      if (nodeInGroup) {
         elements.nodes.push({
           data: {
-            id: node.data.parent,
-            display: node.data.group, // Use group name as display label
+            id: groupId,
+            display: nodeInGroup.data.group, // Use the full group name
+            name: nodeInGroup.data.group,    // Store the full name
             isGroup: true
           },
           classes: 'group-node'
         });
       }
+    });
+
+    // Then add all regular nodes
+    props.data.nodes.forEach(node => {
+      elements.nodes.push({
+        data: {
+          ...node.data,
+          id: node.data.id,
+          parent: node.data.parent,
+          display: node.data.display || node.data.name // Use display or fallback to name
+        }
+      });
     });
 
     // Process edges
