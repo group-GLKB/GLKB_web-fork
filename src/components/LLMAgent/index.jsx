@@ -5,6 +5,7 @@ import { LLMAgentService } from '../../service/LLMAgent';
 import { DeleteOutlined, FileTextOutlined } from '@ant-design/icons';
 import './scoped.css';
 import systemIcon from '/var/www/glkb/KGFrontend-cp/src/img/Asset 1.png';
+import ReactMarkdown from 'react-markdown';
 
 function LLMAgent() {
     const [userInput, setUserInput] = useState('');
@@ -145,20 +146,17 @@ function LLMAgent() {
         }
     };
 
+    const handleExampleClick = (query) => {
+        setUserInput(query);
+    };
+
     const renderMessages = () => {
         return chatHistory.map((message, index) => {
             const isLastUserMessage = index === chatHistory.length - 1 && message.role === 'user';
             
             return (
                 <div key={`message-${index}`} className="message-pair">
-                    {/* User message */}
-                    {message.role === 'user' && (
-                        <div className={`message-wrapper user`}>
-                            <div className="message">
-                                {message.content}
-                            </div>
-                        </div>
-                    )}
+                    
 
                     {/* Streaming content */}
                     {isLastUserMessage && isProcessing && (
@@ -190,7 +188,7 @@ function LLMAgent() {
                                     <span>Response</span>
                                 </div>
                                 <div className="response-content">
-                                    {message.content}
+                                    <ReactMarkdown>{message.content}</ReactMarkdown>
                                 </div>
                                 {message.references?.length > 0 && (
                                     <div className="reference-button-wrapper">
@@ -203,6 +201,15 @@ function LLMAgent() {
                                         </Button>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* User message */}
+                    {message.role === 'user' && (
+                        <div className={`message-wrapper user`}>
+                            <div className="message">
+                                {message.content}
                             </div>
                         </div>
                     )}
@@ -247,6 +254,31 @@ function LLMAgent() {
                                         Clear History
                                     </Button>
                                 </div>
+                                
+                                {/* Add example queries section */}
+                                {chatHistory.length === 0 && (
+                                    <div className="example-queries">
+                                        <div className="example-queries-header">
+                                            <img src={systemIcon} alt="AI" className="system-icon" />
+                                            <h3>I can help you explore biomedical literature. Here are some examples:</h3>
+                                        </div>
+                                        <div className="example-query-list">
+                                            <div className="example-query" onClick={() => handleExampleClick("Who are you?")}>
+                                                Who are you?
+                                            </div>
+                                            <div className="example-query" onClick={() => handleExampleClick("What is the role of BRCA1 in breast cancer?")}>
+                                                What is the role of BRCA1 in breast cancer?
+                                            </div>
+                                            <div className="example-query" onClick={() => handleExampleClick("How many articles about Alzheimer's disease are published in 2020?")}>
+                                                How many articles about Alzheimer's disease are published in 2020?
+                                            </div>
+                                            <div className="example-query" onClick={() => handleExampleClick("What pathways does TP53 participate in?")}>
+                                                What pathways does TP53 participate in?
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                
                                 <div className="messages-container">
                                     {renderMessages().reverse()}
                                     <div ref={messagesEndRef} />
