@@ -222,6 +222,23 @@ function LLMAgent() {
                         <div className="chat-and-references">
                             <div className="chat-container">
                                 <div className="chat-header">
+                                    <form onSubmit={handleSubmit} className="input-form">
+                                        <input
+                                            type="text"
+                                            value={userInput}
+                                            onChange={(e) => setUserInput(e.target.value)}
+                                            placeholder="Ask a question about the biomedical literature..."
+                                            className="message-input"
+                                            disabled={isLoading}
+                                        />
+                                        <button 
+                                            type="submit" 
+                                            className="send-button" 
+                                            disabled={isLoading || !userInput.trim()}
+                                        >
+                                            Send
+                                        </button>
+                                    </form>
                                     <Button 
                                         icon={<DeleteOutlined />}
                                         onClick={handleClear}
@@ -231,27 +248,9 @@ function LLMAgent() {
                                     </Button>
                                 </div>
                                 <div className="messages-container">
-                                    {renderMessages()}
+                                    {renderMessages().reverse()}
                                     <div ref={messagesEndRef} />
                                 </div>
-                                
-                                <form onSubmit={handleSubmit} className="input-form">
-                                    <input
-                                        type="text"
-                                        value={userInput}
-                                        onChange={(e) => setUserInput(e.target.value)}
-                                        placeholder="Ask a question about the biomedical literature..."
-                                        className="message-input"
-                                        disabled={isLoading}
-                                    />
-                                    <button 
-                                        type="submit" 
-                                        className="send-button" 
-                                        disabled={isLoading || !userInput.trim()}
-                                    >
-                                        Send
-                                    </button>
-                                </form>
                             </div>
                             
                             <div className="references-container">
