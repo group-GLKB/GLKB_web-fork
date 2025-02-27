@@ -156,8 +156,15 @@ function LLMAgent() {
             
             return (
                 <div key={`message-${index}`} className="message-pair">
+                    {/* User message */}
+                    {message.role === 'user' && (
+                        <div className={`message-wrapper user`}>
+                            <div className="message">
+                                {message.content}
+                            </div>
+                        </div>
+                    )}
                     
-
                     {/* Streaming content */}
                     {isLastUserMessage && isProcessing && (
                         <div className="assistant-response">
@@ -201,15 +208,6 @@ function LLMAgent() {
                                         </Button>
                                     </div>
                                 )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* User message */}
-                    {message.role === 'user' && (
-                        <div className={`message-wrapper user`}>
-                            <div className="message">
-                                {message.content}
                             </div>
                         </div>
                     )}
