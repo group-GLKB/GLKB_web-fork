@@ -46,7 +46,7 @@
 
 .example-queries {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: stretch;
     width: 100%;
     margin-top: 40px; /* Increased margin-top for more space */

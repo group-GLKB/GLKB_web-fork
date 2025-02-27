@@ -280,7 +280,7 @@ function LLMAgent() {
                                 )}
                                 
                                 <div className="messages-container">
-                                    {renderMessages().reverse()}
+                                    {renderMessages()}
                                     <div ref={messagesEndRef} />
                                 </div>
                             </div>
