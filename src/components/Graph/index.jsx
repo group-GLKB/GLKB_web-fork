@@ -79,28 +79,14 @@ const Graph = React.memo(function Graph(props) {
 
     let elements = { edges: [], nodes: [] };
 
-    // Process nodes and create group nodes if needed
+    // Process nodes - simplified without group handling
     props.data.nodes.forEach(node => {
-      // Add the regular node
       elements.nodes.push({
         data: {
           ...node.data,
-          id: node.data.id,
-          parent: node.data.parent // Include parent reference if it exists
+          id: node.data.id
         }
       });
-
-      // If this node has a group but the group node doesn't exist yet, create it
-      if (node.data.parent && !elements.nodes.find(n => n.data.id === node.data.parent)) {
-        elements.nodes.push({
-          data: {
-            id: node.data.parent,
-            display: node.data.group, // Use group name as display label
-            isGroup: true
-          },
-          classes: 'group-node'
-        });
-      }
     });
 
     // Process edges
@@ -241,19 +227,6 @@ const Graph = React.memo(function Graph(props) {
         style: { 'opacity': '0.2' }
       },
       {
-        selector: '$node > node',
-        style: {
-          'padding-top': '10px',
-          'padding-left': '10px',
-          'padding-bottom': '10px',
-          'padding-right': '10px',
-          'background-color': '#f0f0f0',
-          'background-opacity': 0.15,
-          'border-color': '#d3d3d3',
-          'border-width': '1px'
-        }
-      },
-      {
         selector: 'node:childless',
         style: {
           'shape': 'roundrectangle',
@@ -271,31 +244,6 @@ const Graph = React.memo(function Graph(props) {
           'font-family': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif'
         }
       },
-      {
-        selector: 'node.group-node',
-        style: {
-          'background-color': '#e6e6e6',
-          'background-opacity': 0.25,
-          'shape': 'roundrectangle',
-          'text-valign': 'center',
-          'text-halign': 'center',
-          'text-margin-x': 0,
-          'text-margin-y': 0,
-          'font-weight': 'bold',
-          'font-size': '16px',
-          'color': '#555555',
-          'text-opacity': 0.8,
-          'padding': '25px',
-          'border-width': '1px',
-          'border-color': '#d3d3d3',
-          'border-opacity': 0.8,
-          'text-wrap': 'none',
-          'width': 'label',
-          'height': '35px',
-          'compound-sizing-wrt-labels': 'include',
-          'label': 'data(display)'
-        }
-      }
     ];
 
     const nodeStyles = id.map(nodeId => {
@@ -316,7 +264,7 @@ const Graph = React.memo(function Graph(props) {
       const borderColor = nodeId[4] === "true" ? 'red' : 'transparent';
 
       return {
-        selector: `node[id = "${nodeId[0]}"]:childless`,
+        selector: `node[id = "${nodeId[0]}"]`,
         style: {
           backgroundColor: labelColor,
           backgroundOpacity: 0.9,
@@ -341,7 +289,7 @@ const Graph = React.memo(function Graph(props) {
     });
 
     return [...baseStyleSheet, ...nodeStyles];
-  }, []); // Empty dependency array since this is a pure function
+  }, []);
 
   // Memoize the node IDs array
   const nodeIds = useMemo(() => {
@@ -373,11 +321,9 @@ const Graph = React.memo(function Graph(props) {
 
   // Memoize the click handlers
   const handleNodeClick = useCallback((node) => {
-    if (!node.hasClass('group-node')) {
-      props.handleSelect(node.data());
-      if (!props.informationOpen) {
-        props.expandInformation();
-      }
+    props.handleSelect(node.data());
+    if (!props.informationOpen) {
+      props.expandInformation();
     }
   }, [props.handleSelect, props.informationOpen, props.expandInformation]);
 
