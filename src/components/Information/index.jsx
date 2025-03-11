@@ -344,6 +344,9 @@ const Information = ({ width, ...props }) => {
             {edge['relationship label'] === 'Curated_relationship' && (
                 <Descriptions.Item label="Source">{edge['source']}</Descriptions.Item>
             )}
+            {edge.summary && (
+                <Descriptions.Item label="Summary">{edge.summary}</Descriptions.Item>
+            )}
         </Descriptions>
     );
 

@@ -89,11 +89,11 @@ const HomePage = () => {
                 content: 'Welcome to GLKB! Let\'s explore how to use the search and visualize the biomedical knowledge from 33 million+ Pubmed articles and nine well-curated databases.',
                 placement: 'bottom',
             },
-            {
-                target: '.search-mode-buttons',
-                content: 'Choose between two search modes: "Search biomedical terms" to explore relationships between multiple terms, or "Explore neighboring terms" to find related terms for a single entity.',
-                placement: 'bottom',
-            }
+            // {
+            //     target: '.search-mode-buttons',
+            //     content: 'Choose between two search modes: "Search biomedical terms" to explore relationships between multiple terms, or "Explore neighboring terms" to find related terms for a single entity.',
+            //     placement: 'bottom',
+            // }
         ];
 
         const tripletSteps = [
@@ -192,7 +192,7 @@ const HomePage = () => {
             <NavBarWhite showLogo={false} />
             <div className="content">
                 <img src={logo} alt="Logo" />
-                <Box 
+                {/* <Box 
                     display="flex" 
                     justifyContent="center" 
                     gap={2} 
@@ -222,7 +222,7 @@ const HomePage = () => {
                     >
                         Explore related terms
                     </Button>
-                </Box>
+                </Box> */}
                 <div className="search-section" style={{ width: '80%', maxWidth: '1000px' }}>
                     {activeButton === 'triplet' ? (
                         <SearchBarKnowledge 

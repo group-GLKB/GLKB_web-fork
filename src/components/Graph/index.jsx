@@ -4,6 +4,7 @@ import Cytoscape from 'cytoscape';
 import cola from 'cytoscape-cola';
 import fcose from 'cytoscape-fcose';
 import './scoped.css'
+import { debounce } from 'lodash';
 
 Cytoscape.use(fcose);
 Cytoscape.use(cola);
@@ -380,34 +381,43 @@ const Graph = React.memo(function Graph(props) {
     }
   }, [props.handleSelect, props.informationOpen, props.expandInformation]);
 
-  const handleEdgeClick = useCallback((edge) => {
+  // Add debouncing to prevent multiple rapid clicks
+  const handleEdgeClick = useCallback(debounce((edge) => {
     props.handleSelect(edge.data());
     if (!props.informationOpen) {
       props.expandInformation();
     }
-  }, [props.handleSelect, props.informationOpen, props.expandInformation]);
+  }, 300), [props.handleSelect, props.informationOpen, props.expandInformation]);
 
-  // Optimize cyInitCallback dependencies
+  // Modify the cyInitCallback to use the debounced handler
   const cyInitCallback = useCallback((cy) => {
     myCyRef.current = cy;
 
     const handleClick = (e) => {
       const sel = e.target;
-      if (sel.isNode && !sel.hasClass('group-node')) {
-        cy.elements().removeClass('semitransp highlight');
-        cy.elements()
-          .difference(sel.outgoers().union(sel.incomers()))
-          .not(sel)
-          .addClass('semitransp');
-        sel.addClass('highlight')
-          .outgoers()
-          .union(sel.incomers())
-          .addClass('highlight');
+      
+      // Check if the selection is a Cytoscape element
+      if (sel && sel.isElement && sel.isElement()) {
+        if (sel.isNode() && !sel.hasClass('group-node')) {
+          cy.elements().removeClass('semitransp highlight');
+          cy.elements()
+            .difference(sel.outgoers().union(sel.incomers()))
+            .not(sel)
+            .addClass('semitransp');
+          sel.addClass('highlight')
+            .outgoers()
+            .union(sel.incomers())
+            .addClass('highlight');
+        }
       } else if (sel === cy) {
+        // Clicked on empty canvas
         cy.elements().removeClass('semitransp highlight');
         props.informationOpen && props.handleInformation();
       }
     };
+
+    // Remove any existing listeners first
+    cy.removeAllListeners();
 
     cy.on('click', handleClick);
     cy.on('mouseover', 'node', e => e.target.addClass('hover'));
@@ -416,9 +426,7 @@ const Graph = React.memo(function Graph(props) {
     cy.on('click', 'edge', e => handleEdgeClick(e.target));
 
     return () => {
-      cy.removeListener('click');
-      cy.removeListener('mouseover');
-      cy.removeListener('mouseout');
+      cy.removeAllListeners();
     };
   }, [handleNodeClick, handleEdgeClick, props.handleInformation, props.informationOpen]);
 
