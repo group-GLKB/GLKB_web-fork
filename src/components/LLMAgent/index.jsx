@@ -32,12 +32,9 @@ function LLMAgent() {
         scrollToBottom();
     }, [chatHistory, streamingSteps]);
 
-    // 处理从HomePage传递的initialQuery参数
     useEffect(() => {
-        // 检查是否有初始查询参数
         if (location.state && location.state.initialQuery && chatHistory.length === 0) {
             const query = location.state.initialQuery;
-            // 自动执行查询
             handleExampleClick(query);
         }
     }, [location.state]);
@@ -148,7 +145,6 @@ function LLMAgent() {
         }
     };
 
-    // 处理编辑消息
     const handleEditMessage = (index) => {
         if (chatHistory[index].role === 'user') {
             setEditingMessageIndex(index);
@@ -156,41 +152,34 @@ function LLMAgent() {
         }
     };
 
-    // 保存编辑后的消息
     const handleSaveEdit = async (index) => {
         if (editedMessageContent.trim() === '') return;
         
-        // 创建一个新的聊天历史数组
         const newChatHistory = [...chatHistory];
-        // 更新编辑的消息
         newChatHistory[index] = {
             ...newChatHistory[index],
             content: editedMessageContent
         };
         
-        // 移除该消息之后的所有消息
         const editedHistory = newChatHistory.slice(0, index + 1);
         setChatHistory(editedHistory);
         
-        // 重置编辑状态
         setEditingMessageIndex(null);
         setEditedMessageContent('');
         
-        // 如果编辑的不是最后一条用户消息，需要重新请求回答
         if (index < newChatHistory.length - 1) {
             setIsLoading(true);
             setIsProcessing(true);
             setStreamingSteps([]);
             
             try {
-                // 准备修改后的对话历史
                 const conversationHistory = editedHistory.map(msg => ({
                     role: msg.role,
                     content: msg.content
                 }));
                 
                 await llmService.chat(editedMessageContent, (update) => {
-                    // 处理响应与之前相同
+    
                     switch (update.type) {
                         case 'step':
                             setStreamingSteps(prev => {
@@ -243,13 +232,11 @@ function LLMAgent() {
         }
     };
 
-    // 取消编辑
     const handleCancelEdit = () => {
         setEditingMessageIndex(null);
         setEditedMessageContent('');
     };
 
-    // 复制消息内容
     const handleCopyMessage = (content) => {
         navigator.clipboard.writeText(content)
             .then(() => {
@@ -274,32 +261,27 @@ function LLMAgent() {
         }
     };
 
-    // 修改示例点击处理函数，使其自动发送查询
     const handleExampleClick = async (query) => {
-        if (isLoading) return; // 如果正在加载中，不执行任何操作
+        if (isLoading) return;
         
-        // 创建新的用户消息
         const newMessage = {
             role: 'user',
             content: query,
             references: []
         };
 
-        // 更新聊天历史
         setChatHistory(prev => [...prev, newMessage]);
-        setUserInput(''); // 清空输入框
+        setUserInput(''); 
         setIsLoading(true);
         setIsProcessing(true);
         setStreamingSteps([]);
 
         try {
-            // 转换聊天历史为后端期望的格式
             const conversationHistory = chatHistory.map(msg => ({
                 role: msg.role,
                 content: msg.content
             }));
 
-            // 添加当前消息到历史记录
             conversationHistory.push({
                 role: newMessage.role,
                 content: newMessage.content
@@ -332,7 +314,6 @@ function LLMAgent() {
                             };
                             newHistory.push(assistantMessage);
                             
-                            // 更新LLMAgentService的内部消息历史
                             llmService.updateMessages(update.answer);
                             
                             return newHistory;
@@ -368,30 +349,18 @@ function LLMAgent() {
     const handleRegenerateResponse = (userMessageIndex) => {
         if (isLoading) return;
         
-        // 获取用户问题
         const userMessage = chatHistory[userMessageIndex];
         
-        // 如果下一条消息存在且是助手的回答，则需要删除它
-        if (userMessageIndex + 1 < chatHistory.length && chatHistory[userMessageIndex + 1].role === 'assistant') {
-            // 创建新的聊天历史，移除助手的回答
-            const newChatHistory = [...chatHistory];
-            newChatHistory.splice(userMessageIndex + 1, 1);
-            setChatHistory(newChatHistory);
-        }
-        
-        // 使用相同的问题重新生成回答
         setIsLoading(true);
         setIsProcessing(true);
         setStreamingSteps([]);
         
         try {
-            // 准备对话历史
             const conversationHistory = chatHistory.slice(0, userMessageIndex + 1).map(msg => ({
                 role: msg.role,
                 content: msg.content
             }));
 
-            console.log(userMessage.content);
             llmService.chat(userMessage.content, (update) => {
                 switch (update.type) {
                     case 'step':
@@ -410,35 +379,42 @@ function LLMAgent() {
                     case 'final':
                         setIsProcessing(false);
                         setChatHistory(prev => {
+                            const newHistory = prev.slice(0, userMessageIndex + 1);
                             const assistantMessage = {
                                 role: 'assistant',
                                 content: update.answer,
                                 references: parseReferences(update.references),
                                 steps: streamingSteps
                             };
-                            return [...prev.slice(0, userMessageIndex + 1), assistantMessage];
+                            return [...newHistory, assistantMessage];
                         });
                         setSelectedMessageIndex(userMessageIndex + 1);
                         break;
                     case 'error':
                         setIsProcessing(false);
-                        setChatHistory(prev => [...prev.slice(0, userMessageIndex + 1), {
-                            role: 'assistant',
-                            content: `Error: ${update.error}`,
-                            references: [],
-                            steps: []
-                        }]);
+                        setChatHistory(prev => {
+                            const newHistory = prev.slice(0, userMessageIndex + 1);
+                            return [...newHistory, {
+                                role: 'assistant',
+                                content: `Error: ${update.error}`,
+                                references: [],
+                                steps: []
+                            }];
+                        });
                         break;
                 }
             }, conversationHistory);
         } catch (error) {
             console.error('Error in regenerate:', error);
-            setChatHistory(prev => [...prev.slice(0, userMessageIndex + 1), {
-                role: 'assistant',
-                content: 'Sorry, I encountered an error while regenerating the response. Please try again.',
-                references: [],
-                steps: []
-            }]);
+            setChatHistory(prev => {
+                const newHistory = prev.slice(0, userMessageIndex + 1);
+                return [...newHistory, {
+                    role: 'assistant',
+                    content: 'Sorry, I encountered an error while regenerating the response. Please try again.',
+                    references: [],
+                    steps: []
+                }];
+            });
         } finally {
             setIsLoading(false);
             setIsProcessing(false);

@@ -34,12 +34,10 @@ const HomePage = () => {
     const searchBarKnowledgeRef = useRef(null);
     const searchBarNeighborhoodRef = useRef(null);
 
-    // 导航到LLM Agent页面
     const navigateToLLMAgent = (query = '') => {
         // Track event
         trackEvent('Navigation', 'Navigate to LLM Agent', query ? 'With Query' : 'Direct Navigation');
         if (query) {
-            // 如果有查询内容，则传递到LLM Agent页面
             navigate('/llm-agent', { state: { initialQuery: query } });
         } else {
             navigate('/llm-agent');
@@ -299,7 +297,6 @@ const HomePage = () => {
                             }}
                         />
                     ) : (
-                        // LLM Agent搜索框
                         <div style={{ width: '100%', maxWidth: '800px', margin: '10px auto' }}>
                             <div style={{ 
                                 display: 'flex', 
@@ -388,8 +385,8 @@ const HomePage = () => {
                         justifyContent: 'space-between', 
                         gap: '10px',
                         width: '100%',
-                        marginTop: activeButton === 'triplet' ? '20px' : '20px',  // LLM模式下将间距调整为-10px
-                        marginBottom: '15px' // 添加底部间距以控制到footer的距离
+                        marginTop: activeButton === 'triplet' ? '20px' : '20px', 
+                        marginBottom: '15px'    
                     }}>
                         {activeButton === 'triplet' ? (
                             <>
@@ -399,7 +396,7 @@ const HomePage = () => {
                                     style={{ 
                                         flex: 1, 
                                         margin: '0 5px', 
-                                        height: '80px',  // 从100px减小到80px
+                                        height: '80px',  
                                         whiteSpace: 'normal', 
                                         textAlign: 'left',
                                         display: 'flex',
@@ -418,7 +415,7 @@ const HomePage = () => {
                                     style={{ 
                                         flex: 1, 
                                         margin: '0 5px', 
-                                        height: '80px',  // 从100px减小到80px
+                                        height: '80px',  
                                         whiteSpace: 'normal', 
                                         textAlign: 'left',
                                         display: 'flex',
@@ -437,7 +434,7 @@ const HomePage = () => {
                                     style={{ 
                                         flex: 1, 
                                         margin: '0 5px', 
-                                        height: '80px',  // 从100px减小到80px
+                                        height: '80px',  
                                         whiteSpace: 'normal', 
                                         textAlign: 'left',
                                         display: 'flex',
@@ -459,7 +456,7 @@ const HomePage = () => {
                                     style={{ 
                                         flex: 1, 
                                         margin: '0 5px', 
-                                        height: '80px',  // 从100px减小到80px
+                                        height: '80px',  
                                         whiteSpace: 'normal', 
                                         textAlign: 'left',
                                         display: 'flex',
@@ -478,7 +475,7 @@ const HomePage = () => {
                                     style={{ 
                                         flex: 1, 
                                         margin: '0 5px', 
-                                        height: '80px',  // 从100px减小到80px
+                                        height: '80px',  
                                         whiteSpace: 'normal', 
                                         textAlign: 'left',
                                         display: 'flex',
@@ -497,7 +494,7 @@ const HomePage = () => {
                                     style={{ 
                                         flex: 1, 
                                         margin: '0 5px', 
-                                        height: '80px',  // 从100px减小到80px
+                                        height: '80px',  
                                         whiteSpace: 'normal', 
                                         textAlign: 'left',
                                         display: 'flex',
@@ -519,7 +516,7 @@ const HomePage = () => {
                                     style={{ 
                                         flex: 1, 
                                         margin: '0 5px', 
-                                        height: '80px',  // 从100px减小到80px
+                                        height: '80px',  
                                         whiteSpace: 'normal', 
                                         textAlign: 'left',
                                         display: 'flex',
@@ -538,7 +535,7 @@ const HomePage = () => {
                                     style={{ 
                                         flex: 1, 
                                         margin: '0 5px', 
-                                        height: '80px',  // 从100px减小到80px
+                                        height: '80px',  
                                         whiteSpace: 'normal', 
                                         textAlign: 'left',
                                         display: 'flex',
@@ -557,7 +554,7 @@ const HomePage = () => {
                                     style={{ 
                                         flex: 1, 
                                         margin: '0 5px', 
-                                        height: '80px',  // 从100px减小到80px
+                                        height: '80px',  
                                         whiteSpace: 'normal', 
                                         textAlign: 'left',
                                         display: 'flex',
