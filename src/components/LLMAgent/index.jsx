@@ -345,18 +345,20 @@ function LLMAgent() {
         }
     };
 
-    // 重新生成回答
     const handleRegenerateResponse = (userMessageIndex) => {
         if (isLoading) return;
         
         const userMessage = chatHistory[userMessageIndex];
+        
+        const newChatHistory = chatHistory.slice(0, userMessageIndex + 1);
+        setChatHistory(newChatHistory);
         
         setIsLoading(true);
         setIsProcessing(true);
         setStreamingSteps([]);
         
         try {
-            const conversationHistory = chatHistory.slice(0, userMessageIndex + 1).map(msg => ({
+            const conversationHistory = newChatHistory.map(msg => ({
                 role: msg.role,
                 content: msg.content
             }));
@@ -379,42 +381,35 @@ function LLMAgent() {
                     case 'final':
                         setIsProcessing(false);
                         setChatHistory(prev => {
-                            const newHistory = prev.slice(0, userMessageIndex + 1);
                             const assistantMessage = {
                                 role: 'assistant',
                                 content: update.answer,
                                 references: parseReferences(update.references),
                                 steps: streamingSteps
                             };
-                            return [...newHistory, assistantMessage];
+                            return [...prev, assistantMessage];
                         });
                         setSelectedMessageIndex(userMessageIndex + 1);
                         break;
                     case 'error':
                         setIsProcessing(false);
-                        setChatHistory(prev => {
-                            const newHistory = prev.slice(0, userMessageIndex + 1);
-                            return [...newHistory, {
-                                role: 'assistant',
-                                content: `Error: ${update.error}`,
-                                references: [],
-                                steps: []
-                            }];
-                        });
+                        setChatHistory(prev => [...prev, {
+                            role: 'assistant',
+                            content: `Error: ${update.error}`,
+                            references: [],
+                            steps: []
+                        }]);
                         break;
                 }
             }, conversationHistory);
         } catch (error) {
             console.error('Error in regenerate:', error);
-            setChatHistory(prev => {
-                const newHistory = prev.slice(0, userMessageIndex + 1);
-                return [...newHistory, {
-                    role: 'assistant',
-                    content: 'Sorry, I encountered an error while regenerating the response. Please try again.',
-                    references: [],
-                    steps: []
-                }];
-            });
+            setChatHistory(prev => [...prev, {
+                role: 'assistant',
+                content: 'Sorry, I encountered an error while regenerating the response. Please try again.',
+                references: [],
+                steps: []
+            }]);
         } finally {
             setIsLoading(false);
             setIsProcessing(false);
