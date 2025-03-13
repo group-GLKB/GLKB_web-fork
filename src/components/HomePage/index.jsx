@@ -28,10 +28,23 @@ const HomePage = () => {
     const [tags, setTags] = useState([]);
     const [runTour, setRunTour] = useState(false);
     const [activeButton, setActiveButton] = useState('triplet');  // Changed default to 'triplet'
+    const [llmQuery, setLlmQuery] = useState('');
 
     // Add refs for the search components
     const searchBarKnowledgeRef = useRef(null);
     const searchBarNeighborhoodRef = useRef(null);
+
+    // 导航到LLM Agent页面
+    const navigateToLLMAgent = (query = '') => {
+        // Track event
+        trackEvent('Navigation', 'Navigate to LLM Agent', query ? 'With Query' : 'Direct Navigation');
+        if (query) {
+            // 如果有查询内容，则传递到LLM Agent页面
+            navigate('/llm-agent', { state: { initialQuery: query } });
+        } else {
+            navigate('/llm-agent');
+        }
+    };
 
     const handleSearch = async (v) => {
         // Track searches
@@ -222,6 +235,17 @@ const HomePage = () => {
                     >
                         Explore related terms
                     </Button>
+                    <Button 
+                        variant={activeButton === 'llm' ? 'contained' : 'outlined'}
+                        sx={{ 
+                            backgroundColor: activeButton === 'llm' ? '#F7EFAE' : 'transparent',
+                            color: 'black', 
+                            '&:hover': { backgroundColor: '#F3C846' }
+                        }}
+                        onClick={() => setActiveButton('llm')}
+                    >
+                        Search with LLM Agent
+                    </Button>
                 </Box>
                 <div className="search-section" style={{ width: '80%', maxWidth: '1000px' }}>
                     {activeButton === 'triplet' ? (
@@ -241,7 +265,7 @@ const HomePage = () => {
                                 });
                             }}
                         />
-                    ) : (
+                    ) : activeButton === 'neighbor' ? (
                         <SearchBarNeighborhood 
                             ref={searchBarNeighborhoodRef}
                             onSearch={(data) => {
@@ -257,48 +281,277 @@ const HomePage = () => {
                                 });
                             }}
                         />
+                    ) : (
+                        // LLM Agent搜索框
+                        <div style={{ width: '100%', maxWidth: '800px', margin: '10px auto' }}>
+                            <div style={{ 
+                                display: 'flex', 
+                                borderRadius: '8px',
+                                backgroundColor: 'white',
+                                padding: '1rem',
+                            }}>
+                                <form 
+                                    style={{ 
+                                        display: 'flex', 
+                                        width: '100%',
+                                        gap: '1rem'
+                                    }}
+                                    onSubmit={(e) => {
+                                        e.preventDefault();
+                                        if (llmQuery.trim()) {
+                                            navigateToLLMAgent(llmQuery.trim());
+                                        }
+                                    }}
+                                >
+                                    <input
+                                        type="text"
+                                        value={llmQuery}
+                                        onChange={(e) => setLlmQuery(e.target.value)}
+                                        placeholder="Ask a question about the biomedical literature..."
+                                        style={{ 
+                                            flexGrow: 1,
+                                            padding: '0.8rem',
+                                            border: '1px solid #e0e0e0',
+                                            borderRadius: '4px',
+                                            fontSize: '1rem',
+                                            outline: 'none',
+                                            backgroundColor: 'white'
+                                        }}
+                                    />
+                                    <AntButton 
+                                        type="primary" 
+                                        htmlType="submit"
+                                        disabled={!llmQuery.trim()}
+                                        style={{
+                                            backgroundColor: '#99c7b1',
+                                            color: 'black',
+                                            border: 'none',
+                                            padding: '0.8rem 1.5rem',
+                                            height: '42px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            whiteSpace: 'nowrap',
+                                            fontSize: '1rem',
+                                            transition: 'all 0.2s ease',
+                                            borderRadius: '4px'
+                                        }}
+                                    >
+                                        Send
+                                    </AntButton>
+                                    <AntButton
+                                        onClick={() => setLlmQuery('')}
+                                        style={{
+                                            padding: '0.8rem 1.5rem',
+                                            backgroundColor: '#f5f5f5',
+                                            border: '1px solid #e0e0e0',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            fontSize: '1rem',
+                                            transition: 'all 0.2s ease',
+                                            height: '42px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                    >
+                                        Clear
+                                    </AntButton>
+                                </form>
+                            </div>
+                            <div style={{ marginTop: '-5px', textAlign: 'center', color: '#666', fontSize: '0.9rem' }}>
+                                I can help you explore biomedical literature. Here are some examples:
+                            </div>
+                        </div>
                     )}
-                    <div className="example-queries">
+                    <div className="example-queries" style={{ 
+                        display: 'flex', 
+                        flexDirection: 'row', 
+                        justifyContent: 'space-between', 
+                        gap: '10px',
+                        width: '100%',
+                        marginTop: activeButton === 'triplet' ? '20px' : '20px',  // LLM模式下将间距调整为-10px
+                        marginBottom: '15px' // 添加底部间距以控制到footer的距离
+                    }}>
                         {activeButton === 'triplet' ? (
                             <>
                                 <AntButton 
                                     onClick={() => handleExampleQuery(0)}
                                     className="example-query-button"
+                                    style={{ 
+                                        flex: 1, 
+                                        margin: '0 5px', 
+                                        height: '80px',  // 从100px减小到80px
+                                        whiteSpace: 'normal', 
+                                        textAlign: 'left',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        padding: '12px 16px',
+                                        backgroundColor: activeButton === 'triplet' ? '#99c7b1' : 'white',
+                                        border: 'none',
+                                        borderRadius: '8px'
+                                    }}
                                 >
                                     Example Query 1: SPRY2, RFX6, HNF4A, and Type 2 Diabetes
                                 </AntButton>
                                 <AntButton 
                                     onClick={() => handleExampleQuery(1)}
                                     className="example-query-button"
+                                    style={{ 
+                                        flex: 1, 
+                                        margin: '0 5px', 
+                                        height: '80px',  // 从100px减小到80px
+                                        whiteSpace: 'normal', 
+                                        textAlign: 'left',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        padding: '12px 16px',
+                                        backgroundColor: activeButton === 'triplet' ? '#99c7b1' : 'white',
+                                        border: 'none',
+                                        borderRadius: '8px'
+                                    }}
                                 >
                                     Example Query 2: TP53, SOX2, and Breast Cancer
                                 </AntButton>
                                 <AntButton 
                                     onClick={() => handleExampleQuery(2)}
                                     className="example-query-button"
+                                    style={{ 
+                                        flex: 1, 
+                                        margin: '0 5px', 
+                                        height: '80px',  // 从100px减小到80px
+                                        whiteSpace: 'normal', 
+                                        textAlign: 'left',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        padding: '12px 16px',
+                                        backgroundColor: activeButton === 'triplet' ? '#99c7b1' : 'white',
+                                        border: 'none',
+                                        borderRadius: '8px'
+                                    }}
                                 >
                                     Example Query 3: CYP2C19, Cardiovascular Abnormalities, and Clopidogrel
                                 </AntButton>
                             </>
-                        ) : (
+                        ) : activeButton === 'neighbor' ? (
                             <>
                                 <AntButton 
                                     onClick={() => handleExampleQuery(0)}
                                     className="example-query-button"
+                                    style={{ 
+                                        flex: 1, 
+                                        margin: '0 5px', 
+                                        height: '80px',  // 从100px减小到80px
+                                        whiteSpace: 'normal', 
+                                        textAlign: 'left',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        padding: '12px 16px',
+                                        backgroundColor: activeButton === 'neighbor' ? '#99c7b1' : 'white',
+                                        border: 'none',
+                                        borderRadius: '8px'
+                                    }}
                                 >
                                     Example Query 1: Find sequence variants related to TP53 based on literature
                                 </AntButton>
                                 <AntButton 
                                     onClick={() => handleExampleQuery(1)}
                                     className="example-query-button"
+                                    style={{ 
+                                        flex: 1, 
+                                        margin: '0 5px', 
+                                        height: '80px',  // 从100px减小到80px
+                                        whiteSpace: 'normal', 
+                                        textAlign: 'left',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        padding: '12px 16px',
+                                        backgroundColor: activeButton === 'neighbor' ? '#99c7b1' : 'white',
+                                        border: 'none',
+                                        borderRadius: '8px'
+                                    }}
                                 >
                                     Example Query 2: Find genes related to Alzheimer's disease based on literature
                                 </AntButton>
                                 <AntButton 
                                     onClick={() => handleExampleQuery(2)}
                                     className="example-query-button"
+                                    style={{ 
+                                        flex: 1, 
+                                        margin: '0 5px', 
+                                        height: '80px',  // 从100px减小到80px
+                                        whiteSpace: 'normal', 
+                                        textAlign: 'left',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        padding: '12px 16px',
+                                        backgroundColor: activeButton === 'neighbor' ? '#99c7b1' : 'white',
+                                        border: 'none',
+                                        borderRadius: '8px'
+                                    }}
                                 >
                                     Example Query 3: Find biomedical terms related to SOX2 based on curated databases
+                                </AntButton>
+                            </>
+                        ) : (
+                            <>
+                                <AntButton 
+                                    onClick={() => navigateToLLMAgent("Who are you?")}
+                                    className="example-query-button"
+                                    style={{ 
+                                        flex: 1, 
+                                        margin: '0 5px', 
+                                        height: '80px',  // 从100px减小到80px
+                                        whiteSpace: 'normal', 
+                                        textAlign: 'left',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        padding: '12px 16px',
+                                        backgroundColor: activeButton === 'llm' ? '#99c7b1' : 'white',
+                                        border: 'none',
+                                        borderRadius: '8px'
+                                    }}
+                                >
+                                    Example Query 1: Who are you?
+                                </AntButton>
+                                <AntButton 
+                                    onClick={() => navigateToLLMAgent("What is the role of BRCA1 in breast cancer?")}
+                                    className="example-query-button"
+                                    style={{ 
+                                        flex: 1, 
+                                        margin: '0 5px', 
+                                        height: '80px',  // 从100px减小到80px
+                                        whiteSpace: 'normal', 
+                                        textAlign: 'left',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        padding: '12px 16px',
+                                        backgroundColor: activeButton === 'llm' ? '#99c7b1' : 'white',
+                                        border: 'none',
+                                        borderRadius: '8px'
+                                    }}
+                                >
+                                    Example Query 2: What is the role of BRCA1 in breast cancer?
+                                </AntButton>
+                                <AntButton 
+                                    onClick={() => navigateToLLMAgent("How many articles about Alzheimer's disease were published in 2020?")}
+                                    className="example-query-button"
+                                    style={{ 
+                                        flex: 1, 
+                                        margin: '0 5px', 
+                                        height: '80px',  // 从100px减小到80px
+                                        whiteSpace: 'normal', 
+                                        textAlign: 'left',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        padding: '12px 16px',
+                                        backgroundColor: activeButton === 'llm' ? '#99c7b1' : 'white',
+                                        border: 'none',
+                                        borderRadius: '8px'
+                                    }}
+                                >
+                                    Example Query 3: How many articles about Alzheimer's disease are published in 2020?
                                 </AntButton>
                             </>
                         )}
@@ -316,7 +569,7 @@ const HomePage = () => {
             <div className="footer" style={{ 
                 backgroundColor: '#4a7298', 
                 padding: '20px 0',
-                marginTop: '40px',
+                marginTop: '20px',
                 width: '100%'
             }}>
                 <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
