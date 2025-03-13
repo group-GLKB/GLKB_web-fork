@@ -104,7 +104,7 @@ const HomePage = () => {
             },
             {
                 target: '.search-mode-buttons',
-                content: 'Choose between two search modes: "Search biomedical terms" to explore relationships between multiple terms, or "Explore neighboring terms" to find related terms for a single entity.',
+                content: 'Choose between two search modes: "Graphical Search" to explore relationships between multiple terms, or "LLM Agent" to automatically search for relevant information with natural language.',
                 placement: 'bottom',
             }
         ];
@@ -150,6 +150,19 @@ const HomePage = () => {
             }
         ];
 
+        const llmSteps = [
+            {
+                target: 'input[type="text"]',
+                content: 'Ask any question about biomedical literature. Our AI agent will help find and analyze relevant information for you.',
+                placement: 'bottom',
+            },
+            {
+                target: '.example-queries',
+                content: 'Try these example queries to see how the LLM Agent can help you explore biomedical knowledge.',
+                placement: 'top',
+            }
+        ];
+
         const finalSteps = [
             {
                 target: '.search-button',
@@ -167,8 +180,10 @@ const HomePage = () => {
 
         return [
             ...commonSteps,
-            ...(activeButton === 'triplet' ? tripletSteps : neighborSteps),
-            ...finalSteps
+            ...(activeButton === 'triplet' ? tripletSteps : 
+                activeButton === 'neighbor' ? neighborSteps : 
+                llmSteps),
+            ...(activeButton !== 'llm' ? finalSteps : [])
         ];
     };
 
@@ -222,9 +237,10 @@ const HomePage = () => {
                         }}
                         onClick={() => setActiveButton('triplet')}
                     >
-                        Search biomedical terms
+                        {/* Search biomedical terms */}
+                        Graphical Search
                     </Button>
-                    <Button 
+                    {/* <Button 
                         variant={activeButton === 'neighbor' ? 'contained' : 'outlined'}
                         sx={{ 
                             backgroundColor: activeButton === 'neighbor' ? '#F7EFAE' : 'transparent',
@@ -233,8 +249,8 @@ const HomePage = () => {
                         }}
                         onClick={() => setActiveButton('neighbor')}
                     >
-                        Explore related terms
-                    </Button>
+                        Explore Related Terms
+                    </Button> */}
                     <Button 
                         variant={activeButton === 'llm' ? 'contained' : 'outlined'}
                         sx={{ 
@@ -244,7 +260,8 @@ const HomePage = () => {
                         }}
                         onClick={() => setActiveButton('llm')}
                     >
-                        Search with LLM Agent
+                        {/* Search with LLM Agent */}
+                        LLM Agent
                     </Button>
                 </Box>
                 <div className="search-section" style={{ width: '80%', maxWidth: '1000px' }}>
