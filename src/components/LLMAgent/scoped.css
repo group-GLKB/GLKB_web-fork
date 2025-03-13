@@ -739,7 +739,7 @@
 .message-actions {
     display: none;
     position: absolute;
-    top: 8px;
+    bottom: 8px;
     right: 8px;
     gap: 8px;
 }
@@ -770,13 +770,28 @@
 }
 
 /* 复制按钮特定样式 */
-.copy-button {
+.copy-button, .regenerate-button {
     font-size: 14px;
+}
+
+/* 重新生成按钮特定样式 */
+.regenerate-button {
+    transition: all 0.2s;
+}
+
+.regenerate-button:hover {
+    color: #1677ff;
 }
 
 /* 编辑按钮特定样式 */
 .edit-button {
     font-size: 14px;
+}
+
+/* 禁用状态的按钮 */
+.message-action-button[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* 编辑状态的消息样式 */

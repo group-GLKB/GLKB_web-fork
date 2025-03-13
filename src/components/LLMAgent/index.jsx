@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import NavBarWhite from '../Units/NavBarWhite';
 import { Spin, Button, message } from 'antd';
 import { LLMAgentService } from '../../service/LLMAgent';
-import { DeleteOutlined, FileTextOutlined, CopyOutlined, EditOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
+import { DeleteOutlined, FileTextOutlined, CopyOutlined, EditOutlined, CheckOutlined, CloseOutlined, RedoOutlined } from '@ant-design/icons';
 import './scoped.css';
 import systemIcon from '../../img/Asset 1.png';
 import ReactMarkdown from 'react-markdown';
@@ -364,6 +364,87 @@ function LLMAgent() {
         }
     };
 
+    // 重新生成回答
+    const handleRegenerateResponse = (userMessageIndex) => {
+        if (isLoading) return;
+        
+        // 获取用户问题
+        const userMessage = chatHistory[userMessageIndex];
+        
+        // 如果下一条消息存在且是助手的回答，则需要删除它
+        if (userMessageIndex + 1 < chatHistory.length && chatHistory[userMessageIndex + 1].role === 'assistant') {
+            // 创建新的聊天历史，移除助手的回答
+            const newChatHistory = [...chatHistory];
+            newChatHistory.splice(userMessageIndex + 1, 1);
+            setChatHistory(newChatHistory);
+        }
+        
+        // 使用相同的问题重新生成回答
+        setIsLoading(true);
+        setIsProcessing(true);
+        setStreamingSteps([]);
+        
+        try {
+            // 准备对话历史
+            const conversationHistory = chatHistory.slice(0, userMessageIndex + 1).map(msg => ({
+                role: msg.role,
+                content: msg.content
+            }));
+
+            console.log(userMessage.content);
+            llmService.chat(userMessage.content, (update) => {
+                switch (update.type) {
+                    case 'step':
+                        setStreamingSteps(prev => {
+                            const newSteps = [...prev];
+                            const cleanContent = update.content.replace(/\u001b\[\d+m/g, '').trim();
+                            if (cleanContent) {
+                                newSteps.push({
+                                    step: update.step,
+                                    content: cleanContent
+                                });
+                            }
+                            return newSteps;
+                        });
+                        break;
+                    case 'final':
+                        setIsProcessing(false);
+                        setChatHistory(prev => {
+                            const assistantMessage = {
+                                role: 'assistant',
+                                content: update.answer,
+                                references: parseReferences(update.references),
+                                steps: streamingSteps
+                            };
+                            return [...prev.slice(0, userMessageIndex + 1), assistantMessage];
+                        });
+                        setSelectedMessageIndex(userMessageIndex + 1);
+                        break;
+                    case 'error':
+                        setIsProcessing(false);
+                        setChatHistory(prev => [...prev.slice(0, userMessageIndex + 1), {
+                            role: 'assistant',
+                            content: `Error: ${update.error}`,
+                            references: [],
+                            steps: []
+                        }]);
+                        break;
+                }
+            }, conversationHistory);
+        } catch (error) {
+            console.error('Error in regenerate:', error);
+            setChatHistory(prev => [...prev.slice(0, userMessageIndex + 1), {
+                role: 'assistant',
+                content: 'Sorry, I encountered an error while regenerating the response. Please try again.',
+                references: [],
+                steps: []
+            }]);
+        } finally {
+            setIsLoading(false);
+            setIsProcessing(false);
+        }
+    };
+
     const renderMessages = () => {
         return chatHistory.map((message, index) => {
             const isLastUserMessage = index === chatHistory.length - 1 && message.role === 'user';
@@ -451,13 +532,24 @@ function LLMAgent() {
                                 <div className="response-header">
                                     <img src={systemIcon} alt="AI" className="system-icon" />
                                     <span>Response</span>
-                                    <div 
-                                        className="message-action-button copy-button"
-                                        onClick={() => handleCopyMessage(message.content)}
-                                        title="Copy response"
-                                        style={{ marginLeft: 'auto', backgroundColor: 'transparent', border: 'none' }}
-                                    >
-                                        <CopyOutlined />
+                                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+                                        <div 
+                                            className="message-action-button regenerate-button"
+                                            onClick={() => handleRegenerateResponse(index - 1)}
+                                            title="Regenerate response"
+                                            style={{ backgroundColor: 'transparent', border: 'none' }}
+                                            disabled={isLoading}
+                                        >
+                                            <RedoOutlined />
+                                        </div>
+                                        <div 
+                                            className="message-action-button copy-button"
+                                            onClick={() => handleCopyMessage(message.content)}
+                                            title="Copy response"
+                                            style={{ backgroundColor: 'transparent', border: 'none' }}
+                                        >
+                                            <CopyOutlined />
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="response-content">
