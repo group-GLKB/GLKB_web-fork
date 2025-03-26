@@ -8,6 +8,37 @@ import './scoped.css';
 import systemIcon from '../../img/Asset 1.png';
 import ReactMarkdown from 'react-markdown';
 import GLKBLogo from '../../img/glkb_dark.jpg';
+import MessageList from './richtext';
+
+import {
+    Card,
+    CardContent,
+    Typography,
+    Box,
+    CircularProgress,
+    IconButton,
+    Stack,
+    Container,
+    Avatar,
+    Icon,
+    TextField
+} from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import FilePresentIcon from '@mui/icons-material/FilePresent';
+import EditNoteIcon from '@mui/icons-material/EditNote';
+import CheckIcon from '@mui/icons-material/Check';
+import ClearIcon from '@mui/icons-material/Clear';
+
+// import ShareIcon from "@mui/icons-material/Share";
+// import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
+// import BookmarkIcon from "@mui/icons-material/Bookmark";
+// import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+// import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
+// import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
+// import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
+// import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
+
 
 function LLMAgent() {
     const location = useLocation();
@@ -20,7 +51,7 @@ function LLMAgent() {
     const [editingMessageIndex, setEditingMessageIndex] = useState(null);
     const [editedMessageContent, setEditedMessageContent] = useState('');
     const messagesEndRef = useRef(null);
-    
+
     // Create a single instance of LLMAgentService that persists across re-renders
     const llmService = React.useMemo(() => new LLMAgentService(), []);
 
@@ -41,7 +72,7 @@ function LLMAgent() {
 
     const parseReferences = (refs) => {
         if (!refs || !Array.isArray(refs)) return [];
-        
+
         return refs.map(ref => {
             const [title, pubmed_url, citation_count, year, journal, authors] = ref;
             return {
@@ -58,7 +89,7 @@ function LLMAgent() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!userInput.trim() || isLoading) return;
-        
+
         // Create new user message
         const newMessage = {
             role: 'user',
@@ -112,10 +143,10 @@ function LLMAgent() {
                                 steps: streamingSteps
                             };
                             newHistory.push(assistantMessage);
-                            
+
                             // Update the LLMAgentService's internal message history
                             llmService.updateMessages(update.answer);
-                            
+
                             return newHistory;
                         });
                         setSelectedMessageIndex(chatHistory.length + 1);
@@ -154,32 +185,32 @@ function LLMAgent() {
 
     const handleSaveEdit = async (index) => {
         if (editedMessageContent.trim() === '') return;
-        
+
         const newChatHistory = [...chatHistory];
         newChatHistory[index] = {
             ...newChatHistory[index],
             content: editedMessageContent
         };
-        
+
         const editedHistory = newChatHistory.slice(0, index + 1);
         setChatHistory(editedHistory);
-        
+
         setEditingMessageIndex(null);
         setEditedMessageContent('');
-        
+
         if (index < newChatHistory.length - 1) {
             setIsLoading(true);
             setIsProcessing(true);
             setStreamingSteps([]);
-            
+
             try {
                 const conversationHistory = editedHistory.map(msg => ({
                     role: msg.role,
                     content: msg.content
                 }));
-                
+
                 await llmService.chat(editedMessageContent, (update) => {
-    
+
                     switch (update.type) {
                         case 'step':
                             setStreamingSteps(prev => {
@@ -263,7 +294,7 @@ function LLMAgent() {
 
     const handleExampleClick = async (query) => {
         if (isLoading) return;
-        
+
         const newMessage = {
             role: 'user',
             content: query,
@@ -271,7 +302,7 @@ function LLMAgent() {
         };
 
         setChatHistory(prev => [...prev, newMessage]);
-        setUserInput(''); 
+        setUserInput('');
         setIsLoading(true);
         setIsProcessing(true);
         setStreamingSteps([]);
@@ -313,9 +344,9 @@ function LLMAgent() {
                                 steps: streamingSteps
                             };
                             newHistory.push(assistantMessage);
-                            
+
                             llmService.updateMessages(update.answer);
-                            
+
                             return newHistory;
                         });
                         setSelectedMessageIndex(chatHistory.length + 1);
@@ -347,16 +378,16 @@ function LLMAgent() {
 
     const handleRegenerateResponse = (userMessageIndex) => {
         if (isLoading) return;
-        
+
         const userMessage = chatHistory[userMessageIndex];
-        
+
         const newChatHistory = chatHistory.slice(0, userMessageIndex + 1);
         setChatHistory(newChatHistory);
-        
+
         setIsLoading(true);
         setIsProcessing(true);
         setStreamingSteps([]);
-        
+
         try {
             const conversationHistory = newChatHistory.map(msg => ({
                 role: msg.role,
@@ -416,134 +447,225 @@ function LLMAgent() {
         }
     };
 
-    const renderMessages = () => {
-        return chatHistory.map((message, index) => {
-            const isLastUserMessage = index === chatHistory.length - 1 && message.role === 'user';
-            const isEditing = index === editingMessageIndex;
-            
-            return (
-                <div key={`message-${index}`} className="message-pair">
-                    {/* User message */}
-                    {message.role === 'user' && (
-                        <div className={`message-wrapper user ${isEditing ? 'editing' : ''}`}>
-                            {isEditing ? (
-                                <div style={{ width: '100%', maxWidth: '800px', marginLeft: 'auto' }}>
-                                    <textarea
-                                        className="edit-message-input"
-                                        value={editedMessageContent}
-                                        onChange={(e) => setEditedMessageContent(e.target.value)}
-                                        autoFocus
-                                    />
-                                    <div className="edit-actions">
-                                        <button 
-                                            className="edit-action-button cancel-edit-button"
-                                            onClick={handleCancelEdit}
-                                        >
-                                            <CloseOutlined /> Cancel
-                                        </button>
-                                        <button 
-                                            className="edit-action-button save-edit-button"
-                                            onClick={() => handleSaveEdit(index)}
-                                        >
-                                            <CheckOutlined /> Save
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="message">
-                                        {message.content}
-                                    </div>
-                                    <div className="message-actions">
-                                        <div 
-                                            className="message-action-button edit-button"
-                                            onClick={() => handleEditMessage(index)}
-                                            title="Edit message"
-                                        >
-                                            <EditOutlined />
-                                        </div>
-                                        <div 
-                                            className="message-action-button copy-button"
-                                            onClick={() => handleCopyMessage(message.content)}
-                                            title="Copy content"
-                                        >
-                                            <CopyOutlined />
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    )}
+    const MessageCard = ({ index, message, refresh, copy, edit, editContent, change, save, cancel, goref, GetSteps }) => {
+        const isAssistant = message.role === "assistant";
+        const isLastUserMessage = index === chatHistory.length - 1 && message.role === 'user';
+        const isEditing = index === editingMessageIndex;
+        const isLoading = isProcessing && isLastUserMessage;
+        const messageID = index;
+        // const liked = message.like;
+        // const disliked = message.dislike;
+        // const bookmarked = message.bookmark;
+        const tokenCount = 0;
+        const timestamp = "00:00 PM";
 
-                    {/* Streaming content */}
-                    {isLastUserMessage && isProcessing && (
-                        <div className="assistant-response">
-                            <div className="reasoning-section">
-                                <div className="reasoning-header">
-                                    <img src={systemIcon} alt="AI" className="system-icon" />
-                                    <span>Thinking...</span>
-                                    <Spin size="small" style={{ marginLeft: '8px' }} />
-                                </div>
-                                <div className="reasoning-content">
-                                    {streamingSteps.map((step, stepIndex) => (
-                                        <div key={stepIndex} className="step-item">
-                                            <strong>{step.step}: </strong>
-                                            <span>{step.content}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
+        return (
+            <Container className="message-pair" sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: 2, width: "100%" }}>
+                {!isAssistant && (
+                    <Box sx={{ flex: "0 0 auto", width: "80px", textAlign: "right" }}>
+                        <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText" }}>{timestamp}</Typography>
+                    </Box>
+                )}
+                <Box
+                    sx={{
+                        bgcolor: isAssistant ? "white" : "#d9f3ee", // Different background colors
+                        display: "flex",
+                        alignItems: "flex-start",
+                        px: "24px",
+                        pt: "12px",
+                        pb: "6px",
+                        border: isAssistant ? "1px solid" : "none",
+                        borderColor: "divider",
+                        borderRadius: "24px",
+                        flex: 1, // Occupy maximum width
+                        // Added shadow effect
+                    }}
+                >
+                    {isAssistant && (
+                        <Box
+                            sx={{
+                                m: 2,
+                                width: 32,
+                                height: 32,
+                                borderRadius: 16,
+                                borderStyle: "solid",
+                                borderColor: "black",
+                                borderWidth: 1,
+                                justifyContent: "center",
+                                alignItems: "center",
+                                display: "flex",
+                            }}
+                        >
+                            <img src={systemIcon} alt="Assistant" width="26" height="26" style={{ borderRadius: 13 }} />
+                        </Box>
                     )}
+                    <Box sx={{ flex: 1 }}>
+                        {isAssistant && (
+                            <Typography variant="body2" color="textSecondary" sx={{
+                                fontFamily: "Inter", fontSize: "14px", display: "flex", color: "#19213d", alignItems: "center",
+                                pt: "12px", fontWeight: 500
+                            }}>
+                                LanguageGUI
+                                <Box
+                                    component="span"
+                                    sx={{
+                                        mx: 1,
+                                        width: "1px",
+                                        height: "1em",
+                                        bgcolor: "text.secondary",
+                                    }}
+                                />
+                                {timestamp}
+                            </Typography>
+                        )}
 
-                    {/* Assistant final response */}
-                    {message.role === 'assistant' && (
-                        <div className="assistant-response">
-                            <div className="response-section">
-                                <div className="response-header">
-                                    <img src={systemIcon} alt="AI" className="system-icon" />
-                                    <span>Response</span>
-                                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
-                                        <div 
-                                            className="message-action-button regenerate-button"
-                                            onClick={() => handleRegenerateResponse(index - 1)}
-                                            title="Regenerate response"
-                                            style={{ backgroundColor: 'transparent', border: 'none' }}
-                                            disabled={isLoading}
-                                        >
-                                            <RedoOutlined />
-                                        </div>
-                                        <div 
-                                            className="message-action-button copy-button"
-                                            onClick={() => handleCopyMessage(message.content)}
-                                            title="Copy response"
-                                            style={{ backgroundColor: 'transparent', border: 'none' }}
-                                        >
-                                            <CopyOutlined />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="response-content">
-                                    <ReactMarkdown>{message.content}</ReactMarkdown>
-                                </div>
-                                {message.references?.length > 0 && (
-                                    <div className="reference-button-wrapper">
-                                        <Button
-                                            icon={<FileTextOutlined />}
-                                            className={`reference-button ${selectedMessageIndex === index ? 'selected' : ''}`}
-                                            onClick={() => handleMessageClick(index)}
-                                        >
-                                            {message.references.length} References
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        });
+                        <Box mt={1}>
+                            {isLoading ? (<>
+                                <Box display="flex" justifyContent="center" py={2}>
+                                    <CircularProgress size={24} />
+                                </Box>
+                                <GetSteps />
+                            </>
+                            ) :
+                                isEditing ?
+                                    <TextField
+                                        hiddenLabel
+                                        multiline
+                                        id="filled-hidden-label-small"
+                                        value={editContent}
+                                        variant="filled"
+                                        size="small"
+                                        sx={{ flex: 1, width: "100%" }}
+                                        onChange={(e) => change(e.target.value)}
+                                    /> : (
+                                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                                    )}
+                        </Box>
+
+                        {/* Buttons below message */}
+                        {isAssistant ? <Box sx={{ justifyContent: "space-between", direction: "row", display: "flex", alignItems: "center", mt: 2 }}>
+                            <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
+                                <IconButton size="small" onClick={() => refresh(messageID - 1)}>
+                                    <RefreshIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton size="small" onClick={() => copy(message.content)}>
+                                    <ContentCopyIcon fontSize="small" />
+                                </IconButton>
+                                {/* <IconButton size="small" onClick={()=>{}}>
+                                    <ShareIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton size="small" onClick={()=>{}}>
+                                    {0 ? <ThumbUpAltIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
+                                </IconButton>
+                                <IconButton size="small" onClick={()=>{}}>
+                                    {0 ? <ThumbDownAltIcon fontSize="small" /> : <ThumbDownOffAltIcon fontSize="small" />}
+                                </IconButton>
+                                <IconButton size="small" onClick={()=>{}}>
+                                    {0 ? <BookmarkIcon fontSize="small" /> : <BookmarkBorderIcon fontSize="small" />}
+                                </IconButton> */}
+                                <IconButton size="small" onClick={() => goref(messageID)}>
+                                    <FilePresentIcon fontSize="small" />
+                                </IconButton>
+                                {/* <IconButton size="small">
+                                    <MoreHorizIcon fontSize="small" />
+                                </IconButton> */}
+                            </Stack>
+                            <Box sx={{
+                                px: "10px",
+                                height: "40px",
+                                borderRadius: "4px",
+                                border: "none",
+                                bgcolor: "#f7f8fa",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                display: "flex",
+                                //boxShadow: "0px 1px 1px rgba(0, 0, 0, 0.1)",
+                            }}>{tokenCount} tokens</Box>
+                        </Box>
+                            : <Box sx={{ justifyContent: "flex-end", direction: "row", display: "flex", alignItems: "center", mt: 2 }}>
+                                <Stack direction="row" spacing={1} sx={{ pb: "8px" }}>
+                                    {
+                                        isEditing ? <>
+                                            <IconButton size="small" onClick={() => cancel()}>
+                                                <ClearIcon fontSize="small" />
+                                            </IconButton>
+                                            <IconButton size="small" onClick={() => save(messageID)}>
+                                                <CheckIcon fontSize="small" />
+                                            </IconButton>
+                                        </> : <>
+                                            <IconButton size="small" onClick={() => copy(message.content)}>
+                                                <ContentCopyIcon fontSize="small" />
+                                            </IconButton>
+                                            <IconButton size="small" onClick={() => edit(messageID)}>
+                                                <EditNoteIcon fontSize="small" />
+                                            </IconButton>
+                                        </>
+                                    }
+
+                                </Stack>
+                            </Box>}
+                    </Box>
+                </Box>
+            </Container>
+        );
     };
+
+    const renderMessages = () => {
+        return (<Box sx={{ p: 2 }}>{chatHistory.map((message, index) => {
+            // return (
+            //     <MessageCard
+            //         index={index}
+            //         message={message}
+            //         refresh={handleRegenerateResponse}
+            //         copy={handleCopyMessage}
+            //         edit={handleEditMessage}
+            //         editContent={editedMessageContent}
+            //         change={setEditedMessageContent}
+            //         save={handleSaveEdit}
+            //         cancel={handleCancelEdit}
+            //         goref={handleMessageClick}
+            //         GetSteps={() => {
+            //             return (
+            //                 <Box sx={{ mt: 2 }}>
+            //                     {streamingSteps.map((step, stepIndex) => (
+            //                         <div key={stepIndex} className="step-item">
+            //                             <strong>{step.step}: </strong>
+            //                             <span>{step.content}</span>
+            //                         </div>
+            //                     ))}
+            //                 </Box>
+            //             );
+            //         }}
+            //     />
+            // );
+            //return as function
+            return MessageCard({
+                index: index,
+                message: message,
+                refresh: handleRegenerateResponse,
+                copy: handleCopyMessage,
+                edit: handleEditMessage,
+                editContent: editedMessageContent,
+                change: setEditedMessageContent,
+                save: handleSaveEdit,
+                cancel: handleCancelEdit,
+                goref: handleMessageClick,
+                GetSteps: () => {
+                    return (
+                        <Box sx={{ mt: 2 }}>
+                            {streamingSteps.map((step, stepIndex) => (
+                                <div key={stepIndex} className="step-item">
+                                    <strong>{step.step}: </strong>
+                                    <span>{step.content}</span>
+                                </div>
+                            ))}
+                        </Box>
+                    );
+                }
+            });
+        })}</Box>);
+    };
+
 
     return (
         <div className="result-container">
@@ -555,7 +677,7 @@ function LLMAgent() {
                     <div className="llm-agent-container">
                         <div className="chat-and-references">
                             <div className="chat-container">
-                                
+
                                 {/* Add example queries section */}
                                 {chatHistory.length === 0 && (
                                     <div className="example-queries" style={{ paddingTop: '1rem' }}>
@@ -567,30 +689,30 @@ function LLMAgent() {
                                             <h3>I can help you explore biomedical literature. Here are some examples:</h3>
                                         </div>
                                         <div className="example-query-list" style={{ marginTop: '10px', marginBottom: '10px' }}>
-                                            <div className="example-query" 
-                                                 onClick={() => handleExampleClick("Who are you?")}
-                                                 style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
+                                            <div className="example-query"
+                                                onClick={() => handleExampleClick("Who are you?")}
+                                                style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
                                                 Who are you?
                                             </div>
-                                            <div className="example-query" 
-                                                 onClick={() => handleExampleClick("What is the role of BRCA1 in breast cancer?")}
-                                                 style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
+                                            <div className="example-query"
+                                                onClick={() => handleExampleClick("What is the role of BRCA1 in breast cancer?")}
+                                                style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
                                                 What is the role of BRCA1 in breast cancer?
                                             </div>
-                                            <div className="example-query" 
-                                                 onClick={() => handleExampleClick("How many articles about Alzheimer's disease are published in 2020?")}
-                                                 style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
+                                            <div className="example-query"
+                                                onClick={() => handleExampleClick("How many articles about Alzheimer's disease are published in 2020?")}
+                                                style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
                                                 How many articles about Alzheimer's disease are published in 2020?
                                             </div>
-                                            <div className="example-query" 
-                                                 onClick={() => handleExampleClick("What pathways does TP53 participate in?")}
-                                                 style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
+                                            <div className="example-query"
+                                                onClick={() => handleExampleClick("What pathways does TP53 participate in?")}
+                                                style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
                                                 What pathways does TP53 participate in?
                                             </div>
                                         </div>
                                     </div>
                                 )}
-                                
+
                                 <div className="messages-container">
                                     {renderMessages()}
                                     <div ref={messagesEndRef} />
@@ -606,15 +728,15 @@ function LLMAgent() {
                                             className="message-input"
                                             disabled={isLoading}
                                         />
-                                        <button 
-                                            type="submit" 
-                                            className="send-button" 
+                                        <button
+                                            type="submit"
+                                            className="send-button"
                                             disabled={isLoading || !userInput.trim()}
                                         >
                                             Send
                                         </button>
                                     </form>
-                                    <Button 
+                                    <Button
                                         icon={<DeleteOutlined />}
                                         onClick={handleClear}
                                         className="clear-button"
@@ -623,7 +745,7 @@ function LLMAgent() {
                                     </Button>
                                 </div>
                             </div>
-                            
+
                             <div className="references-container">
                                 <h3>References</h3>
                                 {selectedMessageIndex !== null && chatHistory[selectedMessageIndex]?.references.length > 0 ? (
