@@ -1,26 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import NavBarWhite from '../Units/NavBarWhite';
-import { Spin, Button, message } from 'antd';
+import { Button, message } from 'antd';
 import { LLMAgentService } from '../../service/LLMAgent';
-import { DeleteOutlined, FileTextOutlined, CopyOutlined, EditOutlined, CheckOutlined, CloseOutlined, RedoOutlined } from '@ant-design/icons';
+import { DeleteOutlined } from '@ant-design/icons';
 import './scoped.css';
 import systemIcon from '../../img/Asset 1.png';
 import ReactMarkdown from 'react-markdown';
 import GLKBLogo from '../../img/glkb_dark.jpg';
-import MessageList from './richtext';
 
 import {
-    Card,
-    CardContent,
     Typography,
     Box,
     CircularProgress,
     IconButton,
     Stack,
     Container,
-    Avatar,
-    Icon,
     TextField
 } from "@mui/material";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -90,11 +85,14 @@ function LLMAgent() {
         e.preventDefault();
         if (!userInput.trim() || isLoading) return;
 
+        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
         // Create new user message
         const newMessage = {
             role: 'user',
             content: userInput,
-            references: []
+            references: [],
+            timestamp: timestamp // Add timestamp
         };
 
         // Update chat history with user message
@@ -185,6 +183,9 @@ function LLMAgent() {
 
     const handleSaveEdit = async (index) => {
         if (editedMessageContent.trim() === '') return;
+
+        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        chatHistory[index].timestamp = timestamp;
 
         const newChatHistory = [...chatHistory];
         newChatHistory[index] = {
@@ -295,10 +296,13 @@ function LLMAgent() {
     const handleExampleClick = async (query) => {
         if (isLoading) return;
 
+        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
         const newMessage = {
             role: 'user',
             content: query,
-            references: []
+            references: [],
+            timestamp: timestamp
         };
 
         setChatHistory(prev => [...prev, newMessage]);
@@ -457,7 +461,7 @@ function LLMAgent() {
         // const disliked = message.dislike;
         // const bookmarked = message.bookmark;
         const tokenCount = 0;
-        const timestamp = "00:00 PM";
+        const timestamp = message.timestamp || "";
 
         return (
             <Container className="message-pair" sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: 2, width: "100%" }}>
@@ -579,7 +583,6 @@ function LLMAgent() {
                                 justifyContent: "center",
                                 alignItems: "center",
                                 display: "flex",
-                                //boxShadow: "0px 1px 1px rgba(0, 0, 0, 0.1)",
                             }}>{tokenCount} tokens</Box>
                         </Box>
                             : <Box sx={{ justifyContent: "flex-end", direction: "row", display: "flex", alignItems: "center", mt: 2 }}>
@@ -612,33 +615,6 @@ function LLMAgent() {
 
     const renderMessages = () => {
         return (<Box sx={{ p: 2 }}>{chatHistory.map((message, index) => {
-            // return (
-            //     <MessageCard
-            //         index={index}
-            //         message={message}
-            //         refresh={handleRegenerateResponse}
-            //         copy={handleCopyMessage}
-            //         edit={handleEditMessage}
-            //         editContent={editedMessageContent}
-            //         change={setEditedMessageContent}
-            //         save={handleSaveEdit}
-            //         cancel={handleCancelEdit}
-            //         goref={handleMessageClick}
-            //         GetSteps={() => {
-            //             return (
-            //                 <Box sx={{ mt: 2 }}>
-            //                     {streamingSteps.map((step, stepIndex) => (
-            //                         <div key={stepIndex} className="step-item">
-            //                             <strong>{step.step}: </strong>
-            //                             <span>{step.content}</span>
-            //                         </div>
-            //                     ))}
-            //                 </Box>
-            //             );
-            //         }}
-            //     />
-            // );
-            //return as function
             return MessageCard({
                 index: index,
                 message: message,
