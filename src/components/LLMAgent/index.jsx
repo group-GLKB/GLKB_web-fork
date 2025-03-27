@@ -272,7 +272,7 @@ function LLMAgent() {
         const timestamp = message.timestamp || "";
 
         return (
-            <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: 2, width: "100%" }}>
+            <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: 2 }}>
                 {!isAssistant && (
                     <Box sx={{ flex: "0 0 auto", width: "80px", textAlign: "right" }}>
                         <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText" }}>{timestamp}</Typography>
@@ -314,7 +314,7 @@ function LLMAgent() {
                     <Box sx={{ flex: 1 }}>
                         {isAssistant && (
                             <Typography variant="body2" color="textSecondary" sx={{
-                                fontFamily: "Inter", fontSize: "14px", display: "flex", color: "#19213d", alignItems: "center",
+                                fontFamily: "Inter, sans-serif", fontSize: "14px", display: "flex", color: "#19213d", alignItems: "center",
                                 pt: "12px", fontWeight: 500
                             }}>
                                 LanguageGUI
@@ -327,7 +327,7 @@ function LLMAgent() {
                                         bgcolor: "text.secondary",
                                     }}
                                 />
-                                {timestamp}
+                                <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText" }}>{timestamp}</Typography>
                             </Typography>
                         )}
 
@@ -351,7 +351,14 @@ function LLMAgent() {
                                         onChange={(e) => change(e.target.value)}
                                     /> : (
                                         <ReactMarkdown components={{
-                                            p: ({ node, ...props }) => <p style={{ fontFamily: "Inter, sans-serif", lineHeight: 1.6 }} {...props} />
+                                            // Add a custom style on all nodes
+                                            p: ({ node, ...props }) => <p style={{ lineHeight: "150%" }} {...props} />,
+                                            // h1: ({ node, ...props }) => <h1 style={{}} {...props} />,
+                                            // h2: ({ node, ...props }) => <h2 style={{}} {...props} />,
+                                            // h3: ({ node, ...props }) => <h3 style={{}} {...props} />,
+                                            // ul: ({ node, ...props }) => <ul style={{}} {...props} />,
+                                            // ol: ({ node, ...props }) => <ol style={{}} {...props} />,
+                                            li: ({ node, ...props }) => <li style={{ lineHeight: "150%", marginTop: "5px", marginBottom: "5px" }} {...props} />
                                         }}>
                                             {message.content}
                                         </ReactMarkdown>
@@ -542,14 +549,14 @@ function LLMAgent() {
                                         >
                                             Send
                                         </button>
+                                        <Button
+                                            icon={<DeleteOutlined />}
+                                            onClick={handleClear}
+                                            className="clear-button"
+                                        >
+                                            Clear History
+                                        </Button>
                                     </form>
-                                    <Button
-                                        icon={<DeleteOutlined />}
-                                        onClick={handleClear}
-                                        className="clear-button"
-                                    >
-                                        Clear History
-                                    </Button>
                                 </div>
                             </div>
 
