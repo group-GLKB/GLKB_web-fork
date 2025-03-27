@@ -18,6 +18,7 @@ import {
     Container,
     TextField
 } from "@mui/material";
+import MuiButton from "@mui/material/Button";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import FilePresentIcon from '@mui/icons-material/FilePresent';
@@ -81,18 +82,20 @@ function LLMAgent() {
         });
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!userInput.trim() || isLoading) return;
+    const handleSubmit = async (e, input = null, t = null) => {
+        const inputText = input || userInput;
+        console.log('Submitting:', inputText);
+        e && e.preventDefault();
+        if (!inputText.trim() || isLoading) return;
 
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         // Create new user message
         const newMessage = {
             role: 'user',
-            content: userInput,
+            content: inputText,
             references: [],
-            timestamp: timestamp // Add timestamp
+            timestamp: t || timestamp
         };
 
         // Update chat history with user message
@@ -115,7 +118,15 @@ function LLMAgent() {
                 content: newMessage.content
             });
 
-            await llmService.chat(userInput, (update) => {
+            // Append a blank message
+            setChatHistory(prev => [...prev, {
+                role: 'assistant',
+                content: '',
+                references: [],
+                timestamp: timestamp
+            }]);
+
+            await llmService.chat(inputText, (update) => {
                 switch (update.type) {
                     case 'step':
                         setStreamingSteps(prev => {
@@ -138,9 +149,9 @@ function LLMAgent() {
                                 role: 'assistant',
                                 content: update.answer,
                                 references: parseReferences(update.references),
-                                steps: streamingSteps
+                                timestamp: timestamp
                             };
-                            newHistory.push(assistantMessage);
+                            newHistory[newHistory.length - 1] = assistantMessage;
 
                             // Update the LLMAgentService's internal message history
                             llmService.updateMessages(update.answer);
@@ -151,23 +162,33 @@ function LLMAgent() {
                         break;
                     case 'error':
                         setIsProcessing(false);
-                        setChatHistory(prev => [...prev, {
-                            role: 'assistant',
-                            content: `Error: ${update.error}`,
-                            references: [],
-                            steps: []
-                        }]);
+                        setChatHistory(prev => {
+                            const newHistory = [...prev];
+                            const errorMessage = {
+                                role: 'assistant',
+                                content: `Error: ${update.error}`,
+                                references: [],
+                                timestamp: timestamp
+                            };
+                            newHistory[newHistory.length - 1] = errorMessage;
+                            return newHistory;
+                        });
                         break;
                 }
             }, conversationHistory); // Pass the conversation history to chat method
         } catch (error) {
             console.error('Error in chat:', error);
-            setChatHistory(prev => [...prev, {
-                role: 'assistant',
-                content: 'Sorry, I encountered an error while processing your request. Please try again.',
-                references: [],
-                steps: []
-            }]);
+            setChatHistory(prev => {
+                const newHistory = [...prev];
+                const errorMessage = {
+                    role: 'assistant',
+                    content: 'Sorry, I encountered an error while processing your request. Please try again.',
+                    references: [],
+                    timestamp: timestamp
+                };
+                newHistory[newHistory.length - 1] = errorMessage;
+                return newHistory;
+            });
         } finally {
             setIsLoading(false);
             setIsProcessing(false);
@@ -175,93 +196,21 @@ function LLMAgent() {
     };
 
     const handleEditMessage = (index) => {
-        if (chatHistory[index].role === 'user') {
-            setEditingMessageIndex(index);
-            setEditedMessageContent(chatHistory[index].content);
-        }
+        if (chatHistory[index].role !== 'user') return;
+
+        setEditingMessageIndex(index);
+        setEditedMessageContent(chatHistory[index].content);
     };
 
-    const handleSaveEdit = async (index) => {
-        if (editedMessageContent.trim() === '') return;
+    const handleSaveEdit = async (e, index) => {
+        if (editedMessageContent.trim() === '' || isLoading) return;
 
-        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        chatHistory[index].timestamp = timestamp;
-
-        const newChatHistory = [...chatHistory];
-        newChatHistory[index] = {
-            ...newChatHistory[index],
-            content: editedMessageContent
-        };
-
-        const editedHistory = newChatHistory.slice(0, index + 1);
+        const editedHistory = chatHistory.slice(0, index);
         setChatHistory(editedHistory);
-
         setEditingMessageIndex(null);
         setEditedMessageContent('');
 
-        if (index < newChatHistory.length - 1) {
-            setIsLoading(true);
-            setIsProcessing(true);
-            setStreamingSteps([]);
-
-            try {
-                const conversationHistory = editedHistory.map(msg => ({
-                    role: msg.role,
-                    content: msg.content
-                }));
-
-                await llmService.chat(editedMessageContent, (update) => {
-
-                    switch (update.type) {
-                        case 'step':
-                            setStreamingSteps(prev => {
-                                const newSteps = [...prev];
-                                const cleanContent = update.content.replace(/\u001b\[\d+m/g, '').trim();
-                                if (cleanContent) {
-                                    newSteps.push({
-                                        step: update.step,
-                                        content: cleanContent
-                                    });
-                                }
-                                return newSteps;
-                            });
-                            break;
-                        case 'final':
-                            setIsProcessing(false);
-                            setChatHistory(prev => {
-                                const assistantMessage = {
-                                    role: 'assistant',
-                                    content: update.answer,
-                                    references: parseReferences(update.references),
-                                    steps: streamingSteps
-                                };
-                                return [...prev, assistantMessage];
-                            });
-                            break;
-                        case 'error':
-                            setIsProcessing(false);
-                            setChatHistory(prev => [...prev, {
-                                role: 'assistant',
-                                content: `Error: ${update.error}`,
-                                references: [],
-                                steps: []
-                            }]);
-                            break;
-                    }
-                }, conversationHistory);
-            } catch (error) {
-                console.error('Error in chat after edit:', error);
-                setChatHistory(prev => [...prev, {
-                    role: 'assistant',
-                    content: 'Sorry, I encountered an error while processing your edited request. Please try again.',
-                    references: [],
-                    steps: []
-                }]);
-            } finally {
-                setIsLoading(false);
-                setIsProcessing(false);
-            }
-        }
+        handleSubmit(e, editedMessageContent);
     };
 
     const handleCancelEdit = () => {
@@ -296,175 +245,34 @@ function LLMAgent() {
     const handleExampleClick = async (query) => {
         if (isLoading) return;
 
-        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-        const newMessage = {
-            role: 'user',
-            content: query,
-            references: [],
-            timestamp: timestamp
-        };
-
-        setChatHistory(prev => [...prev, newMessage]);
-        setUserInput('');
-        setIsLoading(true);
-        setIsProcessing(true);
-        setStreamingSteps([]);
-
-        try {
-            const conversationHistory = chatHistory.map(msg => ({
-                role: msg.role,
-                content: msg.content
-            }));
-
-            conversationHistory.push({
-                role: newMessage.role,
-                content: newMessage.content
-            });
-
-            await llmService.chat(query, (update) => {
-                switch (update.type) {
-                    case 'step':
-                        setStreamingSteps(prev => {
-                            const newSteps = [...prev];
-                            const cleanContent = update.content.replace(/\u001b\[\d+m/g, '').trim();
-                            if (cleanContent) {
-                                newSteps.push({
-                                    step: update.step,
-                                    content: cleanContent
-                                });
-                            }
-                            return newSteps;
-                        });
-                        break;
-                    case 'final':
-                        setIsProcessing(false);
-                        setChatHistory(prev => {
-                            const newHistory = [...prev];
-                            const assistantMessage = {
-                                role: 'assistant',
-                                content: update.answer,
-                                references: parseReferences(update.references),
-                                steps: streamingSteps
-                            };
-                            newHistory.push(assistantMessage);
-
-                            llmService.updateMessages(update.answer);
-
-                            return newHistory;
-                        });
-                        setSelectedMessageIndex(chatHistory.length + 1);
-                        break;
-                    case 'error':
-                        setIsProcessing(false);
-                        setChatHistory(prev => [...prev, {
-                            role: 'assistant',
-                            content: `Error: ${update.error}`,
-                            references: [],
-                            steps: []
-                        }]);
-                        break;
-                }
-            }, conversationHistory);
-        } catch (error) {
-            console.error('Error in chat:', error);
-            setChatHistory(prev => [...prev, {
-                role: 'assistant',
-                content: 'Sorry, I encountered an error while processing your request. Please try again.',
-                references: [],
-                steps: []
-            }]);
-        } finally {
-            setIsLoading(false);
-            setIsProcessing(false);
-        }
+        setChatHistory(_ => []);
+        handleSubmit(null, query);
     };
 
-    const handleRegenerateResponse = (userMessageIndex) => {
+    const handleRegenerateResponse = (e, index) => {
         if (isLoading) return;
 
-        const userMessage = chatHistory[userMessageIndex];
-
-        const newChatHistory = chatHistory.slice(0, userMessageIndex + 1);
+        const userMessage = chatHistory[index - 1];
+        const newChatHistory = chatHistory.slice(0, index - 1);
         setChatHistory(newChatHistory);
 
-        setIsLoading(true);
-        setIsProcessing(true);
-        setStreamingSteps([]);
-
-        try {
-            const conversationHistory = newChatHistory.map(msg => ({
-                role: msg.role,
-                content: msg.content
-            }));
-
-            llmService.chat(userMessage.content, (update) => {
-                switch (update.type) {
-                    case 'step':
-                        setStreamingSteps(prev => {
-                            const newSteps = [...prev];
-                            const cleanContent = update.content.replace(/\u001b\[\d+m/g, '').trim();
-                            if (cleanContent) {
-                                newSteps.push({
-                                    step: update.step,
-                                    content: cleanContent
-                                });
-                            }
-                            return newSteps;
-                        });
-                        break;
-                    case 'final':
-                        setIsProcessing(false);
-                        setChatHistory(prev => {
-                            const assistantMessage = {
-                                role: 'assistant',
-                                content: update.answer,
-                                references: parseReferences(update.references),
-                                steps: streamingSteps
-                            };
-                            return [...prev, assistantMessage];
-                        });
-                        setSelectedMessageIndex(userMessageIndex + 1);
-                        break;
-                    case 'error':
-                        setIsProcessing(false);
-                        setChatHistory(prev => [...prev, {
-                            role: 'assistant',
-                            content: `Error: ${update.error}`,
-                            references: [],
-                            steps: []
-                        }]);
-                        break;
-                }
-            }, conversationHistory);
-        } catch (error) {
-            console.error('Error in regenerate:', error);
-            setChatHistory(prev => [...prev, {
-                role: 'assistant',
-                content: 'Sorry, I encountered an error while regenerating the response. Please try again.',
-                references: [],
-                steps: []
-            }]);
-        } finally {
-            setIsLoading(false);
-            setIsProcessing(false);
-        }
+        handleSubmit(e, userMessage.content, userMessage.timestamp);
     };
 
     const MessageCard = ({ index, message, refresh, copy, edit, editContent, change, save, cancel, goref, GetSteps }) => {
         const isAssistant = message.role === "assistant";
-        const isLastUserMessage = index === chatHistory.length - 1 && message.role === 'user';
+        const isLastUserMessage = index === chatHistory.length - 1 && message.role === 'assistant';
         const isEditing = index === editingMessageIndex;
         const isLoading = isProcessing && isLastUserMessage;
         const messageID = index;
         // const liked = message.like;
         // const disliked = message.dislike;
         // const bookmarked = message.bookmark;
-        const tokenCount = 0;
+        // const tokenCount = 0;
         const timestamp = message.timestamp || "";
 
         return (
-            <Container className="message-pair" sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: 2, width: "100%" }}>
+            <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: 2, width: "100%" }}>
                 {!isAssistant && (
                     <Box sx={{ flex: "0 0 auto", width: "80px", textAlign: "right" }}>
                         <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText" }}>{timestamp}</Typography>
@@ -525,10 +333,10 @@ function LLMAgent() {
 
                         <Box mt={1}>
                             {isLoading ? (<>
+                                <GetSteps />
                                 <Box display="flex" justifyContent="center" py={2}>
                                     <CircularProgress size={24} />
                                 </Box>
-                                <GetSteps />
                             </>
                             ) :
                                 isEditing ?
@@ -542,14 +350,18 @@ function LLMAgent() {
                                         sx={{ flex: 1, width: "100%" }}
                                         onChange={(e) => change(e.target.value)}
                                     /> : (
-                                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                                        <ReactMarkdown components={{
+                                            p: ({ node, ...props }) => <p style={{ fontFamily: "Inter, sans-serif", lineHeight: 1.6 }} {...props} />
+                                        }}>
+                                            {message.content}
+                                        </ReactMarkdown>
                                     )}
                         </Box>
 
                         {/* Buttons below message */}
                         {isAssistant ? <Box sx={{ justifyContent: "space-between", direction: "row", display: "flex", alignItems: "center", mt: 2 }}>
                             <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
-                                <IconButton size="small" onClick={() => refresh(messageID - 1)}>
+                                <IconButton size="small" onClick={(e) => refresh(e, messageID)}>
                                     <RefreshIcon fontSize="small" />
                                 </IconButton>
                                 <IconButton size="small" onClick={() => copy(message.content)}>
@@ -567,14 +379,11 @@ function LLMAgent() {
                                 <IconButton size="small" onClick={()=>{}}>
                                     {0 ? <BookmarkIcon fontSize="small" /> : <BookmarkBorderIcon fontSize="small" />}
                                 </IconButton> */}
-                                <IconButton size="small" onClick={() => goref(messageID)}>
-                                    <FilePresentIcon fontSize="small" />
-                                </IconButton>
                                 {/* <IconButton size="small">
                                     <MoreHorizIcon fontSize="small" />
                                 </IconButton> */}
                             </Stack>
-                            <Box sx={{
+                            {/* <Box sx={{
                                 px: "10px",
                                 height: "40px",
                                 borderRadius: "4px",
@@ -583,7 +392,29 @@ function LLMAgent() {
                                 justifyContent: "center",
                                 alignItems: "center",
                                 display: "flex",
-                            }}>{tokenCount} tokens</Box>
+                            }}>{tokenCount} tokens</Box> */}
+                            <MuiButton
+                                variant='contained'
+                                startIcon={<FilePresentIcon />}
+                                size="small"
+                                onClick={() => goref(messageID)}
+                                sx={{
+                                    px: "10px",
+                                    height: "40px",
+                                    borderRadius: "4px",
+                                    border: "none", bgcolor: "#f7f8fa", color: "#19213d",
+                                    "&:hover": {
+                                        bgcolor: "#e1e2e4",
+                                        color: "#09112d",
+                                        boxShadow: "none",
+                                    },
+                                    boxShadow: "none",
+                                    mb: "2px"
+                                }}
+                            >
+                                References
+                            </MuiButton>
+
                         </Box>
                             : <Box sx={{ justifyContent: "flex-end", direction: "row", display: "flex", alignItems: "center", mt: 2 }}>
                                 <Stack direction="row" spacing={1} sx={{ pb: "8px" }}>
@@ -592,7 +423,7 @@ function LLMAgent() {
                                             <IconButton size="small" onClick={() => cancel()}>
                                                 <ClearIcon fontSize="small" />
                                             </IconButton>
-                                            <IconButton size="small" onClick={() => save(messageID)}>
+                                            <IconButton size="small" onClick={(e) => save(e, messageID)}>
                                                 <CheckIcon fontSize="small" />
                                             </IconButton>
                                         </> : <>
