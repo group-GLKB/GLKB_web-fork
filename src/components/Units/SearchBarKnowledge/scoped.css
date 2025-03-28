@@ -29,6 +29,9 @@
     border-radius: 4px;
     padding: 4px 8px;
     margin-top: 8px;
+    overflow: visible !important;
+    position: relative !important;
+    z-index: 1000; /* 或手动设置小于 Joyride 的 z-index */
 }
 
 .dropdown-field {

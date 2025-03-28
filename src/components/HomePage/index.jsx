@@ -211,13 +211,7 @@ const HomePage = () => {
                     },
                     tooltipContent: {
                         textAlign: 'left'
-                    },
-                    overlay: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)', // 半透明覆盖层
-                    },
-                    spotlight: {
-                        borderRadius: '8px', // 高亮区域的样式
-                    },
+                    }
                 }}
                 locale={{
                     last: 'Close', // Change the text of the final button to "Close"
@@ -230,6 +224,8 @@ const HomePage = () => {
                 disableCloseOnEsc={true}
                 disableScrolling={true}
                 spotlightClicks={true}
+                spotlightPadding={0}
+                scrollToFirstStep={true}
             />
             <NavBarWhite showLogo={true} />
             <div className="content">
@@ -589,21 +585,17 @@ const HomePage = () => {
                 </div>
                 <AntButton 
                     onClick={() => setRunTour(true)}
-                    style={{ marginTop: '20px' }}
+                    // style={{ marginTop: '20px' }}
                     icon={<QuestionCircleOutlined />}
+                    style={{position: 'fixed', bottom: '40px'}}
                 >
                     Take a Guided Tour to GLKB
                 </AntButton>
             </div>
 
-            <div className="footer" style={{ 
-                backgroundColor: '#4a7298', 
-                padding: '20px 0',
-                marginTop: '20px',
-                width: '100%'
-            }}>
+            <div className="footer">
                 <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
-                    <p style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.8)', fontSize: '14px', margin: 0 }}>
+                    <p style={{ textAlign: 'center', color: 'rgba(0, 0, 0, 0.8)', fontSize: '14px', margin: 0 }}>
                         © 2024 Liu Lab, Department of Computational Medicine and Bioinformatics, University of Michigan
                     </p>
                 </div>

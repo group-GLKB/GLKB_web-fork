@@ -189,7 +189,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
     return (
         <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 2 }}>
-            <Box sx={{ mb: 2, backgroundColor: 'transparent' }}>
+            <Box sx={{ mb: 2, backgroundColor: 'transparent'}}>
                 {/* First row with term type and search input */}
                 <Box sx={{ 
                     display: 'flex', 
@@ -246,7 +246,13 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                         />
                     </Box>
 
-                    <Box display="flex" gap={2}>
+                    <Box display="flex" gap={2} 
+                        sx={{
+                            overflow: 'visible !important',
+                            zIndex: 9999,
+                            position: 'relative',
+                        }}
+                    >
                         <Button 
                             variant="contained" 
                             sx={{ 

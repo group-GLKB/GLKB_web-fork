@@ -3,6 +3,7 @@
     flex-direction: column;
     min-height: 100vh; /* Changed to 100vh for full viewport height */
     overflow-y: auto;
+    position: relative;
 }
 
 .content {
@@ -28,7 +29,9 @@
     padding: 20px;
     color: #333;
     font-size: 14px;
+    position: absolute;
 }
+
 
 .footer-img {
     max-width: 200px;
@@ -41,6 +44,7 @@
 
 .joyride-overlay {
     position: fixed !important; /* 确保覆盖层固定在视口内 */
+    z-index: 10000 !important; /* 确保覆盖层在最顶层 */
 }
 
 .search-section {
@@ -130,3 +134,17 @@
     }
 }
 
+
+
+.footer {
+    /* background-color: #4a7298; */
+    padding: 10px 0;
+    width: 100%;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+    position: fixed;
+    z-index: 1000;
+    bottom: 0;
+    left: 0;
+}
