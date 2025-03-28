@@ -1,13 +1,40 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import NavBarWhite from '../Units/NavBarWhite';
-import { Spin, Button, message } from 'antd';
+import { Button, message } from 'antd';
 import { LLMAgentService } from '../../service/LLMAgent';
-import { DeleteOutlined, FileTextOutlined, CopyOutlined, EditOutlined, CheckOutlined, CloseOutlined, RedoOutlined } from '@ant-design/icons';
+import { DeleteOutlined } from '@ant-design/icons';
 import './scoped.css';
 import systemIcon from '../../img/Asset 1.png';
 import ReactMarkdown from 'react-markdown';
 import GLKBLogo from '../../img/glkb_dark.jpg';
+
+import {
+    Typography,
+    Box,
+    CircularProgress,
+    IconButton,
+    Stack,
+    Container,
+    TextField
+} from "@mui/material";
+import MuiButton from "@mui/material/Button";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import FilePresentIcon from '@mui/icons-material/FilePresent';
+import EditNoteIcon from '@mui/icons-material/EditNote';
+import CheckIcon from '@mui/icons-material/Check';
+import ClearIcon from '@mui/icons-material/Clear';
+
+// import ShareIcon from "@mui/icons-material/Share";
+// import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
+// import BookmarkIcon from "@mui/icons-material/Bookmark";
+// import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+// import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
+// import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
+// import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
+// import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
+
 
 function LLMAgent() {
     const location = useLocation();
@@ -20,7 +47,7 @@ function LLMAgent() {
     const [editingMessageIndex, setEditingMessageIndex] = useState(null);
     const [editedMessageContent, setEditedMessageContent] = useState('');
     const messagesEndRef = useRef(null);
-    
+
     // Create a single instance of LLMAgentService that persists across re-renders
     const llmService = React.useMemo(() => new LLMAgentService(), []);
 
@@ -41,7 +68,7 @@ function LLMAgent() {
 
     const parseReferences = (refs) => {
         if (!refs || !Array.isArray(refs)) return [];
-        
+
         return refs.map(ref => {
             const [title, pubmed_url, citation_count, year, journal, authors] = ref;
             return {
@@ -55,15 +82,20 @@ function LLMAgent() {
         });
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!userInput.trim() || isLoading) return;
-        
+    const handleSubmit = async (e, input = null, t = null) => {
+        const inputText = input || userInput;
+        console.log('Submitting:', inputText);
+        e && e.preventDefault();
+        if (!inputText.trim() || isLoading) return;
+
+        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
         // Create new user message
         const newMessage = {
             role: 'user',
-            content: userInput,
-            references: []
+            content: inputText,
+            references: [],
+            timestamp: t || timestamp
         };
 
         // Update chat history with user message
@@ -86,7 +118,15 @@ function LLMAgent() {
                 content: newMessage.content
             });
 
-            await llmService.chat(userInput, (update) => {
+            // Append a blank message
+            setChatHistory(prev => [...prev, {
+                role: 'assistant',
+                content: '',
+                references: [],
+                timestamp: timestamp
+            }]);
+
+            await llmService.chat(inputText, (update) => {
                 switch (update.type) {
                     case 'step':
                         setStreamingSteps(prev => {
@@ -109,36 +149,46 @@ function LLMAgent() {
                                 role: 'assistant',
                                 content: update.answer,
                                 references: parseReferences(update.references),
-                                steps: streamingSteps
+                                timestamp: timestamp
                             };
-                            newHistory.push(assistantMessage);
-                            
+                            newHistory[newHistory.length - 1] = assistantMessage;
+
                             // Update the LLMAgentService's internal message history
                             llmService.updateMessages(update.answer);
-                            
+
                             return newHistory;
                         });
                         setSelectedMessageIndex(chatHistory.length + 1);
                         break;
                     case 'error':
                         setIsProcessing(false);
-                        setChatHistory(prev => [...prev, {
-                            role: 'assistant',
-                            content: `Error: ${update.error}`,
-                            references: [],
-                            steps: []
-                        }]);
+                        setChatHistory(prev => {
+                            const newHistory = [...prev];
+                            const errorMessage = {
+                                role: 'assistant',
+                                content: `Error: ${update.error}`,
+                                references: [],
+                                timestamp: timestamp
+                            };
+                            newHistory[newHistory.length - 1] = errorMessage;
+                            return newHistory;
+                        });
                         break;
                 }
             }, conversationHistory); // Pass the conversation history to chat method
         } catch (error) {
             console.error('Error in chat:', error);
-            setChatHistory(prev => [...prev, {
-                role: 'assistant',
-                content: 'Sorry, I encountered an error while processing your request. Please try again.',
-                references: [],
-                steps: []
-            }]);
+            setChatHistory(prev => {
+                const newHistory = [...prev];
+                const errorMessage = {
+                    role: 'assistant',
+                    content: 'Sorry, I encountered an error while processing your request. Please try again.',
+                    references: [],
+                    timestamp: timestamp
+                };
+                newHistory[newHistory.length - 1] = errorMessage;
+                return newHistory;
+            });
         } finally {
             setIsLoading(false);
             setIsProcessing(false);
@@ -146,90 +196,21 @@ function LLMAgent() {
     };
 
     const handleEditMessage = (index) => {
-        if (chatHistory[index].role === 'user') {
-            setEditingMessageIndex(index);
-            setEditedMessageContent(chatHistory[index].content);
-        }
+        if (chatHistory[index].role !== 'user') return;
+
+        setEditingMessageIndex(index);
+        setEditedMessageContent(chatHistory[index].content);
     };
 
-    const handleSaveEdit = async (index) => {
-        if (editedMessageContent.trim() === '') return;
-        
-        const newChatHistory = [...chatHistory];
-        newChatHistory[index] = {
-            ...newChatHistory[index],
-            content: editedMessageContent
-        };
-        
-        const editedHistory = newChatHistory.slice(0, index + 1);
+    const handleSaveEdit = async (e, index) => {
+        if (editedMessageContent.trim() === '' || isLoading) return;
+
+        const editedHistory = chatHistory.slice(0, index);
         setChatHistory(editedHistory);
-        
         setEditingMessageIndex(null);
         setEditedMessageContent('');
-        
-        if (index < newChatHistory.length - 1) {
-            setIsLoading(true);
-            setIsProcessing(true);
-            setStreamingSteps([]);
-            
-            try {
-                const conversationHistory = editedHistory.map(msg => ({
-                    role: msg.role,
-                    content: msg.content
-                }));
-                
-                await llmService.chat(editedMessageContent, (update) => {
-    
-                    switch (update.type) {
-                        case 'step':
-                            setStreamingSteps(prev => {
-                                const newSteps = [...prev];
-                                const cleanContent = update.content.replace(/\u001b\[\d+m/g, '').trim();
-                                if (cleanContent) {
-                                    newSteps.push({
-                                        step: update.step,
-                                        content: cleanContent
-                                    });
-                                }
-                                return newSteps;
-                            });
-                            break;
-                        case 'final':
-                            setIsProcessing(false);
-                            setChatHistory(prev => {
-                                const assistantMessage = {
-                                    role: 'assistant',
-                                    content: update.answer,
-                                    references: parseReferences(update.references),
-                                    steps: streamingSteps
-                                };
-                                return [...prev, assistantMessage];
-                            });
-                            break;
-                        case 'error':
-                            setIsProcessing(false);
-                            setChatHistory(prev => [...prev, {
-                                role: 'assistant',
-                                content: `Error: ${update.error}`,
-                                references: [],
-                                steps: []
-                            }]);
-                            break;
-                    }
-                }, conversationHistory);
-            } catch (error) {
-                console.error('Error in chat after edit:', error);
-                setChatHistory(prev => [...prev, {
-                    role: 'assistant',
-                    content: 'Sorry, I encountered an error while processing your edited request. Please try again.',
-                    references: [],
-                    steps: []
-                }]);
-            } finally {
-                setIsLoading(false);
-                setIsProcessing(false);
-            }
-        }
+
+        handleSubmit(e, editedMessageContent);
     };
 
     const handleCancelEdit = () => {
@@ -263,287 +244,242 @@ function LLMAgent() {
 
     const handleExampleClick = async (query) => {
         if (isLoading) return;
-        
-        const newMessage = {
-            role: 'user',
-            content: query,
-            references: []
-        };
 
-        setChatHistory(prev => [...prev, newMessage]);
-        setUserInput(''); 
-        setIsLoading(true);
-        setIsProcessing(true);
-        setStreamingSteps([]);
-
-        try {
-            const conversationHistory = chatHistory.map(msg => ({
-                role: msg.role,
-                content: msg.content
-            }));
-
-            conversationHistory.push({
-                role: newMessage.role,
-                content: newMessage.content
-            });
-
-            await llmService.chat(query, (update) => {
-                switch (update.type) {
-                    case 'step':
-                        setStreamingSteps(prev => {
-                            const newSteps = [...prev];
-                            const cleanContent = update.content.replace(/\u001b\[\d+m/g, '').trim();
-                            if (cleanContent) {
-                                newSteps.push({
-                                    step: update.step,
-                                    content: cleanContent
-                                });
-                            }
-                            return newSteps;
-                        });
-                        break;
-                    case 'final':
-                        setIsProcessing(false);
-                        setChatHistory(prev => {
-                            const newHistory = [...prev];
-                            const assistantMessage = {
-                                role: 'assistant',
-                                content: update.answer,
-                                references: parseReferences(update.references),
-                                steps: streamingSteps
-                            };
-                            newHistory.push(assistantMessage);
-                            
-                            llmService.updateMessages(update.answer);
-                            
-                            return newHistory;
-                        });
-                        setSelectedMessageIndex(chatHistory.length + 1);
-                        break;
-                    case 'error':
-                        setIsProcessing(false);
-                        setChatHistory(prev => [...prev, {
-                            role: 'assistant',
-                            content: `Error: ${update.error}`,
-                            references: [],
-                            steps: []
-                        }]);
-                        break;
-                }
-            }, conversationHistory);
-        } catch (error) {
-            console.error('Error in chat:', error);
-            setChatHistory(prev => [...prev, {
-                role: 'assistant',
-                content: 'Sorry, I encountered an error while processing your request. Please try again.',
-                references: [],
-                steps: []
-            }]);
-        } finally {
-            setIsLoading(false);
-            setIsProcessing(false);
-        }
+        setChatHistory(_ => []);
+        handleSubmit(null, query);
     };
 
-    const handleRegenerateResponse = (userMessageIndex) => {
+    const handleRegenerateResponse = (e, index) => {
         if (isLoading) return;
-        
-        const userMessage = chatHistory[userMessageIndex];
-        
-        const newChatHistory = chatHistory.slice(0, userMessageIndex + 1);
-        setChatHistory(newChatHistory);
-        
-        setIsLoading(true);
-        setIsProcessing(true);
-        setStreamingSteps([]);
-        
-        try {
-            const conversationHistory = newChatHistory.map(msg => ({
-                role: msg.role,
-                content: msg.content
-            }));
 
-            llmService.chat(userMessage.content, (update) => {
-                switch (update.type) {
-                    case 'step':
-                        setStreamingSteps(prev => {
-                            const newSteps = [...prev];
-                            const cleanContent = update.content.replace(/\u001b\[\d+m/g, '').trim();
-                            if (cleanContent) {
-                                newSteps.push({
-                                    step: update.step,
-                                    content: cleanContent
-                                });
-                            }
-                            return newSteps;
-                        });
-                        break;
-                    case 'final':
-                        setIsProcessing(false);
-                        setChatHistory(prev => {
-                            const assistantMessage = {
-                                role: 'assistant',
-                                content: update.answer,
-                                references: parseReferences(update.references),
-                                steps: streamingSteps
-                            };
-                            return [...prev, assistantMessage];
-                        });
-                        setSelectedMessageIndex(userMessageIndex + 1);
-                        break;
-                    case 'error':
-                        setIsProcessing(false);
-                        setChatHistory(prev => [...prev, {
-                            role: 'assistant',
-                            content: `Error: ${update.error}`,
-                            references: [],
-                            steps: []
-                        }]);
-                        break;
-                }
-            }, conversationHistory);
-        } catch (error) {
-            console.error('Error in regenerate:', error);
-            setChatHistory(prev => [...prev, {
-                role: 'assistant',
-                content: 'Sorry, I encountered an error while regenerating the response. Please try again.',
-                references: [],
-                steps: []
-            }]);
-        } finally {
-            setIsLoading(false);
-            setIsProcessing(false);
-        }
+        const userMessage = chatHistory[index - 1];
+        const newChatHistory = chatHistory.slice(0, index - 1);
+        setChatHistory(newChatHistory);
+
+        handleSubmit(e, userMessage.content, userMessage.timestamp);
+    };
+
+    const MessageCard = ({ index, message, refresh, copy, edit, editContent, change, save, cancel, goref, GetSteps }) => {
+        const isAssistant = message.role === "assistant";
+        const isLastUserMessage = index === chatHistory.length - 1 && message.role === 'assistant';
+        const isEditing = index === editingMessageIndex;
+        const isLoading = isProcessing && isLastUserMessage;
+        const messageID = index;
+        // const liked = message.like;
+        // const disliked = message.dislike;
+        // const bookmarked = message.bookmark;
+        // const tokenCount = 0;
+        const timestamp = message.timestamp || "";
+
+        return (
+            <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: 2 }}>
+                {!isAssistant && (
+                    <Box sx={{ flex: "0 0 auto", width: "80px", textAlign: "right" }}>
+                        <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText" }}>{timestamp}</Typography>
+                    </Box>
+                )}
+                <Box
+                    sx={{
+                        bgcolor: isAssistant ? "white" : "#d9f3ee", // Different background colors
+                        display: "flex",
+                        alignItems: "flex-start",
+                        px: "24px",
+                        pt: "12px",
+                        pb: "6px",
+                        border: isAssistant ? "1px solid" : "none",
+                        borderColor: "divider",
+                        borderRadius: "24px",
+                        flex: 1, // Occupy maximum width
+                        // Added shadow effect
+                    }}
+                >
+                    {isAssistant && (
+                        <Box
+                            sx={{
+                                m: 2,
+                                width: 32,
+                                height: 32,
+                                borderRadius: 16,
+                                borderStyle: "solid",
+                                borderColor: "black",
+                                borderWidth: 1,
+                                justifyContent: "center",
+                                alignItems: "center",
+                                display: "flex",
+                            }}
+                        >
+                            <img src={systemIcon} alt="Assistant" width="26" height="26" style={{ borderRadius: 13 }} />
+                        </Box>
+                    )}
+                    <Box sx={{ flex: 1 }}>
+                        {isAssistant && (
+                            <Typography variant="body2" color="textSecondary" sx={{
+                                fontFamily: "Inter, sans-serif", fontSize: "14px", display: "flex", color: "#19213d", alignItems: "center",
+                                pt: "12px", fontWeight: 500
+                            }}>
+                                LanguageGUI
+                                <Box
+                                    component="span"
+                                    sx={{
+                                        mx: 1,
+                                        width: "1px",
+                                        height: "1em",
+                                        bgcolor: "text.secondary",
+                                    }}
+                                />
+                                <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText" }}>{timestamp}</Typography>
+                            </Typography>
+                        )}
+
+                        <Box mt={1}>
+                            {isLoading ? (<>
+                                <GetSteps />
+                                <Box display="flex" justifyContent="center" py={2}>
+                                    <CircularProgress size={24} />
+                                </Box>
+                            </>
+                            ) :
+                                isEditing ?
+                                    <TextField
+                                        hiddenLabel
+                                        multiline
+                                        id="filled-hidden-label-small"
+                                        value={editContent}
+                                        variant="filled"
+                                        size="small"
+                                        sx={{ flex: 1, width: "100%" }}
+                                        onChange={(e) => change(e.target.value)}
+                                    /> : (
+                                        <ReactMarkdown components={{
+                                            // Add a custom style on all nodes
+                                            p: ({ node, ...props }) => <p style={{ lineHeight: "150%" }} {...props} />,
+                                            // h1: ({ node, ...props }) => <h1 style={{}} {...props} />,
+                                            // h2: ({ node, ...props }) => <h2 style={{}} {...props} />,
+                                            // h3: ({ node, ...props }) => <h3 style={{}} {...props} />,
+                                            // ul: ({ node, ...props }) => <ul style={{}} {...props} />,
+                                            // ol: ({ node, ...props }) => <ol style={{}} {...props} />,
+                                            li: ({ node, ...props }) => <li style={{ lineHeight: "150%", marginTop: "5px", marginBottom: "5px" }} {...props} />
+                                        }}>
+                                            {message.content}
+                                        </ReactMarkdown>
+                                    )}
+                        </Box>
+
+                        {/* Buttons below message */}
+                        {isAssistant ? <Box sx={{ justifyContent: "space-between", direction: "row", display: "flex", alignItems: "center", mt: 2 }}>
+                            <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
+                                <IconButton size="small" onClick={(e) => refresh(e, messageID)}>
+                                    <RefreshIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton size="small" onClick={() => copy(message.content)}>
+                                    <ContentCopyIcon fontSize="small" />
+                                </IconButton>
+                                {/* <IconButton size="small" onClick={()=>{}}>
+                                    <ShareIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton size="small" onClick={()=>{}}>
+                                    {0 ? <ThumbUpAltIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
+                                </IconButton>
+                                <IconButton size="small" onClick={()=>{}}>
+                                    {0 ? <ThumbDownAltIcon fontSize="small" /> : <ThumbDownOffAltIcon fontSize="small" />}
+                                </IconButton>
+                                <IconButton size="small" onClick={()=>{}}>
+                                    {0 ? <BookmarkIcon fontSize="small" /> : <BookmarkBorderIcon fontSize="small" />}
+                                </IconButton> */}
+                                {/* <IconButton size="small">
+                                    <MoreHorizIcon fontSize="small" />
+                                </IconButton> */}
+                            </Stack>
+                            {/* <Box sx={{
+                                px: "10px",
+                                height: "40px",
+                                borderRadius: "4px",
+                                border: "none",
+                                bgcolor: "#f7f8fa",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                display: "flex",
+                            }}>{tokenCount} tokens</Box> */}
+                            <MuiButton
+                                variant='contained'
+                                startIcon={<FilePresentIcon />}
+                                size="small"
+                                onClick={() => goref(messageID)}
+                                sx={{
+                                    px: "10px",
+                                    height: "40px",
+                                    borderRadius: "4px",
+                                    border: "none", bgcolor: "#f7f8fa", color: "#19213d",
+                                    "&:hover": {
+                                        bgcolor: "#e1e2e4",
+                                        color: "#09112d",
+                                        boxShadow: "none",
+                                    },
+                                    boxShadow: "none",
+                                    mb: "2px"
+                                }}
+                            >
+                                References
+                            </MuiButton>
+
+                        </Box>
+                            : <Box sx={{ justifyContent: "flex-end", direction: "row", display: "flex", alignItems: "center", mt: 2 }}>
+                                <Stack direction="row" spacing={1} sx={{ pb: "8px" }}>
+                                    {
+                                        isEditing ? <>
+                                            <IconButton size="small" onClick={() => cancel()}>
+                                                <ClearIcon fontSize="small" />
+                                            </IconButton>
+                                            <IconButton size="small" onClick={(e) => save(e, messageID)}>
+                                                <CheckIcon fontSize="small" />
+                                            </IconButton>
+                                        </> : <>
+                                            <IconButton size="small" onClick={() => copy(message.content)}>
+                                                <ContentCopyIcon fontSize="small" />
+                                            </IconButton>
+                                            <IconButton size="small" onClick={() => edit(messageID)}>
+                                                <EditNoteIcon fontSize="small" />
+                                            </IconButton>
+                                        </>
+                                    }
+
+                                </Stack>
+                            </Box>}
+                    </Box>
+                </Box>
+            </Container>
+        );
     };
 
     const renderMessages = () => {
-        return chatHistory.map((message, index) => {
-            const isLastUserMessage = index === chatHistory.length - 1 && message.role === 'user';
-            const isEditing = index === editingMessageIndex;
-            
-            return (
-                <div key={`message-${index}`} className="message-pair">
-                    {/* User message */}
-                    {message.role === 'user' && (
-                        <div className={`message-wrapper user ${isEditing ? 'editing' : ''}`}>
-                            {isEditing ? (
-                                <div style={{ width: '100%', maxWidth: '800px', marginLeft: 'auto' }}>
-                                    <textarea
-                                        className="edit-message-input"
-                                        value={editedMessageContent}
-                                        onChange={(e) => setEditedMessageContent(e.target.value)}
-                                        autoFocus
-                                    />
-                                    <div className="edit-actions">
-                                        <button 
-                                            className="edit-action-button cancel-edit-button"
-                                            onClick={handleCancelEdit}
-                                        >
-                                            <CloseOutlined /> Cancel
-                                        </button>
-                                        <button 
-                                            className="edit-action-button save-edit-button"
-                                            onClick={() => handleSaveEdit(index)}
-                                        >
-                                            <CheckOutlined /> Save
-                                        </button>
-                                    </div>
+        return (<Box sx={{ p: 2 }}>{chatHistory.map((message, index) => {
+            return MessageCard({
+                index: index,
+                message: message,
+                refresh: handleRegenerateResponse,
+                copy: handleCopyMessage,
+                edit: handleEditMessage,
+                editContent: editedMessageContent,
+                change: setEditedMessageContent,
+                save: handleSaveEdit,
+                cancel: handleCancelEdit,
+                goref: handleMessageClick,
+                GetSteps: () => {
+                    return (
+                        <Box sx={{ mt: 2 }}>
+                            {streamingSteps.map((step, stepIndex) => (
+                                <div key={stepIndex} className="step-item">
+                                    <strong>{step.step}: </strong>
+                                    <span>{step.content}</span>
                                 </div>
-                            ) : (
-                                <>
-                                    <div className="message">
-                                        {message.content}
-                                    </div>
-                                    <div className="message-actions">
-                                        <div 
-                                            className="message-action-button edit-button"
-                                            onClick={() => handleEditMessage(index)}
-                                            title="Edit message"
-                                        >
-                                            <EditOutlined />
-                                        </div>
-                                        <div 
-                                            className="message-action-button copy-button"
-                                            onClick={() => handleCopyMessage(message.content)}
-                                            title="Copy content"
-                                        >
-                                            <CopyOutlined />
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Streaming content */}
-                    {isLastUserMessage && isProcessing && (
-                        <div className="assistant-response">
-                            <div className="reasoning-section">
-                                <div className="reasoning-header">
-                                    <img src={systemIcon} alt="AI" className="system-icon" />
-                                    <span>Thinking...</span>
-                                    <Spin size="small" style={{ marginLeft: '8px' }} />
-                                </div>
-                                <div className="reasoning-content">
-                                    {streamingSteps.map((step, stepIndex) => (
-                                        <div key={stepIndex} className="step-item">
-                                            <strong>{step.step}: </strong>
-                                            <span>{step.content}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Assistant final response */}
-                    {message.role === 'assistant' && (
-                        <div className="assistant-response">
-                            <div className="response-section">
-                                <div className="response-header">
-                                    <img src={systemIcon} alt="AI" className="system-icon" />
-                                    <span>Response</span>
-                                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
-                                        <div 
-                                            className="message-action-button regenerate-button"
-                                            onClick={() => handleRegenerateResponse(index - 1)}
-                                            title="Regenerate response"
-                                            style={{ backgroundColor: 'transparent', border: 'none' }}
-                                            disabled={isLoading}
-                                        >
-                                            <RedoOutlined />
-                                        </div>
-                                        <div 
-                                            className="message-action-button copy-button"
-                                            onClick={() => handleCopyMessage(message.content)}
-                                            title="Copy response"
-                                            style={{ backgroundColor: 'transparent', border: 'none' }}
-                                        >
-                                            <CopyOutlined />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="response-content">
-                                    <ReactMarkdown>{message.content}</ReactMarkdown>
-                                </div>
-                                {message.references?.length > 0 && (
-                                    <div className="reference-button-wrapper">
-                                        <Button
-                                            icon={<FileTextOutlined />}
-                                            className={`reference-button ${selectedMessageIndex === index ? 'selected' : ''}`}
-                                            onClick={() => handleMessageClick(index)}
-                                        >
-                                            {message.references.length} References
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        });
+                            ))}
+                        </Box>
+                    );
+                }
+            });
+        })}</Box>);
     };
+
 
     return (
         <div className="result-container">
@@ -555,7 +491,7 @@ function LLMAgent() {
                     <div className="llm-agent-container">
                         <div className="chat-and-references">
                             <div className="chat-container">
-                                
+
                                 {/* Add example queries section */}
                                 {chatHistory.length === 0 && (
                                     <div className="example-queries" style={{ paddingTop: '1rem' }}>
@@ -567,30 +503,30 @@ function LLMAgent() {
                                             <h3>I can help you explore biomedical literature. Here are some examples:</h3>
                                         </div>
                                         <div className="example-query-list" style={{ marginTop: '10px', marginBottom: '10px' }}>
-                                            <div className="example-query" 
-                                                 onClick={() => handleExampleClick("Who are you?")}
-                                                 style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
+                                            <div className="example-query"
+                                                onClick={() => handleExampleClick("Who are you?")}
+                                                style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
                                                 Who are you?
                                             </div>
-                                            <div className="example-query" 
-                                                 onClick={() => handleExampleClick("What is the role of BRCA1 in breast cancer?")}
-                                                 style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
+                                            <div className="example-query"
+                                                onClick={() => handleExampleClick("What is the role of BRCA1 in breast cancer?")}
+                                                style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
                                                 What is the role of BRCA1 in breast cancer?
                                             </div>
-                                            <div className="example-query" 
-                                                 onClick={() => handleExampleClick("How many articles about Alzheimer's disease are published in 2020?")}
-                                                 style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
+                                            <div className="example-query"
+                                                onClick={() => handleExampleClick("How many articles about Alzheimer's disease are published in 2020?")}
+                                                style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
                                                 How many articles about Alzheimer's disease are published in 2020?
                                             </div>
-                                            <div className="example-query" 
-                                                 onClick={() => handleExampleClick("What pathways does TP53 participate in?")}
-                                                 style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
+                                            <div className="example-query"
+                                                onClick={() => handleExampleClick("What pathways does TP53 participate in?")}
+                                                style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
                                                 What pathways does TP53 participate in?
                                             </div>
                                         </div>
                                     </div>
                                 )}
-                                
+
                                 <div className="messages-container">
                                     {renderMessages()}
                                     <div ref={messagesEndRef} />
@@ -606,24 +542,24 @@ function LLMAgent() {
                                             className="message-input"
                                             disabled={isLoading}
                                         />
-                                        <button 
-                                            type="submit" 
-                                            className="send-button" 
+                                        <button
+                                            type="submit"
+                                            className="send-button"
                                             disabled={isLoading || !userInput.trim()}
                                         >
                                             Send
                                         </button>
+                                        <Button
+                                            icon={<DeleteOutlined />}
+                                            onClick={handleClear}
+                                            className="clear-button"
+                                        >
+                                            Clear History
+                                        </Button>
                                     </form>
-                                    <Button 
-                                        icon={<DeleteOutlined />}
-                                        onClick={handleClear}
-                                        className="clear-button"
-                                    >
-                                        Clear History
-                                    </Button>
                                 </div>
                             </div>
-                            
+
                             <div className="references-container">
                                 <h3>References</h3>
                                 {selectedMessageIndex !== null && chatHistory[selectedMessageIndex]?.references.length > 0 ? (
