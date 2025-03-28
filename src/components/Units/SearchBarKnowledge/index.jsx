@@ -289,7 +289,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                     display: 'flex', 
                     justifyContent: 'space-between', 
                     alignItems: 'center',
-                    backgroundColor: 'transparent'
+                    backgroundColor: 'transparent',
+                    
                 }}>
                     <Card 
                         variant="outlined" 
@@ -297,7 +298,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             p: 1, 
                             flexGrow: 1, 
                             mr: 2,
-                            backgroundColor: 'white'
+                            backgroundColor: 'white',
+                            height: '80px'
                         }} 
                         className="log-box"
                     >

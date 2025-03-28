@@ -34,6 +34,14 @@
     max-width: 200px;
     margin-bottom: 10px;
 }
+.navigation-bar {
+    position: relative;
+    z-index: 1000; /* Ensure the navbar is above the Joyride overlay */
+}
+
+.joyride-overlay {
+    position: fixed !important; /* 确保覆盖层固定在视口内 */
+}
 
 .search-section {
     display: flex;
@@ -58,9 +66,10 @@
     height: auto;
     padding: 6px 12px;
     text-align: left;
-    background-color: #99c7b1;
     color: black;
+    background: #F4F6FE;
     border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
     transition: background-color 0.3s;
 }
 
