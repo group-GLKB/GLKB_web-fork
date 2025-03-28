@@ -36,21 +36,22 @@ export class LLMAgentService {
                         const data = JSON.parse(jsonStr);
                         console.log('Processing data:', data);
 
-                        // Immediately send updates for steps
-                        if (data.step === 'Planning') {
-                            // Don't wait for the promise to resolve
-                            onUpdate({
-                                type: 'step',
-                                step: data.step,
-                                content: data.content
-                            });
-                        } else if (data.step === 'Complete') {
-                            // Only wait for the final update
+                        // Handle the Complete step differently
+                        if (data.step === 'Complete') {
+                            // Send the final response
                             await onUpdate({
                                 type: 'final',
                                 answer: data.response,
                                 references: data.references || [],
                                 messages: data.messages || []
+                            });
+                        } 
+                        // Forward all other steps to the UI
+                        else if (data.step && data.content) {
+                            onUpdate({
+                                type: 'step',
+                                step: data.step,
+                                content: data.content
                             });
                         }
                     } catch (e) {

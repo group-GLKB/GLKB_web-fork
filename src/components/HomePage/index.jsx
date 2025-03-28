@@ -99,6 +99,7 @@ const HomePage = () => {
                 target: '.content img',
                 content: 'Welcome to GLKB! Let\'s explore how to use the search and visualize the biomedical knowledge from 33 million+ Pubmed articles and nine well-curated databases.',
                 placement: 'bottom',
+                disableBeacon: true,
             },
             {
                 target: '.search-mode-buttons',
@@ -200,6 +201,7 @@ const HomePage = () => {
                 styles={{
                     options: {
                         primaryColor: '#007bff',
+                        zIndex: 10000
                     },
                     tooltip: {
                         textAlign: 'left',
@@ -211,11 +213,21 @@ const HomePage = () => {
                         textAlign: 'left'
                     }
                 }}
+                locale={{
+                    last: 'Close', // Change the text of the final button to "Close"
+                    next: 'Next',
+                    back: 'Back',
+                    skip: 'Skip',
+                }}
                 disableOverlayClose={true}
+                disableBeacon={true}
                 disableCloseOnEsc={true}
+                disableScrolling={true}
                 spotlightClicks={true}
+                spotlightPadding={0}
+                scrollToFirstStep={true}
             />
-            <NavBarWhite showLogo={false} />
+            <NavBarWhite showLogo={true} />
             <div className="content">
                 <img src={logo} alt="Logo" />
                 <Box 
@@ -402,7 +414,7 @@ const HomePage = () => {
                                         display: 'flex',
                                         alignItems: 'center',
                                         padding: '12px 16px',
-                                        backgroundColor: activeButton === 'triplet' ? '#99c7b1' : 'white',
+                                        // backgroundColor: activeButton === 'triplet' ? '#99c7b1' : 'white',
                                         border: 'none',
                                         borderRadius: '8px'
                                     }}
@@ -421,7 +433,7 @@ const HomePage = () => {
                                         display: 'flex',
                                         alignItems: 'center',
                                         padding: '12px 16px',
-                                        backgroundColor: activeButton === 'triplet' ? '#99c7b1' : 'white',
+                                        // backgroundColor: activeButton === 'triplet' ? '#99c7b1' : 'white',
                                         border: 'none',
                                         borderRadius: '8px'
                                     }}
@@ -440,7 +452,7 @@ const HomePage = () => {
                                         display: 'flex',
                                         alignItems: 'center',
                                         padding: '12px 16px',
-                                        backgroundColor: activeButton === 'triplet' ? '#99c7b1' : 'white',
+                                        // backgroundColor: activeButton === 'triplet' ? '#99c7b1' : 'white',
                                         border: 'none',
                                         borderRadius: '8px'
                                     }}
@@ -462,7 +474,7 @@ const HomePage = () => {
                                         display: 'flex',
                                         alignItems: 'center',
                                         padding: '12px 16px',
-                                        backgroundColor: activeButton === 'neighbor' ? '#99c7b1' : 'white',
+                                        // backgroundColor: activeButton === 'neighbor' ? '#99c7b1' : 'white',
                                         border: 'none',
                                         borderRadius: '8px'
                                     }}
@@ -481,7 +493,7 @@ const HomePage = () => {
                                         display: 'flex',
                                         alignItems: 'center',
                                         padding: '12px 16px',
-                                        backgroundColor: activeButton === 'neighbor' ? '#99c7b1' : 'white',
+                                        // backgroundColor: activeButton === 'neighbor' ? '#99c7b1' : 'white',
                                         border: 'none',
                                         borderRadius: '8px'
                                     }}
@@ -500,7 +512,7 @@ const HomePage = () => {
                                         display: 'flex',
                                         alignItems: 'center',
                                         padding: '12px 16px',
-                                        backgroundColor: activeButton === 'neighbor' ? '#99c7b1' : 'white',
+                                        // backgroundColor: activeButton === 'neighbor' ? '#99c7b1' : 'white',
                                         border: 'none',
                                         borderRadius: '8px'
                                     }}
@@ -522,7 +534,7 @@ const HomePage = () => {
                                         display: 'flex',
                                         alignItems: 'center',
                                         padding: '12px 16px',
-                                        backgroundColor: activeButton === 'llm' ? '#99c7b1' : 'white',
+                                        // backgroundColor: activeButton === 'llm' ? '#99c7b1' : 'white',
                                         border: 'none',
                                         borderRadius: '8px'
                                     }}
@@ -541,7 +553,7 @@ const HomePage = () => {
                                         display: 'flex',
                                         alignItems: 'center',
                                         padding: '12px 16px',
-                                        backgroundColor: activeButton === 'llm' ? '#99c7b1' : 'white',
+                                        // backgroundColor: activeButton === 'llm' ? '#99c7b1' : 'white',
                                         border: 'none',
                                         borderRadius: '8px'
                                     }}
@@ -560,7 +572,7 @@ const HomePage = () => {
                                         display: 'flex',
                                         alignItems: 'center',
                                         padding: '12px 16px',
-                                        backgroundColor: activeButton === 'llm' ? '#99c7b1' : 'white',
+                                        // backgroundColor: activeButton === 'llm' ? '#99c7b1' : 'white',
                                         border: 'none',
                                         borderRadius: '8px'
                                     }}
@@ -573,21 +585,17 @@ const HomePage = () => {
                 </div>
                 <AntButton 
                     onClick={() => setRunTour(true)}
-                    style={{ marginTop: '20px' }}
+                    // style={{ marginTop: '20px' }}
                     icon={<QuestionCircleOutlined />}
+                    style={{position: 'fixed', bottom: '40px'}}
                 >
                     Take a Guided Tour to GLKB
                 </AntButton>
             </div>
 
-            <div className="footer" style={{ 
-                backgroundColor: '#4a7298', 
-                padding: '20px 0',
-                marginTop: '20px',
-                width: '100%'
-            }}>
+            <div className="footer">
                 <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
-                    <p style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.8)', fontSize: '14px', margin: 0 }}>
+                    <p style={{ textAlign: 'center', color: 'rgba(0, 0, 0, 0.8)', fontSize: '14px', margin: 0 }}>
                         © 2024 Liu Lab, Department of Computational Medicine and Bioinformatics, University of Michigan
                     </p>
                 </div>

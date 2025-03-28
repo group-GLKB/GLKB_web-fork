@@ -3,6 +3,7 @@
     flex-direction: column;
     min-height: 100vh; /* Changed to 100vh for full viewport height */
     overflow-y: auto;
+    position: relative;
 }
 
 .content {
@@ -28,11 +29,22 @@
     padding: 20px;
     color: #333;
     font-size: 14px;
+    position: absolute;
 }
+
 
 .footer-img {
     max-width: 200px;
     margin-bottom: 10px;
+}
+.navigation-bar {
+    position: relative;
+    z-index: 1000; /* Ensure the navbar is above the Joyride overlay */
+}
+
+.joyride-overlay {
+    position: fixed !important; /* 确保覆盖层固定在视口内 */
+    z-index: 10000 !important; /* 确保覆盖层在最顶层 */
 }
 
 .search-section {
@@ -58,9 +70,10 @@
     height: auto;
     padding: 6px 12px;
     text-align: left;
-    background-color: #99c7b1;
     color: black;
+    background: #F4F6FE;
     border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
     transition: background-color 0.3s;
 }
 
@@ -121,3 +134,17 @@
     }
 }
 
+
+
+.footer {
+    /* background-color: #4a7298; */
+    padding: 10px 0;
+    width: 100%;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+    position: fixed;
+    z-index: 1000;
+    bottom: 0;
+    left: 0;
+}
