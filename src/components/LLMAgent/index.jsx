@@ -405,6 +405,7 @@ function LLMAgent() {
                                 startIcon={<FilePresentIcon />}
                                 size="small"
                                 onClick={() => goref(messageID)}
+                                disabled={isLoading}
                                 sx={{
                                     px: "10px",
                                     height: "40px",
@@ -413,13 +414,13 @@ function LLMAgent() {
                                     "&:hover": {
                                         bgcolor: "#e1e2e4",
                                         color: "#09112d",
-                                        boxShadow: "none",
+                                        boxShadow: index == selectedMessageIndex ? "0 0 0 2px #19213d" : "none",
                                     },
-                                    boxShadow: "none",
+                                    boxShadow: index == selectedMessageIndex ? "0 0 0 2px #19213d" : "none",
                                     mb: "2px"
                                 }}
                             >
-                                References
+                                {index == selectedMessageIndex ? <b>References</b> : <>References</>}
                             </MuiButton>
 
                         </Box>
@@ -553,6 +554,7 @@ function LLMAgent() {
                                             icon={<DeleteOutlined />}
                                             onClick={handleClear}
                                             className="clear-button"
+                                            disabled={isLoading}
                                         >
                                             Clear History
                                         </Button>
