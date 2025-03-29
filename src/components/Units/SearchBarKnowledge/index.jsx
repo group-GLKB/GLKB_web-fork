@@ -118,7 +118,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                 "max_rels": maxRel,
                 "more_terms": moreNodes ? "True" : "False",
                 "more_rels": moreRel ? "True" : "False",
-                "merge": "True"
+                "merge": "True",
+                "type": termType
             }
         };
 
@@ -156,6 +157,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                 setMaxRel(params.max_rels || 0);
                 setMoreNodes(params.more_terms === "True");
                 setMoreRel(params.more_rels === "True");
+                if (params.type) {
+                    setTermType(params.type);
+                }
             }
         }
     }, [props.initialContent]);
