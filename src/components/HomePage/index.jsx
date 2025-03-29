@@ -398,7 +398,7 @@ const HomePage = () => {
                         gap: '10px',
                         width: '100%',
                         marginTop: activeButton === 'triplet' ? '20px' : '20px', 
-                        marginBottom: '15px'    
+                        marginBottom: '0px'    
                     }}>
                         {activeButton === 'triplet' ? (
                             <>
@@ -587,14 +587,14 @@ const HomePage = () => {
                     onClick={() => setRunTour(true)}
                     // style={{ marginTop: '20px' }}
                     icon={<QuestionCircleOutlined />}
-                    style={{position: 'fixed', bottom: '40px'}}
+                    style={{position: 'fixed', bottom: '20px',right: '20px'}}
                 >
                     Take a Guided Tour to GLKB
                 </AntButton>
             </div>
 
             <div className="footer">
-                <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
+                <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 0px' }}>
                     <p style={{ textAlign: 'center', color: 'rgba(0, 0, 0, 0.8)', fontSize: '14px', margin: 0 }}>
                         © 2024 Liu Lab, Department of Computational Medicine and Bioinformatics, University of Michigan
                     </p>
