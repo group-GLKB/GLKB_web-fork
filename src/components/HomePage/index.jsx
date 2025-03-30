@@ -248,7 +248,7 @@ const HomePage = () => {
                         onClick={() => setActiveButton('triplet')}
                     >
                         {/* Search biomedical terms */}
-                        Graphical Search
+                        Search
                     </Button>
                     {/* <Button 
                         variant={activeButton === 'neighbor' ? 'contained' : 'outlined'}
@@ -271,7 +271,7 @@ const HomePage = () => {
                         onClick={() => setActiveButton('llm')}
                     >
                         {/* Search with LLM Agent */}
-                        LLM Agent
+                        Chat
                     </Button>
                 </Box>
                 <div className="search-section" style={{ width: '80%', maxWidth: '1000px' }}>
