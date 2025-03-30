@@ -575,7 +575,7 @@ function LLMAgent() {
                                                 <p className="reference-authors">{ref.authors}</p>
                                                 {ref.url && (
                                                     <a href={ref.url} target="_blank" rel="noopener noreferrer">
-                                                        Read More on PubMed
+                                                        PubMed Article {ref.url.split('/').filter(Boolean).pop()}
                                                     </a>
                                                 )}
                                             </li>
