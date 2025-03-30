@@ -233,16 +233,21 @@ const HomePage = () => {
                 <Box 
                     display="flex" 
                     justifyContent="center" 
-                    gap={2} 
-                    mt={2} 
-                    mb={2}
+                    gap={0} 
+                    mt={0} 
+                    mb={0}
                     className="search-mode-buttons"  // Add this class
                 >
                     <Button 
                         variant={activeButton === 'triplet' ? 'contained' : 'outlined'}
                         sx={{ 
-                            backgroundColor: activeButton === 'triplet' ? '#F7EFAE' : 'transparent',
+                            backgroundColor: activeButton === 'triplet' ? '#F0F0F0' : 'transparent',
                             color: 'black', 
+                            borderTopLeftRadius: '8px', // 设置顶部左边圆角
+                            borderTopRightRadius: '8px', // 设置顶部右边圆角
+                            borderBottomLeftRadius: '0', // 确保底部没有圆角
+                            borderBottomRightRadius: '0', // 确保底部没有圆角
+                            boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
                             '&:hover': { backgroundColor: '#F3C846' }
                         }}
                         onClick={() => setActiveButton('triplet')}
@@ -264,8 +269,13 @@ const HomePage = () => {
                     <Button 
                         variant={activeButton === 'llm' ? 'contained' : 'outlined'}
                         sx={{ 
-                            backgroundColor: activeButton === 'llm' ? '#F7EFAE' : 'transparent',
+                            backgroundColor: activeButton === 'llm' ? '#F0F0F0' : 'transparent',
                             color: 'black', 
+                            borderTopLeftRadius: '8px', // 设置顶部左边圆角
+                            borderTopRightRadius: '8px', // 设置顶部右边圆角
+                            borderBottomLeftRadius: '0', // 确保底部没有圆角
+                            borderBottomRightRadius: '0', // 确保底部没有圆角
+                            boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
                             '&:hover': { backgroundColor: '#F3C846' }
                         }}
                         onClick={() => setActiveButton('llm')}
@@ -274,7 +284,7 @@ const HomePage = () => {
                         Chat
                     </Button>
                 </Box>
-                <div className="search-section" style={{ width: '80%', maxWidth: '1000px' }}>
+                <div className="search-section" style={{ width: '80%', maxWidth: '1000px'}}>
                     {activeButton === 'triplet' ? (
                         <SearchBarKnowledge 
                             ref={searchBarKnowledgeRef}
@@ -313,7 +323,7 @@ const HomePage = () => {
                             <div style={{ 
                                 display: 'flex', 
                                 borderRadius: '8px',
-                                backgroundColor: 'white',
+                                backgroundColor: '#F0F0F0',
                                 padding: '1rem',
                             }}>
                                 <form 
@@ -398,7 +408,7 @@ const HomePage = () => {
                         gap: '10px',
                         width: '100%',
                         marginTop: activeButton === 'triplet' ? '20px' : '20px', 
-                        marginBottom: '0px'    
+                           
                     }}>
                         {activeButton === 'triplet' ? (
                             <>

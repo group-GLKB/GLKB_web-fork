@@ -118,8 +118,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                 "max_rels": maxRel,
                 "more_terms": moreNodes ? "True" : "False",
                 "more_rels": moreRel ? "True" : "False",
-                "merge": "True",
-                "type": termType
+                "merge": "True"
             }
         };
 
@@ -157,9 +156,6 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                 setMaxRel(params.max_rels || 0);
                 setMoreNodes(params.more_terms === "True");
                 setMoreRel(params.more_rels === "True");
-                if (params.type) {
-                    setTermType(params.type);
-                }
             }
         }
     }, [props.initialContent]);
@@ -208,7 +204,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                     }}>
                         <AntSelect
                             className="term-type-dropdown"
-                            style={{ width: '100%' }}
+                            style={{ width: '100%', height: '40px' }}
                             value={termType}
                             onChange={setTermType}
                             options={[
@@ -245,7 +241,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             value={selectedSource}
                             inputValue={inputValue}
                             onChange={(event, newValue) => {
-                                setSelectedSource(newValue);
+                                if (options.includes(newValue)) {
+                                    setSelectedSource(newValue);
+                                }
                             }}
                         />
                     </Box>
