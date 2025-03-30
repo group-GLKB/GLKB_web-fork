@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import './scoped.css'; // This is where you will import your CSS from
-import logo_l from '../../../img/logo.svg'
+import { HomeOutlined } from '@ant-design/icons';
 
 function NavBarWhite({ showLogo = true }) {
     return (
@@ -9,7 +9,7 @@ function NavBarWhite({ showLogo = true }) {
             <div className="logo">
                 {showLogo && (
                     <Link to="/">
-                        <img src={logo_l} alt="Logo" style={{width: 'auto', height: '40px'}}/>
+                        <HomeOutlined style={{ fontSize: '24px', color: '#3D739C' }} />
                     </Link>
                 )}
             </div>
