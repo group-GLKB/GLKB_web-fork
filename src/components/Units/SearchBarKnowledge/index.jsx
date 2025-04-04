@@ -27,6 +27,21 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+    // Add mapping for group names
+    const databaseTypeMapping = {
+        'ChemicalEntity': 'Chemical',
+        'MeshTerm': 'MeSH',
+        'DiseaseOrPhenotypicFeature': 'Disease',
+        'Gene': 'Gene',
+        'Variant': 'Variant'
+    };
+    // Convert database type to display category
+    const getDisplayCategory = (databaseType) => {
+        console.log('Processing type:', databaseType);
+        const category = databaseTypeMapping[databaseType] || 'All Biomedical Terms';
+        console.log('Mapped to category:', category);
+        return category;
+    };
 
     // Simple debounced search function
     const debouncedSearch = useCallback(
@@ -40,7 +55,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         const response = await cypherServ.Entity2Cypher(searchValue, termType);
         setSourceNodeData(response.data);
         setSourceNodeOptions([
-            ...response.data.map(node => [node.database_id, `${node.name} (${node.element_id})`])
+            ...response.data.map(node => [node.database_id, `${node.name} (${node.element_id})`,node.type])
         ]);
     };
 
@@ -80,7 +95,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const handleAddTriplet = () => {
         if (!selectedSource || chipData.length >= 5) return;
         
-        const sourceName = selectedSource.split(' (')[0];
+        const sourceName = selectedSource[1].split(' (')[0];
         let chip_str = `(${sourceName})-[any relationships]-()`;
         if (chipData.includes(chip_str)) return;
         
@@ -198,7 +213,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                     backgroundColor: 'transparent'
                 }}>
                     {/* Entity Type Selector */}
-                    <Box sx={{ 
+                    {/* <Box sx={{ 
                         width: isSmallScreen ? '100%' : '200px',
                         backgroundColor: 'transparent'
                     }}>
@@ -216,7 +231,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                 { value: 'All', label: 'Any Biomedical Terms' },
                             ]}
                         />
-                    </Box>
+                    </Box> */}
 
                     {/* Search Input */}
                     <Box sx={{ flexGrow: 1 }}>
@@ -227,7 +242,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                 setInputValue(newInputValue);
                                 updateSource(event, newInputValue);
                             }}
-                            options={sourceNodeOptions.map(option => option[1])}
+                            options={sourceNodeOptions}
+                            groupBy = {(option) => getDisplayCategory(option[2])}
+                            getOptionLabel={(option) => option[1]}
                             renderInput={(params) => (
                                 <TextField 
                                     {...params} 
@@ -241,7 +258,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             value={selectedSource}
                             inputValue={inputValue}
                             onChange={(event, newValue) => {
-                                if (options.includes(newValue)) {
+                                if (sourceNodeOptions.includes(newValue)) {
                                     setSelectedSource(newValue);
                                 }
                             }}
