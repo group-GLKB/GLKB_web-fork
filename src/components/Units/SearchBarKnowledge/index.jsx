@@ -35,6 +35,21 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         'Gene': 'Gene',
         'Variant': 'Variant'
     };
+    // Add category order priority
+    const categoryOrder = ['Gene', 'Disease', 'Chemical', 'MeSH', 'Variant', 'All Biomedical Terms'];
+
+    // Sort function for options
+    const sortByCategory = (a, b) => {
+        const categoryA = getDisplayCategory(a[2]);
+        const categoryB = getDisplayCategory(b[2]);
+        
+        // First sort by category order
+        const orderDiff = categoryOrder.indexOf(categoryA) - categoryOrder.indexOf(categoryB);
+        if (orderDiff !== 0) return orderDiff;
+        
+        // Then sort alphabetically within category
+        return a[1].localeCompare(b[1]);
+    };
     // Convert database type to display category
     const getDisplayCategory = (databaseType) => {
         console.log('Processing type:', databaseType);
@@ -53,10 +68,19 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const performSearch = async (searchValue) => {
         let cypherServ = new CypherService();
         const response = await cypherServ.Entity2Cypher(searchValue, termType);
-        setSourceNodeData(response.data);
-        setSourceNodeOptions([
-            ...response.data.map(node => [node.database_id, `${node.name} (${node.element_id})`,node.type])
-        ]);
+        const sortedOptions = response.data
+        .map(node => [
+            node.database_id,
+            `${node.name} (${node.element_id})`,
+            node.type
+        ])
+        .sort(sortByCategory);
+    
+        setSourceNodeOptions(sortedOptions);
+        // setSourceNodeData(response.data);
+        // setSourceNodeOptions([
+        //     ...response.data.map(node => [node.database_id, `${node.name} (${node.element_id})`,node.type])
+        // ]);
     };
 
     const updateSource = (event, newInputValue) => {
