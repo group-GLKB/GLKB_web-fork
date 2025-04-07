@@ -429,7 +429,7 @@ const HomePage = () => {
                                         borderRadius: '8px'
                                     }}
                                 >
-                                    Example Query 1: SPRY2, RFX6, HNF4A, and Type 2 Diabetes
+                                    Example: Identify gene-disease associations (Explore relationships between Type 2 Diabetes and its associated genes)
                                 </AntButton>
                                 <AntButton 
                                     onClick={() => handleExampleQuery(1)}
@@ -448,7 +448,7 @@ const HomePage = () => {
                                         borderRadius: '8px'
                                     }}
                                 >
-                                    Example Query 2: TP53, SOX2, and Breast Cancer
+                                    Example: Identify mechanisms of variant affecting tratis (Explore relationships between rs3761624 and RSV infectious disease)
                                 </AntButton>
                                 <AntButton 
                                     onClick={() => handleExampleQuery(2)}
@@ -467,7 +467,7 @@ const HomePage = () => {
                                         borderRadius: '8px'
                                     }}
                                 >
-                                    Example Query 3: CYP2C19, Cardiovascular Abnormalities, and Clopidogrel
+                                    Example: Identify drug effects on diseases (Explore relationships between clopidogrel and different diseases)
                                 </AntButton>
                             </>
                         ) : activeButton === 'neighbor' ? (
