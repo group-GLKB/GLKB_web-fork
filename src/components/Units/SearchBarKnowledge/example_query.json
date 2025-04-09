@@ -70,8 +70,8 @@
             },
             {
                 "source": [
-                    91689683,
-                    "(SOX2)"
+                    441215018,
+                    "(rs3761624)"
                 ],
                 "rel": "",
                 "target": [
@@ -81,8 +81,19 @@
             },
             {
                 "source": [
-                    91661004,
-                    "(breast cancer)"
+                    91666190,
+                    "(respiratory syncytial virus infectious disease)"
+                ],
+                "rel": "",
+                "target": [
+                    0,
+                    ""
+                ]
+            },
+            {
+                "source": [
+                    91708843,
+                    "(TLR8)"
                 ],
                 "rel": "",
                 "target": [
@@ -105,8 +116,8 @@
         "triplets": [
             {
                 "source": [
-                    91717377,
-                    "(CYP2C19)"
+                    92115666,
+                    "(Acute coronary syndrome)"
                 ],
                 "rel": "",
                 "target": [
@@ -116,8 +127,19 @@
             },
             {
                 "source": [
-                    92090265,
-                    "(Cardiovascular Abnormalities)"
+                    91663193,
+                    "(atrial fibrillation)"
+                ],
+                "rel": "",
+                "target": [
+                    0,
+                    ""
+                ]
+            },
+            {
+                "source": [
+                    91700271,
+                    "(vascular disease)"
                 ],
                 "rel": "",
                 "target": [

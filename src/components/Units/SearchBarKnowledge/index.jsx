@@ -27,6 +27,36 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+    // Add mapping for group names
+    const databaseTypeMapping = {
+        'ChemicalEntity': 'Chemical',
+        'MeshTerm': 'MeSH',
+        'DiseaseOrPhenotypicFeature': 'Disease',
+        'Gene': 'Gene',
+        'Variant': 'Variant'
+    };
+    // Add category order priority
+    const categoryOrder = ['Gene', 'Disease', 'Chemical', 'MeSH', 'Variant', 'All Biomedical Terms'];
+
+    // Sort function for options
+    const sortByCategory = (a, b) => {
+        const categoryA = getDisplayCategory(a[2]);
+        const categoryB = getDisplayCategory(b[2]);
+        
+        // First sort by category order
+        const orderDiff = categoryOrder.indexOf(categoryA) - categoryOrder.indexOf(categoryB);
+        if (orderDiff !== 0) return orderDiff;
+        
+        // Then sort alphabetically within category
+        return a[1].localeCompare(b[1]);
+    };
+    // Convert database type to display category
+    const getDisplayCategory = (databaseType) => {
+        console.log('Processing type:', databaseType);
+        const category = databaseTypeMapping[databaseType] || 'All Biomedical Terms';
+        console.log('Mapped to category:', category);
+        return category;
+    };
 
     // Simple debounced search function
     const debouncedSearch = useCallback(
@@ -38,10 +68,19 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const performSearch = async (searchValue) => {
         let cypherServ = new CypherService();
         const response = await cypherServ.Entity2Cypher(searchValue, termType);
-        setSourceNodeData(response.data);
-        setSourceNodeOptions([
-            ...response.data.map(node => [node.database_id, `${node.name} (${node.element_id})`])
-        ]);
+        const sortedOptions = response.data
+        .map(node => [
+            node.database_id,
+            `${node.name} (${node.element_id})`,
+            node.type
+        ])
+        .sort(sortByCategory);
+    
+        setSourceNodeOptions(sortedOptions);
+        // setSourceNodeData(response.data);
+        // setSourceNodeOptions([
+        //     ...response.data.map(node => [node.database_id, `${node.name} (${node.element_id})`,node.type])
+        // ]);
     };
 
     const updateSource = (event, newInputValue) => {
@@ -80,7 +119,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const handleAddTriplet = () => {
         if (!selectedSource || chipData.length >= 5) return;
         
-        const sourceName = selectedSource.split(' (')[0];
+        const sourceName = selectedSource[1].split(' (')[0];
         let chip_str = `(${sourceName})-[any relationships]-()`;
         if (chipData.includes(chip_str)) return;
         
@@ -198,13 +237,13 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                     backgroundColor: 'transparent'
                 }}>
                     {/* Entity Type Selector */}
-                    <Box sx={{ 
+                    {/* <Box sx={{ 
                         width: isSmallScreen ? '100%' : '200px',
                         backgroundColor: 'transparent'
                     }}>
                         <AntSelect
                             className="term-type-dropdown"
-                            style={{ width: '100%' }}
+                            style={{ width: '100%', height: '40px' }}
                             value={termType}
                             onChange={setTermType}
                             options={[
@@ -216,7 +255,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                 { value: 'All', label: 'Any Biomedical Terms' },
                             ]}
                         />
-                    </Box>
+                    </Box> */}
 
                     {/* Search Input */}
                     <Box sx={{ flexGrow: 1 }}>
@@ -227,7 +266,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                 setInputValue(newInputValue);
                                 updateSource(event, newInputValue);
                             }}
-                            options={sourceNodeOptions.map(option => option[1])}
+                            options={sourceNodeOptions}
+                            groupBy = {(option) => getDisplayCategory(option[2])}
+                            getOptionLabel={(option) => option[1]}
                             renderInput={(params) => (
                                 <TextField 
                                     {...params} 
@@ -241,7 +282,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             value={selectedSource}
                             inputValue={inputValue}
                             onChange={(event, newValue) => {
-                                setSelectedSource(newValue);
+                                if (sourceNodeOptions.includes(newValue)) {
+                                    setSelectedSource(newValue);
+                                }
                             }}
                         />
                     </Box>

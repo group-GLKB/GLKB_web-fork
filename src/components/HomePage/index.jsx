@@ -233,22 +233,27 @@ const HomePage = () => {
                 <Box 
                     display="flex" 
                     justifyContent="center" 
-                    gap={2} 
-                    mt={2} 
-                    mb={2}
+                    gap={0} 
+                    mt={0} 
+                    mb={0}
                     className="search-mode-buttons"  // Add this class
                 >
                     <Button 
                         variant={activeButton === 'triplet' ? 'contained' : 'outlined'}
                         sx={{ 
-                            backgroundColor: activeButton === 'triplet' ? '#F7EFAE' : 'transparent',
+                            backgroundColor: activeButton === 'triplet' ? '#F0F0F0' : 'transparent',
                             color: 'black', 
+                            borderTopLeftRadius: '8px', // 设置顶部左边圆角
+                            borderTopRightRadius: '8px', // 设置顶部右边圆角
+                            borderBottomLeftRadius: '0', // 确保底部没有圆角
+                            borderBottomRightRadius: '0', // 确保底部没有圆角
+                            boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
                             '&:hover': { backgroundColor: '#F3C846' }
                         }}
                         onClick={() => setActiveButton('triplet')}
                     >
                         {/* Search biomedical terms */}
-                        Graphical Search
+                        Search
                     </Button>
                     {/* <Button 
                         variant={activeButton === 'neighbor' ? 'contained' : 'outlined'}
@@ -264,17 +269,22 @@ const HomePage = () => {
                     <Button 
                         variant={activeButton === 'llm' ? 'contained' : 'outlined'}
                         sx={{ 
-                            backgroundColor: activeButton === 'llm' ? '#F7EFAE' : 'transparent',
+                            backgroundColor: activeButton === 'llm' ? '#F0F0F0' : 'transparent',
                             color: 'black', 
+                            borderTopLeftRadius: '8px', // 设置顶部左边圆角
+                            borderTopRightRadius: '8px', // 设置顶部右边圆角
+                            borderBottomLeftRadius: '0', // 确保底部没有圆角
+                            borderBottomRightRadius: '0', // 确保底部没有圆角
+                            boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
                             '&:hover': { backgroundColor: '#F3C846' }
                         }}
                         onClick={() => setActiveButton('llm')}
                     >
                         {/* Search with LLM Agent */}
-                        LLM Agent
+                        Chat
                     </Button>
                 </Box>
-                <div className="search-section" style={{ width: '80%', maxWidth: '1000px' }}>
+                <div className="search-section" style={{ width: '80%', maxWidth: '1000px'}}>
                     {activeButton === 'triplet' ? (
                         <SearchBarKnowledge 
                             ref={searchBarKnowledgeRef}
@@ -313,7 +323,7 @@ const HomePage = () => {
                             <div style={{ 
                                 display: 'flex', 
                                 borderRadius: '8px',
-                                backgroundColor: 'white',
+                                backgroundColor: '#F0F0F0',
                                 padding: '1rem',
                             }}>
                                 <form 
@@ -398,7 +408,7 @@ const HomePage = () => {
                         gap: '10px',
                         width: '100%',
                         marginTop: activeButton === 'triplet' ? '20px' : '20px', 
-                        marginBottom: '15px'    
+                           
                     }}>
                         {activeButton === 'triplet' ? (
                             <>
@@ -419,7 +429,7 @@ const HomePage = () => {
                                         borderRadius: '8px'
                                     }}
                                 >
-                                    Example Query 1: SPRY2, RFX6, HNF4A, and Type 2 Diabetes
+                                    Identify gene-disease associations (Explore relationships between Type 2 Diabetes and its associated genes)
                                 </AntButton>
                                 <AntButton 
                                     onClick={() => handleExampleQuery(1)}
@@ -438,7 +448,7 @@ const HomePage = () => {
                                         borderRadius: '8px'
                                     }}
                                 >
-                                    Example Query 2: TP53, SOX2, and Breast Cancer
+                                    Identify mechanisms of variant affecting tratis (Explore relationships between rs3761624 and RSV infectious disease)
                                 </AntButton>
                                 <AntButton 
                                     onClick={() => handleExampleQuery(2)}
@@ -457,7 +467,7 @@ const HomePage = () => {
                                         borderRadius: '8px'
                                     }}
                                 >
-                                    Example Query 3: CYP2C19, Cardiovascular Abnormalities, and Clopidogrel
+                                    Identify drug effects on diseases (Explore relationships between clopidogrel and different diseases)
                                 </AntButton>
                             </>
                         ) : activeButton === 'neighbor' ? (
@@ -587,14 +597,14 @@ const HomePage = () => {
                     onClick={() => setRunTour(true)}
                     // style={{ marginTop: '20px' }}
                     icon={<QuestionCircleOutlined />}
-                    style={{position: 'fixed', bottom: '40px'}}
+                    style={{position: 'fixed', bottom: '20px',right: '20px'}}
                 >
                     Take a Guided Tour to GLKB
                 </AntButton>
             </div>
 
             <div className="footer">
-                <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
+                <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 0px' }}>
                     <p style={{ textAlign: 'center', color: 'rgba(0, 0, 0, 0.8)', fontSize: '14px', margin: 0 }}>
                         © 2024 Liu Lab, Department of Computational Medicine and Bioinformatics, University of Michigan
                     </p>
