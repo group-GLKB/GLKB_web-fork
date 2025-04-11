@@ -2,11 +2,9 @@ import React, { useState, useEffect, useRef } from 'react'
 import './scoped.css'
 import { DetailService } from '../../service/Detail'
 import { Descriptions, List, Collapse, Typography, Spin, Card, Tabs, Empty } from 'antd';
-import { CaretRightOutlined } from '@ant-design/icons';
 
 const { Panel } = Collapse;
-const { Title, Text } = Typography;
-const { TabPane } = Tabs;
+const { Text } = Typography;
 
 const Information = ({ width, ...props }) => {
     const informationClass = "information open";
@@ -14,7 +12,6 @@ const Information = ({ width, ...props }) => {
     const [nodeDetails, setNodeDetails] = useState({});
     const [nodeDetail, setNodeDetail] = useState({});
     const [edgeDetail, setEdgeDetail] = useState({});
-    const [urlList, seturlList] = useState({});
     const [activeKey, setActiveKey] = useState(['0']);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -120,7 +117,7 @@ const Information = ({ width, ...props }) => {
 
     const formatAuthors = (authors) => {
         if (!authors) return 'N/A';
-        
+
         if (!Array.isArray(authors)) {
             return authors.length > 50 ? authors.substring(0, 47) + '...' : authors;
         }
@@ -147,8 +144,8 @@ const Information = ({ width, ...props }) => {
     const nodeForMap = (url) => {
         return (
             <div className="custom-div-url" style={{ paddingBottom: '8px' }}>
-                <a 
-                    href={url[1]} 
+                <a
+                    href={url[1]}
                     onClick={(event) => handleClick(event, url[1])}
                     style={{ color: '#4a7298' }}
                 >
@@ -242,10 +239,10 @@ const Information = ({ width, ...props }) => {
     };
 
     const LoadingMessage = () => (
-        <div style={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
+        <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
             padding: '20px',
             flexDirection: 'column',
             gap: '10px',
@@ -267,12 +264,12 @@ const Information = ({ width, ...props }) => {
         // Check if this is an article node (has 'title' property)
         if ('title' in node) {
             return (
-                <Descriptions column={1} size="small" className="custom-descriptions" style={{ borderRadius: '10px' }}>
+                <Descriptions column={1} size="small" className="custom-descriptions" style={{ borderRadius: '30px' }}>
                     <Descriptions.Item label="Title">{node.title}</Descriptions.Item>
                     <Descriptions.Item label="PubMedID">
-                        <a 
-                            href={`https://www.ncbi.nlm.nih.gov/pubmed/${node.pmid}`} 
-                            target="_blank" 
+                        <a
+                            href={`https://www.ncbi.nlm.nih.gov/pubmed/${node.pmid}`}
+                            target="_blank"
                             rel="noopener noreferrer"
                             style={{ color: '#4a7298' }}
                         >
@@ -291,10 +288,10 @@ const Information = ({ width, ...props }) => {
                 </Descriptions>
             );
         }
-        
+
         // Regular node rendering
         return (
-            <Descriptions column={1} size="small" className="custom-descriptions" style={{ borderRadius: '10px' }}>
+            <Descriptions column={1} size="small" className="custom-descriptions" style={{ borderRadius: '30px' }}>
                 <Descriptions.Item label="Entity ID">{node.element_id}</Descriptions.Item>
                 <Descriptions.Item label="Type">{node.type.join('; ')}</Descriptions.Item>
                 {node.description && node.description.trim() !== "" && (
@@ -310,7 +307,7 @@ const Information = ({ width, ...props }) => {
     };
 
     const renderArticleDetails = (article) => (
-        <Descriptions column={1} size="small" className="custom-descriptions" style={{ borderRadius: '10px' }}>
+        <Descriptions column={1} size="small" className="custom-descriptions" style={{ borderRadius: '30px' }}>
             <Descriptions.Item label="Title">{article.title}</Descriptions.Item>
             <Descriptions.Item label="PubMedID">
                 <a href={`https://www.ncbi.nlm.nih.gov/pubmed/${article.pmid}`} target="_blank" rel="noopener noreferrer">
@@ -338,8 +335,8 @@ const Information = ({ width, ...props }) => {
             <Descriptions.Item label="Relationship Type">{edge['relationship type']}</Descriptions.Item>
             {edge['relationship label'] !== 'Curated_relationship' && (
                 <Descriptions.Item label="Number of Citations">
-                {edge['number of citations'] !== null ? edge['number of citations'] : 'N/A'}
-            </Descriptions.Item>
+                    {edge['number of citations'] !== null ? edge['number of citations'] : 'N/A'}
+                </Descriptions.Item>
             )}
             {edge['relationship label'] === 'Curated_relationship' && (
                 <Descriptions.Item label="Source">{edge['source']}</Descriptions.Item>
@@ -363,17 +360,30 @@ const Information = ({ width, ...props }) => {
                 title={getPanelTitle()}
                 className="information-content"
                 headStyle={{
-                    backgroundColor: '#4a7298',
-                    color: 'white',
+                    // backgroundColor: '#4a7298',
+                    color: 'black',
                     fontSize: '18px',
+                    lineHeight: '1.5',
                     fontWeight: 'bold',
                     borderTopLeftRadius: '10px',
                     borderTopRightRadius: '10px',
+                    paddingTop: '70px',
+                    paddingLeft: "55px",
+                    paddingBottom: '20px',
+                    minHeight: '90px',
+                    border: 'none',
+                    background: 'transparent',
+                    wordWrap: 'break-word !important',
+                    whiteSpace: 'pre-wrap',
                 }}
                 bodyStyle={{
                     padding: '16px',
                     backgroundColor: '#F7F7F7',
                     minHeight: '200px',
+                    marginTop: '20px',
+                    marginBottom: '10px',
+                    border: 'none',
+                    background: 'transparent',
                 }}
             >
                 {!props.detailId ? (
@@ -381,161 +391,166 @@ const Information = ({ width, ...props }) => {
                 ) : isLoading ? (
                     <LoadingMessage />
                 ) : (
-                    <>
-                        {/* Article Node Details - Direct Display */}
-                        {Object.keys(nodeDetails).length !== 0 && nodeDetails[0] && nodeDetails[0][0] && 'title' in nodeDetails[0][0] && (
-                            <div>
-                                {renderNodeDetails(nodeDetails[0][0])}
-                                {/* Related Articles for Article Node */}
-                                {urls.length > 0 && (
-                                    <div style={{ paddingLeft: '12px' }}>
-                                        <h4 style={{ 
-                                            color: '#8c8c8c', 
-                                            marginTop: '20px', 
-                                            marginBottom: '10px',
-                                            fontWeight: 'normal',
-                                            fontSize: '14px',
-                                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
-                                        }}>Related Articles</h4>
-                                        <List
-                                            size="small"
-                                            dataSource={urls}
-                                            renderItem={item => (
-                                                <List.Item className="related-article-item">
-                                                    {item}
-                                                </List.Item>
+                    <div style={{ position: 'relative', height: '100%' }}>
+                        <div className="transcriptGradientTop"></div>
+                        <div style={{ paddingLeft: '40px', paddingRight: '40px', paddingTop: '20px', paddingBottom: '20px', overflowY: 'auto', maxHeight: '100%' }}>
+
+                            {/* Article Node Details - Direct Display */}
+                            {Object.keys(nodeDetails).length !== 0 && nodeDetails[0] && nodeDetails[0][0] && 'title' in nodeDetails[0][0] && (
+                                <div>
+                                    {renderNodeDetails(nodeDetails[0][0])}
+                                    {/* Related Articles for Article Node */}
+                                    {urls.length > 0 && (
+                                        <div style={{ paddingLeft: '12px' }}>
+                                            <h4 style={{
+                                                color: '#8c8c8c',
+                                                marginTop: '20px',
+                                                marginBottom: '10px',
+                                                fontWeight: 'normal',
+                                                fontSize: '14px',
+                                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
+                                            }}>Related Articles</h4>
+                                            <List
+                                                size="small"
+                                                dataSource={urls}
+                                                renderItem={item => (
+                                                    <List.Item className="related-article-item">
+                                                        {item}
+                                                    </List.Item>
+                                                )}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Regular Node Details - Direct Display */}
+                            {Object.keys(nodeDetails).length !== 0 && nodeDetails[0] && nodeDetails[0][0] && !('title' in nodeDetails[0][0]) && (
+                                <div>
+                                    {nodeDetails[0].map((node, index) => (
+                                        <div key={index}>
+                                            {renderNodeDetails(node)}
+                                            {/* Add Related Articles section for nodes */}
+                                            {urls.length > 0 && (
+                                                <div style={{ paddingLeft: '12px' }}>
+                                                    <h4 style={{
+                                                        color: '#8c8c8c',
+                                                        marginTop: '20px',
+                                                        marginBottom: '10px',
+                                                        fontWeight: 'normal',
+                                                        fontSize: '14px',
+                                                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
+                                                    }}>Related Articles</h4>
+                                                    <List
+                                                        size="small"
+                                                        dataSource={urls}
+                                                        renderItem={item => (
+                                                            <List.Item className="related-article-item">
+                                                                {item}
+                                                            </List.Item>
+                                                        )}
+                                                    />
+                                                </div>
                                             )}
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
 
-                        {/* Regular Node Details - Direct Display */}
-                        {Object.keys(nodeDetails).length !== 0 && nodeDetails[0] && nodeDetails[0][0] && !('title' in nodeDetails[0][0]) && (
-                            <div>
-                                {nodeDetails[0].map((node, index) => (
-                                    <div key={index}>
-                                        {renderNodeDetails(node)}
-                                        {/* Add Related Articles section for nodes */}
-                                        {urls.length > 0 && (
-                                            <div style={{ paddingLeft: '12px' }}>
-                                                <h4 style={{ 
-                                                    color: '#8c8c8c', 
-                                                    marginTop: '20px', 
-                                                    marginBottom: '10px',
-                                                    fontWeight: 'normal',
-                                                    fontSize: '14px',
-                                                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
-                                                }}>Related Articles</h4>
-                                                <List
-                                                    size="small"
-                                                    dataSource={urls}
-                                                    renderItem={item => (
-                                                        <List.Item className="related-article-item">
-                                                            {item}
-                                                        </List.Item>
-                                                    )}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                            {/* Edge Details - With Collapse */}
+                            {Object.keys(edgeDetail).length !== 0 && (
+                                <Collapse
+                                    accordion
+                                    activeKey={activeKey}
+                                    onChange={handleCollapseChange}
+                                >
+                                    {edgeDetail.map((edge, index) => (
+                                        <Panel
+                                            header={<span>Relationship {index + 1}: <i>{edge[0]['relationship type']}</i></span>}
+                                            key={`${index}`}
+                                        >
+                                            {/* Edge Details */}
+                                            {renderEdgeDetails(edge[0])}
 
-                        {/* Edge Details - With Collapse */}
-                        {Object.keys(edgeDetail).length !== 0 && (
-                            <Collapse 
-                                accordion 
-                                activeKey={activeKey}
-                                onChange={handleCollapseChange}
-                            >
-                                {edgeDetail.map((edge, index) => (
-                                    <Panel 
-                                        header={<span>Relationship {index + 1}: <i>{edge[0]['relationship type']}</i></span>} 
-                                        key={`${index}`}
-                                    >
-                                        {/* Edge Details */}
-                                        {renderEdgeDetails(edge[0])}
+                                            {/* Related Sentences */}
+                                            {edge[2] && edge[2].length > 0 && (
+                                                <div>
+                                                    <h4 style={{
+                                                        color: '#8c8c8c',
+                                                        marginTop: '20px',
+                                                        marginBottom: '10px',
+                                                        fontWeight: 'normal',
+                                                        fontSize: '14px',
+                                                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
+                                                    }}>Related Sentences</h4>
+                                                    <List
+                                                        size="small"
+                                                        dataSource={edge[2]}
+                                                        renderItem={(item, index) => (
+                                                            <List.Item key={index} className="related-article-item" style={{ paddingBottom: '8px' }}>
+                                                                <div className="custom-div-edge">
+                                                                    <div style={{ whiteSpace: 'pre-wrap' }}>{item[0]}</div>
+                                                                    <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
+                                                                        <a
+                                                                            href={item[1]}
+                                                                            onClick={(event) => handleClick(event, item[1])}
+                                                                            style={{ color: '#4a7298' }}
+                                                                        >
+                                                                            View Source
+                                                                        </a>
+                                                                    </p>
+                                                                </div>
+                                                            </List.Item>
+                                                        )}
+                                                    />
+                                                </div>
+                                            )}
 
-                                        {/* Related Sentences */}
-                                        {edge[2] && edge[2].length > 0 && (
-                                            <div>
-                                                <h4 style={{ 
-                                                    color: '#8c8c8c', 
-                                                    marginTop: '20px', 
-                                                    marginBottom: '10px',
-                                                    fontWeight: 'normal',
-                                                    fontSize: '14px',
-                                                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
-                                                }}>Related Sentences</h4>
-                                                <List
-                                                    size="small"
-                                                    dataSource={edge[2]}
-                                                    renderItem={(item, index) => (
-                                                        <List.Item key={index} className="related-article-item" style={{ paddingBottom: '8px' }}>
-                                                            <div className="custom-div-edge">
-                                                                <div style={{ whiteSpace: 'pre-wrap' }}>{item[0]}</div>
-                                                                <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
-                                                                    <a 
-                                                                        href={item[1]} 
-                                                                        onClick={(event) => handleClick(event, item[1])}
+                                            {/* Related Articles */}
+                                            {edge[1] && edge[1].length > 0 && (
+                                                <div>
+                                                    <h4 style={{
+                                                        color: '#8c8c8c',
+                                                        marginTop: '20px',
+                                                        marginBottom: '10px',
+                                                        fontWeight: 'normal',
+                                                        fontSize: '14px',
+                                                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
+                                                    }}>Related Articles</h4>
+                                                    <List
+                                                        size="small"
+                                                        dataSource={edge[1]}
+                                                        renderItem={(url, urlIndex) => (
+                                                            <List.Item key={urlIndex} className="related-article-item" style={{ paddingBottom: '8px' }}>
+                                                                <div className="custom-div-edge">
+                                                                    <a
+                                                                        href={url[1]}
+                                                                        onClick={(event) => handleClick(event, url[1])}
                                                                         style={{ color: '#4a7298' }}
                                                                     >
-                                                                        View Source
+                                                                        {url[0]}
                                                                     </a>
-                                                                </p>
-                                                            </div>
-                                                        </List.Item>
-                                                    )}
-                                                />
-                                            </div>
-                                        )}
-
-                                        {/* Related Articles */}
-                                        {edge[1] && edge[1].length > 0 && (
-                                            <div>
-                                                <h4 style={{ 
-                                                    color: '#8c8c8c', 
-                                                    marginTop: '20px', 
-                                                    marginBottom: '10px',
-                                                    fontWeight: 'normal',
-                                                    fontSize: '14px',
-                                                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
-                                                }}>Related Articles</h4>
-                                                <List
-                                                    size="small"
-                                                    dataSource={edge[1]}
-                                                    renderItem={(url, urlIndex) => (
-                                                        <List.Item key={urlIndex} className="related-article-item" style={{ paddingBottom: '8px' }}>
-                                                            <div className="custom-div-edge">
-                                                                <a 
-                                                                    href={url[1]} 
-                                                                    onClick={(event) => handleClick(event, url[1])}
-                                                                    style={{ color: '#4a7298' }}
-                                                                >
-                                                                    {url[0]}
-                                                                </a>
-                                                                <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
-                                                                    <span title="Cited by">Cited by: {url[2]} </span> | 
-                                                                    <span title="Year">Year: {url[3]} </span> | 
-                                                                    <span title="Journal">Journal: {url[4].length > 20 ? url[4].substring(0, 20) + '...' : url[4]} </span>
-                                                                </p>
-                                                                <p className="info-row" title={url[5].join(', ')} style={{ color: '#555555', margin: '2px 0' }}>
-                                                                    Authors: {formatAuthors(url[5])}
-                                                                </p>
-                                                            </div>
-                                                        </List.Item>
-                                                    )}
-                                                />
-                                            </div>
-                                        )}
-                                    </Panel>
-                                ))}
-                            </Collapse>
-                        )}
-                    </>
+                                                                    <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
+                                                                        <span title="Cited by">Cited by: {url[2]} </span> |
+                                                                        <span title="Year">Year: {url[3]} </span> |
+                                                                        <span title="Journal">Journal: {url[4].length > 20 ? url[4].substring(0, 20) + '...' : url[4]} </span>
+                                                                    </p>
+                                                                    <p className="info-row" title={url[5].join(', ')} style={{ color: '#555555', margin: '2px 0' }}>
+                                                                        Authors: {formatAuthors(url[5])}
+                                                                    </p>
+                                                                </div>
+                                                            </List.Item>
+                                                        )}
+                                                    />
+                                                </div>
+                                            )}
+                                        </Panel>
+                                    ))}
+                                </Collapse>
+                            )}
+                        </div>
+                        <div className="transcriptGradientBottom"></div>
+                    </div>
                 )}
             </Card>
         </div>

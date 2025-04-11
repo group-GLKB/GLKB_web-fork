@@ -6,7 +6,7 @@ import { DetailService } from '../../service/Detail'
 import 'antd/dist/reset.css';
 import { Col, Row, Input, Spin, Tag, Menu, Button, Tooltip, Checkbox } from 'antd';
 import { TweenOneGroup } from 'rc-tween-one';
-import './scoped.css'
+
 import NavBarWhite from '../Units/NavBarWhite'
 import GLKBLogoImg from '../../img/glkb_logo.png'
 import NavBar from '../NavBar';
@@ -25,6 +25,11 @@ import Joyride, { STATUS } from 'react-joyride';
 import SearchBarNeighborhood from "../Units/SearchBarNeighborhood";
 import { trackEvent } from '../Units/analytics';
 import { debounce } from 'lodash';
+import { Box } from '@mui/material';
+//import mui button as muibutton
+import { Button as MUIButton } from '@mui/material';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import './scoped.css'
 
 const { Search } = Input;
 
@@ -251,7 +256,7 @@ const ResultPage = () => {
             // Store the initial search content
             setSearchContent(search_data);
             const searchType = location.state.searchType;
-            
+
             if (searchType === 'neighbor') {
                 handleNeighborSearch(search_data);
             } else {
@@ -471,12 +476,12 @@ const ResultPage = () => {
     const [isGraphLoading, setIsGraphLoading] = useState(false);
 
     const changeLeftPanel = async () => {
-        trackEvent('Graph', 'Change Graph Type', 
+        trackEvent('Graph', 'Change Graph Type',
             displayArticleGraph ? 'Term Graph' : 'Article Graph'
         );
 
         setIsGraphLoading(true);
-        
+
         try {
             if (!displayArticleGraph) {
                 setDisplayArticleGraph(true);
@@ -599,26 +604,27 @@ const ResultPage = () => {
         }
     }, [graphShownData, uniqueLabelsArray, uniqueEdgeLabelsArray]);
 
-    const onChangeNode = (e) => {
-        if (!e.target.checked) {
+    const onChangeNode = (e, label, prevChecked) => {
+        console.log(label, prevChecked);
+        if (prevChecked) {
             const tempKeys = [];
             for (let i = 0; i < graphShownData.nodes.length; i++) {
-                if (graphShownData.nodes[i].data.label !== e.target.value) {
+                if (graphShownData.nodes[i].data.label !== label) {
                     tempKeys.push(graphShownData.nodes[i].data.id);
                 }
             }
             setGraphData(tempKeys);
-            setBoolValues({ ...boolValues, [e.target.value]: false });
+            setBoolValues({ ...boolValues, [label]: false });
         } else {
             const tempKeys = [];
             for (let i = 0; i < data.nodes.length; i++) {
-                if (data.nodes[i].data.label === e.target.value) {
+                if (data.nodes[i].data.label === label) {
                     tempKeys.push(data.nodes[i].data.id);
                 }
             }
             const currentKeys = graphData || [];
             setGraphData([...currentKeys, ...tempKeys]);
-            setBoolValues({ ...boolValues, [e.target.value]: true });
+            setBoolValues({ ...boolValues, [label]: true });
         }
     };
 
@@ -628,24 +634,25 @@ const ResultPage = () => {
 
         return (
             <div className="legend-item">
-                <div style={{ 
-                    display: 'flex', 
+                <div style={{
+                    display: 'flex',
                     alignItems: 'center',
                     gap: '10px'
                 }}>
                     {isRelationship ? (
-                        <div style={{ 
-                            width: "30px", 
-                            height: "0", 
-                            borderBottom: size, 
+                        <div style={{
+                            width: "30px",
+                            height: "0",
+                            borderBottom: size,
                             borderColor: color,
-                            marginRight: '10px'
+                            marginRight: '10px',
+                            marginLeft: '5px',
                         }}></div>
                     ) : (
-                        <div className="legend-circle" style={{ 
-                            backgroundColor: color, 
-                            width: size, 
-                            height: size, 
+                        <div className="legend-circle" style={{
+                            backgroundColor: color,
+                            width: size,
+                            height: size,
                             marginLeft: size === 5 ? "6px" : size === 10 ? "4px" : "0"
                         }}></div>
                     )}
@@ -653,21 +660,43 @@ const ResultPage = () => {
                         {label}
                         {isRelationship && (
                             <Tooltip title={explanation}>
-                                <InfoCircleOutlined style={{ marginLeft: '8px', color: '#1890ff' }} />
+                                <InfoCircleOutlined style={{ marginLeft: '8px', color: '#1890ff', marginRight: "5px" }} />
                             </Tooltip>
                         )}
                     </div>
                 </div>
                 {!isRelationship && !isQueryTerms && (
-                    <Checkbox 
-                        value={label} 
-                        checked={boolValues[label]} 
+                    <Checkbox
+                        value={label}
+                        checked={boolValues[label]}
                         onChange={onChangeNode}
                         style={{ marginLeft: 'auto' }}
                     />
                 )}
             </div>
         );
+    };
+
+    const LegendButton = ({ label, size, color, explanation }) => {
+        return (
+            <MUIButton variant="contained" onClick={(e) => { onChangeNode(e, label, boolValues[label]) }} sx={{
+                backgroundColor: boolValues[label] ? color : '#fff',
+                boxShadow: "none",
+                ":hover": {
+                    backgroundColor: boolValues[label] ? color : '#f0f0f0',
+
+                },
+                color: "black",
+                borderRadius: '16px',
+                border: boolValues[label] ? 'solid 2px transparent' : 'solid 2px #ccc',
+                height: '39px',
+                padding: '9px 9px',
+                fontSize: '14px',
+                lineHeight: '1.5',
+                letterSpacing: '0.15px',
+            }}>
+                {label}
+            </MUIButton>);
     };
 
     const legendDataAll = [
@@ -690,11 +719,11 @@ const ResultPage = () => {
     const legendData = legendDataAll.filter(item => uniqueLabelsArray.includes(item.label));
     const legendEdgeData = edgeDataAll.filter(item => uniqueEdgeLabelsArray.includes(item.label));
 
-    const [isLegendVisible, setIsLegendVisible] = useState(false);
+    // const [isLegendVisible, setIsLegendVisible] = useState(true);
 
-    const toggleLegend = () => {
-        setIsLegendVisible(!isLegendVisible);
-    };
+    // const toggleLegend = () => {
+    //     setIsLegendVisible(!isLegendVisible);
+    // };
 
     return (
         <div className="result-container" ref={containerRef}>
@@ -750,25 +779,13 @@ const ResultPage = () => {
                         />
                     )}
                 </div>
-                {searchFlag && !isGraphLoading && (
+                {(
                     <div className="graph-controls">
-                        <Tooltip title={getButtonTooltip()}>
-                            <span>
-                                <StyledButton
-                                    onClick={changeLeftPanel}
-                                    variant="contained"
-                                    startIcon={displayArticleGraph ? <ApartmentOutlined /> : <FileTextOutlined />}
-                                    className="graph-control-button"
-                                    disabled={totalNodeCount > NODE_LIMIT && !displayArticleGraph}
-                                >
-                                    {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
-                                </StyledButton>
-                            </span>
-                        </Tooltip>
                         <Button
                             icon={<QuestionCircleOutlined />}
                             onClick={startTour}
                             className="start-tour-button"
+                            disabled={!searchFlag || isGraphLoading}
                         >
                             Take a Guided Tour to the Result
                         </Button>
@@ -784,97 +801,180 @@ const ResultPage = () => {
                 {searchFlag && !isGraphLoading && (
                     <div className='result-content'>
                         <div className='graph-container-wrapper'>
-                            <div className="graph-container" style={{
-                                position: 'relative',
+                            <Box sx={{
+                                display: 'flex',
+                                flexDirection: 'row',
                                 width: '100%',
-                                height: '100%',
-                                overflow: 'hidden'
+                                height: '80%',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
                             }}>
-                                {graphShownData && (graphShownData.nodes?.length === 0 || !graphShownData.nodes) ? (
-                                    <div className="empty-graph-message" style={{
-                                        position: 'absolute',
-                                        top: '50%',
-                                        left: '50%',
-                                        transform: 'translate(-50%, -50%)',
-                                        textAlign: 'center',
-                                        color: '#666'
+                                {/* Left */}
+                                <Box sx={{
+                                    borderRadius: "30px",
+                                    width: '30%',
+                                    height: "100%",
+                                    bgcolor: "white",
+                                    position: 'relative',
+                                }}>
+                                    <Tooltip title={getButtonTooltip()} className="graph-control-button-container">
+                                        <span>
+                                            {/* <StyledButton
+                                                onClick={changeLeftPanel}
+                                                variant="contained"
+                                                startIcon={displayArticleGraph ? <ApartmentOutlined /> : <FileTextOutlined />}
+                                                className="graph-control-button"
+                                                disabled={totalNodeCount > NODE_LIMIT && !displayArticleGraph}
+                                            >
+                                                {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
+                                            </StyledButton> */}
+                                            <MUIButton
+                                                onClick={changeLeftPanel}
+                                                variant="contained"
+                                                className="graph-control-button"
+                                                disabled={totalNodeCount > NODE_LIMIT && !displayArticleGraph}
+                                                startIcon={<SwapHorizIcon />}
+                                                sx={{
+                                                    backgroundColor: '#F5F9FD',
+                                                    color: 'black',
+                                                    '&:hover': {
+                                                        backgroundColor: '#F7FBFF',
+                                                        color: 'black',
+                                                    },
+                                                    '&:focus': {
+                                                        color: 'black',
+                                                    },
+                                                    minWidth: '40px',
+                                                    height: '25px',
+                                                    fontSize: '16px',
+                                                    fontWeight: 400,
+                                                    letterSpacing: '0px',
+                                                    boxShadow: 'none',
+                                                    cornerRadius: '8px',
+                                                }}>
+                                                {displayArticleGraph ? "Biomedical term graph" : "Article graph"}
+                                            </MUIButton>
+                                        </span>
+                                    </Tooltip>
+                                    <Box sx={{
+                                        width: '100%',
+                                        height: '50%',
                                     }}>
-                                        <h2>No Results Found</h2>
-                                        <p>Try modifying your search criteria or adjusting the filters.</p>
-                                    </div>
-                                ) : (
-                                    <Graph
-                                        data={graphShownData}
-                                        selectedID={selectedID}
-                                        minGtdcFreq={minGtdcFreq}
-                                        maxGtdcFreq={maxGtdcFreq}
-                                        minGtdcNoc={minGtdcNoc}
-                                        maxGtdcNoc={maxGtdcNoc}
-                                        gtdcFreq={gtdcFreq}
-                                        handleGtdcFreq={handleGtdcFreq}
-                                        handleMinGtdcFreq={handleMinGtdcFreq}
-                                        handleMaxGtdcFreq={handleMaxGtdcFreq}
-                                        gtdcNoc={gtdcNoc}
-                                        handleGtdcNoc={handleGtdcNoc}
-                                        handleMinGtdcNoc={handleMinGtdcNoc}
-                                        handleMaxGtdcNoc={handleMaxGtdcNoc}
-                                        handleSelect={handleSelect}
-                                        handleInformation={handleInformation}
-                                        informationOpen={informationOpen}
-                                        expandInformation={expandInformation}
-                                        className="graph"
-                                        ref={graphContainerRef}
-                                        style={{
+                                        <div className="graph-container" style={{
+                                            position: 'relative',
                                             width: '100%',
-                                            height: '100%'
-                                        }}
+                                            height: '100%',
+                                            overflow: 'hidden'
+                                        }}>
+                                            {graphShownData && (graphShownData.nodes?.length === 0 || !graphShownData.nodes) ? (
+                                                <div className="empty-graph-message" style={{
+                                                    position: 'absolute',
+                                                    top: '50%',
+                                                    left: '50%',
+                                                    transform: 'translate(-50%, -50%)',
+                                                    textAlign: 'center',
+                                                    color: '#666'
+                                                }}>
+                                                    <h2>No Results Found</h2>
+                                                    <p>Try modifying your search criteria or adjusting the filters.</p>
+                                                </div>
+                                            ) : (
+                                                <Graph
+                                                    data={graphShownData}
+                                                    selectedID={selectedID}
+                                                    minGtdcFreq={minGtdcFreq}
+                                                    maxGtdcFreq={maxGtdcFreq}
+                                                    minGtdcNoc={minGtdcNoc}
+                                                    maxGtdcNoc={maxGtdcNoc}
+                                                    gtdcFreq={gtdcFreq}
+                                                    handleGtdcFreq={handleGtdcFreq}
+                                                    handleMinGtdcFreq={handleMinGtdcFreq}
+                                                    handleMaxGtdcFreq={handleMaxGtdcFreq}
+                                                    gtdcNoc={gtdcNoc}
+                                                    handleGtdcNoc={handleGtdcNoc}
+                                                    handleMinGtdcNoc={handleMinGtdcNoc}
+                                                    handleMaxGtdcNoc={handleMaxGtdcNoc}
+                                                    handleSelect={handleSelect}
+                                                    handleInformation={handleInformation}
+                                                    informationOpen={informationOpen}
+                                                    expandInformation={expandInformation}
+                                                    className="graph"
+                                                    ref={graphContainerRef}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '100%'
+                                                    }}
+                                                />
+                                            )}
+                                        </div>
+                                    </Box>
+                                    <Box sx={{
+                                        width: '100%',
+                                        height: '50%',
+                                        position: 'relative',
+                                        left: '0',
+                                    }}>
+                                        <div className="graph-legend">
+                                            <div className="legend-section">
+                                                <div className="legend-subsection">
+                                                    <div className="legend-subtitle">Legends</div>
+                                                    <div className="legend-column">
+                                                        {legendData.map((item, index) => (
+                                                            <LegendButton
+                                                                key={index}
+                                                                label={item.label}
+                                                                size={item.size}
+                                                                color={item.color}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div className="legend-subsection">
+                                                    <div className="legend-row">
+                                                        {legendEdgeData.map((item, index) => (
+                                                            <LegendItem
+                                                                key={index}
+                                                                label={item.label}
+                                                                size={item.size}
+                                                                color={item.color}
+                                                                explanation={item.explanation}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Box>
+                                </Box>
+                                <Box sx={{ width: '3%' }}></Box>
+                                {/* Right */}
+                                <Box sx={{
+                                    borderRadius: "30px",
+                                    width: '30%',
+                                    height: "100%",
+                                    bgcolor: "white",
+                                    paddingBottom: "20px"
+                                }}>
+                                    <Information
+                                        isOpen={informationOpen}
+                                        toggleSidebar={handleInformation}
+                                        detailId={detailId}
+                                        displayArticleGraph={displayArticleGraph}
                                     />
-                                )}
-                            </div>
+                                </Box>
+                            </Box>
+
                         </div>
-                        {isLegendVisible && (
-                            <div className="graph-legend">
-                                <div className="legend-section">
-                                    <div className="legend-subsection">
-                                        <div className="legend-subtitle">Node Types</div>
-                                        <div className="legend-row">
-                                            {legendData.map((item, index) => (
-                                                <LegendItem 
-                                                    key={index} 
-                                                    label={item.label} 
-                                                    size={item.size} 
-                                                    color={item.color} 
-                                                    onChangeNode={onChangeNode}
-                                                    boolValues={boolValues}
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="legend-subsection">
-                                        <div className="legend-subtitle">Relationship Types</div>
-                                        <div className="legend-row">
-                                            {legendEdgeData.map((item, index) => (
-                                                <LegendItem 
-                                                    key={index} 
-                                                    label={item.label} 
-                                                    size={item.size} 
-                                                    color={item.color} 
-                                                    explanation={item.explanation} 
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        <Button
+
+                        {/* <Button
                             className="legend-toggle-button"
                             onClick={toggleLegend}
                             icon={isLegendVisible ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
                         >
                             Legend
-                        </Button>
-                        <div ref={settingsRef} className={`floating-settings ${isSettingsVisible ? 'open' : ''}`} style={{ width: settingsWidth, minWidth: '400px' }}>
+                        </Button> */}
+                        <div ref={settingsRef} className={`floating-settings ${isSettingsVisible ? 'open' : ''}`} style={{ width: settingsWidth, minWidth: '400px', display: 'none' }}>
                             <Settings
                                 minGtdcFreq={minGtdcFreq}
                                 maxGtdcFreq={maxGtdcFreq}
@@ -904,7 +1004,7 @@ const ResultPage = () => {
                                 graphForQuestions={graphForQuestions}
                             />
                         </div>
-                        <div ref={informationRef} className={`floating-information ${isInformationVisible ? 'open' : ''}`} style={{ minWidth: '400px' }}>
+                        <div ref={informationRef} className={`floating-information ${isInformationVisible ? 'open' : ''}`} style={{ minWidth: '400px', display: 'none' }}>
                             <Information
                                 isOpen={informationOpen}
                                 toggleSidebar={handleInformation}
@@ -913,36 +1013,38 @@ const ResultPage = () => {
                             />
                         </div>
                         <FloatButton
-                            icon={isSettingsVisible ? 
-                                <MenuFoldOutlined 
-                                    style={{ 
-                                        color: '#4a7298', 
+                            style={{ display: 'none' }}
+                            icon={isSettingsVisible ?
+                                <MenuFoldOutlined
+                                    style={{
+                                        color: '#4a7298',
                                         fontSize: 16,
-                                    }} 
-                                /> : 
-                                <MenuUnfoldOutlined 
-                                    style={{ 
-                                        color: '#4a7298', 
+                                    }}
+                                /> :
+                                <MenuUnfoldOutlined
+                                    style={{
+                                        color: '#4a7298',
                                         fontSize: 16,
-                                    }} 
+                                    }}
                                 />
                             }
                             onClick={toggleSettings}
                             className={`settings-float-button ${!isSettingsVisible ? 'collapsed' : ''}`}
                         />
                         <FloatButton
-                            icon={isInformationVisible ? 
-                                <MenuUnfoldOutlined 
-                                    style={{ 
-                                        color: '#4a7298', 
+                            style={{ display: 'none' }}
+                            icon={isInformationVisible ?
+                                <MenuUnfoldOutlined
+                                    style={{
+                                        color: '#4a7298',
                                         fontSize: 16,
-                                    }} 
-                                /> : 
-                                <MenuFoldOutlined 
-                                    style={{ 
-                                        color: '#4a7298', 
+                                    }}
+                                /> :
+                                <MenuFoldOutlined
+                                    style={{
+                                        color: '#4a7298',
                                         fontSize: 16,
-                                    }} 
+                                    }}
                                 />
                             }
                             onClick={toggleInformation}

@@ -23,8 +23,8 @@ const arePropsEqual = (prevProps, nextProps) => {
 
 // Wrap the entire Graph component with React.memo
 const Graph = React.memo(function Graph(props) {
-  const [width, setWith] = useState('100%');
-  const [height, setHeight] = useState('80vh');
+  const [width, setWidth] = useState('100%');
+  const [height, setHeight] = useState('calc((100vh - 134px)*0.4)');
 
   useEffect(() => {
     if (!props.data || !props.data.nodes) return;
@@ -248,7 +248,7 @@ const Graph = React.memo(function Graph(props) {
 
     const nodeStyles = id.map(nodeId => {
       let labelColor = '';
-      switch(nodeId[5]) {
+      switch (nodeId[5]) {
         case 'AnatomicalEntity': labelColor = '#374B73'; break;
         case 'ChemicalEntity': labelColor = '#94B0DA'; break;
         case 'DiseaseOrPhenotypicFeature': labelColor = '#E3E8F0'; break;
@@ -305,7 +305,7 @@ const Graph = React.memo(function Graph(props) {
   }, [graphData]);
 
   // Memoize the stylesheet
-  const styleSheet = useMemo(() => 
+  const styleSheet = useMemo(() =>
     generateStyleSheet(nodeIds),
     [nodeIds, generateStyleSheet]
   );
@@ -341,7 +341,7 @@ const Graph = React.memo(function Graph(props) {
 
     const handleClick = (e) => {
       const sel = e.target;
-      
+
       // Check if the selection is a Cytoscape element
       if (sel && sel.isElement && sel.isElement()) {
         if (sel.isNode() && !sel.hasClass('group-node')) {
