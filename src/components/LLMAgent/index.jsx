@@ -25,6 +25,8 @@ import FilePresentIcon from '@mui/icons-material/FilePresent';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import CheckIcon from '@mui/icons-material/Check';
 import ClearIcon from '@mui/icons-material/Clear';
+// import github.css
+import './github-markdown-light.css';
 
 // import ShareIcon from "@mui/icons-material/Share";
 // import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
@@ -272,109 +274,112 @@ function LLMAgent() {
         const timestamp = message.timestamp || "";
 
         return (
-            <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: 2 }}>
-                {!isAssistant && (
-                    <Box sx={{ flex: "0 0 auto", width: "80px", textAlign: "right" }}>
-                        <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText" }}>{timestamp}</Typography>
-                    </Box>
-                )}
-                <Box
-                    sx={{
-                        bgcolor: isAssistant ? "white" : "#d9f3ee", // Different background colors
-                        display: "flex",
-                        alignItems: "flex-start",
-                        px: "24px",
-                        pt: "12px",
-                        pb: "6px",
-                        border: isAssistant ? "1px solid" : "none",
-                        borderColor: "divider",
-                        borderRadius: "24px",
-                        flex: 1, // Occupy maximum width
-                        // Added shadow effect
-                    }}
-                >
-                    {isAssistant && (
-                        <Box
-                            sx={{
-                                m: 2,
-                                width: 32,
-                                height: 32,
-                                borderRadius: 16,
-                                borderStyle: "solid",
-                                borderColor: "black",
-                                borderWidth: 1,
-                                justifyContent: "center",
-                                alignItems: "center",
-                                display: "flex",
-                            }}
-                        >
-                            <img src={systemIcon} alt="Assistant" width="26" height="26" style={{ borderRadius: 13 }} />
+            <>
+                <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: "5px", justifyContent: "flex-end" }}>
+                    {!isAssistant && (
+                        <Box sx={{ flex: "0 0 auto", width: "80px", textAlign: "right" }}>
+                            <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText" }}>{timestamp}</Typography>
                         </Box>
                     )}
-                    <Box sx={{ flex: 1 }}>
+                    <Box
+                        sx={{
+                            bgcolor: isAssistant ? "white" : "#d9f3ee", // Different background colors
+                            maxWidth: isAssistant ? "100%" : "80%", // Adjust max width for assistant messages
+                            display: "flex",
+                            alignItems: "flex-start",
+                            px: "24px",
+                            pt: isAssistant ? "12px" : "0px",
+                            pb: isAssistant ? "24px" : "12px",
+                            border: isAssistant ? "1px solid" : "none",
+                            borderColor: "divider",
+                            borderRadius: "24px",
+                            flex: 1, // Occupy maximum width
+                        }}
+                    >
                         {isAssistant && (
-                            <Typography variant="body2" color="textSecondary" sx={{
-                                fontFamily: "Inter, sans-serif", fontSize: "14px", display: "flex", color: "#19213d", alignItems: "center",
-                                pt: "12px", fontWeight: 500
-                            }}>
-                                LanguageGUI
-                                <Box
-                                    component="span"
-                                    sx={{
-                                        mx: 1,
-                                        width: "1px",
-                                        height: "1em",
-                                        bgcolor: "text.secondary",
-                                    }}
-                                />
-                                <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText" }}>{timestamp}</Typography>
-                            </Typography>
+                            <Box
+                                sx={{
+                                    m: 2,
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: 16,
+                                    borderStyle: "solid",
+                                    borderColor: "black",
+                                    borderWidth: 1,
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    display: "flex",
+                                }}
+                            >
+                                <img src={systemIcon} alt="Assistant" width="26" height="26" style={{ borderRadius: 13 }} />
+                            </Box>
                         )}
+                        <Box sx={{ flex: 1 }}>
+                            {isAssistant && (
+                                <Typography variant="body2" color="textSecondary" sx={{
+                                    fontFamily: "Inter, sans-serif", fontSize: "14px", display: "flex", color: "#19213d", alignItems: "center",
+                                    pt: "12px", pb: "12px", fontWeight: 500
+                                }}>
+                                    LLMAgent
+                                    <Box
+                                        component="span"
+                                        sx={{
+                                            mx: 1,
+                                            width: "1px",
+                                            height: "1em",
+                                            bgcolor: "text.secondary",
+                                        }}
+                                    />
+                                    <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText" }}>{timestamp}</Typography>
+                                </Typography>
+                            )}
 
-                        <Box mt={1}>
-                            {isLoading ? (<>
-                                <GetSteps />
-                                <Box display="flex" justifyContent="center" py={2}>
-                                    <CircularProgress size={24} />
-                                </Box>
-                            </>
-                            ) :
-                                isEditing ?
-                                    <TextField
-                                        hiddenLabel
-                                        multiline
-                                        id="filled-hidden-label-small"
-                                        value={editContent}
-                                        variant="filled"
-                                        size="small"
-                                        sx={{ flex: 1, width: "100%" }}
-                                        onChange={(e) => change(e.target.value)}
-                                    /> : (
-                                        <ReactMarkdown components={{
-                                            // Add a custom style on all nodes
-                                            p: ({ node, ...props }) => <p style={{ lineHeight: "150%" }} {...props} />,
-                                            // h1: ({ node, ...props }) => <h1 style={{}} {...props} />,
-                                            // h2: ({ node, ...props }) => <h2 style={{}} {...props} />,
-                                            // h3: ({ node, ...props }) => <h3 style={{}} {...props} />,
-                                            // ul: ({ node, ...props }) => <ul style={{}} {...props} />,
-                                            // ol: ({ node, ...props }) => <ol style={{}} {...props} />,
-                                            li: ({ node, ...props }) => <li style={{ lineHeight: "150%", marginTop: "5px", marginBottom: "5px" }} {...props} />
-                                        }}>
-                                            {message.content}
-                                        </ReactMarkdown>
-                                    )}
-                        </Box>
+                            <Box mt={1}>
+                                {isLoading ? (<>
+                                    <GetSteps />
+                                    <Box display="flex" justifyContent="center" py={2}>
+                                        <CircularProgress size={24} />
+                                    </Box>
+                                </>
+                                ) :
+                                    isEditing ?
+                                        <TextField
+                                            hiddenLabel
+                                            multiline
+                                            id="filled-hidden-label-small"
+                                            value={editContent}
+                                            variant="filled"
+                                            size="small"
+                                            sx={{ flex: 1, width: "100%" }}
+                                            onChange={(e) => change(e.target.value)}
+                                        /> : (
+                                            <div className="markdown-body">
+                                                <ReactMarkdown components={{
+                                                    // // Add a custom style on all nodes
+                                                    // p: ({ node, ...props }) => <p style={{ lineHeight: "150%" }} {...props} />,
+                                                    // // h1: ({ node, ...props }) => <h1 style={{}} {...props} />,
+                                                    // // h2: ({ node, ...props }) => <h2 style={{}} {...props} />,
+                                                    // // h3: ({ node, ...props }) => <h3 style={{}} {...props} />,
+                                                    // // ul: ({ node, ...props }) => <ul style={{}} {...props} />,
+                                                    // // ol: ({ node, ...props }) => <ol style={{}} {...props} />,
+                                                    // li: ({ node, ...props }) => <li style={{ lineHeight: "150%", marginTop: "5px", marginBottom: "5px" }} {...props} />
+                                                }}>
+                                                    {message.content}
+                                                </ReactMarkdown>
+                                            </div>
+                                        )}
+                            </Box>
 
-                        {/* Buttons below message */}
-                        {isAssistant ? <Box sx={{ justifyContent: "space-between", direction: "row", display: "flex", alignItems: "center", mt: 2 }}>
-                            <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
-                                <IconButton size="small" onClick={(e) => refresh(e, messageID)}>
-                                    <RefreshIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton size="small" onClick={() => copy(message.content)}>
-                                    <ContentCopyIcon fontSize="small" />
-                                </IconButton>
-                                {/* <IconButton size="small" onClick={()=>{}}>
+                            {/* Buttons below message */}
+                            {isAssistant && <Box sx={{ justifyContent: "space-between", direction: "row", display: "flex", alignItems: "center", mt: "5px" }}>
+                                <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
+                                    <IconButton size="small" onClick={(e) => refresh(e, messageID)}>
+                                        <RefreshIcon fontSize="small" />
+                                    </IconButton>
+                                    <IconButton size="small" onClick={() => copy(message.content)}>
+                                        <ContentCopyIcon fontSize="small" />
+                                    </IconButton>
+                                    {/* <IconButton size="small" onClick={()=>{}}>
                                     <ShareIcon fontSize="small" />
                                 </IconButton>
                                 <IconButton size="small" onClick={()=>{}}>
@@ -386,11 +391,11 @@ function LLMAgent() {
                                 <IconButton size="small" onClick={()=>{}}>
                                     {0 ? <BookmarkIcon fontSize="small" /> : <BookmarkBorderIcon fontSize="small" />}
                                 </IconButton> */}
-                                {/* <IconButton size="small">
+                                    {/* <IconButton size="small">
                                     <MoreHorizIcon fontSize="small" />
                                 </IconButton> */}
-                            </Stack>
-                            {/* <Box sx={{
+                                </Stack>
+                                {/* <Box sx={{
                                 px: "10px",
                                 height: "40px",
                                 borderRadius: "4px",
@@ -400,55 +405,59 @@ function LLMAgent() {
                                 alignItems: "center",
                                 display: "flex",
                             }}>{tokenCount} tokens</Box> */}
-                            <MuiButton
-                                variant='contained'
-                                startIcon={<FilePresentIcon />}
-                                size="small"
-                                onClick={() => goref(messageID)}
-                                disabled={isLoading}
-                                sx={{
-                                    px: "10px",
-                                    height: "40px",
-                                    borderRadius: "4px",
-                                    border: "none", bgcolor: "#f7f8fa", color: "#19213d",
-                                    "&:hover": {
-                                        bgcolor: "#e1e2e4",
-                                        color: "#09112d",
+                                <MuiButton
+                                    variant='contained'
+                                    startIcon={<FilePresentIcon />}
+                                    size="small"
+                                    onClick={() => goref(messageID)}
+                                    disabled={isLoading}
+                                    sx={{
+                                        px: "10px",
+                                        height: "40px",
+                                        borderRadius: "4px",
+                                        border: "none", bgcolor: "#f7f8fa", color: "#19213d",
+                                        "&:hover": {
+                                            bgcolor: "#e1e2e4",
+                                            color: "#09112d",
+                                            boxShadow: index == selectedMessageIndex ? "0 0 0 2px #19213d" : "none",
+                                        },
                                         boxShadow: index == selectedMessageIndex ? "0 0 0 2px #19213d" : "none",
-                                    },
-                                    boxShadow: index == selectedMessageIndex ? "0 0 0 2px #19213d" : "none",
-                                    mb: "2px"
-                                }}
-                            >
-                                {index == selectedMessageIndex ? <b>References</b> : <>References</>}
-                            </MuiButton>
+                                        mb: "2px"
+                                    }}
+                                >
+                                    {index == selectedMessageIndex ? <b>References</b> : <>References</>}
+                                </MuiButton>
+
+                            </Box>}
 
                         </Box>
-                            : <Box sx={{ justifyContent: "flex-end", direction: "row", display: "flex", alignItems: "center", mt: 2 }}>
-                                <Stack direction="row" spacing={1} sx={{ pb: "8px" }}>
-                                    {
-                                        isEditing ? <>
-                                            <IconButton size="small" onClick={() => cancel()}>
-                                                <ClearIcon fontSize="small" />
-                                            </IconButton>
-                                            <IconButton size="small" onClick={(e) => save(e, messageID)}>
-                                                <CheckIcon fontSize="small" />
-                                            </IconButton>
-                                        </> : <>
-                                            <IconButton size="small" onClick={() => copy(message.content)}>
-                                                <ContentCopyIcon fontSize="small" />
-                                            </IconButton>
-                                            <IconButton size="small" onClick={() => edit(messageID)}>
-                                                <EditNoteIcon fontSize="small" />
-                                            </IconButton>
-                                        </>
-                                    }
 
-                                </Stack>
-                            </Box>}
                     </Box>
-                </Box>
-            </Container>
+
+                </Container>
+                {!isAssistant && <Box sx={{ justifyContent: "flex-end", direction: "row", display: "flex", alignItems: "center" }}>
+                    <Stack direction="row" spacing={1} sx={{ pb: "8px", pr: "24px" }}>
+                        {
+                            isEditing ? <>
+                                <IconButton size="small" onClick={() => cancel()}>
+                                    <ClearIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton size="small" onClick={(e) => save(e, messageID)}>
+                                    <CheckIcon fontSize="small" />
+                                </IconButton>
+                            </> : <>
+                                <IconButton size="small" onClick={() => copy(message.content)}>
+                                    <ContentCopyIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton size="small" onClick={() => edit(messageID)}>
+                                    <EditNoteIcon fontSize="small" />
+                                </IconButton>
+                            </>
+                        }
+
+                    </Stack>
+                </Box>}
+            </>
         );
     };
 
@@ -561,29 +570,30 @@ function LLMAgent() {
                                     </form>
                                 </div>
                             </div>
-
-                            <div className="references-container">
-                                <h3>References</h3>
-                                {selectedMessageIndex !== null && chatHistory[selectedMessageIndex]?.references.length > 0 ? (
-                                    <ul className="references-list">
-                                        {chatHistory[selectedMessageIndex].references.map((ref, index) => (
-                                            <li key={index} className="reference-item">
-                                                <h4>{ref.title}</h4>
-                                                <p className="reference-metadata">
-                                                    {ref.journal} ({ref.year}) | Citations: {ref.citation_count}
-                                                </p>
-                                                <p className="reference-authors">{ref.authors}</p>
-                                                {ref.url && (
-                                                    <a href={ref.url} target="_blank" rel="noopener noreferrer">
-                                                        PubMed Article {ref.url.split('/').filter(Boolean).pop()}
-                                                    </a>
-                                                )}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <p>No references available for this response.</p>
-                                )}
+                            <div style={{ minHeight: "400px" }}>
+                                <div className="references-container">
+                                    <h3>References</h3>
+                                    {selectedMessageIndex !== null && chatHistory[selectedMessageIndex]?.references.length > 0 ? (
+                                        <ul className="references-list">
+                                            {chatHistory[selectedMessageIndex].references.map((ref, index) => (
+                                                <li key={index} className="reference-item">
+                                                    <h4>{ref.title}</h4>
+                                                    <p className="reference-metadata">
+                                                        {ref.journal} ({ref.year}) | Citations: {ref.citation_count}
+                                                    </p>
+                                                    <p className="reference-authors">{ref.authors}</p>
+                                                    {ref.url && (
+                                                        <a href={ref.url} target="_blank" rel="noopener noreferrer">
+                                                            PubMed Article {ref.url.split('/').filter(Boolean).pop()}
+                                                        </a>
+                                                    )}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <p>No references available for this response.</p>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
