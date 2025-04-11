@@ -232,7 +232,7 @@ const HomePage = () => {
                 <img src={logo} alt="Logo" />
                 <Box 
                     display="flex" 
-                    justifyContent="center" 
+                    justifyContent="flex-left" 
                     gap={0} 
                     mt={0} 
                     mb={0}
@@ -241,14 +241,16 @@ const HomePage = () => {
                     <Button 
                         variant={activeButton === 'triplet' ? 'contained' : 'outlined'}
                         sx={{ 
-                            backgroundColor: activeButton === 'triplet' ? '#F0F0F0' : 'transparent',
+                            width: '180px',
+                            height: '60px',
+                            border: '3px solid #FFFFFF',
+                            backgroundColor: activeButton === 'triplet' ? 'linear-gradient(to left, #4A65F4, #758BFF)' : 'white',
                             color: 'black', 
-                            borderTopLeftRadius: '8px', // 设置顶部左边圆角
-                            borderTopRightRadius: '8px', // 设置顶部右边圆角
-                            borderBottomLeftRadius: '0', // 确保底部没有圆角
-                            borderBottomRightRadius: '0', // 确保底部没有圆角
+                            borderTopLeftRadius: '20px', 
+                            clipPath: 'polygon(0 0, 100% 0, 80% 100%, 0% 100%)',
+                            borderBottomRightRadius: '0px', 
                             boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
-                            '&:hover': { backgroundColor: '#F3C846' }
+                            '&:hover': { backgroundColor: '#F0F0F0' }
                         }}
                         onClick={() => setActiveButton('triplet')}
                     >
@@ -269,14 +271,19 @@ const HomePage = () => {
                     <Button 
                         variant={activeButton === 'llm' ? 'contained' : 'outlined'}
                         sx={{ 
-                            backgroundColor: activeButton === 'llm' ? '#F0F0F0' : 'transparent',
+                            backgroundColor: activeButton === 'llm' ? 'linear-gradient(to left, #4A65F4, #758BFF)' : 'transparent',
                             color: 'black', 
-                            borderTopLeftRadius: '8px', // 设置顶部左边圆角
-                            borderTopRightRadius: '8px', // 设置顶部右边圆角
+                            width: '180px',
+                            height: '60px',
+                            border: '3px solid #FFFFFF',
+                            borderTopLeftRadius: '0px', 
+                            borderTopRightRadius: '0px', // 设置顶部右边圆角
                             borderBottomLeftRadius: '0', // 确保底部没有圆角
-                            borderBottomRightRadius: '0', // 确保底部没有圆角
+                            borderBottomRightRadius: '20px', // 确保底部没有圆角
+                            clipPath: 'polygon(20% 0, 100% 0, 100% 100%, 0% 100%)', // Leaning left edge
+                            marginLeft: '-36px', 
                             boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
-                            '&:hover': { backgroundColor: '#F3C846' }
+                            '&:hover': { backgroundColor: '#F0F0F0' }
                         }}
                         onClick={() => setActiveButton('llm')}
                     >
@@ -417,7 +424,7 @@ const HomePage = () => {
                                     className="example-query-button"
                                     style={{ 
                                         flex: 1, 
-                                        margin: '0 5px', 
+                                        margin: '10 5px', 
                                         height: '80px',  
                                         whiteSpace: 'normal', 
                                         textAlign: 'left',
@@ -429,14 +436,21 @@ const HomePage = () => {
                                         borderRadius: '8px'
                                     }}
                                 >
-                                    Identify gene-disease associations (Explore relationships between Type 2 Diabetes and its associated genes)
+                                    <Box>
+                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                            Identify Gene-Disease Associations
+                                        </div>
+                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                            Explore relationships between Type 2 Diabetes and its associated genes.
+                                        </div>
+                                    </Box>
                                 </AntButton>
                                 <AntButton 
                                     onClick={() => handleExampleQuery(1)}
                                     className="example-query-button"
                                     style={{ 
                                         flex: 1, 
-                                        margin: '0 5px', 
+                                        margin: '10 5px', 
                                         height: '80px',  
                                         whiteSpace: 'normal', 
                                         textAlign: 'left',
@@ -448,14 +462,20 @@ const HomePage = () => {
                                         borderRadius: '8px'
                                     }}
                                 >
-                                    Identify mechanisms of variant affecting tratis (Explore relationships between rs3761624 and RSV infectious disease)
-                                </AntButton>
+                                    <Box>
+                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                            Identify Mechanisms of Variant Affecting Traits
+                                        </div>
+                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                            Explore relationships between rs3761624 and RSV infectious disease.
+                                        </div>
+                                    </Box>                                </AntButton>
                                 <AntButton 
                                     onClick={() => handleExampleQuery(2)}
                                     className="example-query-button"
                                     style={{ 
                                         flex: 1, 
-                                        margin: '0 5px', 
+                                        margin: '10 5px', 
                                         height: '80px',  
                                         whiteSpace: 'normal', 
                                         textAlign: 'left',
@@ -467,7 +487,14 @@ const HomePage = () => {
                                         borderRadius: '8px'
                                     }}
                                 >
-                                    Identify drug effects on diseases (Explore relationships between clopidogrel and different diseases)
+                                    <Box>
+                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                            Identify drug effects on diseases
+                                        </div>
+                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                        Explore relationships between clopidogrel and different diseases
+                                        </div>
+                                    </Box>                                 
                                 </AntButton>
                             </>
                         ) : activeButton === 'neighbor' ? (
@@ -477,7 +504,7 @@ const HomePage = () => {
                                     className="example-query-button"
                                     style={{ 
                                         flex: 1, 
-                                        margin: '0 5px', 
+                                        margin: '10 5px', 
                                         height: '80px',  
                                         whiteSpace: 'normal', 
                                         textAlign: 'left',
@@ -489,14 +516,21 @@ const HomePage = () => {
                                         borderRadius: '8px'
                                     }}
                                 >
-                                    Example Query 1: Find sequence variants related to TP53 based on literature
+                                    <Box>
+                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                        Example Query 1:
+                                        </div>
+                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                        Find sequence variants related to TP53 based on literature
+                                        </div>
+                                    </Box>    
                                 </AntButton>
                                 <AntButton 
                                     onClick={() => handleExampleQuery(1)}
                                     className="example-query-button"
                                     style={{ 
                                         flex: 1, 
-                                        margin: '0 5px', 
+                                        margin: '10 5px', 
                                         height: '80px',  
                                         whiteSpace: 'normal', 
                                         textAlign: 'left',
@@ -508,14 +542,21 @@ const HomePage = () => {
                                         borderRadius: '8px'
                                     }}
                                 >
-                                    Example Query 2: Find genes related to Alzheimer's disease based on literature
+                                    <Box>
+                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                        Example Query 2:
+                                        </div>
+                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                        Find genes related to Alzheimer's disease based on literature
+                                        </div>
+                                    </Box>    
                                 </AntButton>
                                 <AntButton 
                                     onClick={() => handleExampleQuery(2)}
                                     className="example-query-button"
                                     style={{ 
                                         flex: 1, 
-                                        margin: '0 5px', 
+                                        margin: '10 5px', 
                                         height: '80px',  
                                         whiteSpace: 'normal', 
                                         textAlign: 'left',
@@ -527,7 +568,14 @@ const HomePage = () => {
                                         borderRadius: '8px'
                                     }}
                                 >
-                                    Example Query 3: Find biomedical terms related to SOX2 based on curated databases
+                                    <Box>
+                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                        Example Query 3:
+                                        </div>
+                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                        Find biomedical terms related to SOX2 based on curated databases
+                                        </div>
+                                    </Box>  
                                 </AntButton>
                             </>
                         ) : (
@@ -537,7 +585,7 @@ const HomePage = () => {
                                     className="example-query-button"
                                     style={{ 
                                         flex: 1, 
-                                        margin: '0 5px', 
+                                        margin: '10 5px', 
                                         height: '80px',  
                                         whiteSpace: 'normal', 
                                         textAlign: 'left',
@@ -549,14 +597,20 @@ const HomePage = () => {
                                         borderRadius: '8px'
                                     }}
                                 >
-                                    Example Query 1: Who are you?
+                                    <Box>
+                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                        Example Query 1:
+                                        </div>
+                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                        Who are you?                                        </div>
+                                    </Box> 
                                 </AntButton>
                                 <AntButton 
                                     onClick={() => navigateToLLMAgent("What is the role of BRCA1 in breast cancer?")}
                                     className="example-query-button"
                                     style={{ 
                                         flex: 1, 
-                                        margin: '0 5px', 
+                                        margin: '10 5px', 
                                         height: '80px',  
                                         whiteSpace: 'normal', 
                                         textAlign: 'left',
@@ -568,14 +622,21 @@ const HomePage = () => {
                                         borderRadius: '8px'
                                     }}
                                 >
-                                    Example Query 2: What is the role of BRCA1 in breast cancer?
+                                    <Box>
+                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                        Example Query 2:
+                                        </div>
+                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                        What is the role of BRCA1 in breast cancer?
+                                        </div>
+                                    </Box> 
                                 </AntButton>
                                 <AntButton 
                                     onClick={() => navigateToLLMAgent("How many articles about Alzheimer's disease were published in 2020?")}
                                     className="example-query-button"
                                     style={{ 
                                         flex: 1, 
-                                        margin: '0 5px', 
+                                        margin: '10 5px', 
                                         height: '80px',  
                                         whiteSpace: 'normal', 
                                         textAlign: 'left',
@@ -587,7 +648,14 @@ const HomePage = () => {
                                         borderRadius: '8px'
                                     }}
                                 >
-                                    Example Query 3: How many articles about Alzheimer's disease are published in 2020?
+                                    <Box>
+                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                        Example Query 3:
+                                        </div>
+                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                        How many articles about Alzheimer's disease are published in 2020?
+                                        </div>
+                                    </Box> 
                                 </AntButton>
                             </>
                         )}

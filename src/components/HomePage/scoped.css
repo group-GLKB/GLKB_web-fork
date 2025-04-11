@@ -1,12 +1,15 @@
 .HomePageContainer {
+    background-color: 'linear-gradient(to bottom right, #F4F6FE, #DCE3FF, #F4F6FE)';
     display: flex;
     flex-direction: column;
     min-height: 100vh; /* Changed to 100vh for full viewport height */
     overflow-y: auto;
     position: relative;
+    background-color: #DCE3FF;
 }
 
 .content {
+
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -57,7 +60,6 @@
     width: 100%;
     max-width: 600px; /* Adjust this value to match your search bar width */
     margin: 0 auto;
-    background-color: #F0F0F0; /* 设置背景颜色 */
     border-radius: 8px; /* 设置圆角 */
 }
 
