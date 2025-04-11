@@ -7,6 +7,8 @@ import { debounce } from 'lodash';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { Select as AntSelect, Tooltip } from 'antd';
+import CloseIcon from '@mui/icons-material/Close'; // Import the Clear (cross) icon
+import SendIcon from '@mui/icons-material/Send'; 
 import 'antd/dist/reset.css';
 
 const SearchBarKnowledge = React.forwardRef((props, ref) => {
@@ -16,6 +18,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const [chipData, setChipData] = useState([]);
     const [chipDataID, setChipDataID] = useState([]);
     const [selectedSource, setSelectedSource] = useState(null);
+    const [selectedSources, setSelectedSources] = useState([]);
     const [inputValue, setInputValue] = useState('');
     const [termType, setTermType] = useState('All');
     const [tripletLimitReached, setTripletLimitReached] = useState(false);
@@ -24,6 +27,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const [maxRel, setMaxRel] = useState(0);
     const [moreNodes, setMoreNodes] = useState(false);
     const [moreRel, setMoreRel] = useState(false);
+
 
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -51,10 +55,11 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         return a[1].localeCompare(b[1]);
     };
     // Convert database type to display category
+    
     const getDisplayCategory = (databaseType) => {
-        console.log('Processing type:', databaseType);
+        // console.log('Processing type:', databaseType);
         const category = databaseTypeMapping[databaseType] || 'All Biomedical Terms';
-        console.log('Mapped to category:', category);
+        // console.log('Mapped to category:', category);
         return category;
     };
 
@@ -139,12 +144,55 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
             setTripletLimitReached(true);
         }
     };
+    
+    // Monitor changes to selectedSources
+    useEffect(() => {
+        // Add new triplets for newly selected sources
+        selectedSources.forEach((source) => {
+            const sourceName = source.name || source[1].replace(/[()]/g, '');
+            const chip_str = `(${sourceName})-[any relationships]-()`;
+            const sourceNode = [
+                { database_id: source[0], name: sourceName },
+                null
+            ];
 
+            // Check if the chip already exists in chipData
+            const tripletExists = chipData.some((chip) => chip === chip_str);
+            if (!tripletExists) {
+                setChipData((prev) => [...prev, chip_str]); // Add to chipData
+                console.log('Chipstr is:',chip_str)
+                setChipDataID(prev => [...prev, sourceNode]); // Add to chipDataID
+                
+            }
+
+        });
+
+        // Remove triplets for deselected sources
+        chipData.forEach((chip) => {
+            const sourceName = chip.match(/\((.*?)\)/)?.[1]; // Extract source name from triplet
+            const sourceExists = selectedSources.some(
+                (source) => source.name === sourceName || source[1]?.replace(/[()]/g, '') === sourceName
+            );
+            if (!sourceExists) {
+                setChipData((prev) => prev.filter((c) => c !== chip)); // Remove from chipData
+                handleDelete({ name: sourceName }); // Delete triplet logic
+            }
+        });
+        if (chipData.length + 1 >= 5) {
+            setTripletLimitReached(true);
+        }
+    }, [selectedSources]); // Runs whenever selectedSources changes
+    
+    // Handle search button click
     const handleSearch = () => {
         const search_data = {
             "triplets": chipData.map((triplet, index) => {
                 const parts = triplet.replace(/{|}/g, "").split("-");
-                const sourceNode = chipDataID[index][0];
+                const sourceNode = chipDataID[index]?.[0];
+                if (!sourceNode) {
+                    console.error(`Missing sourceNode for chipDataID at index ${index}`);
+                    return null; // Skip this triplet if sourceNode is missing
+                }
                 return {
                     "source": [Number(sourceNode.database_id), parts[0].trim()],
                     "rel": parts[1].trim(),
@@ -204,17 +252,24 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         fillWithExample: (exampleQuery) => {
             setChipData([]);
             setChipDataID([]);
-            
+            const newSelectedSources = [];
+
             exampleQuery.triplets.forEach(triplet => {
                 const sourceName = triplet.source[1].replace(/[()]/g, '');
                 const chip_str = `(${sourceName})-[any relationships]-()`;
-                
-                setChipData(prev => [...prev, chip_str]);
-                setChipDataID(prev => [...prev, [
+                const sourceNode = [
                     { database_id: triplet.source[0], name: sourceName },
                     null
-                ]]);
+                ];
+                setChipData(prev => [...prev, chip_str]);
+                setChipDataID(prev => [...prev, sourceNode]);
+                console.log('ChipdataID is:',sourceNode)
+                    // Add to newSelectedSources
+                newSelectedSources.push(
+                    [triplet.source[0],sourceName,triplet.source[2]]
+                );
             });
+            setSelectedSources(newSelectedSources);
 
             if (exampleQuery.params) {
                 setMaxArticles(exampleQuery.params.max_articles || 0);
@@ -228,112 +283,117 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
     return (
         <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 2 }}>
-            <Box sx={{ mb: 2, backgroundColor: 'transparent'}}>
+            <Box sx={{ mb: 2, height:'200px',backgroundColor: 'transparent'}}>
                 {/* First row with term type and search input */}
                 <Box sx={{ 
                     display: 'flex', 
                     gap: 2, 
                     flexDirection: isSmallScreen ? 'column' : 'row',
-                    backgroundColor: 'transparent'
+                    backgroundColor: 'white'
                 }}>
-                    {/* Entity Type Selector */}
-                    {/* <Box sx={{ 
-                        width: isSmallScreen ? '100%' : '200px',
-                        backgroundColor: 'transparent'
-                    }}>
-                        <AntSelect
-                            className="term-type-dropdown"
-                            style={{ width: '100%', height: '40px' }}
-                            value={termType}
-                            onChange={setTermType}
-                            options={[
-                                { value: 'Gene', label: 'Gene' },
-                                { value: 'Disease', label: 'Disease' },
-                                { value: 'Chemical', label: 'Chemical' },
-                                { value: 'MeSH', label: 'MeSH' },
-                                { value: 'Variant', label: 'Variant' },
-                                { value: 'All', label: 'Any Biomedical Terms' },
-                            ]}
-                        />
-                    </Box> */}
-
+                    {/* Search Input */}
+                    <Box sx={{ flexGrow: 1 }}>
                     {/* Search Input */}
                     <Box sx={{ flexGrow: 1 }}>
                         <Autocomplete
-                            freeSolo
+                            multiple
+                            limitTags={5}
                             autoHighlight={true}
                             onInputChange={(event, newInputValue) => {
                                 setInputValue(newInputValue);
                                 updateSource(event, newInputValue);
                             }}
-                            options={sourceNodeOptions}
+                            options={sourceNodeOptions || []}
                             groupBy = {(option) => getDisplayCategory(option[2])}
                             getOptionLabel={(option) => option[1]}
+                            renderTags={(value, getTagProps) =>
+                                value.map((option, index) => (
+                                    <Chip
+                                    key={option.database_id}
+                                    label={option[1].replace(/[()]/g, '')}
+                                    size="small"
+                                    {...getTagProps({ index })} // Pass props for chip behavior
+                                />
+                                ))
+                            }
+                            filterSelectedOptions
                             renderInput={(params) => (
                                 <TextField 
                                     {...params} 
-                                    placeholder="Type in a biomedical term"
+                                    placeholder={tripletLimitReached ? "Limit reached" : "Type in a biomedical term"} // Update placeholder
                                     variant="outlined" 
+                                    sx={{
+                                        height: '60px', // Increase the height of the input box
+                                        '& .MuiInputBase-root': {
+                                            height: '80px', // Adjust the height of the input field
+                                            alignItems: 'center', // Center the text vertically
+                                        },
+                                        '& .MuiOutlinedInput-notchedOutline': {
+                                            borderColor: '#1976d2', // Optional: Customize border color
+                                        },
+                                    }}
                                     size="small" 
                                     fullWidth 
                                     className="search-autocomplete-box"
+                                    InputProps={{
+                                        ...params.InputProps,
+                                        endAdornment: (
+                                            <Box
+                                                sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 1,
+                                                    justifyContent: 'center',
+                                                    position: 'absolute',
+                                                    right: 10,
+                                                    height: '100%', // Ensure alignment with TextField height
+                                                }}
+                                            >
+                                                {/* Clear Icon */}
+                                                <CloseIcon
+                                                    onClick={() => {
+                                                        setSelectedSource([]); // Clear sel`ected options
+                                                        setInputValue(''); // Clear input value
+                                                    }}
+                                                    sx={{
+                                                        color: 'grey.500',
+                                                        cursor: 'pointer',
+                                                        fontSize: '20px', // Adjust size as needed
+                                                        marginRight: '8px', // Add spacing from the SendIcon
+                                                    }}
+                                                />
+                                                {/* Search Icon */}
+                                                <SendIcon
+                                                    onClick={handleSearch} // Trigger the search function
+                                                    sx={{
+                                                        color: '#1976d2',
+                                                        cursor: 'pointer',
+                                                        fontSize: '30px', // Adjust size as needed
+                                                    }}
+                                                />
+                                            </Box>
+                                        ),
+                                    }}
                                 />
                             )}
-                            value={selectedSource}
+                            value={selectedSources}
                             inputValue={inputValue}
                             onChange={(event, newValue) => {
-                                if (sourceNodeOptions.includes(newValue)) {
-                                    setSelectedSource(newValue);
-                                }
+                                    setSelectedSources(newValue);
+                                    console.log('Selected sources:', newValue);
+                                
                             }}
+                            
                         />
+                        </Box>
+
                     </Box>
 
-                    <Box display="flex" gap={2} 
-                        sx={{
-                            overflow: 'visible !important',
-                            zIndex: 9999,
-                            position: 'relative',
-                        }}
-                    >
-                        <Button 
-                            variant="contained" 
-                            sx={{ 
-                                minWidth: '60px', 
-                                height: '40px', 
-                                backgroundColor: '#8BB5D1', 
-                                color: 'black', 
-                                '&:hover': { backgroundColor: '#4A7298' },
-                                width: isSmallScreen ? '100%' : 'auto'
-                            }}
-                            onClick={handleAddTriplet}
-                            disabled={tripletLimitReached || !selectedSource}
-                            className="add-biomedical-term-button"
-                        >
-                            Add Biomedical Term
-                        </Button>
 
-                        <Button 
-                            variant="contained" 
-                            sx={{ 
-                                minWidth: '60px', 
-                                height: '40px', 
-                                backgroundColor: '#F7EFAE', 
-                                color: 'black', 
-                                '&:hover': { backgroundColor: '#F3C846' },
-                                width: isSmallScreen ? '100%' : 'auto'
-                            }}
-                            onClick={handleSearch}
-                            disabled={chipData.length === 0}
-                            className="search-button"
-                        >
-                            Search
-                        </Button>
-                    </Box>
                 </Box>
 
                 {/* Chips display area */}
-                <Box sx={{ 
+                {/* <Box sx={{ 
                     mt: 1, 
                     display: 'flex', 
                     justifyContent: 'space-between', 
@@ -366,7 +426,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                     <Typography variant="body2" sx={{ minWidth: '40px', textAlign: 'right' }}>
                         {`${chipData.length}/5 added terms`}
                     </Typography>
-                </Box>
+                </Box> */}
             </Box>
         </Container>
     );
