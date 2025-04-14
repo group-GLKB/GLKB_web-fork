@@ -232,11 +232,11 @@ const HomePage = () => {
                 <img src={logo} alt="Logo" />
                 <Box 
                     display="flex" 
-                    justifyContent="flex-left" 
+                    justifyContent="flex-start" // Align buttons to the left
+                    alignItems="center"
                     gap={0} 
-                    mt={0} 
-                    mb={0}
                     className="search-mode-buttons"  // Add this class
+                    sx={{ width: '100%', maxWidth: '836px', marginBottom: '-15px' ,paddingLeft: '0px'}}
                 >
                     <Button 
                         variant={activeButton === 'triplet' ? 'contained' : 'outlined'}
@@ -244,11 +244,12 @@ const HomePage = () => {
                             width: '180px',
                             height: '60px',
                             border: '3px solid #FFFFFF',
-                            backgroundColor: activeButton === 'triplet' ? 'linear-gradient(to left, #4A65F4, #758BFF)' : 'white',
-                            color: 'black', 
+                            background: activeButton === 'triplet' ? 'linear-gradient(to top, #4A65F4, #758BFF)' : 'white',
+                            color: activeButton === 'triplet' ? 'white' : '#4C67F5', // Text color based on active state
+                            fontSize: '20px', // Set font size
+                            fontWeight: 'bold', 
                             borderTopLeftRadius: '20px', 
                             clipPath: 'polygon(0 0, 100% 0, 80% 100%, 0% 100%)',
-                            borderBottomRightRadius: '0px', 
                             boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
                             '&:hover': { backgroundColor: '#F0F0F0' }
                         }}
@@ -271,15 +272,14 @@ const HomePage = () => {
                     <Button 
                         variant={activeButton === 'llm' ? 'contained' : 'outlined'}
                         sx={{ 
-                            backgroundColor: activeButton === 'llm' ? 'linear-gradient(to left, #4A65F4, #758BFF)' : 'transparent',
-                            color: 'black', 
+                            background: activeButton === 'llm' ? 'linear-gradient(to left, #4A65F4, #758BFF)' : 'transparent',
+                            color: activeButton === 'llm' ? 'white' : '#4C67F5', // Text color based on active state
+                            fontSize: '20px', // Set font size
+                            fontWeight: 'bold', 
                             width: '180px',
                             height: '60px',
                             border: '3px solid #FFFFFF',
-                            borderTopLeftRadius: '0px', 
-                            borderTopRightRadius: '0px', // 设置顶部右边圆角
-                            borderBottomLeftRadius: '0', // 确保底部没有圆角
-                            borderBottomRightRadius: '20px', // 确保底部没有圆角
+                            borderBottomRightRadius: '20px', // 确保底部有圆角
                             clipPath: 'polygon(20% 0, 100% 0, 100% 100%, 0% 100%)', // Leaning left edge
                             marginLeft: '-36px', 
                             boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
@@ -291,7 +291,7 @@ const HomePage = () => {
                         Chat
                     </Button>
                 </Box>
-                <div className="search-section" style={{ width: '80%', maxWidth: '1000px'}}>
+                <div className="search-section" style={{ width: '100%', maxWidth: '883px', margin: '0 auto' }}>
                     {activeButton === 'triplet' ? (
                         <SearchBarKnowledge 
                             ref={searchBarKnowledgeRef}
@@ -307,6 +307,11 @@ const HomePage = () => {
                                         searchType: 'triplet'
                                     } 
                                 });
+                            }}
+                            sx={{
+                                width: '100%', // Set exact width
+                                maxWidth: '883px', // Ensure it doesn't exceed this width
+                                margin: '0 auto', // Center horizontally
                             }}
                         />
                     ) : activeButton === 'neighbor' ? (

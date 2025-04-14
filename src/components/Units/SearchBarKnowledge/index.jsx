@@ -178,11 +178,20 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                 handleDelete({ name: sourceName }); // Delete triplet logic
             }
         });
-        if (chipData.length + 1 >= 5) {
-            setTripletLimitReached(true);
-        }
+        // if (chipData.length + 1 >= 5) {
+        //     setTripletLimitReached(true);
+        // }
     }, [selectedSources]); // Runs whenever selectedSources changes
-    
+
+    useEffect(() => {
+        // Update tripletLimitReached based on the number of selected terms
+        if (selectedSources.length >= 5) {
+            setTripletLimitReached(true);
+        } else {
+            setTripletLimitReached(false);
+        }
+    }, [selectedSources]); // Trigger this effect whenever selectedSources changes
+
     // Handle search button click
     const handleSearch = () => {
         const search_data = {
@@ -282,8 +291,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     }));
 
     return (
-        <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 2 }}>
-            <Box sx={{ mb: 2, height:'200px',backgroundColor: 'transparent'}}>
+        <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 2, mb: 2 }}>
+            <Box sx={{ mb: 2, backgroundColor: 'transparent'}}>
                 {/* First row with term type and search input */}
                 <Box sx={{ 
                     display: 'flex', 
@@ -300,8 +309,10 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             limitTags={5}
                             autoHighlight={true}
                             onInputChange={(event, newInputValue) => {
+                                if(!tripletLimitReached){
                                 setInputValue(newInputValue);
                                 updateSource(event, newInputValue);
+                                }
                             }}
                             options={sourceNodeOptions || []}
                             groupBy = {(option) => getDisplayCategory(option[2])}
@@ -310,7 +321,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                 value.map((option, index) => (
                                     <Chip
                                     key={option.database_id}
-                                    label={option[1].replace(/[()]/g, '')}
+                                    label={option[1].replace(/\(.*?\)/g, "").split("-")[0].slice(0, -1).trim()}
                                     size="small"
                                     {...getTagProps({ index })} // Pass props for chip behavior
                                 />
@@ -320,7 +331,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             renderInput={(params) => (
                                 <TextField 
                                     {...params} 
-                                    placeholder={tripletLimitReached ? "Limit reached" : "Type in a biomedical term"} // Update placeholder
+                                    placeholder={ "Type in a biomedical term"} // Update placeholder
                                     variant="outlined" 
                                     sx={{
                                         height: '60px', // Increase the height of the input box
@@ -329,7 +340,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                             alignItems: 'center', // Center the text vertically
                                         },
                                         '& .MuiOutlinedInput-notchedOutline': {
-                                            borderColor: '#1976d2', // Optional: Customize border color
+                                            borderColor: 'grey', // Optional: Customize border color
                                         },
                                     }}
                                     size="small" 

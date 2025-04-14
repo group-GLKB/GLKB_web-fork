@@ -1,11 +1,11 @@
 .HomePageContainer {
-    background-color: 'linear-gradient(to bottom right, #F4F6FE, #DCE3FF, #F4F6FE)';
+    background: linear-gradient(to right, #F4F6FE, #DCE3FF, #F4F6FE); /* Linear gradient background */
     display: flex;
     flex-direction: column;
     min-height: 100vh; /* Changed to 100vh for full viewport height */
     overflow-y: auto;
     position: relative;
-    background-color: #DCE3FF;
+    /* background-color: #DCE3FF; */
 }
 
 .content {
@@ -58,7 +58,7 @@
     flex-direction: column;
     align-items: center;
     width: 100%;
-    max-width: 600px; /* Adjust this value to match your search bar width */
+    max-width: 883px; /* Adjust this value to match your search bar width */
     margin: 0 auto;
     border-radius: 8px; /* 设置圆角 */
 }
