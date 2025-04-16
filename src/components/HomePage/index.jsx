@@ -17,9 +17,11 @@ import SearchBarNeighborhood from "../Units/SearchBarNeighborhood";
 import logo from "../../img/logo.svg";
 import umLogo from "../../img/MedSchoolLogo.png";
 import exampleQueries from '../../components/Units/SearchBarKnowledge/example_query.json';
-import { Button, Box } from '@mui/material'; // Import MUI components
+import { Button, Box, TextField } from '@mui/material'; // Import MUI components
 import neighborhoodExamples from '../../components/Units/SearchBarNeighborhood/example_query.json';  // Add this import
 import { trackEvent } from '../Units/analytics';
+import CloseIcon from '@mui/icons-material/Close'; // Import the Clear (cross) icon
+import SendIcon from '@mui/icons-material/Send'; 
 
 const { Search } = Input;
 
@@ -230,18 +232,24 @@ const HomePage = () => {
             <NavBarWhite showLogo={true} />
             <div className="content">
                 <img src={logo} alt="Logo" />
+                <div className="search-chat-part">
                 <Box 
                     display="flex" 
-                    justifyContent="flex-start" // Align buttons to the left
+                    justifyContent="flex-start" // Align content to the left
                     alignItems="center"
                     gap={0} 
-                    className="search-mode-buttons"  // Add this class
-                    sx={{ width: '100%', maxWidth: '836px', marginBottom: '-15px' ,paddingLeft: '0px'}}
+                    className="search-mode-buttons" // Add this class
+                    sx={{ 
+                        width: '100%', 
+                        maxWidth: '833px', // Set the box width to 883px
+                        margin: '0 auto', // Center the box horizontally on the page
+                        marginBottom: '-15px', 
+                    }}
                 >
                     <Button 
                         variant={activeButton === 'triplet' ? 'contained' : 'outlined'}
                         sx={{ 
-                            width: '180px',
+                            width: '20%',
                             height: '60px',
                             border: '3px solid #FFFFFF',
                             background: activeButton === 'triplet' ? 'linear-gradient(to top, #4A65F4, #758BFF)' : 'white',
@@ -251,11 +259,10 @@ const HomePage = () => {
                             borderTopLeftRadius: '20px', 
                             clipPath: 'polygon(0 0, 100% 0, 80% 100%, 0% 100%)',
                             boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
-                            '&:hover': { backgroundColor: '#F0F0F0' }
+                            '&:hover': { backgroundColor: '#C4CCFE' }
                         }}
                         onClick={() => setActiveButton('triplet')}
                     >
-                        {/* Search biomedical terms */}
                         Search
                     </Button>
                     {/* <Button 
@@ -272,18 +279,18 @@ const HomePage = () => {
                     <Button 
                         variant={activeButton === 'llm' ? 'contained' : 'outlined'}
                         sx={{ 
-                            background: activeButton === 'llm' ? 'linear-gradient(to left, #4A65F4, #758BFF)' : 'transparent',
+                            background: activeButton === 'llm' ? 'linear-gradient(to left, #4A65F4, #758BFF)' : 'white',
                             color: activeButton === 'llm' ? 'white' : '#4C67F5', // Text color based on active state
                             fontSize: '20px', // Set font size
                             fontWeight: 'bold', 
-                            width: '180px',
+                            width: '20%',
                             height: '60px',
                             border: '3px solid #FFFFFF',
                             borderBottomRightRadius: '20px', // 确保底部有圆角
                             clipPath: 'polygon(20% 0, 100% 0, 100% 100%, 0% 100%)', // Leaning left edge
                             marginLeft: '-36px', 
                             boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
-                            '&:hover': { backgroundColor: '#F0F0F0' }
+                            '&:hover': { backgroundColor: '#C4CCFE' }
                         }}
                         onClick={() => setActiveButton('llm')}
                     >
@@ -331,86 +338,80 @@ const HomePage = () => {
                             }}
                         />
                     ) : (
-                        <div style={{ width: '100%', maxWidth: '800px', margin: '10px auto' }}>
-                            <div style={{ 
-                                display: 'flex', 
-                                borderRadius: '8px',
-                                backgroundColor: '#F0F0F0',
-                                padding: '1rem',
-                            }}>
-                                <form 
-                                    style={{ 
-                                        display: 'flex', 
-                                        width: '100%',
-                                        gap: '1rem'
-                                    }}
-                                    onSubmit={(e) => {
-                                        e.preventDefault();
-                                        if (llmQuery.trim()) {
-                                            navigateToLLMAgent(llmQuery.trim());
-                                        }
-                                    }}
-                                >
-                                    <input
-                                        type="text"
-                                        value={llmQuery}
-                                        onChange={(e) => setLlmQuery(e.target.value)}
-                                        placeholder="Ask a question about the biomedical literature..."
-                                        style={{ 
-                                            flexGrow: 1,
-                                            padding: '0.8rem',
-                                            border: '1px solid #e0e0e0',
-                                            borderRadius: '4px',
-                                            fontSize: '1rem',
-                                            outline: 'none',
-                                            backgroundColor: 'white'
-                                        }}
-                                    />
-                                    <AntButton 
-                                        type="primary" 
-                                        htmlType="submit"
-                                        disabled={!llmQuery.trim()}
-                                        style={{
-                                            backgroundColor: '#99c7b1',
-                                            color: 'black',
-                                            border: 'none',
-                                            padding: '0.8rem 1.5rem',
-                                            height: '42px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            whiteSpace: 'nowrap',
-                                            fontSize: '1rem',
-                                            transition: 'all 0.2s ease',
-                                            borderRadius: '4px'
-                                        }}
-                                    >
-                                        Send
-                                    </AntButton>
-                                    <AntButton
-                                        onClick={() => setLlmQuery('')}
-                                        style={{
-                                            padding: '0.8rem 1.5rem',
-                                            backgroundColor: '#f5f5f5',
-                                            border: '1px solid #e0e0e0',
-                                            borderRadius: '4px',
-                                            cursor: 'pointer',
-                                            fontSize: '1rem',
-                                            transition: 'all 0.2s ease',
-                                            height: '42px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            whiteSpace: 'nowrap'
-                                        }}
-                                    >
-                                        Clear
-                                    </AntButton>
-                                </form>
-                            </div>
-                            <div style={{ marginTop: '-5px', textAlign: 'center', color: '#666', fontSize: '0.9rem' }}>
-                                I can help you explore biomedical literature. Here are some examples:
-                            </div>
+                        <div style={{ width: '100%', marginTop: '15px',marginBottom: '25px' ,display: 'flex', 
+                            borderRadius: '8px',
+                            backgroundColor: 'white',}}>
+                
+                            <TextField
+                                type="text"
+                                value={llmQuery}
+                                onChange={(e) => setLlmQuery(e.target.value)}
+                                placeholder="Ask a question about the biomedical literature..."
+                                sx={{
+                                    height: '60px', // Increase the height of the input box
+                                    width: '100%',
+                                    '& .MuiInputBase-root': {
+                                        height: '80px', // Adjust the height of the input field
+                                        alignItems: 'center', // Center the text vertically
+                                    },
+                                    '& .MuiOutlinedInput-notchedOutline': {
+                                        borderColor: 'grey', // Optional: Customize border color
+                                    },
+                                }}
+                                InputProps={{
+                                    endAdornment: (
+                                        <Box display="flex" alignItems="center">
+                                            {/* Clear Icon */}
+                                            <CloseIcon
+                                                onClick={() => {
+                                                    setLlmQuery(''); // Clear the input field
+                                                }}
+                                                sx={{
+                                                    color: 'grey.500',
+                                                    cursor: 'pointer',
+                                                    fontSize: '20px', // Adjust size as needed
+                                                    marginRight: '8px', // Add spacing from the SendIcon
+                                                }}
+                                            />
+                                            {/* Search Icon */}
+                                            <SendIcon
+                                                onClick={() => {
+                                                    if (llmQuery.trim()) {
+                                                        navigateToLLMAgent(llmQuery.trim()); // Trigger the search function
+                                                    }
+                                                }} // Trigger the search function
+                                                sx={{
+                                                    color: '#1976d2',
+                                                    cursor: 'pointer',
+                                                    fontSize: '30px', // Adjust size as needed
+                                                }}
+                                            />
+                                        </Box>
+                                    ),
+                                }}
+                                
+                            />
+                            {/* <AntButton 
+                                type="primary" 
+                                htmlType="submit"
+                                disabled={!llmQuery.trim()}
+                                style={{
+                                    backgroundColor: '#99c7b1',
+                                    color: 'black',
+                                    border: 'none',
+                                    padding: '0.8rem 1.5rem',
+                                    height: '42px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    whiteSpace: 'nowrap',
+                                    fontSize: '1rem',
+                                    transition: 'all 0.2s ease',
+                                    borderRadius: '4px'
+                                }}
+                            >
+                                Send
+                            </AntButton> */}
                         </div>
                     )}
                     <div className="example-queries" style={{ 
@@ -427,18 +428,11 @@ const HomePage = () => {
                                 <AntButton 
                                     onClick={() => handleExampleQuery(0)}
                                     className="example-query-button"
-                                    style={{ 
-                                        flex: 1, 
-                                        margin: '10 5px', 
-                                        height: '80px',  
-                                        whiteSpace: 'normal', 
-                                        textAlign: 'left',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        padding: '12px 16px',
-                                        // backgroundColor: activeButton === 'triplet' ? '#99c7b1' : 'white',
-                                        border: 'none',
-                                        borderRadius: '8px'
+                                    sx={{
+                                        backgroundColor: '#F4F6FE',
+                                        '&:hover': {
+                                            backgroundColor: '#C4CCFE', // Hover color
+                                        },
                                     }}
                                 >
                                     <Box>
@@ -453,19 +447,6 @@ const HomePage = () => {
                                 <AntButton 
                                     onClick={() => handleExampleQuery(1)}
                                     className="example-query-button"
-                                    style={{ 
-                                        flex: 1, 
-                                        margin: '10 5px', 
-                                        height: '80px',  
-                                        whiteSpace: 'normal', 
-                                        textAlign: 'left',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        padding: '12px 16px',
-                                        // backgroundColor: activeButton === 'triplet' ? '#99c7b1' : 'white',
-                                        border: 'none',
-                                        borderRadius: '8px'
-                                    }}
                                 >
                                     <Box>
                                         <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
@@ -478,19 +459,6 @@ const HomePage = () => {
                                 <AntButton 
                                     onClick={() => handleExampleQuery(2)}
                                     className="example-query-button"
-                                    style={{ 
-                                        flex: 1, 
-                                        margin: '10 5px', 
-                                        height: '80px',  
-                                        whiteSpace: 'normal', 
-                                        textAlign: 'left',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        padding: '12px 16px',
-                                        // backgroundColor: activeButton === 'triplet' ? '#99c7b1' : 'white',
-                                        border: 'none',
-                                        borderRadius: '8px'
-                                    }}
                                 >
                                     <Box>
                                         <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
@@ -507,19 +475,6 @@ const HomePage = () => {
                                 <AntButton 
                                     onClick={() => handleExampleQuery(0)}
                                     className="example-query-button"
-                                    style={{ 
-                                        flex: 1, 
-                                        margin: '10 5px', 
-                                        height: '80px',  
-                                        whiteSpace: 'normal', 
-                                        textAlign: 'left',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        padding: '12px 16px',
-                                        // backgroundColor: activeButton === 'neighbor' ? '#99c7b1' : 'white',
-                                        border: 'none',
-                                        borderRadius: '8px'
-                                    }}
                                 >
                                     <Box>
                                         <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
@@ -533,19 +488,6 @@ const HomePage = () => {
                                 <AntButton 
                                     onClick={() => handleExampleQuery(1)}
                                     className="example-query-button"
-                                    style={{ 
-                                        flex: 1, 
-                                        margin: '10 5px', 
-                                        height: '80px',  
-                                        whiteSpace: 'normal', 
-                                        textAlign: 'left',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        padding: '12px 16px',
-                                        // backgroundColor: activeButton === 'neighbor' ? '#99c7b1' : 'white',
-                                        border: 'none',
-                                        borderRadius: '8px'
-                                    }}
                                 >
                                     <Box>
                                         <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
@@ -559,19 +501,6 @@ const HomePage = () => {
                                 <AntButton 
                                     onClick={() => handleExampleQuery(2)}
                                     className="example-query-button"
-                                    style={{ 
-                                        flex: 1, 
-                                        margin: '10 5px', 
-                                        height: '80px',  
-                                        whiteSpace: 'normal', 
-                                        textAlign: 'left',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        padding: '12px 16px',
-                                        // backgroundColor: activeButton === 'neighbor' ? '#99c7b1' : 'white',
-                                        border: 'none',
-                                        borderRadius: '8px'
-                                    }}
                                 >
                                     <Box>
                                         <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
@@ -588,19 +517,6 @@ const HomePage = () => {
                                 <AntButton 
                                     onClick={() => navigateToLLMAgent("Who are you?")}
                                     className="example-query-button"
-                                    style={{ 
-                                        flex: 1, 
-                                        margin: '10 5px', 
-                                        height: '80px',  
-                                        whiteSpace: 'normal', 
-                                        textAlign: 'left',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        padding: '12px 16px',
-                                        // backgroundColor: activeButton === 'llm' ? '#99c7b1' : 'white',
-                                        border: 'none',
-                                        borderRadius: '8px'
-                                    }}
                                 >
                                     <Box>
                                         <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
@@ -613,19 +529,6 @@ const HomePage = () => {
                                 <AntButton 
                                     onClick={() => navigateToLLMAgent("What is the role of BRCA1 in breast cancer?")}
                                     className="example-query-button"
-                                    style={{ 
-                                        flex: 1, 
-                                        margin: '10 5px', 
-                                        height: '80px',  
-                                        whiteSpace: 'normal', 
-                                        textAlign: 'left',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        padding: '12px 16px',
-                                        // backgroundColor: activeButton === 'llm' ? '#99c7b1' : 'white',
-                                        border: 'none',
-                                        borderRadius: '8px'
-                                    }}
                                 >
                                     <Box>
                                         <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
@@ -639,21 +542,8 @@ const HomePage = () => {
                                 <AntButton 
                                     onClick={() => navigateToLLMAgent("How many articles about Alzheimer's disease were published in 2020?")}
                                     className="example-query-button"
-                                    style={{ 
-                                        flex: 1, 
-                                        margin: '10 5px', 
-                                        height: '80px',  
-                                        whiteSpace: 'normal', 
-                                        textAlign: 'left',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        padding: '12px 16px',
-                                        // backgroundColor: activeButton === 'llm' ? '#99c7b1' : 'white',
-                                        border: 'none',
-                                        borderRadius: '8px'
-                                    }}
                                 >
-                                    <Box>
+                                    <Box sx={{ textAlign: 'left', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                                         <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
                                         Example Query 3:
                                         </div>
@@ -674,8 +564,9 @@ const HomePage = () => {
                 >
                     Take a Guided Tour to GLKB
                 </AntButton>
+                </div>
             </div>
-
+                        
             <div className="footer">
                 <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 0px' }}>
                     <p style={{ textAlign: 'center', color: 'rgba(0, 0, 0, 0.8)', fontSize: '14px', margin: 0 }}>
