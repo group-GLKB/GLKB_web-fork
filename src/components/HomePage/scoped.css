@@ -1,11 +1,11 @@
 .HomePageContainer {
-    background-color: 'linear-gradient(to bottom right, #F4F6FE, #DCE3FF, #F4F6FE)';
+    background: linear-gradient(to right, #F4F6FE, #DCE3FF, #F4F6FE); /* Linear gradient background */
     display: flex;
     flex-direction: column;
     min-height: 100vh; /* Changed to 100vh for full viewport height */
     overflow-y: auto;
     position: relative;
-    background-color: #DCE3FF;
+    /* background-color: #DCE3FF; */
 }
 
 .content {
@@ -53,12 +53,20 @@
     z-index: 10000 !important; /* 确保覆盖层在最顶层 */
 }
 
+.search-chat-part {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    max-width: 883px; /* Set a max-width for the search section */
+    margin: 0 auto; /* Center the search section */
+
+}
 .search-section {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     width: 100%;
-    max-width: 600px; /* Adjust this value to match your search bar width */
     margin: 0 auto;
     border-radius: 8px; /* 设置圆角 */
 }
@@ -74,18 +82,23 @@
 .example-query-button {
     margin-bottom: 10px;
     white-space: normal;
-    height: auto;
+    height: 100px;
     padding: 12px 16px;
     text-align: left;
     color: black;
-    background: #F4F6FE;
+    background-color: #F4F6FE;
     border: none;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
     transition: background-color 0.3s;
+    flex: 1;
+    margin: 10 5px;
+    display: flex;
+    align-items: center;
+    border-radius: 8px;
 }
 
 .example-query-button:hover {
-    background-color: #577265;
+    background-color: #C4CCFE; /* Change to a lighter shade on hover */
 }
 
 @media (min-width: 768px) {
