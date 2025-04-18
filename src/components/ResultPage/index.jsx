@@ -679,7 +679,7 @@ const ResultPage = () => {
 
     const LegendButton = ({ label, size, color, explanation }) => {
         return (
-            <MUIButton variant="contained" onClick={(e) => { onChangeNode(e, label, boolValues[label]) }} sx={{
+            <MUIButton variant="contained" onClick={(e) => { /*onChangeNode(e, label, boolValues[label])*/ }} sx={{
                 backgroundColor: boolValues[label] ? color : '#fff',
                 boxShadow: "none",
                 ":hover": {
