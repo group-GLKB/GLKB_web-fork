@@ -235,7 +235,7 @@ const Information = ({ width, ...props }) => {
         } else if (Object.keys(nodeDetail).length > 0 && nodeDetail[0]) {
             return nodeDetail[0].name;
         }
-        return "Term/Relationship Details";
+        return " ";
     };
 
     const LoadingMessage = () => (
@@ -355,35 +355,38 @@ const Information = ({ width, ...props }) => {
     };
 
     return (
-        <div className="information" style={{ width }}>
+        <div className="information" style={{ width, fontFamily: 'Inter !important', }}>
             <Card
                 title={getPanelTitle()}
                 className="information-content"
-                headStyle={{
-                    // backgroundColor: '#4a7298',
-                    color: 'black',
-                    fontSize: '18px',
-                    lineHeight: '1.5',
-                    fontWeight: 'bold',
-                    borderTopLeftRadius: '10px',
-                    borderTopRightRadius: '10px',
-                    paddingTop: '70px',
-                    paddingLeft: "55px",
-                    paddingBottom: '20px',
-                    minHeight: '90px',
-                    border: 'none',
-                    background: 'transparent',
-                    wordWrap: 'break-word !important',
-                    whiteSpace: 'pre-wrap',
-                }}
-                bodyStyle={{
-                    padding: '16px',
-                    backgroundColor: '#F7F7F7',
-                    minHeight: '200px',
-                    marginTop: '20px',
-                    marginBottom: '10px',
-                    border: 'none',
-                    background: 'transparent',
+
+                styles={{
+                    header: {
+                        color: 'black',
+                        fontSize: '24px',
+                        lineHeight: '1.5',
+                        fontWeight: '600',
+                        fontFamily: 'Inter',
+                        borderTopLeftRadius: '10px',
+                        borderTopRightRadius: '10px',
+                        paddingTop: '70px',
+                        paddingLeft: "55px",
+                        paddingBottom: '20px',
+                        minHeight: '90px',
+                        border: 'none',
+                        background: 'transparent',
+                        wordWrap: 'break-word !important',
+                        whiteSpace: 'pre-wrap',
+                    },
+                    body: {
+                        padding: '0px',
+                        backgroundColor: '#F7F7F7',
+                        minHeight: '200px',
+                        marginTop: '20px',
+                        marginBottom: '10px',
+                        border: 'none',
+                        background: 'transparent',
+                    },
                 }}
             >
                 {!props.detailId ? (
@@ -408,7 +411,6 @@ const Information = ({ width, ...props }) => {
                                                 marginBottom: '10px',
                                                 fontWeight: 'normal',
                                                 fontSize: '14px',
-                                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
                                             }}>Related Articles</h4>
                                             <List
                                                 size="small"
@@ -439,7 +441,6 @@ const Information = ({ width, ...props }) => {
                                                         marginBottom: '10px',
                                                         fontWeight: 'normal',
                                                         fontSize: '14px',
-                                                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
                                                     }}>Related Articles</h4>
                                                     <List
                                                         size="small"
@@ -481,7 +482,6 @@ const Information = ({ width, ...props }) => {
                                                         marginBottom: '10px',
                                                         fontWeight: 'normal',
                                                         fontSize: '14px',
-                                                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
                                                     }}>Related Sentences</h4>
                                                     <List
                                                         size="small"
@@ -515,7 +515,6 @@ const Information = ({ width, ...props }) => {
                                                         marginBottom: '10px',
                                                         fontWeight: 'normal',
                                                         fontSize: '14px',
-                                                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif'
                                                     }}>Related Articles</h4>
                                                     <List
                                                         size="small"

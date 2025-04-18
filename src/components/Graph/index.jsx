@@ -126,7 +126,7 @@ const Graph = React.memo(function Graph(props) {
           'font-size': '11px',
           'text-max-width': '150px',
           'text-wrap': 'ellipsis',
-          'font-family': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif'
+          'font-family': 'Inter',
         }
       },
       {
@@ -241,7 +241,7 @@ const Graph = React.memo(function Graph(props) {
           'font-size': '11px',
           'text-wrap': 'ellipsis',
           'text-max-width': '120px',
-          'font-family': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif'
+          'font-family': 'Inter',
         }
       },
     ];
@@ -249,14 +249,14 @@ const Graph = React.memo(function Graph(props) {
     const nodeStyles = id.map(nodeId => {
       let labelColor = '';
       switch (nodeId[5]) {
-        case 'AnatomicalEntity': labelColor = '#374B73'; break;
-        case 'ChemicalEntity': labelColor = '#94B0DA'; break;
-        case 'DiseaseOrPhenotypicFeature': labelColor = '#E3E8F0'; break;
-        case 'Gene': labelColor = '#E07A5F'; break;
-        case 'BiologicalProcessOrActivity': labelColor = '#3D405B'; break;
-        case 'MeshTerm': labelColor = '#81B29A'; break;
-        case 'SequenceVariant': labelColor = '#F2CC8F'; break;
-        case 'Article': labelColor = '#C4C4C4'; break;
+        case 'AnatomicalEntity': labelColor = '#88E9C0'; break;
+        case 'ChemicalEntity': labelColor = '#FFC0C0'; break;
+        case 'DiseaseOrPhenotypicFeature': labelColor = '#F6C858'; break; //changed
+        case 'Gene': labelColor = '#ADCFF2'; break; //changed
+        case 'BiologicalProcessOrActivity': labelColor = '#EDC0FF'; break;
+        case 'MeshTerm': labelColor = '#FFB77D'; break; //changed
+        case 'SequenceVariant': labelColor = '#DBF4B1'; break;
+        case 'Article': labelColor = '#E5E5E5'; break; //
       }
 
       const size = nodeId[2] >= 60 ? 40 : nodeId[2] >= 30 ? 30 : 20;
@@ -269,7 +269,7 @@ const Graph = React.memo(function Graph(props) {
           backgroundColor: labelColor,
           backgroundOpacity: 0.9,
           shape: 'roundrectangle',
-          borderRadius: '4px',
+          'corner-radius': '40',
           borderWidth,
           borderColor,
           'min-width': size,
@@ -278,11 +278,11 @@ const Graph = React.memo(function Graph(props) {
           'text-valign': 'center',
           'text-halign': 'center',
           'color': '#000000',
-          'font-size': '11px',
+          'font-size': '22px',
           'text-wrap': 'ellipsis',
           'text-max-width': '120px',
           width: 'label',
-          height: '25px',
+          height: '35px',
           padding: '10px'
         },
       };
