@@ -3,7 +3,7 @@ import { Box, Container, TextField, Button, Autocomplete, Card, Typography } fro
 import { Stack, Chip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { CypherService } from '../../../service/Cypher';
-import { debounce } from 'lodash';
+import { debounce, set } from 'lodash';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { Select as AntSelect, Tooltip } from 'antd';
@@ -214,7 +214,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                 "more_terms": moreNodes ? "True" : "False",
                 "more_rels": moreRel ? "True" : "False",
                 "merge": "True"
-            }
+            },
+            "sources":selectedSources
         };
 
         if (props.onSearch) {
@@ -242,6 +243,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                     { database_id: triplet.source[0], name: triplet.source[1].replace(/[()]/g, '') },
                     null
                 ]));
+                setSelectedSources(props.initialContent.sources || []);
             }
 
             const params = props.initialContent.params;
@@ -336,17 +338,21 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                     placeholder={ "Start searching with biomedical terms"} // Update placeholder
                                     variant="outlined" 
                                     sx={{
-                                        height: '60px', // Increase the height of the input box
+                                        minHeight: '60px', // Increase the height of the input box
                                         '& .MuiInputBase-root': {
-                                            height: '80px', // Adjust the height of the input field
+                                            height: 'auto', // Allow the height to grow dynamically
+                                            minHeight: '60px', 
                                             alignItems: 'center', // Center the text vertically
                                         },
                                         '& .MuiOutlinedInput-notchedOutline': {
                                             borderColor: 'grey', // Optional: Customize border color
                                         },
+                                        "& .MuiOutlinedInput-root": {
+                                            paddingRight: "70px!important",
+                                        },
                                     }}
                                     size="small" 
-                                    fullWidth 
+                                     
                                     className="search-autocomplete-box"
                                     InputProps={{
                                         ...params.InputProps,
@@ -371,8 +377,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                     sx={{
                                                         color: 'grey.500',
                                                         cursor: 'pointer',
-                                                        fontSize: '20px', // Adjust size as needed
-                                                        marginRight: '8px', // Add spacing from the SendIcon
+                                                        fontSize: '20px', // Adjust size as needed 
                                                     }}
                                                 />
                                                 {/* Search Icon */}
