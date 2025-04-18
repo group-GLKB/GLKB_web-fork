@@ -290,8 +290,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     }));
 
     return (
-        <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 2, mb: 2 }}>
-            <Box sx={{ mb: 2, backgroundColor: 'transparent'}}>
+        <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 2, mb: 2 ,ml:0, mr:0,padding:0}}>
+            <Box sx={{ mb: 0, backgroundColor: 'transparent'}}>
                 {/* First row with term type and search input */}
                 <Box sx={{ 
                     display: 'flex', 
@@ -299,8 +299,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                     flexDirection: isSmallScreen ? 'column' : 'row',
                     backgroundColor: 'white'
                 }}>
-                    {/* Search Input */}
-                    <Box sx={{ flexGrow: 1 }}>
+                    
                     {/* Search Input */}
                     <Box sx={{ flexGrow: 1 }}>
                         <Autocomplete
@@ -400,8 +399,6 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             
                         />
                         </Box>
-
-                    </Box>
 
 
                 </Box>

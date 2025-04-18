@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import 'antd/dist/reset.css';
 import { TweenOneGroup } from "rc-tween-one";
-import {Input, Col, Row, Spin, Tag, Menu, Button as AntButton, Space, Divider} from 'antd';
+import {Input, Col, Row, Spin, Tag, Menu,Button as AntButton, Space, Divider} from 'antd';
 import Joyride, { ACTIONS, EVENTS, STATUS } from 'react-joyride';
 import './scoped.css'
 import { GithubOutlined, QuestionCircleOutlined } from '@ant-design/icons';
@@ -22,6 +22,8 @@ import neighborhoodExamples from '../../components/Units/SearchBarNeighborhood/e
 import { trackEvent } from '../Units/analytics';
 import CloseIcon from '@mui/icons-material/Close'; // Import the Clear (cross) icon
 import SendIcon from '@mui/icons-material/Send'; 
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 
 const { Search } = Input;
 
@@ -31,7 +33,8 @@ const HomePage = () => {
     const [runTour, setRunTour] = useState(false);
     const [activeButton, setActiveButton] = useState('triplet');  // Changed default to 'triplet'
     const [llmQuery, setLlmQuery] = useState('');
-
+    const theme = useTheme();
+    const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
     // Add refs for the search components
     const searchBarKnowledgeRef = useRef(null);
     const searchBarNeighborhoodRef = useRef(null);
@@ -242,8 +245,11 @@ const HomePage = () => {
                     sx={{ 
                         width: '100%', 
                         maxWidth: '833px', // Set the box width to 883px
-                        margin: '0 auto', // Center the box horizontally on the page
+                        margin: '0px', // Center the box horizontally on the page
                         marginBottom: '-15px', 
+                        
+                        paddingLeft:isSmallScreen ? '0px':'24px',
+                        paddingRight:isSmallScreen ? '0px':'24px',
                     }}
                 >
                     <Button 
@@ -298,7 +304,7 @@ const HomePage = () => {
                         Chat
                     </Button>
                 </Box>
-                <div className="search-section" style={{ width: '100%', maxWidth: '883px', margin: '0 auto' }}>
+                <div className="search-section">
                     {activeButton === 'triplet' ? (
                         <SearchBarKnowledge 
                             ref={searchBarKnowledgeRef}
@@ -306,12 +312,12 @@ const HomePage = () => {
                             onSearch={(data) => {
                                 console.log('Triplet Search Data:', {
                                     search_data: data,
-                                    searchType: 'triplet'
+                                    searchType: 'triplet',
                                 });
                                 navigate('/result', { 
                                     state: { 
                                         search_data: data,
-                                        searchType: 'triplet'
+                                        searchType: 'triplet',
                                     } 
                                 });
                             }}
@@ -338,9 +344,13 @@ const HomePage = () => {
                             }}
                         />
                     ) : (
-                        <div style={{ width: '100%', marginTop: '15px',marginBottom: '25px' ,display: 'flex', 
-                            borderRadius: '8px',
-                            backgroundColor: 'white',}}>
+                        <Box sx={{ 
+                            width: '100%',mt : 2,mb:2,maxWidth: '883px',
+                            display: 'flex', 
+                            gap: 2, 
+                            paddingLeft: isSmallScreen?'0px':'24px',
+                            paddingRight: isSmallScreen?'0px':'24px',
+                        }}>
                 
                             <TextField
                                 type="text"
@@ -348,6 +358,7 @@ const HomePage = () => {
                                 onChange={(e) => setLlmQuery(e.target.value)}
                                 placeholder="Ask a question about the biomedical literature..."
                                 sx={{
+                                    backgroundColor: 'white',
                                     height: '60px', // Increase the height of the input box
                                     width: '100%',
                                     '& .MuiInputBase-root': {
@@ -358,6 +369,7 @@ const HomePage = () => {
                                         borderColor: 'grey', // Optional: Customize border color
                                     },
                                 }}
+                                fullWidth
                                 InputProps={{
                                     endAdornment: (
                                         <Box display="flex" alignItems="center">
@@ -391,7 +403,7 @@ const HomePage = () => {
                                 }}
                                 
                             />
-                            {/* <AntButton 
+                            {/* <button 
                                 type="primary" 
                                 htmlType="submit"
                                 disabled={!llmQuery.trim()}
@@ -411,8 +423,8 @@ const HomePage = () => {
                                 }}
                             >
                                 Send
-                            </AntButton> */}
-                        </div>
+                            </button> */}
+                        </Box>
                     )}
                     <div className="example-queries" style={{ 
                         display: 'flex', 
@@ -425,7 +437,7 @@ const HomePage = () => {
                     }}>
                         {activeButton === 'triplet' ? (
                             <>
-                                <AntButton 
+                                <button 
                                     onClick={() => handleExampleQuery(0)}
                                     className="example-query-button"
                                     sx={{
@@ -443,8 +455,8 @@ const HomePage = () => {
                                             Explore relationships between Type 2 Diabetes and its associated genes.
                                         </div>
                                     </Box>
-                                </AntButton>
-                                <AntButton 
+                                </button>
+                                <button 
                                     onClick={() => handleExampleQuery(1)}
                                     className="example-query-button"
                                 >
@@ -455,8 +467,8 @@ const HomePage = () => {
                                         <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
                                             Explore relationships between rs3761624 and RSV infectious disease.
                                         </div>
-                                    </Box>                                </AntButton>
-                                <AntButton 
+                                    </Box>                                </button>
+                                <button 
                                     onClick={() => handleExampleQuery(2)}
                                     className="example-query-button"
                                 >
@@ -468,11 +480,11 @@ const HomePage = () => {
                                         Explore relationships between clopidogrel and different diseases
                                         </div>
                                     </Box>                                 
-                                </AntButton>
+                                </button>
                             </>
                         ) : activeButton === 'neighbor' ? (
                             <>
-                                <AntButton 
+                                <button 
                                     onClick={() => handleExampleQuery(0)}
                                     className="example-query-button"
                                 >
@@ -484,8 +496,8 @@ const HomePage = () => {
                                         Find sequence variants related to TP53 based on literature
                                         </div>
                                     </Box>    
-                                </AntButton>
-                                <AntButton 
+                                </button>
+                                <button 
                                     onClick={() => handleExampleQuery(1)}
                                     className="example-query-button"
                                 >
@@ -497,8 +509,8 @@ const HomePage = () => {
                                         Find genes related to Alzheimer's disease based on literature
                                         </div>
                                     </Box>    
-                                </AntButton>
-                                <AntButton 
+                                </button>
+                                <button 
                                     onClick={() => handleExampleQuery(2)}
                                     className="example-query-button"
                                 >
@@ -510,13 +522,14 @@ const HomePage = () => {
                                         Find biomedical terms related to SOX2 based on curated databases
                                         </div>
                                     </Box>  
-                                </AntButton>
+                                </button>
                             </>
                         ) : (
                             <>
-                                <AntButton 
+                                <button 
                                     onClick={() => navigateToLLMAgent("Who are you?")}
-                                    className="example-query-button"
+                                    className="example-query-button custom-ant-btn"
+
                                 >
                                     <Box>
                                         <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
@@ -525,8 +538,8 @@ const HomePage = () => {
                                         <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
                                         Who are you?                                        </div>
                                     </Box> 
-                                </AntButton>
-                                <AntButton 
+                                </button>
+                                <button 
                                     onClick={() => navigateToLLMAgent("What is the role of BRCA1 in breast cancer?")}
                                     className="example-query-button"
                                 >
@@ -538,8 +551,8 @@ const HomePage = () => {
                                         What is the role of BRCA1 in breast cancer?
                                         </div>
                                     </Box> 
-                                </AntButton>
-                                <AntButton 
+                                </button>
+                                <button 
                                     onClick={() => navigateToLLMAgent("How many articles about Alzheimer's disease were published in 2020?")}
                                     className="example-query-button"
                                 >
@@ -551,7 +564,7 @@ const HomePage = () => {
                                         How many articles about Alzheimer's disease are published in 2020?
                                         </div>
                                     </Box> 
-                                </AntButton>
+                                </button>
                             </>
                         )}
                     </div>
@@ -568,7 +581,7 @@ const HomePage = () => {
             </div>
                         
             <div className="footer">
-                <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 0px' }}>
+                <div style={{ width:'100%', margin: '0 auto', padding: '0 0px' }}>
                     <p style={{ textAlign: 'center', color: 'rgba(0, 0, 0, 0.8)', fontSize: '14px', margin: 0 }}>
                         © 2024 Liu Lab, Department of Computational Medicine and Bioinformatics, University of Michigan
                     </p>
