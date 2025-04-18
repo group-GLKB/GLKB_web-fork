@@ -8,6 +8,8 @@ import './scoped.css';
 import systemIcon from '../../img/Asset 1.png';
 import ReactMarkdown from 'react-markdown';
 import GLKBLogo from '../../img/glkb_dark.jpg';
+import CloseIcon from '@mui/icons-material/Close';
+import SendIcon from '@mui/icons-material/Send';
 
 import {
     Typography,
@@ -283,7 +285,7 @@ function LLMAgent() {
                     )}
                     <Box
                         sx={{
-                            bgcolor: isAssistant ? "white" : "#d9f3ee", // Different background colors
+                            bgcolor: isAssistant ? "white" : "#EDF0FE", // Different background colors
                             maxWidth: isAssistant ? "100%" : "80%", // Adjust max width for assistant messages
                             display: "flex",
                             alignItems: "flex-start",
@@ -419,9 +421,9 @@ function LLMAgent() {
                                         "&:hover": {
                                             bgcolor: "#e1e2e4",
                                             color: "#09112d",
-                                            boxShadow: index == selectedMessageIndex ? "0 0 0 2px #19213d" : "none",
+                                            boxShadow: index == selectedMessageIndex ? "0 0 0 1px #19213d" : "none",
                                         },
-                                        boxShadow: index == selectedMessageIndex ? "0 0 0 2px #19213d" : "none",
+                                        boxShadow: index == selectedMessageIndex ? "0 0 0 1px #19213d" : "none",
                                         mb: "2px"
                                     }}
                                 >
@@ -542,7 +544,7 @@ function LLMAgent() {
                                     <div ref={messagesEndRef} />
                                 </div>
 
-                                <div className="chat-header">
+                                {/* <div className="chat-header">
                                     <form onSubmit={handleSubmit} className="input-form">
                                         <input
                                             type="text"
@@ -568,6 +570,63 @@ function LLMAgent() {
                                             Clear History
                                         </Button>
                                     </form>
+                                </div> */}
+                                <div className="chat-header">
+                                    <TextField
+                                        className="input-form"
+                                        type="text"
+                                        value={userInput}
+                                        onChange={(e) => setUserInput(e.target.value)}
+                                        disabled={isLoading}
+                                        placeholder="Ask a question about the biomedical literature..."
+                                        sx={{
+                                            height: '60px', // Increase the height of the input box
+                                            width: '100%',
+                                            '& .MuiInputBase-root': {
+                                                height: '80px', // Adjust the height of the input field
+                                                alignItems: 'center', // Center the text vertically
+                                            },
+                                            '& .MuiOutlinedInput-notchedOutline': {
+                                                borderColor: 'grey', // Optional: Customize border color
+                                            },
+                                        }}
+                                        InputProps={{
+                                            endAdornment: (
+                                                <Box display="flex" alignItems="center">
+                                                    {/* Clear Icon */}
+                                                    <CloseIcon
+                                                        onClick={() => {
+                                                            setUserInput(''); // Clear the input field
+                                                        }}
+                                                        sx={{
+                                                            color: 'grey.500',
+                                                            cursor: 'pointer',
+                                                            fontSize: '20px', // Adjust size as needed
+                                                            marginRight: '8px', // Add spacing from the SendIcon
+                                                        }}
+                                                    />
+                                                    {/* Search Icon */}
+                                                    <SendIcon
+                                                        onClick={handleSubmit} // Trigger the search function
+                                                        sx={{
+                                                            color: '#1976d2',
+                                                            cursor: 'pointer',
+                                                            fontSize: '30px', // Adjust size as needed
+                                                        }}
+                                                        disabled={isLoading || !userInput.trim()}
+                                                    />
+                                                </Box>
+                                            ),
+                                        }}
+                                    />
+                                    <Button
+                                        icon={<DeleteOutlined style={{ fontSize: "20px" }} />}
+                                        onClick={handleClear}
+                                        className="clear-button"
+                                        disabled={isLoading}
+                                    >
+                                        Clear History
+                                    </Button>
                                 </div>
                             </div>
                             <div style={{ minHeight: "400px" }}>

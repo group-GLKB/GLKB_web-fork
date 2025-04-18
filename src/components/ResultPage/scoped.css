@@ -274,30 +274,38 @@ all {
 
 .search-bar-container {
     position: fixed;
-    top: 64px;
+    top: 96px;
     /* Position right below the navbar */
-    left: 0;
-    right: 0;
+    left: 18.5%;
+    right: 18.5%;
     height: auto;
     /* Change from fixed height to auto */
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
     flex-direction: row;
-    gap: 1rem;
+    /* gap: 1rem; */
     padding-bottom: 1rem;
     z-index: 998;
     /* Below the floating panels */
 }
 
 .search-bar-wrapper {
-    width: 47vw;
+    width: 60vw;
     min-width: 720px;
     /* Adjust this value as needed */
     max-width: 1000px;
     /* Adjust this value as needed */
-    padding: 0 15px;
+    /* padding: 0 15px; */
     /* Add some horizontal padding */
+}
+
+.search-bar-wrapper .css-ganwlh-MuiContainer-root {
+    padding-left: 0px;
+    padding-right: 10px;
+    margin-right: 0px;
+    margin-left: 0px;
+    max-width: none;
 }
 
 .start-tour-button {
@@ -308,7 +316,8 @@ all {
     cursor: pointer;
     font-size: 14px;
     transition: background-color 0.3s ease;
-    height: auto;
+    height: 60px;
+    width: 60px;
     min-height: 40px;
     white-space: nowrap;
 }

@@ -136,6 +136,8 @@
     color: #1890ff;
     text-decoration: none;
     font-size: 12px;
+    display: block;
+    text-align: right;
 }
 
 .reference-item a:hover {
@@ -194,16 +196,16 @@
     background-color: white;
 }
 
-.send-button,
 .clear-button {
     padding: 0.8rem 1.5rem;
-    background-color: #f5f5f5;
+    background-color: #EDF0FE;
     border: 1px solid #e0e0e0;
     border-radius: 4px;
     cursor: pointer;
     font-size: 1rem;
+    font-weight: 600;
     transition: all 0.2s ease;
-    height: 42px;
+    height: 60px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -259,7 +261,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem;
+    padding-left: 56px;
+    padding-right: 56px;
+    padding-top: 0px;
+    padding-bottom: 40px;
+    gap: 20px;
     background: rgba(255, 255, 255, 0);
     width: 90%;
     max-width: 800px;
@@ -287,7 +293,6 @@
 }
 
 .clear-button {
-    background-color: #f5f5f5;
     border: 1px solid #e0e0e0;
     white-space: nowrap;
 }
@@ -503,8 +508,6 @@
 }
 
 .input-form {
-    margin-top: auto;
-    padding: 16px;
     border-top: 1px solid #e4e6eb;
 }
 

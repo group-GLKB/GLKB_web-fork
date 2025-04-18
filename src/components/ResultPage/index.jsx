@@ -19,7 +19,7 @@ import axios from 'axios'
 import sampleGraphData from './sampleData.json';
 import SearchBarKnowledge from "../Units/SearchBarKnowledge";
 import { FloatButton } from "antd";
-import { PlusOutlined, MinusOutlined, InfoCircleOutlined, MenuFoldOutlined, MenuUnfoldOutlined, ApartmentOutlined, FileTextOutlined, QuestionCircleOutlined, CaretRightOutlined } from '@ant-design/icons';
+import { InfoCircleOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 import { styled } from '@mui/material/styles';
 import Joyride, { STATUS } from 'react-joyride';
 import SearchBarNeighborhood from "../Units/SearchBarNeighborhood";
@@ -679,7 +679,7 @@ const ResultPage = () => {
 
     const LegendButton = ({ label, size, color, explanation }) => {
         return (
-            <MUIButton variant="contained" onClick={(e) => { onChangeNode(e, label, boolValues[label]) }} sx={{
+            <MUIButton variant="contained" onClick={(e) => { /*onChangeNode(e, label, boolValues[label])*/ }} sx={{
                 backgroundColor: boolValues[label] ? color : '#fff',
                 boxShadow: "none",
                 ":hover": {
@@ -700,14 +700,14 @@ const ResultPage = () => {
     };
 
     const legendDataAll = [
-        { label: 'AnatomicalEntity', size: 20, color: '#374B73' },
-        { label: 'ChemicalEntity', size: 20, color: '#94B0DA' },
-        { label: 'DiseaseOrPhenotypicFeature', size: 20, color: '#E3E8F0' },
-        { label: 'Gene', size: 20, color: '#E07A5F' },
-        { label: 'BiologicalProcessOrActivity', size: 20, color: '#3D405B' },
-        { label: 'MeshTerm', size: 20, color: '#81B29A' },
-        { label: 'SequenceVariant', size: 20, color: '#F2CC8F' },
-        { label: 'Article', size: 20, color: '#C4C4C4' },
+        { label: 'AnatomicalEntity', size: 20, color: '#88E9C0' },
+        { label: 'ChemicalEntity', size: 20, color: '#FFC0C0' },
+        { label: 'DiseaseOrPhenotypicFeature', size: 20, color: '#F6C858' },
+        { label: 'Gene', size: 20, color: '#ADCFF2' },
+        { label: 'BiologicalProcessOrActivity', size: 20, color: '#EDC0FF' },
+        { label: 'MeshTerm', size: 20, color: '#FFB77D' },
+        { label: 'SequenceVariant', size: 20, color: '#DBF4B1' },
+        { label: 'Article', size: 20, color: '#E5E5E5' },
     ];
 
     const edgeDataAll = [
@@ -782,12 +782,11 @@ const ResultPage = () => {
                 {(
                     <div className="graph-controls">
                         <Button
-                            icon={<QuestionCircleOutlined />}
                             onClick={startTour}
                             className="start-tour-button"
                             disabled={!searchFlag || isGraphLoading}
                         >
-                            Take a Guided Tour to the Result
+                            <InfoCircleOutlined style={{ fontSize: "30px", color: "#8D8D8D" }} />
                         </Button>
                     </div>
                 )}
@@ -817,6 +816,7 @@ const ResultPage = () => {
                                     height: "100%",
                                     bgcolor: "white",
                                     position: 'relative',
+                                    boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
                                 }}>
                                     <Tooltip title={getButtonTooltip()} className="graph-control-button-container">
                                         <span>
@@ -954,7 +954,11 @@ const ResultPage = () => {
                                     width: '30%',
                                     height: "100%",
                                     bgcolor: "white",
-                                    paddingBottom: "20px"
+                                    paddingBottom: "20px",
+                                    boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
+                                    '& *': {
+                                        fontFamily: "Inter !important",
+                                    },
                                 }}>
                                     <Information
                                         isOpen={informationOpen}
