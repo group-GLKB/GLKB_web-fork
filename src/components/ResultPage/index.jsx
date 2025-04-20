@@ -463,7 +463,7 @@ const ResultPage = () => {
     const handleInformation = () => {
         setInformationOpen(!informationOpen);
     };
-    console.log(graphShownData)
+    // console.log(graphShownData)
 
     const toggleSettings = () => {
         setIsSettingsVisible(!isSettingsVisible);
@@ -754,8 +754,8 @@ const ResultPage = () => {
             <div className="navbar-wrapper">
                 <NavBarWhite />
             </div>
-            <div className="search-bar-container">
-                <div className="search-bar-wrapper">
+            <div className="search-bar-container"style={{ marginLeft: '-24px' }}>
+                <div className="search-bar-wrapper" >
                     {searchType === 'neighbor' ? (
                         <SearchBarNeighborhood
                             initialContent={searchContent} // Pass initial content

@@ -17,7 +17,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const [sourceNodeData, setSourceNodeData] = useState([]);
     const [chipData, setChipData] = useState([]);
     const [chipDataID, setChipDataID] = useState([]);
-    const [selectedSource, setSelectedSource] = useState(null);
+    const [selectedSource, setSelectedSource] = React.useState(null);
     const [selectedSources, setSelectedSources] = useState([]);
     const [inputValue, setInputValue] = useState('');
     const [termType, setTermType] = useState('All');
@@ -107,80 +107,97 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         }
     };
 
-    const handleDelete = (data) => {
-        const index = chipData.indexOf(data);
-        if (index !== -1) {
-            const newChipData = chipData.filter((chip, idx) => idx !== index);
-            const newChipDataID = chipDataID.filter((id, idx) => idx !== index);
-            setChipData(newChipData);
-            setChipDataID(newChipDataID);
-            if (newChipData.length < 5) {
-                setTripletLimitReached(false);
-            }
-        }
-    };
+    // const handleDelete = (data) => {
+    //     const index = chipData.indexOf(data);
+    //     if (index !== -1) {
+    //         const newChipData = chipData.filter((chip, idx) => idx !== index);
+    //         const newChipDataID = chipDataID.filter((id, idx) => idx !== index);
+    //         setChipData(newChipData);
+    //         setChipDataID(newChipDataID);
+    //         if (newChipData.length < 5) {
+    //             setTripletLimitReached(false);
+    //         }
+    //     }
+    // };
 
-    const handleAddTriplet = () => {
-        if (!selectedSource || chipData.length >= 5) return;
+    // const handleAddTriplet = () => {
+    //     if (!selectedSource || chipData.length >= 5) return;
         
-        const sourceName = selectedSource[1].split(' (')[0];
-        let chip_str = `(${sourceName})-[any relationships]-()`;
-        if (chipData.includes(chip_str)) return;
+    //     const sourceName = selectedSource[1].split(' (')[0];
+    //     let chip_str = `(${sourceName})-[any relationships]-()`;
+    //     if (chipData.includes(chip_str)) return;
         
-        const sourceNode = sourceNodeData.find(node => 
-            node.name.toLowerCase() === sourceName.toLowerCase() ||
-            node.aliases.some(alias => alias.toLowerCase() === sourceName.toLowerCase())
-        );
+    //     const sourceNode = sourceNodeData.find(node => 
+    //         node.name.toLowerCase() === sourceName.toLowerCase() ||
+    //         node.aliases.some(alias => alias.toLowerCase() === sourceName.toLowerCase())
+    //     );
         
-        setChipData(prev => [...prev, chip_str]);
-        setChipDataID(prev => [...prev, [sourceNode, null]]);
+    //     setChipData(prev => [...prev, chip_str]);
+    //     setChipDataID(prev => [...prev, [sourceNode, null]]);
         
-        setSelectedSource(null);
-        setInputValue("");
-        setSourceNodeOptions([]);
+    //     setSelectedSource(null);
+    //     setInputValue("");
+    //     setSourceNodeOptions([]);
 
-        if (chipData.length + 1 >= 5) {
-            setTripletLimitReached(true);
-        }
-    };
+    //     if (chipData.length + 1 >= 5) {
+    //         setTripletLimitReached(true);
+    //     }
+    // };
     
-    // Monitor changes to selectedSources
     useEffect(() => {
-        // Add new triplets for newly selected sources
+        // Generate new chipData and chipDataID based on selectedSources
+        const newChipData = [];
+        const newChipDataID = [];
+    
         selectedSources.forEach((source) => {
-            const sourceName = source.name || source[1].replace(/[()]/g, '');
+            const sourceName = source.name || source[1].replace(/\s*\([^)]*\)$/, "").trim(); // Extract source name
             const chip_str = `(${sourceName})-[any relationships]-()`;
             const sourceNode = [
-                { database_id: source[0], name: sourceName },
-                null
+                { database_id: Number(source[0]), name: sourceName },
+                null,
             ];
+    
+            // Check if the chip already exists in newChipData
+            const tripletExists = newChipData.some((chip) => chip === chip_str);
+            // console.log('Generated chip_str:', chip_str, 'Exists:', tripletExists); // Debugging log
 
-            // Check if the chip already exists in chipData
-            const tripletExists = chipData.some((chip) => chip === chip_str);
             if (!tripletExists) {
-                setChipData((prev) => [...prev, chip_str]); // Add to chipData
-                console.log('Chipstr is:',chip_str)
-                setChipDataID(prev => [...prev, sourceNode]); // Add to chipDataID
-                
+                newChipData.push(chip_str); // Add to newChipData
+                newChipDataID.push(sourceNode); // Add to newChipDataID
             }
-
         });
+    
+        // Update chipData and chipDataID states
+        setChipData(newChipData);
+        setChipDataID(newChipDataID);
+    
+        console.log('Updated chipData:', newChipData);
+        console.log('Updated chipDataID:', newChipDataID);
+    }, [selectedSources]); // Trigger this effect whenever selectedSources changes
 
-        // Remove triplets for deselected sources
-        chipData.forEach((chip) => {
-            const sourceName = chip.match(/\((.*?)\)/)?.[1]; // Extract source name from triplet
-            const sourceExists = selectedSources.some(
-                (source) => source.name === sourceName || source[1]?.replace(/[()]/g, '') === sourceName
+    useEffect(() => {
+        // Filter out chips that are not in selectedSources
+        const updatedChipDataID = chipDataID.filter((chipID) => {
+            return selectedSources.some(
+                (source) => Number(source[0]) === chipID[0]?.database_id
             );
-            if (!sourceExists) {
-                setChipData((prev) => prev.filter((c) => c !== chip)); // Remove from chipData
-                handleDelete({ name: sourceName }); // Delete triplet logic
-            }
         });
-        // if (chipData.length + 1 >= 5) {
-        //     setTripletLimitReached(true);
-        // }
-    }, [selectedSources]); // Runs whenever selectedSources changes
+        // Filter chipData to keep only entries corresponding to updatedChipDataID
+        const updatedChipData = chipData.filter((_, index) => {
+            return updatedChipDataID.includes(chipDataID[index]);
+        });
+    
+        // Update chipData and chipDataID if they have changed
+        if (updatedChipData.length !== chipData.length) {
+            setChipData(updatedChipData);
+        }
+        if (updatedChipDataID.length !== chipDataID.length) {
+            setChipDataID(updatedChipDataID);
+        }
+    
+        console.log('Filtered chipData:', updatedChipData);
+        console.log('Filtered chipDataID:', updatedChipDataID);
+    }, [selectedSources]); // Trigger this effect whenever selectedSources, chipData, or chipDataID changes
 
     useEffect(() => {
         // Update tripletLimitReached based on the number of selected terms
@@ -217,13 +234,13 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
             },
             "sources":selectedSources
         };
-
         if (props.onSearch) {
             props.onSearch(search_data);
         } else {
             navigate('/result', { state: { search_data, chipDataID } });
         }
 
+        console.log('Chip data:', chipDataID);
         if (props.displayArticleGraph) {
             props.setDisplayArticleGraph(false);
         }
@@ -273,7 +290,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                 ];
                 setChipData(prev => [...prev, chip_str]);
                 setChipDataID(prev => [...prev, sourceNode]);
-                console.log('ChipdataID is:',sourceNode)
+                    // console.log('ChipdataID is:',sourceNode)
                     // Add to newSelectedSources
                 newSelectedSources.push(
                     [triplet.source[0],sourceName,triplet.source[2]]
@@ -290,6 +307,10 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
             }
         }
     }));
+
+    React.useEffect(() => {
+        console.log('Selected sources (after update):', selectedSources);
+    }, [selectedSources]);
 
     return (
         <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 2, mb: 2 ,ml:0, mr:0,padding:0}}>
@@ -320,13 +341,13 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             filterSelectedOptions={true}
                             groupBy={(option => getDisplayCategory(option[2]))}
                             getOptionLabel={(option) => {
-                                console.log('Option:', option);
+                                // console.log('Option:', option);
                                 return option[1]}}
                             renderTags={(value, getTagProps) =>
                                 value.map((option, index) => (
                                     <Chip
                                     key={option.database_id}
-                                    label={option[1].replace(/\(.*?\)/g, "").split("-")[0].slice(0, -1).trim()}
+                                    label={option[1].replace(/\s*\([^)]*\)$/, "")}
                                     size="small"
                                     {...getTagProps({ index })} // Pass props for chip behavior
                                 />
@@ -398,8 +419,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             inputValue={inputValue}
                             onChange={(event, newValue) => {
                                     setSelectedSources(newValue);
-                                    console.log('Selected sources:', newValue);
-                                
+                                    console.log('New sources:', newValue);
                             }}
                             
                         />
