@@ -10,6 +10,7 @@ import ReactMarkdown from 'react-markdown';
 import GLKBLogo from '../../img/glkb_dark.jpg';
 import CloseIcon from '@mui/icons-material/Close';
 import SendIcon from '@mui/icons-material/Send';
+import { Grid } from '@mui/material';
 
 import {
     Typography,
@@ -502,158 +503,166 @@ function LLMAgent() {
                 <div className='result-content'>
                     <div className="llm-agent-container">
                         <div className="chat-and-references">
-                            <div className="chat-container">
+                            <Grid container columnSpacing={{sm: 2, md: 4}} sx={{ height: '100%' }}>
+                                <Grid item xs={8}>
+                                    <div className="chat-container">
 
-                                {/* Add example queries section */}
-                                {chatHistory.length === 0 && (
-                                    <div className="example-queries" style={{ paddingTop: '1rem' }}>
-                                        <div className="example-queries-header" style={{ gap: '1rem', marginTop: '2vh' }}>
-                                            <div className="logo-container" style={{ marginBottom: '1rem' }}>
-                                                <img src={systemIcon} alt="AI" className="system-icon" style={{ width: '60px', height: '60px' }} />
-                                                <img src={GLKBLogo} alt="GLKB" className="glkb-logo" style={{ height: '60px' }} />
+                                        {/* Add example queries section */}
+                                        {chatHistory.length === 0 && (
+                                            <div className="example-queries" style={{ paddingTop: '1rem' }}>
+                                                <div className="example-queries-header" style={{ gap: '1rem', marginTop: '2vh' }}>
+                                                    <div className="logo-container" style={{ marginBottom: '1rem' }}>
+                                                        <img src={systemIcon} alt="AI" className="system-icon" style={{ width: '60px', height: '60px' }} />
+                                                        <img src={GLKBLogo} alt="GLKB" className="glkb-logo" style={{ height: '60px' }} />
+                                                    </div>
+                                                    <h3>I can help you explore biomedical literature. Here are some examples:</h3>
+                                                </div>
+                                                <div className="example-query-list" style={{ marginTop: '10px', marginBottom: '10px' }}>
+                                                    <div className="example-query"
+                                                        onClick={() => handleExampleClick("Who are you?")}
+                                                        style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
+                                                        Who are you?
+                                                    </div>
+                                                    <div className="example-query"
+                                                        onClick={() => handleExampleClick("What is the role of BRCA1 in breast cancer?")}
+                                                        style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
+                                                        What is the role of BRCA1 in breast cancer?
+                                                    </div>
+                                                    <div className="example-query"
+                                                        onClick={() => handleExampleClick("How many articles about Alzheimer's disease are published in 2020?")}
+                                                        style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
+                                                        How many articles about Alzheimer's disease are published in 2020?
+                                                    </div>
+                                                    <div className="example-query"
+                                                        onClick={() => handleExampleClick("What pathways does TP53 participate in?")}
+                                                        style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
+                                                        What pathways does TP53 participate in?
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <h3>I can help you explore biomedical literature. Here are some examples:</h3>
+                                        )}
+
+                                        <div className="messages-container">
+                                            {renderMessages()}
+                                            <div ref={messagesEndRef} />
                                         </div>
-                                        <div className="example-query-list" style={{ marginTop: '10px', marginBottom: '10px' }}>
-                                            <div className="example-query"
-                                                onClick={() => handleExampleClick("Who are you?")}
-                                                style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
-                                                Who are you?
-                                            </div>
-                                            <div className="example-query"
-                                                onClick={() => handleExampleClick("What is the role of BRCA1 in breast cancer?")}
-                                                style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
-                                                What is the role of BRCA1 in breast cancer?
-                                            </div>
-                                            <div className="example-query"
-                                                onClick={() => handleExampleClick("How many articles about Alzheimer's disease are published in 2020?")}
-                                                style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
-                                                How many articles about Alzheimer's disease are published in 2020?
-                                            </div>
-                                            <div className="example-query"
-                                                onClick={() => handleExampleClick("What pathways does TP53 participate in?")}
-                                                style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
-                                                What pathways does TP53 participate in?
-                                            </div>
+
+                                        {/* <div className="chat-header">
+                                            <form onSubmit={handleSubmit} className="input-form">
+                                                <input
+                                                    type="text"
+                                                    value={userInput}
+                                                    onChange={(e) => setUserInput(e.target.value)}
+                                                    placeholder="Ask a question about the biomedical literature..."
+                                                    className="message-input"
+                                                    disabled={isLoading}
+                                                />
+                                                <button
+                                                    type="submit"
+                                                    className="send-button"
+                                                    disabled={isLoading || !userInput.trim()}
+                                                >
+                                                    Send
+                                                </button>
+                                                <Button
+                                                    icon={<DeleteOutlined />}
+                                                    onClick={handleClear}
+                                                    className="clear-button"
+                                                    disabled={isLoading}
+                                                >
+                                                    Clear History
+                                                </Button>
+                                            </form>
+                                        </div> */}
+                                        <div className="chat-header">
+                                            <TextField
+                                                className="input-form"
+                                                type="text"
+                                                value={userInput}
+                                                onChange={(e) => setUserInput(e.target.value)}
+                                                disabled={isLoading}
+                                                placeholder="Ask a question about the biomedical literature..."
+                                                sx={{
+                                                    height: '60px', // Increase the height of the input box
+                                                    width: '100%',
+                                                    '& .MuiInputBase-root': {
+                                                        height: '80px', // Adjust the height of the input field
+                                                        alignItems: 'center', // Center the text vertically
+                                                    },
+                                                    '& .MuiOutlinedInput-notchedOutline': {
+                                                        borderColor: 'grey', // Optional: Customize border color
+                                                    },
+                                                }}
+                                                InputProps={{
+                                                    endAdornment: (
+                                                        <Box display="flex" alignItems="center">
+                                                            {/* Clear Icon */}
+                                                            <CloseIcon
+                                                                onClick={() => {
+                                                                    setUserInput(''); // Clear the input field
+                                                                }}
+                                                                sx={{
+                                                                    color: 'grey.500',
+                                                                    cursor: 'pointer',
+                                                                    fontSize: '20px', // Adjust size as needed
+                                                                    marginRight: '8px', // Add spacing from the SendIcon
+                                                                }}
+                                                            />
+                                                            {/* Search Icon */}
+                                                            <SendIcon
+                                                                onClick={handleSubmit} // Trigger the search function
+                                                                sx={{
+                                                                    color: '#1976d2',
+                                                                    cursor: 'pointer',
+                                                                    fontSize: '30px', // Adjust size as needed
+                                                                }}
+                                                                disabled={isLoading || !userInput.trim()}
+                                                            />
+                                                        </Box>
+                                                    ),
+                                                }}
+                                            />
+                                            <Button
+                                                icon={<DeleteOutlined style={{ fontSize: "20px" }} />}
+                                                onClick={handleClear}
+                                                className="clear-button"
+                                                disabled={isLoading}
+                                            >
+                                                Clear History
+                                            </Button>
                                         </div>
                                     </div>
-                                )}
+                                </Grid>
+                                <Grid item xs={4}>
+                                    <div style={{ height: '100%', width: '100%' }}>
+                                        <div className="references-container">
+                                            <h3>References</h3>
+                                            {selectedMessageIndex !== null && chatHistory[selectedMessageIndex]?.references.length > 0 ? (
+                                                <ul className="references-list">
+                                                    {chatHistory[selectedMessageIndex].references.map((ref, index) => (
+                                                        <li key={index} className="reference-item">
+                                                            <h4>{ref.title}</h4>
+                                                            <p className="reference-metadata">
+                                                                {ref.journal} ({ref.year}) | Citations: {ref.citation_count}
+                                                            </p>
+                                                            <p className="reference-authors">{ref.authors}</p>
+                                                            {ref.url && (
+                                                                <a href={ref.url} target="_blank" rel="noopener noreferrer">
+                                                                    PubMed Article {ref.url.split('/').filter(Boolean).pop()}
+                                                                </a>
+                                                            )}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : (
+                                                <p>No references available for this response.</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </Grid>
+                            </Grid>
 
-                                <div className="messages-container">
-                                    {renderMessages()}
-                                    <div ref={messagesEndRef} />
-                                </div>
 
-                                {/* <div className="chat-header">
-                                    <form onSubmit={handleSubmit} className="input-form">
-                                        <input
-                                            type="text"
-                                            value={userInput}
-                                            onChange={(e) => setUserInput(e.target.value)}
-                                            placeholder="Ask a question about the biomedical literature..."
-                                            className="message-input"
-                                            disabled={isLoading}
-                                        />
-                                        <button
-                                            type="submit"
-                                            className="send-button"
-                                            disabled={isLoading || !userInput.trim()}
-                                        >
-                                            Send
-                                        </button>
-                                        <Button
-                                            icon={<DeleteOutlined />}
-                                            onClick={handleClear}
-                                            className="clear-button"
-                                            disabled={isLoading}
-                                        >
-                                            Clear History
-                                        </Button>
-                                    </form>
-                                </div> */}
-                                <div className="chat-header">
-                                    <TextField
-                                        className="input-form"
-                                        type="text"
-                                        value={userInput}
-                                        onChange={(e) => setUserInput(e.target.value)}
-                                        disabled={isLoading}
-                                        placeholder="Ask a question about the biomedical literature..."
-                                        sx={{
-                                            height: '60px', // Increase the height of the input box
-                                            width: '100%',
-                                            '& .MuiInputBase-root': {
-                                                height: '80px', // Adjust the height of the input field
-                                                alignItems: 'center', // Center the text vertically
-                                            },
-                                            '& .MuiOutlinedInput-notchedOutline': {
-                                                borderColor: 'grey', // Optional: Customize border color
-                                            },
-                                        }}
-                                        InputProps={{
-                                            endAdornment: (
-                                                <Box display="flex" alignItems="center">
-                                                    {/* Clear Icon */}
-                                                    <CloseIcon
-                                                        onClick={() => {
-                                                            setUserInput(''); // Clear the input field
-                                                        }}
-                                                        sx={{
-                                                            color: 'grey.500',
-                                                            cursor: 'pointer',
-                                                            fontSize: '20px', // Adjust size as needed
-                                                            marginRight: '8px', // Add spacing from the SendIcon
-                                                        }}
-                                                    />
-                                                    {/* Search Icon */}
-                                                    <SendIcon
-                                                        onClick={handleSubmit} // Trigger the search function
-                                                        sx={{
-                                                            color: '#1976d2',
-                                                            cursor: 'pointer',
-                                                            fontSize: '30px', // Adjust size as needed
-                                                        }}
-                                                        disabled={isLoading || !userInput.trim()}
-                                                    />
-                                                </Box>
-                                            ),
-                                        }}
-                                    />
-                                    <Button
-                                        icon={<DeleteOutlined style={{ fontSize: "20px" }} />}
-                                        onClick={handleClear}
-                                        className="clear-button"
-                                        disabled={isLoading}
-                                    >
-                                        Clear History
-                                    </Button>
-                                </div>
-                            </div>
-                            <div style={{ minHeight: "400px" }}>
-                                <div className="references-container">
-                                    <h3>References</h3>
-                                    {selectedMessageIndex !== null && chatHistory[selectedMessageIndex]?.references.length > 0 ? (
-                                        <ul className="references-list">
-                                            {chatHistory[selectedMessageIndex].references.map((ref, index) => (
-                                                <li key={index} className="reference-item">
-                                                    <h4>{ref.title}</h4>
-                                                    <p className="reference-metadata">
-                                                        {ref.journal} ({ref.year}) | Citations: {ref.citation_count}
-                                                    </p>
-                                                    <p className="reference-authors">{ref.authors}</p>
-                                                    {ref.url && (
-                                                        <a href={ref.url} target="_blank" rel="noopener noreferrer">
-                                                            PubMed Article {ref.url.split('/').filter(Boolean).pop()}
-                                                        </a>
-                                                    )}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    ) : (
-                                        <p>No references available for this response.</p>
-                                    )}
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>

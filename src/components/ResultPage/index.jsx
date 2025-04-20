@@ -25,7 +25,7 @@ import Joyride, { STATUS } from 'react-joyride';
 import SearchBarNeighborhood from "../Units/SearchBarNeighborhood";
 import { trackEvent } from '../Units/analytics';
 import { debounce } from 'lodash';
-import { Box } from '@mui/material';
+import { Box, Grid } from '@mui/material';
 //import mui button as muibutton
 import { Button as MUIButton } from '@mui/material';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
@@ -158,12 +158,12 @@ const ResultPage = () => {
             target: '.graph-control-button',
             content: 'Switch between biomedical term graph and article graph views.',
         },
+        // {
+        //     target: '.floating-settings',
+        //     content: 'Modify graph visualization and access node and edge summaries here.',
+        // },
         {
-            target: '.floating-settings',
-            content: 'Modify graph visualization and access node and edge summaries here.',
-        },
-        {
-            target: '.floating-information',
+            target: '.floating-information-new',
             content: 'View detailed information about selected nodes or edges.',
         },
     ];
@@ -188,7 +188,7 @@ const ResultPage = () => {
     useEffect(() => {
         const debouncedHandleResize = debounce(() => {
             if (containerRef.current) {
-                const minWidth = 1200;
+                const minWidth = 600;
                 if (windowWidth < minWidth) {
                     containerRef.current.style.width = `${minWidth}px`;
                 } else {
@@ -214,7 +214,7 @@ const ResultPage = () => {
 
     useEffect(() => {
         if (containerRef.current) {
-            const minWidth = 1200; // Should match the CSS min-width
+            const minWidth = 600; // Should match the CSS min-width
             if (windowWidth < minWidth) {
                 containerRef.current.style.width = `${minWidth}px`;
             } else {
@@ -754,7 +754,7 @@ const ResultPage = () => {
             <div className="navbar-wrapper">
                 <NavBarWhite />
             </div>
-            <div className="search-bar-container"style={{ marginLeft: '-24px' }}>
+            <div className="search-bar-container">
                 <div className="search-bar-wrapper" >
                     {searchType === 'neighbor' ? (
                         <SearchBarNeighborhood
@@ -799,28 +799,41 @@ const ResultPage = () => {
                 )}
                 {searchFlag && !isGraphLoading && (
                     <div className='result-content'>
-                        <div className='graph-container-wrapper'>
+                        <div className='result-container-wrapper'>
                             <Box sx={{
-                                display: 'flex',
+                                // display: 'flex',
+                                // flexDirection: 'row',
+                                // width: '100%',
+                                paddingTop: "20px",
+                                paddingBottom: "20px",
+                                height: '100%',
+                                // justifyContent: 'center',
+                                // alignItems: 'center',
+                                maxWidth: '1200px',
+                                marginLeft: '20px',
+                                marginRight: '20px',
                                 flexDirection: 'row',
-                                width: '100%',
-                                height: '80%',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
+                                flexGrow: 1,
                             }}>
                                 {/* Left */}
-                                <Box sx={{
-                                    borderRadius: "30px",
-                                    width: '30%',
-                                    height: "100%",
-                                    bgcolor: "white",
-                                    position: 'relative',
-                                    boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
-                                }}>
-                                    <Tooltip title={getButtonTooltip()} className="graph-control-button-container">
-                                        <span>
-                                            {/* <StyledButton
+                                <Grid container spacing={2} height={"100%"}>
+                                    <Grid item xs={6} height={"100%"}>
+                                        <Box sx={{
+                                            borderRadius: "30px",
+                                            // width: '100%',
+                                            height: "100%",
+                                            //minHeight: "600px",
+                                            bgcolor: "white",
+                                            position: 'relative',
+                                            boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
+                                            marginLeft: "1%",
+                                            marginRight: "1%",
+                                            marginTop: "20px",
+                                            overflow: 'hidden',
+                                        }} className="graph-container-wrapper">
+                                            <Tooltip title={getButtonTooltip()} className="graph-control-button-container">
+                                                <span>
+                                                    {/* <StyledButton
                                                 onClick={changeLeftPanel}
                                                 variant="contained"
                                                 startIcon={displayArticleGraph ? <ApartmentOutlined /> : <FileTextOutlined />}
@@ -829,145 +842,152 @@ const ResultPage = () => {
                                             >
                                                 {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
                                             </StyledButton> */}
-                                            <MUIButton
-                                                onClick={changeLeftPanel}
-                                                variant="contained"
-                                                className="graph-control-button"
-                                                disabled={totalNodeCount > NODE_LIMIT && !displayArticleGraph}
-                                                startIcon={<SwapHorizIcon />}
-                                                sx={{
-                                                    backgroundColor: '#F5F9FD',
-                                                    color: 'black',
-                                                    '&:hover': {
-                                                        backgroundColor: '#F7FBFF',
-                                                        color: 'black',
-                                                    },
-                                                    '&:focus': {
-                                                        color: 'black',
-                                                    },
-                                                    minWidth: '40px',
-                                                    height: '25px',
-                                                    fontSize: '16px',
-                                                    fontWeight: 400,
-                                                    letterSpacing: '0px',
-                                                    boxShadow: 'none',
-                                                    cornerRadius: '8px',
+                                                    <MUIButton
+                                                        onClick={changeLeftPanel}
+                                                        variant="contained"
+                                                        className="graph-control-button"
+                                                        disabled={totalNodeCount > NODE_LIMIT && !displayArticleGraph}
+                                                        startIcon={<SwapHorizIcon />}
+                                                        sx={{
+                                                            backgroundColor: '#F5F9FD',
+                                                            color: 'black',
+                                                            '&:hover': {
+                                                                backgroundColor: '#F7FBFF',
+                                                                color: 'black',
+                                                            },
+                                                            '&:focus': {
+                                                                color: 'black',
+                                                            },
+                                                            minWidth: '40px',
+                                                            height: '25px',
+                                                            fontSize: '16px',
+                                                            fontWeight: 400,
+                                                            letterSpacing: '0px',
+                                                            boxShadow: 'none',
+                                                            cornerRadius: '8px',
+                                                        }}>
+                                                        {displayArticleGraph ? "Biomedical term graph" : "Article graph"}
+                                                    </MUIButton>
+                                                </span>
+                                            </Tooltip>
+                                            <Box sx={{
+                                                width: '100%',
+                                                height: '50%',
+                                            }}>
+                                                <div className="graph-container" style={{
+                                                    position: 'relative',
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    overflow: 'hidden'
                                                 }}>
-                                                {displayArticleGraph ? "Biomedical term graph" : "Article graph"}
-                                            </MUIButton>
-                                        </span>
-                                    </Tooltip>
-                                    <Box sx={{
-                                        width: '100%',
-                                        height: '50%',
-                                    }}>
-                                        <div className="graph-container" style={{
-                                            position: 'relative',
-                                            width: '100%',
-                                            height: '100%',
-                                            overflow: 'hidden'
-                                        }}>
-                                            {graphShownData && (graphShownData.nodes?.length === 0 || !graphShownData.nodes) ? (
-                                                <div className="empty-graph-message" style={{
-                                                    position: 'absolute',
-                                                    top: '50%',
-                                                    left: '50%',
-                                                    transform: 'translate(-50%, -50%)',
-                                                    textAlign: 'center',
-                                                    color: '#666'
-                                                }}>
-                                                    <h2>No Results Found</h2>
-                                                    <p>Try modifying your search criteria or adjusting the filters.</p>
+                                                    {graphShownData && (graphShownData.nodes?.length === 0 || !graphShownData.nodes) ? (
+                                                        <div className="empty-graph-message" style={{
+                                                            position: 'absolute',
+                                                            top: '50%',
+                                                            left: '50%',
+                                                            transform: 'translate(-50%, -50%)',
+                                                            textAlign: 'center',
+                                                            color: '#666'
+                                                        }}>
+                                                            <h2>No Results Found</h2>
+                                                            <p>Try modifying your search criteria or adjusting the filters.</p>
+                                                        </div>
+                                                    ) : (
+                                                        <Graph
+                                                            data={graphShownData}
+                                                            selectedID={selectedID}
+                                                            minGtdcFreq={minGtdcFreq}
+                                                            maxGtdcFreq={maxGtdcFreq}
+                                                            minGtdcNoc={minGtdcNoc}
+                                                            maxGtdcNoc={maxGtdcNoc}
+                                                            gtdcFreq={gtdcFreq}
+                                                            handleGtdcFreq={handleGtdcFreq}
+                                                            handleMinGtdcFreq={handleMinGtdcFreq}
+                                                            handleMaxGtdcFreq={handleMaxGtdcFreq}
+                                                            gtdcNoc={gtdcNoc}
+                                                            handleGtdcNoc={handleGtdcNoc}
+                                                            handleMinGtdcNoc={handleMinGtdcNoc}
+                                                            handleMaxGtdcNoc={handleMaxGtdcNoc}
+                                                            handleSelect={handleSelect}
+                                                            handleInformation={handleInformation}
+                                                            informationOpen={informationOpen}
+                                                            expandInformation={expandInformation}
+                                                            className="graph"
+                                                            ref={graphContainerRef}
+                                                            style={{
+                                                                width: '100%',
+                                                                height: '100%'
+                                                            }}
+                                                        />
+                                                    )}
                                                 </div>
-                                            ) : (
-                                                <Graph
-                                                    data={graphShownData}
-                                                    selectedID={selectedID}
-                                                    minGtdcFreq={minGtdcFreq}
-                                                    maxGtdcFreq={maxGtdcFreq}
-                                                    minGtdcNoc={minGtdcNoc}
-                                                    maxGtdcNoc={maxGtdcNoc}
-                                                    gtdcFreq={gtdcFreq}
-                                                    handleGtdcFreq={handleGtdcFreq}
-                                                    handleMinGtdcFreq={handleMinGtdcFreq}
-                                                    handleMaxGtdcFreq={handleMaxGtdcFreq}
-                                                    gtdcNoc={gtdcNoc}
-                                                    handleGtdcNoc={handleGtdcNoc}
-                                                    handleMinGtdcNoc={handleMinGtdcNoc}
-                                                    handleMaxGtdcNoc={handleMaxGtdcNoc}
-                                                    handleSelect={handleSelect}
-                                                    handleInformation={handleInformation}
-                                                    informationOpen={informationOpen}
-                                                    expandInformation={expandInformation}
-                                                    className="graph"
-                                                    ref={graphContainerRef}
-                                                    style={{
-                                                        width: '100%',
-                                                        height: '100%'
-                                                    }}
-                                                />
-                                            )}
-                                        </div>
-                                    </Box>
-                                    <Box sx={{
-                                        width: '100%',
-                                        height: '50%',
-                                        position: 'relative',
-                                        left: '0',
-                                    }}>
-                                        <div className="graph-legend">
-                                            <div className="legend-section">
-                                                <div className="legend-subsection">
-                                                    <div className="legend-subtitle">Legends</div>
-                                                    <div className="legend-column">
-                                                        {legendData.map((item, index) => (
-                                                            <LegendButton
-                                                                key={index}
-                                                                label={item.label}
-                                                                size={item.size}
-                                                                color={item.color}
-                                                            />
-                                                        ))}
+                                            </Box>
+                                            <Box sx={{
+                                                // width: '100%',
+                                                // height: '50%',
+                                                // position: 'relative',
+                                                // left: '0',
+                                            }}>
+                                                <div className="graph-legend">
+                                                    <div className="legend-section">
+                                                        <div className="legend-subsection">
+                                                            <div className="legend-subtitle">Legends</div>
+                                                            <div className="legend-column">
+                                                                {legendData.map((item, index) => (
+                                                                    <LegendButton
+                                                                        key={index}
+                                                                        label={item.label}
+                                                                        size={item.size}
+                                                                        color={item.color}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        <div className="legend-subsection">
+                                                            <div className="legend-row">
+                                                                {legendEdgeData.map((item, index) => (
+                                                                    <LegendItem
+                                                                        key={index}
+                                                                        label={item.label}
+                                                                        size={item.size}
+                                                                        color={item.color}
+                                                                        explanation={item.explanation}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div className="legend-subsection">
-                                                    <div className="legend-row">
-                                                        {legendEdgeData.map((item, index) => (
-                                                            <LegendItem
-                                                                key={index}
-                                                                label={item.label}
-                                                                size={item.size}
-                                                                color={item.color}
-                                                                explanation={item.explanation}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </Box>
-                                </Box>
-                                <Box sx={{ width: '3%' }}></Box>
-                                {/* Right */}
-                                <Box sx={{
-                                    borderRadius: "30px",
-                                    width: '30%',
-                                    height: "100%",
-                                    bgcolor: "white",
-                                    paddingBottom: "20px",
-                                    boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
-                                    '& *': {
-                                        fontFamily: "Inter !important",
-                                    },
-                                }}>
-                                    <Information
-                                        isOpen={informationOpen}
-                                        toggleSidebar={handleInformation}
-                                        detailId={detailId}
-                                        displayArticleGraph={displayArticleGraph}
-                                    />
-                                </Box>
+                                            </Box>
+                                        </Box>
+                                    </Grid>
+                                    <Grid item xs={6} height={"100%"}>
+                                        <Box sx={{
+                                            borderRadius: "30px",
+                                            height: "100%",
+                                            //minHeight: "600px",
+                                            bgcolor: "white",
+                                            paddingBottom: "20px",
+                                            marginLeft: "1%",
+                                            marginRight: "1%",
+                                            marginTop: "20px",
+                                            boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
+                                            '& *': {
+                                                fontFamily: "Inter !important",
+                                            },
+                                        
+                                        }} className="floating-information-new">
+                                            <Information
+                                                isOpen={informationOpen}
+                                                toggleSidebar={handleInformation}
+                                                detailId={detailId}
+                                                displayArticleGraph={displayArticleGraph}
+                                            />
+                                        </Box>
+                                    </Grid>
+                                </Grid>
                             </Box>
+
 
                         </div>
 
@@ -978,7 +998,7 @@ const ResultPage = () => {
                         >
                             Legend
                         </Button> */}
-                        <div ref={settingsRef} className={`floating-settings ${isSettingsVisible ? 'open' : ''}`} style={{ width: settingsWidth, minWidth: '400px', display: 'none' }}>
+                        {/* <div ref={settingsRef} className={`floating-settings ${isSettingsVisible ? 'open' : ''}`} style={{ width: settingsWidth, minWidth: '400px', display: 'none' }}>
                             <Settings
                                 minGtdcFreq={minGtdcFreq}
                                 maxGtdcFreq={maxGtdcFreq}
@@ -1053,7 +1073,7 @@ const ResultPage = () => {
                             }
                             onClick={toggleInformation}
                             className={`information-float-button ${!isInformationVisible ? 'collapsed' : ''}`}
-                        />
+                        /> */}
                     </div>
                 )}
             </div>

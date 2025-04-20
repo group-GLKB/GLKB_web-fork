@@ -25,7 +25,6 @@ all {
     height: 89vh;
     position: relative;
     padding-bottom: 60px;
-    background: rgb(244, 246, 254);
 }
 
 /* Header styles */
@@ -156,7 +155,7 @@ all {
 }
 
 /* Graph container */
-.graph-container-wrapper {
+.result-container-wrapper {
     position: fixed;
     top: 160px;
     /* Navbar height (64px) + Search bar height (60px) */
@@ -276,12 +275,12 @@ all {
     position: fixed;
     top: 96px;
     /* Position right below the navbar */
-    left: 18.5%;
-    right: 18.5%;
+    width: 100%;
+    align-self: center;
     height: auto;
     /* Change from fixed height to auto */
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     flex-direction: row;
     /* gap: 1rem; */
@@ -291,13 +290,17 @@ all {
 }
 
 .search-bar-wrapper {
-    width: 60vw;
-    min-width: 720px;
+    width: 100%;
+    /* min-width: 720px; */
     /* Adjust this value as needed */
-    max-width: 1000px;
+    max-width: 1150px;
     /* Adjust this value as needed */
     /* padding: 0 15px; */
     /* Add some horizontal padding */
+}
+
+.search-bar-wrapper .MuiContainer-root {
+    max-width: none;
 }
 
 .search-bar-wrapper .css-ganwlh-MuiContainer-root {
@@ -365,6 +368,7 @@ all {
 .graph-controls {
     display: flex;
     justify-content: center;
+    padding-right: 24px;
 }
 
 .graph-controls .ant-btn {

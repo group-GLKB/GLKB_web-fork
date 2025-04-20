@@ -1,6 +1,6 @@
 .result-container {
     min-width: 100%;
-    min-height: 100vh;
+    /* min-height: 100vh; */
     display: flex;
     flex-direction: column;
 }
@@ -15,6 +15,7 @@
 }
 
 .main-content {
+    background: linear-gradient(to right, #F4F6FE, #DCE3FF, #F4F6FE);
     padding-top: 64px;
     flex: 1;
     display: flex;
@@ -30,10 +31,16 @@
 }
 
 .result-content {
+    min-width: unset;
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 2rem;
+    padding-top: 50px;
+    padding-bottom: 50px;
+    padding-left: 40px;
+    padding-right: 40px;
+    max-width: 1400px;
+    align-self: center;
     align-items: center;
 }
 
@@ -48,9 +55,9 @@
 
 .chat-and-references {
     display: flex;
+    justify-content: center;
     flex: 1;
     gap: 2rem;
-    margin-bottom: 1rem;
     width: 100%;
     height: calc(100vh - 200px);
 }
@@ -59,26 +66,22 @@
     display: flex;
     flex-direction: column;
     border: 1px solid #e0e0e0;
-    border-radius: 8px;
+    border-radius: 20px;
     background-color: white;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     height: 100%;
     padding: 0;
     position: relative;
     flex: 2;
-    min-width: 600px;
     width: 100%;
 }
 
 .references-container {
     flex: 1;
-    width: 400px;
-    min-width: 400px;
-    max-width: 500px;
     overflow-y: auto;
     padding: 1rem;
     border: 1px solid #e0e0e0;
-    border-radius: 8px;
+    border-radius: 20px;
     background-color: white;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     height: 100%;
@@ -228,34 +231,7 @@
     color: #666;
 }
 
-@media (max-width: 1200px) {
-    .result-container {
-        min-width: 100%;
-    }
 
-    .chat-and-references {
-        flex-direction: column;
-        height: calc(100vh - 160px);
-    }
-
-    .chat-container {
-        min-width: 100%;
-        height: 65vh;
-        flex: unset;
-    }
-
-    .references-container {
-        width: 100%;
-        max-width: none;
-        min-width: 25vh;
-        flex: unset;
-    }
-
-    .messages-container {
-        flex: 1;
-        overflow-y: auto;
-    }
-}
 
 .chat-header {
     display: flex;
