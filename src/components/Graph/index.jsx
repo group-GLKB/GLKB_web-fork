@@ -24,7 +24,7 @@ const arePropsEqual = (prevProps, nextProps) => {
 // Wrap the entire Graph component with React.memo
 const Graph = React.memo(function Graph(props) {
   const [width, setWidth] = useState('100%');
-  const [height, setHeight] = useState('calc((100vh - 134px)*0.4)');
+  const [height, setHeight] = useState('calc(max(240px,(100vh - 134px)*0.4))');
 
   useEffect(() => {
     if (!props.data || !props.data.nodes) return;
