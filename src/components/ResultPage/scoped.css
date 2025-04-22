@@ -6,11 +6,17 @@ all {
     font-size: 15px !important;
 }
 
+#root {
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+}
+
 /* Layout */
 .result-container {
+    background: linear-gradient(to right, #F4F6FE, #DCE3FF, #F4F6FE);
+    min-width: 1200px;
+    min-height: 700px;
     height: 100%;
-    width: 100%;
-    min-width: 1000px;
     display: flex;
     flex-direction: column;
     overflow-x: auto;
@@ -22,9 +28,10 @@ all {
 .result-content {
     width: 100%;
     min-width: 1200px;
-    height: 89vh;
+    height: 100%;
     position: relative;
-    padding-bottom: 60px;
+    padding-bottom: 0px;
+    padding-top: 0px;
 }
 
 /* Header styles */
@@ -156,12 +163,10 @@ all {
 
 /* Graph container */
 .result-container-wrapper {
-    position: fixed;
-    top: 160px;
+    position: relative;
     /* Navbar height (64px) + Search bar height (60px) */
-    left: 0;
-    right: 0;
-    bottom: 20px;
+    height: 100%;
+    width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -261,7 +266,7 @@ all {
 
 /* Fixed elements */
 .navbar-wrapper {
-    position: fixed;
+    position: relative;
     top: 0;
     left: 0;
     right: 0;
@@ -272,7 +277,7 @@ all {
 }
 
 .search-bar-container {
-    position: fixed;
+    position: absolute;
     top: 96px;
     /* Position right below the navbar */
     width: 100%;
@@ -293,13 +298,14 @@ all {
     width: 100%;
     /* min-width: 720px; */
     /* Adjust this value as needed */
-    max-width: 1150px;
+    max-width: 1185px;
     /* Adjust this value as needed */
     /* padding: 0 15px; */
     /* Add some horizontal padding */
 }
 
 .search-bar-wrapper .MuiContainer-root {
+    padding-left: 60px;
     max-width: none;
 }
 
@@ -368,7 +374,7 @@ all {
 .graph-controls {
     display: flex;
     justify-content: center;
-    padding-right: 24px;
+    padding-right: 60px;
 }
 
 .graph-controls .ant-btn {

@@ -503,39 +503,39 @@ function LLMAgent() {
                 <div className='result-content'>
                     <div className="llm-agent-container">
                         <div className="chat-and-references">
-                            <Grid container columnSpacing={{sm: 2, md: 4}} sx={{ height: '100%' }}>
-                                <Grid item xs={8}>
+                            <Grid container columnSpacing={{ sm: 2, md: 4 }}>
+                                <Grid item xs={8} height={"100%"}>
                                     <div className="chat-container">
 
                                         {/* Add example queries section */}
                                         {chatHistory.length === 0 && (
                                             <div className="example-queries" style={{ paddingTop: '1rem' }}>
-                                                <div className="example-queries-header" style={{ gap: '1rem', marginTop: '2vh' }}>
+                                                <div className="example-queries-header" style={{ gap: '1rem', marginTop: '2vh', paddingBottom: '200px' }}>
                                                     <div className="logo-container" style={{ marginBottom: '1rem' }}>
                                                         <img src={systemIcon} alt="AI" className="system-icon" style={{ width: '60px', height: '60px' }} />
                                                         <img src={GLKBLogo} alt="GLKB" className="glkb-logo" style={{ height: '60px' }} />
                                                     </div>
                                                     <h3>I can help you explore biomedical literature. Here are some examples:</h3>
                                                 </div>
-                                                <div className="example-query-list" style={{ marginTop: '10px', marginBottom: '10px' }}>
+                                                <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '40px', marginBottom: '10px', overflowX: "auto", position: "absolute", bottom: "25%" }}>
                                                     <div className="example-query"
                                                         onClick={() => handleExampleClick("Who are you?")}
-                                                        style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
+                                                        style={{ height: '80px', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
                                                         Who are you?
                                                     </div>
                                                     <div className="example-query"
                                                         onClick={() => handleExampleClick("What is the role of BRCA1 in breast cancer?")}
-                                                        style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
+                                                        style={{ height: '80px', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
                                                         What is the role of BRCA1 in breast cancer?
                                                     </div>
                                                     <div className="example-query"
                                                         onClick={() => handleExampleClick("How many articles about Alzheimer's disease are published in 2020?")}
-                                                        style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
+                                                        style={{ height: '80px', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
                                                         How many articles about Alzheimer's disease are published in 2020?
                                                     </div>
                                                     <div className="example-query"
                                                         onClick={() => handleExampleClick("What pathways does TP53 participate in?")}
-                                                        style={{ height: '80px', display: 'flex', alignItems: 'center' }}>
+                                                        style={{ height: '80px', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
                                                         What pathways does TP53 participate in?
                                                     </div>
                                                 </div>
@@ -633,7 +633,7 @@ function LLMAgent() {
                                         </div>
                                     </div>
                                 </Grid>
-                                <Grid item xs={4}>
+                                <Grid item xs={4} height={"100%"}>
                                     <div style={{ height: '100%', width: '100%' }}>
                                         <div className="references-container">
                                             <h3>References</h3>

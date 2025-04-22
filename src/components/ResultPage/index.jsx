@@ -192,7 +192,7 @@ const ResultPage = () => {
                 if (windowWidth < minWidth) {
                     containerRef.current.style.width = `${minWidth}px`;
                 } else {
-                    containerRef.current.style.width = '100vw';
+                    containerRef.current.style.width = '100%';
                 }
             }
 
@@ -356,11 +356,11 @@ const ResultPage = () => {
                 const navbarHeight = document.querySelector('.navbar-wrapper').offsetHeight;
                 const topOffset = navbarHeight + searchBarHeight;
 
-                graphContainerRef.current.style.position = 'fixed';
-                graphContainerRef.current.style.top = `${topOffset}px`;
-                graphContainerRef.current.style.left = isSettingsVisible ? SETTINGS_PANEL_WIDTH : '0';
-                graphContainerRef.current.style.right = isInformationVisible ? INFORMATION_PANEL_WIDTH : '0';
-                graphContainerRef.current.style.bottom = '0';
+                // graphContainerRef.current.style.position = 'fixed';
+                // graphContainerRef.current.style.top = `${topOffset}px`;
+                // graphContainerRef.current.style.left = isSettingsVisible ? SETTINGS_PANEL_WIDTH : '0';
+                // graphContainerRef.current.style.right = isInformationVisible ? INFORMATION_PANEL_WIDTH : '0';
+                // graphContainerRef.current.style.bottom = '0';
             }
         };
 
@@ -791,14 +791,14 @@ const ResultPage = () => {
                     </div>
                 )}
             </div>
-            <div className='main-content'>
+            <div className='main-content' style={{ minHeight: "unset", height: "100%", paddingTop: "160px" }}>
                 {(!searchFlag || isGraphLoading) && (
                     <div className='loading-container'>
                         <Spin size='large' />
                     </div>
                 )}
                 {searchFlag && !isGraphLoading && (
-                    <div className='result-content'>
+                    <div className='result-content' style={{ paddingTop: "0px" }}>
                         <div className='result-container-wrapper'>
                             <Box sx={{
                                 // display: 'flex',
@@ -975,7 +975,7 @@ const ResultPage = () => {
                                             '& *': {
                                                 fontFamily: "Inter !important",
                                             },
-                                        
+
                                         }} className="floating-information-new">
                                             <Information
                                                 isOpen={informationOpen}
