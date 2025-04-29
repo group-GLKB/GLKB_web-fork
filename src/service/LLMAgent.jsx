@@ -79,7 +79,7 @@ export class LLMAgentService {
                 messages: this.messages
             });
             
-            const response = await fetch('/api/frontend/llm_agent', {
+            const response = await fetch('https://glkb.dcmb.med.umich.edu/api/frontend/llm_agent', {
             // const response = await fetch('/frontend/llm_agent', {
                 method: 'POST',
                 headers: {
@@ -109,7 +109,7 @@ export class LLMAgentService {
     async getAnswer(question) {
         console.log('Getting answer from LLM agent');
         try {
-            const response = await axios.get('/api/frontend/llm_agent', {
+            const response = await axios.get('https://glkb.dcmb.med.umich.edu/api/frontend/llm_agent', {
             // const response = await axios.get('/frontend/llm_agent', {
                 params: {
                     question: question
