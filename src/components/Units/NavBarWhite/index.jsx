@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import './scoped.css'; // This is where you will import your CSS from
 import { HomeOutlined } from '@ant-design/icons';
+import logo from "../../../img/logo.svg";
 
 function NavBarWhite({ showLogo = true }) {
     return (
@@ -9,9 +10,16 @@ function NavBarWhite({ showLogo = true }) {
             <div className="logo">
                 {showLogo && (
                     <Link to="/">
-                        <HomeOutlined style={{ fontSize: '24px', color: '#3D739C' }} />
+                        <img
+                    src={logo} // Path to the logo image
+                    style={{
+                        height: '80%', // Adjust the width of the image
+                        marginRight: '8px', // Add spacing between the image and text
+                    }}
+                />
                     </Link>
                 )}
+                
             </div>
             <div className="nav-links">
                 <Link to="/about">About</Link>

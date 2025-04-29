@@ -8,7 +8,8 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { Select as AntSelect, Tooltip } from 'antd';
 import CloseIcon from '@mui/icons-material/Close'; // Import the Clear (cross) icon
-import SendIcon from '@mui/icons-material/Send'; 
+import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
+import SendIcon from '@mui/icons-material/Send';
 import 'antd/dist/reset.css';
 
 const SearchBarKnowledge = React.forwardRef((props, ref) => {
@@ -313,7 +314,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     }, [selectedSources]);
 
     return (
-        <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 2, mb: 2 ,ml:0, mr:0,padding:0}}>
+        <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 2, mb: 2 ,ml:0, mr:0,padding:0, maxWidth:'none !important'}}>
             <Box sx={{ mb: 0, backgroundColor: 'transparent'}}>
                 {/* First row with term type and search input */}
                 <Box sx={{ 
@@ -402,12 +403,12 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                     }}
                                                 />
                                                 {/* Search Icon */}
-                                                <SendIcon
+                                                <SendOutlinedIcon
                                                     onClick={handleSearch} // Trigger the search function
                                                     sx={{
-                                                        color: '#1976d2',
+                                                        color: '#45628880', // Make the inside color transparent
                                                         cursor: 'pointer',
-                                                        fontSize: '30px', // Adjust size as needed
+                                                        fontSize: '35px', // Adjust size as needed
                                                     }}
                                                 />
                                             </Box>

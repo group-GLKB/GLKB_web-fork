@@ -5,7 +5,7 @@ import { TweenOneGroup } from "rc-tween-one";
 import {Input, Col, Row, Spin, Tag, Menu,Button as AntButton, Space, Divider} from 'antd';
 import Joyride, { ACTIONS, EVENTS, STATUS } from 'react-joyride';
 import './scoped.css'
-import { GithubOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { GithubOutlined, QuestionCircleOutlined, RadiusBottomleftOutlined } from '@ant-design/icons';
 import GLKBLogoImg from '../../img/glkb_logo.png'
 import UMLogo from '../../img/um_logo.jpg'
 import MedSchoolLogo from '../../img/MedSchoolLogo.png'
@@ -17,11 +17,11 @@ import SearchBarNeighborhood from "../Units/SearchBarNeighborhood";
 import logo from "../../img/logo.svg";
 import umLogo from "../../img/MedSchoolLogo.png";
 import exampleQueries from '../../components/Units/SearchBarKnowledge/example_query.json';
-import { Button, Box, TextField } from '@mui/material'; // Import MUI components
+import { Grid, Button, Box, TextField } from '@mui/material'; // Import MUI components
 import neighborhoodExamples from '../../components/Units/SearchBarNeighborhood/example_query.json';  // Add this import
 import { trackEvent } from '../Units/analytics';
 import CloseIcon from '@mui/icons-material/Close'; // Import the Clear (cross) icon
-import SendIcon from '@mui/icons-material/Send'; 
+import SendOutlinedIcon from '@mui/icons-material/SendOutlined'; 
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 
@@ -233,21 +233,35 @@ const HomePage = () => {
                 scrollToFirstStep={true}
             />
             <NavBarWhite showLogo={true} />
-            <div className="content">
-                <img src={logo} alt="Logo" />
-                <div className="search-chat-part">
-                <Box 
+            <Grid container spacing={2} className="content" justifyContent="center"  alignItems="center">
+                <Grid item xs={12}  container justifyContent="center" 
+                    alignItems="center">
+                    <img
+                        src={logo}
+                        alt="Logo"
+                        style={{
+                            width: '40%', // Make the logo responsive
+                            maxWidth: '400px', // Set a max width for the logo
+                            marginTop: '40px',
+                            marginBottom: '40px',
+                            display: 'block',
+                        }}
+                    />
+                </Grid>
+                
+                <Grid item xs={12} container className="search-chat-part" justifyContent="center" alignItems="center">
+                <Grid 
                     display="flex" 
-                    justifyContent="flex-start" // Align content to the left
-                    alignItems="center"
+                    justifyContent="flex-start"
                     gap={0} 
                     className="search-mode-buttons" // Add this class
+                    xs={8}
+                    container
                     sx={{ 
                         width: '100%', 
                         maxWidth: '833px', // Set the box width to 883px
                         margin: '0px', // Center the box horizontally on the page
                         marginBottom: '-15px', 
-                        
                         paddingLeft:isSmallScreen ? '0px':'24px',
                         paddingRight:isSmallScreen ? '0px':'24px',
                     }}
@@ -259,8 +273,9 @@ const HomePage = () => {
                             height: '60px',
                             border: '3px solid #FFFFFF',
                             background: activeButton === 'triplet' ? 'linear-gradient(to top, #4A65F4, #758BFF)' : 'white',
-                            color: activeButton === 'triplet' ? 'white' : '#4C67F5', // Text color based on active state
-                            fontSize: '20px', // Set font size
+                            color: activeButton === 'triplet' ? 'white' : '#1E416D', // Text color based on active state
+                            fontSize: 'clamp(14px, 2vw, 20px)', // Set font size
+                            paddingRight: '32px',
                             fontWeight: 'bold', 
                             borderTopLeftRadius: '20px', 
                             clipPath: 'polygon(0 0, 100% 0, 80% 100%, 0% 100%)',
@@ -271,23 +286,12 @@ const HomePage = () => {
                     >
                         Search
                     </Button>
-                    {/* <Button 
-                        variant={activeButton === 'neighbor' ? 'contained' : 'outlined'}
-                        sx={{ 
-                            backgroundColor: activeButton === 'neighbor' ? '#F7EFAE' : 'transparent',
-                            color: 'black', 
-                            '&:hover': { backgroundColor: '#F3C846' }
-                        }}
-                        onClick={() => setActiveButton('neighbor')}
-                    >
-                        Explore Related Terms
-                    </Button> */}
                     <Button 
                         variant={activeButton === 'llm' ? 'contained' : 'outlined'}
                         sx={{ 
                             background: activeButton === 'llm' ? 'linear-gradient(to left, #4A65F4, #758BFF)' : 'white',
-                            color: activeButton === 'llm' ? 'white' : '#4C67F5', // Text color based on active state
-                            fontSize: '20px', // Set font size
+                            color: activeButton === 'llm' ? 'white' : '#1E416D', // Text color based on active state
+                            fontSize: 'clamp(14px, 2vw, 20px)', // Set font size
                             fontWeight: 'bold', 
                             width: '20%',
                             height: '60px',
@@ -303,8 +307,8 @@ const HomePage = () => {
                         {/* Search with LLM Agent */}
                         Chat
                     </Button>
-                </Box>
-                <div className="search-section">
+                </Grid>
+                <Grid container xs={8} className="search-section">
                     {activeButton === 'triplet' ? (
                         <SearchBarKnowledge 
                             ref={searchBarKnowledgeRef}
@@ -323,29 +327,12 @@ const HomePage = () => {
                             }}
                             sx={{
                                 width: '100%', // Set exact width
-                                maxWidth: '883px', // Ensure it doesn't exceed this width
                                 margin: '0 auto', // Center horizontally
-                            }}
-                        />
-                    ) : activeButton === 'neighbor' ? (
-                        <SearchBarNeighborhood 
-                            ref={searchBarNeighborhoodRef}
-                            onSearch={(data) => {
-                                console.log('Neighbor Search Data:', {
-                                    search_data: data,
-                                    searchType: 'neighbor'
-                                });
-                                navigate('/result', { 
-                                    state: { 
-                                        search_data: data,
-                                        searchType: 'neighbor'
-                                    } 
-                                });
                             }}
                         />
                     ) : (
                         <Box sx={{ 
-                            width: '100%',mt : 2,mb:2,maxWidth: '883px',
+                            width: '100%',mt : 2,mb:2,
                             display: 'flex', 
                             gap: 2, 
                             paddingLeft: isSmallScreen?'0px':'24px',
@@ -364,6 +351,7 @@ const HomePage = () => {
                                     '& .MuiInputBase-root': {
                                         height: '80px', // Adjust the height of the input field
                                         alignItems: 'center', // Center the text vertically
+                                        paddingRight: '10px', // Remove right padding
                                     },
                                     '& .MuiOutlinedInput-notchedOutline': {
                                         borderColor: 'grey', // Optional: Customize border color
@@ -386,16 +374,16 @@ const HomePage = () => {
                                                 }}
                                             />
                                             {/* Search Icon */}
-                                            <SendIcon
+                                            <SendOutlinedIcon
                                                 onClick={() => {
                                                     if (llmQuery.trim()) {
                                                         navigateToLLMAgent(llmQuery.trim()); // Trigger the search function
                                                     }
                                                 }} // Trigger the search function
                                                 sx={{
-                                                    color: '#1976d2',
+                                                    color: '#45628880',
                                                     cursor: 'pointer',
-                                                    fontSize: '30px', // Adjust size as needed
+                                                    fontSize: '35px', // Adjust size as needed
                                                 }}
                                             />
                                         </Box>
@@ -403,40 +391,12 @@ const HomePage = () => {
                                 }}
                                 
                             />
-                            {/* <button 
-                                type="primary" 
-                                htmlType="submit"
-                                disabled={!llmQuery.trim()}
-                                style={{
-                                    backgroundColor: '#99c7b1',
-                                    color: 'black',
-                                    border: 'none',
-                                    padding: '0.8rem 1.5rem',
-                                    height: '42px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    whiteSpace: 'nowrap',
-                                    fontSize: '1rem',
-                                    transition: 'all 0.2s ease',
-                                    borderRadius: '4px'
-                                }}
-                            >
-                                Send
-                            </button> */}
                         </Box>
                     )}
-                    <div className="example-queries" style={{ 
-                        display: 'flex', 
-                        flexDirection: 'row', 
-                        justifyContent: 'space-between', 
-                        gap: '10px',
-                        width: '100%',
-                        marginTop: activeButton === 'triplet' ? '20px' : '20px', 
-                           
-                    }}>
+                    <Grid container spacing={2} className="example-query-group" style={{  padding: '24px',paddingTop:'48px' }} >
                         {activeButton === 'triplet' ? (
                             <>
+                                <Grid item xs={4} >
                                 <button 
                                     onClick={() => handleExampleQuery(0)}
                                     className="example-query-button"
@@ -456,6 +416,8 @@ const HomePage = () => {
                                         </div>
                                     </Box>
                                 </button>
+                                </Grid>
+                                <Grid item xs={4} >
                                 <button 
                                     onClick={() => handleExampleQuery(1)}
                                     className="example-query-button"
@@ -467,7 +429,10 @@ const HomePage = () => {
                                         <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
                                             Explore relationships between rs3761624 and RSV infectious disease.
                                         </div>
-                                    </Box>                                </button>
+                                    </Box>
+                                </button>
+                                </Grid>
+                                <Grid item xs={4} >
                                 <button 
                                     onClick={() => handleExampleQuery(2)}
                                     className="example-query-button"
@@ -481,51 +446,11 @@ const HomePage = () => {
                                         </div>
                                     </Box>                                 
                                 </button>
-                            </>
-                        ) : activeButton === 'neighbor' ? (
-                            <>
-                                <button 
-                                    onClick={() => handleExampleQuery(0)}
-                                    className="example-query-button"
-                                >
-                                    <Box>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                        Example Query 1:
-                                        </div>
-                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
-                                        Find sequence variants related to TP53 based on literature
-                                        </div>
-                                    </Box>    
-                                </button>
-                                <button 
-                                    onClick={() => handleExampleQuery(1)}
-                                    className="example-query-button"
-                                >
-                                    <Box>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                        Example Query 2:
-                                        </div>
-                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
-                                        Find genes related to Alzheimer's disease based on literature
-                                        </div>
-                                    </Box>    
-                                </button>
-                                <button 
-                                    onClick={() => handleExampleQuery(2)}
-                                    className="example-query-button"
-                                >
-                                    <Box>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                        Example Query 3:
-                                        </div>
-                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
-                                        Find biomedical terms related to SOX2 based on curated databases
-                                        </div>
-                                    </Box>  
-                                </button>
+                                </Grid>
                             </>
                         ) : (
                             <>
+                                <Grid item xs={4} >
                                 <button 
                                     onClick={() => navigateToLLMAgent("Who are you?")}
                                     className="example-query-button custom-ant-btn"
@@ -539,19 +464,21 @@ const HomePage = () => {
                                         Who are you?                                        </div>
                                     </Box> 
                                 </button>
+                                </Grid>
+                                <Grid item xs={4} >
                                 <button 
                                     onClick={() => navigateToLLMAgent("What is the role of BRCA1 in breast cancer?")}
                                     className="example-query-button"
                                 >
-                                    <Box>
                                         <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
                                         Example Query 2:
                                         </div>
                                         <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
                                         What is the role of BRCA1 in breast cancer?
                                         </div>
-                                    </Box> 
                                 </button>
+                                </Grid>
+                                <Grid item xs={4} >
                                 <button 
                                     onClick={() => navigateToLLMAgent("How many articles about Alzheimer's disease were published in 2020?")}
                                     className="example-query-button"
@@ -565,10 +492,11 @@ const HomePage = () => {
                                         </div>
                                     </Box> 
                                 </button>
+                                </Grid>
                             </>
                         )}
-                    </div>
-                </div>
+                    </Grid>
+                </Grid>
                 <AntButton 
                     onClick={() => setRunTour(true)}
                     // style={{ marginTop: '20px' }}
@@ -577,8 +505,8 @@ const HomePage = () => {
                 >
                     Take a Guided Tour to GLKB
                 </AntButton>
-                </div>
-            </div>
+                </Grid>
+            </Grid>
                         
             <div className="footer">
                 <div style={{ width:'100%', margin: '0 auto', padding: '0 0px' }}>
