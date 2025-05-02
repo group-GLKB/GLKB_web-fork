@@ -1,20 +1,23 @@
 .HomePageContainer {
-    background: linear-gradient(to right, #F4F6FE, #DCE3FF, #F4F6FE); /* Linear gradient background */
+    background: linear-gradient(to right, #F4F6FE, #DCE3FF, #F4F6FE);
+    /* Linear gradient background */
     display: flex;
     flex-direction: column;
-    min-height: 100vh; /* Changed to 100vh for full viewport height */
+    min-height: 100vh;
+    /* Changed to 100vh for full viewport height */
     overflow-y: auto;
     position: relative;
     /* background-color: #DCE3FF; */
 }
 
 .content {
-    
+
     display: flex;
     flex-direction: column;
     align-items: center;
     /* flex: 1; */
-    padding-top: 50px; /* Increased padding-top to move content lower */
+    padding-top: 50px;
+    /* Increased padding-top to move content lower */
     padding: 20px;
     justify-content: center;
     /* overflow-y: auto; */
@@ -30,10 +33,14 @@
     font-size: 14px;
     position: absolute;
     bottom: 5px;
-    left: 50%; /* Move to the horizontal center */
-    transform: translateX(-50%); /* Adjust for centering */
-    width: 100%; /* Optional: Ensure it spans the full width */
-    text-align: center; /* Center text content */
+    left: 50%;
+    /* Move to the horizontal center */
+    transform: translateX(-50%);
+    /* Adjust for centering */
+    width: 100%;
+    /* Optional: Ensure it spans the full width */
+    text-align: center;
+    /* Center text content */
 }
 
 
@@ -41,14 +48,18 @@
     max-width: 200px;
     margin-bottom: 10px;
 }
+
 .navigation-bar {
     position: relative;
-    z-index: 1000; /* Ensure the navbar is above the Joyride overlay */
+    z-index: 1000;
+    /* Ensure the navbar is above the Joyride overlay */
 }
 
 .joyride-overlay {
-    position: fixed !important; /* 确保覆盖层固定在视口内 */
-    z-index: 10000 !important; /* 确保覆盖层在最顶层 */
+    position: fixed !important;
+    /* 确保覆盖层固定在视口内 */
+    z-index: 10000 !important;
+    /* 确保覆盖层在最顶层 */
 }
 
 .search-chat-part {
@@ -56,22 +67,27 @@
     flex-direction: column;
     align-items: flex-start;
     width: 100%;
-    max-width: 883px; /* Set a max-width for the search section */
-    margin: 0 auto; /* Center the search section */
+    max-width: 883px;
+    /* Set a max-width for the search section */
+    margin: 0 auto;
+    /* Center the search section */
 
 }
+
 .search-section {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     width: 100%;
     margin: 0 auto;
-    border-radius: 8px; /* 设置圆角 */
+    border-radius: 8px;
+    /* 设置圆角 */
     max-width: '883px';
 }
 
 .example-query-group {
-    margin-top: 40px; /* Increased margin-top for more space */
+    margin-top: 40px;
+    /* Increased margin-top for more space */
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -93,7 +109,7 @@
     color: black;
     background-color: #F4F6FE;
     border: none;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     transition: background-color 0.3s;
     flex: 1;
     border-radius: 8px;
@@ -105,7 +121,8 @@
 }
 
 .example-query-button:hover {
-    background-color: #C4CCFE; /* Change to a lighter shade on hover */
+    background-color: #C4CCFE;
+    /* Change to a lighter shade on hover */
 }
 
 /* Add styles for the navigation bar */
@@ -115,13 +132,14 @@
     left: 0;
     right: 0;
     background-color: #fff;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     z-index: 1000;
 }
 
 /* Adjust content to account for fixed nav bar */
 .content {
-    margin-top: 60px; /* Height of the nav bar */
+    margin-top: 60px;
+    /* Height of the nav bar */
 }
 
 .glkb-introduction {
@@ -146,6 +164,7 @@
 
 @media (max-height: 600px) {
     .content {
-        padding-top: 60px; /* Adjust this value as needed */
+        padding-top: 60px;
+        /* Adjust this value as needed */
     }
 }
