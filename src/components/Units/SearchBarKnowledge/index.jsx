@@ -8,7 +8,7 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { Select as AntSelect, Tooltip } from 'antd';
 import CloseIcon from '@mui/icons-material/Close'; // Import the Clear (cross) icon
-import SendIcon from '@mui/icons-material/Send'; 
+import SendIcon from '@mui/icons-material/Send';
 import 'antd/dist/reset.css';
 
 const SearchBarKnowledge = React.forwardRef((props, ref) => {
@@ -46,16 +46,16 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const sortByCategory = (a, b) => {
         const categoryA = getDisplayCategory(a[2]);
         const categoryB = getDisplayCategory(b[2]);
-        
+
         // First sort by category order
         const orderDiff = categoryOrder.indexOf(categoryA) - categoryOrder.indexOf(categoryB);
         if (orderDiff !== 0) return orderDiff;
-        
+
         // Then sort alphabetically within category
         return a[1].localeCompare(b[1]);
     };
     // Convert database type to display category
-    
+
     const getDisplayCategory = (databaseType) => {
         // console.log('Processing type:', databaseType);
         const category = databaseTypeMapping[databaseType] || 'All Biomedical Terms';
@@ -74,12 +74,12 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         let cypherServ = new CypherService();
         const response = await cypherServ.Entity2Cypher(searchValue, termType);
         const sortedOptions = response.data
-        .map(node => [
-            node.database_id,
-            `${node.name} (${node.element_id})`,
-            node.type
-        ])
-        .sort(sortByCategory);
+            .map(node => [
+                node.database_id,
+                `${node.name} (${node.element_id})`,
+                node.type
+            ])
+            .sort(sortByCategory);
         setSourceNodeOptions(sortedOptions);
         // setSourceNodeData(response.data);
         // setSourceNodeOptions([
@@ -97,9 +97,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
         const searchValue = newInputValue.split(' (')[0];
         setInputValue(newInputValue);
-        
+
         const searchFn = () => performSearch(searchValue);
-        
+
         if (event && event.type === "click") {
             searchFn();
         } else {
@@ -122,19 +122,19 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
     // const handleAddTriplet = () => {
     //     if (!selectedSource || chipData.length >= 5) return;
-        
+
     //     const sourceName = selectedSource[1].split(' (')[0];
     //     let chip_str = `(${sourceName})-[any relationships]-()`;
     //     if (chipData.includes(chip_str)) return;
-        
+
     //     const sourceNode = sourceNodeData.find(node => 
     //         node.name.toLowerCase() === sourceName.toLowerCase() ||
     //         node.aliases.some(alias => alias.toLowerCase() === sourceName.toLowerCase())
     //     );
-        
+
     //     setChipData(prev => [...prev, chip_str]);
     //     setChipDataID(prev => [...prev, [sourceNode, null]]);
-        
+
     //     setSelectedSource(null);
     //     setInputValue("");
     //     setSourceNodeOptions([]);
@@ -143,12 +143,12 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     //         setTripletLimitReached(true);
     //     }
     // };
-    
+
     useEffect(() => {
         // Generate new chipData and chipDataID based on selectedSources
         const newChipData = [];
         const newChipDataID = [];
-    
+
         selectedSources.forEach((source) => {
             const sourceName = source.name || source[1].replace(/\s*\([^)]*\)$/, "").trim(); // Extract source name
             const chip_str = `(${sourceName})-[any relationships]-()`;
@@ -156,7 +156,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                 { database_id: Number(source[0]), name: sourceName },
                 null,
             ];
-    
+
             // Check if the chip already exists in newChipData
             const tripletExists = newChipData.some((chip) => chip === chip_str);
             // console.log('Generated chip_str:', chip_str, 'Exists:', tripletExists); // Debugging log
@@ -166,11 +166,11 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                 newChipDataID.push(sourceNode); // Add to newChipDataID
             }
         });
-    
+
         // Update chipData and chipDataID states
         setChipData(newChipData);
         setChipDataID(newChipDataID);
-    
+
         console.log('Updated chipData:', newChipData);
         console.log('Updated chipDataID:', newChipDataID);
     }, [selectedSources]); // Trigger this effect whenever selectedSources changes
@@ -186,7 +186,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         const updatedChipData = chipData.filter((_, index) => {
             return updatedChipDataID.includes(chipDataID[index]);
         });
-    
+
         // Update chipData and chipDataID if they have changed
         if (updatedChipData.length !== chipData.length) {
             setChipData(updatedChipData);
@@ -194,7 +194,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         if (updatedChipDataID.length !== chipDataID.length) {
             setChipDataID(updatedChipDataID);
         }
-    
+
         console.log('Filtered chipData:', updatedChipData);
         console.log('Filtered chipDataID:', updatedChipDataID);
     }, [selectedSources]); // Trigger this effect whenever selectedSources, chipData, or chipDataID changes
@@ -232,7 +232,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                 "more_rels": moreRel ? "True" : "False",
                 "merge": "True"
             },
-            "sources":selectedSources
+            "sources": selectedSources
         };
         if (props.onSearch) {
             props.onSearch(search_data);
@@ -255,7 +255,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                     const sourceName = triplet.source[1].replace(/[()]/g, '');
                     return `(${sourceName})-[any relationships]-()`;
                 }));
-                
+
                 setChipDataID(initialTriplets.map(triplet => [
                     { database_id: triplet.source[0], name: triplet.source[1].replace(/[()]/g, '') },
                     null
@@ -290,10 +290,10 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                 ];
                 setChipData(prev => [...prev, chip_str]);
                 setChipDataID(prev => [...prev, sourceNode]);
-                    // console.log('ChipdataID is:',sourceNode)
-                    // Add to newSelectedSources
+                // console.log('ChipdataID is:',sourceNode)
+                // Add to newSelectedSources
                 newSelectedSources.push(
-                    [triplet.source[0],sourceName,triplet.source[2]]
+                    [triplet.source[0], sourceName, triplet.source[2]]
                 );
             });
             setSelectedSources(newSelectedSources);
@@ -313,16 +313,16 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     }, [selectedSources]);
 
     return (
-        <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 2, mb: 2 ,ml:0, mr:0,padding:0}}>
-            <Box sx={{ mb: 0, backgroundColor: 'transparent'}}>
+        <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 2, mb: 2, ml: 0, mr: 0, padding: 0 }}>
+            <Box sx={{ mb: 0, backgroundColor: 'transparent' }}>
                 {/* First row with term type and search input */}
-                <Box sx={{ 
-                    display: 'flex', 
-                    gap: 2, 
+                <Box sx={{
+                    display: 'flex',
+                    gap: 2,
                     flexDirection: isSmallScreen ? 'column' : 'row',
                     backgroundColor: 'white'
                 }}>
-                    
+
                     {/* Search Input */}
                     <Box sx={{ flexGrow: 1 }}>
                         <Autocomplete
@@ -331,9 +331,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             limitTags={5}
                             autoHighlight={true}
                             onInputChange={(event, newInputValue) => {
-                                if(!tripletLimitReached){
-                                setInputValue(newInputValue);
-                                updateSource(event, newInputValue);
+                                if (!tripletLimitReached) {
+                                    setInputValue(newInputValue);
+                                    updateSource(event, newInputValue);
                                 }
                             }}
                             options={sourceNodeOptions || []}
@@ -342,27 +342,28 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             groupBy={(option => getDisplayCategory(option[2]))}
                             getOptionLabel={(option) => {
                                 // console.log('Option:', option);
-                                return option[1]}}
+                                return option[1]
+                            }}
                             renderTags={(value, getTagProps) =>
                                 value.map((option, index) => (
                                     <Chip
-                                    key={option.database_id}
-                                    label={option[1].replace(/\s*\([^)]*\)$/, "")}
-                                    size="small"
-                                    {...getTagProps({ index })} // Pass props for chip behavior
-                                />
+                                        key={option.database_id}
+                                        label={option[1].replace(/\s*\([^)]*\)$/, "")}
+                                        size="small"
+                                        {...getTagProps({ index })} // Pass props for chip behavior
+                                    />
                                 ))
                             }
                             renderInput={(params) => (
-                                <TextField 
-                                    {...params} 
-                                    placeholder={ "Start searching with biomedical terms"} // Update placeholder
-                                    variant="outlined" 
+                                <TextField
+                                    {...params}
+                                    placeholder={"Start searching with biomedical terms"} // Update placeholder
+                                    variant="outlined"
                                     sx={{
                                         minHeight: '60px', // Increase the height of the input box
                                         '& .MuiInputBase-root': {
                                             height: 'auto', // Allow the height to grow dynamically
-                                            minHeight: '60px', 
+                                            minHeight: '60px',
                                             alignItems: 'center', // Center the text vertically
                                         },
                                         '& .MuiOutlinedInput-notchedOutline': {
@@ -372,8 +373,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                             paddingRight: "70px!important",
                                         },
                                     }}
-                                    size="small" 
-                                     
+                                    size="small"
+
                                     className="search-autocomplete-box"
                                     InputProps={{
                                         ...params.InputProps,
@@ -391,6 +392,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                             >
                                                 {/* Clear Icon */}
                                                 <CloseIcon
+                                                    className="close-button"
                                                     onClick={() => {
                                                         setSelectedSource([]); // Clear sel`ected options
                                                         setInputValue(''); // Clear input value
@@ -403,6 +405,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                 />
                                                 {/* Search Icon */}
                                                 <SendIcon
+                                                    className="search-button"
                                                     onClick={handleSearch} // Trigger the search function
                                                     sx={{
                                                         color: '#1976d2',
@@ -418,12 +421,12 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             value={selectedSources}
                             inputValue={inputValue}
                             onChange={(event, newValue) => {
-                                    setSelectedSources(newValue);
-                                    console.log('New sources:', newValue);
+                                setSelectedSources(newValue);
+                                console.log('New sources:', newValue);
                             }}
-                            
+
                         />
-                        </Box>
+                    </Box>
 
 
                 </Box>

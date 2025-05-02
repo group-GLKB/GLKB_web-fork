@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import 'antd/dist/reset.css';
 import { TweenOneGroup } from "rc-tween-one";
-import {Input, Col, Row, Spin, Tag, Menu,Button as AntButton, Space, Divider} from 'antd';
+import { Input, Col, Row, Spin, Tag, Menu, Button as AntButton, Space, Divider } from 'antd';
 import Joyride, { ACTIONS, EVENTS, STATUS } from 'react-joyride';
 import './scoped.css'
 import { GithubOutlined, QuestionCircleOutlined } from '@ant-design/icons';
@@ -21,7 +21,7 @@ import { Button, Box, TextField } from '@mui/material'; // Import MUI components
 import neighborhoodExamples from '../../components/Units/SearchBarNeighborhood/example_query.json';  // Add this import
 import { trackEvent } from '../Units/analytics';
 import CloseIcon from '@mui/icons-material/Close'; // Import the Clear (cross) icon
-import SendIcon from '@mui/icons-material/Send'; 
+import SendIcon from '@mui/icons-material/Send';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 
@@ -52,19 +52,19 @@ const HomePage = () => {
     const handleSearch = async (v) => {
         // Track searches
         trackEvent('Search', 'Search Performed', activeButton);
-        
-        navigate('/result', { 
-            state: { 
+
+        navigate('/result', {
+            state: {
                 search_data: v,
                 searchType: activeButton
-            } 
+            }
         });
     }
 
     const handleExampleQuery = (index) => {
         // Track example query clicks
         trackEvent('Search', 'Example Query Click', `Example ${index + 1}`);
-        
+
         if (activeButton === 'triplet') {
             if (exampleQueries && exampleQueries.length > index) {
                 const exampleQuery = exampleQueries[index];
@@ -114,20 +114,35 @@ const HomePage = () => {
         ];
 
         const tripletSteps = [
+            // {
+            //     target: '.search-autocomplete-box',
+            //     content: 'Start typing here to see autocomplete suggestions for your search terms.',
+            //     placement: 'bottom',
+            // },
+            // {
+            //     target: '.add-biomedical-term-button',
+            //     content: 'After selecting a term, click here to add it to your search query.',
+            //     placement: 'bottom',
+            // },
+            // {
+            //     target: '.log-box',
+            //     content: 'Your added terms will appear here. You can add up to five terms in one search. Remove terms by clicking the "X" button.',
+            //     placement: 'bottom',
+            // }
             {
                 target: '.search-autocomplete-box',
-                content: 'Start typing here to see autocomplete suggestions for your search terms.',
+                content: 'Start typing here to see autocomplete suggestions for your search terms. Click the term to add it to your search query.',
                 placement: 'bottom',
             },
             {
-                target: '.add-biomedical-term-button',
-                content: 'After selecting a term, click here to add it to your search query.',
+                target: '.close-button',
+                content: 'Remove terms by clicking this "X" button.',
                 placement: 'bottom',
             },
             {
-                target: '.log-box',
-                content: 'Your added terms will appear here. You can add up to five terms in one search. Remove terms by clicking the "X" button.',
-                placement: 'bottom',
+                target: '.search-autocomplete-box',
+                content: 'You can add up to five terms in one search.',
+                placement: 'top',
             }
         ];
 
@@ -156,12 +171,12 @@ const HomePage = () => {
 
         const llmSteps = [
             {
-                target: 'input[type="text"]',
+                target: '.llm-searchbar',
                 content: 'Ask any question about biomedical literature. Our AI agent will help find and analyze relevant information for you.',
                 placement: 'bottom',
             },
             {
-                target: '.example-queries',
+                target: '.example-query-tour',
                 content: 'Try these example queries to see how the LLM Agent can help you explore biomedical knowledge.',
                 placement: 'top',
             }
@@ -170,13 +185,13 @@ const HomePage = () => {
         const finalSteps = [
             {
                 target: '.search-button',
-                content: activeButton === 'triplet' 
+                content: activeButton === 'triplet'
                     ? 'Click here to visualize the relationships between your selected terms.'
                     : 'Click here to find related terms based on your settings.',
                 placement: 'bottom',
             },
             {
-                target: '.example-queries',
+                target: '.example-query-tour',
                 content: 'Not sure where to start? Try one of these example queries to see how it works.',
                 placement: 'top',
             }
@@ -184,9 +199,9 @@ const HomePage = () => {
 
         return [
             ...commonSteps,
-            ...(activeButton === 'triplet' ? tripletSteps : 
-                activeButton === 'neighbor' ? neighborSteps : 
-                llmSteps),
+            ...(activeButton === 'triplet' ? tripletSteps :
+                activeButton === 'neighbor' ? neighborSteps :
+                    llmSteps),
             ...(activeButton !== 'llm' ? finalSteps : [])
         ];
     };
@@ -236,42 +251,50 @@ const HomePage = () => {
             <div className="content">
                 <img src={logo} alt="Logo" />
                 <div className="search-chat-part">
-                <Box 
-                    display="flex" 
-                    justifyContent="flex-start" // Align content to the left
-                    alignItems="center"
-                    gap={0} 
-                    className="search-mode-buttons" // Add this class
-                    sx={{ 
-                        width: '100%', 
-                        maxWidth: '833px', // Set the box width to 883px
-                        margin: '0px', // Center the box horizontally on the page
-                        marginBottom: '-15px', 
-                        
-                        paddingLeft:isSmallScreen ? '0px':'24px',
-                        paddingRight:isSmallScreen ? '0px':'24px',
-                    }}
-                >
-                    <Button 
-                        variant={activeButton === 'triplet' ? 'contained' : 'outlined'}
-                        sx={{ 
-                            width: '20%',
-                            height: '60px',
-                            border: '3px solid #FFFFFF',
-                            background: activeButton === 'triplet' ? 'linear-gradient(to top, #4A65F4, #758BFF)' : 'white',
-                            color: activeButton === 'triplet' ? 'white' : '#4C67F5', // Text color based on active state
-                            fontSize: '20px', // Set font size
-                            fontWeight: 'bold', 
-                            borderTopLeftRadius: '20px', 
-                            clipPath: 'polygon(0 0, 100% 0, 80% 100%, 0% 100%)',
-                            boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
-                            '&:hover': { backgroundColor: '#C4CCFE' }
+                    <Box
+                        display="flex"
+                        justifyContent="flex-start" // Align content to the left
+                        alignItems="center"
+                        gap={0}
+                        sx={{
+                            width: '100%',
+                            maxWidth: '833px', // Set the box width to 883px
+                            margin: '0px', // Center the box horizontally on the page
+                            marginBottom: '-15px',
+                            position: 'relative',
+                            paddingLeft: isSmallScreen ? '0px' : '24px',
+                            paddingRight: isSmallScreen ? '0px' : '24px',
                         }}
-                        onClick={() => setActiveButton('triplet')}
                     >
-                        Search
-                    </Button>
-                    {/* <Button 
+                        <Box // Tour positioning
+                            className="search-mode-buttons"
+                            sx={{
+                                position: 'absolute',
+                                top: '0px',
+                                left: isSmallScreen ? '0px' : '24px',
+                                width: isSmallScreen ? 'calc(40% - 36px)' : 'calc((100% - 48px) * 0.4 - 36px)',
+                                height: '100%',
+                            }} />
+                        <Button
+                            variant={activeButton === 'triplet' ? 'contained' : 'outlined'}
+                            sx={{
+                                width: '20%',
+                                height: '60px',
+                                border: '3px solid #FFFFFF',
+                                background: activeButton === 'triplet' ? 'linear-gradient(to top, #4A65F4, #758BFF)' : 'white',
+                                color: activeButton === 'triplet' ? 'white' : '#4C67F5', // Text color based on active state
+                                fontSize: '20px', // Set font size
+                                fontWeight: 'bold',
+                                borderTopLeftRadius: '20px',
+                                clipPath: 'polygon(0 0, 100% 0, 80% 100%, 0% 100%)',
+                                boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
+                                '&:hover': { backgroundColor: '#C4CCFE' }
+                            }}
+                            onClick={() => setActiveButton('triplet')}
+                        >
+                            Search
+                        </Button>
+                        {/* <Button 
                         variant={activeButton === 'neighbor' ? 'contained' : 'outlined'}
                         sx={{ 
                             backgroundColor: activeButton === 'neighbor' ? '#F7EFAE' : 'transparent',
@@ -282,128 +305,129 @@ const HomePage = () => {
                     >
                         Explore Related Terms
                     </Button> */}
-                    <Button 
-                        variant={activeButton === 'llm' ? 'contained' : 'outlined'}
-                        sx={{ 
-                            background: activeButton === 'llm' ? 'linear-gradient(to left, #4A65F4, #758BFF)' : 'white',
-                            color: activeButton === 'llm' ? 'white' : '#4C67F5', // Text color based on active state
-                            fontSize: '20px', // Set font size
-                            fontWeight: 'bold', 
-                            width: '20%',
-                            height: '60px',
-                            border: '3px solid #FFFFFF',
-                            borderBottomRightRadius: '20px', // 确保底部有圆角
-                            clipPath: 'polygon(20% 0, 100% 0, 100% 100%, 0% 100%)', // Leaning left edge
-                            marginLeft: '-36px', 
-                            boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
-                            '&:hover': { backgroundColor: '#C4CCFE' }
-                        }}
-                        onClick={() => setActiveButton('llm')}
-                    >
-                        {/* Search with LLM Agent */}
-                        Chat
-                    </Button>
-                </Box>
-                <div className="search-section">
-                    {activeButton === 'triplet' ? (
-                        <SearchBarKnowledge 
-                            ref={searchBarKnowledgeRef}
-                            chipData={[]} 
-                            onSearch={(data) => {
-                                console.log('Triplet Search Data:', {
-                                    search_data: data,
-                                    searchType: 'triplet',
-                                });
-                                navigate('/result', { 
-                                    state: { 
+                        <Button
+                            variant={activeButton === 'llm' ? 'contained' : 'outlined'}
+                            sx={{
+                                background: activeButton === 'llm' ? 'linear-gradient(to left, #4A65F4, #758BFF)' : 'white',
+                                color: activeButton === 'llm' ? 'white' : '#4C67F5', // Text color based on active state
+                                fontSize: '20px', // Set font size
+                                fontWeight: 'bold',
+                                width: '20%',
+                                height: '60px',
+                                border: '3px solid #FFFFFF',
+                                borderBottomRightRadius: '20px', // 确保底部有圆角
+                                clipPath: 'polygon(20% 0, 100% 0, 100% 100%, 0% 100%)', // Leaning left edge
+                                marginLeft: '-36px',
+                                boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
+                                '&:hover': { backgroundColor: '#C4CCFE' }
+                            }}
+                            onClick={() => setActiveButton('llm')}
+                        >
+                            {/* Search with LLM Agent */}
+                            Chat
+                        </Button>
+                    </Box>
+                    <div className="search-section">
+                        {activeButton === 'triplet' ? (
+                            <SearchBarKnowledge
+                                ref={searchBarKnowledgeRef}
+                                chipData={[]}
+                                onSearch={(data) => {
+                                    console.log('Triplet Search Data:', {
                                         search_data: data,
                                         searchType: 'triplet',
-                                    } 
-                                });
-                            }}
-                            sx={{
-                                width: '100%', // Set exact width
-                                maxWidth: '883px', // Ensure it doesn't exceed this width
-                                margin: '0 auto', // Center horizontally
-                            }}
-                        />
-                    ) : activeButton === 'neighbor' ? (
-                        <SearchBarNeighborhood 
-                            ref={searchBarNeighborhoodRef}
-                            onSearch={(data) => {
-                                console.log('Neighbor Search Data:', {
-                                    search_data: data,
-                                    searchType: 'neighbor'
-                                });
-                                navigate('/result', { 
-                                    state: { 
+                                    });
+                                    navigate('/result', {
+                                        state: {
+                                            search_data: data,
+                                            searchType: 'triplet',
+                                        }
+                                    });
+                                }}
+                                sx={{
+                                    width: '100%', // Set exact width
+                                    maxWidth: '883px', // Ensure it doesn't exceed this width
+                                    margin: '0 auto', // Center horizontally
+                                }}
+                            />
+                        ) : activeButton === 'neighbor' ? (
+                            <SearchBarNeighborhood
+                                ref={searchBarNeighborhoodRef}
+                                onSearch={(data) => {
+                                    console.log('Neighbor Search Data:', {
                                         search_data: data,
                                         searchType: 'neighbor'
-                                    } 
-                                });
-                            }}
-                        />
-                    ) : (
-                        <Box sx={{ 
-                            width: '100%',mt : 2,mb:2,maxWidth: '883px',
-                            display: 'flex', 
-                            gap: 2, 
-                            paddingLeft: isSmallScreen?'0px':'24px',
-                            paddingRight: isSmallScreen?'0px':'24px',
-                        }}>
-                
-                            <TextField
-                                type="text"
-                                value={llmQuery}
-                                onChange={(e) => setLlmQuery(e.target.value)}
-                                placeholder="Ask a question about the biomedical literature..."
-                                sx={{
-                                    backgroundColor: 'white',
-                                    height: '60px', // Increase the height of the input box
-                                    width: '100%',
-                                    '& .MuiInputBase-root': {
-                                        height: '80px', // Adjust the height of the input field
-                                        alignItems: 'center', // Center the text vertically
-                                    },
-                                    '& .MuiOutlinedInput-notchedOutline': {
-                                        borderColor: 'grey', // Optional: Customize border color
-                                    },
+                                    });
+                                    navigate('/result', {
+                                        state: {
+                                            search_data: data,
+                                            searchType: 'neighbor'
+                                        }
+                                    });
                                 }}
-                                fullWidth
-                                InputProps={{
-                                    endAdornment: (
-                                        <Box display="flex" alignItems="center">
-                                            {/* Clear Icon */}
-                                            <CloseIcon
-                                                onClick={() => {
-                                                    setLlmQuery(''); // Clear the input field
-                                                }}
-                                                sx={{
-                                                    color: 'grey.500',
-                                                    cursor: 'pointer',
-                                                    fontSize: '20px', // Adjust size as needed
-                                                    marginRight: '8px', // Add spacing from the SendIcon
-                                                }}
-                                            />
-                                            {/* Search Icon */}
-                                            <SendIcon
-                                                onClick={() => {
-                                                    if (llmQuery.trim()) {
-                                                        navigateToLLMAgent(llmQuery.trim()); // Trigger the search function
-                                                    }
-                                                }} // Trigger the search function
-                                                sx={{
-                                                    color: '#1976d2',
-                                                    cursor: 'pointer',
-                                                    fontSize: '30px', // Adjust size as needed
-                                                }}
-                                            />
-                                        </Box>
-                                    ),
-                                }}
-                                
                             />
-                            {/* <button 
+                        ) : (
+                            <Box sx={{
+                                width: '100%', mt: 2, mb: 2, maxWidth: '883px',
+                                display: 'flex',
+                                gap: 2,
+                                paddingLeft: isSmallScreen ? '0px' : '24px',
+                                paddingRight: isSmallScreen ? '0px' : '24px',
+                            }}>
+
+                                <TextField
+                                    className="llm-searchbar"
+                                    type="text"
+                                    value={llmQuery}
+                                    onChange={(e) => setLlmQuery(e.target.value)}
+                                    placeholder="Ask a question about the biomedical literature..."
+                                    sx={{
+                                        backgroundColor: 'white',
+                                        height: '60px', // Increase the height of the input box
+                                        width: '100%',
+                                        '& .MuiInputBase-root': {
+                                            height: '80px', // Adjust the height of the input field
+                                            alignItems: 'center', // Center the text vertically
+                                        },
+                                        '& .MuiOutlinedInput-notchedOutline': {
+                                            borderColor: 'grey', // Optional: Customize border color
+                                        },
+                                    }}
+                                    fullWidth
+                                    InputProps={{
+                                        endAdornment: (
+                                            <Box display="flex" alignItems="center">
+                                                {/* Clear Icon */}
+                                                <CloseIcon
+                                                    onClick={() => {
+                                                        setLlmQuery(''); // Clear the input field
+                                                    }}
+                                                    sx={{
+                                                        color: 'grey.500',
+                                                        cursor: 'pointer',
+                                                        fontSize: '20px', // Adjust size as needed
+                                                        marginRight: '8px', // Add spacing from the SendIcon
+                                                    }}
+                                                />
+                                                {/* Search Icon */}
+                                                <SendIcon
+                                                    onClick={() => {
+                                                        if (llmQuery.trim()) {
+                                                            navigateToLLMAgent(llmQuery.trim()); // Trigger the search function
+                                                        }
+                                                    }} // Trigger the search function
+                                                    sx={{
+                                                        color: '#1976d2',
+                                                        cursor: 'pointer',
+                                                        fontSize: '30px', // Adjust size as needed
+                                                    }}
+                                                />
+                                            </Box>
+                                        ),
+                                    }}
+
+                                />
+                                {/* <button 
                                 type="primary" 
                                 htmlType="submit"
                                 disabled={!llmQuery.trim()}
@@ -424,164 +448,166 @@ const HomePage = () => {
                             >
                                 Send
                             </button> */}
-                        </Box>
-                    )}
-                    <div className="example-queries" style={{ 
-                        display: 'flex', 
-                        flexDirection: 'row', 
-                        justifyContent: 'space-between', 
-                        gap: '10px',
-                        width: '100%',
-                        marginTop: activeButton === 'triplet' ? '20px' : '20px', 
-                           
-                    }}>
-                        {activeButton === 'triplet' ? (
-                            <>
-                                <button 
-                                    onClick={() => handleExampleQuery(0)}
-                                    className="example-query-button"
-                                    sx={{
-                                        backgroundColor: '#F4F6FE',
-                                        '&:hover': {
-                                            backgroundColor: '#C4CCFE', // Hover color
-                                        },
-                                    }}
-                                >
-                                    <Box>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                            Identify Gene-Disease Associations
-                                        </div>
-                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
-                                            Explore relationships between Type 2 Diabetes and its associated genes.
-                                        </div>
-                                    </Box>
-                                </button>
-                                <button 
-                                    onClick={() => handleExampleQuery(1)}
-                                    className="example-query-button"
-                                >
-                                    <Box>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                            Identify Mechanisms of Variant Affecting Traits
-                                        </div>
-                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
-                                            Explore relationships between rs3761624 and RSV infectious disease.
-                                        </div>
-                                    </Box>                                </button>
-                                <button 
-                                    onClick={() => handleExampleQuery(2)}
-                                    className="example-query-button"
-                                >
-                                    <Box>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                            Identify drug effects on diseases
-                                        </div>
-                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
-                                        Explore relationships between clopidogrel and different diseases
-                                        </div>
-                                    </Box>                                 
-                                </button>
-                            </>
-                        ) : activeButton === 'neighbor' ? (
-                            <>
-                                <button 
-                                    onClick={() => handleExampleQuery(0)}
-                                    className="example-query-button"
-                                >
-                                    <Box>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                        Example Query 1:
-                                        </div>
-                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
-                                        Find sequence variants related to TP53 based on literature
-                                        </div>
-                                    </Box>    
-                                </button>
-                                <button 
-                                    onClick={() => handleExampleQuery(1)}
-                                    className="example-query-button"
-                                >
-                                    <Box>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                        Example Query 2:
-                                        </div>
-                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
-                                        Find genes related to Alzheimer's disease based on literature
-                                        </div>
-                                    </Box>    
-                                </button>
-                                <button 
-                                    onClick={() => handleExampleQuery(2)}
-                                    className="example-query-button"
-                                >
-                                    <Box>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                        Example Query 3:
-                                        </div>
-                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
-                                        Find biomedical terms related to SOX2 based on curated databases
-                                        </div>
-                                    </Box>  
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                <button 
-                                    onClick={() => navigateToLLMAgent("Who are you?")}
-                                    className="example-query-button custom-ant-btn"
-
-                                >
-                                    <Box>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                        Example Query 1:
-                                        </div>
-                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
-                                        Who are you?                                        </div>
-                                    </Box> 
-                                </button>
-                                <button 
-                                    onClick={() => navigateToLLMAgent("What is the role of BRCA1 in breast cancer?")}
-                                    className="example-query-button"
-                                >
-                                    <Box>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                        Example Query 2:
-                                        </div>
-                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
-                                        What is the role of BRCA1 in breast cancer?
-                                        </div>
-                                    </Box> 
-                                </button>
-                                <button 
-                                    onClick={() => navigateToLLMAgent("How many articles about Alzheimer's disease were published in 2020?")}
-                                    className="example-query-button"
-                                >
-                                    <Box sx={{ textAlign: 'left', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                        Example Query 3:
-                                        </div>
-                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
-                                        How many articles about Alzheimer's disease are published in 2020?
-                                        </div>
-                                    </Box> 
-                                </button>
-                            </>
+                            </Box>
                         )}
+                        <div className="example-queries" style={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            position: 'relative',
+                            gap: '10px',
+                            width: '100%',
+                            marginTop: activeButton === 'triplet' ? '20px' : '20px',
+
+                        }}>
+                            <Box className="example-query-tour" />
+                            {activeButton === 'triplet' ? (
+                                <>
+                                    <button
+                                        onClick={() => handleExampleQuery(0)}
+                                        className="example-query-button"
+                                        sx={{
+                                            backgroundColor: '#F4F6FE',
+                                            '&:hover': {
+                                                backgroundColor: '#C4CCFE', // Hover color
+                                            },
+                                        }}
+                                    >
+                                        <Box>
+                                            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                                Identify Gene-Disease Associations
+                                            </div>
+                                            <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                                Explore relationships between Type 2 Diabetes and its associated genes.
+                                            </div>
+                                        </Box>
+                                    </button>
+                                    <button
+                                        onClick={() => handleExampleQuery(1)}
+                                        className="example-query-button"
+                                    >
+                                        <Box>
+                                            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                                Identify Mechanisms of Variant Affecting Traits
+                                            </div>
+                                            <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                                Explore relationships between rs3761624 and RSV infectious disease.
+                                            </div>
+                                        </Box>                                </button>
+                                    <button
+                                        onClick={() => handleExampleQuery(2)}
+                                        className="example-query-button"
+                                    >
+                                        <Box>
+                                            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                                Identify drug effects on diseases
+                                            </div>
+                                            <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                                Explore relationships between clopidogrel and different diseases
+                                            </div>
+                                        </Box>
+                                    </button>
+                                </>
+                            ) : activeButton === 'neighbor' ? (
+                                <>
+                                    <button
+                                        onClick={() => handleExampleQuery(0)}
+                                        className="example-query-button"
+                                    >
+                                        <Box>
+                                            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                                Example Query 1:
+                                            </div>
+                                            <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                                Find sequence variants related to TP53 based on literature
+                                            </div>
+                                        </Box>
+                                    </button>
+                                    <button
+                                        onClick={() => handleExampleQuery(1)}
+                                        className="example-query-button"
+                                    >
+                                        <Box>
+                                            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                                Example Query 2:
+                                            </div>
+                                            <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                                Find genes related to Alzheimer's disease based on literature
+                                            </div>
+                                        </Box>
+                                    </button>
+                                    <button
+                                        onClick={() => handleExampleQuery(2)}
+                                        className="example-query-button"
+                                    >
+                                        <Box>
+                                            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                                Example Query 3:
+                                            </div>
+                                            <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                                Find biomedical terms related to SOX2 based on curated databases
+                                            </div>
+                                        </Box>
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => navigateToLLMAgent("Who are you?")}
+                                        className="example-query-button custom-ant-btn"
+
+                                    >
+                                        <Box>
+                                            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                                Example Query 1:
+                                            </div>
+                                            <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                                Who are you?                                        </div>
+                                        </Box>
+                                    </button>
+                                    <button
+                                        onClick={() => navigateToLLMAgent("What is the role of BRCA1 in breast cancer?")}
+                                        className="example-query-button"
+                                    >
+                                        <Box>
+                                            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                                Example Query 2:
+                                            </div>
+                                            <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                                What is the role of BRCA1 in breast cancer?
+                                            </div>
+                                        </Box>
+                                    </button>
+                                    <button
+                                        onClick={() => navigateToLLMAgent("How many articles about Alzheimer's disease were published in 2020?")}
+                                        className="example-query-button"
+                                    >
+                                        <Box sx={{ textAlign: 'left', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                                Example Query 3:
+                                            </div>
+                                            <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                                How many articles about Alzheimer's disease are published in 2020?
+                                            </div>
+                                        </Box>
+                                    </button>
+                                </>
+                            )}
+                        </div>
                     </div>
-                </div>
-                <AntButton 
-                    onClick={() => setRunTour(true)}
-                    // style={{ marginTop: '20px' }}
-                    icon={<QuestionCircleOutlined />}
-                    style={{position: 'fixed', bottom: '20px',right: '20px'}}
-                >
-                    Take a Guided Tour to GLKB
-                </AntButton>
+                    <AntButton
+                        onClick={() => setRunTour(true)}
+                        // style={{ marginTop: '20px' }}
+                        icon={<QuestionCircleOutlined />}
+                        style={{ position: 'fixed', bottom: '20px', right: '20px' }}
+                    >
+                        Take a Guided Tour to GLKB
+                    </AntButton>
                 </div>
             </div>
-                        
+
             <div className="footer">
-                <div style={{ width:'100%', margin: '0 auto', padding: '0 0px' }}>
+                <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
                     <p style={{ textAlign: 'center', color: 'rgba(0, 0, 0, 0.8)', fontSize: '14px', margin: 0 }}>
                         © 2024 Liu Lab, Department of Computational Medicine and Bioinformatics, University of Michigan
                     </p>
