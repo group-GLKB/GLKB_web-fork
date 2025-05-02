@@ -21,7 +21,7 @@ import { Grid, Button, Box, TextField } from '@mui/material'; // Import MUI comp
 import neighborhoodExamples from '../../components/Units/SearchBarNeighborhood/example_query.json';  // Add this import
 import { trackEvent } from '../Units/analytics';
 import CloseIcon from '@mui/icons-material/Close'; // Import the Clear (cross) icon
-import SendOutlinedIcon from '@mui/icons-material/SendOutlined'; 
+import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 
@@ -176,7 +176,7 @@ const HomePage = () => {
                 placement: 'bottom',
             },
             {
-                target: '.example-query-tour',
+                target: '.example-query-group',
                 content: 'Try these example queries to see how the LLM Agent can help you explore biomedical knowledge.',
                 placement: 'top',
             }
@@ -191,7 +191,7 @@ const HomePage = () => {
                 placement: 'bottom',
             },
             {
-                target: '.example-query-tour',
+                target: '.example-query-group',
                 content: 'Not sure where to start? Try one of these example queries to see how it works.',
                 placement: 'top',
             }
@@ -248,8 +248,8 @@ const HomePage = () => {
                 scrollToFirstStep={true}
             />
             <NavBarWhite showLogo={true} />
-            <Grid container spacing={2} className="content" justifyContent="center"  alignItems="center">
-                <Grid item xs={12}  container justifyContent="center" 
+            <Grid container spacing={2} className="content" justifyContent="center" alignItems="center">
+                <Grid item xs={12} container justifyContent="center"
                     alignItems="center">
                     <img
                         src={logo}
@@ -263,261 +263,262 @@ const HomePage = () => {
                         }}
                     />
                 </Grid>
-                
+
                 <Grid item xs={12} container className="search-chat-part" justifyContent="center" alignItems="center">
-                <Grid 
-                    display="flex" 
-                    justifyContent="flex-start"
-                    gap={0} 
-                    className="search-mode-buttons" // Add this class
-                    xs={8}
-                    container
-                    sx={{ 
-                        width: '100%', 
-                        maxWidth: '833px', // Set the box width to 883px
-                        margin: '0px', // Center the box horizontally on the page
-                        marginBottom: '-15px', 
-                        paddingLeft:isSmallScreen ? '0px':'24px',
-                        paddingRight:isSmallScreen ? '0px':'24px',
-                    }}
-                >
-                    <Button 
-                        variant={activeButton === 'triplet' ? 'contained' : 'outlined'}
-                        sx={{ 
-                            width: '20%',
-                            height: '60px',
-                            border: '3px solid #FFFFFF',
-                            background: activeButton === 'triplet' ? 'linear-gradient(to top, #4A65F4, #758BFF)' : 'white',
-                            color: activeButton === 'triplet' ? 'white' : '#1E416D', // Text color based on active state
-                            fontSize: 'clamp(14px, 2vw, 20px)', // Set font size
-                            paddingRight: '32px',
-                            fontWeight: 'bold', 
-                            borderTopLeftRadius: '20px', 
-                            clipPath: 'polygon(0 0, 100% 0, 80% 100%, 0% 100%)',
-                            boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
-                            '&:hover': { backgroundColor: '#C4CCFE' }
+                    <Grid
+                        display="flex"
+                        justifyContent="flex-start"
+                        gap={0}
+                        className="search-mode-buttons" // Add this class
+                        xs={8}
+                        container
+                        sx={{
+                            width: '100%',
+                            maxWidth: '833px', // Set the box width to 883px
+                            margin: '0px', // Center the box horizontally on the page
+                            marginBottom: '-15px',
+                            paddingLeft: isSmallScreen ? '0px' : '24px',
+                            paddingRight: isSmallScreen ? '0px' : '24px',
                         }}
                     >
-                        Search
-                    </Button>
-                    <Button 
-                        variant={activeButton === 'llm' ? 'contained' : 'outlined'}
-                        sx={{ 
-                            background: activeButton === 'llm' ? 'linear-gradient(to left, #4A65F4, #758BFF)' : 'white',
-                            color: activeButton === 'llm' ? 'white' : '#1E416D', // Text color based on active state
-                            fontSize: 'clamp(14px, 2vw, 20px)', // Set font size
-                            fontWeight: 'bold', 
-                            width: '20%',
-                            height: '60px',
-                            border: '3px solid #FFFFFF',
-                            borderBottomRightRadius: '20px', // 确保底部有圆角
-                            clipPath: 'polygon(20% 0, 100% 0, 100% 100%, 0% 100%)', // Leaning left edge
-                            marginLeft: '-5%', 
-                            boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
-                            '&:hover': { backgroundColor: '#C4CCFE' }
-                        }}
-                        onClick={() => setActiveButton('llm')}
-                    >
-                        {/* Search with LLM Agent */}
-                        Chat
-                    </Button>
-                </Grid>
-                <Grid container xs={8} className="search-section">
-                    {activeButton === 'triplet' ? (
-                        <SearchBarKnowledge 
-                            ref={searchBarKnowledgeRef}
-                            chipData={[]} 
-                            onSearch={(data) => {
-                                console.log('Triplet Search Data:', {
-                                    search_data: data,
-                                    searchType: 'triplet',
-                                });
-                                navigate('/result', { 
-                                    state: { 
+                        <Button
+                            variant={activeButton === 'triplet' ? 'contained' : 'outlined'}
+                            sx={{
+                                width: '20%',
+                                height: '60px',
+                                border: '3px solid #FFFFFF',
+                                background: activeButton === 'triplet' ? 'linear-gradient(to top, #4A65F4, #758BFF)' : 'white',
+                                color: activeButton === 'triplet' ? 'white' : '#1E416D', // Text color based on active state
+                                fontSize: 'clamp(14px, 2vw, 20px)', // Set font size
+                                paddingRight: '32px',
+                                fontWeight: 'bold',
+                                borderTopLeftRadius: '20px',
+                                clipPath: 'polygon(0 0, 100% 0, 80% 100%, 0% 100%)',
+                                boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
+                                '&:hover': { backgroundColor: '#C4CCFE' }
+                            }}
+                            onClick={() => setActiveButton('triplet')}
+                        >
+                            Search
+                        </Button>
+                        <Button
+                            variant={activeButton === 'llm' ? 'contained' : 'outlined'}
+                            sx={{
+                                background: activeButton === 'llm' ? 'linear-gradient(to left, #4A65F4, #758BFF)' : 'white',
+                                color: activeButton === 'llm' ? 'white' : '#1E416D', // Text color based on active state
+                                fontSize: 'clamp(14px, 2vw, 20px)', // Set font size
+                                fontWeight: 'bold',
+                                width: '20%',
+                                height: '60px',
+                                border: '3px solid #FFFFFF',
+                                borderBottomRightRadius: '20px', // 确保底部有圆角
+                                clipPath: 'polygon(20% 0, 100% 0, 100% 100%, 0% 100%)', // Leaning left edge
+                                marginLeft: '-5%',
+                                boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
+                                '&:hover': { backgroundColor: '#C4CCFE' }
+                            }}
+                            onClick={() => setActiveButton('llm')}
+                        >
+                            {/* Search with LLM Agent */}
+                            Chat
+                        </Button>
+                    </Grid>
+                    <Grid container xs={8} className="search-section">
+                        {activeButton === 'triplet' ? (
+                            <SearchBarKnowledge
+                                ref={searchBarKnowledgeRef}
+                                chipData={[]}
+                                onSearch={(data) => {
+                                    console.log('Triplet Search Data:', {
                                         search_data: data,
                                         searchType: 'triplet',
-                                    } 
-                                });
-                            }}
-                            sx={{
-                                width: '100%', // Set exact width
-                                margin: '0 auto', // Center horizontally
-                            }}
-                        />
-                    ) : (
-                        <Box sx={{ 
-                            width: '100%',mt : 2,mb:2,
-                            display: 'flex', 
-                            gap: 2, 
-                            paddingLeft: isSmallScreen?'0px':'24px',
-                            paddingRight: isSmallScreen?'0px':'24px',
-                        }}>
-                
-                            <TextField
-                                type="text"
-                                value={llmQuery}
-                                onChange={(e) => setLlmQuery(e.target.value)}
-                                placeholder="Ask a question about the biomedical literature..."
-                                sx={{
-                                    backgroundColor: 'white',
-                                    height: '60px', // Increase the height of the input box
-                                    width: '100%',
-                                    '& .MuiInputBase-root': {
-                                        height: '80px', // Adjust the height of the input field
-                                        alignItems: 'center', // Center the text vertically
-                                        paddingRight: '10px', // Remove right padding
-                                    },
-                                    '& .MuiOutlinedInput-notchedOutline': {
-                                        borderColor: 'grey', // Optional: Customize border color
-                                    },
+                                    });
+                                    navigate('/result', {
+                                        state: {
+                                            search_data: data,
+                                            searchType: 'triplet',
+                                        }
+                                    });
                                 }}
-                                fullWidth
-                                InputProps={{
-                                    endAdornment: (
-                                        <Box display="flex" alignItems="center">
-                                            {/* Clear Icon */}
-                                            <CloseIcon
-                                                onClick={() => {
-                                                    setLlmQuery(''); // Clear the input field
-                                                }}
-                                                sx={{
-                                                    color: 'grey.500',
-                                                    cursor: 'pointer',
-                                                    fontSize: '20px', // Adjust size as needed
-                                                    marginRight: '8px', // Add spacing from the SendIcon
-                                                }}
-                                            />
-                                            {/* Search Icon */}
-                                            <SendOutlinedIcon
-                                                onClick={() => {
-                                                    if (llmQuery.trim()) {
-                                                        navigateToLLMAgent(llmQuery.trim()); // Trigger the search function
-                                                    }
-                                                }} // Trigger the search function
-                                                sx={{
-                                                    color: '#45628880',
-                                                    cursor: 'pointer',
-                                                    fontSize: '35px', // Adjust size as needed
-                                                }}
-                                            />
-                                        </Box>
-                                    ),
+                                sx={{
+                                    width: '100%', // Set exact width
+                                    margin: '0 auto', // Center horizontally
                                 }}
                             />
-                        </Box>
-                    )}
-                    <Grid container spacing={2} className="example-query-group" style={{  padding: '24px',paddingTop:'48px' }} >
-                        {activeButton === 'triplet' ? (
-                            <>
-                                <Grid item xs={4} >
-                                <button 
-                                    onClick={() => handleExampleQuery(0)}
-                                    className="example-query-button"
+                        ) : (
+                            <Box className="llm-searchbar" sx={{
+                                width: '100%', mt: 2, mb: 2,
+                                display: 'flex',
+                                gap: 2,
+                                paddingLeft: isSmallScreen ? '0px' : '24px',
+                                paddingRight: isSmallScreen ? '0px' : '24px',
+                            }}>
+
+                                <TextField
+                                    type="text"
+                                    value={llmQuery}
+                                    onChange={(e) => setLlmQuery(e.target.value)}
+                                    placeholder="Ask a question about the biomedical literature..."
                                     sx={{
-                                        backgroundColor: '#F4F6FE',
-                                        '&:hover': {
-                                            backgroundColor: '#C4CCFE', // Hover color
+                                        backgroundColor: 'white',
+                                        height: '60px', // Increase the height of the input box
+                                        width: '100%',
+                                        '& .MuiInputBase-root': {
+                                            height: '80px', // Adjust the height of the input field
+                                            alignItems: 'center', // Center the text vertically
+                                            paddingRight: '10px', // Remove right padding
+                                        },
+                                        '& .MuiOutlinedInput-notchedOutline': {
+                                            borderColor: 'grey', // Optional: Customize border color
                                         },
                                     }}
-                                >
-                                    <Box>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                            Identify Gene-Disease Associations
-                                        </div>
-                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
-                                            Explore relationships between Type 2 Diabetes and its associated genes.
-                                        </div>
-                                    </Box>
-                                </button>
-                                </Grid>
-                                <Grid item xs={4} >
-                                <button 
-                                    onClick={() => handleExampleQuery(1)}
-                                    className="example-query-button"
-                                >
-                                    <Box>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                            Identify Mechanisms of Variant Affecting Traits
-                                        </div>
-                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
-                                            Explore relationships between rs3761624 and RSV infectious disease.
-                                        </div>
-                                    </Box>
-                                </button>
-                                </Grid>
-                                <Grid item xs={4} >
-                                <button 
-                                    onClick={() => handleExampleQuery(2)}
-                                    className="example-query-button"
-                                >
-                                    <Box>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                            Identify drug effects on diseases
-                                        </div>
-                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
-                                        Explore relationships between clopidogrel and different diseases
-                                        </div>
-                                    </Box>                                 
-                                </button>
-                                </Grid>
-                            </>
-                        ) : (
-                            <>
-                                <Grid item xs={4} >
-                                <button 
-                                    onClick={() => navigateToLLMAgent("Who are you?")}
-                                    className="example-query-button custom-ant-btn"
-
-                                >
-                                    <Box>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                        Example Query 1:
-                                        </div>
-                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
-                                        Who are you?                                        </div>
-                                    </Box> 
-                                </button>
-                                </Grid>
-                                <Grid item xs={4} >
-                                <button 
-                                    onClick={() => navigateToLLMAgent("What is the role of BRCA1 in breast cancer?")}
-                                    className="example-query-button"
-                                >
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                        Example Query 2:
-                                        </div>
-                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
-                                        What is the role of BRCA1 in breast cancer?
-                                        </div>
-                                </button>
-                                </Grid>
-                                <Grid item xs={4} >
-                                <button 
-                                    onClick={() => navigateToLLMAgent("How many articles about Alzheimer's disease were published in 2020?")}
-                                    className="example-query-button"
-                                >
-                                    <Box sx={{ textAlign: 'left', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                                        Example Query 3:
-                                        </div>
-                                        <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
-                                        How many articles about Alzheimer's disease are published in 2020?
-                                        </div>
-                                    </Box> 
-                                </button>
-                                </Grid>
-                            </>
+                                    fullWidth
+                                    InputProps={{
+                                        endAdornment: (
+                                            <Box display="flex" alignItems="center">
+                                                {/* Clear Icon */}
+                                                <CloseIcon
+                                                    onClick={() => {
+                                                        setLlmQuery(''); // Clear the input field
+                                                    }}
+                                                    sx={{
+                                                        color: 'grey.500',
+                                                        cursor: 'pointer',
+                                                        fontSize: '20px', // Adjust size as needed
+                                                        marginRight: '8px', // Add spacing from the SendIcon
+                                                    }}
+                                                />
+                                                {/* Search Icon */}
+                                                <SendOutlinedIcon
+                                                    onClick={() => {
+                                                        if (llmQuery.trim()) {
+                                                            navigateToLLMAgent(llmQuery.trim()); // Trigger the search function
+                                                        }
+                                                    }} // Trigger the search function
+                                                    sx={{
+                                                        color: '#45628880',
+                                                        cursor: 'pointer',
+                                                        fontSize: '35px', // Adjust size as needed
+                                                    }}
+                                                />
+                                            </Box>
+                                        ),
+                                    }}
+                                />
+                            </Box>
                         )}
+                        <Grid container spacing={2} className="example-query-group" style={{ padding: '24px', paddingTop: '48px' }} >
+                            {activeButton === 'triplet' ? (
+                                <>
+                                    <Grid item xs={4} >
+                                        <button
+                                            onClick={() => handleExampleQuery(0)}
+                                            className="example-query-button"
+                                            sx={{
+                                                backgroundColor: '#F4F6FE',
+                                                '&:hover': {
+                                                    backgroundColor: '#C4CCFE', // Hover color
+                                                },
+                                            }}
+                                        >
+                                            <Box>
+                                                <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                                    Identify Gene-Disease Associations
+                                                </div>
+                                                <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                                    Explore relationships between Type 2 Diabetes and its associated genes.
+                                                </div>
+                                            </Box>
+                                        </button>
+                                    </Grid>
+                                    <Grid item xs={4} >
+                                        <button
+                                            onClick={() => handleExampleQuery(1)}
+                                            className="example-query-button"
+                                        >
+                                            <Box>
+                                                <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                                    Identify Mechanisms of Variant Affecting Traits
+                                                </div>
+                                                <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                                    Explore relationships between rs3761624 and RSV infectious disease.
+                                                </div>
+                                            </Box>
+                                        </button>
+                                    </Grid>
+                                    <Grid item xs={4} >
+                                        <button
+                                            onClick={() => handleExampleQuery(2)}
+                                            className="example-query-button"
+                                        >
+                                            <Box>
+                                                <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                                    Identify drug effects on diseases
+                                                </div>
+                                                <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                                    Explore relationships between clopidogrel and different diseases
+                                                </div>
+                                            </Box>
+                                        </button>
+                                    </Grid>
+                                </>
+                            ) : (
+                                <>
+                                    <Grid item xs={4} >
+                                        <button
+                                            onClick={() => navigateToLLMAgent("Who are you?")}
+                                            className="example-query-button custom-ant-btn"
+
+                                        >
+                                            <Box>
+                                                <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                                    Example Query 1:
+                                                </div>
+                                                <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                                    Who are you?                                        </div>
+                                            </Box>
+                                        </button>
+                                    </Grid>
+                                    <Grid item xs={4} >
+                                        <button
+                                            onClick={() => navigateToLLMAgent("What is the role of BRCA1 in breast cancer?")}
+                                            className="example-query-button"
+                                        >
+                                            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                                Example Query 2:
+                                            </div>
+                                            <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                                What is the role of BRCA1 in breast cancer?
+                                            </div>
+                                        </button>
+                                    </Grid>
+                                    <Grid item xs={4} >
+                                        <button
+                                            onClick={() => navigateToLLMAgent("How many articles about Alzheimer's disease were published in 2020?")}
+                                            className="example-query-button"
+                                        >
+                                            <Box sx={{ textAlign: 'left', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                                <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                                                    Example Query 3:
+                                                </div>
+                                                <div style={{ fontSize: '12px', marginTop: '8px', color: '#6c757d' }}>
+                                                    How many articles about Alzheimer's disease are published in 2020?
+                                                </div>
+                                            </Box>
+                                        </button>
+                                    </Grid>
+                                </>
+                            )}
+                        </Grid>
                     </Grid>
-                </Grid>
-                <AntButton 
-                    onClick={() => setRunTour(true)}
-                    // style={{ marginTop: '20px' }}
-                    icon={<QuestionCircleOutlined />}
-                    style={{position: 'fixed', bottom: '20px',right: '20px'}}
-                >
-                    Take a Guided Tour to GLKB
-                </AntButton>
+                    <AntButton
+                        onClick={() => setRunTour(true)}
+                        // style={{ marginTop: '20px' }}
+                        icon={<QuestionCircleOutlined />}
+                        style={{ position: 'fixed', bottom: '20px', right: '20px' }}
+                    >
+                        Take a Guided Tour to GLKB
+                    </AntButton>
                 </Grid>
             </Grid>
             <div className="footer">

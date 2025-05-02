@@ -314,8 +314,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     }, [selectedSources]);
 
     return (
-        <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 2, mb: 2 ,ml:0, mr:0,padding:0, maxWidth:'none !important'}}>
-            <Box sx={{ mb: 0, backgroundColor: 'transparent'}}>
+        <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 2, mb: 2, ml: 0, mr: 0, padding: 0, maxWidth: 'none !important' }}>
+            <Box sx={{ mb: 0, backgroundColor: 'transparent' }}>
                 {/* First row with term type and search input */}
                 <Box sx={{
                     display: 'flex',
@@ -406,6 +406,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                 />
                                                 {/* Search Icon */}
                                                 <SendOutlinedIcon
+                                                    className="search-button"
                                                     onClick={handleSearch} // Trigger the search function
                                                     sx={{
                                                         color: '#45628880', // Make the inside color transparent
