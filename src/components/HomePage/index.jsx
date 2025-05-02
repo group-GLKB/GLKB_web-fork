@@ -298,7 +298,7 @@ const HomePage = () => {
                             border: '3px solid #FFFFFF',
                             borderBottomRightRadius: '20px', // 确保底部有圆角
                             clipPath: 'polygon(20% 0, 100% 0, 100% 100%, 0% 100%)', // Leaning left edge
-                            marginLeft: '-36px', 
+                            marginLeft: '-5%', 
                             boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
                             '&:hover': { backgroundColor: '#C4CCFE' }
                         }}
