@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import 'antd/dist/reset.css';
 import { TweenOneGroup } from "rc-tween-one";
 import { Input, Col, Row, Spin, Tag, Menu, Button as AntButton, Space, Divider } from 'antd';
@@ -28,16 +28,25 @@ import { useTheme } from '@mui/material/styles';
 const { Search } = Input;
 
 const HomePage = () => {
+    const location = useLocation(); 
+    const { state } = location || {};
     let navigate = useNavigate();
     const [tags, setTags] = useState([]);
     const [runTour, setRunTour] = useState(false);
-    const [activeButton, setActiveButton] = useState('triplet');  // Changed default to 'triplet'
+    const [activeButton, setActiveButton] = useState(state?.activeButton || "triplet");  // Changed default to 'triplet'
     const [llmQuery, setLlmQuery] = useState('');
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
     // Add refs for the search components
     const searchBarKnowledgeRef = useRef(null);
     const searchBarNeighborhoodRef = useRef(null);
+
+    useEffect(() => {
+        // Update activeButton if state changes
+        if (state?.activeButton) {
+            setActiveButton(state.activeButton);
+        }
+    }, [state?.activeButton]);
 
     const navigateToLLMAgent = (query = '') => {
         // Track event
@@ -247,9 +256,11 @@ const HomePage = () => {
                 spotlightPadding={0}
                 scrollToFirstStep={true}
             />
-            <NavBarWhite showLogo={true} />
-            <Grid container spacing={2} className="content" justifyContent="center" alignItems="center">
-                <Grid item xs={12} container justifyContent="center"
+            <NavBarWhite 
+                showLogo={true} activeButton={activeButton}
+            />
+            <Grid container spacing={2} className="content" justifyContent="center"  alignItems="center">
+                <Grid item xs={12}  container justifyContent="center" 
                     alignItems="center">
                     <img
                         src={logo}

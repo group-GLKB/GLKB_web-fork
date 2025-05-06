@@ -3,11 +3,12 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.5rem 1rem;
+    font-size: clamp(12px, 2vw, 16px);
     /*background-color: #fff; !* Change this as per your color scheme *!*/
     /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); Optional: for a slight shadow under the nav bar */
     border-bottom: 1px solid #3D739C;
     background-color: #FFFFFF; /* Changed from #FFFFFF to #4a7298 */
-    height: 70px;
+    height: 80px;
 }
 .left-section .logo img {
     height: 90px;
@@ -24,18 +25,42 @@
 
 .navigation-bar .nav-links{
     margin-right: 30px;
-    font-size: 30px;
+    align-items: center;
+}
+button:hover{
+    cursor: pointer;
+}
+.navigation-bar .active{
+    background-color: transparent;
+    border: none;
+    text-decoration: underline; /* Add underline to active links */
+    margin-left: 20px;
+    color: #1E416D; /* Keep the color for active links */
+    font-weight: 900; /* Make the font heavier */
+    margin-right: 1rem; /* Move the text slightly to the left */
+    margin-top: 1rem; 
+}
+
+.navigation-bar .nonactive{
+    background-color: transparent;
+    border: none;
+    text-decoration: none;
+    margin-left: 20px;
+    color: #1E416D; /* Changed from #3D739C to #ffffff for better contrast */
+    font-weight: 500;
+     /* Change this as per your color scheme */
+    /* Additional styles for the links can go here */
+    margin-right: 1rem; /* Move the text slightly to the left */
+    margin-top: 1rem; /* Move the text slightly down */
 }
 
 .navigation-bar .nav-links a {
     text-decoration: none;
     margin-left: 20px;
-    color: #1E416D; /* Changed from #3D739C to #ffffff for better contrast */
-    font-size: 16px;
-    font-weight: 800;
+    color: #45628880; /* Changed from #3D739C to #ffffff for better contrast */
      /* Change this as per your color scheme */
     /* Additional styles for the links can go here */
-    margin-right: 2rem; /* Move the text slightly to the left */
+    margin-right: 1rem; /* Move the text slightly to the left */
     margin-top: 1rem; /* Move the text slightly down */
 }
 
