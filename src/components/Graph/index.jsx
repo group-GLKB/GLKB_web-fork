@@ -116,7 +116,10 @@ const Graph = React.memo(function Graph(props) {
       {
         selector: 'node',
         style: {
-          'transition-property': 'width, height, border-width, border-color, background-color',
+          'transition-property': 'width, height, border-width, background-color',
+          'border-opacity': 0.5,
+          'border-width': '0px',
+          'border-color': '#AAD8FF',
           'transition-duration': '0.2s',
           'label': 'data(name)',
           'text-valign': 'center',
@@ -127,18 +130,6 @@ const Graph = React.memo(function Graph(props) {
           'text-max-width': '150px',
           'text-wrap': 'ellipsis',
           'font-family': 'Inter',
-        }
-      },
-      {
-        selector: 'node.hover',
-        style: {
-          'border-width': '4px', // Reduced from 6px
-          'border-color': '#AAD8FF',
-          'border-opacity': '0.5',
-          'background-color': '#77828C',
-          'transition-property': 'border-width, border-color, background-color',
-          'transition-duration': '0.15s',
-          'z-index': 999
         }
       },
       {
@@ -208,25 +199,6 @@ const Graph = React.memo(function Graph(props) {
         },
       },
       {
-        selector: 'node.highlight',
-        style: {
-          'border-color': '#FFF',
-          'border-width': '1px'
-        }
-      },
-      {
-        selector: 'node.semitransp',
-        style: { 'opacity': '0.2' }
-      },
-      {
-        selector: 'edge.highlight',
-        style: { 'mid-target-arrow-color': '#FFF' }
-      },
-      {
-        selector: 'edge.semitransp',
-        style: { 'opacity': '0.2' }
-      },
-      {
         selector: 'node:childless',
         style: {
           'shape': 'roundrectangle',
@@ -246,6 +218,41 @@ const Graph = React.memo(function Graph(props) {
       },
     ];
 
+    const additionalStyleSheet = [
+      {
+        selector: 'node.hover',
+        style: {
+          'border-width': '5px', // Reduced from 6px
+          'border-opacity': '0.5',
+          'transition-property': 'border-width',
+          'transition-duration': '0.15s',
+          'z-index': 999
+        }
+      },
+      {
+        selector: 'node.highlight',
+        style: {
+          'border-width': '10px',
+          'border-opacity': '0.5',
+          'transition-property': 'border-width',
+          'transition-duration': '0.15s',
+          'z-index': 99
+        }
+      },
+      {
+        selector: 'node.semitransp',
+        style: { 'opacity': '0.2' }
+      },
+      {
+        selector: 'edge.highlight',
+        style: { 'mid-target-arrow-color': '#FFF' }
+      },
+      {
+        selector: 'edge.semitransp',
+        style: { 'opacity': '0.2' }
+      },
+    ];
+
     const nodeStyles = id.map(nodeId => {
       let labelColor = '';
       switch (nodeId[5]) {
@@ -260,8 +267,8 @@ const Graph = React.memo(function Graph(props) {
       }
 
       const size = nodeId[2] >= 60 ? 40 : nodeId[2] >= 30 ? 30 : 20;
-      const borderWidth = nodeId[4] === "true" ? '1px' : 0;
-      const borderColor = nodeId[4] === "true" ? 'red' : 'transparent';
+      // const borderWidth = nodeId[4] === "true" ? '1px' : 0;
+      // const borderColor = nodeId[4] === "true" ? 'red' : 'transparent';
 
       return {
         selector: `node[id = "${nodeId[0]}"]`,
@@ -270,15 +277,15 @@ const Graph = React.memo(function Graph(props) {
           backgroundOpacity: 0.9,
           shape: 'roundrectangle',
           'corner-radius': '40',
-          borderWidth,
-          borderColor,
+          // borderWidth,
+          // borderColor,
           'min-width': size,
           'min-height': Math.max(25, size * 0.5),
           label: nodeId[1],
           'text-valign': 'center',
           'text-halign': 'center',
           'color': '#000000',
-          'font-size': '22px',
+          'font-size': '20px',
           'text-wrap': 'ellipsis',
           'text-max-width': '120px',
           width: 'label',
@@ -288,7 +295,7 @@ const Graph = React.memo(function Graph(props) {
       };
     });
 
-    return [...baseStyleSheet, ...nodeStyles];
+    return [...baseStyleSheet, ...nodeStyles, ...additionalStyleSheet];
   }, []);
 
   // Memoize the node IDs array
@@ -343,21 +350,23 @@ const Graph = React.memo(function Graph(props) {
       const sel = e.target;
 
       // Check if the selection is a Cytoscape element
-      if (sel && sel.isElement && sel.isElement()) {
+      if (sel && sel.isNode) {
         if (sel.isNode() && !sel.hasClass('group-node')) {
-          cy.elements().removeClass('semitransp highlight');
-          cy.elements()
-            .difference(sel.outgoers().union(sel.incomers()))
-            .not(sel)
-            .addClass('semitransp');
-          sel.addClass('highlight')
-            .outgoers()
-            .union(sel.incomers())
-            .addClass('highlight');
+          // cy.elements().removeClass('semitransp highlight');
+          // cy.elements()
+          //   .difference(sel.outgoers().union(sel.incomers()))
+          //   .not(sel)
+          //   .addClass('semitransp');
+          // sel.addClass('highlight')
+          //   .outgoers()
+          //   .union(sel.incomers())
+          //   .addClass('highlight');
+          cy.elements().removeClass('highlight');
+          sel.addClass('highlight');
         }
       } else if (sel === cy) {
         // Clicked on empty canvas
-        cy.elements().removeClass('semitransp highlight');
+        cy.elements().removeClass('highlight');
         props.informationOpen && props.handleInformation();
       }
     };

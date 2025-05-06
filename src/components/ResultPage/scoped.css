@@ -26,7 +26,7 @@ all {
 }
 
 .result-content {
-    width: 100%;
+    width: 75%;
     min-width: 1200px;
     height: 100%;
     position: relative;
@@ -295,17 +295,16 @@ all {
 }
 
 .search-bar-wrapper {
-    width: 100%;
-    /* min-width: 720px; */
-    /* Adjust this value as needed */
-    max-width: 1185px;
+    width: calc(75% - 92px);
+    min-width: 708px;
+    /* Adjust this value as needed
+    max-width: 1185px; */
     /* Adjust this value as needed */
     /* padding: 0 15px; */
     /* Add some horizontal padding */
 }
 
 .search-bar-wrapper .MuiContainer-root {
-    padding-left: 60px;
     max-width: none;
 }
 
@@ -374,7 +373,7 @@ all {
 .graph-controls {
     display: flex;
     justify-content: center;
-    padding-right: 60px;
+    padding-right: 16px;
 }
 
 .graph-controls .ant-btn {

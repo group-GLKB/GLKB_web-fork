@@ -809,7 +809,7 @@ const ResultPage = () => {
                                 height: '100%',
                                 // justifyContent: 'center',
                                 // alignItems: 'center',
-                                maxWidth: '1200px',
+                                // maxWidth: '1200px',
                                 marginLeft: '20px',
                                 marginRight: '20px',
                                 flexDirection: 'row',
@@ -817,7 +817,7 @@ const ResultPage = () => {
                             }}>
                                 {/* Left */}
                                 <Grid container spacing={2} height={"100%"}>
-                                    <Grid item xs={6} height={"100%"}>
+                                    <Grid item xs={8} height={"100%"}>
                                         <Box sx={{
                                             borderRadius: "30px",
                                             // width: '100%',
@@ -842,7 +842,7 @@ const ResultPage = () => {
                                             >
                                                 {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
                                             </StyledButton> */}
-                                                    <MUIButton
+                                                    {/* <MUIButton
                                                         onClick={changeLeftPanel}
                                                         variant="contained"
                                                         className="graph-control-button"
@@ -867,7 +867,7 @@ const ResultPage = () => {
                                                             cornerRadius: '8px',
                                                         }}>
                                                         {displayArticleGraph ? "Biomedical term graph" : "Article graph"}
-                                                    </MUIButton>
+                                                    </MUIButton> */}
                                                 </span>
                                             </Tooltip>
                                             <Box sx={{
@@ -961,7 +961,7 @@ const ResultPage = () => {
                                             </Box>
                                         </Box>
                                     </Grid>
-                                    <Grid item xs={6} height={"100%"}>
+                                    <Grid item xs={4} height={"100%"}>
                                         <Box sx={{
                                             borderRadius: "30px",
                                             height: "100%",
