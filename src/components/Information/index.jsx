@@ -142,24 +142,106 @@ const Information = ({ width, ...props }) => {
     };
 
     const nodeForMap = (url) => {
+        const authors = url[5] || [];
+
+        const getLastName = (fullName) => {
+            const parts = fullName.trim().split(' ');
+            return parts[parts.length - 1];
+        };
+        
+        const renderAuthors = () => {
+            if (authors.length === 0) return null;
+            if (authors.length === 1) {
+                return renderAuthorBubbles([getLastName(authors[0])]);
+            }
+            if (authors.length === 2) {
+                return renderAuthorBubbles(authors.map(getLastName));
+            }
+            return renderAuthorBubbles([
+                getLastName(authors[0]),
+                '...',
+                getLastName(authors[authors.length - 1])
+            ]);
+        };
+        const renderAuthorBubbles = (list) => (
+            list.map((author, idx) => (
+                <span
+                    key={idx}
+                    style={{
+                        backgroundColor: '#F4F4F4',
+                        borderRadius: '8px',
+                        padding: '2px 6px',
+                        fontSize: '12px',
+                        color: '#888888',
+                        whiteSpace: 'nowrap',
+                        border: '1px solid #E6E6E6'
+                    }}
+                >
+                    {author}
+                </span>
+            ))
+        );
         return (
-            <div className="custom-div-url" style={{ paddingBottom: '8px' }}>
+            <div
+                onClick={(event) => handleClick(event, url[1])}
+                style={{
+                    cursor: 'pointer',
+                    padding: '6px',
+                    marginBottom: '0px',
+                    /*border: '1px solid #ddd',*/
+                    borderRadius: '10px',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.4)',
+                    backgroundColor: '#fff',
+                    transition: 'box-shadow 0.0s ease-in-out',
+                    width: '100%',
+                    /*marginLeft: '15px',
+                    marginRight: '15px'*/
+                }}
+                className="custom-div-url"
+                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.45)'}
+                onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.4)'}
+            >
+                <div className="top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', flex: 1 }}>
+                        {renderAuthors()}
+                    </div>
+
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-end',
+                            marginLeft: '16px',
+                            minWidth: '80px',
+                            whiteSpace: 'nowrap'
+                        }}>
+                            <span style={{ color: '#888888', fontWeight: 'bold', fontSize: '15px', lineHeight: '6px' , marginTop:'3px'}} title="Year">
+                                {url[3]}
+                            </span>
+                            <span style={{ color: '#888888', fontSize: '12px',marginTop:'1px' }} title="Cited by">
+                                Cited by: {url[2]}
+                            </span>
+                    </div>
+                </div>
+
                 <a
                     href={url[1]}
-                    onClick={(event) => handleClick(event, url[1])}
-                    style={{ color: '#4a7298' }}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                            handleClick(event, url[1]);
+                        }}
+                        style={{
+                            color: 'black',
+                            textDecoration: 'none',
+                        }}
                 >
                     {url[0]}
                 </a>
-                <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
-                    <span title="Cited by">Cited by: {url[2]} </span> |
-                    <span title="Year">Year: {url[3]} </span> |
-                    <span title="Journal">Journal: {url[4].length > 20 ? url[4].substring(0, 20) + '...' : url[4]} </span>
-                </p>
-                <p className="info-row" title={url[5].join(', ')} style={{ color: '#555555', margin: '2px 0' }}>
-                    Authors: {formatAuthors(url[5])}
-                </p>
+
+                <div title="Journal" style={{ color: '#888888', marginTop: '1px' }}>
+                    {url[4].length > 60 ? url[4].substring(0, 60) + '...' : url[4]}
+                </div>
             </div>
+
         )
     }
     // if (Object.keys(nodeDetails).length !== 0) {
@@ -446,7 +528,7 @@ const Information = ({ width, ...props }) => {
                                                         size="small"
                                                         dataSource={urls}
                                                         renderItem={item => (
-                                                            <List.Item className="related-article-item">
+                                                            <List.Item className="related-article-item" style={{ borderBottom: 'none' }}>
                                                                 {item}
                                                             </List.Item>
                                                         )}
