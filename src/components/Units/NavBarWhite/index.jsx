@@ -1,10 +1,23 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link,useLocation,useNavigate } from 'react-router-dom';
 import './scoped.css'; // This is where you will import your CSS from
 import { HomeOutlined } from '@ant-design/icons';
 import logo from "../../../img/logo.svg";
+import { use } from 'cytoscape';
+import { act } from 'react';
 
-function NavBarWhite({ showLogo = true }) {
+function NavBarWhite({ showLogo = true, activeButton}) {
+    const location = useLocation();
+    const navigate = useNavigate(); 
+    const { state } = location || {}; 
+    
+    const handleSearchClick = () => {
+        navigate('/', { state: { activeButton: "triplet" }}); // Navigate to the search page
+    };
+    const handleChatClick = () => {
+        navigate('/', { state: { activeButton: "llm" }}); 
+    };
+
     return (
         <nav className="navigation-bar">
             <div className="logo">
@@ -22,6 +35,22 @@ function NavBarWhite({ showLogo = true }) {
                 
             </div>
             <div className="nav-links">
+                <button
+                    onClick={handleSearchClick}
+                    className={activeButton === "triplet" || location.pathname.endsWith("result")
+                        ? "active" : "nonactive"}
+                >
+                    Search
+                </button>
+                <button 
+                    onClick={() => {
+                        handleChatClick();
+                    }} 
+                    className={activeButton === "llm" || location.pathname.endsWith("llm-agent")
+                    ? "active" : "nonactive"}>
+                    Chat
+                </button>
+                <span style={{fontSize: '20px',fontWeight:"300",marginRight: '1 rem',color:'#1E416D'}}>|</span>
                 <Link to="/about">About</Link>
                 {/* <Link to="/llm-agent" className="beta-link">
                     LLM Agent
