@@ -8,6 +8,7 @@ import ResultPage from './components/ResultPage'
 import { Result } from 'antd'
 import { initGA, trackPageView } from './components/Units/analytics';
 import LLMAgent from './components/LLMAgent'
+import './index.css';
 
 const initState = {
     searchType: ''
