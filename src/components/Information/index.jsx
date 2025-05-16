@@ -451,9 +451,9 @@ const Information = ({ width, ...props }) => {
                         fontFamily: 'Inter',
                         borderTopLeftRadius: '10px',
                         borderTopRightRadius: '10px',
-                        paddingTop: '70px',
-                        paddingLeft: "55px",
-                        paddingBottom: '20px',
+                        paddingTop: '35px',
+                        paddingLeft: "42px",
+                        // paddingBottom: '20px',
                         minHeight: '90px',
                         border: 'none',
                         background: 'transparent',
@@ -464,7 +464,7 @@ const Information = ({ width, ...props }) => {
                         padding: '0px',
                         backgroundColor: '#F7F7F7',
                         minHeight: '200px',
-                        marginTop: '20px',
+                        // marginTop: '20px',
                         marginBottom: '10px',
                         border: 'none',
                         background: 'transparent',
@@ -478,7 +478,7 @@ const Information = ({ width, ...props }) => {
                 ) : (
                     <div style={{ position: 'relative', height: '100%' }}>
                         <div className="transcriptGradientTop"></div>
-                        <div style={{ paddingLeft: '40px', paddingRight: '40px', paddingTop: '20px', paddingBottom: '20px', overflowY: 'auto', maxHeight: '100%' }}>
+                        <div style={{ paddingLeft: '2vw', paddingRight: '2vw', paddingTop: '0px', paddingBottom: '20px', overflowY: 'auto', maxHeight: '100%' }}>
 
                             {/* Article Node Details - Direct Display */}
                             {Object.keys(nodeDetails).length !== 0 && nodeDetails[0] && nodeDetails[0][0] && 'title' in nodeDetails[0][0] && (

@@ -287,7 +287,7 @@ const HomePage = () => {
                             width: '100%',
                             maxWidth: '833px', // Set the box width to 883px
                             margin: '0px', // Center the box horizontally on the page
-                            marginBottom: '-15px',
+                            marginBottom: '-3px',
                             paddingLeft: isSmallScreen ? '0px' : '24px',
                             paddingRight: isSmallScreen ? '0px' : '24px',
                         }}

@@ -4,8 +4,8 @@
 }
 
 .result-container {
-    min-width: 800px;
-    min-height: 700px;
+    /* min-width: 800px; */
+    /* min-height: 700px; */
     height: 100%;
     /* min-height: 100vh; */
     display: flex;
@@ -20,14 +20,23 @@
     z-index: 1000;
     height: 64px;
 }
+.main-grid{
+    width:80%;
+    margin-left: 10%;
+    margin-right:10%;
+}
+.subbar1{
+
+}
 
 .main-content {
     background: linear-gradient(to right, #F4F6FE, #DCE3FF, #F4F6FE);
-    padding-top: 64px;
+    padding-top: 0px;
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: calc(100vh - 64px);
+    min-height: calc(100vh - 114px - 64px - 24px);
+
 }
 
 .loading-container {
@@ -42,16 +51,16 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding-top: 50px;
+    /* padding-top: 20px; */
     /* padding-left: 40px;
     padding-right: 40px; */
-    align-self: center;
-    align-items: center;
+    /* align-self: center; */
+    /* align-items: center; */
 }
 
 .llm-agent-container {
     width: 100%;
-    max-width: 1600px;
+    /* max-width: 1600px; */
     margin: 0 auto;
     padding-bottom: 20px;
     display: flex;
@@ -60,12 +69,12 @@
 }
 
 .chat-and-references {
-    display: flex;
-    justify-content: center;
+    /* display: flex; */
+    /* justify-content: center; */
     flex: 1;
-    gap: 2rem;
+    /* gap: 2rem; */
     width: 100%;
-    height: calc(100vh - 200px);
+    /* height: calc(100vh - 200px); */
 }
 
 .chat-container {
@@ -75,7 +84,7 @@
     border-radius: 20px;
     background-color: white;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    height: 100%;
+    height: calc(100vh - 114px - 64px - 24px);
     padding: 0;
     position: relative;
     flex: 2;
@@ -91,7 +100,7 @@
     border-radius: 20px;
     background-color: white;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    height: 100%;
+    height: calc(100vh - 114px - 64px - 24px);
 }
 
 .references-container h3 {
@@ -302,6 +311,19 @@
 }
 
 .messages-container::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.references-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.references-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.references-container::-webkit-scrollbar-thumb {
     background-color: rgba(0, 0, 0, 0.2);
     border-radius: 4px;
 }

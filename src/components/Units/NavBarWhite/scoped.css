@@ -56,8 +56,9 @@ button:hover{
 
 .navigation-bar .nav-links a {
     text-decoration: none;
+    font-weight:bold;
     margin-left: 20px;
-    color: #45628880; /* Changed from #3D739C to #ffffff for better contrast */
+    color: #1E416D; /* Changed from #3D739C to #ffffff for better contrast */
      /* Change this as per your color scheme */
     /* Additional styles for the links can go here */
     margin-right: 1rem; /* Move the text slightly to the left */
@@ -65,7 +66,7 @@ button:hover{
 }
 
 .navigation-bar .nav-links a:hover {
-    color: #e0e0e0; /* Changed from #555 to a light gray for hover effect */
+    color: #5988c2; /* Changed from #555 to a light gray for hover effect */
 }
 
 .beta-link {
