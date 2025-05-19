@@ -186,11 +186,11 @@ const Information = ({ width, ...props }) => {
                 onClick={(event) => handleClick(event, url[1])}
                 style={{
                     cursor: 'pointer',
-                    padding: '6px',
+                    // padding: '6px',
                     marginBottom: '0px',
                     /*border: '1px solid #ddd',*/
                     borderRadius: '10px',
-                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.4)',
+                    // boxShadow: '0 1px 3px rgba(0, 0, 0, 0.4)',
                     backgroundColor: '#fff',
                     transition: 'box-shadow 0.0s ease-in-out',
                     width: '100%',
@@ -198,8 +198,8 @@ const Information = ({ width, ...props }) => {
                     marginRight: '15px'*/
                 }}
                 className="custom-div-url"
-                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.45)'}
-                onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.4)'}
+                // onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.45)'}
+                // onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.4)'}
             >
                 <div className="top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', flex: 1 }}>
@@ -452,7 +452,8 @@ const Information = ({ width, ...props }) => {
                         borderTopLeftRadius: '10px',
                         borderTopRightRadius: '10px',
                         paddingTop: '35px',
-                        paddingLeft: "42px",
+                        //paddingLeft: "2.5vw",
+                        // marginLeft:"2.6vw",
                         // paddingBottom: '20px',
                         minHeight: '90px',
                         border: 'none',
@@ -516,7 +517,7 @@ const Information = ({ width, ...props }) => {
                                             {renderNodeDetails(node)}
                                             {/* Add Related Articles section for nodes */}
                                             {urls.length > 0 && (
-                                                <div style={{ paddingLeft: '12px' }}>
+                                                <div style={{ }}>
                                                     <h4 style={{
                                                         color: '#8c8c8c',
                                                         marginTop: '20px',
@@ -528,7 +529,7 @@ const Information = ({ width, ...props }) => {
                                                         size="small"
                                                         dataSource={urls}
                                                         renderItem={item => (
-                                                            <List.Item className="related-article-item" style={{ borderBottom: 'none' }}>
+                                                            <List.Item className="related-article-item">
                                                                 {item}
                                                             </List.Item>
                                                         )}

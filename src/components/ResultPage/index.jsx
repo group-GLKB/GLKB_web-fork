@@ -836,7 +836,7 @@ const ResultPage = () => {
                                                         //minHeight: "600px",
                                                         bgcolor: "white",
                                                         position: 'relative',
-                                                        boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
+                                                        // boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
                                                         // marginLeft: "1%",
                                                         // marginRight: "1%",
                                                         // marginTop: "20px",
@@ -982,7 +982,7 @@ const ResultPage = () => {
                                                         // marginLeft: "1%",
                                                         // marginRight: "1%",
                                                         // marginTop: "20px",
-                                                        boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
+                                                        // boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
                                                         '& *': {
                                                             fontFamily: "Inter !important",
                                                         },

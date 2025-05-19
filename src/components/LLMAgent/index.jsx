@@ -291,10 +291,10 @@ function LLMAgent() {
                             maxWidth: isAssistant ? "100%" : "80%", // Adjust max width for assistant messages
                             display: "flex",
                             alignItems: "flex-start",
-                            px: "24px",
+                            px: isAssistant? "0px" : "24px",
                             pt: isAssistant ? "12px" : "0px",
                             pb: isAssistant ? "24px" : "12px",
-                            border: isAssistant ? "1px solid" : "none",
+                            // border: isAssistant ? "1px solid" : "none",
                             borderColor: "divider",
                             borderRadius: "24px",
                             flex: 1, // Occupy maximum width
@@ -304,6 +304,7 @@ function LLMAgent() {
                             <Box
                                 sx={{
                                     m: 2,
+                                    ml:0,
                                     width: 32,
                                     height: 32,
                                     borderRadius: 16,

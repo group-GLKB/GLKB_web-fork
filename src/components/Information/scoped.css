@@ -68,6 +68,10 @@ all {
     text-wrap-mode: wrap !important;
 }
 
+.ant-card-head {
+    padding-left: 2vw !important;
+}
+
 .ant-collapse {
     border: none;
     background-color: transparent;
@@ -86,7 +90,7 @@ all {
 
 .custom-descriptions {
     background-color: white;
-    padding: 12px;
+    /* padding: 12px; */
     margin-bottom: 10px;
     border-radius: 8px;
 }
