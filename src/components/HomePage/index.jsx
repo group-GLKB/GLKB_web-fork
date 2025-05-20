@@ -526,7 +526,7 @@ const HomePage = () => {
                         onClick={() => setRunTour(true)}
                         // style={{ marginTop: '20px' }}
                         icon={<QuestionCircleOutlined />}
-                        style={{ position: 'fixed', bottom: '20px', right: '20px' }}
+                        style={{ position: 'fixed', bottom: '20px', right: '20px', width:'220px'}}
                     >
                         Take a Guided Tour to GLKB
                     </AntButton>

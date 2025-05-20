@@ -18,6 +18,7 @@ function SubNavBar({ activeButton }) {
     return (
         <div className="sub-navigation-bar">
             <button
+                id="subnavbarbutton"
                 onClick={handleSearchClick}
                 className={activeButton === "triplet" || location.pathname.endsWith("result")
                     ? "active" : "nonactive"}
@@ -25,6 +26,7 @@ function SubNavBar({ activeButton }) {
                 Search
             </button>
             <button
+                id="subnavbarbutton"
                 onClick={handleChatClick}
                 className={activeButton === "llm" || location.pathname.endsWith("llm-agent")
                     ? "active" : "nonactive"}
