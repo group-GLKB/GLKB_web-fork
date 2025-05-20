@@ -31,6 +31,8 @@ import { Box, Grid } from '@mui/material';
 import { Button as MUIButton } from '@mui/material';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import './scoped.css'
+import rightArrow from "../../img/right_arrow.svg"
+import downArrow from "../../img/down_arrow.svg"
 
 const { Search } = Input;
 
@@ -725,7 +727,7 @@ const ResultPage = () => {
     // const toggleLegend = () => {
     //     setIsLegendVisible(!isLegendVisible);
     // };
-
+    const [isLegendVisible, setLegendVisible] = useState(true);
     return (
         <div className="result-container" ref={containerRef}>
             <Joyride
@@ -794,8 +796,14 @@ const ResultPage = () => {
                                         onClick={startTour}
                                         className="start-tour-button"
                                         disabled={!searchFlag || isGraphLoading}
+                                        style={{
+                                            backgroundColor: 'transparent',
+                                            border:'none',
+                                            marginLeft: "1vw",
+                                            marginRight: "0.5vw"
+                                        }}
                                     >
-                                        <InfoCircleOutlined style={{ fontSize: "30px", color: "#8D8D8D" }} />
+                                        <InfoCircleOutlined style={{ fontSize: "30px", color: "#8D8D8D"}} />
                                     </Button>
                                 </div>
                             )}
@@ -830,7 +838,7 @@ const ResultPage = () => {
                                             <Grid container spacing={'24px'} height={"100%"}>
                                                 <Grid item xs={6} height={"100%"}>
                                                     <Box sx={{
-                                                        borderRadius: "30px",
+                                                        borderRadius: "20px",
                                                         //width: '100%',
                                                         height: "100%",
                                                         //minHeight: "600px",
@@ -883,7 +891,7 @@ const ResultPage = () => {
                                                         </Tooltip>
                                                         <Box sx={{
                                                             width: '100%',
-                                                            height: '50%',
+                                                            height: isLegendVisible ? '50%' : '85%',
                                                         }}>
                                                             <div className="graph-container" style={{
                                                                 position: 'relative',
@@ -942,31 +950,49 @@ const ResultPage = () => {
                                                             <div className="graph-legend">
                                                                 <div className="legend-section">
                                                                     <div className="legend-subsection">
-                                                                        <div className="legend-subtitle">Legends</div>
-                                                                        <div className="legend-column">
-                                                                            {legendData.map((item, index) => (
-                                                                                <LegendButton
-                                                                                    key={index}
-                                                                                    label={item.label}
-                                                                                    size={item.size}
-                                                                                    color={item.color}
+                                                                        <div className="legend-subtitle-row">
+                                                                            <div className="legend-subtitle">Legends</div>
+                                                                            <button
+                                                                                className="toggle-button"
+                                                                                onClick={() => setLegendVisible(!isLegendVisible)}
+                                                                            >
+                                                                                <img
+                                                                                    src={isLegendVisible ? downArrow : rightArrow}
+                                                                                    alt="Toggle legend"
+                                                                                    className="legend-toggle-icon"
                                                                                 />
-                                                                            ))}
+                                                                            </button>
                                                                         </div>
+
+                                                                        {isLegendVisible && (
+                                                                            <div>
+                                                                                <div className="legend-column">
+                                                                                    {legendData.map((item, index) => (
+                                                                                        <LegendButton
+                                                                                            key={index}
+                                                                                            label={item.label}
+                                                                                            size={item.size}
+                                                                                            color={item.color}
+                                                                                        />
+                                                                                    ))}
+                                                                                </div>
+                                                                                <div className="legend-subsection">
+                                                                                    <div className="legend-row">
+                                                                                        {legendEdgeData.map((item, index) => (
+                                                                                            <LegendItem
+                                                                                                key={index}
+                                                                                                label={item.label}
+                                                                                                size={item.size}
+                                                                                                color={item.color}
+                                                                                                explanation={item.explanation}
+                                                                                            />
+                                                                                        ))}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
-                                                                    <div className="legend-subsection">
-                                                                        <div className="legend-row">
-                                                                            {legendEdgeData.map((item, index) => (
-                                                                                <LegendItem
-                                                                                    key={index}
-                                                                                    label={item.label}
-                                                                                    size={item.size}
-                                                                                    color={item.color}
-                                                                                    explanation={item.explanation}
-                                                                                />
-                                                                            ))}
-                                                                        </div>
-                                                                    </div>
+                                                                    
                                                                 </div>
                                                             </div>
                                                         </Box>
@@ -974,7 +1000,7 @@ const ResultPage = () => {
                                                 </Grid>
                                                 <Grid item xs={6} height={"100%"}>
                                                     <Box sx={{
-                                                        borderRadius: "30px",
+                                                        borderRadius: "20px",
                                                         height: "100%",
                                                         //minHeight: "600px",
                                                         bgcolor: "white",

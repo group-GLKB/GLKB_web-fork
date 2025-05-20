@@ -569,3 +569,55 @@ all {
 .MuiButton-root {
     text-transform: none !important;
 }
+
+.legend-subtitle-row {
+    display: flex;
+    
+}
+
+.legend-subtitle {
+    font-weight: bold;
+    font-size: 1rem;
+    width: 80px;
+}
+
+.toggle-button {
+    padding: 0;
+    margin: 0;
+    background: none;
+    border: none;
+    display: flex;
+    cursor: pointer;
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-top:10px;
+}
+
+.legend-toggle-icon {
+    width: 0.75rem;
+    height: 0.75rem;
+    display: block;
+}
+
+.graph-container >div {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+.graph-container >div>div{
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+.graph-container >div>div>div{
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+.graph-container >div>div>div>div{
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
