@@ -12,6 +12,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import SendIcon from '@mui/icons-material/Send';
 import { Grid } from '@mui/material';
 import SubNavBar from '../Units/SubNavBar'
+import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 
 import {
     Typography,
@@ -61,6 +62,11 @@ function LLMAgent() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
+    const handleClick = (event, link) => {
+        event.preventDefault();
+        window.open(link, '_blank');
+    };
+
     useEffect(() => {
         scrollToBottom();
     }, [chatHistory, streamingSteps]);
@@ -71,6 +77,16 @@ function LLMAgent() {
             handleExampleClick(query);
         }
     }, [location.state]);
+    useEffect(() => {
+        const container = document.querySelector('.chat-container');
+        if (!container) return;
+
+        const links = container.querySelectorAll('a');
+        links.forEach(link => {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+        });
+    }, [chatHistory]);
 
     const parseReferences = (refs) => {
         if (!refs || !Array.isArray(refs)) return [];
@@ -621,7 +637,7 @@ function LLMAgent() {
                                                                     <SendIcon
                                                                         onClick={handleSubmit} // Trigger the search function
                                                                         sx={{
-                                                                            color: '#1976d2',
+                                                                            color: userInput.length === 0 ? '#45628880' : '#1976d2',
                                                                             cursor: 'pointer',
                                                                             fontSize: '30px', // Adjust size as needed
                                                                         }}
@@ -647,22 +663,27 @@ function LLMAgent() {
                                                 <div className="references-container">
                                                     <h3>References</h3>
                                                     {selectedMessageIndex !== null && chatHistory[selectedMessageIndex]?.references.length > 0 ? (
-                                                        <ul className="references-list">
-                                                            {chatHistory[selectedMessageIndex].references.map((ref, index) => (
-                                                                <li key={index} className="reference-item">
-                                                                    <h4>{ref.title}</h4>
-                                                                    <p className="reference-metadata">
-                                                                        {ref.journal} ({ref.year}) | Citations: {ref.citation_count}
-                                                                    </p>
-                                                                    <p className="reference-authors">{ref.authors}</p>
-                                                                    {ref.url && (
-                                                                        <a href={ref.url} target="_blank" rel="noopener noreferrer">
-                                                                            PubMed Article {ref.url.split('/').filter(Boolean).pop()}
-                                                                        </a>
-                                                                    )}
-                                                                </li>
-                                                            ))}
-                                                        </ul>
+                                                        <div>
+                                                            {chatHistory[selectedMessageIndex].references.map((ref, index) => {
+                                                                // Convert ref to url array format
+                                                                const url = [
+                                                                    ref.title,           // url[0]
+                                                                    ref.url,             // url[1]
+                                                                    ref.citation_count,  // url[2]
+                                                                    ref.year,            // url[3]
+                                                                    ref.journal,         // url[4]
+                                                                    ref.authors          // url[5]
+                                                                ];
+
+                                                                return (
+                                                                    <div key={index}>
+                                                                        <ReferenceCard url={url} handleClick={handleClick}/>
+                                                                        <hr style={{ border: 'none', height: '1px', backgroundColor: '#E0E0E0', margin: '12px 0' }} />
+                                                                        
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
                                                     ) : (
                                                         <p>No references available for this response.</p>
                                                     )}

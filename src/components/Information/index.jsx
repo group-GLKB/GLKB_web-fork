@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import './scoped.css'
 import { DetailService } from '../../service/Detail'
 import { Descriptions, List, Collapse, Typography, Spin, Card, Tabs, Empty } from 'antd';
+import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 
 const { Panel } = Collapse;
 const { Text } = Typography;
@@ -237,8 +238,13 @@ const Information = ({ width, ...props }) => {
                     {url[0]}
                 </a>
 
-                <div title="Journal" style={{ color: '#888888', marginTop: '1px' }}>
-                    {url[4].length > 60 ? url[4].substring(0, 60) + '...' : url[4]}
+                <div id="bottomsection" style={{ color: '#888888', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                    <div title="Journal">
+                        {url[4].length > 60 ? url[4].substring(0, 64) + '...' : url[4]}
+                    </div>
+                    <div title="PubmedID">
+                        PubmedID: {url[1].split('/').filter(Boolean).pop()}
+                    </div>
                 </div>
             </div>
 

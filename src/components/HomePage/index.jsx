@@ -24,6 +24,7 @@ import CloseIcon from '@mui/icons-material/Close'; // Import the Clear (cross) i
 import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
+import SendIcon from '@mui/icons-material/Send';
 
 const { Search } = Input;
 
@@ -358,7 +359,7 @@ const HomePage = () => {
                             />
                         ) : (
                             <Box className="llm-searchbar" sx={{
-                                width: '100%', mt: 2, mb: 2,
+                                width: '100%', 
                                 display: 'flex',
                                 gap: 2,
                                 paddingLeft: isSmallScreen ? '0px' : '24px',
@@ -400,14 +401,14 @@ const HomePage = () => {
                                                     }}
                                                 />
                                                 {/* Search Icon */}
-                                                <SendOutlinedIcon
+                                                <SendIcon
                                                     onClick={() => {
                                                         if (llmQuery.trim()) {
                                                             navigateToLLMAgent(llmQuery.trim()); // Trigger the search function
                                                         }
                                                     }} // Trigger the search function
                                                     sx={{
-                                                        color: '#45628880',
+                                                        color: llmQuery.length === 0 ? '#45628880' : '#1976d2',
                                                         cursor: 'pointer',
                                                         fontSize: '35px', // Adjust size as needed
                                                     }}
