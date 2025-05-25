@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef , useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import NavBarWhite from '../Units/NavBarWhite';
 import { Button, message } from 'antd';
@@ -511,6 +511,21 @@ function LLMAgent() {
         })}</Box>);
     };
 
+    const [sortOption, setSortOption] = useState('Year');
+
+    const references = selectedMessageIndex !== null
+        ? chatHistory[selectedMessageIndex]?.references || []
+        : [];
+
+    const sortedReferences = useMemo(() => {
+        const sorted = [...references];
+        if (sortOption === 'Citations') {
+            sorted.sort((a, b) => (b.citation_count || 0) - (a.citation_count || 0));
+        } else {
+            sorted.sort((a, b) => (b.year || 0) - (a.year || 0));
+        }
+        return sorted;
+    }, [references, sortOption]);
 
     return (
         <div className="result-container">
@@ -661,25 +676,40 @@ function LLMAgent() {
                                         <Grid item xs={5} height={"100%"}>
                                             <div style={{ height: '100%', width: '100%' }}>
                                                 <div className="references-container">
-                                                    <h3>References</h3>
-                                                    {selectedMessageIndex !== null && chatHistory[selectedMessageIndex]?.references.length > 0 ? (
-                                                        <div>
-                                                            {chatHistory[selectedMessageIndex].references.map((ref, index) => {
-                                                                // Convert ref to url array format
-                                                                const url = [
-                                                                    ref.title,           // url[0]
-                                                                    ref.url,             // url[1]
-                                                                    ref.citation_count,  // url[2]
-                                                                    ref.year,            // url[3]
-                                                                    ref.journal,         // url[4]
-                                                                    ref.authors          // url[5]
-                                                                ];
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <h3 style={{ marginBottom: '0' }}>References</h3>
+                                                        <select
+                                                            value={sortOption}
+                                                            onChange={(e) => setSortOption(e.target.value)}
+                                                            style={{
+                                                                fontSize: '14px',
+                                                                padding: '4px 8px',
+                                                                borderRadius: '4px',
+                                                                border: '1px solid #ccc',
+                                                                background: '#f9f9f9',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            <option value="Year">Sort by Year</option>
+                                                            <option value="Citations">Sort by Citations</option>
+                                                        </select>
+                                                    </div>
 
+                                                    {sortedReferences.length > 0 ? (
+                                                        <div>
+                                                            {sortedReferences.map((ref, index) => {
+                                                                const url = [
+                                                                    ref.title,
+                                                                    ref.url,
+                                                                    ref.citation_count,
+                                                                    ref.year,
+                                                                    ref.journal,
+                                                                    ref.authors
+                                                                ];
                                                                 return (
                                                                     <div key={index}>
-                                                                        <ReferenceCard url={url} handleClick={handleClick}/>
+                                                                        <ReferenceCard url={url} handleClick={handleClick} />
                                                                         <hr style={{ border: 'none', height: '1px', backgroundColor: '#E0E0E0', margin: '12px 0' }} />
-                                                                        
                                                                     </div>
                                                                 );
                                                             })}

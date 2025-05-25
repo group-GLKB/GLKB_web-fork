@@ -3,6 +3,11 @@ import './scoped.css'
 import { DetailService } from '../../service/Detail'
 import { Descriptions, List, Collapse, Typography, Spin, Card, Tabs, Empty } from 'antd';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
+import { Select } from 'antd';
+import { useMemo } from 'react';
+
+import rightArrow from "../../img/right_arrow.svg"
+import downArrow from "../../img/down_arrow.svg"
 
 const { Panel } = Collapse;
 const { Text } = Typography;
@@ -15,6 +20,7 @@ const Information = ({ width, ...props }) => {
     const [edgeDetail, setEdgeDetail] = useState({});
     const [activeKey, setActiveKey] = useState(['0']);
     const [isLoading, setIsLoading] = useState(false);
+    const [sentenceVisibility, setSentenceVisibility] = useState({});
 
     const merge = true;
 
@@ -26,6 +32,13 @@ const Information = ({ width, ...props }) => {
     const handleClick = (event, link) => {
         event.preventDefault();
         window.open(link, '_blank');
+    };
+
+    const toggleSentences = (index) => {
+        setSentenceVisibility(prev => ({
+            ...prev,
+            [index]: !prev[index],
+        }));
     };
 
     useEffect(() => {
@@ -153,32 +166,23 @@ const Information = ({ width, ...props }) => {
         const renderAuthors = () => {
             if (authors.length === 0) return null;
             if (authors.length === 1) {
-                return renderAuthorBubbles([getLastName(authors[0])]);
+                return renderAuthorBubbles([authors[0]]);
             }
             if (authors.length === 2) {
-                return renderAuthorBubbles(authors.map(getLastName));
+                return renderAuthorBubbles(authors);
             }
             return renderAuthorBubbles([
-                getLastName(authors[0]),
+                authors[0],
                 '...',
-                getLastName(authors[authors.length - 1])
+                authors[authors.length - 1]
             ]);
         };
         const renderAuthorBubbles = (list) => (
             list.map((author, idx) => (
                 <span
                     key={idx}
-                    style={{
-                        backgroundColor: '#F4F4F4',
-                        borderRadius: '8px',
-                        padding: '2px 6px',
-                        fontSize: '12px',
-                        color: '#888888',
-                        whiteSpace: 'nowrap',
-                        border: '1px solid #E6E6E6'
-                    }}
                 >
-                    {author}
+                    {author}{idx < list.length - 1 ? ',' : ''}
                 </span>
             ))
         );
@@ -187,77 +191,112 @@ const Information = ({ width, ...props }) => {
                 onClick={(event) => handleClick(event, url[1])}
                 style={{
                     cursor: 'pointer',
-                    // padding: '6px',
-                    marginBottom: '0px',
-                    /*border: '1px solid #ddd',*/
+                    marginBottom: '2px',
                     borderRadius: '10px',
-                    // boxShadow: '0 1px 3px rgba(0, 0, 0, 0.4)',
                     backgroundColor: '#fff',
-                    transition: 'box-shadow 0.0s ease-in-out',
                     width: '100%',
-                    /*marginLeft: '15px',
-                    marginRight: '15px'*/
                 }}
                 className="custom-div-url"
-                // onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.45)'}
-                // onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.4)'}
             >
-                <div className="top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', flex: 1 }}>
-                        {renderAuthors()}
+                {/* Section 1: PubMed ID and Citations */}
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div style={{ color: '#018DFF', fontSize: '14px' }}>
+                        {url[1].split('/').filter(Boolean).pop()}
                     </div>
-
-                        <div style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'flex-end',
-                            marginLeft: '16px',
-                            minWidth: '80px',
-                            whiteSpace: 'nowrap'
-                        }}>
-                            <span style={{ color: '#888888', fontWeight: 'bold', fontSize: '15px', lineHeight: '6px' , marginTop:'3px'}} title="Year">
-                                {url[3]}
-                            </span>
-                            <span style={{ color: '#888888', fontSize: '12px',marginTop:'1px' }} title="Cited by">
-                                Cited by: {url[2]}
-                            </span>
+                    <div style={{ fontSize: '14px' }}>
+                        Citations: {url[2]}
                     </div>
                 </div>
 
-                <a
-                    href={url[1]}
-                    onClick={(event) => {
-                        event.stopPropagation();
+                {/* Section 2: Title and Year */}
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto',
+                    alignItems: 'start',
+                }}>
+                    <a
+                        href={url[1]}
+                        onClick={(event) => {
+                            event.stopPropagation();
                             handleClick(event, url[1]);
                         }}
                         style={{
                             color: 'black',
                             textDecoration: 'none',
+                            fontWeight: '600',
+                            fontSize: '14px',
+                            paddingRight: '8px',
+                            wordBreak: 'break-word'
                         }}
-                >
-                    {url[0]}
-                </a>
+                    >
+                        {url[0]}
+                    </a>
+                    <div style={{
+                        fontSize: '14px',
+                        whiteSpace: 'nowrap',
+                        textAlign: 'right',
+                        marginLeft: '8px',
+                    }}>
+                        {url[3]}
+                    </div>
+                </div>
 
-                <div id="bottomsection" style={{ color: '#888888', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                    <div title="Journal">
-                        {url[4].length > 60 ? url[4].substring(0, 64) + '...' : url[4]}
-                    </div>
-                    <div title="PubmedID">
-                        PubmedID: {url[1].split('/').filter(Boolean).pop()}
-                    </div>
+                {/* Section 3: Authors */}
+                <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '6px',
+                    fontSize: '14px'
+                }}>
+                    {renderAuthors()}
+                </div>
+
+                {/* Section 4: Journal Name */}
+                <div style={{
+                    fontSize: '14px',
+                    wordBreak: 'break-word'
+                }} title="Journal">
+                    {url[4]}
                 </div>
             </div>
 
+
         )
     }
+
+    const [sortBy, setSortBy] = useState('year'); // 'year' or 'citations'
+
+    const sortedRawNodes = useMemo(() => {
+        if (!nodeDetails[1]) return [];
+        return [...nodeDetails[1]].sort((a, b) => {
+            if (sortBy === 'year') return parseInt(b[3]) - parseInt(a[3]);
+            if (sortBy === 'citations') return parseInt(b[2]) - parseInt(a[2]);
+            return 0;
+        });
+    }, [nodeDetails, sortBy]);
+
+    const urls = sortedRawNodes.map(nodeForMap);
+
+    const sortedUrls = useMemo(() => {
+        
+        return [...urls].sort((a, b) => {
+            if (sortBy === 'year') {
+                return parseInt(b[3]) - parseInt(a[3]); // Newest first
+            } else if (sortBy === 'citations') {
+                return parseInt(b[2]) - parseInt(a[2]); // Most cited first
+            }
+            return 0;
+        });
+    }, [urls, sortBy]);
+
+
+    
     // if (Object.keys(nodeDetails).length !== 0) {
     //     const details = nodeDetails.map((nodeDetail) => nodeDetail.data)
     //     const urls = details.map((node) => node[1].map(nodeForMap))
     //     seturlList(urls)
     // }
     // console.log(urlList);
-    const urls = Object.keys(nodeDetails).length !== 0 ? (nodeDetails[1].map(nodeForMap)) : []
-    console.log(urls);
     // const edgeUrl = (url) => {
     //     return(
     //         <div>
@@ -494,13 +533,29 @@ const Information = ({ width, ...props }) => {
                                     {/* Related Articles for Article Node */}
                                     {urls.length > 0 && (
                                         <div style={{ paddingLeft: '12px' }}>
-                                            <h4 style={{
-                                                color: '#8c8c8c',
-                                                marginTop: '20px',
-                                                marginBottom: '10px',
-                                                fontWeight: 'normal',
-                                                fontSize: '14px',
-                                            }}>Related Articles</h4>
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                marginBottom: '10px'
+                                            }}>
+                                                <h4 style={{
+                                                    color: '#8c8c8c',
+                                                    margin: 0,
+                                                    fontWeight: 'normal',
+                                                    fontSize: '14px',
+                                                }}>Related Articles</h4>
+                                                <Select
+                                                    size="small"
+                                                    defaultValue="year"
+                                                    onChange={value => setSortBy(value)}
+                                                    style={{ width: 120 }}
+                                                    options={[
+                                                        { value: 'year', label: 'Sort by Year' },
+                                                        { value: 'citations', label: 'Sort by Citations' },
+                                                    ]}
+                                                />
+                                            </div>
                                             <List
                                                 size="small"
                                                 dataSource={urls}
@@ -524,16 +579,31 @@ const Information = ({ width, ...props }) => {
                                             {/* Add Related Articles section for nodes */}
                                             {urls.length > 0 && (
                                                 <div style={{ }}>
-                                                    <h4 style={{
-                                                        color: '#8c8c8c',
-                                                        marginTop: '20px',
-                                                        marginBottom: '10px',
-                                                        fontWeight: 'normal',
-                                                        fontSize: '14px',
-                                                    }}>Related Articles</h4>
+                                                    <div style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                        marginBottom: '10px'
+                                                    }}>
+                                                        <h4 style={{
+                                                            color: '#8c8c8c',
+                                                            margin: 0,
+                                                            fontWeight: 'normal',
+                                                            fontSize: '14px',
+                                                        }}>Related Articles</h4>
+                                                        <Select
+                                                            size="small"
+                                                            value={sortBy}
+                                                            onChange={value => setSortBy(value)}
+                                                            options={[
+                                                                { value: 'year', label: 'Sort by Year' },
+                                                                { value: 'citations', label: 'Sort by Citations' }
+                                                            ]}
+                                                        />
+                                                    </div>
                                                     <List
                                                         size="small"
-                                                        dataSource={urls}
+                                                        dataSource={sortedUrls}
                                                         renderItem={item => (
                                                             <List.Item className="related-article-item">
                                                                 {item}
@@ -561,37 +631,54 @@ const Information = ({ width, ...props }) => {
                                         >
                                             {/* Edge Details */}
                                             {renderEdgeDetails(edge[0])}
-
+                                            
                                             {/* Related Sentences */}
                                             {edge[2] && edge[2].length > 0 && (
                                                 <div>
-                                                    <h4 style={{
-                                                        color: '#8c8c8c',
+                                                    <div style={{
+                                                        display: 'flex',
+                                                        // justifyContent: 'space-between',
+                                                        alignItems: 'center',
                                                         marginTop: '20px',
                                                         marginBottom: '10px',
-                                                        fontWeight: 'normal',
-                                                        fontSize: '14px',
-                                                    }}>Related Sentences</h4>
-                                                    <List
-                                                        size="small"
-                                                        dataSource={edge[2]}
-                                                        renderItem={(item, index) => (
-                                                            <List.Item key={index} className="related-article-item" style={{ paddingBottom: '8px' }}>
-                                                                <div className="custom-div-edge">
-                                                                    <div style={{ whiteSpace: 'pre-wrap' }}>{item[0]}</div>
-                                                                    <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
-                                                                        <a
-                                                                            href={item[1]}
-                                                                            onClick={(event) => handleClick(event, item[1])}
-                                                                            style={{ color: '#4a7298' }}
-                                                                        >
-                                                                            View Source
-                                                                        </a>
-                                                                    </p>
-                                                                </div>
-                                                            </List.Item>
-                                                        )}
-                                                    />
+                                                    }}>
+                                                        <h4 style={{
+                                                            color: '#8c8c8c',
+                                                            margin: 0,
+                                                            fontWeight: 'normal',
+                                                            fontSize: '14px',
+                                                        }}>Related Sentences</h4>
+                                                        <div onClick={() => toggleSentences(index)} style={{ cursor: 'pointer', marginLeft: '20px'}}>
+                                                            <img
+                                                                src={sentenceVisibility[index] ? downArrow : rightArrow}
+                                                                alt="Toggle related sentences"
+                                                                className="legend-toggle-icon"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {sentenceVisibility[index] && (
+                                                        <List
+                                                            size="small"
+                                                            dataSource={edge[2]}
+                                                            renderItem={(item, i) => (
+                                                                <List.Item key={i} className="related-article-item" style={{ paddingBottom: '8px' }}>
+                                                                    <div className="custom-div-edge">
+                                                                        <div style={{ whiteSpace: 'pre-wrap' }}>{item[0]}</div>
+                                                                        <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
+                                                                            <a
+                                                                                href={item[1]}
+                                                                                onClick={(event) => handleClick(event, item[1])}
+                                                                                style={{ color: '#4a7298' }}
+                                                                            >
+                                                                                View Source
+                                                                            </a>
+                                                                        </p>
+                                                                    </div>
+                                                                </List.Item>
+                                                            )}
+                                                        />
+                                                    )}
                                                 </div>
                                             )}
 

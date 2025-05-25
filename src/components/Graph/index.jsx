@@ -290,7 +290,7 @@ const Graph = React.memo(function Graph(props) {
           'text-max-width': '120px',
           width: 'label',
           height: '35px',
-          padding: '10px'
+          padding: '10px',
         },
       };
     });

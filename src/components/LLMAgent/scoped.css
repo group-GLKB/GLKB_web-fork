@@ -96,6 +96,7 @@
     flex: 1;
     overflow-y: auto;
     padding: 1rem;
+    padding-top: 0rem;
     border: 1px solid #e0e0e0;
     border-radius: 20px;
     background-color: white;
@@ -105,7 +106,7 @@
 
 .references-container h3 {
     margin: 0;
-    padding: 10px 0;
+    padding: calc( 10px + 1rem) 0;
     font-size: 16px;
     font-weight: normal;
     color: rgba(0, 0, 0, 0.85);
