@@ -173,3 +173,7 @@ all {
     background: linear-gradient(to top, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
 }
 
+.ant-descriptions-item {
+    padding-top: 4px !important;
+    padding-bottom: 2px !important;
+}

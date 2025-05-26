@@ -478,7 +478,7 @@ const Information = ({ width, ...props }) => {
     );
 
     const renderEdgeDetails = (edge) => (
-        <Descriptions column={1}>
+        <Descriptions column={1} >
             <Descriptions.Item label="Term 1">{edge.node1}</Descriptions.Item>
             <Descriptions.Item label="Term 2">{edge.node2}</Descriptions.Item>
             <Descriptions.Item label="Relationship Label">{edge['relationship label']}</Descriptions.Item>
@@ -713,7 +713,7 @@ const Information = ({ width, ...props }) => {
                                                         justifyContent: 'space-between',
                                                         alignItems: 'center',
                                                         marginBottom: '10px',
-                                                        marginTop: '20px'
+                                                        marginTop: '8px'
                                                     }}>
                                                         <h4 style={{
                                                             color: '#8c8c8c',
