@@ -157,7 +157,6 @@ const Information = ({ width, ...props }) => {
 
     const nodeForMap = (url) => {
         const authors = url[5] || [];
-
         const getLastName = (fullName) => {
             const parts = fullName.trim().split(' ');
             return parts[parts.length - 1];
@@ -263,6 +262,7 @@ const Information = ({ width, ...props }) => {
 
         )
     }
+    
 
     const [sortBy, setSortBy] = useState('year'); // 'year' or 'citations'
 
@@ -289,8 +289,31 @@ const Information = ({ width, ...props }) => {
         });
     }, [urls, sortBy]);
 
-
     
+    const sortedEdges = useMemo(() => {
+        if (!edgeDetail || typeof edgeDetail !== 'object') return [];
+
+        return Object.entries(edgeDetail).map(([label, urlsWrapper]) => {
+            const urls = urlsWrapper?.[1] || []; 
+
+            const sortedUrls = [...urls].sort((a, b) => {
+                if (sortBy === 'year') {
+                    return parseInt(b[3]) - parseInt(a[3]); 
+                } else if (sortBy === 'citations') {
+                    return parseInt(b[2]) - parseInt(a[2]);
+                }
+                return 0;
+            });
+
+            return [label, [urlsWrapper[0], sortedUrls]];
+        });
+    }, [edgeDetail, sortBy]);
+
+    const edgeItems = useMemo(() => {
+        return sortedEdges.flatMap((edge) => {
+            return edge?.[1]?.[1]?.map(nodeForMap) || [];
+        });
+    }, [sortedEdges]);
     // if (Object.keys(nodeDetails).length !== 0) {
     //     const details = nodeDetails.map((nodeDetail) => nodeDetail.data)
     //     const urls = details.map((node) => node[1].map(nodeForMap))
@@ -685,35 +708,35 @@ const Information = ({ width, ...props }) => {
                                             {/* Related Articles */}
                                             {edge[1] && edge[1].length > 0 && (
                                                 <div>
-                                                    <h4 style={{
-                                                        color: '#8c8c8c',
-                                                        marginTop: '20px',
+                                                    <div style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
                                                         marginBottom: '10px',
-                                                        fontWeight: 'normal',
-                                                        fontSize: '14px',
-                                                    }}>Related Articles</h4>
+                                                        marginTop: '20px'
+                                                    }}>
+                                                        <h4 style={{
+                                                            color: '#8c8c8c',
+                                                            margin: 0,
+                                                            fontWeight: 'normal',
+                                                            fontSize: '14px',
+                                                        }}>Related Articles</h4>
+                                                        <Select
+                                                            size="small"
+                                                            value={sortBy}
+                                                            onChange={value => setSortBy(value)}
+                                                            options={[
+                                                                { value: 'year', label: 'Sort by Year' },
+                                                                { value: 'citations', label: 'Sort by Citations' }
+                                                            ]}
+                                                        />
+                                                    </div>
                                                     <List
                                                         size="small"
-                                                        dataSource={edge[1]}
-                                                        renderItem={(url, urlIndex) => (
-                                                            <List.Item key={urlIndex} className="related-article-item" style={{ paddingBottom: '8px' }}>
-                                                                <div className="custom-div-edge">
-                                                                    <a
-                                                                        href={url[1]}
-                                                                        onClick={(event) => handleClick(event, url[1])}
-                                                                        style={{ color: '#4a7298' }}
-                                                                    >
-                                                                        {url[0]}
-                                                                    </a>
-                                                                    <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
-                                                                        <span title="Cited by">Cited by: {url[2]} </span> |
-                                                                        <span title="Year">Year: {url[3]} </span> |
-                                                                        <span title="Journal">Journal: {url[4].length > 20 ? url[4].substring(0, 20) + '...' : url[4]} </span>
-                                                                    </p>
-                                                                    <p className="info-row" title={url[5].join(', ')} style={{ color: '#555555', margin: '2px 0' }}>
-                                                                        Authors: {formatAuthors(url[5])}
-                                                                    </p>
-                                                                </div>
+                                                        dataSource={edgeItems}
+                                                        renderItem={(item) => (
+                                                            <List.Item className="related-article-item">
+                                                                {item}
                                                             </List.Item>
                                                         )}
                                                     />
