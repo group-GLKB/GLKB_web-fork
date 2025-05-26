@@ -286,7 +286,7 @@ const Graph = React.memo(function Graph(props) {
           'text-halign': 'center',
           'color': '#000000',
           'font-size': '20px',
-          'text-wrap': 'ellipsis',
+          'text-wrap': 'wrap',
           'min-width': '130px',
           'text-max-width': '130px',
           width: 'label',
