@@ -13,6 +13,7 @@ import SendIcon from '@mui/icons-material/Send';
 import { Grid } from '@mui/material';
 import SubNavBar from '../Units/SubNavBar'
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
+import { Select } from 'antd';
 
 import {
     Typography,
@@ -678,21 +679,15 @@ function LLMAgent() {
                                                 <div className="references-container">
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                         <h3 style={{ marginBottom: '0' }}>References</h3>
-                                                        <select
+                                                        <Select
+                                                            size="small"
                                                             value={sortOption}
-                                                            onChange={(e) => setSortOption(e.target.value)}
-                                                            style={{
-                                                                fontSize: '14px',
-                                                                padding: '4px 8px',
-                                                                borderRadius: '4px',
-                                                                border: '1px solid #ccc',
-                                                                background: '#f9f9f9',
-                                                                cursor: 'pointer'
-                                                            }}
-                                                        >
-                                                            <option value="Year">Sort by Year</option>
-                                                            <option value="Citations">Sort by Citations</option>
-                                                        </select>
+                                                            onChange={value => setSortOption(value)}
+                                                            options={[
+                                                                { value: 'Year', label: 'Sort by Year' },
+                                                                { value: 'Citations', label: 'Sort by Citations' }
+                                                            ]}
+                                                        />
                                                     </div>
 
                                                     {sortedReferences.length > 0 ? (
