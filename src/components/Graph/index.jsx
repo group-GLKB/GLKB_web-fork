@@ -287,10 +287,11 @@ const Graph = React.memo(function Graph(props) {
           'color': '#000000',
           'font-size': '20px',
           'text-wrap': 'ellipsis',
-          'text-max-width': '120px',
+          'min-width': '130px',
+          'text-max-width': '130px',
           width: 'label',
           height: '35px',
-          padding: '10px',
+          padding: '12px',
         },
       };
     });
