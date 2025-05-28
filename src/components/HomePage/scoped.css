@@ -94,13 +94,14 @@
     height: auto; 
     padding-bottom: 10vh;
     width: 100%;
+    min-height: 100px;
 }
 
 .example-query-button {
     display: flex;
     flex-direction: column;
     width: 100%;
-    min-height: 100px; 
+    min-height: 100%; 
     height: auto;
     margin-bottom: 10px;
     white-space: normal;
