@@ -551,32 +551,31 @@ function LLMAgent() {
                                                 {/* Add example queries section */}
                                                 {chatHistory.length === 0 && (
                                                     <div className="example-queries" style={{ paddingTop: '1rem' }}>
-                                                        <div className="example-queries-header" style={{ gap: '1rem', marginTop: '2vh', paddingBottom: '200px' }}>
+                                                        <div className="example-queries-header" style={{ gap: '1rem', marginTop: '30vh', paddingBottom: '30%' }}>
                                                             <div className="logo-container" style={{ marginBottom: '1rem' }}>
-                                                                <img src={systemIcon} alt="AI" className="system-icon" style={{ width: '60px', height: '60px' }} />
-                                                                <img src={GLKBLogo} alt="GLKB" className="glkb-logo" style={{ height: '60px' }} />
+                                                                <img src={GLKBLogo} alt="GLKB" className="glkb-logo" style={{ height: '90px' }} />
                                                             </div>
-                                                            <h3>I can help you explore biomedical literature. Here are some examples:</h3>
+                                                            <h3 style ={{marginTop:'3vh'}}>I can help you explore biomedical literature. Here are some examples:</h3>
                                                         </div>
-                                                        <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '40px', marginBottom: '10px', overflowX: "auto", position: "absolute", bottom: "25%" }}>
+                                                        <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '40px', marginBottom: '10px', overflowX: "auto", position: "absolute", bottom: "25%", height:'auto', minHeight:'80px'}}>
                                                             <div className="example-query"
                                                                 onClick={() => handleExampleClick("Who are you?")}
-                                                                style={{ height: '80px', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
+                                                                style={{ height: 'auto', minHeight:'100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
                                                                 Who are you?
                                                             </div>
                                                             <div className="example-query"
                                                                 onClick={() => handleExampleClick("What is the role of BRCA1 in breast cancer?")}
-                                                                style={{ height: '80px', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
+                                                                style={{ height: 'auto', minHeight:'100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
                                                                 What is the role of BRCA1 in breast cancer?
                                                             </div>
                                                             <div className="example-query"
                                                                 onClick={() => handleExampleClick("How many articles about Alzheimer's disease are published in 2020?")}
-                                                                style={{ height: '80px', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
+                                                                style={{ height: 'auto', minHeight:'100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
                                                                 How many articles about Alzheimer's disease are published in 2020?
                                                             </div>
                                                             <div className="example-query"
                                                                 onClick={() => handleExampleClick("What pathways does TP53 participate in?")}
-                                                                style={{ height: '80px', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
+                                                                style={{ height: 'auto', minHeight:'100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
                                                                 What pathways does TP53 participate in?
                                                             </div>
                                                         </div>
