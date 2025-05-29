@@ -200,7 +200,7 @@ const Information = ({ width, ...props }) => {
                 {/* Section 1: PubMed ID and Citations */}
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <div style={{ color: '#018DFF', fontSize: '14px' }}>
-                        PubMed Id: {url[1].split('/').filter(Boolean).pop()}
+                        PubMed ID: {url[1].split('/').filter(Boolean).pop()}
                     </div>
                     <div style={{ fontSize: '14px' }}>
                         Citations: {url[2]}
