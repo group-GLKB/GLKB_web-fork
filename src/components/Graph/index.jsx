@@ -128,7 +128,7 @@ const Graph = React.memo(function Graph(props) {
           'color': '#333333',
           'font-size': '11px',
           'text-max-width': '150px',
-          'text-wrap': 'ellipsis',
+          'text-wrap': 'wrap',
           'font-family': 'Inter',
         }
       },
@@ -211,7 +211,7 @@ const Graph = React.memo(function Graph(props) {
           'text-margin-x': 0,
           'color': '#ffffff',
           'font-size': '11px',
-          'text-wrap': 'ellipsis',
+          'text-wrap': 'wrap',
           'text-max-width': '120px',
           'font-family': 'Inter',
         }
@@ -290,8 +290,7 @@ const Graph = React.memo(function Graph(props) {
           'text-wrap': 'wrap',
           'width': estimatedWidth  + 'px',
           'padding': '10px',
-          'text-wrap': 'wrap',
-          'text-max-width': estimatedWidth - 20 + 'px',
+          'text-max-width': '100%',
           height: '35px',
         },
       };
