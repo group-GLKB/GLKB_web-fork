@@ -25,20 +25,8 @@ const arePropsEqual = (prevProps, nextProps) => {
 const Graph = React.memo(function Graph(props) {
   const [width, setWidth] = useState('100%');
   const [height, setHeight] = useState('calc(max(240px,(100vh - 134px)*0.4))');
-  const cyRef = useRef(null);
-
-  /*this code possibly prevents nodes from being too small */
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (cyRef.current) {
-        cyRef.current.layout({ name: 'fcose', animate: true }).run();
-      }
-    }, 0);
-    return () => clearTimeout(timeout);
-  }, []);
 
   useEffect(() => {
-    
     if (!props.data || !props.data.nodes) return;
 
     let curMinGtdcFreq = Number.MAX_SAFE_INTEGER;
@@ -281,7 +269,7 @@ const Graph = React.memo(function Graph(props) {
       const size = nodeId[2] >= 60 ? 40 : nodeId[2] >= 30 ? 30 : 20;
       // const borderWidth = nodeId[4] === "true" ? '1px' : 0;
       // const borderColor = nodeId[4] === "true" ? 'red' : 'transparent';
-
+      const estimatedWidth = (nodeId[1].length * 10) + 20;
       return {
         selector: `node[id = "${nodeId[0]}"]`,
         style: {
@@ -300,10 +288,10 @@ const Graph = React.memo(function Graph(props) {
           'color': '#000000',
           'font-size': '20px',
           'text-wrap': 'wrap',
-          'width': 'label',
+          'width': estimatedWidth  + 'px',
           'padding': '10px',
           'text-wrap': 'wrap',
-          'text-max-width': '10px',
+          'text-max-width': estimatedWidth - 20 + 'px',
           height: '35px',
         },
       };
