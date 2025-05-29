@@ -25,8 +25,20 @@ const arePropsEqual = (prevProps, nextProps) => {
 const Graph = React.memo(function Graph(props) {
   const [width, setWidth] = useState('100%');
   const [height, setHeight] = useState('calc(max(240px,(100vh - 134px)*0.4))');
+  const cyRef = useRef(null);
+
+  /*this code possibly prevents nodes from being too small */
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (cyRef.current) {
+        cyRef.current.layout({ name: 'fcose', animate: true }).run();
+      }
+    }, 0);
+    return () => clearTimeout(timeout);
+  }, []);
 
   useEffect(() => {
+    
     if (!props.data || !props.data.nodes) return;
 
     let curMinGtdcFreq = Number.MAX_SAFE_INTEGER;
