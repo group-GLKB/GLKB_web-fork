@@ -1,42 +1,66 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom';
 import 'antd/dist/reset.css';
-import { TweenOneGroup } from "rc-tween-one";
-import { Input, Col, Row, Spin, Tag, Menu, Button as AntButton, Space, Divider } from 'antd';
-import Joyride, { ACTIONS, EVENTS, STATUS } from 'react-joyride';
-import './scoped.css'
-import { GithubOutlined, QuestionCircleOutlined, RadiusBottomleftOutlined } from '@ant-design/icons';
-import GLKBLogoImg from '../../img/glkb_logo.png'
-import UMLogo from '../../img/um_logo.jpg'
-import MedSchoolLogo from '../../img/MedSchoolLogo.png'
-import { DingtalkCircleFilled } from '@ant-design/icons';
-import NavBar from '../NavBar';
-import NavBarWhite from '../Units/NavBarWhite';
-import SearchBarKnowledge from "../Units/SearchBarKnowledge";
-import SearchBarNeighborhood from "../Units/SearchBarNeighborhood";
-import logo from "../../img/logo.svg";
-import umLogo from "../../img/MedSchoolLogo.png";
-import exampleQueries from '../../components/Units/SearchBarKnowledge/example_query.json';
-import { Grid, Button, Box, TextField } from '@mui/material'; // Import MUI components
-import neighborhoodExamples from '../../components/Units/SearchBarNeighborhood/example_query.json';  // Add this import
-import { trackEvent } from '../Units/analytics';
-import CloseIcon from '@mui/icons-material/Close'; // Import the Clear (cross) icon
-import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
-import useMediaQuery from '@mui/material/useMediaQuery';
+import './scoped.css';
+
+import React, {
+    useEffect,
+    useRef,
+    useState,
+} from 'react';
+
+import {
+    Button as AntButton,
+    Input,
+} from 'antd';
+import Joyride, {
+    ACTIONS,
+    EVENTS,
+    STATUS,
+} from 'react-joyride';
+import {
+    useLocation,
+    useNavigate,
+} from 'react-router-dom';
+
+import CloseIcon
+    from '@mui/icons-material/Close'; // Import the Clear (cross) icon
+import SearchIcon from '@mui/icons-material/Search';
+import {
+    Autocomplete,
+    Box,
+    Grid,
+    TextField,
+} from '@mui/material'; // Import MUI components
 import { useTheme } from '@mui/material/styles';
-import SendIcon from '@mui/icons-material/Send';
+import useMediaQuery from '@mui/material/useMediaQuery';
+
+import exampleQueries
+    from '../../components/Units/SearchBarKnowledge/example_query.json';
+import neighborhoodExamples
+    from '../../components/Units/SearchBarNeighborhood/example_query.json';  // Add this import
+import logo from '../../img/logo.svg';
+import { trackEvent } from '../Units/analytics';
+import NavBarWhite from '../Units/NavBarWhite';
+import SearchBarKnowledge from '../Units/SearchBarKnowledge';
+import SearchButton from '../Units/SearchButton/SearchButton';
 import SubNavBar from '../Units/SubNavBar';
 
 const { Search } = Input;
 
+const LLMExampleQueries = [
+    "Who are you?",
+    "What is the role of BRCA1 in breast cancer?",
+    "How many articles about Alzheimer's disease were published in 2020?",
+];
+
 const HomePage = () => {
-    const location = useLocation(); 
+    const location = useLocation();
     const { state } = location || {};
     let navigate = useNavigate();
     const [tags, setTags] = useState([]);
     const [runTour, setRunTour] = useState(false);
     const [activeButton, setActiveButton] = useState(state?.activeButton || "triplet");  // Changed default to 'triplet'
     const [llmQuery, setLlmQuery] = useState('');
+    const [focused, setFocused] = useState(false);
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
     // Add refs for the search components
@@ -258,11 +282,11 @@ const HomePage = () => {
                 spotlightPadding={0}
                 scrollToFirstStep={true}
             />
-            <NavBarWhite 
+            <NavBarWhite
                 showLogo={true} activeButton={activeButton}
             />
-            <Grid container spacing={2} className="content" justifyContent="center"  alignItems="center">
-                <Grid item xs={12}  container justifyContent="center" 
+            <Grid container spacing={2} className="content" justifyContent="center" alignItems="center">
+                <Grid item xs={12} container justifyContent="center"
                     alignItems="center">
                     <img
                         src={logo}
@@ -289,12 +313,12 @@ const HomePage = () => {
                             width: '100%',
                             maxWidth: '833px', // Set the box width to 883px
                             margin: '0px', // Center the box horizontally on the page
-                            marginBottom: '4px',
+                            marginBottom: '24px',
                             paddingLeft: isSmallScreen ? '0px' : '24px',
                             paddingRight: isSmallScreen ? '0px' : '24px',
                         }}
                     >
-                        <SubNavBar activeButton={activeButton}/>
+                        <SubNavBar activeButton={activeButton} />
                     </Grid>
                     <Grid container xs={8} className="search-section">
                         {activeButton === 'triplet' ? (
@@ -320,67 +344,96 @@ const HomePage = () => {
                             />
                         ) : (
                             <Box className="llm-searchbar" sx={{
-                                width: '100%', 
+                                width: '100%',
                                 display: 'flex',
                                 gap: 2,
-                                paddingLeft: isSmallScreen ? '0px' : '24px',
-                                paddingRight: isSmallScreen ? '0px' : '24px',
+                                marginLeft: isSmallScreen ? '0px' : '24px',
+                                marginRight: isSmallScreen ? '0px' : '24px',
+                                backgroundColor: 'white',
+                                borderRadius: '30px',
+                                boxShadow: '8px 6px 33px 0px #D8E6F8',
                             }}>
-
-                                <TextField
-                                    type="text"
-                                    value={llmQuery}
-                                    onChange={(e) => setLlmQuery(e.target.value)}
-                                    placeholder="Ask a question about the biomedical literature..."
-                                    sx={{
-                                        backgroundColor: 'white',
-                                        height: '60px', // Increase the height of the input box
-                                        width: '100%',
-                                        '& .MuiInputBase-root': {
-                                            height: '80px', // Adjust the height of the input field
-                                            alignItems: 'center', // Center the text vertically
-                                            paddingRight: '10px', // Remove right padding
-                                        },
-                                        '& .MuiOutlinedInput-notchedOutline': {
-                                            borderColor: 'grey', // Optional: Customize border color
-                                        },
-                                    }}
+                                <Autocomplete
+                                    freeSolo
                                     fullWidth
-                                    InputProps={{
-                                        endAdornment: (
-                                            <Box display="flex" alignItems="center">
-                                                {/* Clear Icon */}
-                                                <CloseIcon
-                                                    onClick={() => {
-                                                        setLlmQuery(''); // Clear the input field
-                                                    }}
-                                                    sx={{
-                                                        color: 'grey.500',
-                                                        cursor: 'pointer',
-                                                        fontSize: '20px', // Adjust size as needed
-                                                        marginRight: '8px', // Add spacing from the SendIcon
-                                                    }}
-                                                />
-                                                {/* Search Icon */}
-                                                <SendIcon
-                                                    onClick={() => {
-                                                        if (llmQuery.trim()) {
-                                                            navigateToLLMAgent(llmQuery.trim()); // Trigger the search function
-                                                        }
-                                                    }} // Trigger the search function
-                                                    sx={{
-                                                        color: llmQuery.length === 0 ? '#45628880' : '#1976d2',
-                                                        cursor: 'pointer',
-                                                        fontSize: '35px', // Adjust size as needed
-                                                    }}
-                                                />
-                                            </Box>
-                                        ),
+                                    options={LLMExampleQueries}
+                                    filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
+                                    onChange={(event, newValue) => {
+                                        setLlmQuery(newValue || '');
                                     }}
-                                />
+                                    onInputChange={(event, newInputValue) => {
+                                        setLlmQuery(newInputValue || '');
+                                    }}
+                                    openOnFocus
+                                    groupBy={() => 'Example Queries'}
+                                    getOptionLabel={(option) => option}
+                                    onFocus={() => setFocused(true)}
+                                    onBlur={() => setFocused(false)}
+                                    inputValue={llmQuery}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            size="small"
+                                            placeholder="Ask a question about the biomedical literature..."
+                                            sx={{
+                                                height: '60px', // Increase the height of the input box
+                                                width: '100%',
+                                                '& .MuiInputBase-root': {
+                                                    borderRadius: '30px',
+                                                    height: '60px', // Adjust the height of the input field
+                                                    alignItems: 'center', // Center the text vertically
+                                                    paddingRight: '10px', // Remove right padding
+                                                    '&:hover fieldset': {
+                                                        borderColor: '#3f8ae2',
+                                                    },
+                                                    '&.Mui-focused fieldset': {
+                                                        borderColor: '#3f8ae2',
+                                                    },
+                                                },
+                                                '& .MuiOutlinedInput-notchedOutline': {
+                                                    borderColor: 'grey', // Optional: Customize border color
+                                                },
+                                            }}
+                                            fullWidth
+                                            InputProps={{
+                                                ...params.InputProps,
+                                                startAdornment: (
+                                                    <>
+                                                        <SearchIcon sx={{ marginLeft: '20px', fontSize: '20px' }} />
+                                                        {params.InputProps.startAdornment}
+                                                    </>
+                                                ),
+                                                endAdornment: (
+                                                    <Box display="flex" alignItems="center" sx={{
+                                                        position: 'absolute',
+                                                        right: 0,
+                                                    }}>
+                                                        {/* Clear Icon */}
+                                                        <CloseIcon
+                                                            onClick={() => {
+                                                                setLlmQuery(''); // Clear the input field
+                                                            }}
+                                                            sx={{
+                                                                color: 'grey.500',
+                                                                cursor: 'pointer',
+                                                                fontSize: '20px', // Adjust size as needed
+                                                                marginRight: '8px', // Add spacing from the SendIcon
+                                                            }}
+                                                        />
+                                                        {/* Search Icon */}
+                                                        <SearchButton
+                                                            onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}
+                                                            disabled={!llmQuery.trim()}
+                                                        />
+                                                    </Box>
+                                                ),
+                                            }}
+                                        />
+                                    )} />
+
                             </Box>
                         )}
-                        <Grid container spacing={2} className="example-query-group" style={{ padding: '24px', paddingTop: '48px' }} >
+                        {/* <Grid container spacing={2} className="example-query-group" style={{ padding: '24px', paddingTop: '48px' }} >
                             {activeButton === 'triplet' ? (
                                 <>
                                     <Grid item xs={4} >
@@ -482,15 +535,66 @@ const HomePage = () => {
                                     </Grid>
                                 </>
                             )}
+                        </Grid> */}
+                        <Grid container spacing={4} className="info-card-section" style={{ padding: '24px', paddingTop: '48px' }} >
+                            {[
+                                ["30K", "Data downloads in the past 3 months."],
+                                ["100", "Research institutes adopted GLKB."],
+                                ["20M", "Genomic articles included in database."]
+                            ].map(([value, description], index) => (
+                                <Grid item xs={4} key={index}>
+                                    <Box
+                                        sx={{
+                                            textAlign: 'left',
+                                            display: 'flex',
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            width: '100%',
+                                            minHeight: '100%',
+                                            height: 'auto',
+                                            marginBottom: '10px',
+                                            whiteSpace: 'normal',
+                                            padding: '16px',
+                                            borderRadius: '12px',
+                                            backgroundColor: '#FFFFFF',
+                                            boxShadow: '8px 6px 33px 0px #D8E6F8',
+
+                                        }}>
+                                        <div style={{
+                                            fontFamily: 'Roboto Mono',
+                                            fontWeight: '500',
+                                            width: '35%',
+                                            fontSize: '40px',
+                                            color: '#4B67FE',
+                                            padding: '0px 10px',
+                                        }}>
+                                            {value}
+                                        </div>
+                                        <div style={{ fontSize: '14px', color: '#646B96' }}>
+                                            {description}
+                                        </div>
+                                    </Box>
+                                </Grid>
+                            ))}
                         </Grid>
                     </Grid>
                     <AntButton
                         onClick={() => setRunTour(true)}
                         // style={{ marginTop: '20px' }}
-                        icon={<QuestionCircleOutlined />}
-                        style={{ position: 'fixed', bottom: '20px', right: '20px', width:'220px'}}
+                        style={{
+                            position: 'fixed',
+                            bottom: '60px',
+                            right: '40px',
+                            width: '56px',
+                            height: '56px',
+                            fontSize: '24px',
+                            borderRadius: '50%',
+                            backgroundColor: '#D3D5FF',
+                            boxShadow: '8px 6px 33px 0px #D8E6F8',
+                            border: 'none',
+                        }}
                     >
-                        Take a Guided Tour to GLKB
+                        ?
                     </AntButton>
                 </Grid>
             </Grid>

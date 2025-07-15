@@ -1,16 +1,28 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Box, Container, TextField, Button, Autocomplete, Card, Typography } from '@mui/material';
-import { Stack, Chip } from '@mui/material';
+import React, {
+    useCallback,
+    useEffect,
+    useState,
+} from 'react';
+
+import { debounce } from 'lodash';
 import { useNavigate } from 'react-router-dom';
-import { CypherService } from '../../../service/Cypher';
-import { debounce, set } from 'lodash';
-import useMediaQuery from '@mui/material/useMediaQuery';
+
+import CloseIcon
+    from '@mui/icons-material/Close'; // Import the Clear (cross) icon
+import SearchIcon from '@mui/icons-material/Search';
+import {
+    Autocomplete,
+    Box,
+    Chip,
+    Container,
+    TextField,
+} from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Select as AntSelect, Tooltip } from 'antd';
-import CloseIcon from '@mui/icons-material/Close'; // Import the Clear (cross) icon
-import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
-import SendIcon from '@mui/icons-material/Send';
-import 'antd/dist/reset.css';
+import useMediaQuery from '@mui/material/useMediaQuery';
+
+import { CypherService } from '../../../service/Cypher';
+import SearchButton from '../SearchButton/SearchButton';
+import exampleQueries from './example_query.json';
 
 const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const navigate = useNavigate();
@@ -28,6 +40,13 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const [maxRel, setMaxRel] = useState(0);
     const [moreNodes, setMoreNodes] = useState(false);
     const [moreRel, setMoreRel] = useState(false);
+    const [focused, setFocused] = useState(false);
+
+    const ExampleOptions = [
+        ['example_0', 'Explore relationships between Type 2 Diabetes and its associated genes.', 'Identify Gene-Disease Associations'],
+        ['example_1', 'Explore relationships between rs3761624 and RSV infectious disease.', 'Identify Mechanisms of Variant Affecting Traits'],
+        ['example_2', 'Explore relationships between clopidogrel and different diseases', 'Identify drug effects on diseases']
+    ]
 
 
     const theme = useTheme();
@@ -59,7 +78,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
     const getDisplayCategory = (databaseType) => {
         // console.log('Processing type:', databaseType);
-        const category = databaseTypeMapping[databaseType] || 'All Biomedical Terms';
+        const category =
+            databaseType?.startsWith('Identify ') ? databaseType :
+                (databaseTypeMapping[databaseType] || 'All Biomedical Terms');
         // console.log('Mapped to category:', category);
         return category;
     };
@@ -212,7 +233,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     // Handle search button click
     const handleSearch = () => {
         if (!chipData || chipData.length === 0 || !chipDataID || chipDataID.length === 0) {
-            return;    
+            return;
         }
         const search_data = {
             "triplets": chipData.map((triplet, index) => {
@@ -324,7 +345,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                     display: 'flex',
                     gap: 2,
                     flexDirection: isSmallScreen ? 'column' : 'row',
-                    backgroundColor: 'white'
+                    backgroundColor: 'white',
+                    borderRadius: '30px',
+                    boxShadow: '8px 6px 33px 0px #D8E6F8',
                 }}>
 
                     {/* Search Input */}
@@ -340,7 +363,11 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                     updateSource(event, newInputValue);
                                 }
                             }}
-                            options={sourceNodeOptions || []}
+                            options={
+                                (ref?.current && focused && inputValue.trim() === '' && selectedSources.length === 0
+                                    ? ExampleOptions
+                                    : sourceNodeOptions
+                                ) || []}
                             filterOptions={(options) => options}
                             filterSelectedOptions={true}
                             groupBy={(option => getDisplayCategory(option[2]))}
@@ -366,9 +393,15 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                     sx={{
                                         minHeight: '60px', // Increase the height of the input box
                                         '& .MuiInputBase-root': {
-                                            height: 'auto', // Allow the height to grow dynamically
-                                            minHeight: '60px',
+                                            height: '60px',
+                                            borderRadius: '30px',
                                             alignItems: 'center', // Center the text vertically
+                                            '&:hover fieldset': {
+                                                borderColor: '#3f8ae2',
+                                            },
+                                            '&.Mui-focused fieldset': {
+                                                borderColor: '#3f8ae2',
+                                            },
                                         },
                                         '& .MuiOutlinedInput-notchedOutline': {
                                             borderColor: 'grey', // Optional: Customize border color
@@ -382,6 +415,12 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                     className="search-autocomplete-box"
                                     InputProps={{
                                         ...params.InputProps,
+                                        startAdornment: (
+                                            <>
+                                                <SearchIcon sx={{ marginLeft: '20px', fontSize: '20px' }} />
+                                                {params.InputProps.startAdornment}
+                                            </>
+                                        ),
                                         endAdornment: (
                                             <Box
                                                 sx={{
@@ -390,7 +429,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                     gap: 1,
                                                     justifyContent: 'center',
                                                     position: 'absolute',
-                                                    right: 10,
+                                                    right: 0,
                                                     height: '100%', // Ensure alignment with TextField height
                                                 }}
                                             >
@@ -400,7 +439,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setInputValue('');
-                                                        setSelectedSources([]); 
+                                                        setSelectedSources([]);
                                                     }}
                                                     sx={{
                                                         color: 'grey.500',
@@ -409,14 +448,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                     }}
                                                 />
                                                 {/* Search Icon */}
-                                                <SendIcon
-                                                    className="search-button"
-                                                    onClick={handleSearch} // Trigger the search function
-                                                    sx={{
-                                                        color: chipData.length === 0 ? '#45628880' : '#1976d2',
-                                                        cursor: 'pointer',
-                                                        fontSize: '35px', // Adjust size as needed
-                                                    }}
+                                                <SearchButton
+                                                    onClick={handleSearch}
+                                                    disabled={chipData.length === 0}
                                                 />
                                             </Box>
                                         ),
@@ -425,7 +459,16 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             )}
                             value={selectedSources}
                             inputValue={inputValue}
+                            onFocus={() => setFocused(true)}
+                            onBlur={() => setFocused(false)}
                             onChange={(event, newValue) => {
+                                if (newValue.length === 1 &&
+                                    typeof newValue[0][0] === 'string' &&
+                                    newValue[0][0]?.startsWith('example_')) {
+                                    console.log('Filled with example:', newValue[0][0]);
+                                    ref.current.fillWithExample(exampleQueries[newValue[0][0].substring(8) || 1]);
+                                    return;
+                                }
                                 setSelectedSources(newValue);
                                 console.log('New sources:', newValue);
                             }}

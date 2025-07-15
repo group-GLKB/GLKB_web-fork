@@ -1,38 +1,47 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom';
-import { useLocation } from 'react-router-dom';
-import { CypherService } from '../../service/Cypher'
-import { DetailService } from '../../service/Detail'
 import 'antd/dist/reset.css';
-import { Col, Row, Input, Spin, Tag, Menu, Button, Tooltip, Checkbox } from 'antd';
-import { TweenOneGroup } from 'rc-tween-one';
+import './scoped.css';
 
-import NavBarWhite from '../Units/NavBarWhite'
-import SubNavBar from '../Units/SubNavBar'
-import GLKBLogoImg from '../../img/glkb_logo.png'
-import NavBar from '../NavBar';
-import UMLogo from '../../img/um_logo.jpg'
-import queryString from 'query-string'
-import Settings from "../Settings";
-import Graph from "../Graph";
-import Information from '../Information';
-import axios from 'axios'
-import sampleGraphData from './sampleData.json';
-import SearchBarKnowledge from "../Units/SearchBarKnowledge";
-import { FloatButton } from "antd";
-import { InfoCircleOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
-import { styled } from '@mui/material/styles';
-import Joyride, { STATUS } from 'react-joyride';
-import SearchBarNeighborhood from "../Units/SearchBarNeighborhood";
-import { trackEvent } from '../Units/analytics';
+import React, {
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+} from 'react';
+
+import {
+    Button,
+    Button as AntButton,
+    Checkbox,
+    Input,
+    Spin,
+    Tooltip,
+} from 'antd';
 import { debounce } from 'lodash';
-import { Box, Grid } from '@mui/material';
+import Joyride, { STATUS } from 'react-joyride';
+import {
+    useLocation,
+    useNavigate,
+} from 'react-router-dom';
+
+import { InfoCircleOutlined } from '@ant-design/icons';
 //import mui button as muibutton
-import { Button as MUIButton } from '@mui/material';
-import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
-import './scoped.css'
-import rightArrow from "../../img/right_arrow.svg"
-import downArrow from "../../img/down_arrow.svg"
+import {
+    Box,
+    Button as MUIButton,
+    Grid,
+} from '@mui/material';
+import { styled } from '@mui/material/styles';
+
+import downArrow from '../../img/down_arrow.svg';
+import rightArrow from '../../img/right_arrow.svg';
+import { CypherService } from '../../service/Cypher';
+import Graph from '../Graph';
+import Information from '../Information';
+import { trackEvent } from '../Units/analytics';
+import NavBarWhite from '../Units/NavBarWhite';
+import SearchBarKnowledge from '../Units/SearchBarKnowledge';
+import SearchBarNeighborhood from '../Units/SearchBarNeighborhood';
+import SubNavBar from '../Units/SubNavBar';
 
 const { Search } = Input;
 
@@ -82,6 +91,9 @@ const ResultPage = () => {
     const handleMaxGtdcNoc = (value) => {
         setMaxGtdcNoc(value)
     }
+
+    const searchBarKnowledgeRef = useRef(null);
+
 
     /* ====== range activation functions ====== */
 
@@ -757,13 +769,18 @@ const ResultPage = () => {
             <div className="navbar-wrapper">
                 <NavBarWhite />
             </div>
-            <Box sx={{width:'100%', marginTop:'114px'}}>
-                <Grid className= "main-grid" container >
-                    <Grid xs={4} className="subgrid">
-                        <div className="subbar">
-                            <SubNavBar />
-                        </div>
-                    </Grid>
+            <div className="subbar" style={{
+                // move to place at the center of the bottom edge of navbar
+                position: 'fixed',
+                top: '80px',
+                zIndex: 1000,
+                left: '50%',
+                transform: 'translateX(-50%) translateY(-50%)',
+            }}>
+                <SubNavBar />
+            </div>
+            <Box sx={{ width: '100%', marginTop: '144px' }}>
+                <Grid className="main-grid" container >
                     <Grid xs={12} className="subgrid">
                         <div className="search-bar-container" >
                             <div className="search-bar-wrapper" >
@@ -778,6 +795,7 @@ const ResultPage = () => {
                                     />
                                 ) : (
                                     <SearchBarKnowledge
+                                        ref={searchBarKnowledgeRef}
                                         initialContent={searchContent} // Pass initial content
                                         chipData={chipData}
                                         chipDataIDResult={chipDataIDResult}
@@ -790,27 +808,25 @@ const ResultPage = () => {
                                     />
                                 )}
                             </div>
-                            {(
-                                <div className="graph-controls">
-                                    <Button
-                                        onClick={startTour}
-                                        className="start-tour-button"
-                                        disabled={!searchFlag || isGraphLoading}
-                                        style={{
-                                            backgroundColor: 'transparent',
-                                            border:'none',
-                                            marginLeft: "1vw",
-                                            marginRight: "0.5vw"
-                                        }}
-                                    >
-                                        <InfoCircleOutlined style={{ fontSize: "30px", color: "#8D8D8D"}} />
-                                    </Button>
-                                </div>
-                            )}
+                            {/* <div className="graph-controls">
+                                <Button
+                                    onClick={startTour}
+                                    className="start-tour-button"
+                                    disabled={!searchFlag || isGraphLoading}
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                        border: 'none',
+                                        marginLeft: "1vw",
+                                        marginRight: "0.5vw"
+                                    }}
+                                >
+                                    <InfoCircleOutlined style={{ fontSize: "30px", color: "#8D8D8D" }} />
+                                </Button>
+                            </div> */}
                         </div>
                     </Grid>
                     <Grid xs={12}>
-                        <div className='main-content' style={{ minHeight: "unset", height: "100%"}}>
+                        <div className='main-content' style={{ minHeight: "unset", height: "100%" }}>
                             {(!searchFlag || isGraphLoading) && (
                                 <div className='loading-container'>
                                     <Spin size='large' />
@@ -992,7 +1008,7 @@ const ResultPage = () => {
                                                                             </div>
                                                                         )}
                                                                     </div>
-                                                                    
+
                                                                 </div>
                                                             </div>
                                                         </Box>
@@ -1117,6 +1133,25 @@ const ResultPage = () => {
                     </Grid>
                 </Grid>
             </Box>
+            <AntButton
+                onClick={() => startTour()}
+                // style={{ marginTop: '20px' }}
+                style={{
+                    position: 'fixed',
+                    bottom: '60px',
+                    right: '40px',
+                    width: '56px',
+                    height: '56px',
+                    fontSize: '24px',
+                    borderRadius: '50%',
+                    backgroundColor: '#D3D5FF',
+                    boxShadow: '8px 6px 33px 0px #D8E6F8',
+                    border: 'none',
+                }}
+                disabled={!searchFlag || isGraphLoading}
+            >
+                ?
+            </AntButton>
         </div>
     )
 }

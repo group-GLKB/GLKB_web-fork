@@ -20,13 +20,11 @@
     z-index: 1000;
     height: 64px;
 }
-.main-grid{
-    width:80%;
-    margin-left: 10%;
-    margin-right:10%;
-}
-.subbar1{
 
+.main-grid {
+    width: 80%;
+    margin-left: 10%;
+    margin-right: 10%;
 }
 
 .main-content {
@@ -106,7 +104,7 @@
 
 .references-container h3 {
     margin: 0;
-    padding: calc( 10px + 1rem) 0;
+    padding: calc(10px + 1rem) 0;
     font-size: 16px;
     font-weight: normal;
     color: rgba(0, 0, 0, 0.85);
@@ -887,5 +885,13 @@
 }
 
 .copy-tooltip.show {
+    opacity: 1;
+}
+
+.user-message-actions {
+    opacity: 0;
+}
+
+.message-card:hover .user-message-actions {
     opacity: 1;
 }
