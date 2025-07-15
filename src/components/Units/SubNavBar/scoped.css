@@ -1,0 +1,39 @@
+.sub-navigation-bar {
+    display: inline-flex;
+    /* align-items: center; */
+    /* justify-content: center; */
+    padding: 0.3rem 0.2rem;
+    font-size: clamp(12px, 2vw, 16px);
+    background-color: white; 
+    /* margin-top: 120px; */
+    /* margin-bottom:5px; */
+    gap: 0.5rem; 
+    border-radius: 100px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+
+button {
+   
+    padding: 0.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+    background-color:white;
+    border:0px;
+    border-radius: 100px;
+
+}
+
+#subnavbarbutton {
+    width: 150px;
+    transition: background-color 0.15s ease-in, color 0.15s ease-in;
+}
+
+.active {
+    background-color: #D3D5FF;
+}
+
+.nonactive:hover {
+    background-color: #d3d5ffad;
+    color: black;
+}

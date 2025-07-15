@@ -48,6 +48,7 @@ all {
     /* overflow-y: auto; */
     position: relative;
     border-radius: 30px;
+    border: none !important;
 }
 
 /* Remove any styles for .related if it's no longer used */
@@ -68,6 +69,10 @@ all {
     text-wrap-mode: wrap !important;
 }
 
+.ant-card-head {
+    padding-left: 2vw !important;
+}
+
 .ant-collapse {
     border: none;
     background-color: transparent;
@@ -86,8 +91,8 @@ all {
 
 .custom-descriptions {
     background-color: white;
-    padding: 15px;
-    margin-bottom: 15px;
+    /* padding: 12px; */
+    margin-bottom: 10px;
     border-radius: 8px;
 }
 
@@ -149,7 +154,7 @@ all {
 
 .transcriptGradientTop {
     width: calc(95% - 40px);
-    height: 20px;
+    /* height: 20px; */
     position: absolute;
     top: 0px;
     right: 40px;
@@ -166,4 +171,9 @@ all {
     bottom: 0px;
     background: -webkit-linear-gradient(rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
     background: linear-gradient(to top, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
+}
+
+.ant-descriptions-item {
+    padding-top: 4px !important;
+    padding-bottom: 2px !important;
 }

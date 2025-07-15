@@ -211,6 +211,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
     // Handle search button click
     const handleSearch = () => {
+        if (!chipData || chipData.length === 0 || !chipDataID || chipDataID.length === 0) {
+            return;    
+        }
         const search_data = {
             "triplets": chipData.map((triplet, index) => {
                 const parts = triplet.replace(/{|}/g, "").split("-");
@@ -314,7 +317,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     }, [selectedSources]);
 
     return (
-        <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 2, mb: 2, ml: 0, mr: 0, padding: 0, maxWidth: 'none !important' }}>
+        <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 0, mb: 0, ml: 0, mr: 0, padding: 0, maxWidth: 'none !important' }}>
             <Box sx={{ mb: 0, backgroundColor: 'transparent' }}>
                 {/* First row with term type and search input */}
                 <Box sx={{
@@ -394,9 +397,10 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                 {/* Clear Icon */}
                                                 <CloseIcon
                                                     className="close-button"
-                                                    onClick={() => {
-                                                        setSelectedSource([]); // Clear sel`ected options
-                                                        setInputValue(''); // Clear input value
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setInputValue('');
+                                                        setSelectedSources([]); 
                                                     }}
                                                     sx={{
                                                         color: 'grey.500',
@@ -405,11 +409,11 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                     }}
                                                 />
                                                 {/* Search Icon */}
-                                                <SendOutlinedIcon
+                                                <SendIcon
                                                     className="search-button"
                                                     onClick={handleSearch} // Trigger the search function
                                                     sx={{
-                                                        color: '#45628880', // Make the inside color transparent
+                                                        color: chipData.length === 0 ? '#45628880' : '#1976d2',
                                                         cursor: 'pointer',
                                                         fontSize: '35px', // Adjust size as needed
                                                     }}

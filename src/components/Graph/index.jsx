@@ -128,7 +128,7 @@ const Graph = React.memo(function Graph(props) {
           'color': '#333333',
           'font-size': '11px',
           'text-max-width': '150px',
-          'text-wrap': 'ellipsis',
+          'text-wrap': 'wrap',
           'font-family': 'Inter',
         }
       },
@@ -211,7 +211,7 @@ const Graph = React.memo(function Graph(props) {
           'text-margin-x': 0,
           'color': '#ffffff',
           'font-size': '11px',
-          'text-wrap': 'ellipsis',
+          'text-wrap': 'wrap',
           'text-max-width': '120px',
           'font-family': 'Inter',
         }
@@ -269,7 +269,7 @@ const Graph = React.memo(function Graph(props) {
       const size = nodeId[2] >= 60 ? 40 : nodeId[2] >= 30 ? 30 : 20;
       // const borderWidth = nodeId[4] === "true" ? '1px' : 0;
       // const borderColor = nodeId[4] === "true" ? 'red' : 'transparent';
-
+      const estimatedWidth = (nodeId[1].length * 10) + 20;
       return {
         selector: `node[id = "${nodeId[0]}"]`,
         style: {
@@ -279,18 +279,19 @@ const Graph = React.memo(function Graph(props) {
           'corner-radius': '40',
           // borderWidth,
           // borderColor,
-          'min-width': size,
+          'min-width': '130px',
           'min-height': Math.max(25, size * 0.5),
           label: nodeId[1],
-          'text-valign': 'center',
           'text-halign': 'center',
+          'text-valign': 'center',
+          'text-margin-x': 0,
           'color': '#000000',
           'font-size': '20px',
-          'text-wrap': 'ellipsis',
-          'text-max-width': '120px',
-          width: 'label',
+          'text-wrap': 'wrap',
+          'width': estimatedWidth  + 'px',
+          'padding': '10px',
+          'text-max-width': '100%',
           height: '35px',
-          padding: '10px'
         },
       };
     });

@@ -87,24 +87,25 @@
 
 .example-query-group {
     margin-top: 40px;
-    /* Increased margin-top for more space */
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: stretch; 
     justify-content: center;
-    height: 100%;
+    height: auto; 
     padding-bottom: 10vh;
     width: 100%;
+    min-height: 100px;
 }
 
 .example-query-button {
     display: flex;
     flex-direction: column;
     width: 100%;
+    min-height: 100%; 
+    height: auto;
     margin-bottom: 10px;
     white-space: normal;
-    height: 100px;
-    padding: 16px 16px;
+    padding: 16px;
     text-align: left;
     color: black;
     background-color: #F4F6FE;

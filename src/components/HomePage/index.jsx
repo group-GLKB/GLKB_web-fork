@@ -24,6 +24,8 @@ import CloseIcon from '@mui/icons-material/Close'; // Import the Clear (cross) i
 import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
+import SendIcon from '@mui/icons-material/Send';
+import SubNavBar from '../Units/SubNavBar';
 
 const { Search } = Input;
 
@@ -287,52 +289,12 @@ const HomePage = () => {
                             width: '100%',
                             maxWidth: '833px', // Set the box width to 883px
                             margin: '0px', // Center the box horizontally on the page
-                            marginBottom: '-15px',
+                            marginBottom: '4px',
                             paddingLeft: isSmallScreen ? '0px' : '24px',
                             paddingRight: isSmallScreen ? '0px' : '24px',
                         }}
                     >
-                        <Button
-                            variant={activeButton === 'triplet' ? 'contained' : 'outlined'}
-                            sx={{
-                                width: '20%',
-                                height: '60px',
-                                border: '3px solid #FFFFFF',
-                                background: activeButton === 'triplet' ? 'linear-gradient(to top, #4A65F4, #758BFF)' : 'white',
-                                color: activeButton === 'triplet' ? 'white' : '#1E416D', // Text color based on active state
-                                fontSize: 'clamp(14px, 2vw, 20px)', // Set font size
-                                paddingRight: '32px',
-                                fontWeight: 'bold',
-                                borderTopLeftRadius: '20px',
-                                clipPath: 'polygon(0 0, 100% 0, 80% 100%, 0% 100%)',
-                                boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
-                                '&:hover': { backgroundColor: '#C4CCFE' }
-                            }}
-                            onClick={() => setActiveButton('triplet')}
-                        >
-                            Search
-                        </Button>
-                        <Button
-                            variant={activeButton === 'llm' ? 'contained' : 'outlined'}
-                            sx={{
-                                background: activeButton === 'llm' ? 'linear-gradient(to left, #4A65F4, #758BFF)' : 'white',
-                                color: activeButton === 'llm' ? 'white' : '#1E416D', // Text color based on active state
-                                fontSize: 'clamp(14px, 2vw, 20px)', // Set font size
-                                fontWeight: 'bold',
-                                width: '20%',
-                                height: '60px',
-                                border: '3px solid #FFFFFF',
-                                borderBottomRightRadius: '20px', // 确保底部有圆角
-                                clipPath: 'polygon(20% 0, 100% 0, 100% 100%, 0% 100%)', // Leaning left edge
-                                marginLeft: '-5%',
-                                boxShadow: activeButton === 'triplet' ? 'none' : 'initial', // 激活时无阴影
-                                '&:hover': { backgroundColor: '#C4CCFE' }
-                            }}
-                            onClick={() => setActiveButton('llm')}
-                        >
-                            {/* Search with LLM Agent */}
-                            Chat
-                        </Button>
+                        <SubNavBar activeButton={activeButton}/>
                     </Grid>
                     <Grid container xs={8} className="search-section">
                         {activeButton === 'triplet' ? (
@@ -358,7 +320,7 @@ const HomePage = () => {
                             />
                         ) : (
                             <Box className="llm-searchbar" sx={{
-                                width: '100%', mt: 2, mb: 2,
+                                width: '100%', 
                                 display: 'flex',
                                 gap: 2,
                                 paddingLeft: isSmallScreen ? '0px' : '24px',
@@ -400,14 +362,14 @@ const HomePage = () => {
                                                     }}
                                                 />
                                                 {/* Search Icon */}
-                                                <SendOutlinedIcon
+                                                <SendIcon
                                                     onClick={() => {
                                                         if (llmQuery.trim()) {
                                                             navigateToLLMAgent(llmQuery.trim()); // Trigger the search function
                                                         }
                                                     }} // Trigger the search function
                                                     sx={{
-                                                        color: '#45628880',
+                                                        color: llmQuery.length === 0 ? '#45628880' : '#1976d2',
                                                         cursor: 'pointer',
                                                         fontSize: '35px', // Adjust size as needed
                                                     }}
@@ -526,7 +488,7 @@ const HomePage = () => {
                         onClick={() => setRunTour(true)}
                         // style={{ marginTop: '20px' }}
                         icon={<QuestionCircleOutlined />}
-                        style={{ position: 'fixed', bottom: '20px', right: '20px' }}
+                        style={{ position: 'fixed', bottom: '20px', right: '20px', width:'220px'}}
                     >
                         Take a Guided Tour to GLKB
                     </AntButton>

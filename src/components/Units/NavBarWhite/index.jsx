@@ -35,22 +35,6 @@ function NavBarWhite({ showLogo = true, activeButton}) {
                 
             </div>
             <div className="nav-links">
-                <button
-                    onClick={handleSearchClick}
-                    className={activeButton === "triplet" || location.pathname.endsWith("result")
-                        ? "active" : "nonactive"}
-                >
-                    Search
-                </button>
-                <button 
-                    onClick={() => {
-                        handleChatClick();
-                    }} 
-                    className={activeButton === "llm" || location.pathname.endsWith("llm-agent")
-                    ? "active" : "nonactive"}>
-                    Chat
-                </button>
-                <span style={{fontSize: '20px',fontWeight:"300",marginRight: '1 rem',color:'#1E416D'}}>|</span>
                 <Link to="/about">About</Link>
                 {/* <Link to="/llm-agent" className="beta-link">
                     LLM Agent
