@@ -1,18 +1,26 @@
+import './scoped.css'; // reuse the same stylesheet
+
 // SubNavBar.js
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import './scoped.css'; // reuse the same stylesheet
+
+import {
+    useLocation,
+    useNavigate,
+} from 'react-router-dom';
+
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import SearchIcon from '@mui/icons-material/Search';
 
 function SubNavBar({ activeButton }) {
     const location = useLocation();
-    const navigate = useNavigate(); 
+    const navigate = useNavigate();
 
     const handleSearchClick = () => {
-        navigate('/', { state: { activeButton: "triplet" }});
+        navigate('/', { state: { activeButton: "triplet" } });
     };
 
     const handleChatClick = () => {
-        navigate('/', { state: { activeButton: "llm" }});
+        navigate('/', { state: { activeButton: "llm" } });
     };
 
     return (
@@ -23,7 +31,7 @@ function SubNavBar({ activeButton }) {
                 className={activeButton === "triplet" || location.pathname.endsWith("result")
                     ? "active" : "nonactive"}
             >
-                Search
+                <SearchIcon sx={{ fontSize: "clamp(12px, 2vw, 16px)" }} />&nbsp;&nbsp;Search
             </button>
             <button
                 id="subnavbarbutton"
@@ -31,7 +39,7 @@ function SubNavBar({ activeButton }) {
                 className={activeButton === "llm" || location.pathname.endsWith("llm-agent")
                     ? "active" : "nonactive"}
             >
-                Chat
+                <ChatBubbleOutlineIcon sx={{ fontSize: "clamp(12px, 2vw, 16px)" }} />&nbsp;&nbsp;Chat
             </button>
         </div>
     );

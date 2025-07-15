@@ -1,38 +1,49 @@
-import React, { useState, useEffect, useRef , useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
-import NavBarWhite from '../Units/NavBarWhite';
-import { Button, message } from 'antd';
-import { LLMAgentService } from '../../service/LLMAgent';
-import { DeleteOutlined } from '@ant-design/icons';
 import './scoped.css';
-import systemIcon from '../../img/Asset 1.png';
-import ReactMarkdown from 'react-markdown';
-import GLKBLogo from '../../img/glkb_dark.jpg';
-import CloseIcon from '@mui/icons-material/Close';
-import SendIcon from '@mui/icons-material/Send';
-import { Grid } from '@mui/material';
-import SubNavBar from '../Units/SubNavBar'
-import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
-import { Select } from 'antd';
-
-import {
-    Typography,
-    Box,
-    CircularProgress,
-    IconButton,
-    Stack,
-    Container,
-    TextField
-} from "@mui/material";
-import MuiButton from "@mui/material/Button";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import FilePresentIcon from '@mui/icons-material/FilePresent';
-import EditNoteIcon from '@mui/icons-material/EditNote';
-import CheckIcon from '@mui/icons-material/Check';
-import ClearIcon from '@mui/icons-material/Clear';
 // import github.css
 import './github-markdown-light.css';
+
+import React, {
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
+
+import {
+    message,
+    Select,
+} from 'antd';
+import ReactMarkdown from 'react-markdown';
+import { useLocation } from 'react-router-dom';
+
+import CheckIcon from '@mui/icons-material/Check';
+import ClearIcon from '@mui/icons-material/Clear';
+import CloseIcon from '@mui/icons-material/Close';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import EditNoteIcon from '@mui/icons-material/EditNote';
+import FilePresentIcon from '@mui/icons-material/FilePresent';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import SearchIcon from '@mui/icons-material/Search';
+import {
+    Box,
+    CircularProgress,
+    Container,
+    Grid,
+    IconButton,
+    Stack,
+    TextField,
+    Typography,
+} from '@mui/material';
+import MuiButton from '@mui/material/Button';
+
+import systemIcon from '../../img/Asset 1.png';
+import GLKBLogo from '../../img/glkb_dark.jpg';
+import { LLMAgentService } from '../../service/LLMAgent';
+import NavBarWhite from '../Units/NavBarWhite';
+import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
+import SearchButton from '../Units/SearchButton/SearchButton';
+import SubNavBar from '../Units/SubNavBar';
 
 // import ShareIcon from "@mui/icons-material/Share";
 // import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
@@ -295,7 +306,7 @@ function LLMAgent() {
         const timestamp = message.timestamp || "";
 
         return (
-            <>
+            <div className="message-card">
                 <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: "5px", justifyContent: "flex-end" }}>
                     {!isAssistant && (
                         <Box sx={{ flex: "0 0 auto", width: "80px", textAlign: "right" }}>
@@ -308,7 +319,7 @@ function LLMAgent() {
                             maxWidth: isAssistant ? "100%" : "80%", // Adjust max width for assistant messages
                             display: "flex",
                             alignItems: "flex-start",
-                            px: isAssistant? "0px" : "24px",
+                            px: isAssistant ? "0px" : "24px",
                             pt: isAssistant ? "12px" : "0px",
                             pb: isAssistant ? "24px" : "12px",
                             // border: isAssistant ? "1px solid" : "none",
@@ -321,7 +332,7 @@ function LLMAgent() {
                             <Box
                                 sx={{
                                     m: 2,
-                                    ml:0,
+                                    ml: 0,
                                     width: 32,
                                     height: 32,
                                     borderRadius: 16,
@@ -467,19 +478,19 @@ function LLMAgent() {
                                 <IconButton size="small" onClick={(e) => save(e, messageID)}>
                                     <CheckIcon fontSize="small" />
                                 </IconButton>
-                            </> : <>
+                            </> : <div className="user-message-actions">
                                 <IconButton size="small" onClick={() => copy(message.content)}>
                                     <ContentCopyIcon fontSize="small" />
                                 </IconButton>
                                 <IconButton size="small" onClick={() => edit(messageID)}>
                                     <EditNoteIcon fontSize="small" />
                                 </IconButton>
-                            </>
+                            </div>
                         }
 
                     </Stack>
                 </Box>}
-            </>
+            </div>
         );
     };
 
@@ -533,12 +544,17 @@ function LLMAgent() {
             <div className="navbar-wrapper">
                 <NavBarWhite />
             </div>
-            <Grid className= "main-grid" container sx={{marginTop:'114px'}} >
-                <Grid xs={4} className="subgrid">
-                    <div className="subbar1">
-                        <SubNavBar />
-                    </div>
-                </Grid>
+            <div className="subbar" style={{
+                // move to place at the center of the bottom edge of navbar
+                position: 'fixed',
+                top: '80px',
+                zIndex: 1000,
+                left: '50%',
+                transform: 'translateX(-50%) translateY(-50%)',
+            }}>
+                <SubNavBar />
+            </div>
+            <Grid className="main-grid" container sx={{ marginTop: '144px' }} >
                 <Grid xs={12} className="subgrid">
                     <div className="main-content">
                         <div className='result-content'>
@@ -555,27 +571,27 @@ function LLMAgent() {
                                                             <div className="logo-container" style={{ marginBottom: '1rem' }}>
                                                                 <img src={GLKBLogo} alt="GLKB" className="glkb-logo" style={{ height: '90px' }} />
                                                             </div>
-                                                            <h3 style ={{marginTop:'3vh'}}>I can help you explore biomedical literature. Here are some examples:</h3>
+                                                            <h3 style={{ marginTop: '3vh', marginBottom: '3vh' }}>I can help you explore biomedical literature. Here are some examples:</h3>
                                                         </div>
-                                                        <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '40px', marginBottom: '10px', overflowX: "auto", position: "absolute", bottom: "25%", height:'auto', minHeight:'80px'}}>
+                                                        <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '40px', marginBottom: '10px', overflowX: "auto", position: "absolute", bottom: "25%", height: 'auto', minHeight: '80px' }}>
                                                             <div className="example-query"
                                                                 onClick={() => handleExampleClick("Who are you?")}
-                                                                style={{ height: 'auto', minHeight:'100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
+                                                                style={{ height: 'auto', minHeight: '100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
                                                                 Who are you?
                                                             </div>
                                                             <div className="example-query"
                                                                 onClick={() => handleExampleClick("What is the role of BRCA1 in breast cancer?")}
-                                                                style={{ height: 'auto', minHeight:'100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
+                                                                style={{ height: 'auto', minHeight: '100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
                                                                 What is the role of BRCA1 in breast cancer?
                                                             </div>
                                                             <div className="example-query"
                                                                 onClick={() => handleExampleClick("How many articles about Alzheimer's disease are published in 2020?")}
-                                                                style={{ height: 'auto', minHeight:'100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
+                                                                style={{ height: 'auto', minHeight: '100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
                                                                 How many articles about Alzheimer's disease are published in 2020?
                                                             </div>
                                                             <div className="example-query"
                                                                 onClick={() => handleExampleClick("What pathways does TP53 participate in?")}
-                                                                style={{ height: 'auto', minHeight:'100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
+                                                                style={{ height: 'auto', minHeight: '100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
                                                                 What pathways does TP53 participate in?
                                                             </div>
                                                         </div>
@@ -617,44 +633,69 @@ function LLMAgent() {
                                                 <div className="chat-header">
                                                     <TextField
                                                         className="input-form"
-                                                        type="text"
+                                                        size="small"
                                                         value={userInput}
                                                         onChange={(e) => setUserInput(e.target.value)}
                                                         disabled={isLoading}
+                                                        variant="outlined"
                                                         placeholder="Ask a question about the biomedical literature..."
                                                         sx={{
-                                                            height: '60px', // Increase the height of the input box
-                                                            width: '100%',
+                                                            minHeight: '60px', // Increase the height of the input box
                                                             '& .MuiInputBase-root': {
-                                                                height: '80px', // Adjust the height of the input field
+                                                                height: '60px',
+                                                                borderRadius: '30px',
                                                                 alignItems: 'center', // Center the text vertically
+                                                                '&:hover fieldset': {
+                                                                    borderColor: '#3f8ae2',
+                                                                },
+                                                                '&.Mui-focused fieldset': {
+                                                                    borderColor: '#3f8ae2',
+                                                                },
+                                                            },
+                                                            '& .MuiInputBase-input': {
+                                                                paddingLeft: '4px',
                                                             },
                                                             '& .MuiOutlinedInput-notchedOutline': {
                                                                 borderColor: 'grey', // Optional: Customize border color
                                                             },
+                                                            "& .MuiOutlinedInput-root": {
+                                                                paddingLeft: "0px!important",
+                                                                paddingRight: "70px!important",
+                                                            },
                                                         }}
                                                         InputProps={{
+                                                            startAdornment: (
+                                                                <SearchIcon sx={{ marginLeft: '20px', fontSize: '20px' }} />
+                                                            ),
                                                             endAdornment: (
-                                                                <Box display="flex" alignItems="center">
+                                                                <Box
+                                                                    sx={{
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        gap: 1,
+                                                                        justifyContent: 'center',
+                                                                        position: 'absolute',
+                                                                        right: 0,
+                                                                        height: '100%', // Ensure alignment with TextField height
+                                                                    }}
+                                                                >
                                                                     {/* Clear Icon */}
                                                                     <CloseIcon
-                                                                        onClick={() => {
-                                                                            setUserInput(''); // Clear the input field
+                                                                        className="close-button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setUserInput('');
                                                                         }}
                                                                         sx={{
                                                                             color: 'grey.500',
                                                                             cursor: 'pointer',
-                                                                            fontSize: '20px', // Adjust size as needed
-                                                                            marginRight: '8px', // Add spacing from the SendIcon
+                                                                            fontSize: '20px', // Adjust size as needed 
                                                                         }}
                                                                     />
                                                                     {/* Search Icon */}
-                                                                    <SendIcon
-                                                                        onClick={handleSubmit} // Trigger the search function
-                                                                        sx={{
-                                                                            color: userInput.length === 0 ? '#45628880' : '#1976d2',
-                                                                            cursor: 'pointer',
-                                                                            fontSize: '30px', // Adjust size as needed
+                                                                    <SearchButton
+                                                                        onClick={() => {
+                                                                            handleSubmit();
                                                                         }}
                                                                         disabled={isLoading || !userInput.trim()}
                                                                     />
@@ -662,14 +703,9 @@ function LLMAgent() {
                                                             ),
                                                         }}
                                                     />
-                                                    <Button
-                                                        icon={<DeleteOutlined style={{ fontSize: "20px" }} />}
-                                                        onClick={handleClear}
-                                                        className="clear-button"
-                                                        disabled={isLoading}
-                                                    >
-                                                        Clear History
-                                                    </Button>
+                                                    <IconButton onClick={handleClear} aria-label="delete" disabled={isLoading}>
+                                                        <DeleteForeverIcon sx={{ fontSize: '30px', color: isLoading ? '#e0e0e0' : '#D3D5FF' }} />
+                                                    </IconButton>
                                                 </div>
                                             </div>
                                         </Grid>

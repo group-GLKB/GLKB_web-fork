@@ -1,21 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { Link,useLocation,useNavigate } from 'react-router-dom';
+import '../../NavBar/scoped.css';
 import './scoped.css'; // This is where you will import your CSS from
-import { HomeOutlined } from '@ant-design/icons';
-import logo from "../../../img/logo.svg";
-import { use } from 'cytoscape';
-import { act } from 'react';
 
-function NavBarWhite({ showLogo = true, activeButton}) {
+import React from 'react';
+
+import {
+    Link,
+    useLocation,
+    useNavigate,
+} from 'react-router-dom';
+
+import logo from '../../../img/logo.svg';
+
+function NavBarWhite({ showLogo = true, activeButton }) {
     const location = useLocation();
-    const navigate = useNavigate(); 
-    const { state } = location || {}; 
-    
+    const navigate = useNavigate();
+    const { state } = location || {};
+
     const handleSearchClick = () => {
-        navigate('/', { state: { activeButton: "triplet" }}); // Navigate to the search page
+        navigate('/', { state: { activeButton: "triplet" } }); // Navigate to the search page
     };
     const handleChatClick = () => {
-        navigate('/', { state: { activeButton: "llm" }}); 
+        navigate('/', { state: { activeButton: "llm" } });
     };
 
     return (
@@ -24,15 +29,15 @@ function NavBarWhite({ showLogo = true, activeButton}) {
                 {showLogo && (
                     <Link to="/">
                         <img
-                    src={logo} // Path to the logo image
-                    style={{
-                        height: '80%', // Adjust the width of the image
-                        marginRight: '8px', // Add spacing between the image and text
-                    }}
-                />
+                            src={logo} // Path to the logo image
+                            style={{
+                                height: '80%', // Adjust the width of the image
+                                marginRight: '8px', // Add spacing between the image and text
+                            }}
+                        />
                     </Link>
                 )}
-                
+
             </div>
             <div className="nav-links">
                 <Link to="/about">About</Link>
