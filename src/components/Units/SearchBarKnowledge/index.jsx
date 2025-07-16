@@ -64,15 +64,14 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
     // Sort function for options
     const sortByCategory = (a, b) => {
-        const categoryA = getDisplayCategory(a[2]);
-        const categoryB = getDisplayCategory(b[2]);
+        const categoryA = getDisplayCategory(a[3]);
+        const categoryB = getDisplayCategory(b[3]);
 
         // First sort by category order
         const orderDiff = categoryOrder.indexOf(categoryA) - categoryOrder.indexOf(categoryB);
         if (orderDiff !== 0) return orderDiff;
 
-        // Then sort alphabetically within category
-        return a[1].localeCompare(b[1]);
+        return a[0] - b[0];
     };
     // Convert database type to display category
 
@@ -96,12 +95,14 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         let cypherServ = new CypherService();
         const response = await cypherServ.Entity2Cypher(searchValue, termType);
         const sortedOptions = response.data
-            .map(node => [
+            .map((node, index) => [
+                index,
                 node.database_id,
                 `${node.name} (${node.element_id})`,
                 node.type
             ])
-            .sort(sortByCategory);
+            .sort(sortByCategory)
+            .map(([, database_id, name, type]) => [database_id, name, type]);
         setSourceNodeOptions(sortedOptions);
         // setSourceNodeData(response.data);
         // setSourceNodeOptions([
@@ -385,6 +386,11 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                     />
                                 ))
                             }
+                            ListboxProps={{
+                                style: {
+                                    maxHeight: "340px",
+                                }
+                            }}
                             renderInput={(params) => (
                                 <TextField
                                     {...params}
@@ -454,6 +460,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                 />
                                             </Box>
                                         ),
+
                                     }}
                                 />
                             )}
@@ -472,7 +479,6 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                 setSelectedSources(newValue);
                                 console.log('New sources:', newValue);
                             }}
-
                         />
                     </Box>
 
