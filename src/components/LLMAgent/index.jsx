@@ -14,17 +14,23 @@ import {
     Select,
 } from 'antd';
 import ReactMarkdown from 'react-markdown';
-import { useLocation } from 'react-router-dom';
+import {
+    useLocation,
+    useNavigate,
+} from 'react-router-dom';
 
-import CheckIcon from '@mui/icons-material/Check';
-import ClearIcon from '@mui/icons-material/Clear';
-import CloseIcon from '@mui/icons-material/Close';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
-import EditNoteIcon from '@mui/icons-material/EditNote';
-import FilePresentIcon from '@mui/icons-material/FilePresent';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import SearchIcon from '@mui/icons-material/Search';
+import {
+    ArrowBack as ArrowBackIcon,
+    Check as CheckIcon,
+    Clear as ClearIcon,
+    Close as CloseIcon,
+    ContentCopy as ContentCopyIcon,
+    DeleteForever as DeleteForeverIcon,
+    EditNote as EditNoteIcon,
+    FilePresent as FilePresentIcon,
+    Refresh as RefreshIcon,
+    Search as SearchIcon,
+} from '@mui/icons-material';
 import {
     Box,
     CircularProgress,
@@ -43,7 +49,6 @@ import { LLMAgentService } from '../../service/LLMAgent';
 import NavBarWhite from '../Units/NavBarWhite';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import SearchButton from '../Units/SearchButton/SearchButton';
-import SubNavBar from '../Units/SubNavBar';
 
 // import ShareIcon from "@mui/icons-material/Share";
 // import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
@@ -66,6 +71,7 @@ function LLMAgent() {
     const [editingMessageIndex, setEditingMessageIndex] = useState(null);
     const [editedMessageContent, setEditedMessageContent] = useState('');
     const messagesEndRef = useRef(null);
+    const navigate = useNavigate();
 
     // Create a single instance of LLMAgentService that persists across re-renders
     const llmService = React.useMemo(() => new LLMAgentService(), []);
@@ -89,6 +95,7 @@ function LLMAgent() {
             handleExampleClick(query);
         }
     }, [location.state]);
+
     useEffect(() => {
         const container = document.querySelector('.chat-container');
         if (!container) return;
@@ -544,24 +551,18 @@ function LLMAgent() {
             <div className="navbar-wrapper">
                 <NavBarWhite />
             </div>
-            <div className="subbar" style={{
-                // move to place at the center of the bottom edge of navbar
-                position: 'fixed',
-                top: '80px',
-                zIndex: 1000,
-                left: '50%',
-                transform: 'translateX(-50%) translateY(-50%)',
-            }}>
-                <SubNavBar />
-            </div>
-            <Grid className="main-grid" container sx={{ marginTop: '144px' }} >
+            <Grid className="main-grid" container sx={{ marginTop: '100px' }} >
                 <Grid xs={12} className="subgrid">
                     <div className="main-content">
+                        <MuiButton variant="text" sx={{ color: 'black', alignSelf: 'flex-start', zIndex: 1 }}
+                            onClick={() => navigate('/')}>
+                            <ArrowBackIcon />Back
+                        </MuiButton>
                         <div className='result-content'>
                             <div className="llm-agent-container">
                                 <div className="chat-and-references">
-                                    <Grid container spacing={'24px'}>
-                                        <Grid item xs={7} height={"100%"}>
+                                    <Grid container spacing={'48px'}>
+                                        <Grid item xs={8} height={"100%"}>
                                             <div className="chat-container">
 
                                                 {/* Add example queries section */}
@@ -704,7 +705,7 @@ function LLMAgent() {
                                                 </div>
                                             </div>
                                         </Grid>
-                                        <Grid item xs={5} height={"100%"}>
+                                        <Grid item xs={4} height={"100%"}>
                                             <div style={{ height: '100%', width: '100%' }}>
                                                 <div className="references-container">
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
