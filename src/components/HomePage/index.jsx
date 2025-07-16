@@ -593,7 +593,7 @@ const HomePage = () => {
                         // style={{ marginTop: '20px' }}
                         style={{
                             position: 'fixed',
-                            bottom: '60px',
+                            bottom: '50px',
                             right: '40px',
                             width: '56px',
                             height: '56px',

@@ -32,16 +32,11 @@ all {
     position: relative;
     padding-bottom: 0px;
     padding-top: 0px;
-    width:100%;
+    width: 100%;
 }
 
-.main-content{
-    /* height: 39vw;
-    max-height: 39vw; */
-}
-
-.subgrid{
-    margin-bottom:24px;
+.subgrid {
+    margin-bottom: 24px;
 }
 
 /* Header styles */
@@ -305,13 +300,9 @@ all {
     /* Below the floating panels */
 }
 
-.subbar{
-    /* margin-left:14vw; */
-}
-
 .search-bar-wrapper {
     /* width: calc(75% - 92px); */
-    width:100%;
+    width: 100%;
     /* min-width: 708px; */
     /* Adjust this value as needed
     max-width: 1185px; */
@@ -322,7 +313,7 @@ all {
 
 .search-bar-wrapper .MuiContainer-root {
     max-width: none;
-    padding:0px !important;
+    padding: 0px !important;
 }
 
 .search-bar-wrapper .css-ganwlh-MuiContainer-root {
@@ -333,12 +324,12 @@ all {
     max-width: none;
 }
 
-.main-grid{
-    margin-left:10% !important;
-    margin-right:10% !important;
+.main-grid {
+    margin-left: 6% !important;
+    margin-right: 6% !important;
 
-    width:80% !important;
-    
+    width: 88% !important;
+
 }
 
 .start-tour-button {
@@ -572,7 +563,7 @@ all {
 
 .legend-subtitle-row {
     display: flex;
-    
+
 }
 
 .legend-subtitle {
@@ -590,7 +581,7 @@ all {
     cursor: pointer;
     width: 0.75rem;
     height: 0.75rem;
-    margin-top:10px;
+    margin-top: 10px;
 }
 
 .legend-toggle-icon {
@@ -599,26 +590,26 @@ all {
     display: block;
 }
 
-.graph-container >div {
-  width: 100% !important;
-  height: 100% !important;
-  display: block;
+.graph-container>div {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
 }
 
-.graph-container >div>div{
-  width: 100% !important;
-  height: 100% !important;
-  display: block;
+.graph-container>div>div {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
 }
 
-.graph-container >div>div>div{
-  width: 100% !important;
-  height: 100% !important;
-  display: block;
-}
-.graph-container >div>div>div>div{
-  width: 100% !important;
-  height: 100% !important;
-  display: block;
+.graph-container>div>div>div {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
 }
 
+.graph-container>div>div>div>div {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}

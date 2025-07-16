@@ -24,10 +24,11 @@ import {
 } from 'react-router-dom';
 
 import { InfoCircleOutlined } from '@ant-design/icons';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 //import mui button as muibutton
 import {
     Box,
-    Button as MUIButton,
+    Button as MuiButton,
     Grid,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
@@ -41,7 +42,6 @@ import { trackEvent } from '../Units/analytics';
 import NavBarWhite from '../Units/NavBarWhite';
 import SearchBarKnowledge from '../Units/SearchBarKnowledge';
 import SearchBarNeighborhood from '../Units/SearchBarNeighborhood';
-import SubNavBar from '../Units/SubNavBar';
 
 const { Search } = Input;
 
@@ -63,8 +63,12 @@ const ResultPage = () => {
     // const urlParams = new URLSearchParams(window.location.search);
     // const alltags = urlParams.get('data');
     const location = useLocation();
-    const search_data = location.state.search_data;
-    const chipDataID = location.state.chipDataID;
+    const navigate = useNavigate();
+    useEffect(() => {
+        if (!location.state) navigate('/');
+    }, []);
+    const search_data = location.state?.search_data;
+    const chipDataID = location.state?.chipDataID;
     // const { result } = location.state;
     // console.log(location.state)
     // const otags = alltags.split('|')
@@ -265,6 +269,8 @@ const ResultPage = () => {
 
     // Add new state for search content
     const [searchContent, setSearchContent] = useState(null);
+
+
 
     useEffect(() => {
         if (search_data) {
@@ -694,7 +700,7 @@ const ResultPage = () => {
 
     const LegendButton = ({ label, size, color, explanation }) => {
         return (
-            <MUIButton variant="contained" onClick={(e) => { /*onChangeNode(e, label, boolValues[label])*/ }} sx={{
+            <MuiButton variant="contained" onClick={(e) => { /*onChangeNode(e, label, boolValues[label])*/ }} sx={{
                 backgroundColor: boolValues[label] ? color : '#fff',
                 boxShadow: "none",
                 ":hover": {
@@ -711,7 +717,7 @@ const ResultPage = () => {
                 letterSpacing: '0.15px',
             }}>
                 {label}
-            </MUIButton>);
+            </MuiButton>);
     };
 
     const legendDataAll = [
@@ -769,19 +775,13 @@ const ResultPage = () => {
             <div className="navbar-wrapper">
                 <NavBarWhite />
             </div>
-            <div className="subbar" style={{
-                // move to place at the center of the bottom edge of navbar
-                position: 'fixed',
-                top: '80px',
-                zIndex: 1000,
-                left: '50%',
-                transform: 'translateX(-50%) translateY(-50%)',
-            }}>
-                <SubNavBar />
-            </div>
-            <Box sx={{ width: '100%', marginTop: '144px' }}>
+            <Box sx={{ width: '100%', marginTop: '100px' }}>
                 <Grid className="main-grid" container >
                     <Grid xs={12} className="subgrid">
+                        <MuiButton variant="text" sx={{ color: 'black', alignSelf: 'flex-start', zIndex: 1 }}
+                            onClick={() => navigate('/')}>
+                            <ArrowBackIcon />Back
+                        </MuiButton>
                         <div className="search-bar-container" >
                             <div className="search-bar-wrapper" >
                                 {searchType === 'neighbor' ? (
@@ -833,7 +833,7 @@ const ResultPage = () => {
                                 </div>
                             )}
                             {searchFlag && !isGraphLoading && (
-                                <div className='result-content' style={{ paddingTop: "0px" }}>
+                                <div className='result-content' style={{ paddingTop: "12px" }}>
                                     <div className='result-container-wrapper'>
                                         <Box sx={{
                                             // display: 'flex',
@@ -851,8 +851,8 @@ const ResultPage = () => {
                                             flexGrow: 1,
                                         }}>
                                             {/* Left */}
-                                            <Grid container spacing={'24px'} height={"100%"}>
-                                                <Grid item xs={6} height={"100%"}>
+                                            <Grid container spacing={'48px'} height={"100%"}>
+                                                <Grid item xs={8} height={"100%"}>
                                                     <Box sx={{
                                                         borderRadius: "20px",
                                                         //width: '100%',
@@ -877,7 +877,7 @@ const ResultPage = () => {
                                                         >
                                                             {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
                                                         </StyledButton> */}
-                                                                {/* <MUIButton
+                                                                {/* <MuiButton
                                                                     onClick={changeLeftPanel}
                                                                     variant="contained"
                                                                     className="graph-control-button"
@@ -902,7 +902,7 @@ const ResultPage = () => {
                                                                         cornerRadius: '8px',
                                                                     }}>
                                                                     {displayArticleGraph ? "Biomedical term graph" : "Article graph"}
-                                                                </MUIButton> */}
+                                                                </MuiButton> */}
                                                             </span>
                                                         </Tooltip>
                                                         <Box sx={{
@@ -1014,7 +1014,7 @@ const ResultPage = () => {
                                                         </Box>
                                                     </Box>
                                                 </Grid>
-                                                <Grid item xs={6} height={"100%"}>
+                                                <Grid item xs={4} height={"100%"}>
                                                     <Box sx={{
                                                         borderRadius: "20px",
                                                         height: "100%",
@@ -1138,7 +1138,7 @@ const ResultPage = () => {
                 // style={{ marginTop: '20px' }}
                 style={{
                     position: 'fixed',
-                    bottom: '60px',
+                    bottom: '50px',
                     right: '40px',
                     width: '56px',
                     height: '56px',

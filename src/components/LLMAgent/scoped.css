@@ -28,7 +28,7 @@
 }
 
 .main-content {
-    background: linear-gradient(to right, #F4F6FE, #DCE3FF, #F4F6FE);
+    /* background: linear-gradient(to right, #F4F6FE, #DCE3FF, #F4F6FE); */
     padding-top: 0px;
     flex: 1;
     display: flex;
