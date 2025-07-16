@@ -27,8 +27,10 @@ import SearchIcon from '@mui/icons-material/Search';
 import {
     Autocomplete,
     Box,
+    Container,
     Grid,
     TextField,
+    Typography,
 } from '@mui/material'; // Import MUI components
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -37,7 +39,6 @@ import exampleQueries
     from '../../components/Units/SearchBarKnowledge/example_query.json';
 import neighborhoodExamples
     from '../../components/Units/SearchBarNeighborhood/example_query.json';  // Add this import
-import logo from '../../img/logo.svg';
 import { trackEvent } from '../Units/analytics';
 import NavBarWhite from '../Units/NavBarWhite';
 import SearchBarKnowledge from '../Units/SearchBarKnowledge';
@@ -47,9 +48,9 @@ import SubNavBar from '../Units/SubNavBar';
 const { Search } = Input;
 
 const LLMExampleQueries = [
-    "Who are you?",
     "What is the role of BRCA1 in breast cancer?",
     "How many articles about Alzheimer's disease were published in 2020?",
+    "What pathways does TP53 participate in?",
 ];
 
 const HomePage = () => {
@@ -286,22 +287,31 @@ const HomePage = () => {
                 showLogo={true} activeButton={activeButton}
             />
             <Grid container spacing={2} className="content" justifyContent="center" alignItems="center">
-                <Grid item xs={12} container justifyContent="center"
-                    alignItems="center">
-                    <img
-                        src={logo}
-                        alt="Logo"
-                        style={{
-                            width: '40%', // Make the logo responsive
-                            maxWidth: '400px', // Set a max width for the logo
-                            marginTop: '40px',
-                            marginBottom: '40px',
-                            display: 'block',
-                        }}
-                    />
-                </Grid>
-
-                <Grid item xs={12} container className="search-chat-part" justifyContent="center" alignItems="center">
+                <Grid item xs={12} container className="search-chat-part" justifyContent="center" alignItems="center"
+                    sx={{
+                        "& .MuiGrid-container": {
+                            maxWidth: '100%',
+                            flexBasis: '100%',
+                        },
+                    }}>
+                    <Grid container xs={8} justifyContent="center"
+                        alignItems="center">
+                        <Typography sx={{
+                            fontFamily: 'Roboto',
+                            fontWeight: 600,
+                            fontStyle: 'SemiBold',
+                            fontSize: '48px',
+                            leadingTrim: 'NONE',
+                            lineHeight: '100%',
+                            letterSpacing: '0%',
+                            textAlign: 'center',
+                            paddingTop: '15%',
+                            paddingBottom: '12%',
+                            color: '#00199D'
+                        }}>
+                            Genomic Literature Knowledge Base
+                        </Typography>
+                    </Grid>
                     <Grid
                         display="flex"
                         justifyContent="flex-start"
@@ -311,7 +321,7 @@ const HomePage = () => {
                         container
                         sx={{
                             width: '100%',
-                            maxWidth: '833px', // Set the box width to 883px
+                            maxWidth: '960px', // Set the box width to 960px
                             margin: '0px', // Center the box horizontally on the page
                             marginBottom: '24px',
                             paddingLeft: isSmallScreen ? '0px' : '24px',
@@ -536,7 +546,7 @@ const HomePage = () => {
                                 </>
                             )}
                         </Grid> */}
-                        <Grid container spacing={4} className="info-card-section" style={{ padding: '24px', paddingTop: '48px' }} >
+                        <Container className="info-card-section" sx={{ padding: '24px', paddingTop: '28px', gap: '30px', display: 'flex', flexDirection: 'row' }} >
                             {[
                                 ["30K", "Data downloads in the past 3 months."],
                                 ["100", "Research institutes adopted GLKB."],
@@ -551,7 +561,7 @@ const HomePage = () => {
                                             alignItems: 'center',
                                             width: '100%',
                                             minHeight: '100%',
-                                            height: 'auto',
+                                            height: '100px',
                                             marginBottom: '10px',
                                             whiteSpace: 'normal',
                                             padding: '16px',
@@ -576,7 +586,7 @@ const HomePage = () => {
                                     </Box>
                                 </Grid>
                             ))}
-                        </Grid>
+                        </Container>
                     </Grid>
                     <AntButton
                         onClick={() => setRunTour(true)}

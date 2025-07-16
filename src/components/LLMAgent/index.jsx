@@ -575,11 +575,6 @@ function LLMAgent() {
                                                         </div>
                                                         <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '40px', marginBottom: '10px', overflowX: "auto", position: "absolute", bottom: "25%", height: 'auto', minHeight: '80px' }}>
                                                             <div className="example-query"
-                                                                onClick={() => handleExampleClick("Who are you?")}
-                                                                style={{ height: 'auto', minHeight: '100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
-                                                                Who are you?
-                                                            </div>
-                                                            <div className="example-query"
                                                                 onClick={() => handleExampleClick("What is the role of BRCA1 in breast cancer?")}
                                                                 style={{ height: 'auto', minHeight: '100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
                                                                 What is the role of BRCA1 in breast cancer?
