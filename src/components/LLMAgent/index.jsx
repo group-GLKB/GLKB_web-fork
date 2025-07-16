@@ -25,14 +25,15 @@ import {
     Clear as ClearIcon,
     Close as CloseIcon,
     ContentCopy as ContentCopyIcon,
-    DeleteForever as DeleteForeverIcon,
     EditNote as EditNoteIcon,
     FilePresent as FilePresentIcon,
+    RateReview as RateReviewIcon,
     Refresh as RefreshIcon,
     Search as SearchIcon,
 } from '@mui/icons-material';
 import {
     Box,
+    Button as MuiButton,
     CircularProgress,
     Container,
     Grid,
@@ -41,7 +42,6 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
-import MuiButton from '@mui/material/Button';
 
 import systemIcon from '../../img/Asset 1.png';
 import GLKBLogo from '../../img/glkb_dark.jpg';
@@ -566,7 +566,7 @@ function LLMAgent() {
                                             <div className="chat-container">
 
                                                 {/* Add example queries section */}
-                                                {chatHistory.length === 0 && (
+                                                {chatHistory.length === 0 ? (
                                                     <div className="example-queries" style={{ paddingTop: '1rem' }}>
                                                         <div className="example-queries-header" style={{ gap: '1rem', marginTop: '30vh', paddingBottom: '30%' }}>
                                                             <div className="logo-container" style={{ marginBottom: '1rem' }}>
@@ -592,6 +592,37 @@ function LLMAgent() {
                                                             </div>
                                                         </div>
                                                     </div>
+                                                ) : (
+                                                    <Box className="chat-header" sx={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between',
+                                                        padding: '16px',
+                                                        height: '55px',
+                                                        borderBottom: '1px solid #E6E6E6',
+                                                    }}>
+                                                        <Typography sx={{
+                                                            fontFamily: 'Inter, sans-serif',
+                                                            fontSize: '18px',
+                                                            fontWeight: '500',
+                                                            paddingLeft: '16px',
+                                                        }}>
+                                                            AI Chat
+                                                        </Typography>
+                                                        <MuiButton onClick={handleClear} disabled={isLoading} sx={{
+                                                            width: 92,
+                                                            height: 26,
+                                                            borderRadius: "4px",
+                                                            borderWidth: "1px",
+                                                            padding: "4px",
+                                                            gap: "4px",
+                                                            border: "1px solid #E2E8F0",
+                                                            fontSize: '11px',
+                                                            color: isLoading ? '#e0e0e0' : '#64748B'
+                                                        }}>
+                                                            <RateReviewIcon sx={{ fontSize: '15px' }} /> New Chat
+                                                        </MuiButton>
+                                                    </Box>
                                                 )}
 
                                                 <div className="messages-container">
@@ -699,9 +730,6 @@ function LLMAgent() {
                                                             ),
                                                         }}
                                                     />
-                                                    <IconButton onClick={handleClear} aria-label="delete" disabled={isLoading}>
-                                                        <DeleteForeverIcon sx={{ fontSize: '30px', color: isLoading ? '#e0e0e0' : '#D3D5FF' }} />
-                                                    </IconButton>
                                                 </div>
                                             </div>
                                         </Grid>

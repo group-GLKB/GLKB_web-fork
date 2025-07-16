@@ -570,11 +570,6 @@
     margin-top: 8px;
 }
 
-.chat-container>* {
-    border-top: none !important;
-    border-bottom: none !important;
-}
-
 .example-queries {
     padding: 2rem;
     display: flex;
