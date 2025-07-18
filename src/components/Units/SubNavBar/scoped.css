@@ -9,8 +9,9 @@
     /* margin-bottom:5px; */
     gap: 0.5rem;
     border-radius: 100px;
-    box-shadow: 0px 1px 3px 1px #00000026;
-    box-shadow: 0px 1px 2px 0px #0000004D;
+    box-shadow: 0px 1px 3px 1px #00000026,
+        0px 1px 2px 0px #0000004D,
+        8px 6px 33px 0px #D8E6F8;
 }
 
 
