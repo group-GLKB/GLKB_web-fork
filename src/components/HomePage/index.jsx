@@ -67,6 +67,26 @@ const HomePage = () => {
     // Add refs for the search components
     const searchBarKnowledgeRef = useRef(null);
     const searchBarNeighborhoodRef = useRef(null);
+    const [stats, setStats] = useState(null);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const response = await fetch('https://glkb.dcmb.med.umich.edu/api/frontend/statistics');
+                const data = await response.json();
+                Object.keys(data).forEach(key => {
+                    data[key] = data[key] ? new Intl.NumberFormat('en', {
+                        notation: 'compact',
+                        compactDisplay: 'short',
+                    }).format(data[key]) : "N/A";
+                });
+                setStats(data);
+            } catch (error) {
+                console.error('Error fetching statistics:', error);
+            }
+        };
+        fetchStats();
+    }, []);
 
     useEffect(() => {
         // Update activeButton if state changes
@@ -547,11 +567,11 @@ const HomePage = () => {
                             )}
                         </Grid> */}
                         <Container className="info-card-section" sx={{ padding: '24px', paddingTop: '28px', gap: '30px', display: 'flex', flexDirection: 'row' }} >
-                            {[
-                                ["30K", "Data downloads in the past 3 months."],
-                                ["100", "Research institutes adopted GLKB."],
-                                ["20M", "Genomic articles included in database."]
-                            ].map(([value, description], index) => (
+                            {(stats ? [
+                                [stats.num_active_users || "N/A", "Active users in the past 3 months"],
+                                [stats.num_api_calling || "N/A", "Total external API calls"],
+                                [stats.num_articles || "N/A", "Articles covered in GLKB"],
+                            ] : []).map(([value, description], index) => (
                                 <Grid item xs={4} key={index}>
                                     <Box
                                         sx={{
@@ -559,6 +579,7 @@ const HomePage = () => {
                                             display: 'flex',
                                             flexDirection: 'row',
                                             alignItems: 'center',
+                                            justifyContent: 'flex-start',
                                             width: '100%',
                                             minHeight: '100%',
                                             height: '100px',
@@ -573,14 +594,13 @@ const HomePage = () => {
                                         <div style={{
                                             fontFamily: 'Roboto Mono',
                                             fontWeight: '500',
-                                            width: '35%',
                                             fontSize: '40px',
                                             color: '#4B67FE',
                                             padding: '0px 10px',
                                         }}>
                                             {value}
                                         </div>
-                                        <div style={{ fontSize: '14px', color: '#646B96' }}>
+                                        <div style={{ fontSize: '14px', color: '#646B96', maxWidth: '66%' }}>
                                             {description}
                                         </div>
                                     </Box>
