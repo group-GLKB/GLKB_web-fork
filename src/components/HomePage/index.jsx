@@ -67,6 +67,26 @@ const HomePage = () => {
     // Add refs for the search components
     const searchBarKnowledgeRef = useRef(null);
     const searchBarNeighborhoodRef = useRef(null);
+    const [stats, setStats] = useState(null);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const response = await fetch('https://glkb.dcmb.med.umich.edu/api/frontend/statistics');
+                const data = await response.json();
+                Object.keys(data).forEach(key => {
+                    data[key] = data[key] ? new Intl.NumberFormat('en', {
+                        notation: 'compact',
+                        compactDisplay: 'short',
+                    }).format(data[key]) : "N/A";
+                });
+                setStats(data);
+            } catch (error) {
+                console.error('Error fetching statistics:', error);
+            }
+        };
+        fetchStats();
+    }, []);
 
     useEffect(() => {
         // Update activeButton if state changes
@@ -286,7 +306,7 @@ const HomePage = () => {
             <NavBarWhite
                 showLogo={true} activeButton={activeButton}
             />
-            <Grid container spacing={2} className="content" justifyContent="center" alignItems="center">
+            <Grid container spacing={2} className="content HomePageMain" justifyContent="center" alignItems="center">
                 <Grid item xs={12} container className="search-chat-part" justifyContent="center" alignItems="center"
                     sx={{
                         "& .MuiGrid-container": {
@@ -306,10 +326,23 @@ const HomePage = () => {
                             letterSpacing: '0%',
                             textAlign: 'center',
                             paddingTop: '15%',
-                            paddingBottom: '12%',
-                            color: '#00199D'
+                            paddingBottom: '16px',
+                            background: 'linear-gradient(90deg, #672CD3 0%, #415FE3 50%, #682BD2 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
                         }}>
                             Genomic Literature Knowledge Base
+                        </Typography>
+                        <Typography sx={{
+                            fontFamily: 'Inter',
+                            fontWeight: 400,
+                            fontSize: '16px',
+                            color: '#646C8B',
+                            textAlign: 'center',
+                            paddingBottom: '84px',
+                            maxWidth: '500px',
+                        }}>
+                            Discover insights from genomic research with AI-powered search and analysis
                         </Typography>
                     </Grid>
                     <Grid
@@ -547,11 +580,11 @@ const HomePage = () => {
                             )}
                         </Grid> */}
                         <Container className="info-card-section" sx={{ padding: '24px', paddingTop: '28px', gap: '30px', display: 'flex', flexDirection: 'row' }} >
-                            {[
-                                ["30K", "Data downloads in the past 3 months."],
-                                ["100", "Research institutes adopted GLKB."],
-                                ["20M", "Genomic articles included in database."]
-                            ].map(([value, description], index) => (
+                            {(stats ? [
+                                [stats.num_active_users_d30 || "N/A", "Active users in the past month"],
+                                [stats.num_api_calling || "N/A", "Total external API calls"],
+                                [stats.num_articles || "N/A", "Articles covered in GLKB"],
+                            ] : []).map(([value, description], index) => (
                                 <Grid item xs={4} key={index}>
                                     <Box
                                         sx={{
@@ -559,6 +592,7 @@ const HomePage = () => {
                                             display: 'flex',
                                             flexDirection: 'row',
                                             alignItems: 'center',
+                                            justifyContent: 'flex-start',
                                             width: '100%',
                                             minHeight: '100%',
                                             height: '100px',
@@ -573,14 +607,15 @@ const HomePage = () => {
                                         <div style={{
                                             fontFamily: 'Roboto Mono',
                                             fontWeight: '500',
-                                            width: '35%',
                                             fontSize: '40px',
                                             color: '#4B67FE',
                                             padding: '0px 10px',
+                                            minWidth: '100px',
+                                            textAlign: 'center',
                                         }}>
                                             {value}
                                         </div>
-                                        <div style={{ fontSize: '14px', color: '#646B96' }}>
+                                        <div style={{ fontSize: '14px', color: '#646B96', maxWidth: '66%' }}>
                                             {description}
                                         </div>
                                     </Box>
@@ -588,26 +623,27 @@ const HomePage = () => {
                             ))}
                         </Container>
                     </Grid>
-                    <AntButton
-                        onClick={() => setRunTour(true)}
-                        // style={{ marginTop: '20px' }}
-                        style={{
-                            position: 'fixed',
-                            bottom: '50px',
-                            right: '40px',
-                            width: '56px',
-                            height: '56px',
-                            fontSize: '24px',
-                            borderRadius: '50%',
-                            backgroundColor: '#D3D5FF',
-                            boxShadow: '8px 6px 33px 0px #D8E6F8',
-                            border: 'none',
-                        }}
-                    >
-                        ?
-                    </AntButton>
+
                 </Grid>
             </Grid>
+            <AntButton
+                onClick={() => setRunTour(true)}
+                // style={{ marginTop: '20px' }}
+                style={{
+                    position: 'fixed',
+                    bottom: '50px',
+                    right: '40px',
+                    width: '56px',
+                    height: '56px',
+                    fontSize: '24px',
+                    borderRadius: '50%',
+                    backgroundColor: '#D3D5FF',
+                    boxShadow: '8px 6px 33px 0px #D8E6F8',
+                    border: 'none',
+                }}
+            >
+                ?
+            </AntButton>
             <div className="footer">
                 <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
                     <p style={{ textAlign: 'center', color: 'rgba(0, 0, 0, 0.8)', fontSize: '14px', margin: 0 }}>
