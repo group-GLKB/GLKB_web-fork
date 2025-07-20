@@ -3,48 +3,47 @@ import './scoped.css';
 import './github-markdown-light.css';
 
 import React, {
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 
 import {
-    message,
-    Select,
+  message,
+  Select,
 } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import {
-    useLocation,
-    useNavigate,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import {
-    ArrowBack as ArrowBackIcon,
-    Check as CheckIcon,
-    Clear as ClearIcon,
-    Close as CloseIcon,
-    ContentCopy as ContentCopyIcon,
-    EditNote as EditNoteIcon,
-    FilePresent as FilePresentIcon,
-    RateReview as RateReviewIcon,
-    Refresh as RefreshIcon,
-    Search as SearchIcon,
+  ArrowBack as ArrowBackIcon,
+  Check as CheckIcon,
+  Clear as ClearIcon,
+  Close as CloseIcon,
+  ContentCopy as ContentCopyIcon,
+  EditNote as EditNoteIcon,
+  FilePresent as FilePresentIcon,
+  RateReview as RateReviewIcon,
+  Refresh as RefreshIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import {
-    Box,
-    Button as MuiButton,
-    CircularProgress,
-    Container,
-    Grid,
-    IconButton,
-    Stack,
-    TextField,
-    Typography,
+  Box,
+  Button as MuiButton,
+  CircularProgress,
+  Container,
+  Grid,
+  IconButton,
+  Stack,
+  TextField,
+  Typography,
 } from '@mui/material';
 
 import systemIcon from '../../img/Asset 1.png';
-import GLKBLogo from '../../img/glkb_dark.jpg';
 import { LLMAgentService } from '../../service/LLMAgent';
 import NavBarWhite from '../Units/NavBarWhite';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
@@ -564,17 +563,51 @@ function LLMAgent() {
                                     <Grid container spacing={'48px'}>
                                         <Grid item xs={8} height={"100%"}>
                                             <div className="chat-container">
-
+                                                <Box className="llm-header" sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    padding: '16px',
+                                                    height: '55px',
+                                                    borderBottom: '1px solid #E6E6E6',
+                                                }}>
+                                                    <Typography sx={{
+                                                        fontFamily: 'Inter, sans-serif',
+                                                        fontSize: '18px',
+                                                        fontWeight: '500',
+                                                        paddingLeft: '16px',
+                                                    }}>
+                                                        AI Chat
+                                                    </Typography>
+                                                    <MuiButton onClick={handleClear} disabled={isLoading || chatHistory.length === 0} sx={{
+                                                        width: 92,
+                                                        height: 26,
+                                                        borderRadius: "4px",
+                                                        borderWidth: "1px",
+                                                        padding: "4px",
+                                                        gap: "4px",
+                                                        border: "1px solid #E2E8F0",
+                                                        fontSize: '11px',
+                                                        color: isLoading ? '#e0e0e0' : '#64748B'
+                                                    }}>
+                                                        <RateReviewIcon sx={{ fontSize: '15px' }} /> New Chat
+                                                    </MuiButton>
+                                                </Box>
                                                 {/* Add example queries section */}
-                                                {chatHistory.length === 0 ? (
+                                                {chatHistory.length === 0 && (
                                                     <div className="example-queries" style={{ paddingTop: '1rem' }}>
-                                                        <div className="example-queries-header" style={{ gap: '1rem', marginTop: '30vh', paddingBottom: '30%' }}>
-                                                            <div className="logo-container" style={{ marginBottom: '1rem' }}>
-                                                                <img src={GLKBLogo} alt="GLKB" className="glkb-logo" style={{ height: '90px' }} />
-                                                            </div>
-                                                            <h3 style={{ marginTop: '3vh', marginBottom: '3vh' }}>I can help you explore biomedical literature. Here are some examples:</h3>
+                                                        <div className="example-queries-header" style={{ gap: '1rem' }}>
+                                                            <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: '32px', fontWeight: '700', color: "#00199D" }}>
+                                                                Explore Biomedical Literature
+                                                            </Typography>
+                                                            <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: '18px', fontWeight: '500', color: "#718096" }}>
+                                                                AI-powered Genomic Literature Knowledge Base
+                                                            </Typography>
+                                                            <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: '20px', fontWeight: '600', color: "#00199D", paddingTop: '50px' }}>
+                                                                Try these example queries:
+                                                            </Typography>
                                                         </div>
-                                                        <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '40px', marginBottom: '10px', overflowX: "auto", position: "absolute", bottom: "25%", height: 'auto', minHeight: '80px' }}>
+                                                        <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '10px', minHeight: '80px' }}>
                                                             <div className="example-query"
                                                                 onClick={() => handleExampleClick("What is the role of BRCA1 in breast cancer?")}
                                                                 style={{ height: 'auto', minHeight: '100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
@@ -592,37 +625,6 @@ function LLMAgent() {
                                                             </div>
                                                         </div>
                                                     </div>
-                                                ) : (
-                                                    <Box className="chat-header" sx={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'space-between',
-                                                        padding: '16px',
-                                                        height: '55px',
-                                                        borderBottom: '1px solid #E6E6E6',
-                                                    }}>
-                                                        <Typography sx={{
-                                                            fontFamily: 'Inter, sans-serif',
-                                                            fontSize: '18px',
-                                                            fontWeight: '500',
-                                                            paddingLeft: '16px',
-                                                        }}>
-                                                            AI Chat
-                                                        </Typography>
-                                                        <MuiButton onClick={handleClear} disabled={isLoading} sx={{
-                                                            width: 92,
-                                                            height: 26,
-                                                            borderRadius: "4px",
-                                                            borderWidth: "1px",
-                                                            padding: "4px",
-                                                            gap: "4px",
-                                                            border: "1px solid #E2E8F0",
-                                                            fontSize: '11px',
-                                                            color: isLoading ? '#e0e0e0' : '#64748B'
-                                                        }}>
-                                                            <RateReviewIcon sx={{ fontSize: '15px' }} /> New Chat
-                                                        </MuiButton>
-                                                    </Box>
                                                 )}
 
                                                 <div className="messages-container">

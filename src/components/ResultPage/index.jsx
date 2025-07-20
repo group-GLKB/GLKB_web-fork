@@ -2,38 +2,37 @@ import 'antd/dist/reset.css';
 import './scoped.css';
 
 import React, {
-    useCallback,
-    useEffect,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
 } from 'react';
 
 import {
-    Button,
-    Button as AntButton,
-    Checkbox,
-    Input,
-    Spin,
-    Tooltip,
+  Button as AntButton,
+  Checkbox,
+  Spin,
+  Tooltip,
 } from 'antd';
 import { debounce } from 'lodash';
 import Joyride, { STATUS } from 'react-joyride';
 import {
-    useLocation,
-    useNavigate,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import { InfoCircleOutlined } from '@ant-design/icons';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 //import mui button as muibutton
 import {
-    Box,
-    Button as MuiButton,
-    Grid,
+  Box,
+  Button as MuiButton,
+  Grid,
+  Typography,
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
 
 import downArrow from '../../img/down_arrow.svg';
+import NoResultImage from '../../img/placeholdericon.png';
 import rightArrow from '../../img/right_arrow.svg';
 import { CypherService } from '../../service/Cypher';
 import Graph from '../Graph';
@@ -43,39 +42,35 @@ import NavBarWhite from '../Units/NavBarWhite';
 import SearchBarKnowledge from '../Units/SearchBarKnowledge';
 import SearchBarNeighborhood from '../Units/SearchBarNeighborhood';
 
-const { Search } = Input;
-
-const StyledButton = styled(Button)(({ theme }) => ({
-    backgroundColor: '#99c7b1',
-    color: 'black',
-    '&:hover': {
-        backgroundColor: '#577265',
-        color: 'black',
-    },
-    '&:focus': {
-        color: 'black',
-    },
-    minWidth: '60px',
-    height: '40px',
-}));
+// const StyledButton = styled(Button)(({ theme }) => ({
+//     backgroundColor: '#99c7b1',
+//     color: 'black',
+//     '&:hover': {
+//         backgroundColor: '#577265',
+//         color: 'black',
+//     },
+//     '&:focus': {
+//         color: 'black',
+//     },
+//     minWidth: '60px',
+//     height: '40px',
+// }));
 
 const ResultPage = () => {
     // const urlParams = new URLSearchParams(window.location.search);
     // const alltags = urlParams.get('data');
     const location = useLocation();
     const navigate = useNavigate();
-    useEffect(() => {
-        if (!location.state) navigate('/');
-    }, []);
+    console.log(location.state);
     const search_data = location.state?.search_data;
     const chipDataID = location.state?.chipDataID;
     // const { result } = location.state;
     // console.log(location.state)
     // const otags = alltags.split('|')
-    const otags = ""
-    const [tags, setTags] = useState(otags);
+    // const otags = ""
+    // const [tags, setTags] = useState(otags);
     const [detailId, setDetailId] = useState(null);
-    const [allNodes, setAllNodes] = useState([]);
+    // const [allNodes, setAllNodes] = useState([]);
     const [data, setData] = useState({});
     const [graphData, setGraphData] = useState();
     /* ====== range initialization functions ====== */
@@ -107,34 +102,34 @@ const ResultPage = () => {
     const handleGtdcFreq = (range) => {
         setGtdcFreq(range);
     }
-    const handleGtdcFreq1 = (props) => {
-        let value = parseInt(props.target.value);
-        setGtdcFreq([value, gtdcFreq[1]]);
-    }
-    const handleGtdcFreq2 = (props) => {
-        let value = parseInt(props.target.value);
-        setGtdcFreq([gtdcFreq[0], value]);
-    }
+    // const handleGtdcFreq1 = (props) => {
+    //     let value = parseInt(props.target.value);
+    //     setGtdcFreq([value, gtdcFreq[1]]);
+    // }
+    // const handleGtdcFreq2 = (props) => {
+    //     let value = parseInt(props.target.value);
+    //     setGtdcFreq([gtdcFreq[0], value]);
+    // }
 
     // number of citations
     const [gtdcNoc, setGtdcNoc] = useState([0, 0]);
     const handleGtdcNoc = (range) => {
         setGtdcNoc(range);
     }
-    const handleGtdcNoc1 = (props) => {
-        let value = parseInt(props.target.value);
-        setGtdcNoc([value, gtdcNoc[1]]);
-    }
-    const handleGtdcNoc2 = (props) => {
-        let value = parseInt(props.target.value);
-        setGtdcNoc([gtdcNoc[0], value]);
-    }
+    // const handleGtdcNoc1 = (props) => {
+    //     let value = parseInt(props.target.value);
+    //     setGtdcNoc([value, gtdcNoc[1]]);
+    // }
+    // const handleGtdcNoc2 = (props) => {
+    //     let value = parseInt(props.target.value);
+    //     setGtdcNoc([gtdcNoc[0], value]);
+    // }
 
     /* ====== node type ====== */
 
 
-    const [searchFlag, setSearchFlag] = useState(false)
-    const [chipData, setChipData] = useState([]);
+    const [searchFlag, setSearchFlag] = useState(false);
+    // const [chipData, setChipData] = useState([]);
     const [chipDataIDResult, setChipDataIDResult] = useState([]);
     const [informationOpen, setInformationOpen] = useState(true);
     const [graphShownData, setGraphShownData] = useState();
@@ -153,8 +148,8 @@ const ResultPage = () => {
     const informationRef = useRef(null);
 
     // Modify these state variables for caching
-    const [cachedTermGraph, setCachedTermGraph] = useState(null);
-    const [cachedArticleGraph, setCachedArticleGraph] = useState(null);
+    // const [cachedTermGraph, setCachedTermGraph] = useState(null);
+    // const [cachedArticleGraph, setCachedArticleGraph] = useState(null);
 
     const graphContainerRef = useRef(null);
 
@@ -283,6 +278,8 @@ const ResultPage = () => {
             } else {
                 handleTripletSearch(search_data);
             }
+        } else {
+            setSearchFlag(true);
         }
     }, [search_data]);
 
@@ -304,10 +301,10 @@ const ResultPage = () => {
             }
 
             const graphData = neighborData[0];  // Contains nodes and edges
-            const nodesList = neighborData[1];  // Contains simplified node list
+            // const nodesList = neighborData[1];  // Contains simplified node list
 
             setData(graphData);
-            setAllNodes(nodesList);
+            // setAllNodes(nodesList);
             setSearchFlag(true);
         } catch (error) {
             console.error('Error fetching neighbor data:', error);
@@ -320,7 +317,7 @@ const ResultPage = () => {
             let cypherServ = new CypherService();
             const response = await cypherServ.Triplet2Cypher(searchData);
             setData(response[0]);
-            setAllNodes(response[1]);
+            // setAllNodes(response[1]);
             setSearchFlag(true);
         } catch (error) {
             console.error('Error fetching triplet data:', error);
@@ -391,29 +388,29 @@ const ResultPage = () => {
         return () => window.removeEventListener('resize', updateGraphPosition);
     }, [isSettingsVisible, isInformationVisible]);
 
-    const initialize = () => {
-        setSearchFlag(false)
-    }
+    // const initialize = () => {
+    //     setSearchFlag(false)
+    // }
 
     // Add new state for storing graph data
-    const [graphForQuestions, setGraphForQuestions] = useState(null);
+    // const [graphForQuestions, setGraphForQuestions] = useState(null);
 
     // Modify the search function to store the graph data
     async function search(content) {
         setSearchFlag(false)
-        setCachedTermGraph(null);
-        setCachedArticleGraph(null);
+        // setCachedTermGraph(null);
+        // setCachedArticleGraph(null);
         setDisplayArticleGraph(false);
 
-        let cypherServ = new CypherService()
-        const response = await cypherServ.Triplet2Cypher(content)
-        console.log('function -> ', response)
-        setData(response[0])
-        setAllNodes(response[1])
+        let cypherServ = new CypherService();
+        const response = await cypherServ.Triplet2Cypher(content);
+        console.log('function -> ', response);
+        setData(response[0]);
+        // setAllNodes(response[1])
         // Store just the graph data, not the entire response
-        setGraphForQuestions(response[0])
-        setCachedTermGraph(response);
-        setSearchFlag(true)
+        // setGraphForQuestions(response[0])
+        // setCachedTermGraph(response);
+        setSearchFlag(true);
     }
 
     useEffect(() => {
@@ -449,7 +446,7 @@ const ResultPage = () => {
                 setSearchFlag(true);
             }
         }
-    }, [graphData, data])
+    }, [graphData, data]);
 
     // Memoize handleSelect
     const handleSelect = useCallback((target) => {
@@ -464,85 +461,85 @@ const ResultPage = () => {
 
     let selectedID;
 
-    async function handleSelectNodeID(targetID) {
-        let temp_id = targetID[0];
-        if (!informationOpen) {
-            handleInformation();
-        }
-        setDetailId(temp_id);
-        selectedID = temp_id;
-    }
+    // async function handleSelectNodeID(targetID) {
+    //     let temp_id = targetID[0];
+    //     if (!informationOpen) {
+    //         handleInformation();
+    //     }
+    //     setDetailId(temp_id);
+    //     selectedID = temp_id;
+    // }
 
-    let nevigate = useNavigate();
+    // let nevigate = useNavigate();
 
-    const handleSearch = async (v) => {
-        initialize()
-        nevigate(`/result?q=${v}`)
-        search(v)
-    }
+    // const handleSearch = async (v) => {
+    //     initialize()
+    //     nevigate(`/result?q=${v}`)
+    //     search(v)
+    // }
 
     const handleInformation = () => {
         setInformationOpen(!informationOpen);
     };
     // console.log(graphShownData)
 
-    const toggleSettings = () => {
-        setIsSettingsVisible(!isSettingsVisible);
-    };
+    // const toggleSettings = () => {
+    //     setIsSettingsVisible(!isSettingsVisible);
+    // };
 
-    const toggleInformation = () => {
-        setIsInformationVisible(!isInformationVisible);
-    };
+    // const toggleInformation = () => {
+    //     setIsInformationVisible(!isInformationVisible);
+    // };
 
-    const [isGraphLoading, setIsGraphLoading] = useState(false);
+    //const [isGraphLoading, setIsGraphLoading] = useState(false);
 
-    const changeLeftPanel = async () => {
-        trackEvent('Graph', 'Change Graph Type',
-            displayArticleGraph ? 'Term Graph' : 'Article Graph'
-        );
+    // const changeLeftPanel = async () => {
+    //     trackEvent('Graph', 'Change Graph Type',
+    //         displayArticleGraph ? 'Term Graph' : 'Article Graph'
+    //     );
 
-        setIsGraphLoading(true);
+    //     setIsGraphLoading(true);
 
-        try {
-            if (!displayArticleGraph) {
-                setDisplayArticleGraph(true);
-                setDetailId(null);
-                await entityToArticle(data);
-            } else {
-                setDisplayArticleGraph(false);
-                setDetailId(null);
-                // Pass the original search content when switching back
-                await articleToEntity(searchContent);
-            }
-        } finally {
-            setIsGraphLoading(false);
-        }
-    }
+    //     try {
+    //         if (!displayArticleGraph) {
+    //             setDisplayArticleGraph(true);
+    //             setDetailId(null);
+    //             await entityToArticle(data);
+    //         } else {
+    //             setDisplayArticleGraph(false);
+    //             setDetailId(null);
+    //             // Pass the original search content when switching back
+    //             await articleToEntity(searchContent);
+    //         }
+    //     } finally {
+    //         setIsGraphLoading(false);
+    //     }
+    // }
 
-    async function entityToArticle(content) {
-        if (cachedArticleGraph) {
-            setData(cachedArticleGraph);
-        } else {
-            let cypherServ = new CypherService()
-            const response = await cypherServ.Term2Article(content)
-            console.log('Term2Article -> ', response)
-            setData(response)
-            setCachedArticleGraph(response);
-        }
-    }
+    // async function entityToArticle(content) {
+    //     if (cachedArticleGraph) {
+    //         setData(cachedArticleGraph);
+    //     } else {
+    //         let cypherServ = new CypherService()
+    //         const response = await cypherServ.Term2Article(content)
+    //         console.log('Term2Article -> ', response)
+    //         setData(response)
+    //         setCachedArticleGraph(response);
+    //     }
+    // }
 
-    async function articleToEntity(content) {
-        if (searchType === 'neighbor') {
-            handleNeighborSearch(content);
-        } else {
-            if (cachedTermGraph) {
-                setData(cachedTermGraph[0]);
-                setAllNodes(cachedTermGraph[1]);
-            } else {
-                search(content);
-            }
-        }
-    }
+    // async function articleToEntity(content) {
+    //     if (searchType === 'neighbor') {
+    //         handleNeighborSearch(content);
+    //     } else {
+    //         if (cachedTermGraph) {
+    //             setData(cachedTermGraph[0]);
+    //             setAllNodes(cachedTermGraph[1]);
+    //         } else {
+    //             search(content);
+    //         }
+    //     }
+    // }
 
     const expandInformation = () => {
         setIsInformationVisible(true);
@@ -584,22 +581,22 @@ const ResultPage = () => {
     };
 
     // Add legend-related state and functions
-    const [uniqueLabelsSet, setUniqueLabelsSet] = useState(new Set());
-    const [uniqueEdgeLabelsSet, setUniqueEdgeLabelsSet] = useState(new Set());
+    // const [uniqueLabelsSet, setUniqueLabelsSet] = useState(new Set());
+    // const [uniqueEdgeLabelsSet, setUniqueEdgeLabelsSet] = useState(new Set());
     const [uniqueLabelsArray, setUniqueLabelsArray] = useState([]);
     const [uniqueEdgeLabelsArray, setUniqueEdgeLabelsArray] = useState([]);
     const [boolValues, setBoolValues] = useState({});
-    const [boolEdgeValues, setBoolEdgeValues] = useState({});
+    // const [boolEdgeValues, setBoolEdgeValues] = useState({});
 
     useEffect(() => {
         if (data.edges) {
             const edgeLabelsSet = new Set(data.edges.map(edge => edge.data.label));
-            setUniqueEdgeLabelsSet(edgeLabelsSet);
+            // setUniqueEdgeLabelsSet(edgeLabelsSet);
             setUniqueEdgeLabelsArray([...edgeLabelsSet]);
         }
         if (data.nodes) {
             const labelsSet = new Set(data.nodes.map(node => node.data.label));
-            setUniqueLabelsSet(labelsSet);
+            // setUniqueLabelsSet(labelsSet);
             setUniqueLabelsArray([...labelsSet]);
         }
     }, [data]);
@@ -621,7 +618,7 @@ const ResultPage = () => {
             });
 
             setBoolValues(newBoolValues);
-            setBoolEdgeValues(newBoolEdgeValues);
+            // setBoolEdgeValues(newBoolEdgeValues);
         }
     }, [graphShownData, uniqueLabelsArray, uniqueEdgeLabelsArray]);
 
@@ -797,13 +794,21 @@ const ResultPage = () => {
                                     <SearchBarKnowledge
                                         ref={searchBarKnowledgeRef}
                                         initialContent={searchContent} // Pass initial content
-                                        chipData={chipData}
+                                        chipData={[]}
                                         chipDataIDResult={chipDataIDResult}
                                         displayArticleGraph={displayArticleGraph}
                                         setDisplayArticleGraph={setDisplayArticleGraph}
                                         onSearch={(data) => {
-                                            setSearchContent(data); // Update stored content
-                                            search(data);
+                                            // setSearchContent(data); // Update stored content
+                                            // search(data);
+                                            window.location.reload();
+                                            navigate('/result', {
+                                                state: {
+                                                    search_data: data,
+                                                    searchType: 'triplet',
+                                                },
+                                                replace: true,
+                                            });
                                         }}
                                     />
                                 )}
@@ -827,12 +832,12 @@ const ResultPage = () => {
                     </Grid>
                     <Grid xs={12}>
                         <div className='main-content' style={{ minHeight: "unset", height: "100%" }}>
-                            {(!searchFlag || isGraphLoading) && (
+                            {(!searchFlag) && (
                                 <div className='loading-container'>
                                     <Spin size='large' />
                                 </div>
                             )}
-                            {searchFlag && !isGraphLoading && (
+                            {searchFlag && (
                                 <div className='result-content' style={{ paddingTop: "12px" }}>
                                     <div className='result-container-wrapper'>
                                         <Box sx={{
@@ -850,8 +855,8 @@ const ResultPage = () => {
                                             flexDirection: 'row',
                                             flexGrow: 1,
                                         }}>
-                                            {/* Left */}
-                                            <Grid container spacing={'48px'} height={"100%"}>
+                                            <Grid container spacing={'48px'} height={"calc(100% + 48px)"}>
+                                                {/* Left */}
                                                 <Grid item xs={8} height={"100%"}>
                                                     <Box sx={{
                                                         borderRadius: "20px",
@@ -905,115 +910,134 @@ const ResultPage = () => {
                                                                 </MuiButton> */}
                                                             </span>
                                                         </Tooltip>
-                                                        <Box sx={{
-                                                            width: '100%',
-                                                            height: isLegendVisible ? '50%' : '85%',
-                                                        }}>
-                                                            <div className="graph-container" style={{
-                                                                position: 'relative',
-                                                                width: '100%',
+                                                        {!graphShownData?.nodes?.length ?
+                                                            <Box sx={{
+                                                                display: 'flex',
+                                                                justifyContent: 'center',
+                                                                flexDirection: 'column',
+                                                                alignItems: 'center',
                                                                 height: '100%',
-                                                                overflow: 'hidden'
+                                                                fontSize: '20px',
+                                                                color: '#888888',
                                                             }}>
-                                                                {graphShownData && (graphShownData.nodes?.length === 0 || !graphShownData.nodes) ? (
-                                                                    <div className="empty-graph-message" style={{
-                                                                        position: 'absolute',
-                                                                        top: '50%',
-                                                                        left: '50%',
-                                                                        transform: 'translate(-50%, -50%)',
-                                                                        textAlign: 'center',
-                                                                        color: '#666'
+                                                                <Box
+                                                                    component="img"
+                                                                    src={NoResultImage}
+                                                                    alt="No results"
+                                                                    sx={{
+                                                                        width: '100px',
+                                                                        height: '100px',
+                                                                        marginBottom: '4px',
+                                                                    }}
+                                                                />
+                                                                <Typography sx={{
+                                                                    fontFamily: 'Inter, sans-serif',
+                                                                    fontSize: '14px',
+                                                                    fontWeight: 400,
+                                                                }}
+                                                                >
+                                                                    Start searching to view relationship graph
+                                                                </Typography>
+                                                            </Box> :
+                                                            <>
+                                                                <Box sx={{
+                                                                    width: '100%',
+                                                                    height: isLegendVisible ? 'calc(100% - 250px)' : '90%',
+                                                                }}>
+                                                                    <div className="graph-container" style={{
+                                                                        position: 'relative',
+                                                                        width: '100%',
+                                                                        height: '100%',
+                                                                        overflow: 'hidden'
                                                                     }}>
-                                                                        <h2>No Results Found</h2>
-                                                                        <p>Try modifying your search criteria or adjusting the filters.</p>
+                                                                        <Graph
+                                                                            data={graphShownData}
+                                                                            selectedID={selectedID}
+                                                                            minGtdcFreq={minGtdcFreq}
+                                                                            maxGtdcFreq={maxGtdcFreq}
+                                                                            minGtdcNoc={minGtdcNoc}
+                                                                            maxGtdcNoc={maxGtdcNoc}
+                                                                            gtdcFreq={gtdcFreq}
+                                                                            handleGtdcFreq={handleGtdcFreq}
+                                                                            handleMinGtdcFreq={handleMinGtdcFreq}
+                                                                            handleMaxGtdcFreq={handleMaxGtdcFreq}
+                                                                            gtdcNoc={gtdcNoc}
+                                                                            handleGtdcNoc={handleGtdcNoc}
+                                                                            handleMinGtdcNoc={handleMinGtdcNoc}
+                                                                            handleMaxGtdcNoc={handleMaxGtdcNoc}
+                                                                            handleSelect={handleSelect}
+                                                                            handleInformation={handleInformation}
+                                                                            informationOpen={informationOpen}
+                                                                            expandInformation={expandInformation}
+                                                                            className="graph"
+                                                                            ref={graphContainerRef}
+                                                                            style={{
+                                                                                width: '100%',
+                                                                                height: '100%'
+                                                                            }}
+                                                                        />
                                                                     </div>
-                                                                ) : (
-                                                                    <Graph
-                                                                        data={graphShownData}
-                                                                        selectedID={selectedID}
-                                                                        minGtdcFreq={minGtdcFreq}
-                                                                        maxGtdcFreq={maxGtdcFreq}
-                                                                        minGtdcNoc={minGtdcNoc}
-                                                                        maxGtdcNoc={maxGtdcNoc}
-                                                                        gtdcFreq={gtdcFreq}
-                                                                        handleGtdcFreq={handleGtdcFreq}
-                                                                        handleMinGtdcFreq={handleMinGtdcFreq}
-                                                                        handleMaxGtdcFreq={handleMaxGtdcFreq}
-                                                                        gtdcNoc={gtdcNoc}
-                                                                        handleGtdcNoc={handleGtdcNoc}
-                                                                        handleMinGtdcNoc={handleMinGtdcNoc}
-                                                                        handleMaxGtdcNoc={handleMaxGtdcNoc}
-                                                                        handleSelect={handleSelect}
-                                                                        handleInformation={handleInformation}
-                                                                        informationOpen={informationOpen}
-                                                                        expandInformation={expandInformation}
-                                                                        className="graph"
-                                                                        ref={graphContainerRef}
-                                                                        style={{
-                                                                            width: '100%',
-                                                                            height: '100%'
-                                                                        }}
-                                                                    />
-                                                                )}
-                                                            </div>
-                                                        </Box>
-                                                        <Box sx={{
-                                                            // width: '100%',
-                                                            // height: '50%',
-                                                            // position: 'relative',
-                                                            // left: '0',
-                                                        }}>
-                                                            <div className="graph-legend">
-                                                                <div className="legend-section">
-                                                                    <div className="legend-subsection">
-                                                                        <div className="legend-subtitle-row">
-                                                                            <div className="legend-subtitle">Legends</div>
-                                                                            <button
-                                                                                className="toggle-button"
-                                                                                onClick={() => setLegendVisible(!isLegendVisible)}
-                                                                            >
-                                                                                <img
-                                                                                    src={isLegendVisible ? downArrow : rightArrow}
-                                                                                    alt="Toggle legend"
-                                                                                    className="legend-toggle-icon"
-                                                                                />
-                                                                            </button>
-                                                                        </div>
-
-                                                                        {isLegendVisible && (
-                                                                            <div>
-                                                                                <div className="legend-column">
-                                                                                    {legendData.map((item, index) => (
-                                                                                        <LegendButton
-                                                                                            key={index}
-                                                                                            label={item.label}
-                                                                                            size={item.size}
-                                                                                            color={item.color}
+                                                                </Box>
+                                                                <Box sx={{
+                                                                    // width: '100%',
+                                                                    // height: '50%',
+                                                                    // position: 'relative',
+                                                                    // left: '0',
+                                                                }}>
+                                                                    <div className="graph-legend">
+                                                                        <div className="legend-section">
+                                                                            <div className="legend-subsection">
+                                                                                <div className="legend-subtitle-row">
+                                                                                    <div className="legend-subtitle">Legends</div>
+                                                                                    <button
+                                                                                        className="toggle-button"
+                                                                                        onClick={() => setLegendVisible(!isLegendVisible)}
+                                                                                    >
+                                                                                        <img
+                                                                                            src={isLegendVisible ? downArrow : rightArrow}
+                                                                                            alt="Toggle legend"
+                                                                                            className="legend-toggle-icon"
                                                                                         />
-                                                                                    ))}
+                                                                                    </button>
                                                                                 </div>
-                                                                                <div className="legend-subsection">
-                                                                                    <div className="legend-row">
-                                                                                        {legendEdgeData.map((item, index) => (
-                                                                                            <LegendItem
-                                                                                                key={index}
-                                                                                                label={item.label}
-                                                                                                size={item.size}
-                                                                                                color={item.color}
-                                                                                                explanation={item.explanation}
-                                                                                            />
-                                                                                        ))}
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
 
-                                                                </div>
-                                                            </div>
-                                                        </Box>
+                                                                                {isLegendVisible && (
+                                                                                    <div>
+                                                                                        <div className="legend-column">
+                                                                                            {legendData.map((item, index) => (
+                                                                                                <LegendButton
+                                                                                                    key={index}
+                                                                                                    label={item.label}
+                                                                                                    size={item.size}
+                                                                                                    color={item.color}
+                                                                                                />
+                                                                                            ))}
+                                                                                        </div>
+                                                                                        <div className="legend-subsection">
+                                                                                            <div className="legend-row">
+                                                                                                {legendEdgeData.map((item, index) => (
+                                                                                                    <LegendItem
+                                                                                                        key={index}
+                                                                                                        label={item.label}
+                                                                                                        size={item.size}
+                                                                                                        color={item.color}
+                                                                                                        explanation={item.explanation}
+                                                                                                    />
+                                                                                                ))}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+
+                                                                        </div>
+                                                                    </div>
+                                                                </Box>
+                                                            </>
+                                                        }
                                                     </Box>
                                                 </Grid>
+                                                {/* Right */}
                                                 <Grid item xs={4} height={"100%"}>
                                                     <Box sx={{
                                                         borderRadius: "20px",
@@ -1148,7 +1172,7 @@ const ResultPage = () => {
                     boxShadow: '8px 6px 33px 0px #D8E6F8',
                     border: 'none',
                 }}
-                disabled={!searchFlag || isGraphLoading}
+                disabled={!searchFlag}
             >
                 ?
             </AntButton>

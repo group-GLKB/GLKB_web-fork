@@ -1,13 +1,26 @@
-import React, { useState, useEffect, useRef } from 'react'
-import './scoped.css'
-import { DetailService } from '../../service/Detail'
-import { Descriptions, List, Collapse, Typography, Spin, Card, Tabs, Empty } from 'antd';
-import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
-import { Select } from 'antd';
-import { useMemo } from 'react';
+import './scoped.css';
 
-import rightArrow from "../../img/right_arrow.svg"
-import downArrow from "../../img/down_arrow.svg"
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+
+import {
+  Card,
+  Collapse,
+  Descriptions,
+  Empty,
+  List,
+  Select,
+  Spin,
+  Typography,
+} from 'antd';
+
+import downArrow from '../../img/down_arrow.svg';
+import rightArrow from '../../img/right_arrow.svg';
+import { DetailService } from '../../service/Detail';
 
 const { Panel } = Collapse;
 const { Text } = Typography;
@@ -161,7 +174,7 @@ const Information = ({ width, ...props }) => {
             const parts = fullName.trim().split(' ');
             return parts[parts.length - 1];
         };
-        
+
         const renderAuthors = () => {
             if (authors.length === 0) return null;
             if (authors.length === 1) {
@@ -262,7 +275,7 @@ const Information = ({ width, ...props }) => {
 
         )
     }
-    
+
 
     const [sortBy, setSortBy] = useState('year'); // 'year' or 'citations'
 
@@ -278,7 +291,7 @@ const Information = ({ width, ...props }) => {
     const urls = sortedRawNodes.map(nodeForMap);
 
     const sortedUrls = useMemo(() => {
-        
+
         return [...urls].sort((a, b) => {
             if (sortBy === 'year') {
                 return parseInt(b[3]) - parseInt(a[3]); // Newest first
@@ -289,16 +302,16 @@ const Information = ({ width, ...props }) => {
         });
     }, [urls, sortBy]);
 
-    
+
     const sortedEdges = useMemo(() => {
         if (!edgeDetail || typeof edgeDetail !== 'object') return [];
 
         return Object.entries(edgeDetail).map(([label, urlsWrapper]) => {
-            const urls = urlsWrapper?.[1] || []; 
+            const urls = urlsWrapper?.[1] || [];
 
             const sortedUrls = [...urls].sort((a, b) => {
                 if (sortBy === 'year') {
-                    return parseInt(b[3]) - parseInt(a[3]); 
+                    return parseInt(b[3]) - parseInt(a[3]);
                 } else if (sortBy === 'citations') {
                     return parseInt(b[2]) - parseInt(a[2]);
                 }
@@ -541,7 +554,12 @@ const Information = ({ width, ...props }) => {
                 }}
             >
                 {!props.detailId ? (
-                    <Empty description="Select a node or edge to view details" style={{ margin: '40px 0' }} />
+                    <Empty description="Select a node or edge to view details" style={{
+                        position: 'absolute',
+                        bottom: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, 50%)',
+                    }} />
                 ) : isLoading ? (
                     <LoadingMessage />
                 ) : (
@@ -601,7 +619,7 @@ const Information = ({ width, ...props }) => {
                                             {renderNodeDetails(node)}
                                             {/* Add Related Articles section for nodes */}
                                             {urls.length > 0 && (
-                                                <div style={{ }}>
+                                                <div style={{}}>
                                                     <div style={{
                                                         display: 'flex',
                                                         justifyContent: 'space-between',
@@ -654,7 +672,7 @@ const Information = ({ width, ...props }) => {
                                         >
                                             {/* Edge Details */}
                                             {renderEdgeDetails(edge[0])}
-                                            
+
                                             {/* Related Sentences */}
                                             {edge[2] && edge[2].length > 0 && (
                                                 <div>
@@ -666,7 +684,7 @@ const Information = ({ width, ...props }) => {
                                                         marginBottom: '10px',
                                                         position: sentenceVisibility[index] ? 'sticky' : 'static',
                                                         top: 0,
-                                                        backgroundColor: 'white', 
+                                                        backgroundColor: 'white',
                                                         zIndex: 10,
                                                         padding: '8px 0',
                                                     }}>
@@ -676,7 +694,7 @@ const Information = ({ width, ...props }) => {
                                                             fontWeight: 'normal',
                                                             fontSize: '14px',
                                                         }}>Related Sentences</h4>
-                                                        <div onClick={() => toggleSentences(index)} style={{ cursor: 'pointer', marginLeft: '20px'}}>
+                                                        <div onClick={() => toggleSentences(index)} style={{ cursor: 'pointer', marginLeft: '20px' }}>
                                                             <img
                                                                 src={sentenceVisibility[index] ? downArrow : rightArrow}
                                                                 alt="Toggle related sentences"
