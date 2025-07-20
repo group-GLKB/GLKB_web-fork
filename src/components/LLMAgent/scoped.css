@@ -270,15 +270,14 @@
     border-radius: 4px;
 }
 
-.chat-container:has(.message-pair) .chat-header {
-    position: relative;
-    bottom: auto;
-    left: auto;
+.chat-container .chat-header {
+    position: absolute;
+    align-self: center;
+    left: 0;
     transform: none;
     width: 100%;
     max-width: 100%;
-    margin-top: auto;
-    margin-bottom: 0;
+    bottom: 0;
 }
 
 .clear-button {
@@ -570,15 +569,14 @@
 }
 
 .example-queries {
-    padding: 2rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2rem;
-    height: 100%;
-    padding-bottom: 10vh;
-    width: 100%;
+    position: absolute;
+    align-self: center;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 .example-queries-header {
@@ -586,26 +584,6 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 2rem;
-    margin-top: 5vh;
-    margin-bottom: 2rem;
-    width: 100%;
-}
-
-.example-queries-header .logo-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2rem;
-    margin-bottom: 2rem;
-}
-
-.example-queries-header .system-icon {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    border: 2px solid #4B6B8C;
-    padding: 3px;
 }
 
 .glkb-logo {
@@ -614,24 +592,12 @@
     object-fit: contain;
 }
 
-.example-queries-header h3 {
-    color: #666;
-    font-weight: normal;
-    margin: 0;
-    font-size: 1.1rem;
-    max-width: 800px;
-    margin-top: 1rem;
-}
-
 .example-query-list {
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
     justify-content: space-between;
-    width: 90%;
     max-width: 900px;
-    margin-top: 2rem;
-    margin-bottom: 2rem;
     overflow-x: hidden;
     padding-bottom: 0;
 }
@@ -650,13 +616,13 @@
     max-width: none;
     margin: 0 0.5rem;
     padding: 1rem 1rem;
-    background-color: white;
-    border: 1px solid #e0e0e0;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: left;
-    font-size: 0.9rem;
+    font-size: 18px;
     color: #333;
     height: auto;
     min-height: 70px;
