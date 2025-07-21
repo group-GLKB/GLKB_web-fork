@@ -7,14 +7,15 @@ import React, {
 import { debounce } from 'lodash';
 import { useNavigate } from 'react-router-dom';
 
-import CloseIcon
-  from '@mui/icons-material/Close'; // Import the Clear (cross) icon
+import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
+import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import {
   Autocomplete,
   Box,
   Chip,
   Container,
+  Paper,
   TextField,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
@@ -43,9 +44,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const [focused, setFocused] = useState(false);
 
     const ExampleOptions = [
-        ['example_0', 'Explore relationships between Type 2 Diabetes and its associated genes.', 'Identify Gene-Disease Associations'],
-        ['example_1', 'Explore relationships between rs3761624 and RSV infectious disease.', 'Identify Mechanisms of Variant Affecting Traits'],
-        ['example_2', 'Explore relationships between clopidogrel and different diseases', 'Identify drug effects on diseases']
+        ['example_0', 'SPRY2; RFX6; HNF4A; type 2 diabetes mellitus', 'Explore relationships between Type 2 Diabetes and its associated genes.'],
+        ['example_1', 'TP53; rs3761624; respiratory syncytial virus infectious disease; TLR8', 'Explore relationships between rs3761624 and RSV infectious disease.'],
+        ['example_2', 'Acute coronary syndrome; atrial fibrillation; vascular disease; clopidogrel', 'Explore relationships between clopidogrel and different diseases.']
     ]
 
 
@@ -78,7 +79,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const getDisplayCategory = (databaseType) => {
         // console.log('Processing type:', databaseType);
         const category =
-            databaseType?.startsWith('Identify ') ? databaseType :
+            databaseType?.startsWith('Explore ') ? databaseType :
                 (databaseTypeMapping[databaseType] || 'All Biomedical Terms');
         // console.log('Mapped to category:', category);
         return category;
@@ -404,11 +405,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                             height: '60px',
                                             borderRadius: '30px',
                                             alignItems: 'center', // Center the text vertically
-                                            '&:hover fieldset': {
-                                                borderColor: '#3f8ae2',
-                                            },
-                                            '&.Mui-focused fieldset': {
-                                                borderColor: '#3f8ae2',
+                                            '& fieldset': {
+                                                border: 'none',
                                             },
                                         },
                                         '& .MuiOutlinedInput-notchedOutline': {
@@ -442,7 +440,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                 }}
                                             >
                                                 {/* Clear Icon */}
-                                                {inputValue !== "" && <CloseIcon
+                                                {(inputValue !== "" || selectedSources?.length > 0) && <CloseIcon
                                                     className="close-button"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -466,6 +464,26 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                     }}
                                 />
                             )}
+                            PaperComponent={({ children }) => (
+                                <Paper
+                                    sx={{
+                                        borderRadius: '16px',
+                                        border: "1.5px solid #E6F0FC",
+                                        boxShadow: 'none',
+                                        marginTop: '5px',
+                                        marginBottom: '5px',
+                                        overflow: 'hidden',
+                                        "& .MuiAutocomplete-option.Mui-focused": {
+                                            backgroundColor: '#F3F5FF !important',
+                                        },
+                                        "& .MuiAutocomplete-option.Mui-focused span.highlight-arrow": {
+                                            color: 'black !important',
+                                        }
+                                    }}
+                                >
+                                    {children}
+                                </Paper>
+                            )}
                             value={selectedSources}
                             inputValue={inputValue}
                             onFocus={() => setFocused(true)}
@@ -480,6 +498,27 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                 }
                                 setSelectedSources(newValue);
                                 console.log('New sources:', newValue);
+                            }}
+                            renderOption={(props, option) => (
+                                <Box
+                                    component="li"
+                                    {...props}
+                                    sx={{
+                                        minHeight: '36px !important',
+                                        '& .MuiAutocomplete-option.Mui-focused': {
+                                            backgroundColor: '#F3F5FF !important',
+                                        },
+                                    }}
+                                >
+                                    {option[1]}
+                                    <span className={"highlight-arrow"} style={{ color: 'white', marginLeft: 'auto' }}><ArrowOutwardIcon fontSize="small" /></span>
+                                </Box>
+                            )}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && inputValue === '' && selectedSources.length > 0) {
+                                    e.preventDefault();
+                                    handleSearch();
+                                }
                             }}
                         />
                     </Box>

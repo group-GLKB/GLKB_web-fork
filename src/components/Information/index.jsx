@@ -266,7 +266,8 @@ const Information = ({ width, ...props }) => {
                 {/* Section 4: Journal Name */}
                 <div style={{
                     fontSize: '14px',
-                    wordBreak: 'break-word'
+                    wordBreak: 'break-word',
+                    color: 'grey',
                 }} title="Journal">
                     {url[4]}
                 </div>

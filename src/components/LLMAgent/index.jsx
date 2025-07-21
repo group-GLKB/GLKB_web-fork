@@ -552,7 +552,13 @@ function LLMAgent() {
             <Grid className="main-grid" container sx={{ marginTop: '40px' }} >
                 <Grid item xs={12} className="subgrid">
                     <div className="main-content">
-                        <MuiButton variant="text" sx={{ color: 'black', alignSelf: 'flex-start', zIndex: 1 }}
+                        <MuiButton variant="text" sx={{
+                            color: '#333333',
+                            alignSelf: 'flex-start',
+                            zIndex: 1,
+                            borderRadius: '24px',
+                            transform: 'translateY(-10px)',
+                        }}
                             onClick={() => navigate('/')}>
                             <ArrowBackIcon />Back
                         </MuiButton>
@@ -560,7 +566,7 @@ function LLMAgent() {
                             <div className="llm-agent-container">
                                 <div className="chat-and-references">
                                     <Grid container spacing={'48px'}>
-                                        <Grid item xs={8} height={"100%"}>
+                                        <Grid item xs={7} height={"100%"}>
                                             <div className="chat-container">
                                                 <Box className="llm-header" sx={{
                                                     display: 'flex',
@@ -669,17 +675,16 @@ function LLMAgent() {
                                                         variant="outlined"
                                                         placeholder="Ask a question about the biomedical literature..."
                                                         sx={{
+                                                            backgroundColor: '#F9FBFF',
+                                                            borderRadius: '30px',
                                                             minHeight: '60px', // Increase the height of the input box
                                                             '& .MuiInputBase-root': {
                                                                 height: '60px',
                                                                 borderRadius: '30px',
                                                                 alignItems: 'center', // Center the text vertically
-                                                                '&:hover fieldset': {
-                                                                    borderColor: '#3f8ae2',
-                                                                },
-                                                                '&.Mui-focused fieldset': {
-                                                                    borderColor: '#3f8ae2',
-                                                                },
+                                                                '& fieldset': {
+                                                                    border: 'none'
+                                                                }
                                                             },
                                                             '& .MuiInputBase-input': {
                                                                 paddingLeft: '4px',
@@ -731,11 +736,17 @@ function LLMAgent() {
                                                                 </Box>
                                                             ),
                                                         }}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter' && userInput !== "" && !isLoading) {
+                                                                e.preventDefault();
+                                                                handleSubmit();
+                                                            }
+                                                        }}
                                                     />
                                                 </div>
                                             </div>
                                         </Grid>
-                                        <Grid item xs={4} height={"100%"}>
+                                        <Grid item xs={5} height={"100%"}>
                                             <div style={{ height: '100%', width: '100%' }}>
                                                 <div className="references-container">
                                                     <div style={{

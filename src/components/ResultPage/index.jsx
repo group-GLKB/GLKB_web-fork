@@ -774,7 +774,13 @@ const ResultPage = () => {
             <Box sx={{ width: '100%', marginTop: '40px' }}>
                 <Grid className="main-grid" container >
                     <Grid item xs={12} className="subgrid">
-                        <MuiButton variant="text" sx={{ color: 'black', alignSelf: 'flex-start', zIndex: 1 }}
+                        <MuiButton variant="text" sx={{
+                            color: '#333333',
+                            alignSelf: 'flex-start',
+                            zIndex: 1,
+                            borderRadius: '24px',
+                            transform: 'translateY(-10px)',
+                        }}
                             onClick={() => navigate('/')}>
                             <ArrowBackIcon />Back
                         </MuiButton>
@@ -856,7 +862,7 @@ const ResultPage = () => {
                                         }}>
                                             <Grid container spacing={'48px'} height={"calc(100% + 48px)"}>
                                                 {/* Left */}
-                                                <Grid item xs={8} height={"100%"}>
+                                                <Grid item xs={6} height={"100%"}>
                                                     <Box sx={{
                                                         borderRadius: "20px",
                                                         //width: '100%',
@@ -1038,7 +1044,7 @@ const ResultPage = () => {
                                                     </Box>
                                                 </Grid>
                                                 {/* Right */}
-                                                <Grid item xs={4} height={"100%"}>
+                                                <Grid item xs={6} height={"100%"}>
                                                     <Box sx={{
                                                         borderRadius: "20px",
                                                         height: "100%",
@@ -1163,7 +1169,7 @@ const ResultPage = () => {
                 style={{
                     position: 'fixed',
                     bottom: '50px',
-                    right: '40px',
+                    right: '20px',
                     width: '56px',
                     height: '56px',
                     fontSize: '24px',
