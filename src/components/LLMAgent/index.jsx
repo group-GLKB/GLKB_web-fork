@@ -21,6 +21,7 @@ import {
 
 import {
   ArrowBack as ArrowBackIcon,
+  ChatBubbleOutline as ChatBubbleOutlineIcon,
   Check as CheckIcon,
   Clear as ClearIcon,
   Close as CloseIcon,
@@ -29,7 +30,6 @@ import {
   FilePresent as FilePresentIcon,
   RateReview as RateReviewIcon,
   Refresh as RefreshIcon,
-  Search as SearchIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -600,19 +600,21 @@ function LLMAgent() {
                                                     </MuiButton>
                                                 </Box>
                                                 {/* Add example queries section */}
-                                                {chatHistory.length === 0 && (
-                                                    <div className="example-queries" style={{ paddingTop: '1rem' }}>
-                                                        <div className="example-queries-header" style={{ gap: '1rem' }}>
+                                                {chatHistory.length === 0 && (<>
+                                                    <div className="empty-page-title" style={{ paddingTop: '1rem' }}>
+                                                        <div style={{ gap: '1rem', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
                                                             <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: '32px', fontWeight: '700', color: "#00199D" }}>
                                                                 Explore Biomedical Literature
                                                             </Typography>
                                                             <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: '18px', fontWeight: '500', color: "#718096" }}>
                                                                 AI-powered Genomic Literature Knowledge Base
                                                             </Typography>
-                                                            <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: '20px', fontWeight: '600', color: "#00199D", paddingTop: '50px' }}>
-                                                                Try these example queries:
-                                                            </Typography>
                                                         </div>
+                                                    </div>
+                                                    <div className="example-queries-header">
+                                                        <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: '16px', fontWeight: '400', color: "#888888", width: '100%', textAlign: 'left' }}>
+                                                            Try these example queries:
+                                                        </Typography>
                                                         <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '10px', minHeight: '80px' }}>
                                                             <div className="example-query"
                                                                 onClick={() => handleExampleClick("What is the role of BRCA1 in breast cancer?")}
@@ -631,6 +633,7 @@ function LLMAgent() {
                                                             </div>
                                                         </div>
                                                     </div>
+                                                </>
                                                 )}
 
                                                 <div className="messages-container">
@@ -699,7 +702,7 @@ function LLMAgent() {
                                                         }}
                                                         InputProps={{
                                                             startAdornment: (
-                                                                <SearchIcon sx={{ marginLeft: '20px', fontSize: '20px' }} />
+                                                                <ChatBubbleOutlineIcon sx={{ marginLeft: '20px', fontSize: '20px' }} />
                                                             ),
                                                             endAdornment: (
                                                                 <Box
@@ -769,7 +772,7 @@ function LLMAgent() {
                                                     </div>
 
                                                     {sortedReferences.length > 0 ? (
-                                                        <div className="references-list" style={{ maxHeight: 'calc(100% - 56px)', overflowY: 'auto' }}>
+                                                        <div className="references-list" style={{ maxHeight: 'calc(100% - 56px)', overflowY: 'auto', paddingLeft: '2rem', paddingRight: '2rem' }}>
                                                             {sortedReferences.map((ref, index) => {
                                                                 const url = [
                                                                     ref.title,
@@ -780,9 +783,9 @@ function LLMAgent() {
                                                                     ref.authors
                                                                 ];
                                                                 return (
-                                                                    <div key={index}>
+                                                                    <div key={index} style={{ marginTop: '12px' }}>
                                                                         <ReferenceCard url={url} handleClick={handleClick} />
-                                                                        <hr style={{ border: 'none', height: '1px', backgroundColor: '#E0E0E0', margin: '12px 0' }} />
+                                                                        <hr style={{ border: 'none', height: '1px', backgroundColor: 'rgba(5, 5, 5, 0.06)', marginTop: '12px' }} />
                                                                     </div>
                                                                 );
                                                             })}

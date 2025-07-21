@@ -622,8 +622,8 @@ const HomePage = () => {
                         <Container className="info-card-section" sx={{ padding: '24px', paddingTop: '28px', gap: '30px', display: 'flex', flexDirection: 'row' }} >
                             {(stats ? [
                                 [stats.num_active_users_d30 || "N/A", "Active users in the past month"],
-                                [stats.num_api_calling || "N/A", "Total external API calls"],
-                                [stats.num_articles || "N/A", "Articles covered in GLKB"],
+                                [stats.num_api_calling || "N/A", "Total external API calls since released"],
+                                [stats.num_articles || "N/A", "Articles covered in GLKB database"],
                             ] : []).map(([value, description], index) => (
                                 <Grid item xs={4} key={index}>
                                     <Box
@@ -642,7 +642,6 @@ const HomePage = () => {
                                             borderRadius: '12px',
                                             backgroundColor: '#FFFFFF',
                                             boxShadow: '8px 6px 33px 0px #D8E6F8',
-
                                         }}>
                                         <div style={{
                                             fontFamily: 'Roboto Mono',
@@ -650,12 +649,13 @@ const HomePage = () => {
                                             fontSize: '40px',
                                             color: '#4B67FE',
                                             padding: '0px 10px',
-                                            minWidth: '100px',
+                                            minWidth: '120px',
                                             textAlign: 'center',
+                                            transform: 'translateY(-2px)',
                                         }}>
                                             {value}
                                         </div>
-                                        <div style={{ fontSize: '14px', color: '#646B96', maxWidth: '66%' }}>
+                                        <div style={{ fontSize: '14px', color: '#646B96', maxWidth: '150px' }}>
                                             {description}
                                         </div>
                                     </Box>

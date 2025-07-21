@@ -51,6 +51,11 @@ all {
     border: none !important;
 }
 
+.ant-list-item {
+    padding-left: 0px !important;
+    padding-right: 0px !important;
+}
+
 /* Remove any styles for .related if it's no longer used */
 
 .ant-card {
@@ -122,7 +127,7 @@ all {
 }
 
 .custom-div-url {
-    padding: 0 1rem;
+    padding: 0;
     /* Adjusts the space inside the div */
     border: none;
     margin-bottom: -17px;
