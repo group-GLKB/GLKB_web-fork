@@ -201,14 +201,15 @@ const Information = ({ width, ...props }) => {
         return (
             <div
                 onClick={(event) => handleClick(event, url[1])}
+                className="custom-div-url"
                 style={{
                     cursor: 'pointer',
                     marginBottom: '2px',
                     borderRadius: '10px',
+                    padding: 0,
                     backgroundColor: '#fff',
                     width: '100%',
                 }}
-                className="custom-div-url"
             >
                 {/* Section 1: PubMed ID and Citations */}
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -266,7 +267,8 @@ const Information = ({ width, ...props }) => {
                 {/* Section 4: Journal Name */}
                 <div style={{
                     fontSize: '14px',
-                    wordBreak: 'break-word'
+                    wordBreak: 'break-word',
+                    color: 'grey',
                 }} title="Journal">
                     {url[4]}
                 </div>
@@ -518,7 +520,13 @@ const Information = ({ width, ...props }) => {
     };
 
     return (
-        <div className="information" style={{ width, fontFamily: 'Inter !important', }}>
+        <div className="information" style={{
+            fontFamily: 'Inter !important',
+            "& .ant-list-item": {
+                paddingLeft: '0px',
+                paddingRight: '0px',
+            }
+        }}>
             <Card
                 title={getPanelTitle()}
                 className="information-content"
@@ -551,6 +559,7 @@ const Information = ({ width, ...props }) => {
                         border: 'none',
                         background: 'transparent',
                     },
+
                 }}
             >
                 {!props.detailId ? (

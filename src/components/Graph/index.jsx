@@ -135,7 +135,6 @@ const Graph = forwardRef(function Graph(props, ref) {
           'text-halign': 'right',
           'text-margin-x': 8,
           'color': '#333333',
-          'font-size': '11px',
           'text-max-width': '150px',
           'text-wrap': 'wrap',
           'font-family': 'Inter',
@@ -211,15 +210,14 @@ const Graph = forwardRef(function Graph(props, ref) {
         selector: 'node:childless',
         style: {
           'shape': 'roundrectangle',
-          // 'border-radius': '10px',
           'width': 'label',
-          'height': '25px',
-          'padding': '10px',
+          'height': '19px',
+          padding: '6px',
           'text-valign': 'center',
           'text-halign': 'center',
           'text-margin-x': 0,
           'color': '#ffffff',
-          'font-size': '11px',
+          'font-size': '12px',
           'text-wrap': 'wrap',
           'text-max-width': '120px',
           'font-family': 'Inter',
@@ -231,7 +229,7 @@ const Graph = forwardRef(function Graph(props, ref) {
       {
         selector: 'node.hover',
         style: {
-          'border-width': '5px', // Reduced from 6px
+          'border-width': '4px', // Reduced from 6px
           'border-opacity': '0.5',
           'transition-property': 'border-width',
           'transition-duration': '0.15s',
@@ -289,18 +287,13 @@ const Graph = forwardRef(function Graph(props, ref) {
           // borderWidth,
           // borderColor,
           'min-width': '130px',
-          'min-height': Math.max(25, size * 0.5),
           label: nodeId[1],
           'text-halign': 'center',
           'text-valign': 'center',
           'text-margin-x': 0,
           'color': '#000000',
-          'font-size': '20px',
           'text-wrap': 'wrap',
-          'width': estimatedWidth + 'px',
-          'padding': '10px',
           'text-max-width': '100%',
-          height: '35px',
         },
       };
     });

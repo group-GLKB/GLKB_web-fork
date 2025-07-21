@@ -10,7 +10,6 @@ import React, {
 
 import {
   Button as AntButton,
-  Checkbox,
   Spin,
   Tooltip,
 } from 'antd';
@@ -645,51 +644,32 @@ const ResultPage = () => {
         }
     };
 
-    const LegendItem = ({ label, size, color, explanation }) => {
-        const isQueryTerms = label === 'query terms';
-        const isRelationship = label.includes("relationship");
-
+    const LegendItem = ({ label, size, color }) => {
         return (
             <div className="legend-item">
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '10px'
+                    gap: '2px'
                 }}>
-                    {isRelationship ? (
-                        <div style={{
-                            width: "30px",
-                            height: "0",
-                            borderBottom: size,
-                            borderColor: color,
-                            marginRight: '10px',
-                            marginLeft: '5px',
-                        }}></div>
-                    ) : (
-                        <div className="legend-circle" style={{
-                            backgroundColor: color,
-                            width: size,
-                            height: size,
-                            marginLeft: size === 5 ? "6px" : size === 10 ? "4px" : "0"
-                        }}></div>
-                    )}
-                    <div className="legend-label" style={{ marginLeft: '5px' }}>
+                    <div style={{
+                        width: "30px",
+                        height: "0",
+                        borderBottom: size,
+                        borderColor: color,
+                        marginLeft: '5px',
+                    }}></div>
+                    <div className="legend-label">
                         {label}
-                        {isRelationship && (
-                            <Tooltip title={explanation}>
-                                <InfoCircleOutlined style={{ marginLeft: '8px', color: '#1890ff', marginRight: "5px" }} />
-                            </Tooltip>
-                        )}
                     </div>
+                    <div style={{
+                        width: "30px",
+                        height: "0",
+                        borderBottom: size,
+                        borderColor: color,
+                        marginRight: '5px',
+                    }}></div>
                 </div>
-                {!isRelationship && !isQueryTerms && (
-                    <Checkbox
-                        value={label}
-                        checked={boolValues[label]}
-                        onChange={onChangeNode}
-                        style={{ marginLeft: 'auto' }}
-                    />
-                )}
             </div>
         );
     };
@@ -707,6 +687,7 @@ const ResultPage = () => {
                 borderRadius: '16px',
                 border: boolValues[label] ? 'solid 2px transparent' : 'solid 2px #ccc',
                 height: '39px',
+                fontWeight: 'normal',
                 padding: '9px 9px',
                 fontSize: '14px',
                 lineHeight: '1.5',
@@ -728,13 +709,13 @@ const ResultPage = () => {
     ];
 
     const edgeDataAll = [
-        { label: 'Semantic_relationship', size: 'solid 2px', color: 'black', explanation: 'Relationships extracted from PubMed abstracts.' },
-        { label: 'Curated_relationship', size: 'dashed 2px', color: 'black', explanation: 'Manually annotated relationships from data repositories.' },
-        { label: 'Hierarchical_relationship', size: 'dotted 2px', color: 'black', explanation: 'Relationships that represent a hierarchy.' },
+        { label: 'Semantic Relationship', key: 'Semantic_relationship', size: 'solid 2px', color: 'black', explanation: 'Relationships extracted from PubMed abstracts.' },
+        { label: 'Curated Relationship', key: 'Curated_relationship', size: 'dashed 2px', color: 'black', explanation: 'Manually annotated relationships from data repositories.' },
+        { label: 'Hierarchical Relationship', key: 'Hierarchical_relationship', size: 'dotted 2px', color: 'black', explanation: 'Relationships that represent a hierarchy.' },
     ];
 
     const legendData = legendDataAll.filter(item => uniqueLabelsArray.includes(item.label));
-    const legendEdgeData = edgeDataAll.filter(item => uniqueEdgeLabelsArray.includes(item.label));
+    const legendEdgeData = edgeDataAll.filter(item => uniqueEdgeLabelsArray.includes(item.key));
 
     // const [isLegendVisible, setIsLegendVisible] = useState(true);
 
@@ -774,7 +755,13 @@ const ResultPage = () => {
             <Box sx={{ width: '100%', marginTop: '40px' }}>
                 <Grid className="main-grid" container >
                     <Grid item xs={12} className="subgrid">
-                        <MuiButton variant="text" sx={{ color: 'black', alignSelf: 'flex-start', zIndex: 1 }}
+                        <MuiButton variant="text" sx={{
+                            color: '#333333',
+                            alignSelf: 'flex-start',
+                            zIndex: 1,
+                            borderRadius: '24px',
+                            transform: 'translateY(-10px)',
+                        }}
                             onClick={() => navigate('/')}>
                             <ArrowBackIcon />Back
                         </MuiButton>
@@ -805,8 +792,7 @@ const ResultPage = () => {
                                                 state: {
                                                     search_data: data,
                                                     searchType: 'triplet',
-                                                },
-                                                replace: true,
+                                                }
                                             });
                                         }}
                                     />
@@ -856,7 +842,7 @@ const ResultPage = () => {
                                         }}>
                                             <Grid container spacing={'48px'} height={"calc(100% + 48px)"}>
                                                 {/* Left */}
-                                                <Grid item xs={8} height={"100%"}>
+                                                <Grid item xs={6} height={"100%"}>
                                                     <Box sx={{
                                                         borderRadius: "20px",
                                                         //width: '100%',
@@ -941,7 +927,7 @@ const ResultPage = () => {
                                                             <>
                                                                 <Box sx={{
                                                                     width: '100%',
-                                                                    height: isLegendVisible ? 'calc(100% - 250px)' : '90%',
+                                                                    height: isLegendVisible ? 'calc(100% - 175px)' : '85%',
                                                                 }}>
                                                                     <div className="graph-container" style={{
                                                                         position: 'relative',
@@ -988,6 +974,9 @@ const ResultPage = () => {
                                                                             <div className="legend-subsection">
                                                                                 <div className="legend-subtitle-row">
                                                                                     <div className="legend-subtitle">Legends</div>
+                                                                                    <Tooltip title={"<explanation>"}>
+                                                                                        <InfoCircleOutlined style={{ color: '#1890ff' }} />
+                                                                                    </Tooltip>
                                                                                     <button
                                                                                         className="toggle-button"
                                                                                         onClick={() => setLegendVisible(!isLegendVisible)}
@@ -1013,18 +1002,15 @@ const ResultPage = () => {
                                                                                                 />
                                                                                             ))}
                                                                                         </div>
-                                                                                        <div className="legend-subsection">
-                                                                                            <div className="legend-row">
-                                                                                                {legendEdgeData.map((item, index) => (
-                                                                                                    <LegendItem
-                                                                                                        key={index}
-                                                                                                        label={item.label}
-                                                                                                        size={item.size}
-                                                                                                        color={item.color}
-                                                                                                        explanation={item.explanation}
-                                                                                                    />
-                                                                                                ))}
-                                                                                            </div>
+                                                                                        <div className="legend-column">
+                                                                                            {legendEdgeData.map((item, index) => (
+                                                                                                <LegendItem
+                                                                                                    key={index}
+                                                                                                    label={item.label}
+                                                                                                    size={item.size}
+                                                                                                    color={item.color}
+                                                                                                />
+                                                                                            ))}
                                                                                         </div>
                                                                                     </div>
                                                                                 )}
@@ -1038,7 +1024,7 @@ const ResultPage = () => {
                                                     </Box>
                                                 </Grid>
                                                 {/* Right */}
-                                                <Grid item xs={4} height={"100%"}>
+                                                <Grid item xs={6} height={"100%"}>
                                                     <Box sx={{
                                                         borderRadius: "20px",
                                                         height: "100%",
@@ -1163,7 +1149,7 @@ const ResultPage = () => {
                 style={{
                     position: 'fixed',
                     bottom: '50px',
-                    right: '40px',
+                    right: '20px',
                     width: '56px',
                     height: '56px',
                     fontSize: '24px',

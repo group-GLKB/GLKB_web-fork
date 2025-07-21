@@ -21,24 +21,25 @@ import {
   useNavigate,
 } from 'react-router-dom';
 
-import CloseIcon
-  from '@mui/icons-material/Close'; // Import the Clear (cross) icon
+import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
+import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import {
   Autocomplete,
   Box,
   Container,
   Grid,
+  Paper,
   TextField,
   Typography,
-} from '@mui/material'; // Import MUI components
+} from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 
 import exampleQueries
   from '../../components/Units/SearchBarKnowledge/example_query.json';
 import neighborhoodExamples
-  from '../../components/Units/SearchBarNeighborhood/example_query.json';  // Add this import
+  from '../../components/Units/SearchBarNeighborhood/example_query.json';
 import { trackEvent } from '../Units/analytics';
 import NavBarWhite from '../Units/NavBarWhite';
 import SearchBarKnowledge from '../Units/SearchBarKnowledge';
@@ -425,11 +426,8 @@ const HomePage = () => {
                                                     height: '60px', // Adjust the height of the input field
                                                     alignItems: 'center', // Center the text vertically
                                                     paddingRight: '10px', // Remove right padding
-                                                    '&:hover fieldset': {
-                                                        borderColor: '#3f8ae2',
-                                                    },
-                                                    '&.Mui-focused fieldset': {
-                                                        borderColor: '#3f8ae2',
+                                                    '& fieldset': {
+                                                        border: 'none',
                                                     },
                                                 },
                                                 '& .MuiOutlinedInput-notchedOutline': {
@@ -470,8 +468,51 @@ const HomePage = () => {
                                                     </Box>
                                                 ),
                                             }}
+
                                         />
-                                    )} />
+                                    )}
+                                    PaperComponent={({ children }) => (
+                                        <Paper
+                                            sx={{
+                                                borderRadius: '16px',
+                                                border: "1.5px solid #E6F0FC",
+                                                boxShadow: 'none',
+                                                marginTop: '5px',
+                                                marginBottom: '5px',
+                                                overflow: 'hidden',
+                                                "& .MuiAutocomplete-option.Mui-focused": {
+                                                    backgroundColor: '#F3F5FF !important',
+                                                },
+                                                "& .MuiAutocomplete-option.Mui-focused span.highlight-arrow": {
+                                                    color: 'black !important',
+                                                }
+                                            }}
+                                        >
+                                            {children}
+                                        </Paper>
+                                    )}
+                                    renderOption={(props, option) => (
+                                        <Box
+                                            component="li"
+                                            {...props}
+                                            sx={{
+                                                minHeight: '36px !important',
+                                                '& .MuiAutocomplete-option.Mui-focused': {
+                                                    backgroundColor: '#F3F5FF !important',
+                                                },
+                                            }}
+                                        >
+                                            {option}
+                                            <span className={"highlight-arrow"} style={{ color: 'white', marginLeft: 'auto' }}><ArrowOutwardIcon fontSize="small" /></span>
+                                        </Box>
+                                    )}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && llmQuery !== "") {
+                                            e.preventDefault();
+                                            navigateToLLMAgent(llmQuery.trim());
+                                        }
+                                    }}
+                                />
 
                             </Box>
                         )}
@@ -581,8 +622,8 @@ const HomePage = () => {
                         <Container className="info-card-section" sx={{ padding: '24px', paddingTop: '28px', gap: '30px', display: 'flex', flexDirection: 'row' }} >
                             {(stats ? [
                                 [stats.num_active_users_d30 || "N/A", "Active users in the past month"],
-                                [stats.num_api_calling || "N/A", "Total external API calls"],
-                                [stats.num_articles || "N/A", "Articles covered in GLKB"],
+                                [stats.num_api_calling || "N/A", "Total external API calls since released"],
+                                [stats.num_articles || "N/A", "Articles covered in GLKB database"],
                             ] : []).map(([value, description], index) => (
                                 <Grid item xs={4} key={index}>
                                     <Box
@@ -601,7 +642,6 @@ const HomePage = () => {
                                             borderRadius: '12px',
                                             backgroundColor: '#FFFFFF',
                                             boxShadow: '8px 6px 33px 0px #D8E6F8',
-
                                         }}>
                                         <div style={{
                                             fontFamily: 'Roboto Mono',
@@ -609,12 +649,13 @@ const HomePage = () => {
                                             fontSize: '40px',
                                             color: '#4B67FE',
                                             padding: '0px 10px',
-                                            minWidth: '100px',
+                                            minWidth: '120px',
                                             textAlign: 'center',
+                                            transform: 'translateY(-2px)',
                                         }}>
                                             {value}
                                         </div>
-                                        <div style={{ fontSize: '14px', color: '#646B96', maxWidth: '66%' }}>
+                                        <div style={{ fontSize: '14px', color: '#646B96', maxWidth: '150px' }}>
                                             {description}
                                         </div>
                                     </Box>
@@ -631,7 +672,7 @@ const HomePage = () => {
                 style={{
                     position: 'fixed',
                     bottom: '50px',
-                    right: '40px',
+                    right: '20px',
                     width: '56px',
                     height: '56px',
                     fontSize: '24px',
