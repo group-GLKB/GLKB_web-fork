@@ -1,21 +1,21 @@
 import React, {
-    useCallback,
-    useEffect,
-    useState,
+  useCallback,
+  useEffect,
+  useState,
 } from 'react';
 
 import { debounce } from 'lodash';
 import { useNavigate } from 'react-router-dom';
 
 import CloseIcon
-    from '@mui/icons-material/Close'; // Import the Clear (cross) icon
+  from '@mui/icons-material/Close'; // Import the Clear (cross) icon
 import SearchIcon from '@mui/icons-material/Search';
 import {
-    Autocomplete,
-    Box,
-    Chip,
-    Container,
-    TextField,
+  Autocomplete,
+  Box,
+  Chip,
+  Container,
+  TextField,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -95,7 +95,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         let cypherServ = new CypherService();
         const response = await cypherServ.Entity2Cypher(searchValue, termType);
         const sortedOptions = response.data
-            .map((node, index) => [
+            ?.map((node, index) => [
                 index,
                 node.database_id,
                 `${node.name} (${node.element_id})`,
@@ -103,7 +103,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
             ])
             .sort(sortByCategory)
             .map(([, database_id, name, type]) => [database_id, name, type]);
-        setSourceNodeOptions(sortedOptions);
+        if (sortedOptions) {
+            setSourceNodeOptions(sortedOptions);
+        }
         // setSourceNodeData(response.data);
         // setSourceNodeOptions([
         //     ...response.data.map(node => [node.database_id, `${node.name} (${node.element_id})`,node.type])
@@ -440,7 +442,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                 }}
                                             >
                                                 {/* Clear Icon */}
-                                                <CloseIcon
+                                                {inputValue !== "" && <CloseIcon
                                                     className="close-button"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -452,7 +454,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                         cursor: 'pointer',
                                                         fontSize: '20px', // Adjust size as needed 
                                                     }}
-                                                />
+                                                />}
                                                 {/* Search Icon */}
                                                 <SearchButton
                                                     onClick={handleSearch}

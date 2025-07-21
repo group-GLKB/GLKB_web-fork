@@ -2,43 +2,43 @@ import 'antd/dist/reset.css';
 import './scoped.css';
 
 import React, {
-    useEffect,
-    useRef,
-    useState,
+  useEffect,
+  useRef,
+  useState,
 } from 'react';
 
 import {
-    Button as AntButton,
-    Input,
+  Button as AntButton,
+  Input,
 } from 'antd';
 import Joyride, {
-    ACTIONS,
-    EVENTS,
-    STATUS,
+  ACTIONS,
+  EVENTS,
+  STATUS,
 } from 'react-joyride';
 import {
-    useLocation,
-    useNavigate,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import CloseIcon
-    from '@mui/icons-material/Close'; // Import the Clear (cross) icon
+  from '@mui/icons-material/Close'; // Import the Clear (cross) icon
 import SearchIcon from '@mui/icons-material/Search';
 import {
-    Autocomplete,
-    Box,
-    Container,
-    Grid,
-    TextField,
-    Typography,
+  Autocomplete,
+  Box,
+  Container,
+  Grid,
+  TextField,
+  Typography,
 } from '@mui/material'; // Import MUI components
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 
 import exampleQueries
-    from '../../components/Units/SearchBarKnowledge/example_query.json';
+  from '../../components/Units/SearchBarKnowledge/example_query.json';
 import neighborhoodExamples
-    from '../../components/Units/SearchBarNeighborhood/example_query.json';  // Add this import
+  from '../../components/Units/SearchBarNeighborhood/example_query.json';  // Add this import
 import { trackEvent } from '../Units/analytics';
 import NavBarWhite from '../Units/NavBarWhite';
 import SearchBarKnowledge from '../Units/SearchBarKnowledge';
@@ -314,7 +314,7 @@ const HomePage = () => {
                             flexBasis: '100%',
                         },
                     }}>
-                    <Grid container xs={8} justifyContent="center"
+                    <Grid container justifyContent="center"
                         alignItems="center">
                         <Typography sx={{
                             fontFamily: 'Roboto',
@@ -350,7 +350,6 @@ const HomePage = () => {
                         justifyContent="flex-start"
                         gap={0}
                         className="search-mode-buttons" // Add this class
-                        xs={8}
                         container
                         sx={{
                             width: '100%',
@@ -363,7 +362,7 @@ const HomePage = () => {
                     >
                         <SubNavBar activeButton={activeButton} />
                     </Grid>
-                    <Grid container xs={8} className="search-section">
+                    <Grid container className="search-section">
                         {activeButton === 'triplet' ? (
                             <SearchBarKnowledge
                                 ref={searchBarKnowledgeRef}
@@ -452,7 +451,7 @@ const HomePage = () => {
                                                         right: 0,
                                                     }}>
                                                         {/* Clear Icon */}
-                                                        <CloseIcon
+                                                        {llmQuery !== "" && <CloseIcon
                                                             onClick={() => {
                                                                 setLlmQuery(''); // Clear the input field
                                                             }}
@@ -462,7 +461,7 @@ const HomePage = () => {
                                                                 fontSize: '20px', // Adjust size as needed
                                                                 marginRight: '8px', // Add spacing from the SendIcon
                                                             }}
-                                                        />
+                                                        />}
                                                         {/* Search Icon */}
                                                         <SearchButton
                                                             onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}

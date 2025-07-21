@@ -92,9 +92,7 @@
 
 .references-container {
     flex: 1;
-    overflow-y: auto;
-    padding: 1rem;
-    padding-top: 0rem;
+    overflow-y: hidden;
     border: 1px solid #e0e0e0;
     border-radius: 20px;
     background-color: white;
@@ -104,21 +102,12 @@
 
 .references-container h3 {
     margin: 0;
-    padding: calc(10px + 1rem) 0;
     font-size: 16px;
+    padding-left: 32px;
     font-weight: normal;
-    color: rgba(0, 0, 0, 0.85);
-    border-bottom: 1px solid #f0f0f0;
-    position: sticky;
+    color: black;
     top: 0;
-    background-color: white;
     z-index: 1;
-}
-
-.references-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
 }
 
 .reference-item {
@@ -257,7 +246,7 @@
     padding-top: 0px;
     padding-bottom: 40px;
     gap: 20px;
-    background: rgba(255, 255, 255, 0);
+    background: white;
     width: 100%;
     border-top: none;
     border-bottom: none;
@@ -271,13 +260,11 @@
 }
 
 .chat-container .chat-header {
-    position: absolute;
+    position: static;
     align-self: center;
-    left: 0;
     transform: none;
     width: 100%;
     max-width: 100%;
-    bottom: 0;
 }
 
 .clear-button {
@@ -312,15 +299,15 @@
     border-radius: 4px;
 }
 
-.references-container::-webkit-scrollbar {
+.references-list::-webkit-scrollbar {
     width: 8px;
 }
 
-.references-container::-webkit-scrollbar-track {
+.references-list::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.references-container::-webkit-scrollbar-thumb {
+.references-list::-webkit-scrollbar-thumb {
     background-color: rgba(0, 0, 0, 0.2);
     border-radius: 4px;
 }

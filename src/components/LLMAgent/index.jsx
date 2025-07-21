@@ -501,32 +501,31 @@ function LLMAgent() {
     };
 
     const renderMessages = () => {
-        return (<Box sx={{ p: 2 }}>{chatHistory.map((message, index) => {
-            return MessageCard({
-                index: index,
-                message: message,
-                refresh: handleRegenerateResponse,
-                copy: handleCopyMessage,
-                edit: handleEditMessage,
-                editContent: editedMessageContent,
-                change: setEditedMessageContent,
-                save: handleSaveEdit,
-                cancel: handleCancelEdit,
-                goref: handleMessageClick,
-                GetSteps: () => {
-                    return (
-                        <Box sx={{ mt: 2 }}>
-                            {streamingSteps.map((step, stepIndex) => (
-                                <div key={stepIndex} className="step-item">
-                                    <strong>{step.step}: </strong>
-                                    <span>{step.content}</span>
-                                </div>
-                            ))}
-                        </Box>
-                    );
-                }
-            });
-        })}</Box>);
+        return (<Box sx={{ p: 2 }}>{chatHistory.map((message, index) => (
+            <MessageCard
+                key={index}
+                index={index}
+                message={message}
+                refresh={handleRegenerateResponse}
+                copy={handleCopyMessage}
+                edit={handleEditMessage}
+                editContent={editedMessageContent}
+                change={setEditedMessageContent}
+                save={handleSaveEdit}
+                cancel={handleCancelEdit}
+                goref={handleMessageClick}
+                GetSteps={() => (
+                    <Box sx={{ mt: 2 }}>
+                        {streamingSteps.map((step, stepIndex) => (
+                            <div key={stepIndex} className="step-item">
+                                <strong>{step.step}: </strong>
+                                <span>{step.content}</span>
+                            </div>
+                        ))}
+                    </Box>
+                )}
+            />
+        ))}</Box>);
     };
 
     const [sortOption, setSortOption] = useState('Year');
@@ -550,8 +549,8 @@ function LLMAgent() {
             <div className="navbar-wrapper">
                 <NavBarWhite />
             </div>
-            <Grid className="main-grid" container sx={{ marginTop: '100px' }} >
-                <Grid xs={12} className="subgrid">
+            <Grid className="main-grid" container sx={{ marginTop: '40px' }} >
+                <Grid item xs={12} className="subgrid">
                     <div className="main-content">
                         <MuiButton variant="text" sx={{ color: 'black', alignSelf: 'flex-start', zIndex: 1 }}
                             onClick={() => navigate('/')}>
@@ -570,6 +569,7 @@ function LLMAgent() {
                                                     padding: '16px',
                                                     height: '55px',
                                                     borderBottom: '1px solid #E6E6E6',
+                                                    marginBottom: '1px',
                                                 }}>
                                                     <Typography sx={{
                                                         fontFamily: 'Inter, sans-serif',
@@ -709,7 +709,7 @@ function LLMAgent() {
                                                                     }}
                                                                 >
                                                                     {/* Clear Icon */}
-                                                                    <CloseIcon
+                                                                    {userInput !== "" && <CloseIcon
                                                                         className="close-button"
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
@@ -720,7 +720,7 @@ function LLMAgent() {
                                                                             cursor: 'pointer',
                                                                             fontSize: '20px', // Adjust size as needed 
                                                                         }}
-                                                                    />
+                                                                    />}
                                                                     {/* Search Icon */}
                                                                     <SearchButton
                                                                         onClick={() => {
@@ -738,8 +738,13 @@ function LLMAgent() {
                                         <Grid item xs={4} height={"100%"}>
                                             <div style={{ height: '100%', width: '100%' }}>
                                                 <div className="references-container">
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                        <h3 style={{ marginBottom: '0' }}>References</h3>
+                                                    <div style={{
+                                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                        height: '55px',
+                                                        borderBottom: '1px solid #E6E6E6',
+                                                        marginBottom: '1px',
+                                                    }}>
+                                                        <h3 style={{ fontFamily: 'Inter, sans-serif', fontWeight: '500', fontSize: '18px', marginBottom: '0' }}>References</h3>
                                                         <Select
                                                             size="small"
                                                             value={sortOption}
@@ -748,11 +753,12 @@ function LLMAgent() {
                                                                 { value: 'Year', label: 'Sort by Year' },
                                                                 { value: 'Citations', label: 'Sort by Citations' }
                                                             ]}
+                                                            style={{ marginRight: '16px', minWidth: '140px' }}
                                                         />
                                                     </div>
 
                                                     {sortedReferences.length > 0 ? (
-                                                        <div>
+                                                        <div className="references-list" style={{ maxHeight: 'calc(100% - 56px)', overflowY: 'auto' }}>
                                                             {sortedReferences.map((ref, index) => {
                                                                 const url = [
                                                                     ref.title,
@@ -771,7 +777,7 @@ function LLMAgent() {
                                                             })}
                                                         </div>
                                                     ) : (
-                                                        <p>No references available for this response.</p>
+                                                        <p style={{ padding: '12px 16px' }}>No references available for this response.</p>
                                                     )}
                                                 </div>
                                             </div>

@@ -1,10 +1,19 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import CytoscapeComponent from 'react-cytoscapejs';
+import './scoped.css';
+
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+
 import Cytoscape from 'cytoscape';
 import cola from 'cytoscape-cola';
 import fcose from 'cytoscape-fcose';
-import './scoped.css'
 import { debounce } from 'lodash';
+import CytoscapeComponent from 'react-cytoscapejs';
 
 Cytoscape.use(fcose);
 Cytoscape.use(cola);
@@ -22,7 +31,7 @@ const arePropsEqual = (prevProps, nextProps) => {
 };
 
 // Wrap the entire Graph component with React.memo
-const Graph = React.memo(function Graph(props) {
+const Graph = forwardRef(function Graph(props, ref) {
   const [width, setWidth] = useState('100%');
   const [height, setHeight] = useState('calc(max(240px,(100vh - 134px)*0.4))');
 
@@ -202,7 +211,7 @@ const Graph = React.memo(function Graph(props) {
         selector: 'node:childless',
         style: {
           'shape': 'roundrectangle',
-          'border-radius': '4px',
+          // 'border-radius': '10px',
           'width': 'label',
           'height': '25px',
           'padding': '10px',
@@ -276,7 +285,7 @@ const Graph = React.memo(function Graph(props) {
           backgroundColor: labelColor,
           backgroundOpacity: 0.9,
           shape: 'roundrectangle',
-          'corner-radius': '40',
+          // 'corner-radius': '40',
           // borderWidth,
           // borderColor,
           'min-width': '130px',
@@ -288,7 +297,7 @@ const Graph = React.memo(function Graph(props) {
           'color': '#000000',
           'font-size': '20px',
           'text-wrap': 'wrap',
-          'width': estimatedWidth  + 'px',
+          'width': estimatedWidth + 'px',
           'padding': '10px',
           'text-max-width': '100%',
           height: '35px',
