@@ -1,15 +1,15 @@
 import React from 'react';
 
 const ReferenceCard = ({ url, handleClick }) => {
-    
+
     const authors = url[5] || [];
 
     const getLastName = (fullName) => {
         const parts = fullName.trim().split(' ');
         return parts[parts.length - 1];
     };
-    
-    
+
+
     const renderAuthors = () => {
         const authorsList = authors.split(', ').filter(name => name.trim().length > 0);
         if (authorsList.length === 0) return null;
@@ -47,7 +47,7 @@ const ReferenceCard = ({ url, handleClick }) => {
             className="custom-div-url"
         >
             {/* Section 1: PubMed ID and Citations */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom:'4px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                 <div style={{ color: '#018DFF', fontSize: '14px' }}>
                     PubMed ID: {url[1].split('/').filter(Boolean).pop()}
                 </div>
@@ -61,7 +61,7 @@ const ReferenceCard = ({ url, handleClick }) => {
                 display: 'grid',
                 gridTemplateColumns: '1fr auto',
                 alignItems: 'start',
-                marginBottom:'4px'
+                marginBottom: '4px'
             }}>
                 <a
                     href={url[1]}
@@ -96,7 +96,7 @@ const ReferenceCard = ({ url, handleClick }) => {
                 flexWrap: 'wrap',
                 gap: '6px',
                 fontSize: '14px',
-                marginBottom:'4px'
+                marginBottom: '4px'
             }}>
                 {renderAuthors()}
             </div>
@@ -104,7 +104,8 @@ const ReferenceCard = ({ url, handleClick }) => {
             {/* Section 4: Journal Name */}
             <div style={{
                 fontSize: '14px',
-                wordBreak: 'break-word'
+                wordBreak: 'break-word',
+                color: 'grey',
             }} title="Journal">
                 {url[4]}
             </div>

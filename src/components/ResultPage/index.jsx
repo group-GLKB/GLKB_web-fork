@@ -33,7 +33,6 @@ import {
 
 import downArrow from '../../img/down_arrow.svg';
 import NoResultImage from '../../img/placeholdericon.png';
-import rightArrow from '../../img/right_arrow.svg';
 import { CypherService } from '../../service/Cypher';
 import Graph from '../Graph';
 import Information from '../Information';
@@ -772,9 +771,9 @@ const ResultPage = () => {
             <div className="navbar-wrapper">
                 <NavBarWhite />
             </div>
-            <Box sx={{ width: '100%', marginTop: '100px' }}>
+            <Box sx={{ width: '100%', marginTop: '40px' }}>
                 <Grid className="main-grid" container >
-                    <Grid xs={12} className="subgrid">
+                    <Grid item xs={12} className="subgrid">
                         <MuiButton variant="text" sx={{ color: 'black', alignSelf: 'flex-start', zIndex: 1 }}
                             onClick={() => navigate('/')}>
                             <ArrowBackIcon />Back
@@ -830,7 +829,7 @@ const ResultPage = () => {
                             </div> */}
                         </div>
                     </Grid>
-                    <Grid xs={12}>
+                    <Grid item xs={12}>
                         <div className='main-content' style={{ minHeight: "unset", height: "100%" }}>
                             {(!searchFlag) && (
                                 <div className='loading-container'>
@@ -838,7 +837,7 @@ const ResultPage = () => {
                                 </div>
                             )}
                             {searchFlag && (
-                                <div className='result-content' style={{ paddingTop: "12px" }}>
+                                <div className='result-content' style={{ paddingTop: "36px" }}>
                                     <div className='result-container-wrapper'>
                                         <Box sx={{
                                             // display: 'flex',
@@ -994,9 +993,10 @@ const ResultPage = () => {
                                                                                         onClick={() => setLegendVisible(!isLegendVisible)}
                                                                                     >
                                                                                         <img
-                                                                                            src={isLegendVisible ? downArrow : rightArrow}
+                                                                                            src={downArrow}
                                                                                             alt="Toggle legend"
                                                                                             className="legend-toggle-icon"
+                                                                                            style={isLegendVisible ? {} : { transform: 'rotate(180deg)' }}
                                                                                         />
                                                                                     </button>
                                                                                 </div>
