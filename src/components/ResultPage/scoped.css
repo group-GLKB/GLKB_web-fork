@@ -325,11 +325,15 @@ all {
 }
 
 .main-grid {
-    margin-left: 6% !important;
-    margin-right: 6% !important;
+    margin-left: 2%;
+    margin-right: 2%;
+}
 
-    width: 88% !important;
-
+@media (min-width: 1600px) {
+    .main-grid {
+        margin-left: 6%;
+        margin-right: 6%;
+    }
 }
 
 .start-tour-button {

@@ -549,7 +549,7 @@ function LLMAgent() {
             <div className="navbar-wrapper">
                 <NavBarWhite />
             </div>
-            <Grid className="main-grid" container sx={{ marginTop: '40px' }} >
+            <Grid className="main-grid" container sx={{ marginTop: '40px', width: "unset" }} >
                 <Grid item xs={12} className="subgrid">
                     <div className="main-content">
                         <MuiButton variant="text" sx={{
@@ -603,10 +603,10 @@ function LLMAgent() {
                                                 {chatHistory.length === 0 && (<>
                                                     <div className="empty-page-title" style={{ paddingTop: '1rem' }}>
                                                         <div style={{ gap: '1rem', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
-                                                            <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: '32px', fontWeight: '700', color: "#00199D" }}>
+                                                            <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: 'clamp(0.5vw, 32px, 2vw)', fontWeight: '700', color: "#00199D" }}>
                                                                 Explore Biomedical Literature
                                                             </Typography>
-                                                            <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: '18px', fontWeight: '500', color: "#718096" }}>
+                                                            <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: 'clamp(0.25vw, 18px, 1.1vw)', fontWeight: '500', color: "#718096" }}>
                                                                 AI-powered Genomic Literature Knowledge Base
                                                             </Typography>
                                                         </div>
