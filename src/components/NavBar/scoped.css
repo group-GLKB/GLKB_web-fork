@@ -1,7 +1,8 @@
 /* NavBar.css */
 
 .navbar {
-    background-color: #00274c; /* University of Michigan blue */
+    background-color: #00274c;
+    /* University of Michigan blue */
     color: white;
     display: flex;
     justify-content: left;
@@ -35,7 +36,7 @@
     border-radius: 4px;
 }
 
-.nav-button a{
+.nav-button a {
     color: white;
     text-decoration: none;
     font-weight: bold;
@@ -50,7 +51,7 @@
 .logo img {
     width: 120px;
     height: auto;
-    margin-left: 2.5rem;
+    margin-left: 25px;
 
 }
 
@@ -65,7 +66,8 @@
 
 .center-section button {
     padding: 0.5rem 1rem;
-    background-color: #007bff; /* University of Michigan maize */
+    background-color: #007bff;
+    /* University of Michigan maize */
     border: none;
     cursor: pointer;
     border-radius: 4px;
@@ -90,7 +92,7 @@
     align-items: center;
     cursor: text;
     width: 400px;
-    background-color:#FFFFFF;
+    background-color: #FFFFFF;
     height: 3.2rem;
 }
 
@@ -108,7 +110,8 @@
 
 .editable-input {
     outline: none;
-    min-width: 60px; /* Minimum width for typing */
+    min-width: 60px;
+    /* Minimum width for typing */
     flex-grow: 1;
     color: #00274c;
     /* Other styles to match your design */

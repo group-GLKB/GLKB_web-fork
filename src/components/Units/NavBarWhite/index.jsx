@@ -4,17 +4,18 @@ import './scoped.css'; // This is where you will import your CSS from
 import React from 'react';
 
 import {
-    Link,
-    useLocation,
-    useNavigate,
+  Link,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
-import logo from '../../../img/logo.svg';
+import logo from '../../../img/glkb_logo.png';
 
 function NavBarWhite({ showLogo = true, activeButton }) {
     const location = useLocation();
     const navigate = useNavigate();
     const { state } = location || {};
+    const relativePath = window.location.href.toString().split(window.location.host)[1] || '';
 
     const handleSearchClick = () => {
         navigate('/', { state: { activeButton: "triplet" } }); // Navigate to the search page
@@ -31,7 +32,8 @@ function NavBarWhite({ showLogo = true, activeButton }) {
                         <img
                             src={logo} // Path to the logo image
                             style={{
-                                height: '80%', // Adjust the width of the image
+                                height: '75px', // Adjust the width of the image
+                                width: 'auto',
                                 marginRight: '8px', // Add spacing between the image and text
                             }}
                         />
@@ -40,7 +42,16 @@ function NavBarWhite({ showLogo = true, activeButton }) {
 
             </div>
             <div className="nav-links">
-                <Link to="/about">About</Link>
+                <Link
+                    className={relativePath === "/" ? "nav-link active" : "nav-link"}
+                    to="/"
+                    style={relativePath === "/" ? {
+                        color: "#5D38D2", position: "relative"
+                    } : { position: "relative" }}>Home</Link>
+                <Link
+                    className={relativePath === "/about" ? "nav-link active" : "nav-link"}
+                    to="/about"
+                    style={relativePath === "/about" ? { color: "#5D38D2", position: "relative" } : { position: "relative" }}>About</Link>
                 {/* <Link to="/llm-agent" className="beta-link">
                     LLM Agent
                     <span className="beta-tag">Beta</span>
