@@ -2,32 +2,32 @@ import 'antd/dist/reset.css';
 import './scoped.css';
 
 import React, {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
 } from 'react';
 
 import {
-  Button as AntButton,
-  Spin,
-  Tooltip,
+    Button as AntButton,
+    Spin,
+    Tooltip,
 } from 'antd';
 import { debounce } from 'lodash';
 import Joyride, { STATUS } from 'react-joyride';
 import {
-  useLocation,
-  useNavigate,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
 import { InfoCircleOutlined } from '@ant-design/icons';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 //import mui button as muibutton
 import {
-  Box,
-  Button as MuiButton,
-  Grid,
-  Typography,
+    Box,
+    Button as MuiButton,
+    Grid,
+    Typography,
 } from '@mui/material';
 
 import downArrow from '../../img/down_arrow.svg';
@@ -53,6 +53,18 @@ import SearchBarNeighborhood from '../Units/SearchBarNeighborhood';
 //     minWidth: '60px',
 //     height: '40px',
 // }));
+
+const LegendTooltipContent = (
+    <div className="legends-tooltip-content">
+        GLKB currently supports the following node types:<br />
+        Gene, ChemicalEntity, DiseaseOrPhenotypicFeature, AnatomicalEntity, SequenceVariant,<br />
+        BiologicalProcessOrActivity, and MeshTerm.<br />
+        <br />
+        Two types of relationships are supported:<br />
+        - Semantic Relationships, which are automatically extracted from PubMed abstracts<br />
+        - Curated Relationships, which are manually annotated from established data repositories.
+    </div>
+);
 
 const ResultPage = () => {
     // const urlParams = new URLSearchParams(window.location.search);
@@ -974,7 +986,7 @@ const ResultPage = () => {
                                                                             <div className="legend-subsection">
                                                                                 <div className="legend-subtitle-row">
                                                                                     <div className="legend-subtitle">Legends</div>
-                                                                                    <Tooltip title={"<explanation>"}>
+                                                                                    <Tooltip title={LegendTooltipContent} styles={{ root: { maxWidth: '380px' }, body: { fontSize: '16px' } }}>
                                                                                         <InfoCircleOutlined style={{ color: '#1890ff' }} />
                                                                                     </Tooltip>
                                                                                     <button
