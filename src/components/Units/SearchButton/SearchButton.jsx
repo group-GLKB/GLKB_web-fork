@@ -18,7 +18,7 @@ export default function SearchButton({ onClick, disabled }) {
         >
             <ArrowForwardIcon
                 className="search-button"
-                onClick={onClick}
+                onClick={disabled ? () => { } : onClick}
                 sx={{
                     color: 'white',
                     cursor: 'pointer',
