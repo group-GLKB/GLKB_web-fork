@@ -1,7 +1,7 @@
 import React, {
-  useCallback,
-  useEffect,
-  useState,
+    useCallback,
+    useEffect,
+    useState,
 } from 'react';
 
 import { debounce } from 'lodash';
@@ -11,12 +11,12 @@ import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import {
-  Autocomplete,
-  Box,
-  Chip,
-  Container,
-  Paper,
-  TextField,
+    Autocomplete,
+    Box,
+    Chip,
+    Container,
+    Paper,
+    TextField,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -456,7 +456,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                 {/* Search Icon */}
                                                 <SearchButton
                                                     onClick={handleSearch}
-                                                    disabled={chipData.length === 0}
+                                                    disabled={chipData.length === 0 || inputValue !== ''}
                                                 />
                                             </Box>
                                         ),
