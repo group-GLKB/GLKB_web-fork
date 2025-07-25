@@ -1,7 +1,7 @@
 import React, {
-    useCallback,
-    useEffect,
-    useState,
+  useCallback,
+  useEffect,
+  useState,
 } from 'react';
 
 import { debounce } from 'lodash';
@@ -11,12 +11,13 @@ import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import {
-    Autocomplete,
-    Box,
-    Chip,
-    Container,
-    Paper,
-    TextField,
+  Autocomplete,
+  Box,
+  Chip,
+  Container,
+  Paper,
+  Popper,
+  TextField,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -48,6 +49,19 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         ['example_1', 'TP53; rs3761624; respiratory syncytial virus infectious disease; TLR8', 'Explore relationships between rs3761624 and RSV infectious disease.'],
         ['example_2', 'Acute coronary syndrome; atrial fibrillation; vascular disease; clopidogrel', 'Explore relationships between clopidogrel and different diseases.']
     ]
+
+    const CustomPopper = (props) => (
+        <Popper
+            {...props}
+            placement="bottom-start"
+            modifiers={[
+                {
+                    name: 'flip',
+                    enabled: false, // prevent flipping to top
+                },
+            ]}
+        />
+    );
 
 
     const theme = useTheme();
@@ -394,6 +408,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                     maxHeight: "340px",
                                 }
                             }}
+                            PopperComponent={CustomPopper}
                             renderInput={(params) => (
                                 <TextField
                                     {...params}

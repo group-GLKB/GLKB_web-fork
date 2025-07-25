@@ -30,6 +30,7 @@ import {
   Container,
   Grid,
   Paper,
+  Popper,
   TextField,
   Typography,
 } from '@mui/material';
@@ -69,6 +70,19 @@ const HomePage = () => {
     const searchBarKnowledgeRef = useRef(null);
     const searchBarNeighborhoodRef = useRef(null);
     const [stats, setStats] = useState(null);
+
+    const CustomPopper = (props) => (
+        <Popper
+            {...props}
+            placement="bottom-start"
+            modifiers={[
+                {
+                    name: 'flip',
+                    enabled: false, // prevent flipping to top
+                },
+            ]}
+        />
+    );
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -267,256 +281,259 @@ const HomePage = () => {
     const steps = getTourSteps();
 
     return (
-        <div className="HomePageContainer">
-            <Joyride
-                steps={steps}
-                run={runTour}
-                continuous={true}
-                showSkipButton={true}
-                showProgress={true}
-                callback={handleJoyrideCallback}
-                styles={{
-                    options: {
-                        primaryColor: '#007bff',
-                        zIndex: 10000
-                    },
-                    tooltip: {
-                        textAlign: 'left',
-                        content: {
-                            textAlign: 'left'
-                        }
-                    },
-                    tooltipContent: {
-                        textAlign: 'left'
-                    }
-                }}
-                locale={{
-                    last: 'Close', // Change the text of the final button to "Close"
-                    next: 'Next',
-                    back: 'Back',
-                    skip: 'Skip',
-                }}
-                disableOverlayClose={true}
-                disableBeacon={true}
-                disableCloseOnEsc={true}
-                disableScrolling={true}
-                spotlightClicks={true}
-                spotlightPadding={0}
-                scrollToFirstStep={true}
-            />
+        <div style={{ maxHeight: '100vh', overflowY: 'hidden' }}>
             <NavBarWhite
                 showLogo={true} activeButton={activeButton}
             />
-            <Grid container spacing={2} className="content HomePageMain" justifyContent="center" alignItems="center">
-                <Grid item xs={12} container className="search-chat-part" justifyContent="center" alignItems="center"
-                    sx={{
-                        "& .MuiGrid-container": {
-                            maxWidth: '100%',
-                            flexBasis: '100%',
-                        },
-                    }}>
-                    <Grid container justifyContent="center"
-                        alignItems="center">
-                        <Typography sx={{
-                            fontFamily: 'Roboto',
-                            fontWeight: 600,
-                            fontStyle: 'SemiBold',
-                            fontSize: '48px',
-                            leadingTrim: 'NONE',
-                            lineHeight: '100%',
-                            letterSpacing: '0%',
-                            textAlign: 'center',
-                            paddingTop: '15%',
-                            paddingBottom: '16px',
-                            background: 'linear-gradient(90deg, #672CD3 0%, #415FE3 50%, #682BD2 100%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                        }}>
-                            Genomic Literature Knowledge Base
-                        </Typography>
-                        <Typography sx={{
-                            fontFamily: 'Inter',
-                            fontWeight: 400,
-                            fontSize: '16px',
-                            color: '#646C8B',
-                            textAlign: 'center',
-                            paddingBottom: '84px',
-                            maxWidth: '500px',
-                        }}>
-                            Discover insights from genomic research with AI-powered search and analysis
-                        </Typography>
-                    </Grid>
-                    <Grid
-                        display="flex"
-                        justifyContent="flex-start"
-                        gap={0}
-                        className="search-mode-buttons" // Add this class
-                        container
-                        sx={{
-                            width: '100%',
-                            maxWidth: '960px', // Set the box width to 960px
-                            margin: '0px', // Center the box horizontally on the page
-                            marginBottom: '24px',
-                            paddingLeft: isSmallScreen ? '0px' : '24px',
-                            paddingRight: isSmallScreen ? '0px' : '24px',
+            <div className="HomePageContainer">
+                <div className="HomePageInner">
+                    <Joyride
+                        steps={steps}
+                        run={runTour}
+                        continuous={true}
+                        showSkipButton={true}
+                        showProgress={true}
+                        callback={handleJoyrideCallback}
+                        styles={{
+                            options: {
+                                primaryColor: '#007bff',
+                                zIndex: 10000
+                            },
+                            tooltip: {
+                                textAlign: 'left',
+                                content: {
+                                    textAlign: 'left'
+                                }
+                            },
+                            tooltipContent: {
+                                textAlign: 'left'
+                            }
                         }}
-                    >
-                        <SubNavBar activeButton={activeButton} />
-                    </Grid>
-                    <Grid container className="search-section">
-                        {activeButton === 'triplet' ? (
-                            <SearchBarKnowledge
-                                ref={searchBarKnowledgeRef}
-                                chipData={[]}
-                                onSearch={(data) => {
-                                    console.log('Triplet Search Data:', {
-                                        search_data: data,
-                                        searchType: 'triplet',
-                                    });
-                                    navigate('/result', {
-                                        state: {
-                                            search_data: data,
-                                            searchType: 'triplet',
-                                        }
-                                    });
-                                }}
-                                sx={{
-                                    width: '100%', // Set exact width
-                                    margin: '0 auto', // Center horizontally
-                                }}
-                            />
-                        ) : (
-                            <Box className="llm-searchbar" sx={{
-                                width: '100%',
-                                display: 'flex',
-                                gap: 2,
-                                marginLeft: isSmallScreen ? '0px' : '24px',
-                                marginRight: isSmallScreen ? '0px' : '24px',
-                                backgroundColor: 'white',
-                                borderRadius: '30px',
-                                boxShadow: '8px 6px 33px 0px #D8E6F8',
+                        locale={{
+                            last: 'Close', // Change the text of the final button to "Close"
+                            next: 'Next',
+                            back: 'Back',
+                            skip: 'Skip',
+                        }}
+                        disableOverlayClose={true}
+                        disableBeacon={true}
+                        disableCloseOnEsc={true}
+                        disableScrolling={true}
+                        spotlightClicks={true}
+                        spotlightPadding={0}
+                        scrollToFirstStep={true}
+                    />
+                    <Grid container spacing={2} className="content HomePageMain" justifyContent="center" alignItems="center">
+                        <Grid item xs={12} container className="search-chat-part" justifyContent="center" alignItems="center"
+                            sx={{
+                                "& .MuiGrid-container": {
+                                    maxWidth: '100%',
+                                    flexBasis: '100%',
+                                },
                             }}>
-                                <Autocomplete
-                                    freeSolo
-                                    fullWidth
-                                    options={LLMExampleQueries}
-                                    filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
-                                    onChange={(event, newValue) => {
-                                        setLlmQuery(newValue || '');
-                                    }}
-                                    onInputChange={(event, newInputValue) => {
-                                        setLlmQuery(newInputValue || '');
-                                    }}
-                                    openOnFocus
-                                    groupBy={() => 'Example Queries'}
-                                    getOptionLabel={(option) => option}
-                                    onFocus={() => setFocused(true)}
-                                    onBlur={() => setFocused(false)}
-                                    inputValue={llmQuery}
-                                    renderInput={(params) => (
-                                        <TextField
-                                            {...params}
-                                            size="small"
-                                            placeholder="Ask a question about the biomedical literature..."
-                                            sx={{
-                                                height: '60px', // Increase the height of the input box
-                                                width: '100%',
-                                                '& .MuiInputBase-root': {
-                                                    borderRadius: '30px',
-                                                    height: '60px', // Adjust the height of the input field
-                                                    alignItems: 'center', // Center the text vertically
-                                                    paddingRight: '10px', // Remove right padding
-                                                    '& fieldset': {
-                                                        border: 'none',
-                                                    },
-                                                },
-                                                '& .MuiOutlinedInput-notchedOutline': {
-                                                    borderColor: 'grey', // Optional: Customize border color
-                                                },
-                                            }}
+                            <Grid container justifyContent="center"
+                                alignItems="center">
+                                <Typography sx={{
+                                    fontFamily: 'Roboto',
+                                    fontWeight: 600,
+                                    fontStyle: 'SemiBold',
+                                    fontSize: '48px',
+                                    leadingTrim: 'NONE',
+                                    lineHeight: '100%',
+                                    letterSpacing: '0%',
+                                    textAlign: 'center',
+                                    paddingTop: '9%',
+                                    paddingBottom: '16px',
+                                    background: 'linear-gradient(90deg, #672CD3 0%, #415FE3 50%, #682BD2 100%)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                }}>
+                                    Genomic Literature Knowledge Base
+                                </Typography>
+                                <Typography sx={{
+                                    fontFamily: 'Inter',
+                                    fontWeight: 400,
+                                    fontSize: '16px',
+                                    color: '#646C8B',
+                                    textAlign: 'center',
+                                    paddingBottom: '84px',
+                                    maxWidth: '500px',
+                                }}>
+                                    Discover insights from genomic research with AI-powered search and analysis
+                                </Typography>
+                            </Grid>
+                            <Grid
+                                display="flex"
+                                justifyContent="flex-start"
+                                gap={0}
+                                className="search-mode-buttons" // Add this class
+                                container
+                                sx={{
+                                    width: '100%',
+                                    maxWidth: '960px', // Set the box width to 960px
+                                    margin: '0px', // Center the box horizontally on the page
+                                    marginBottom: '24px',
+                                    paddingLeft: isSmallScreen ? '0px' : '24px',
+                                    paddingRight: isSmallScreen ? '0px' : '24px',
+                                }}
+                            >
+                                <SubNavBar activeButton={activeButton} />
+                            </Grid>
+                            <Grid container className="search-section">
+                                {activeButton === 'triplet' ? (
+                                    <SearchBarKnowledge
+                                        ref={searchBarKnowledgeRef}
+                                        chipData={[]}
+                                        onSearch={(data) => {
+                                            console.log('Triplet Search Data:', {
+                                                search_data: data,
+                                                searchType: 'triplet',
+                                            });
+                                            navigate('/result', {
+                                                state: {
+                                                    search_data: data,
+                                                    searchType: 'triplet',
+                                                }
+                                            });
+                                        }}
+                                        sx={{
+                                            width: '100%', // Set exact width
+                                            margin: '0 auto', // Center horizontally
+                                        }}
+                                    />
+                                ) : (
+                                    <Box className="llm-searchbar" sx={{
+                                        width: '100%',
+                                        display: 'flex',
+                                        gap: 2,
+                                        marginLeft: isSmallScreen ? '0px' : '24px',
+                                        marginRight: isSmallScreen ? '0px' : '24px',
+                                        backgroundColor: 'white',
+                                        borderRadius: '30px',
+                                        boxShadow: '8px 6px 33px 0px #D8E6F8',
+                                    }}>
+                                        <Autocomplete
+                                            freeSolo
                                             fullWidth
-                                            InputProps={{
-                                                ...params.InputProps,
-                                                startAdornment: (
-                                                    <>
-                                                        <SearchIcon sx={{ marginLeft: '20px', fontSize: '20px' }} />
-                                                        {params.InputProps.startAdornment}
-                                                    </>
-                                                ),
-                                                endAdornment: (
-                                                    <Box display="flex" alignItems="center" sx={{
-                                                        position: 'absolute',
-                                                        right: 0,
-                                                    }}>
-                                                        {/* Clear Icon */}
-                                                        {llmQuery !== "" && <CloseIcon
-                                                            onClick={() => {
-                                                                setLlmQuery(''); // Clear the input field
-                                                            }}
-                                                            sx={{
-                                                                color: 'grey.500',
-                                                                cursor: 'pointer',
-                                                                fontSize: '20px', // Adjust size as needed
-                                                                marginRight: '8px', // Add spacing from the SendIcon
-                                                            }}
-                                                        />}
-                                                        {/* Search Icon */}
-                                                        <SearchButton
-                                                            onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}
-                                                            disabled={!llmQuery.trim()}
-                                                        />
-                                                    </Box>
-                                                ),
+                                            options={LLMExampleQueries}
+                                            filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
+                                            onChange={(event, newValue) => {
+                                                setLlmQuery(newValue || '');
                                             }}
+                                            onInputChange={(event, newInputValue) => {
+                                                setLlmQuery(newInputValue || '');
+                                            }}
+                                            openOnFocus
+                                            groupBy={() => 'Example Queries'}
+                                            getOptionLabel={(option) => option}
+                                            onFocus={() => setFocused(true)}
+                                            onBlur={() => setFocused(false)}
+                                            inputValue={llmQuery}
+                                            PopperComponent={CustomPopper}
+                                            renderInput={(params) => (
+                                                <TextField
+                                                    {...params}
+                                                    size="small"
+                                                    placeholder="Ask a question about the biomedical literature..."
+                                                    sx={{
+                                                        height: '60px', // Increase the height of the input box
+                                                        width: '100%',
+                                                        '& .MuiInputBase-root': {
+                                                            borderRadius: '30px',
+                                                            height: '60px', // Adjust the height of the input field
+                                                            alignItems: 'center', // Center the text vertically
+                                                            paddingRight: '10px', // Remove right padding
+                                                            '& fieldset': {
+                                                                border: 'none',
+                                                            },
+                                                        },
+                                                        '& .MuiOutlinedInput-notchedOutline': {
+                                                            borderColor: 'grey', // Optional: Customize border color
+                                                        },
+                                                    }}
+                                                    fullWidth
+                                                    InputProps={{
+                                                        ...params.InputProps,
+                                                        startAdornment: (
+                                                            <>
+                                                                <SearchIcon sx={{ marginLeft: '20px', fontSize: '20px' }} />
+                                                                {params.InputProps.startAdornment}
+                                                            </>
+                                                        ),
+                                                        endAdornment: (
+                                                            <Box display="flex" alignItems="center" sx={{
+                                                                position: 'absolute',
+                                                                right: 0,
+                                                            }}>
+                                                                {/* Clear Icon */}
+                                                                {llmQuery !== "" && <CloseIcon
+                                                                    onClick={() => {
+                                                                        setLlmQuery(''); // Clear the input field
+                                                                    }}
+                                                                    sx={{
+                                                                        color: 'grey.500',
+                                                                        cursor: 'pointer',
+                                                                        fontSize: '20px', // Adjust size as needed
+                                                                        marginRight: '8px', // Add spacing from the SendIcon
+                                                                    }}
+                                                                />}
+                                                                {/* Search Icon */}
+                                                                <SearchButton
+                                                                    onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}
+                                                                    disabled={!llmQuery.trim()}
+                                                                />
+                                                            </Box>
+                                                        ),
+                                                    }}
 
-                                        />
-                                    )}
-                                    PaperComponent={({ children }) => (
-                                        <Paper
-                                            sx={{
-                                                borderRadius: '16px',
-                                                border: "1.5px solid #E6F0FC",
-                                                boxShadow: 'none',
-                                                marginTop: '5px',
-                                                marginBottom: '5px',
-                                                overflow: 'hidden',
-                                                "& .MuiAutocomplete-option.Mui-focused": {
-                                                    backgroundColor: '#F3F5FF !important',
-                                                },
-                                                "& .MuiAutocomplete-option.Mui-focused span.highlight-arrow": {
-                                                    color: 'black !important',
+                                                />
+                                            )}
+                                            PaperComponent={({ children }) => (
+                                                <Paper
+                                                    sx={{
+                                                        borderRadius: '16px',
+                                                        border: "1.5px solid #E6F0FC",
+                                                        boxShadow: 'none',
+                                                        marginTop: '5px',
+                                                        marginBottom: '5px',
+                                                        overflow: 'hidden',
+                                                        "& .MuiAutocomplete-option.Mui-focused": {
+                                                            backgroundColor: '#F3F5FF !important',
+                                                        },
+                                                        "& .MuiAutocomplete-option.Mui-focused span.highlight-arrow": {
+                                                            color: 'black !important',
+                                                        }
+                                                    }}
+                                                >
+                                                    {children}
+                                                </Paper>
+                                            )}
+                                            renderOption={(props, option) => (
+                                                <Box
+                                                    component="li"
+                                                    {...props}
+                                                    sx={{
+                                                        minHeight: '36px !important',
+                                                        '& .MuiAutocomplete-option.Mui-focused': {
+                                                            backgroundColor: '#F3F5FF !important',
+                                                        },
+                                                    }}
+                                                >
+                                                    {option}
+                                                    <span className={"highlight-arrow"} style={{ color: 'white', marginLeft: 'auto' }}><ArrowOutwardIcon fontSize="small" /></span>
+                                                </Box>
+                                            )}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' && llmQuery !== "") {
+                                                    e.preventDefault();
+                                                    navigateToLLMAgent(llmQuery.trim());
                                                 }
                                             }}
-                                        >
-                                            {children}
-                                        </Paper>
-                                    )}
-                                    renderOption={(props, option) => (
-                                        <Box
-                                            component="li"
-                                            {...props}
-                                            sx={{
-                                                minHeight: '36px !important',
-                                                '& .MuiAutocomplete-option.Mui-focused': {
-                                                    backgroundColor: '#F3F5FF !important',
-                                                },
-                                            }}
-                                        >
-                                            {option}
-                                            <span className={"highlight-arrow"} style={{ color: 'white', marginLeft: 'auto' }}><ArrowOutwardIcon fontSize="small" /></span>
-                                        </Box>
-                                    )}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && llmQuery !== "") {
-                                            e.preventDefault();
-                                            navigateToLLMAgent(llmQuery.trim());
-                                        }
-                                    }}
-                                />
+                                        />
 
-                            </Box>
-                        )}
-                        {/* <Grid container spacing={2} className="example-query-group" style={{ padding: '24px', paddingTop: '48px' }} >
+                                    </Box>
+                                )}
+                                {/* <Grid container spacing={2} className="example-query-group" style={{ padding: '24px', paddingTop: '48px' }} >
                             {activeButton === 'triplet' ? (
                                 <>
                                     <Grid item xs={4} >
@@ -619,77 +636,80 @@ const HomePage = () => {
                                 </>
                             )}
                         </Grid> */}
-                        <Container className="info-card-section" sx={{ padding: '24px', paddingTop: '28px', gap: '30px', display: 'flex', flexDirection: 'row' }} >
-                            {(stats ? [
-                                [stats.num_active_users_d30 || "N/A", "Active users in the past month"],
-                                [stats.num_api_calling || "N/A", "Total external API calls since released"],
-                                [stats.num_articles || "N/A", "Articles covered in GLKB database"],
-                            ] : []).map(([value, description], index) => (
-                                <Grid item xs={4} key={index}>
-                                    <Box
-                                        sx={{
-                                            textAlign: 'left',
-                                            display: 'flex',
-                                            flexDirection: 'row',
-                                            alignItems: 'center',
-                                            justifyContent: 'flex-start',
-                                            width: '100%',
-                                            minHeight: '100%',
-                                            height: '100px',
-                                            marginBottom: '10px',
-                                            whiteSpace: 'normal',
-                                            padding: '16px',
-                                            borderRadius: '12px',
-                                            backgroundColor: '#FFFFFF',
-                                            boxShadow: '8px 6px 33px 0px #D8E6F8',
-                                        }}>
-                                        <div style={{
-                                            fontFamily: 'Roboto Mono',
-                                            fontWeight: '500',
-                                            fontSize: '40px',
-                                            color: '#4B67FE',
-                                            padding: '0px 10px',
-                                            minWidth: '120px',
-                                            textAlign: 'center',
-                                            transform: 'translateY(-2px)',
-                                        }}>
-                                            {value}
-                                        </div>
-                                        <div style={{ fontSize: '14px', color: '#646B96', maxWidth: '150px' }}>
-                                            {description}
-                                        </div>
-                                    </Box>
-                                </Grid>
-                            ))}
-                        </Container>
+                                <Container className="info-card-section" sx={{ padding: '24px', paddingTop: '28px', gap: '30px', display: 'flex', flexDirection: 'row' }} >
+                                    {(stats ? [
+                                        [stats.num_active_users_d30 || "N/A", "Active users in the past month"],
+                                        [stats.num_api_calling || "N/A", "Total external API calls since released"],
+                                        [stats.num_articles || "N/A", "Articles covered in GLKB database"],
+                                    ] : []).map(([value, description], index) => (
+                                        <Grid item xs={4} key={index}>
+                                            <Box
+                                                sx={{
+                                                    textAlign: 'left',
+                                                    display: 'flex',
+                                                    flexDirection: 'row',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'flex-start',
+                                                    width: '100%',
+                                                    minHeight: '100%',
+                                                    height: '100px',
+                                                    marginBottom: '10px',
+                                                    whiteSpace: 'normal',
+                                                    padding: '16px',
+                                                    borderRadius: '12px',
+                                                    backgroundColor: '#FFFFFF',
+                                                    boxShadow: '8px 6px 33px 0px #D8E6F8',
+                                                }}>
+                                                <div style={{
+                                                    fontFamily: 'Roboto Mono',
+                                                    fontWeight: '500',
+                                                    fontSize: '40px',
+                                                    color: '#4B67FE',
+                                                    padding: '0px 10px',
+                                                    minWidth: '120px',
+                                                    textAlign: 'center',
+                                                    transform: 'translateY(-2px)',
+                                                }}>
+                                                    {value}
+                                                </div>
+                                                <div style={{ fontSize: '14px', color: '#646B96', maxWidth: '150px' }}>
+                                                    {description}
+                                                </div>
+                                            </Box>
+                                        </Grid>
+                                    ))}
+                                </Container>
+                            </Grid>
+
+                        </Grid>
                     </Grid>
 
-                </Grid>
-            </Grid>
-            <AntButton
-                onClick={() => setRunTour(true)}
-                // style={{ marginTop: '20px' }}
-                style={{
-                    position: 'fixed',
-                    bottom: '50px',
-                    right: '20px',
-                    width: '56px',
-                    height: '56px',
-                    fontSize: '24px',
-                    borderRadius: '50%',
-                    backgroundColor: '#D3D5FF',
-                    boxShadow: '8px 6px 33px 0px #D8E6F8',
-                    border: 'none',
-                }}
-            >
-                ?
-            </AntButton>
-            <div className="footer">
-                <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
-                    <p style={{ textAlign: 'center', color: 'rgba(0, 0, 0, 0.8)', fontSize: '14px', margin: 0 }}>
-                        © 2024 Liu Lab, Department of Computational Medicine and Bioinformatics, University of Michigan
-                    </p>
+                    <div className="footer">
+                        <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
+                            <p style={{ textAlign: 'center', color: 'rgba(0, 0, 0, 0.8)', fontSize: '14px', margin: 0 }}>
+                                © 2024 Liu Lab, Department of Computational Medicine and Bioinformatics, University of Michigan
+                            </p>
+                        </div>
+                    </div>
                 </div>
+                <AntButton
+                    onClick={() => setRunTour(true)}
+                    // style={{ marginTop: '20px' }}
+                    style={{
+                        position: 'fixed',
+                        bottom: '50px',
+                        right: '20px',
+                        width: '56px',
+                        height: '56px',
+                        fontSize: '24px',
+                        borderRadius: '50%',
+                        backgroundColor: '#D3D5FF',
+                        boxShadow: '8px 6px 33px 0px #D8E6F8',
+                        border: 'none',
+                    }}
+                >
+                    ?
+                </AntButton>
             </div>
         </div>
     )

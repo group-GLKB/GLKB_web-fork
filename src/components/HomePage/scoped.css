@@ -3,9 +3,20 @@
     /* Linear gradient background */
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: calc(100vh - 80px);
     /* Changed to 100vh for full viewport height */
     overflow-y: auto;
+    position: relative;
+    /* background-color: #DCE3FF; */
+}
+
+.HomePageInner {
+    display: flex;
+    flex-direction: column;
+    min-height: 850px;
+    height: calc(100vh - 80px);
+    /* Changed to 100vh for full viewport height */
+    overflow-y: hidden;
     position: relative;
     /* background-color: #DCE3FF; */
 }
