@@ -509,8 +509,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                         newValue[0][0]?.startsWith('example_')) {
                                         console.log('Filled with example:', newValue[0][0]);
                                         ref.current.fillWithExample(exampleQueries[newValue[0][0].substring(8) || 1]);
+                                        return;
                                     }
-                                    return;
                                 }
                                 setSelectedSources(newValue);
                                 console.log('New sources:', newValue);
