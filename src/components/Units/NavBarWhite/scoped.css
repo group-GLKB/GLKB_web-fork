@@ -37,13 +37,12 @@ button:hover {
     cursor: pointer;
 }
 
-.navigation-bar .active {
+.navigation-bar .nav-link.active {
     background-color: transparent;
     border: none;
-    text-decoration: underline;
     /* Add underline to active links */
     margin-left: 20px;
-    color: #1E416D;
+    color: #5D38D2;
     /* Keep the color for active links */
     font-weight: 900;
     /* Make the font heavier */
@@ -52,12 +51,11 @@ button:hover {
     margin-top: 1rem;
 }
 
-.navigation-bar .nonactive {
+.navigation-bar .nav-link.nonactive {
     background-color: transparent;
     border: none;
-    text-decoration: none;
     margin-left: 20px;
-    color: #1E416D;
+    color: #6E6F84;
     /* Changed from #3D739C to #ffffff for better contrast */
     font-weight: 500;
     /* Change this as per your color scheme */
@@ -69,10 +67,11 @@ button:hover {
 }
 
 .navigation-bar .nav-links a {
+    font-family: 'Inter', sans-serif;
+    background-color: transparent;
     text-decoration: none;
     font-weight: bold;
     margin-left: 20px;
-    color: #6E6F84;
     /* Changed from #3D739C to #ffffff for better contrast */
     /* Change this as per your color scheme */
     /* Additional styles for the links can go here */
@@ -98,7 +97,7 @@ button:hover {
     /* Optional rounded corners */
 }
 
-.navigation-bar .nav-links a:hover {
+.navigation-bar .nav-link.nonactive:hover {
     color: #5988c2;
     /* Changed from #555 to a light gray for hover effect */
 }

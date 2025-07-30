@@ -372,7 +372,6 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                     <Box sx={{ flexGrow: 1 }}>
                         <Autocomplete
                             multiple
-                            freeSolo
                             limitTags={5}
                             autoHighlight={true}
                             onInputChange={(event, newInputValue) => {
@@ -438,7 +437,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                         ...params.InputProps,
                                         startAdornment: (
                                             <>
-                                                <SearchIcon sx={{ marginLeft: '20px', fontSize: '20px' }} />
+                                                <SearchIcon sx={{ color: '#a1a1a1', marginLeft: '20px', fontSize: '20px' }} />
                                                 {params.InputProps.startAdornment}
                                             </>
                                         ),
@@ -504,11 +503,13 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             onFocus={() => setFocused(true)}
                             onBlur={() => setFocused(false)}
                             onChange={(event, newValue) => {
-                                if (newValue.length === 1 &&
-                                    typeof newValue[0][0] === 'string' &&
-                                    newValue[0][0]?.startsWith('example_')) {
-                                    console.log('Filled with example:', newValue[0][0]);
-                                    ref.current.fillWithExample(exampleQueries[newValue[0][0].substring(8) || 1]);
+                                console.log('Selected sources:', newValue);
+                                if (newValue.length === 1) {
+                                    if (typeof newValue[0][0] === 'string' &&
+                                        newValue[0][0]?.startsWith('example_')) {
+                                        console.log('Filled with example:', newValue[0][0]);
+                                        ref.current.fillWithExample(exampleQueries[newValue[0][0].substring(8) || 1]);
+                                    }
                                     return;
                                 }
                                 setSelectedSources(newValue);
@@ -520,6 +521,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                     {...props}
                                     sx={{
                                         minHeight: '36px !important',
+                                        margin: '0px 10px',
+                                        borderRadius: '8px',
                                         '& .MuiAutocomplete-option.Mui-focused': {
                                             backgroundColor: '#F3F5FF !important',
                                         },

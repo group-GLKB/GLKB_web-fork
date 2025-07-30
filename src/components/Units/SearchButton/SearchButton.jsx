@@ -6,6 +6,7 @@ import { Box } from '@mui/material';
 export default function SearchButton({ onClick, disabled }) {
     return (
         <Box
+            className="search-button-big"
             sx={{
                 height: "60px",
                 width: "60px",

@@ -22,8 +22,8 @@ import {
 } from 'react-router-dom';
 
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import CloseIcon from '@mui/icons-material/Close';
-import SearchIcon from '@mui/icons-material/Search';
 import {
   Autocomplete,
   Box,
@@ -172,13 +172,13 @@ const HomePage = () => {
     const getTourSteps = () => {
         const commonSteps = [
             {
-                target: '.content img',
+                target: '.glkb-title',
                 content: 'Welcome to GLKB! Let\'s explore how to use the search and visualize the biomedical knowledge from 33 million+ Pubmed articles and nine well-curated databases.',
                 placement: 'bottom',
                 disableBeacon: true,
             },
             {
-                target: '.search-mode-buttons',
+                target: '.sub-navigation-bar',
                 content: 'Choose between two search modes: "Graphical Search" to explore relationships between multiple terms, or "LLM Agent" to automatically search for relevant information with natural language.',
                 placement: 'bottom',
             }
@@ -203,11 +203,6 @@ const HomePage = () => {
             {
                 target: '.search-autocomplete-box',
                 content: 'Start typing here to see autocomplete suggestions for your search terms. Click the term to add it to your search query.',
-                placement: 'bottom',
-            },
-            {
-                target: '.close-button',
-                content: 'Remove terms by clicking this "X" button.',
                 placement: 'bottom',
             },
             {
@@ -247,24 +242,19 @@ const HomePage = () => {
                 placement: 'bottom',
             },
             {
-                target: '.example-query-group',
-                content: 'Try these example queries to see how the LLM Agent can help you explore biomedical knowledge.',
-                placement: 'top',
+                target: '.search-button-big',
+                content: 'Click here to initiate the search with your selected terms.',
+                placement: 'bottom',
             }
         ];
 
         const finalSteps = [
             {
-                target: '.search-button',
+                target: '.search-button-big',
                 content: activeButton === 'triplet'
                     ? 'Click here to visualize the relationships between your selected terms.'
                     : 'Click here to find related terms based on your settings.',
                 placement: 'bottom',
-            },
-            {
-                target: '.example-query-group',
-                content: 'Not sure where to start? Try one of these example queries to see how it works.',
-                placement: 'top',
             }
         ];
 
@@ -332,7 +322,7 @@ const HomePage = () => {
                                 },
                             }}>
                             <Grid container justifyContent="center"
-                                alignItems="center">
+                                alignItems="center" className="glkb-title">
                                 <Typography sx={{
                                     fontFamily: 'Roboto',
                                     fontWeight: 600,
@@ -456,7 +446,7 @@ const HomePage = () => {
                                                         ...params.InputProps,
                                                         startAdornment: (
                                                             <>
-                                                                <SearchIcon sx={{ marginLeft: '20px', fontSize: '20px' }} />
+                                                                <ChatBubbleOutlineIcon sx={{ color: '#a1a1a1', marginLeft: '20px', fontSize: '20px' }} />
                                                                 {params.InputProps.startAdornment}
                                                             </>
                                                         ),
@@ -514,6 +504,8 @@ const HomePage = () => {
                                                     {...props}
                                                     sx={{
                                                         minHeight: '36px !important',
+                                                        margin: '0px 10px',
+                                                        borderRadius: '8px',
                                                         '& .MuiAutocomplete-option.Mui-focused': {
                                                             backgroundColor: '#F3F5FF !important',
                                                         },

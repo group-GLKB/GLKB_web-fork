@@ -49,16 +49,6 @@ import NavBarWhite from '../Units/NavBarWhite';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import SearchButton from '../Units/SearchButton/SearchButton';
 
-// import ShareIcon from "@mui/icons-material/Share";
-// import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
-// import BookmarkIcon from "@mui/icons-material/Bookmark";
-// import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-// import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
-// import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
-// import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
-// import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
-
-
 function LLMAgent() {
     const location = useLocation();
     const [userInput, setUserInput] = useState('');
@@ -702,7 +692,7 @@ function LLMAgent() {
                                                         }}
                                                         InputProps={{
                                                             startAdornment: (
-                                                                <ChatBubbleOutlineIcon sx={{ marginLeft: '20px', fontSize: '20px' }} />
+                                                                <ChatBubbleOutlineIcon sx={{ color: '#a1a1a1', marginLeft: '25px', marginRight: '5px', fontSize: '20px' }} />
                                                             ),
                                                             endAdornment: (
                                                                 <Box
@@ -791,7 +781,7 @@ function LLMAgent() {
                                                             })}
                                                         </div>
                                                     ) : (
-                                                        <p style={{ padding: '12px 16px' }}>No references available for this response.</p>
+                                                        <p style={{ padding: '16px 32px' }}>No references available for this response.</p>
                                                     )}
                                                 </div>
                                             </div>
