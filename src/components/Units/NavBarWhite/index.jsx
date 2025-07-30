@@ -9,7 +9,7 @@ import {
   useNavigate,
 } from 'react-router-dom';
 
-import logo from '../../../img/glkb_logo.png';
+import logo from '../../../img/GLKB-Logo-02.jpg';
 
 function NavBarWhite({ showLogo = true, activeButton }) {
     const location = useLocation();
@@ -28,36 +28,38 @@ function NavBarWhite({ showLogo = true, activeButton }) {
         <nav className="navigation-bar">
             <div className="logo">
                 {showLogo && (
-                    <Link to="/">
-                        <img
-                            src={logo} // Path to the logo image
-                            style={{
-                                height: '75px', // Adjust the width of the image
-                                width: 'auto',
-                                marginRight: '8px', // Add spacing between the image and text
-                            }}
-                        />
+                    <Link to="/" style={{ display: 'block', height: '75px', marginLeft: '50px' }}>
+                        <div style={{ height: '75px', width: '300px', overflow: 'hidden', position: 'relative' }}>
+                            <img
+                                src={logo} // Path to the logo image
+                                style={{
+                                    height: '140px', // Adjust the width of the image
+                                    width: 'auto',
+                                    position: 'absolute',
+                                    top: '50%',
+                                    transform: 'translate(-80px, -50%)',
+                                }}
+                            />
+                        </div>
                     </Link>
                 )}
 
             </div>
             <div className="nav-links">
-                <Link
-                    className={relativePath === "/" ? "nav-link active" : "nav-link"}
-                    to="/"
-                    style={relativePath === "/" ? {
-                        color: "#5D38D2", position: "relative"
-                    } : { position: "relative" }}>Home</Link>
-                <Link
-                    className={relativePath === "/about" ? "nav-link active" : "nav-link"}
-                    to="/about"
-                    style={relativePath === "/about" ? { color: "#5D38D2", position: "relative" } : { position: "relative" }}>About</Link>
-                {/* <Link to="/llm-agent" className="beta-link">
-                    LLM Agent
-                    <span className="beta-tag">Beta</span>
-                </Link> */}
-                <a href="https://glkb.dcmb.med.umich.edu/api/docs" target="_blank" >API Doc</a>
-                <a href="https://jieliu6.github.io/" target="_blank">Contact Us</a>
+                {
+                    [["Home", "/"], ["Search", "/result"], ["Chat", "/llm-agent"], ["About", "/about"]].map(([name, path]) => (
+                        <Link
+                            key={name}
+                            className={relativePath === path ? "nav-link active" : "nav-link nonactive"}
+                            to={path}
+                            style={{ position: "relative" }}
+                        >
+                            {name}
+                        </Link>
+                    ))
+                }
+                <a className="nav-link nonactive" href="https://glkb.dcmb.med.umich.edu/api/docs" target="_blank" >API Doc</a>
+                <a className="nav-link nonactive" href="https://jieliu6.github.io/" target="_blank">Contact Us</a>
             </div>
         </nav>
     );

@@ -2,32 +2,32 @@ import 'antd/dist/reset.css';
 import './scoped.css';
 
 import React, {
-    useCallback,
-    useEffect,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
 } from 'react';
 
 import {
-    Button as AntButton,
-    Spin,
-    Tooltip,
+  Button as AntButton,
+  Spin,
+  Tooltip,
 } from 'antd';
 import { debounce } from 'lodash';
 import Joyride, { STATUS } from 'react-joyride';
 import {
-    useLocation,
-    useNavigate,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import { InfoCircleOutlined } from '@ant-design/icons';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 //import mui button as muibutton
 import {
-    Box,
-    Button as MuiButton,
-    Grid,
-    Typography,
+  Box,
+  Button as MuiButton,
+  Grid,
+  Typography,
 } from '@mui/material';
 
 import downArrow from '../../img/down_arrow.svg';
@@ -178,10 +178,10 @@ const ResultPage = () => {
             target: '.graph-container-wrapper',
             content: 'This is the main graph visualization area. You can interact with nodes and edges here.',
         },
-        {
-            target: '.graph-control-button',
-            content: 'Switch between biomedical term graph and article graph views.',
-        },
+        // {
+        //     target: '.graph-control-button',
+        //     content: 'Switch between biomedical term graph and article graph views.',
+        // },
         // {
         //     target: '.floating-settings',
         //     content: 'Modify graph visualization and access node and edge summaries here.',
@@ -765,7 +765,7 @@ const ResultPage = () => {
                 <NavBarWhite />
             </div>
             <Box sx={{ width: '100%', marginTop: '40px' }}>
-                <Grid className="main-grid" container >
+                <Grid className="main-grid" container sx={{ width: "unset" }} >
                     <Grid item xs={12} className="subgrid">
                         <MuiButton variant="text" sx={{
                             color: '#333333',
