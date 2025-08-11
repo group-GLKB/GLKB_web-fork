@@ -1,13 +1,23 @@
-import React, { useEffect } from 'react'
-import ReactDOM from 'react-dom'
-import HomePage from './components/HomePage'
-import AboutPage from './components/AboutPage'
-import { Provider } from 'react-globally'
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom'
-import ResultPage from './components/ResultPage'
-import { Result } from 'antd'
-import { initGA, trackPageView } from './components/Units/analytics';
-import LLMAgent from './components/LLMAgent'
+import './index.css';
+
+import React, { useEffect } from 'react';
+
+import { createRoot } from 'react-dom/client';
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom';
+
+import AboutPage from './components/AboutPage';
+import HomePage from './components/HomePage';
+import LLMAgent from './components/LLMAgent';
+import ResultPage from './components/ResultPage';
+import {
+  initGA,
+  trackPageView,
+} from './components/Units/analytics';
 
 const initState = {
     searchType: ''
@@ -37,9 +47,11 @@ function AppWithAnalytics() {
     );
 }
 
-ReactDOM.render(
+
+const root = createRoot(document.getElementById('root'));
+root.render(
     <Router>
         <AppWithAnalytics />
-    </Router>,
-    document.getElementById('root')
-)
+    </Router>
+);
+

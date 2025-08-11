@@ -8,7 +8,7 @@ export class NewGraph {
         let res = []
         await axios
             //.get('/frontend/frontend_add_nodes?existing=' + existing + "&new=" + newNode)
-            .get('/api/frontend/frontend_add_nodes?existing=' + existing + "&new=" + newNode)
+            .get('https://glkb.dcmb.med.umich.edu/api/frontend/frontend_add_nodes?existing=' + existing + "&new=" + newNode)
             .then(function (response) {
                 res = response
             })

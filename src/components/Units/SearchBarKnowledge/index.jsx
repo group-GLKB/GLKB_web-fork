@@ -1,15 +1,30 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Box, Container, TextField, Button, Autocomplete, Card, Typography } from '@mui/material';
-import { Stack, Chip } from '@mui/material';
+import React, {
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
+
+import { debounce } from 'lodash';
 import { useNavigate } from 'react-router-dom';
-import { CypherService } from '../../../service/Cypher';
-import { debounce, set } from 'lodash';
-import useMediaQuery from '@mui/material/useMediaQuery';
+
+import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
+import CloseIcon from '@mui/icons-material/Close';
+import SearchIcon from '@mui/icons-material/Search';
+import {
+  Autocomplete,
+  Box,
+  Chip,
+  Container,
+  Paper,
+  Popper,
+  TextField,
+} from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Select as AntSelect, Tooltip } from 'antd';
-import CloseIcon from '@mui/icons-material/Close'; // Import the Clear (cross) icon
-import SendIcon from '@mui/icons-material/Send'; 
-import 'antd/dist/reset.css';
+import useMediaQuery from '@mui/material/useMediaQuery';
+
+import { CypherService } from '../../../service/Cypher';
+import SearchButton from '../SearchButton/SearchButton';
+import exampleQueries from './example_query.json';
 
 const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const navigate = useNavigate();
@@ -27,6 +42,26 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const [maxRel, setMaxRel] = useState(0);
     const [moreNodes, setMoreNodes] = useState(false);
     const [moreRel, setMoreRel] = useState(false);
+    const [focused, setFocused] = useState(false);
+
+    const ExampleOptions = [
+        ['example_0', 'SPRY2; RFX6; HNF4A; type 2 diabetes mellitus', 'Explore relationships between Type 2 Diabetes and its associated genes.'],
+        ['example_1', 'TP53; rs3761624; respiratory syncytial virus infectious disease; TLR8', 'Explore relationships between rs3761624 and RSV infectious disease.'],
+        ['example_2', 'Acute coronary syndrome; atrial fibrillation; vascular disease; clopidogrel', 'Explore relationships between clopidogrel and different diseases.']
+    ]
+
+    const CustomPopper = (props) => (
+        <Popper
+            {...props}
+            placement="bottom-start"
+            modifiers={[
+                {
+                    name: 'flip',
+                    enabled: false, // prevent flipping to top
+                },
+            ]}
+        />
+    );
 
 
     const theme = useTheme();
@@ -44,21 +79,22 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
     // Sort function for options
     const sortByCategory = (a, b) => {
-        const categoryA = getDisplayCategory(a[2]);
-        const categoryB = getDisplayCategory(b[2]);
-        
+        const categoryA = getDisplayCategory(a[3]);
+        const categoryB = getDisplayCategory(b[3]);
+
         // First sort by category order
         const orderDiff = categoryOrder.indexOf(categoryA) - categoryOrder.indexOf(categoryB);
         if (orderDiff !== 0) return orderDiff;
-        
-        // Then sort alphabetically within category
-        return a[1].localeCompare(b[1]);
+
+        return a[0] - b[0];
     };
     // Convert database type to display category
-    
+
     const getDisplayCategory = (databaseType) => {
         // console.log('Processing type:', databaseType);
-        const category = databaseTypeMapping[databaseType] || 'All Biomedical Terms';
+        const category =
+            databaseType?.startsWith('Explore ') ? databaseType :
+                (databaseTypeMapping[databaseType] || 'All Biomedical Terms');
         // console.log('Mapped to category:', category);
         return category;
     };
@@ -74,13 +110,17 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         let cypherServ = new CypherService();
         const response = await cypherServ.Entity2Cypher(searchValue, termType);
         const sortedOptions = response.data
-        .map(node => [
-            node.database_id,
-            `${node.name} (${node.element_id})`,
-            node.type
-        ])
-        .sort(sortByCategory);
-        setSourceNodeOptions(sortedOptions);
+            ?.map((node, index) => [
+                index,
+                node.database_id,
+                `${node.name} (${node.element_id})`,
+                node.type
+            ])
+            .sort(sortByCategory)
+            .map(([, database_id, name, type]) => [database_id, name, type]);
+        if (sortedOptions) {
+            setSourceNodeOptions(sortedOptions);
+        }
         // setSourceNodeData(response.data);
         // setSourceNodeOptions([
         //     ...response.data.map(node => [node.database_id, `${node.name} (${node.element_id})`,node.type])
@@ -97,9 +137,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
         const searchValue = newInputValue.split(' (')[0];
         setInputValue(newInputValue);
-        
+
         const searchFn = () => performSearch(searchValue);
-        
+
         if (event && event.type === "click") {
             searchFn();
         } else {
@@ -122,19 +162,19 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
     // const handleAddTriplet = () => {
     //     if (!selectedSource || chipData.length >= 5) return;
-        
+
     //     const sourceName = selectedSource[1].split(' (')[0];
     //     let chip_str = `(${sourceName})-[any relationships]-()`;
     //     if (chipData.includes(chip_str)) return;
-        
+
     //     const sourceNode = sourceNodeData.find(node => 
     //         node.name.toLowerCase() === sourceName.toLowerCase() ||
     //         node.aliases.some(alias => alias.toLowerCase() === sourceName.toLowerCase())
     //     );
-        
+
     //     setChipData(prev => [...prev, chip_str]);
     //     setChipDataID(prev => [...prev, [sourceNode, null]]);
-        
+
     //     setSelectedSource(null);
     //     setInputValue("");
     //     setSourceNodeOptions([]);
@@ -143,12 +183,12 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     //         setTripletLimitReached(true);
     //     }
     // };
-    
+
     useEffect(() => {
         // Generate new chipData and chipDataID based on selectedSources
         const newChipData = [];
         const newChipDataID = [];
-    
+
         selectedSources.forEach((source) => {
             const sourceName = source.name || source[1].replace(/\s*\([^)]*\)$/, "").trim(); // Extract source name
             const chip_str = `(${sourceName})-[any relationships]-()`;
@@ -156,7 +196,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                 { database_id: Number(source[0]), name: sourceName },
                 null,
             ];
-    
+
             // Check if the chip already exists in newChipData
             const tripletExists = newChipData.some((chip) => chip === chip_str);
             // console.log('Generated chip_str:', chip_str, 'Exists:', tripletExists); // Debugging log
@@ -166,11 +206,11 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                 newChipDataID.push(sourceNode); // Add to newChipDataID
             }
         });
-    
+
         // Update chipData and chipDataID states
         setChipData(newChipData);
         setChipDataID(newChipDataID);
-    
+
         console.log('Updated chipData:', newChipData);
         console.log('Updated chipDataID:', newChipDataID);
     }, [selectedSources]); // Trigger this effect whenever selectedSources changes
@@ -186,7 +226,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         const updatedChipData = chipData.filter((_, index) => {
             return updatedChipDataID.includes(chipDataID[index]);
         });
-    
+
         // Update chipData and chipDataID if they have changed
         if (updatedChipData.length !== chipData.length) {
             setChipData(updatedChipData);
@@ -194,7 +234,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         if (updatedChipDataID.length !== chipDataID.length) {
             setChipDataID(updatedChipDataID);
         }
-    
+
         console.log('Filtered chipData:', updatedChipData);
         console.log('Filtered chipDataID:', updatedChipDataID);
     }, [selectedSources]); // Trigger this effect whenever selectedSources, chipData, or chipDataID changes
@@ -210,6 +250,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
     // Handle search button click
     const handleSearch = () => {
+        if (!chipData || chipData.length === 0 || !chipDataID || chipDataID.length === 0) {
+            return;
+        }
         const search_data = {
             "triplets": chipData.map((triplet, index) => {
                 const parts = triplet.replace(/{|}/g, "").split("-");
@@ -232,7 +275,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                 "more_rels": moreRel ? "True" : "False",
                 "merge": "True"
             },
-            "sources":selectedSources
+            "sources": selectedSources
         };
         if (props.onSearch) {
             props.onSearch(search_data);
@@ -255,7 +298,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                     const sourceName = triplet.source[1].replace(/[()]/g, '');
                     return `(${sourceName})-[any relationships]-()`;
                 }));
-                
+
                 setChipDataID(initialTriplets.map(triplet => [
                     { database_id: triplet.source[0], name: triplet.source[1].replace(/[()]/g, '') },
                     null
@@ -290,10 +333,10 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                 ];
                 setChipData(prev => [...prev, chip_str]);
                 setChipDataID(prev => [...prev, sourceNode]);
-                    // console.log('ChipdataID is:',sourceNode)
-                    // Add to newSelectedSources
+                // console.log('ChipdataID is:',sourceNode)
+                // Add to newSelectedSources
                 newSelectedSources.push(
-                    [triplet.source[0],sourceName,triplet.source[2]]
+                    [triplet.source[0], sourceName, triplet.source[2]]
                 );
             });
             setSelectedSources(newSelectedSources);
@@ -313,57 +356,72 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     }, [selectedSources]);
 
     return (
-        <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 2, mb: 2 ,ml:0, mr:0,padding:0}}>
-            <Box sx={{ mb: 0, backgroundColor: 'transparent'}}>
+        <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 0, mb: 0, ml: 0, mr: 0, padding: 0, maxWidth: 'none !important' }}>
+            <Box sx={{ mb: 0, backgroundColor: 'transparent' }}>
                 {/* First row with term type and search input */}
-                <Box sx={{ 
-                    display: 'flex', 
-                    gap: 2, 
+                <Box sx={{
+                    display: 'flex',
+                    gap: 2,
                     flexDirection: isSmallScreen ? 'column' : 'row',
-                    backgroundColor: 'white'
+                    backgroundColor: 'white',
+                    borderRadius: '30px',
+                    boxShadow: '8px 6px 33px 0px #D8E6F8',
                 }}>
-                    
+
                     {/* Search Input */}
                     <Box sx={{ flexGrow: 1 }}>
                         <Autocomplete
                             multiple
-                            freeSolo
                             limitTags={5}
                             autoHighlight={true}
                             onInputChange={(event, newInputValue) => {
-                                if(!tripletLimitReached){
-                                setInputValue(newInputValue);
-                                updateSource(event, newInputValue);
+                                if (!tripletLimitReached) {
+                                    setInputValue(newInputValue);
+                                    updateSource(event, newInputValue);
                                 }
                             }}
-                            options={sourceNodeOptions || []}
+                            options={
+                                (ref?.current && focused && inputValue.trim() === '' && selectedSources.length === 0
+                                    ? ExampleOptions
+                                    : sourceNodeOptions
+                                ) || []}
                             filterOptions={(options) => options}
                             filterSelectedOptions={true}
                             groupBy={(option => getDisplayCategory(option[2]))}
                             getOptionLabel={(option) => {
                                 // console.log('Option:', option);
-                                return option[1]}}
+                                return option[1]
+                            }}
                             renderTags={(value, getTagProps) =>
                                 value.map((option, index) => (
                                     <Chip
-                                    key={option.database_id}
-                                    label={option[1].replace(/\s*\([^)]*\)$/, "")}
-                                    size="small"
-                                    {...getTagProps({ index })} // Pass props for chip behavior
-                                />
+                                        key={option.database_id}
+                                        label={option[1].replace(/\s*\([^)]*\)$/, "")}
+                                        size="small"
+                                        {...getTagProps({ index })} // Pass props for chip behavior
+                                    />
                                 ))
                             }
+                            ListboxProps={{
+                                style: {
+                                    maxHeight: "340px",
+                                }
+                            }}
+                            PopperComponent={CustomPopper}
                             renderInput={(params) => (
-                                <TextField 
-                                    {...params} 
-                                    placeholder={ "Start searching with biomedical terms"} // Update placeholder
-                                    variant="outlined" 
+                                <TextField
+                                    {...params}
+                                    placeholder={"Start searching with biomedical terms"} // Update placeholder
+                                    variant="outlined"
                                     sx={{
                                         minHeight: '60px', // Increase the height of the input box
                                         '& .MuiInputBase-root': {
-                                            height: 'auto', // Allow the height to grow dynamically
-                                            minHeight: '60px', 
+                                            height: '60px',
+                                            borderRadius: '30px',
                                             alignItems: 'center', // Center the text vertically
+                                            '& fieldset': {
+                                                border: 'none',
+                                            },
                                         },
                                         '& .MuiOutlinedInput-notchedOutline': {
                                             borderColor: 'grey', // Optional: Customize border color
@@ -372,11 +430,17 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                             paddingRight: "70px!important",
                                         },
                                     }}
-                                    size="small" 
-                                     
+                                    size="small"
+
                                     className="search-autocomplete-box"
                                     InputProps={{
                                         ...params.InputProps,
+                                        startAdornment: (
+                                            <>
+                                                <SearchIcon sx={{ color: '#a1a1a1', marginLeft: '20px', fontSize: '20px' }} />
+                                                {params.InputProps.startAdornment}
+                                            </>
+                                        ),
                                         endAdornment: (
                                             <Box
                                                 sx={{
@@ -385,45 +449,97 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                     gap: 1,
                                                     justifyContent: 'center',
                                                     position: 'absolute',
-                                                    right: 10,
+                                                    right: 0,
                                                     height: '100%', // Ensure alignment with TextField height
                                                 }}
                                             >
                                                 {/* Clear Icon */}
-                                                <CloseIcon
-                                                    onClick={() => {
-                                                        setSelectedSource([]); // Clear sel`ected options
-                                                        setInputValue(''); // Clear input value
+                                                {(inputValue !== "" || selectedSources?.length > 0) && <CloseIcon
+                                                    className="close-button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setInputValue('');
+                                                        setSelectedSources([]);
                                                     }}
                                                     sx={{
                                                         color: 'grey.500',
                                                         cursor: 'pointer',
                                                         fontSize: '20px', // Adjust size as needed 
                                                     }}
-                                                />
+                                                />}
                                                 {/* Search Icon */}
-                                                <SendIcon
-                                                    onClick={handleSearch} // Trigger the search function
-                                                    sx={{
-                                                        color: '#1976d2',
-                                                        cursor: 'pointer',
-                                                        fontSize: '30px', // Adjust size as needed
-                                                    }}
+                                                <SearchButton
+                                                    onClick={handleSearch}
+                                                    disabled={chipData.length === 0 || inputValue !== ''}
                                                 />
                                             </Box>
                                         ),
+
                                     }}
                                 />
                             )}
+                            PaperComponent={({ children }) => (
+                                <Paper
+                                    sx={{
+                                        borderRadius: '16px',
+                                        border: "1.5px solid #E6F0FC",
+                                        boxShadow: 'none',
+                                        marginTop: '5px',
+                                        marginBottom: '5px',
+                                        overflow: 'hidden',
+                                        "& .MuiAutocomplete-option.Mui-focused": {
+                                            backgroundColor: '#F3F5FF !important',
+                                        },
+                                        "& .MuiAutocomplete-option.Mui-focused span.highlight-arrow": {
+                                            color: 'black !important',
+                                        }
+                                    }}
+                                >
+                                    {children}
+                                </Paper>
+                            )}
                             value={selectedSources}
                             inputValue={inputValue}
+                            onFocus={() => setFocused(true)}
+                            onBlur={() => setFocused(false)}
                             onChange={(event, newValue) => {
-                                    setSelectedSources(newValue);
-                                    console.log('New sources:', newValue);
+                                console.log('Selected sources:', newValue);
+                                if (newValue.length === 1) {
+                                    if (typeof newValue[0][0] === 'string' &&
+                                        newValue[0][0]?.startsWith('example_')) {
+                                        console.log('Filled with example:', newValue[0][0]);
+                                        ref.current.fillWithExample(exampleQueries[newValue[0][0].substring(8) || 1]);
+                                        return;
+                                    }
+                                }
+                                setSelectedSources(newValue);
+                                console.log('New sources:', newValue);
                             }}
-                            
+                            renderOption={(props, option) => (
+                                <Box
+                                    component="li"
+                                    {...props}
+                                    sx={{
+                                        minHeight: '36px !important',
+                                        margin: '0px 10px',
+                                        borderRadius: '8px',
+                                        '& .MuiAutocomplete-option.Mui-focused': {
+                                            backgroundColor: '#F3F5FF !important',
+                                        },
+                                    }}
+                                >
+                                    {option[1]}
+                                    <span className={"highlight-arrow"} style={{ color: 'white', marginLeft: 'auto' }}><ArrowOutwardIcon fontSize="small" /></span>
+                                </Box>
+                            )}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && inputValue === '' && selectedSources.length > 0) {
+                                    e.preventDefault();
+                                    handleSearch();
+                                }
+                            }}
                         />
-                        </Box>
+                    </Box>
 
 
                 </Box>

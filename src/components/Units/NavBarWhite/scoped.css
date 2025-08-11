@@ -3,44 +3,103 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.5rem 1rem;
+    font-size: clamp(12px, 2vw, 16px);
     /*background-color: #fff; !* Change this as per your color scheme *!*/
     /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); Optional: for a slight shadow under the nav bar */
     border-bottom: 1px solid #3D739C;
-    background-color: #FFFFFF; /* Changed from #FFFFFF to #4a7298 */
-    height: 70px;
+    background-color: #FFFFFF;
+    /* Changed from #FFFFFF to #4a7298 */
+    height: 80px;
 }
+
 .left-section .logo img {
     height: 90px;
     width: auto;
     margin-right: 1rem;
 }
-.navigation-bar .logo a{
+
+.navigation-bar .logo a {
     font-size: 30px;
-    color: #ffffff; /* Changed from #3D739C to white for better contrast */
+    color: #ffffff;
+    /* Changed from #3D739C to white for better contrast */
     margin-left: 10px;
     align-items: center;
     text-decoration: none;
+    width: 120px;
 }
 
-.navigation-bar .nav-links{
+.navigation-bar .nav-links {
     margin-right: 30px;
-    font-size: 30px;
+    align-items: center;
+}
+
+button:hover {
+    cursor: pointer;
+}
+
+.navigation-bar .nav-link.active {
+    background-color: transparent;
+    border: none;
+    /* Add underline to active links */
+    margin-left: 20px;
+    color: #5D38D2;
+    /* Keep the color for active links */
+    font-weight: 900;
+    /* Make the font heavier */
+    margin-right: 1rem;
+    /* Move the text slightly to the left */
+    margin-top: 1rem;
+}
+
+.navigation-bar .nav-link.nonactive {
+    background-color: transparent;
+    border: none;
+    margin-left: 20px;
+    color: #6E6F84;
+    /* Changed from #3D739C to #ffffff for better contrast */
+    font-weight: 500;
+    /* Change this as per your color scheme */
+    /* Additional styles for the links can go here */
+    margin-right: 1rem;
+    /* Move the text slightly to the left */
+    margin-top: 1rem;
+    /* Move the text slightly down */
 }
 
 .navigation-bar .nav-links a {
+    font-family: 'Inter', sans-serif;
+    background-color: transparent;
     text-decoration: none;
+    font-weight: bold;
     margin-left: 20px;
-    color: #3D739C; /* Changed from #3D739C to #ffffff for better contrast */
-    font-size: 16px;
-    font-weight: 800;
-     /* Change this as per your color scheme */
+    /* Changed from #3D739C to #ffffff for better contrast */
+    /* Change this as per your color scheme */
     /* Additional styles for the links can go here */
-    margin-right: 2rem; /* Move the text slightly to the left */
-    margin-top: 1rem; /* Move the text slightly down */
+    margin-right: 1rem;
+    /* Move the text slightly to the left */
+    margin-top: 1rem;
+    /* Move the text slightly down */
 }
 
-.navigation-bar .nav-links a:hover {
-    color: #e0e0e0; /* Changed from #555 to a light gray for hover effect */
+.navigation-bar .nav-link.active::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: -6px;
+    /* Push the underline lower */
+    width: 120%;
+    /* Longer than the text */
+    height: 3px;
+    /* Thickness */
+    background-color: #5D38D2;
+    border-radius: 2px;
+    /* Optional rounded corners */
+}
+
+.navigation-bar .nav-link.nonactive:hover {
+    color: #5988c2;
+    /* Changed from #555 to a light gray for hover effect */
 }
 
 .beta-link {

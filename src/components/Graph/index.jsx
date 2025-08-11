@@ -1,10 +1,19 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import CytoscapeComponent from 'react-cytoscapejs';
+import './scoped.css';
+
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+
 import Cytoscape from 'cytoscape';
 import cola from 'cytoscape-cola';
 import fcose from 'cytoscape-fcose';
-import './scoped.css'
 import { debounce } from 'lodash';
+import CytoscapeComponent from 'react-cytoscapejs';
 
 Cytoscape.use(fcose);
 Cytoscape.use(cola);
@@ -22,7 +31,7 @@ const arePropsEqual = (prevProps, nextProps) => {
 };
 
 // Wrap the entire Graph component with React.memo
-const Graph = React.memo(function Graph(props) {
+const Graph = forwardRef(function Graph(props, ref) {
   const [width, setWidth] = useState('100%');
   const [height, setHeight] = useState('calc(max(240px,(100vh - 134px)*0.4))');
 
@@ -116,29 +125,19 @@ const Graph = React.memo(function Graph(props) {
       {
         selector: 'node',
         style: {
-          'transition-property': 'width, height, border-width, border-color, background-color',
+          'transition-property': 'width, height, border-width, background-color',
+          'border-opacity': 0.5,
+          'border-width': '0px',
+          'border-color': '#AAD8FF',
           'transition-duration': '0.2s',
           'label': 'data(name)',
           'text-valign': 'center',
           'text-halign': 'right',
           'text-margin-x': 8,
           'color': '#333333',
-          'font-size': '11px',
           'text-max-width': '150px',
-          'text-wrap': 'ellipsis',
+          'text-wrap': 'wrap',
           'font-family': 'Inter',
-        }
-      },
-      {
-        selector: 'node.hover',
-        style: {
-          'border-width': '4px', // Reduced from 6px
-          'border-color': '#AAD8FF',
-          'border-opacity': '0.5',
-          'background-color': '#77828C',
-          'transition-property': 'border-width, border-color, background-color',
-          'transition-duration': '0.15s',
-          'z-index': 999
         }
       },
       {
@@ -208,10 +207,43 @@ const Graph = React.memo(function Graph(props) {
         },
       },
       {
+        selector: 'node:childless',
+        style: {
+          'shape': 'roundrectangle',
+          'width': 'label',
+          'height': '19px',
+          padding: '6px',
+          'text-valign': 'center',
+          'text-halign': 'center',
+          'text-margin-x': 0,
+          'color': '#ffffff',
+          'font-size': '12px',
+          'text-wrap': 'wrap',
+          'text-max-width': '120px',
+          'font-family': 'Inter',
+        }
+      },
+    ];
+
+    const additionalStyleSheet = [
+      {
+        selector: 'node.hover',
+        style: {
+          'border-width': '4px', // Reduced from 6px
+          'border-opacity': '0.5',
+          'transition-property': 'border-width',
+          'transition-duration': '0.15s',
+          'z-index': 999
+        }
+      },
+      {
         selector: 'node.highlight',
         style: {
-          'border-color': '#FFF',
-          'border-width': '1px'
+          'border-width': '10px',
+          'border-opacity': '0.5',
+          'transition-property': 'border-width',
+          'transition-duration': '0.15s',
+          'z-index': 99
         }
       },
       {
@@ -225,24 +257,6 @@ const Graph = React.memo(function Graph(props) {
       {
         selector: 'edge.semitransp',
         style: { 'opacity': '0.2' }
-      },
-      {
-        selector: 'node:childless',
-        style: {
-          'shape': 'roundrectangle',
-          'border-radius': '4px',
-          'width': 'label',
-          'height': '25px',
-          'padding': '10px',
-          'text-valign': 'center',
-          'text-halign': 'center',
-          'text-margin-x': 0,
-          'color': '#ffffff',
-          'font-size': '11px',
-          'text-wrap': 'ellipsis',
-          'text-max-width': '120px',
-          'font-family': 'Inter',
-        }
       },
     ];
 
@@ -260,35 +274,31 @@ const Graph = React.memo(function Graph(props) {
       }
 
       const size = nodeId[2] >= 60 ? 40 : nodeId[2] >= 30 ? 30 : 20;
-      const borderWidth = nodeId[4] === "true" ? '1px' : 0;
-      const borderColor = nodeId[4] === "true" ? 'red' : 'transparent';
-
+      // const borderWidth = nodeId[4] === "true" ? '1px' : 0;
+      // const borderColor = nodeId[4] === "true" ? 'red' : 'transparent';
+      const estimatedWidth = (nodeId[1].length * 10) + 20;
       return {
         selector: `node[id = "${nodeId[0]}"]`,
         style: {
           backgroundColor: labelColor,
           backgroundOpacity: 0.9,
           shape: 'roundrectangle',
-          'corner-radius': '40',
-          borderWidth,
-          borderColor,
-          'min-width': size,
-          'min-height': Math.max(25, size * 0.5),
+          // 'corner-radius': '40',
+          // borderWidth,
+          // borderColor,
+          'min-width': '130px',
           label: nodeId[1],
-          'text-valign': 'center',
           'text-halign': 'center',
+          'text-valign': 'center',
+          'text-margin-x': 0,
           'color': '#000000',
-          'font-size': '22px',
-          'text-wrap': 'ellipsis',
-          'text-max-width': '120px',
-          width: 'label',
-          height: '35px',
-          padding: '10px'
+          'text-wrap': 'wrap',
+          'text-max-width': '100%',
         },
       };
     });
 
-    return [...baseStyleSheet, ...nodeStyles];
+    return [...baseStyleSheet, ...nodeStyles, ...additionalStyleSheet];
   }, []);
 
   // Memoize the node IDs array
@@ -343,21 +353,23 @@ const Graph = React.memo(function Graph(props) {
       const sel = e.target;
 
       // Check if the selection is a Cytoscape element
-      if (sel && sel.isElement && sel.isElement()) {
+      if (sel && sel.isNode) {
         if (sel.isNode() && !sel.hasClass('group-node')) {
-          cy.elements().removeClass('semitransp highlight');
-          cy.elements()
-            .difference(sel.outgoers().union(sel.incomers()))
-            .not(sel)
-            .addClass('semitransp');
-          sel.addClass('highlight')
-            .outgoers()
-            .union(sel.incomers())
-            .addClass('highlight');
+          // cy.elements().removeClass('semitransp highlight');
+          // cy.elements()
+          //   .difference(sel.outgoers().union(sel.incomers()))
+          //   .not(sel)
+          //   .addClass('semitransp');
+          // sel.addClass('highlight')
+          //   .outgoers()
+          //   .union(sel.incomers())
+          //   .addClass('highlight');
+          cy.elements().removeClass('highlight');
+          sel.addClass('highlight');
         }
       } else if (sel === cy) {
         // Clicked on empty canvas
-        cy.elements().removeClass('semitransp highlight');
+        cy.elements().removeClass('highlight');
         props.informationOpen && props.handleInformation();
       }
     };

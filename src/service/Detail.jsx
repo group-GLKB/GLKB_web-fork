@@ -7,7 +7,7 @@ export class DetailService {
         console.log('node to detail')
         let res = []
         await axios
-            .get('/api/frontend/frontend_node_detail/' + nid)
+            .get('https://glkb.dcmb.med.umich.edu/api/frontend/frontend_node_detail/' + nid)
             // .get('/frontend/frontend_node_detail/' + nid)
             .then(function (response) {
                 res = response
@@ -22,7 +22,7 @@ export class DetailService {
         console.log('edge to detail')
         let res = []
         await axios
-            .get('/api/frontend/frontend_rel_detail_mult/' + Source + '/' + Target)
+            .get('https://glkb.dcmb.med.umich.edu/api/frontend/frontend_rel_detail_mult/' + Source + '/' + Target)
             // .get('/frontend/frontend_rel_detail_mult/' + Source + '/' + Target)
             .then(function (response) {
                 res = response
@@ -38,7 +38,7 @@ export class DetailService {
         const queryString = nid.map(id => `nid=${id}`).join('&');
         let res = []
         await axios
-            .get('/api/frontend/frontend_multi_node_detail?' + queryString)
+            .get('https://glkb.dcmb.med.umich.edu/api/frontend/frontend_multi_node_detail?' + queryString)
             // .get('/frontend/frontend_multi_node_detail?' + queryString)
             .then(function (response) {
                 res = response
@@ -56,7 +56,7 @@ export class DetailService {
         const queryString = eid.map(id => `eid=${id}`).join('&');
         let res = []
         await axios
-            .get('/api/frontend/frontend_rel_detail_mult?' + queryString)
+            .get('https://glkb.dcmb.med.umich.edu/api/frontend/frontend_rel_detail_mult?' + queryString)
             // .get('/frontend/frontend_rel_detail_mult?' + queryString)
             .then(function (response) {
                 res = response

@@ -1,65 +1,86 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom';
-import { useLocation } from 'react-router-dom';
-import { CypherService } from '../../service/Cypher'
-import { DetailService } from '../../service/Detail'
 import 'antd/dist/reset.css';
-import { Col, Row, Input, Spin, Tag, Menu, Button, Tooltip, Checkbox } from 'antd';
-import { TweenOneGroup } from 'rc-tween-one';
+import './scoped.css';
 
-import NavBarWhite from '../Units/NavBarWhite'
-import GLKBLogoImg from '../../img/glkb_logo.png'
-import NavBar from '../NavBar';
-import UMLogo from '../../img/um_logo.jpg'
-import queryString from 'query-string'
-import Settings from "../Settings";
-import Graph from "../Graph";
-import Information from '../Information';
-import axios from 'axios'
-import sampleGraphData from './sampleData.json';
-import SearchBarKnowledge from "../Units/SearchBarKnowledge";
-import { FloatButton } from "antd";
-import { InfoCircleOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
-import { styled } from '@mui/material/styles';
-import Joyride, { STATUS } from 'react-joyride';
-import SearchBarNeighborhood from "../Units/SearchBarNeighborhood";
-import { trackEvent } from '../Units/analytics';
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+
+import {
+  Button as AntButton,
+  Spin,
+  Tooltip,
+} from 'antd';
 import { debounce } from 'lodash';
-import { Box, Grid } from '@mui/material';
+import Joyride, { STATUS } from 'react-joyride';
+import {
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
+
+import { InfoCircleOutlined } from '@ant-design/icons';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 //import mui button as muibutton
-import { Button as MUIButton } from '@mui/material';
-import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
-import './scoped.css'
+import {
+  Box,
+  Button as MuiButton,
+  Grid,
+  Typography,
+} from '@mui/material';
 
-const { Search } = Input;
+import downArrow from '../../img/down_arrow.svg';
+import NoResultImage from '../../img/placeholdericon.png';
+import { CypherService } from '../../service/Cypher';
+import Graph from '../Graph';
+import Information from '../Information';
+import { trackEvent } from '../Units/analytics';
+import NavBarWhite from '../Units/NavBarWhite';
+import SearchBarKnowledge from '../Units/SearchBarKnowledge';
+import SearchBarNeighborhood from '../Units/SearchBarNeighborhood';
 
-const StyledButton = styled(Button)(({ theme }) => ({
-    backgroundColor: '#99c7b1',
-    color: 'black',
-    '&:hover': {
-        backgroundColor: '#577265',
-        color: 'black',
-    },
-    '&:focus': {
-        color: 'black',
-    },
-    minWidth: '60px',
-    height: '40px',
-}));
+// const StyledButton = styled(Button)(({ theme }) => ({
+//     backgroundColor: '#99c7b1',
+//     color: 'black',
+//     '&:hover': {
+//         backgroundColor: '#577265',
+//         color: 'black',
+//     },
+//     '&:focus': {
+//         color: 'black',
+//     },
+//     minWidth: '60px',
+//     height: '40px',
+// }));
+
+const LegendTooltipContent = (
+    <div className="legends-tooltip-content">
+        GLKB currently supports the following node types:<br />
+        Gene, ChemicalEntity, DiseaseOrPhenotypicFeature, AnatomicalEntity, SequenceVariant,<br />
+        BiologicalProcessOrActivity, and MeshTerm.<br />
+        <br />
+        Two types of relationships are supported:<br />
+        - Semantic Relationships, which are automatically extracted from PubMed abstracts<br />
+        - Curated Relationships, which are manually annotated from established data repositories.
+    </div>
+);
 
 const ResultPage = () => {
     // const urlParams = new URLSearchParams(window.location.search);
     // const alltags = urlParams.get('data');
     const location = useLocation();
-    const search_data = location.state.search_data;
-    const chipDataID = location.state.chipDataID;
+    const navigate = useNavigate();
+    console.log(location.state);
+    const search_data = location.state?.search_data;
+    const chipDataID = location.state?.chipDataID;
     // const { result } = location.state;
     // console.log(location.state)
     // const otags = alltags.split('|')
-    const otags = ""
-    const [tags, setTags] = useState(otags);
+    // const otags = ""
+    // const [tags, setTags] = useState(otags);
     const [detailId, setDetailId] = useState(null);
-    const [allNodes, setAllNodes] = useState([]);
+    // const [allNodes, setAllNodes] = useState([]);
     const [data, setData] = useState({});
     const [graphData, setGraphData] = useState();
     /* ====== range initialization functions ====== */
@@ -80,6 +101,9 @@ const ResultPage = () => {
         setMaxGtdcNoc(value)
     }
 
+    const searchBarKnowledgeRef = useRef(null);
+
+
     /* ====== range activation functions ====== */
 
     // Genomic Terms Density Control
@@ -88,34 +112,34 @@ const ResultPage = () => {
     const handleGtdcFreq = (range) => {
         setGtdcFreq(range);
     }
-    const handleGtdcFreq1 = (props) => {
-        let value = parseInt(props.target.value);
-        setGtdcFreq([value, gtdcFreq[1]]);
-    }
-    const handleGtdcFreq2 = (props) => {
-        let value = parseInt(props.target.value);
-        setGtdcFreq([gtdcFreq[0], value]);
-    }
+    // const handleGtdcFreq1 = (props) => {
+    //     let value = parseInt(props.target.value);
+    //     setGtdcFreq([value, gtdcFreq[1]]);
+    // }
+    // const handleGtdcFreq2 = (props) => {
+    //     let value = parseInt(props.target.value);
+    //     setGtdcFreq([gtdcFreq[0], value]);
+    // }
 
     // number of citations
     const [gtdcNoc, setGtdcNoc] = useState([0, 0]);
     const handleGtdcNoc = (range) => {
         setGtdcNoc(range);
     }
-    const handleGtdcNoc1 = (props) => {
-        let value = parseInt(props.target.value);
-        setGtdcNoc([value, gtdcNoc[1]]);
-    }
-    const handleGtdcNoc2 = (props) => {
-        let value = parseInt(props.target.value);
-        setGtdcNoc([gtdcNoc[0], value]);
-    }
+    // const handleGtdcNoc1 = (props) => {
+    //     let value = parseInt(props.target.value);
+    //     setGtdcNoc([value, gtdcNoc[1]]);
+    // }
+    // const handleGtdcNoc2 = (props) => {
+    //     let value = parseInt(props.target.value);
+    //     setGtdcNoc([gtdcNoc[0], value]);
+    // }
 
     /* ====== node type ====== */
 
 
-    const [searchFlag, setSearchFlag] = useState(false)
-    const [chipData, setChipData] = useState([]);
+    const [searchFlag, setSearchFlag] = useState(false);
+    // const [chipData, setChipData] = useState([]);
     const [chipDataIDResult, setChipDataIDResult] = useState([]);
     const [informationOpen, setInformationOpen] = useState(true);
     const [graphShownData, setGraphShownData] = useState();
@@ -134,8 +158,8 @@ const ResultPage = () => {
     const informationRef = useRef(null);
 
     // Modify these state variables for caching
-    const [cachedTermGraph, setCachedTermGraph] = useState(null);
-    const [cachedArticleGraph, setCachedArticleGraph] = useState(null);
+    // const [cachedTermGraph, setCachedTermGraph] = useState(null);
+    // const [cachedArticleGraph, setCachedArticleGraph] = useState(null);
 
     const graphContainerRef = useRef(null);
 
@@ -154,10 +178,10 @@ const ResultPage = () => {
             target: '.graph-container-wrapper',
             content: 'This is the main graph visualization area. You can interact with nodes and edges here.',
         },
-        {
-            target: '.graph-control-button',
-            content: 'Switch between biomedical term graph and article graph views.',
-        },
+        // {
+        //     target: '.graph-control-button',
+        //     content: 'Switch between biomedical term graph and article graph views.',
+        // },
         // {
         //     target: '.floating-settings',
         //     content: 'Modify graph visualization and access node and edge summaries here.',
@@ -251,6 +275,8 @@ const ResultPage = () => {
     // Add new state for search content
     const [searchContent, setSearchContent] = useState(null);
 
+
+
     useEffect(() => {
         if (search_data) {
             // Store the initial search content
@@ -262,6 +288,8 @@ const ResultPage = () => {
             } else {
                 handleTripletSearch(search_data);
             }
+        } else {
+            setSearchFlag(true);
         }
     }, [search_data]);
 
@@ -283,10 +311,10 @@ const ResultPage = () => {
             }
 
             const graphData = neighborData[0];  // Contains nodes and edges
-            const nodesList = neighborData[1];  // Contains simplified node list
+            // const nodesList = neighborData[1];  // Contains simplified node list
 
             setData(graphData);
-            setAllNodes(nodesList);
+            // setAllNodes(nodesList);
             setSearchFlag(true);
         } catch (error) {
             console.error('Error fetching neighbor data:', error);
@@ -299,7 +327,7 @@ const ResultPage = () => {
             let cypherServ = new CypherService();
             const response = await cypherServ.Triplet2Cypher(searchData);
             setData(response[0]);
-            setAllNodes(response[1]);
+            // setAllNodes(response[1]);
             setSearchFlag(true);
         } catch (error) {
             console.error('Error fetching triplet data:', error);
@@ -370,29 +398,29 @@ const ResultPage = () => {
         return () => window.removeEventListener('resize', updateGraphPosition);
     }, [isSettingsVisible, isInformationVisible]);
 
-    const initialize = () => {
-        setSearchFlag(false)
-    }
+    // const initialize = () => {
+    //     setSearchFlag(false)
+    // }
 
     // Add new state for storing graph data
-    const [graphForQuestions, setGraphForQuestions] = useState(null);
+    // const [graphForQuestions, setGraphForQuestions] = useState(null);
 
     // Modify the search function to store the graph data
     async function search(content) {
         setSearchFlag(false)
-        setCachedTermGraph(null);
-        setCachedArticleGraph(null);
+        // setCachedTermGraph(null);
+        // setCachedArticleGraph(null);
         setDisplayArticleGraph(false);
 
-        let cypherServ = new CypherService()
-        const response = await cypherServ.Triplet2Cypher(content)
-        console.log('function -> ', response)
-        setData(response[0])
-        setAllNodes(response[1])
+        let cypherServ = new CypherService();
+        const response = await cypherServ.Triplet2Cypher(content);
+        console.log('function -> ', response);
+        setData(response[0]);
+        // setAllNodes(response[1])
         // Store just the graph data, not the entire response
-        setGraphForQuestions(response[0])
-        setCachedTermGraph(response);
-        setSearchFlag(true)
+        // setGraphForQuestions(response[0])
+        // setCachedTermGraph(response);
+        setSearchFlag(true);
     }
 
     useEffect(() => {
@@ -428,7 +456,7 @@ const ResultPage = () => {
                 setSearchFlag(true);
             }
         }
-    }, [graphData, data])
+    }, [graphData, data]);
 
     // Memoize handleSelect
     const handleSelect = useCallback((target) => {
@@ -443,85 +471,85 @@ const ResultPage = () => {
 
     let selectedID;
 
-    async function handleSelectNodeID(targetID) {
-        let temp_id = targetID[0];
-        if (!informationOpen) {
-            handleInformation();
-        }
-        setDetailId(temp_id);
-        selectedID = temp_id;
-    }
+    // async function handleSelectNodeID(targetID) {
+    //     let temp_id = targetID[0];
+    //     if (!informationOpen) {
+    //         handleInformation();
+    //     }
+    //     setDetailId(temp_id);
+    //     selectedID = temp_id;
+    // }
 
-    let nevigate = useNavigate();
+    // let nevigate = useNavigate();
 
-    const handleSearch = async (v) => {
-        initialize()
-        nevigate(`/result?q=${v}`)
-        search(v)
-    }
+    // const handleSearch = async (v) => {
+    //     initialize()
+    //     nevigate(`/result?q=${v}`)
+    //     search(v)
+    // }
 
     const handleInformation = () => {
         setInformationOpen(!informationOpen);
     };
     // console.log(graphShownData)
 
-    const toggleSettings = () => {
-        setIsSettingsVisible(!isSettingsVisible);
-    };
+    // const toggleSettings = () => {
+    //     setIsSettingsVisible(!isSettingsVisible);
+    // };
 
-    const toggleInformation = () => {
-        setIsInformationVisible(!isInformationVisible);
-    };
+    // const toggleInformation = () => {
+    //     setIsInformationVisible(!isInformationVisible);
+    // };
 
-    const [isGraphLoading, setIsGraphLoading] = useState(false);
+    //const [isGraphLoading, setIsGraphLoading] = useState(false);
 
-    const changeLeftPanel = async () => {
-        trackEvent('Graph', 'Change Graph Type',
-            displayArticleGraph ? 'Term Graph' : 'Article Graph'
-        );
+    // const changeLeftPanel = async () => {
+    //     trackEvent('Graph', 'Change Graph Type',
+    //         displayArticleGraph ? 'Term Graph' : 'Article Graph'
+    //     );
 
-        setIsGraphLoading(true);
+    //     setIsGraphLoading(true);
 
-        try {
-            if (!displayArticleGraph) {
-                setDisplayArticleGraph(true);
-                setDetailId(null);
-                await entityToArticle(data);
-            } else {
-                setDisplayArticleGraph(false);
-                setDetailId(null);
-                // Pass the original search content when switching back
-                await articleToEntity(searchContent);
-            }
-        } finally {
-            setIsGraphLoading(false);
-        }
-    }
+    //     try {
+    //         if (!displayArticleGraph) {
+    //             setDisplayArticleGraph(true);
+    //             setDetailId(null);
+    //             await entityToArticle(data);
+    //         } else {
+    //             setDisplayArticleGraph(false);
+    //             setDetailId(null);
+    //             // Pass the original search content when switching back
+    //             await articleToEntity(searchContent);
+    //         }
+    //     } finally {
+    //         setIsGraphLoading(false);
+    //     }
+    // }
 
-    async function entityToArticle(content) {
-        if (cachedArticleGraph) {
-            setData(cachedArticleGraph);
-        } else {
-            let cypherServ = new CypherService()
-            const response = await cypherServ.Term2Article(content)
-            console.log('Term2Article -> ', response)
-            setData(response)
-            setCachedArticleGraph(response);
-        }
-    }
+    // async function entityToArticle(content) {
+    //     if (cachedArticleGraph) {
+    //         setData(cachedArticleGraph);
+    //     } else {
+    //         let cypherServ = new CypherService()
+    //         const response = await cypherServ.Term2Article(content)
+    //         console.log('Term2Article -> ', response)
+    //         setData(response)
+    //         setCachedArticleGraph(response);
+    //     }
+    // }
 
-    async function articleToEntity(content) {
-        if (searchType === 'neighbor') {
-            handleNeighborSearch(content);
-        } else {
-            if (cachedTermGraph) {
-                setData(cachedTermGraph[0]);
-                setAllNodes(cachedTermGraph[1]);
-            } else {
-                search(content);
-            }
-        }
-    }
+    // async function articleToEntity(content) {
+    //     if (searchType === 'neighbor') {
+    //         handleNeighborSearch(content);
+    //     } else {
+    //         if (cachedTermGraph) {
+    //             setData(cachedTermGraph[0]);
+    //             setAllNodes(cachedTermGraph[1]);
+    //         } else {
+    //             search(content);
+    //         }
+    //     }
+    // }
 
     const expandInformation = () => {
         setIsInformationVisible(true);
@@ -563,22 +591,22 @@ const ResultPage = () => {
     };
 
     // Add legend-related state and functions
-    const [uniqueLabelsSet, setUniqueLabelsSet] = useState(new Set());
-    const [uniqueEdgeLabelsSet, setUniqueEdgeLabelsSet] = useState(new Set());
+    // const [uniqueLabelsSet, setUniqueLabelsSet] = useState(new Set());
+    // const [uniqueEdgeLabelsSet, setUniqueEdgeLabelsSet] = useState(new Set());
     const [uniqueLabelsArray, setUniqueLabelsArray] = useState([]);
     const [uniqueEdgeLabelsArray, setUniqueEdgeLabelsArray] = useState([]);
     const [boolValues, setBoolValues] = useState({});
-    const [boolEdgeValues, setBoolEdgeValues] = useState({});
+    // const [boolEdgeValues, setBoolEdgeValues] = useState({});
 
     useEffect(() => {
         if (data.edges) {
             const edgeLabelsSet = new Set(data.edges.map(edge => edge.data.label));
-            setUniqueEdgeLabelsSet(edgeLabelsSet);
+            // setUniqueEdgeLabelsSet(edgeLabelsSet);
             setUniqueEdgeLabelsArray([...edgeLabelsSet]);
         }
         if (data.nodes) {
             const labelsSet = new Set(data.nodes.map(node => node.data.label));
-            setUniqueLabelsSet(labelsSet);
+            // setUniqueLabelsSet(labelsSet);
             setUniqueLabelsArray([...labelsSet]);
         }
     }, [data]);
@@ -600,7 +628,7 @@ const ResultPage = () => {
             });
 
             setBoolValues(newBoolValues);
-            setBoolEdgeValues(newBoolEdgeValues);
+            // setBoolEdgeValues(newBoolEdgeValues);
         }
     }, [graphShownData, uniqueLabelsArray, uniqueEdgeLabelsArray]);
 
@@ -628,58 +656,39 @@ const ResultPage = () => {
         }
     };
 
-    const LegendItem = ({ label, size, color, explanation }) => {
-        const isQueryTerms = label === 'query terms';
-        const isRelationship = label.includes("relationship");
-
+    const LegendItem = ({ label, size, color }) => {
         return (
             <div className="legend-item">
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '10px'
+                    gap: '2px'
                 }}>
-                    {isRelationship ? (
-                        <div style={{
-                            width: "30px",
-                            height: "0",
-                            borderBottom: size,
-                            borderColor: color,
-                            marginRight: '10px',
-                            marginLeft: '5px',
-                        }}></div>
-                    ) : (
-                        <div className="legend-circle" style={{
-                            backgroundColor: color,
-                            width: size,
-                            height: size,
-                            marginLeft: size === 5 ? "6px" : size === 10 ? "4px" : "0"
-                        }}></div>
-                    )}
-                    <div className="legend-label" style={{ marginLeft: '5px' }}>
+                    <div style={{
+                        width: "30px",
+                        height: "0",
+                        borderBottom: size,
+                        borderColor: color,
+                        marginLeft: '5px',
+                    }}></div>
+                    <div className="legend-label">
                         {label}
-                        {isRelationship && (
-                            <Tooltip title={explanation}>
-                                <InfoCircleOutlined style={{ marginLeft: '8px', color: '#1890ff', marginRight: "5px" }} />
-                            </Tooltip>
-                        )}
                     </div>
+                    <div style={{
+                        width: "30px",
+                        height: "0",
+                        borderBottom: size,
+                        borderColor: color,
+                        marginRight: '5px',
+                    }}></div>
                 </div>
-                {!isRelationship && !isQueryTerms && (
-                    <Checkbox
-                        value={label}
-                        checked={boolValues[label]}
-                        onChange={onChangeNode}
-                        style={{ marginLeft: 'auto' }}
-                    />
-                )}
             </div>
         );
     };
 
     const LegendButton = ({ label, size, color, explanation }) => {
         return (
-            <MUIButton variant="contained" onClick={(e) => { /*onChangeNode(e, label, boolValues[label])*/ }} sx={{
+            <MuiButton variant="contained" onClick={(e) => { /*onChangeNode(e, label, boolValues[label])*/ }} sx={{
                 backgroundColor: boolValues[label] ? color : '#fff',
                 boxShadow: "none",
                 ":hover": {
@@ -690,13 +699,14 @@ const ResultPage = () => {
                 borderRadius: '16px',
                 border: boolValues[label] ? 'solid 2px transparent' : 'solid 2px #ccc',
                 height: '39px',
+                fontWeight: 'normal',
                 padding: '9px 9px',
                 fontSize: '14px',
                 lineHeight: '1.5',
                 letterSpacing: '0.15px',
             }}>
                 {label}
-            </MUIButton>);
+            </MuiButton>);
     };
 
     const legendDataAll = [
@@ -711,20 +721,20 @@ const ResultPage = () => {
     ];
 
     const edgeDataAll = [
-        { label: 'Semantic_relationship', size: 'solid 2px', color: 'black', explanation: 'Relationships extracted from PubMed abstracts.' },
-        { label: 'Curated_relationship', size: 'dashed 2px', color: 'black', explanation: 'Manually annotated relationships from data repositories.' },
-        { label: 'Hierarchical_relationship', size: 'dotted 2px', color: 'black', explanation: 'Relationships that represent a hierarchy.' },
+        { label: 'Semantic Relationship', key: 'Semantic_relationship', size: 'solid 2px', color: 'black', explanation: 'Relationships extracted from PubMed abstracts.' },
+        { label: 'Curated Relationship', key: 'Curated_relationship', size: 'dashed 2px', color: 'black', explanation: 'Manually annotated relationships from data repositories.' },
+        { label: 'Hierarchical Relationship', key: 'Hierarchical_relationship', size: 'dotted 2px', color: 'black', explanation: 'Relationships that represent a hierarchy.' },
     ];
 
     const legendData = legendDataAll.filter(item => uniqueLabelsArray.includes(item.label));
-    const legendEdgeData = edgeDataAll.filter(item => uniqueEdgeLabelsArray.includes(item.label));
+    const legendEdgeData = edgeDataAll.filter(item => uniqueEdgeLabelsArray.includes(item.key));
 
     // const [isLegendVisible, setIsLegendVisible] = useState(true);
 
     // const toggleLegend = () => {
     //     setIsLegendVisible(!isLegendVisible);
     // };
-
+    const [isLegendVisible, setLegendVisible] = useState(true);
     return (
         <div className="result-container" ref={containerRef}>
             <Joyride
@@ -754,329 +764,416 @@ const ResultPage = () => {
             <div className="navbar-wrapper">
                 <NavBarWhite />
             </div>
-            <div className="search-bar-container">
-                <div className="search-bar-wrapper" >
-                    {searchType === 'neighbor' ? (
-                        <SearchBarNeighborhood
-                            initialContent={searchContent} // Pass initial content
-                            onSearch={(data) => {
-                                setSearchContent(data); // Update stored content
-                                setSearchFlag(false);
-                                handleNeighborSearch(data);
-                            }}
-                        />
-                    ) : (
-                        <SearchBarKnowledge
-                            initialContent={searchContent} // Pass initial content
-                            chipData={chipData}
-                            chipDataIDResult={chipDataIDResult}
-                            displayArticleGraph={displayArticleGraph}
-                            setDisplayArticleGraph={setDisplayArticleGraph}
-                            onSearch={(data) => {
-                                setSearchContent(data); // Update stored content
-                                search(data);
-                            }}
-                        />
-                    )}
-                </div>
-                {(
-                    <div className="graph-controls">
-                        <Button
-                            onClick={startTour}
-                            className="start-tour-button"
-                            disabled={!searchFlag || isGraphLoading}
-                        >
-                            <InfoCircleOutlined style={{ fontSize: "30px", color: "#8D8D8D" }} />
-                        </Button>
-                    </div>
-                )}
-            </div>
-            <div className='main-content' style={{ minHeight: "unset", height: "100%", paddingTop: "160px" }}>
-                {(!searchFlag || isGraphLoading) && (
-                    <div className='loading-container'>
-                        <Spin size='large' />
-                    </div>
-                )}
-                {searchFlag && !isGraphLoading && (
-                    <div className='result-content' style={{ paddingTop: "0px" }}>
-                        <div className='result-container-wrapper'>
-                            <Box sx={{
-                                // display: 'flex',
-                                // flexDirection: 'row',
-                                // width: '100%',
-                                paddingTop: "20px",
-                                paddingBottom: "20px",
-                                height: '100%',
-                                // justifyContent: 'center',
-                                // alignItems: 'center',
-                                maxWidth: '1200px',
-                                marginLeft: '20px',
-                                marginRight: '20px',
-                                flexDirection: 'row',
-                                flexGrow: 1,
-                            }}>
-                                {/* Left */}
-                                <Grid container spacing={2} height={"100%"}>
-                                    <Grid item xs={6} height={"100%"}>
+            <Box sx={{ width: '100%', marginTop: '40px' }}>
+                <Grid className="main-grid" container sx={{ width: "unset" }} >
+                    <Grid item xs={12} className="subgrid">
+                        <MuiButton variant="text" sx={{
+                            color: '#333333',
+                            alignSelf: 'flex-start',
+                            zIndex: 1,
+                            borderRadius: '24px',
+                            transform: 'translateY(-10px)',
+                        }}
+                            onClick={() => navigate('/')}>
+                            <ArrowBackIcon />Back
+                        </MuiButton>
+                        <div className="search-bar-container" >
+                            <div className="search-bar-wrapper" >
+                                {searchType === 'neighbor' ? (
+                                    <SearchBarNeighborhood
+                                        initialContent={searchContent} // Pass initial content
+                                        onSearch={(data) => {
+                                            setSearchContent(data); // Update stored content
+                                            setSearchFlag(false);
+                                            handleNeighborSearch(data);
+                                        }}
+                                    />
+                                ) : (
+                                    <SearchBarKnowledge
+                                        ref={searchBarKnowledgeRef}
+                                        initialContent={searchContent} // Pass initial content
+                                        chipData={[]}
+                                        chipDataIDResult={chipDataIDResult}
+                                        displayArticleGraph={displayArticleGraph}
+                                        setDisplayArticleGraph={setDisplayArticleGraph}
+                                        onSearch={(data) => {
+                                            // setSearchContent(data); // Update stored content
+                                            // search(data);
+                                            window.location.reload();
+                                            navigate('/result', {
+                                                state: {
+                                                    search_data: data,
+                                                    searchType: 'triplet',
+                                                }
+                                            });
+                                        }}
+                                    />
+                                )}
+                            </div>
+                            {/* <div className="graph-controls">
+                                <Button
+                                    onClick={startTour}
+                                    className="start-tour-button"
+                                    disabled={!searchFlag || isGraphLoading}
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                        border: 'none',
+                                        marginLeft: "1vw",
+                                        marginRight: "0.5vw"
+                                    }}
+                                >
+                                    <InfoCircleOutlined style={{ fontSize: "30px", color: "#8D8D8D" }} />
+                                </Button>
+                            </div> */}
+                        </div>
+                    </Grid>
+                    <Grid item xs={12}>
+                        <div className='main-content' style={{ minHeight: "unset", height: "100%" }}>
+                            {(!searchFlag) && (
+                                <div className='loading-container'>
+                                    <Spin size='large' />
+                                </div>
+                            )}
+                            {searchFlag && (
+                                <div className='result-content' style={{ paddingTop: "36px" }}>
+                                    <div className='result-container-wrapper'>
                                         <Box sx={{
-                                            borderRadius: "30px",
+                                            // display: 'flex',
+                                            // flexDirection: 'row',
                                             // width: '100%',
-                                            height: "100%",
-                                            //minHeight: "600px",
-                                            bgcolor: "white",
-                                            position: 'relative',
-                                            boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
-                                            marginLeft: "1%",
-                                            marginRight: "1%",
-                                            marginTop: "20px",
-                                            overflow: 'hidden',
-                                        }} className="graph-container-wrapper">
-                                            <Tooltip title={getButtonTooltip()} className="graph-control-button-container">
-                                                <span>
-                                                    {/* <StyledButton
-                                                onClick={changeLeftPanel}
-                                                variant="contained"
-                                                startIcon={displayArticleGraph ? <ApartmentOutlined /> : <FileTextOutlined />}
-                                                className="graph-control-button"
-                                                disabled={totalNodeCount > NODE_LIMIT && !displayArticleGraph}
-                                            >
-                                                {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
-                                            </StyledButton> */}
-                                                    <MUIButton
-                                                        onClick={changeLeftPanel}
-                                                        variant="contained"
-                                                        className="graph-control-button"
-                                                        disabled={totalNodeCount > NODE_LIMIT && !displayArticleGraph}
-                                                        startIcon={<SwapHorizIcon />}
-                                                        sx={{
-                                                            backgroundColor: '#F5F9FD',
-                                                            color: 'black',
-                                                            '&:hover': {
-                                                                backgroundColor: '#F7FBFF',
-                                                                color: 'black',
-                                                            },
-                                                            '&:focus': {
-                                                                color: 'black',
-                                                            },
-                                                            minWidth: '40px',
-                                                            height: '25px',
-                                                            fontSize: '16px',
-                                                            fontWeight: 400,
-                                                            letterSpacing: '0px',
-                                                            boxShadow: 'none',
-                                                            cornerRadius: '8px',
-                                                        }}>
-                                                        {displayArticleGraph ? "Biomedical term graph" : "Article graph"}
-                                                    </MUIButton>
-                                                </span>
-                                            </Tooltip>
-                                            <Box sx={{
-                                                width: '100%',
-                                                height: '50%',
-                                            }}>
-                                                <div className="graph-container" style={{
-                                                    position: 'relative',
-                                                    width: '100%',
-                                                    height: '100%',
-                                                    overflow: 'hidden'
-                                                }}>
-                                                    {graphShownData && (graphShownData.nodes?.length === 0 || !graphShownData.nodes) ? (
-                                                        <div className="empty-graph-message" style={{
-                                                            position: 'absolute',
-                                                            top: '50%',
-                                                            left: '50%',
-                                                            transform: 'translate(-50%, -50%)',
-                                                            textAlign: 'center',
-                                                            color: '#666'
-                                                        }}>
-                                                            <h2>No Results Found</h2>
-                                                            <p>Try modifying your search criteria or adjusting the filters.</p>
-                                                        </div>
-                                                    ) : (
-                                                        <Graph
-                                                            data={graphShownData}
-                                                            selectedID={selectedID}
-                                                            minGtdcFreq={minGtdcFreq}
-                                                            maxGtdcFreq={maxGtdcFreq}
-                                                            minGtdcNoc={minGtdcNoc}
-                                                            maxGtdcNoc={maxGtdcNoc}
-                                                            gtdcFreq={gtdcFreq}
-                                                            handleGtdcFreq={handleGtdcFreq}
-                                                            handleMinGtdcFreq={handleMinGtdcFreq}
-                                                            handleMaxGtdcFreq={handleMaxGtdcFreq}
-                                                            gtdcNoc={gtdcNoc}
-                                                            handleGtdcNoc={handleGtdcNoc}
-                                                            handleMinGtdcNoc={handleMinGtdcNoc}
-                                                            handleMaxGtdcNoc={handleMaxGtdcNoc}
-                                                            handleSelect={handleSelect}
-                                                            handleInformation={handleInformation}
-                                                            informationOpen={informationOpen}
-                                                            expandInformation={expandInformation}
-                                                            className="graph"
-                                                            ref={graphContainerRef}
-                                                            style={{
-                                                                width: '100%',
-                                                                height: '100%'
-                                                            }}
-                                                        />
-                                                    )}
-                                                </div>
-                                            </Box>
-                                            <Box sx={{
-                                                // width: '100%',
-                                                // height: '50%',
-                                                // position: 'relative',
-                                                // left: '0',
-                                            }}>
-                                                <div className="graph-legend">
-                                                    <div className="legend-section">
-                                                        <div className="legend-subsection">
-                                                            <div className="legend-subtitle">Legends</div>
-                                                            <div className="legend-column">
-                                                                {legendData.map((item, index) => (
-                                                                    <LegendButton
-                                                                        key={index}
-                                                                        label={item.label}
-                                                                        size={item.size}
-                                                                        color={item.color}
-                                                                    />
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                        <div className="legend-subsection">
-                                                            <div className="legend-row">
-                                                                {legendEdgeData.map((item, index) => (
-                                                                    <LegendItem
-                                                                        key={index}
-                                                                        label={item.label}
-                                                                        size={item.size}
-                                                                        color={item.color}
-                                                                        explanation={item.explanation}
-                                                                    />
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </Box>
-                                        </Box>
-                                    </Grid>
-                                    <Grid item xs={6} height={"100%"}>
-                                        <Box sx={{
-                                            borderRadius: "30px",
-                                            height: "100%",
-                                            //minHeight: "600px",
-                                            bgcolor: "white",
+                                            // paddingTop: "20px",
                                             paddingBottom: "20px",
-                                            marginLeft: "1%",
-                                            marginRight: "1%",
-                                            marginTop: "20px",
-                                            boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
-                                            '& *': {
-                                                fontFamily: "Inter !important",
-                                            },
+                                            height: '100%',
+                                            // justifyContent: 'center',
+                                            // alignItems: 'center',
+                                            // maxWidth: '1200px',
+                                            // marginLeft: '20px',
+                                            // marginRight: '20px',
+                                            flexDirection: 'row',
+                                            flexGrow: 1,
+                                        }}>
+                                            <Grid container spacing={'48px'} height={"calc(100% + 48px)"}>
+                                                {/* Left */}
+                                                <Grid item xs={6} height={"100%"}>
+                                                    <Box sx={{
+                                                        borderRadius: "20px",
+                                                        //width: '100%',
+                                                        height: "100%",
+                                                        //minHeight: "600px",
+                                                        bgcolor: "white",
+                                                        position: 'relative',
+                                                        // boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
+                                                        // marginLeft: "1%",
+                                                        // marginRight: "1%",
+                                                        // marginTop: "20px",
+                                                        overflow: 'hidden',
+                                                    }} className="graph-container-wrapper">
+                                                        <Tooltip title={getButtonTooltip()} className="graph-control-button-container">
+                                                            <span>
+                                                                {/* <StyledButton
+                                                            onClick={changeLeftPanel}
+                                                            variant="contained"
+                                                            startIcon={displayArticleGraph ? <ApartmentOutlined /> : <FileTextOutlined />}
+                                                            className="graph-control-button"
+                                                            disabled={totalNodeCount > NODE_LIMIT && !displayArticleGraph}
+                                                        >
+                                                            {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
+                                                        </StyledButton> */}
+                                                                {/* <MuiButton
+                                                                    onClick={changeLeftPanel}
+                                                                    variant="contained"
+                                                                    className="graph-control-button"
+                                                                    disabled={totalNodeCount > NODE_LIMIT && !displayArticleGraph}
+                                                                    startIcon={<SwapHorizIcon />}
+                                                                    sx={{
+                                                                        backgroundColor: '#F5F9FD',
+                                                                        color: 'black',
+                                                                        '&:hover': {
+                                                                            backgroundColor: '#F7FBFF',
+                                                                            color: 'black',
+                                                                        },
+                                                                        '&:focus': {
+                                                                            color: 'black',
+                                                                        },
+                                                                        minWidth: '40px',
+                                                                        height: '25px',
+                                                                        fontSize: '16px',
+                                                                        fontWeight: 400,
+                                                                        letterSpacing: '0px',
+                                                                        boxShadow: 'none',
+                                                                        cornerRadius: '8px',
+                                                                    }}>
+                                                                    {displayArticleGraph ? "Biomedical term graph" : "Article graph"}
+                                                                </MuiButton> */}
+                                                            </span>
+                                                        </Tooltip>
+                                                        {!graphShownData?.nodes?.length ?
+                                                            <Box sx={{
+                                                                display: 'flex',
+                                                                justifyContent: 'center',
+                                                                flexDirection: 'column',
+                                                                alignItems: 'center',
+                                                                height: '100%',
+                                                                fontSize: '20px',
+                                                                color: '#888888',
+                                                            }}>
+                                                                <Box
+                                                                    component="img"
+                                                                    src={NoResultImage}
+                                                                    alt="No results"
+                                                                    sx={{
+                                                                        width: '100px',
+                                                                        height: '100px',
+                                                                        marginBottom: '4px',
+                                                                    }}
+                                                                />
+                                                                <Typography sx={{
+                                                                    fontFamily: 'Inter, sans-serif',
+                                                                    fontSize: '14px',
+                                                                    fontWeight: 400,
+                                                                }}
+                                                                >
+                                                                    Start searching to view relationship graph
+                                                                </Typography>
+                                                            </Box> :
+                                                            <>
+                                                                <Box sx={{
+                                                                    width: '100%',
+                                                                    height: isLegendVisible ? 'calc(100% - 175px)' : '85%',
+                                                                }}>
+                                                                    <div className="graph-container" style={{
+                                                                        position: 'relative',
+                                                                        width: '100%',
+                                                                        height: '100%',
+                                                                        overflow: 'hidden'
+                                                                    }}>
+                                                                        <Graph
+                                                                            data={graphShownData}
+                                                                            selectedID={selectedID}
+                                                                            minGtdcFreq={minGtdcFreq}
+                                                                            maxGtdcFreq={maxGtdcFreq}
+                                                                            minGtdcNoc={minGtdcNoc}
+                                                                            maxGtdcNoc={maxGtdcNoc}
+                                                                            gtdcFreq={gtdcFreq}
+                                                                            handleGtdcFreq={handleGtdcFreq}
+                                                                            handleMinGtdcFreq={handleMinGtdcFreq}
+                                                                            handleMaxGtdcFreq={handleMaxGtdcFreq}
+                                                                            gtdcNoc={gtdcNoc}
+                                                                            handleGtdcNoc={handleGtdcNoc}
+                                                                            handleMinGtdcNoc={handleMinGtdcNoc}
+                                                                            handleMaxGtdcNoc={handleMaxGtdcNoc}
+                                                                            handleSelect={handleSelect}
+                                                                            handleInformation={handleInformation}
+                                                                            informationOpen={informationOpen}
+                                                                            expandInformation={expandInformation}
+                                                                            className="graph"
+                                                                            ref={graphContainerRef}
+                                                                            style={{
+                                                                                width: '100%',
+                                                                                height: '100%'
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                </Box>
+                                                                <Box sx={{
+                                                                    // width: '100%',
+                                                                    // height: '50%',
+                                                                    // position: 'relative',
+                                                                    // left: '0',
+                                                                }}>
+                                                                    <div className="graph-legend">
+                                                                        <div className="legend-section">
+                                                                            <div className="legend-subsection">
+                                                                                <div className="legend-subtitle-row">
+                                                                                    <div className="legend-subtitle">Legends</div>
+                                                                                    <Tooltip title={LegendTooltipContent} styles={{ root: { maxWidth: '380px' }, body: { fontSize: '16px' } }}>
+                                                                                        <InfoCircleOutlined style={{ color: '#1890ff' }} />
+                                                                                    </Tooltip>
+                                                                                    <button
+                                                                                        className="toggle-button"
+                                                                                        onClick={() => setLegendVisible(!isLegendVisible)}
+                                                                                    >
+                                                                                        <img
+                                                                                            src={downArrow}
+                                                                                            alt="Toggle legend"
+                                                                                            className="legend-toggle-icon"
+                                                                                            style={isLegendVisible ? {} : { transform: 'rotate(180deg)' }}
+                                                                                        />
+                                                                                    </button>
+                                                                                </div>
 
-                                        }} className="floating-information-new">
-                                            <Information
-                                                isOpen={informationOpen}
-                                                toggleSidebar={handleInformation}
-                                                detailId={detailId}
-                                                displayArticleGraph={displayArticleGraph}
-                                            />
+                                                                                {isLegendVisible && (
+                                                                                    <div>
+                                                                                        <div className="legend-column">
+                                                                                            {legendData.map((item, index) => (
+                                                                                                <LegendButton
+                                                                                                    key={index}
+                                                                                                    label={item.label}
+                                                                                                    size={item.size}
+                                                                                                    color={item.color}
+                                                                                                />
+                                                                                            ))}
+                                                                                        </div>
+                                                                                        <div className="legend-column">
+                                                                                            {legendEdgeData.map((item, index) => (
+                                                                                                <LegendItem
+                                                                                                    key={index}
+                                                                                                    label={item.label}
+                                                                                                    size={item.size}
+                                                                                                    color={item.color}
+                                                                                                />
+                                                                                            ))}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+
+                                                                        </div>
+                                                                    </div>
+                                                                </Box>
+                                                            </>
+                                                        }
+                                                    </Box>
+                                                </Grid>
+                                                {/* Right */}
+                                                <Grid item xs={6} height={"100%"}>
+                                                    <Box sx={{
+                                                        borderRadius: "20px",
+                                                        height: "100%",
+                                                        //minHeight: "600px",
+                                                        bgcolor: "white",
+                                                        paddingBottom: "20px",
+                                                        // marginLeft: "1%",
+                                                        // marginRight: "1%",
+                                                        // marginTop: "20px",
+                                                        // boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
+                                                        '& *': {
+                                                            fontFamily: "Inter !important",
+                                                        },
+
+                                                    }} className="floating-information-new">
+                                                        <Information
+                                                            isOpen={informationOpen}
+                                                            toggleSidebar={handleInformation}
+                                                            detailId={detailId}
+                                                            displayArticleGraph={displayArticleGraph}
+                                                        />
+                                                    </Box>
+                                                </Grid>
+                                            </Grid>
                                         </Box>
-                                    </Grid>
-                                </Grid>
-                            </Box>
 
 
-                        </div>
+                                    </div>
 
-                        {/* <Button
-                            className="legend-toggle-button"
-                            onClick={toggleLegend}
-                            icon={isLegendVisible ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
-                        >
-                            Legend
-                        </Button> */}
-                        {/* <div ref={settingsRef} className={`floating-settings ${isSettingsVisible ? 'open' : ''}`} style={{ width: settingsWidth, minWidth: '400px', display: 'none' }}>
-                            <Settings
-                                minGtdcFreq={minGtdcFreq}
-                                maxGtdcFreq={maxGtdcFreq}
-                                minGtdcNoc={minGtdcNoc}
-                                maxGtdcNoc={maxGtdcNoc}
-                                gtdcFreq={gtdcFreq}
-                                handleGtdcFreq={handleGtdcFreq}
-                                handleGtdcFreq1={handleGtdcFreq1}
-                                handleGtdcFreq2={handleGtdcFreq2}
-                                gtdcNoc={gtdcNoc}
-                                handleGtdcNoc={handleGtdcNoc}
-                                handleGtdcNoc1={handleGtdcNoc1}
-                                handleGtdcNoc2={handleGtdcNoc2}
-                                data={data}
-                                allNodes={allNodes}
-                                graphShownData={graphShownData}
-                                setData={setData}
-                                setGraphData={setGraphData}
-                                handleSelectNodeID={handleSelectNodeID}
-                                search={search}
-                                search_data={search_data}
-                                displayArticleGraph={displayArticleGraph}
-                                setDisplayArticleGraph={setDisplayArticleGraph}
-                                setDetailId={setDetailId}
-                                onClose={() => setIsSettingsVisible(false)}
-                                width={settingsWidth}
-                                graphForQuestions={graphForQuestions}
-                            />
+                                    {/* <Button
+                                        className="legend-toggle-button"
+                                        onClick={toggleLegend}
+                                        icon={isLegendVisible ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
+                                    >
+                                        Legend
+                                    </Button> */}
+                                    {/* <div ref={settingsRef} className={`floating-settings ${isSettingsVisible ? 'open' : ''}`} style={{ width: settingsWidth, minWidth: '400px', display: 'none' }}>
+                                        <Settings
+                                            minGtdcFreq={minGtdcFreq}
+                                            maxGtdcFreq={maxGtdcFreq}
+                                            minGtdcNoc={minGtdcNoc}
+                                            maxGtdcNoc={maxGtdcNoc}
+                                            gtdcFreq={gtdcFreq}
+                                            handleGtdcFreq={handleGtdcFreq}
+                                            handleGtdcFreq1={handleGtdcFreq1}
+                                            handleGtdcFreq2={handleGtdcFreq2}
+                                            gtdcNoc={gtdcNoc}
+                                            handleGtdcNoc={handleGtdcNoc}
+                                            handleGtdcNoc1={handleGtdcNoc1}
+                                            handleGtdcNoc2={handleGtdcNoc2}
+                                            data={data}
+                                            allNodes={allNodes}
+                                            graphShownData={graphShownData}
+                                            setData={setData}
+                                            setGraphData={setGraphData}
+                                            handleSelectNodeID={handleSelectNodeID}
+                                            search={search}
+                                            search_data={search_data}
+                                            displayArticleGraph={displayArticleGraph}
+                                            setDisplayArticleGraph={setDisplayArticleGraph}
+                                            setDetailId={setDetailId}
+                                            onClose={() => setIsSettingsVisible(false)}
+                                            width={settingsWidth}
+                                            graphForQuestions={graphForQuestions}
+                                        />
+                                    </div>
+                                    <div ref={informationRef} className={`floating-information ${isInformationVisible ? 'open' : ''}`} style={{ minWidth: '400px', display: 'none' }}>
+                                        <Information
+                                            isOpen={informationOpen}
+                                            toggleSidebar={handleInformation}
+                                            detailId={detailId}
+                                            displayArticleGraph={displayArticleGraph}
+                                        />
+                                    </div>
+                                    <FloatButton
+                                        style={{ display: 'none' }}
+                                        icon={isSettingsVisible ?
+                                            <MenuFoldOutlined
+                                                style={{
+                                                    color: '#4a7298',
+                                                    fontSize: 16,
+                                                }}
+                                            /> :
+                                            <MenuUnfoldOutlined
+                                                style={{
+                                                    color: '#4a7298',
+                                                    fontSize: 16,
+                                                }}
+                                            />
+                                        }
+                                        onClick={toggleSettings}
+                                        className={`settings-float-button ${!isSettingsVisible ? 'collapsed' : ''}`}
+                                    />
+                                    <FloatButton
+                                        style={{ display: 'none' }}
+                                        icon={isInformationVisible ?
+                                            <MenuUnfoldOutlined
+                                                style={{
+                                                    color: '#4a7298',
+                                                    fontSize: 16,
+                                                }}
+                                            /> :
+                                            <MenuFoldOutlined
+                                                style={{
+                                                    color: '#4a7298',
+                                                    fontSize: 16,
+                                                }}
+                                            />
+                                        }
+                                        onClick={toggleInformation}
+                                        className={`information-float-button ${!isInformationVisible ? 'collapsed' : ''}`}
+                                    /> */}
+                                </div>
+                            )}
                         </div>
-                        <div ref={informationRef} className={`floating-information ${isInformationVisible ? 'open' : ''}`} style={{ minWidth: '400px', display: 'none' }}>
-                            <Information
-                                isOpen={informationOpen}
-                                toggleSidebar={handleInformation}
-                                detailId={detailId}
-                                displayArticleGraph={displayArticleGraph}
-                            />
-                        </div>
-                        <FloatButton
-                            style={{ display: 'none' }}
-                            icon={isSettingsVisible ?
-                                <MenuFoldOutlined
-                                    style={{
-                                        color: '#4a7298',
-                                        fontSize: 16,
-                                    }}
-                                /> :
-                                <MenuUnfoldOutlined
-                                    style={{
-                                        color: '#4a7298',
-                                        fontSize: 16,
-                                    }}
-                                />
-                            }
-                            onClick={toggleSettings}
-                            className={`settings-float-button ${!isSettingsVisible ? 'collapsed' : ''}`}
-                        />
-                        <FloatButton
-                            style={{ display: 'none' }}
-                            icon={isInformationVisible ?
-                                <MenuUnfoldOutlined
-                                    style={{
-                                        color: '#4a7298',
-                                        fontSize: 16,
-                                    }}
-                                /> :
-                                <MenuFoldOutlined
-                                    style={{
-                                        color: '#4a7298',
-                                        fontSize: 16,
-                                    }}
-                                />
-                            }
-                            onClick={toggleInformation}
-                            className={`information-float-button ${!isInformationVisible ? 'collapsed' : ''}`}
-                        /> */}
-                    </div>
-                )}
-            </div>
+                    </Grid>
+                </Grid>
+            </Box>
+            <AntButton
+                onClick={() => startTour()}
+                // style={{ marginTop: '20px' }}
+                style={{
+                    position: 'fixed',
+                    bottom: '50px',
+                    right: '20px',
+                    width: '56px',
+                    height: '56px',
+                    fontSize: '24px',
+                    borderRadius: '50%',
+                    backgroundColor: '#D3D5FF',
+                    boxShadow: '8px 6px 33px 0px #D8E6F8',
+                    border: 'none',
+                }}
+                disabled={!searchFlag}
+            >
+                ?
+            </AntButton>
         </div>
     )
 }

@@ -1,7 +1,26 @@
-import React, { useState, useEffect, useRef } from 'react'
-import './scoped.css'
-import { DetailService } from '../../service/Detail'
-import { Descriptions, List, Collapse, Typography, Spin, Card, Tabs, Empty } from 'antd';
+import './scoped.css';
+
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+
+import {
+  Card,
+  Collapse,
+  Descriptions,
+  Empty,
+  List,
+  Select,
+  Spin,
+  Typography,
+} from 'antd';
+
+import downArrow from '../../img/down_arrow.svg';
+import rightArrow from '../../img/right_arrow.svg';
+import { DetailService } from '../../service/Detail';
 
 const { Panel } = Collapse;
 const { Text } = Typography;
@@ -14,6 +33,7 @@ const Information = ({ width, ...props }) => {
     const [edgeDetail, setEdgeDetail] = useState({});
     const [activeKey, setActiveKey] = useState(['0']);
     const [isLoading, setIsLoading] = useState(false);
+    const [sentenceVisibility, setSentenceVisibility] = useState({});
 
     const merge = true;
 
@@ -25,6 +45,13 @@ const Information = ({ width, ...props }) => {
     const handleClick = (event, link) => {
         event.preventDefault();
         window.open(link, '_blank');
+    };
+
+    const toggleSentences = (index) => {
+        setSentenceVisibility(prev => ({
+            ...prev,
+            [index]: !prev[index],
+        }));
     };
 
     useEffect(() => {
@@ -142,34 +169,172 @@ const Information = ({ width, ...props }) => {
     };
 
     const nodeForMap = (url) => {
-        return (
-            <div className="custom-div-url" style={{ paddingBottom: '8px' }}>
-                <a
-                    href={url[1]}
-                    onClick={(event) => handleClick(event, url[1])}
-                    style={{ color: '#4a7298' }}
+        const authors = url[5] || [];
+        const getLastName = (fullName) => {
+            const parts = fullName.trim().split(' ');
+            return parts[parts.length - 1];
+        };
+
+        const renderAuthors = () => {
+            if (authors.length === 0) return null;
+            if (authors.length === 1) {
+                return renderAuthorBubbles([authors[0]]);
+            }
+            if (authors.length === 2) {
+                return renderAuthorBubbles(authors);
+            }
+            return renderAuthorBubbles([
+                authors[0],
+                '...',
+                authors[authors.length - 1]
+            ]);
+        };
+        const renderAuthorBubbles = (list) => (
+            list.map((author, idx) => (
+                <span
+                    key={idx}
                 >
-                    {url[0]}
-                </a>
-                <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
-                    <span title="Cited by">Cited by: {url[2]} </span> |
-                    <span title="Year">Year: {url[3]} </span> |
-                    <span title="Journal">Journal: {url[4].length > 20 ? url[4].substring(0, 20) + '...' : url[4]} </span>
-                </p>
-                <p className="info-row" title={url[5].join(', ')} style={{ color: '#555555', margin: '2px 0' }}>
-                    Authors: {formatAuthors(url[5])}
-                </p>
+                    {author}{idx < list.length - 1 ? ',' : ''}
+                </span>
+            ))
+        );
+        return (
+            <div
+                onClick={(event) => handleClick(event, url[1])}
+                className="custom-div-url"
+                style={{
+                    cursor: 'pointer',
+                    marginBottom: '2px',
+                    borderRadius: '10px',
+                    padding: 0,
+                    backgroundColor: '#fff',
+                    width: '100%',
+                }}
+            >
+                {/* Section 1: PubMed ID and Citations */}
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div style={{ color: '#018DFF', fontSize: '14px' }}>
+                        PubMed ID: {url[1].split('/').filter(Boolean).pop()}
+                    </div>
+                    <div style={{ fontSize: '14px' }}>
+                        Citations: {url[2]}
+                    </div>
+                </div>
+
+                {/* Section 2: Title and Year */}
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto',
+                    alignItems: 'start',
+                }}>
+                    <a
+                        href={url[1]}
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            handleClick(event, url[1]);
+                        }}
+                        style={{
+                            color: 'black',
+                            textDecoration: 'none',
+                            fontWeight: '600',
+                            fontSize: '14px',
+                            paddingRight: '8px',
+                            wordBreak: 'break-word'
+                        }}
+                    >
+                        {url[0]}
+                    </a>
+                    <div style={{
+                        fontSize: '14px',
+                        whiteSpace: 'nowrap',
+                        textAlign: 'right',
+                        marginLeft: '8px',
+                    }}>
+                        {url[3]}
+                    </div>
+                </div>
+
+                {/* Section 3: Authors */}
+                <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '6px',
+                    fontSize: '14px'
+                }}>
+                    {renderAuthors()}
+                </div>
+
+                {/* Section 4: Journal Name */}
+                <div style={{
+                    fontSize: '14px',
+                    wordBreak: 'break-word',
+                    color: 'grey',
+                }} title="Journal">
+                    {url[4]}
+                </div>
             </div>
+
+
         )
     }
+
+
+    const [sortBy, setSortBy] = useState('year'); // 'year' or 'citations'
+
+    const sortedRawNodes = useMemo(() => {
+        if (!nodeDetails[1]) return [];
+        return [...nodeDetails[1]].sort((a, b) => {
+            if (sortBy === 'year') return parseInt(b[3]) - parseInt(a[3]);
+            if (sortBy === 'citations') return parseInt(b[2]) - parseInt(a[2]);
+            return 0;
+        });
+    }, [nodeDetails, sortBy]);
+
+    const urls = sortedRawNodes.map(nodeForMap);
+
+    const sortedUrls = useMemo(() => {
+
+        return [...urls].sort((a, b) => {
+            if (sortBy === 'year') {
+                return parseInt(b[3]) - parseInt(a[3]); // Newest first
+            } else if (sortBy === 'citations') {
+                return parseInt(b[2]) - parseInt(a[2]); // Most cited first
+            }
+            return 0;
+        });
+    }, [urls, sortBy]);
+
+
+    const sortedEdges = useMemo(() => {
+        if (!edgeDetail || typeof edgeDetail !== 'object') return [];
+
+        return Object.entries(edgeDetail).map(([label, urlsWrapper]) => {
+            const urls = urlsWrapper?.[1] || [];
+
+            const sortedUrls = [...urls].sort((a, b) => {
+                if (sortBy === 'year') {
+                    return parseInt(b[3]) - parseInt(a[3]);
+                } else if (sortBy === 'citations') {
+                    return parseInt(b[2]) - parseInt(a[2]);
+                }
+                return 0;
+            });
+
+            return [label, [urlsWrapper[0], sortedUrls]];
+        });
+    }, [edgeDetail, sortBy]);
+
+    const edgeItems = useMemo(() => {
+        return sortedEdges.flatMap((edge) => {
+            return edge?.[1]?.[1]?.map(nodeForMap) || [];
+        });
+    }, [sortedEdges]);
     // if (Object.keys(nodeDetails).length !== 0) {
     //     const details = nodeDetails.map((nodeDetail) => nodeDetail.data)
     //     const urls = details.map((node) => node[1].map(nodeForMap))
     //     seturlList(urls)
     // }
     // console.log(urlList);
-    const urls = Object.keys(nodeDetails).length !== 0 ? (nodeDetails[1].map(nodeForMap)) : []
-    console.log(urls);
     // const edgeUrl = (url) => {
     //     return(
     //         <div>
@@ -328,7 +493,7 @@ const Information = ({ width, ...props }) => {
     );
 
     const renderEdgeDetails = (edge) => (
-        <Descriptions column={1}>
+        <Descriptions column={1} >
             <Descriptions.Item label="Term 1">{edge.node1}</Descriptions.Item>
             <Descriptions.Item label="Term 2">{edge.node2}</Descriptions.Item>
             <Descriptions.Item label="Relationship Label">{edge['relationship label']}</Descriptions.Item>
@@ -355,7 +520,13 @@ const Information = ({ width, ...props }) => {
     };
 
     return (
-        <div className="information" style={{ width, fontFamily: 'Inter !important', }}>
+        <div className="information" style={{
+            fontFamily: 'Inter !important',
+            "& .ant-list-item": {
+                paddingLeft: '0px',
+                paddingRight: '0px',
+            }
+        }}>
             <Card
                 title={getPanelTitle()}
                 className="information-content"
@@ -369,9 +540,10 @@ const Information = ({ width, ...props }) => {
                         fontFamily: 'Inter',
                         borderTopLeftRadius: '10px',
                         borderTopRightRadius: '10px',
-                        paddingTop: '70px',
-                        paddingLeft: "55px",
-                        paddingBottom: '20px',
+                        paddingTop: '35px',
+                        //paddingLeft: "2.5vw",
+                        // marginLeft:"2.6vw",
+                        // paddingBottom: '20px',
                         minHeight: '90px',
                         border: 'none',
                         background: 'transparent',
@@ -382,21 +554,27 @@ const Information = ({ width, ...props }) => {
                         padding: '0px',
                         backgroundColor: '#F7F7F7',
                         minHeight: '200px',
-                        marginTop: '20px',
+                        // marginTop: '20px',
                         marginBottom: '10px',
                         border: 'none',
                         background: 'transparent',
                     },
+
                 }}
             >
                 {!props.detailId ? (
-                    <Empty description="Select a node or edge to view details" style={{ margin: '40px 0' }} />
+                    <Empty description="Select a node or edge to view details" style={{
+                        position: 'absolute',
+                        bottom: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, 50%)',
+                    }} />
                 ) : isLoading ? (
                     <LoadingMessage />
                 ) : (
                     <div style={{ position: 'relative', height: '100%' }}>
                         <div className="transcriptGradientTop"></div>
-                        <div style={{ paddingLeft: '40px', paddingRight: '40px', paddingTop: '20px', paddingBottom: '20px', overflowY: 'auto', maxHeight: '100%' }}>
+                        <div style={{ paddingLeft: '2vw', paddingRight: '2vw', paddingTop: '0px', paddingBottom: '20px', overflowY: 'auto', maxHeight: '100%' }}>
 
                             {/* Article Node Details - Direct Display */}
                             {Object.keys(nodeDetails).length !== 0 && nodeDetails[0] && nodeDetails[0][0] && 'title' in nodeDetails[0][0] && (
@@ -405,13 +583,29 @@ const Information = ({ width, ...props }) => {
                                     {/* Related Articles for Article Node */}
                                     {urls.length > 0 && (
                                         <div style={{ paddingLeft: '12px' }}>
-                                            <h4 style={{
-                                                color: '#8c8c8c',
-                                                marginTop: '20px',
-                                                marginBottom: '10px',
-                                                fontWeight: 'normal',
-                                                fontSize: '14px',
-                                            }}>Related Articles</h4>
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                marginBottom: '10px'
+                                            }}>
+                                                <h4 style={{
+                                                    color: '#8c8c8c',
+                                                    margin: 0,
+                                                    fontWeight: 'normal',
+                                                    fontSize: '14px',
+                                                }}>Related Articles</h4>
+                                                <Select
+                                                    size="small"
+                                                    defaultValue="year"
+                                                    onChange={value => setSortBy(value)}
+                                                    style={{ width: 120 }}
+                                                    options={[
+                                                        { value: 'year', label: 'Sort by Year' },
+                                                        { value: 'citations', label: 'Sort by Citations' },
+                                                    ]}
+                                                />
+                                            </div>
                                             <List
                                                 size="small"
                                                 dataSource={urls}
@@ -434,17 +628,32 @@ const Information = ({ width, ...props }) => {
                                             {renderNodeDetails(node)}
                                             {/* Add Related Articles section for nodes */}
                                             {urls.length > 0 && (
-                                                <div style={{ paddingLeft: '12px' }}>
-                                                    <h4 style={{
-                                                        color: '#8c8c8c',
-                                                        marginTop: '20px',
-                                                        marginBottom: '10px',
-                                                        fontWeight: 'normal',
-                                                        fontSize: '14px',
-                                                    }}>Related Articles</h4>
+                                                <div style={{}}>
+                                                    <div style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                        marginBottom: '10px'
+                                                    }}>
+                                                        <h4 style={{
+                                                            color: '#8c8c8c',
+                                                            margin: 0,
+                                                            fontWeight: 'normal',
+                                                            fontSize: '14px',
+                                                        }}>Related Articles</h4>
+                                                        <Select
+                                                            size="small"
+                                                            value={sortBy}
+                                                            onChange={value => setSortBy(value)}
+                                                            options={[
+                                                                { value: 'year', label: 'Sort by Year' },
+                                                                { value: 'citations', label: 'Sort by Citations' }
+                                                            ]}
+                                                        />
+                                                    </div>
                                                     <List
                                                         size="small"
-                                                        dataSource={urls}
+                                                        dataSource={sortedUrls}
                                                         renderItem={item => (
                                                             <List.Item className="related-article-item">
                                                                 {item}
@@ -476,68 +685,90 @@ const Information = ({ width, ...props }) => {
                                             {/* Related Sentences */}
                                             {edge[2] && edge[2].length > 0 && (
                                                 <div>
-                                                    <h4 style={{
-                                                        color: '#8c8c8c',
+                                                    <div style={{
+                                                        display: 'flex',
+                                                        // justifyContent: 'space-between',
+                                                        alignItems: 'center',
                                                         marginTop: '20px',
                                                         marginBottom: '10px',
-                                                        fontWeight: 'normal',
-                                                        fontSize: '14px',
-                                                    }}>Related Sentences</h4>
-                                                    <List
-                                                        size="small"
-                                                        dataSource={edge[2]}
-                                                        renderItem={(item, index) => (
-                                                            <List.Item key={index} className="related-article-item" style={{ paddingBottom: '8px' }}>
-                                                                <div className="custom-div-edge">
-                                                                    <div style={{ whiteSpace: 'pre-wrap' }}>{item[0]}</div>
-                                                                    <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
-                                                                        <a
-                                                                            href={item[1]}
-                                                                            onClick={(event) => handleClick(event, item[1])}
-                                                                            style={{ color: '#4a7298' }}
-                                                                        >
-                                                                            View Source
-                                                                        </a>
-                                                                    </p>
-                                                                </div>
-                                                            </List.Item>
-                                                        )}
-                                                    />
+                                                        position: sentenceVisibility[index] ? 'sticky' : 'static',
+                                                        top: 0,
+                                                        backgroundColor: 'white',
+                                                        zIndex: 10,
+                                                        padding: '8px 0',
+                                                    }}>
+                                                        <h4 style={{
+                                                            color: '#8c8c8c',
+                                                            margin: 0,
+                                                            fontWeight: 'normal',
+                                                            fontSize: '14px',
+                                                        }}>Related Sentences</h4>
+                                                        <div onClick={() => toggleSentences(index)} style={{ cursor: 'pointer', marginLeft: '20px' }}>
+                                                            <img
+                                                                src={sentenceVisibility[index] ? downArrow : rightArrow}
+                                                                alt="Toggle related sentences"
+                                                                className="legend-toggle-icon"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {sentenceVisibility[index] && (
+                                                        <List
+                                                            size="small"
+                                                            dataSource={edge[2]}
+                                                            renderItem={(item, i) => (
+                                                                <List.Item key={i} className="related-article-item" style={{ paddingBottom: '8px' }}>
+                                                                    <div className="custom-div-edge">
+                                                                        <div style={{ whiteSpace: 'pre-wrap' }}>{item[0]}</div>
+                                                                        <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
+                                                                            <a
+                                                                                href={item[1]}
+                                                                                onClick={(event) => handleClick(event, item[1])}
+                                                                                style={{ color: '#4a7298' }}
+                                                                            >
+                                                                                View Source
+                                                                            </a>
+                                                                        </p>
+                                                                    </div>
+                                                                </List.Item>
+                                                            )}
+                                                        />
+                                                    )}
                                                 </div>
                                             )}
 
                                             {/* Related Articles */}
                                             {edge[1] && edge[1].length > 0 && (
                                                 <div>
-                                                    <h4 style={{
-                                                        color: '#8c8c8c',
-                                                        marginTop: '20px',
+                                                    <div style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
                                                         marginBottom: '10px',
-                                                        fontWeight: 'normal',
-                                                        fontSize: '14px',
-                                                    }}>Related Articles</h4>
+                                                        marginTop: '8px'
+                                                    }}>
+                                                        <h4 style={{
+                                                            color: '#8c8c8c',
+                                                            margin: 0,
+                                                            fontWeight: 'normal',
+                                                            fontSize: '14px',
+                                                        }}>Related Articles</h4>
+                                                        <Select
+                                                            size="small"
+                                                            value={sortBy}
+                                                            onChange={value => setSortBy(value)}
+                                                            options={[
+                                                                { value: 'year', label: 'Sort by Year' },
+                                                                { value: 'citations', label: 'Sort by Citations' }
+                                                            ]}
+                                                        />
+                                                    </div>
                                                     <List
                                                         size="small"
-                                                        dataSource={edge[1]}
-                                                        renderItem={(url, urlIndex) => (
-                                                            <List.Item key={urlIndex} className="related-article-item" style={{ paddingBottom: '8px' }}>
-                                                                <div className="custom-div-edge">
-                                                                    <a
-                                                                        href={url[1]}
-                                                                        onClick={(event) => handleClick(event, url[1])}
-                                                                        style={{ color: '#4a7298' }}
-                                                                    >
-                                                                        {url[0]}
-                                                                    </a>
-                                                                    <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
-                                                                        <span title="Cited by">Cited by: {url[2]} </span> |
-                                                                        <span title="Year">Year: {url[3]} </span> |
-                                                                        <span title="Journal">Journal: {url[4].length > 20 ? url[4].substring(0, 20) + '...' : url[4]} </span>
-                                                                    </p>
-                                                                    <p className="info-row" title={url[5].join(', ')} style={{ color: '#555555', margin: '2px 0' }}>
-                                                                        Authors: {formatAuthors(url[5])}
-                                                                    </p>
-                                                                </div>
+                                                        dataSource={edgeItems}
+                                                        renderItem={(item) => (
+                                                            <List.Item className="related-article-item">
+                                                                {item}
                                                             </List.Item>
                                                         )}
                                                     />
