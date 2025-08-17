@@ -1,9 +1,9 @@
 .HomePageContainer {
-    background: linear-gradient(114.78deg, rgba(245, 247, 255, 0.5) -9.46%, rgba(226, 232, 254, 0.5) 46.27%, rgba(242, 245, 254, 0.5) 105.72%);
+    /* background: linear-gradient(114.78deg, rgba(245, 247, 255, 0.5) -9.46%, rgba(226, 232, 254, 0.5) 46.27%, rgba(242, 245, 254, 0.5) 105.72%); */
     /* Linear gradient background */
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 80px);
+    height: calc(100vh - 120px);
     /* Changed to 100vh for full viewport height */
     overflow-y: auto;
     position: relative;
@@ -13,10 +13,9 @@
 .HomePageInner {
     display: flex;
     flex-direction: column;
-    min-height: 850px;
-    height: calc(100vh - 80px);
+    height: calc(100vh - 120px);
     /* Changed to 100vh for full viewport height */
-    overflow-y: hidden;
+    overflow-y: auto;
     position: relative;
     /* background-color: #DCE3FF; */
 }
@@ -35,31 +34,15 @@
     /* overflow-y: auto; */
 }
 
-.HomePageMain {
-    top: max(0px, calc(50% - 475px));
-    left: 50%;
-    position: absolute;
-    transform: translateX(-50%);
-}
-
-
 .footer {
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
     padding: 0px;
     color: #333;
     font-size: 14px;
-    position: absolute;
-    bottom: 5px;
-    left: 50%;
-    /* Move to the horizontal center */
-    transform: translateX(-50%);
-    /* Adjust for centering */
     width: 100%;
-    /* Optional: Ensure it spans the full width */
     text-align: center;
-    /* Center text content */
+    margin-top: auto;
+    margin-bottom: 5px;
 }
 
 
@@ -105,13 +88,11 @@
 }
 
 .info-card-section {
-    margin-top: 40px;
     display: flex;
     flex-direction: row;
     align-items: stretch;
     justify-content: center;
     height: auto;
-    padding-bottom: 10vh;
     width: 100%;
     min-height: 100px;
 }

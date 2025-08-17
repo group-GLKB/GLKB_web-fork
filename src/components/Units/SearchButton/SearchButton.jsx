@@ -11,10 +11,11 @@ export default function SearchButton({ onClick, disabled }) {
                 height: "60px",
                 width: "60px",
                 borderRadius: "50%",
-                background: disabled ? "linear-gradient(90.46deg, rgba(112, 134, 253, 0.3) 0.44%, rgba(70, 99, 254, 0.3) 99.65%)" : "linear-gradient(90.46deg, #7086FD 0.44%, #4663FE 99.65%)",
+                background: disabled ? "#0169B060" : "#0169B0",
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                cursor: disabled ? 'not-allowed' : 'pointer',
             }}
         >
             <ArrowForwardIcon

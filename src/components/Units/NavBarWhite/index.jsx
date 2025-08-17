@@ -1,15 +1,15 @@
 import '../../NavBar/scoped.css';
-import './scoped.css'; // This is where you will import your CSS from
+import './scoped.css';
 
 import React from 'react';
 
 import {
-  Link,
-  useLocation,
-  useNavigate,
+    Link,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
-import logo from '../../../img/GLKB-Logo-02.jpg';
+import logo from '../../../img/glkb-6.png';
 
 function NavBarWhite({ showLogo = true, activeButton }) {
     const location = useLocation();
@@ -33,10 +33,10 @@ function NavBarWhite({ showLogo = true, activeButton }) {
                             <img
                                 src={logo} // Path to the logo image
                                 style={{
-                                    height: '140px', // Adjust the width of the image
+                                    height: '250px', // Adjust the width of the image
                                     width: 'auto',
                                     position: 'absolute',
-                                    top: '50%',
+                                    top: '35%',
                                     transform: 'translate(-80px, -50%)',
                                 }}
                             />

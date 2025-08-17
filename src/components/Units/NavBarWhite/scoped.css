@@ -3,13 +3,14 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.5rem 1rem;
-    font-size: clamp(12px, 2vw, 16px);
+    font-size: clamp(12px, 2vw, 20px);
     /*background-color: #fff; !* Change this as per your color scheme *!*/
     /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); Optional: for a slight shadow under the nav bar */
     border-bottom: 1px solid #3D739C;
     background-color: #FFFFFF;
     /* Changed from #FFFFFF to #4a7298 */
-    height: 80px;
+    height: 120px;
+    padding-top: 40px;
 }
 
 .left-section .logo img {
@@ -42,9 +43,9 @@ button:hover {
     border: none;
     /* Add underline to active links */
     margin-left: 20px;
-    color: #5D38D2;
+    color: #0169B0;
     /* Keep the color for active links */
-    font-weight: 900;
+    font-weight: 800;
     /* Make the font heavier */
     margin-right: 1rem;
     /* Move the text slightly to the left */
@@ -57,7 +58,7 @@ button:hover {
     margin-left: 20px;
     color: #6E6F84;
     /* Changed from #3D739C to #ffffff for better contrast */
-    font-weight: 500;
+    font-weight: 400;
     /* Change this as per your color scheme */
     /* Additional styles for the links can go here */
     margin-right: 1rem;

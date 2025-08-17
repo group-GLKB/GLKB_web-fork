@@ -1,7 +1,7 @@
 import React, {
-  useCallback,
-  useEffect,
-  useState,
+    useCallback,
+    useEffect,
+    useState,
 } from 'react';
 
 import { debounce } from 'lodash';
@@ -11,13 +11,12 @@ import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import {
-  Autocomplete,
-  Box,
-  Chip,
-  Container,
-  Paper,
-  Popper,
-  TextField,
+    Autocomplete,
+    Box,
+    Chip,
+    Paper,
+    Popper,
+    TextField,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -356,7 +355,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     }, [selectedSources]);
 
     return (
-        <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 0, mb: 0, ml: 0, mr: 0, padding: 0, maxWidth: 'none !important' }}>
+        <Box maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 0, mb: 0, ml: 0, mr: 0, padding: 0, maxWidth: 'none !important' }}>
             <Box sx={{ mb: 0, backgroundColor: 'transparent' }}>
                 {/* First row with term type and search input */}
                 <Box sx={{
@@ -365,7 +364,6 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                     flexDirection: isSmallScreen ? 'column' : 'row',
                     backgroundColor: 'white',
                     borderRadius: '30px',
-                    boxShadow: '8px 6px 33px 0px #D8E6F8',
                 }}>
 
                     {/* Search Input */}
@@ -544,7 +542,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
                 </Box>
             </Box>
-        </Container>
+        </Box>
     );
 });
 
