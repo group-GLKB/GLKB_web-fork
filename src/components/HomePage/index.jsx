@@ -331,7 +331,7 @@ const HomePage = () => {
                             Genomic Literature Knowledge Base
                         </Typography>
                         <Typography sx={{
-                            fontFamily: 'Georgia',
+                            fontFamily: 'Open Sans',
                             fontWeight: 400,
                             fontSize: '20px',
                             color: 'white',
@@ -457,10 +457,10 @@ const HomePage = () => {
                                                     marginBottom: '5px',
                                                     overflow: 'hidden',
                                                     "& .MuiAutocomplete-option.Mui-focused": {
-                                                        backgroundColor: '#F3F5FF !important',
+                                                        backgroundColor: '#EDF5FE !important',
                                                     },
                                                     "& .MuiAutocomplete-option.Mui-focused span.highlight-arrow": {
-                                                        color: 'black !important',
+                                                        color: '#196ED8 !important',
                                                     }
                                                 }}
                                             >
