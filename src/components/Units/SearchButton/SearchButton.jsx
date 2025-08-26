@@ -8,8 +8,9 @@ export default function SearchButton({ onClick, disabled, alterColor = false }) 
         <Box
             className="search-button-big"
             sx={{
-                height: "60px",
-                width: "60px",
+                height: "61.333px",
+                width: "61.333px",
+                transform: "translateX(1px)",
                 borderRadius: "50%",
                 background: disabled ? "#0169B060" : (alterColor ? "#079BD4" : "#0169B0"),
                 display: 'flex',

@@ -2,31 +2,31 @@ import 'antd/dist/reset.css';
 import './scoped.css';
 
 import React, {
-    useEffect,
-    useRef,
-    useState,
+  useEffect,
+  useRef,
+  useState,
 } from 'react';
 
 import { Button as AntButton } from 'antd';
 import Joyride, {
-    ACTIONS,
-    EVENTS,
-    STATUS,
+  ACTIONS,
+  EVENTS,
+  STATUS,
 } from 'react-joyride';
 import {
-    useLocation,
-    useNavigate,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import ApiIcon from '@mui/icons-material/Api';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import OutboundIcon from '@mui/icons-material/Outbound';
 import {
-    Box,
-    CircularProgress,
-    Container,
-    Grid,
-    Typography,
+  Box,
+  CircularProgress,
+  Container,
+  Grid,
+  Typography,
 } from '@mui/material';
 
 import NavBarWhite from '../Units/NavBarWhite';
@@ -360,7 +360,7 @@ const HomePage = () => {
                                         padding: '27px 12px',
                                         borderRadius: '12px',
                                         backgroundColor: 'transparent',
-                                        borderBottom: '5px solid #0169B0'
+                                        // borderBottom: '5px solid #0169B0'
                                     }}>
                                         {React.createElement(icon, {
                                             sx: {

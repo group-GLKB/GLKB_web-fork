@@ -1,7 +1,7 @@
 import React, {
-    useCallback,
-    useEffect,
-    useState,
+  useCallback,
+  useEffect,
+  useState,
 } from 'react';
 
 import { debounce } from 'lodash';
@@ -11,13 +11,13 @@ import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import {
-    Autocomplete,
-    Box,
-    Chip,
-    Paper,
-    Popper,
-    TextField,
-    Typography,
+  Autocomplete,
+  Box,
+  Chip,
+  Paper,
+  Popper,
+  TextField,
+  Typography,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -390,7 +390,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                         <Autocomplete
                             multiple
                             limitTags={5}
-                            autoHighlight={true}
+                            autoHighlight={!showExample}
                             onInputChange={(event, newInputValue) => {
                                 if (!tripletLimitReached) {
                                     setInputValue(newInputValue);
