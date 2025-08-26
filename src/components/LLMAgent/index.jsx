@@ -3,44 +3,44 @@ import './scoped.css';
 import './github-markdown-light.css';
 
 import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from 'react';
 
 import {
-  message,
-  Select,
+    message,
+    Select,
 } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import {
-  useLocation,
-  useNavigate,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
 import {
-  ArrowBack as ArrowBackIcon,
-  ChatBubbleOutline as ChatBubbleOutlineIcon,
-  Check as CheckIcon,
-  Clear as ClearIcon,
-  Close as CloseIcon,
-  ContentCopy as ContentCopyIcon,
-  EditNote as EditNoteIcon,
-  FilePresent as FilePresentIcon,
-  RateReview as RateReviewIcon,
-  Refresh as RefreshIcon,
+    ArrowBack as ArrowBackIcon,
+    ChatBubbleOutline as ChatBubbleOutlineIcon,
+    Check as CheckIcon,
+    Clear as ClearIcon,
+    Close as CloseIcon,
+    ContentCopy as ContentCopyIcon,
+    EditNote as EditNoteIcon,
+    FilePresent as FilePresentIcon,
+    RateReview as RateReviewIcon,
+    Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Button as MuiButton,
-  CircularProgress,
-  Container,
-  Grid,
-  IconButton,
-  Stack,
-  TextField,
-  Typography,
+    Box,
+    Button as MuiButton,
+    CircularProgress,
+    Container,
+    Grid,
+    IconButton,
+    Stack,
+    TextField,
+    Typography,
 } from '@mui/material';
 
 import systemIcon from '../../img/Asset 1.png';
@@ -311,7 +311,7 @@ function LLMAgent() {
                     )}
                     <Box
                         sx={{
-                            bgcolor: isAssistant ? "white" : "#EDF0FE", // Different background colors
+                            bgcolor: isAssistant ? "white" : "#EDF5FE", // Different background colors
                             maxWidth: isAssistant ? "100%" : "80%", // Adjust max width for assistant messages
                             display: "flex",
                             alignItems: "flex-start",
@@ -547,7 +547,7 @@ function LLMAgent() {
                             alignSelf: 'flex-start',
                             zIndex: 1,
                             borderRadius: '24px',
-                            transform: 'translateY(-10px)',
+                            // transform: 'translateY(-10px)',
                         }}
                             onClick={() => navigate('/')}>
                             <ArrowBackIcon />Back
@@ -593,7 +593,7 @@ function LLMAgent() {
                                                 {chatHistory.length === 0 && (<>
                                                     <div className="empty-page-title" style={{ paddingTop: '1rem' }}>
                                                         <div style={{ gap: '1rem', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
-                                                            <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: 'clamp(0.5vw, 32px, 2vw)', fontWeight: '700', color: "#00199D" }}>
+                                                            <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: 'clamp(0.5vw, 32px, 2vw)', fontWeight: '700', color: "#0169B0" }}>
                                                                 Explore Biomedical Literature
                                                             </Typography>
                                                             <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: 'clamp(0.25vw, 18px, 1.1vw)', fontWeight: '500', color: "#718096" }}>
@@ -721,6 +721,7 @@ function LLMAgent() {
                                                                     />}
                                                                     {/* Search Icon */}
                                                                     <SearchButton
+                                                                        alterColor={true}
                                                                         onClick={() => {
                                                                             handleSubmit();
                                                                         }}

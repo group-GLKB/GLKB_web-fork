@@ -3,7 +3,7 @@
     /* Linear gradient background */
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 120px);
+    height: calc(100vh - 100px);
     /* Changed to 100vh for full viewport height */
     overflow-y: auto;
     position: relative;
@@ -13,7 +13,7 @@
 .HomePageInner {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 120px);
+    height: calc(100vh - 100px);
     /* Changed to 100vh for full viewport height */
     overflow-y: auto;
     position: relative;

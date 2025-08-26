@@ -19,36 +19,23 @@ import {
 } from 'react-router-dom';
 
 import ApiIcon from '@mui/icons-material/Api';
-import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
-import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
-import CloseIcon from '@mui/icons-material/Close';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
-import PeopleIcon from '@mui/icons-material/People';
+import OutboundIcon from '@mui/icons-material/Outbound';
 import {
-    Autocomplete,
     Box,
     CircularProgress,
     Container,
     Grid,
-    Paper,
-    Popper,
-    TextField,
     Typography,
 } from '@mui/material';
 
-import { trackEvent } from '../Units/analytics';
 import NavBarWhite from '../Units/NavBarWhite';
 import SearchBarKnowledge from '../Units/SearchBarKnowledge';
-import SearchButton from '../Units/SearchButton/SearchButton';
 import SubNavBar from '../Units/SubNavBar';
+import LlmSearchBar from './LlmSearchBar';
 
 // const { Search } = Input;
 
-const LLMExampleQueries = [
-    "What is the role of BRCA1 in breast cancer?",
-    "How many articles about Alzheimer's disease were published in 2020?",
-    "What pathways does TP53 participate in?",
-];
 
 const HomePage = () => {
     const location = useLocation();
@@ -57,7 +44,7 @@ const HomePage = () => {
     // const [tags, setTags] = useState([]);
     const [runTour, setRunTour] = useState(false);
     const [activeButton, setActiveButton] = useState(state?.activeButton || "triplet");  // Changed default to 'triplet'
-    const [llmQuery, setLlmQuery] = useState('');
+
     // const [focused, setFocused] = useState(false);
     // const theme = useTheme();
     // const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -65,19 +52,7 @@ const HomePage = () => {
     const searchBarKnowledgeRef = useRef(null);
     // const searchBarNeighborhoodRef = useRef(null);
     const [stats, setStats] = useState(null);
-
-    const CustomPopper = (props) => (
-        <Popper
-            {...props}
-            placement="bottom-start"
-            modifiers={[
-                {
-                    name: 'flip',
-                    enabled: false, // prevent flipping to top
-                },
-            ]}
-        />
-    );
+    const [searchBarOpen, setSearchBarOpen] = useState(false);
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -105,15 +80,6 @@ const HomePage = () => {
         }
     }, [state?.activeButton]);
 
-    const navigateToLLMAgent = (query = '') => {
-        // Track event
-        trackEvent('Navigation', 'Navigate to LLM Agent', query ? 'With Query' : 'Direct Navigation');
-        if (query) {
-            navigate('/llm-agent', { state: { initialQuery: query } });
-        } else {
-            navigate('/llm-agent');
-        }
-    };
 
     // const handleSearch = async (v) => {
     //     // Track searches
@@ -271,7 +237,10 @@ const HomePage = () => {
                 showLogo={true} activeButton={activeButton}
             />
             <div className="HomePageContainer">
-                <div className="HomePageInner">
+                <div className="HomePageInner" style={{
+                    backgroundColor: searchBarOpen ? '#f0f0f0' : '#fff',
+                    transition: 'background-color 0.3s ease',
+                }}>
                     <Joyride
                         steps={steps}
                         run={runTour}
@@ -349,6 +318,7 @@ const HomePage = () => {
                                 <SearchBarKnowledge
                                     ref={searchBarKnowledgeRef}
                                     chipData={[]}
+                                    setOpen={setSearchBarOpen}
                                     onSearch={(data) => {
                                         console.log('Triplet Search Data:', {
                                             search_data: data,
@@ -363,136 +333,9 @@ const HomePage = () => {
                                     }}
                                 />
                             ) : (
-                                <Box className="llm-searchbar" sx={{
-                                    width: '100%',
-                                    display: 'flex',
-                                    gap: 2,
-                                    margin: '0 auto',
-                                    backgroundColor: 'white',
-                                    borderRadius: '30px',
-                                }}>
-                                    <Autocomplete
-                                        freeSolo
-                                        fullWidth
-                                        options={LLMExampleQueries}
-                                        filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
-                                        onChange={(event, newValue) => {
-                                            setLlmQuery(newValue || '');
-                                        }}
-                                        onInputChange={(event, newInputValue) => {
-                                            setLlmQuery(newInputValue || '');
-                                        }}
-                                        openOnFocus
-                                        groupBy={() => 'Example Queries'}
-                                        getOptionLabel={(option) => option}
-                                        // onFocus={() => setFocused(true)}
-                                        // onBlur={() => setFocused(false)}
-                                        inputValue={llmQuery}
-                                        PopperComponent={CustomPopper}
-                                        renderInput={(params) => (
-                                            <TextField
-                                                {...params}
-                                                size="small"
-                                                placeholder="Ask a question about the biomedical literature..."
-                                                sx={{
-                                                    height: '60px', // Increase the height of the input box
-                                                    width: '100%',
-                                                    '& .MuiInputBase-root': {
-                                                        borderRadius: '30px',
-                                                        height: '60px', // Adjust the height of the input field
-                                                        alignItems: 'center', // Center the text vertically
-                                                        paddingRight: '10px', // Remove right padding
-                                                        '& fieldset': {
-                                                            border: 'none',
-                                                        },
-                                                    },
-                                                    '& .MuiOutlinedInput-notchedOutline': {
-                                                        borderColor: 'grey', // Optional: Customize border color
-                                                    },
-                                                }}
-                                                fullWidth
-                                                InputProps={{
-                                                    ...params.InputProps,
-                                                    startAdornment: (
-                                                        <>
-                                                            <ChatBubbleOutlineIcon sx={{ color: '#a1a1a1', marginLeft: '20px', fontSize: '20px' }} />
-                                                            {params.InputProps.startAdornment}
-                                                        </>
-                                                    ),
-                                                    endAdornment: (
-                                                        <Box display="flex" alignItems="center" sx={{
-                                                            position: 'absolute',
-                                                            right: 0,
-                                                        }}>
-                                                            {/* Clear Icon */}
-                                                            {llmQuery !== "" && <CloseIcon
-                                                                onClick={() => {
-                                                                    setLlmQuery(''); // Clear the input field
-                                                                }}
-                                                                sx={{
-                                                                    color: 'grey.500',
-                                                                    cursor: 'pointer',
-                                                                    fontSize: '20px', // Adjust size as needed
-                                                                    marginRight: '8px', // Add spacing from the SendIcon
-                                                                }}
-                                                            />}
-                                                            {/* Search Icon */}
-                                                            <SearchButton
-                                                                onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}
-                                                                disabled={!llmQuery.trim()}
-                                                            />
-                                                        </Box>
-                                                    ),
-                                                }}
-
-                                            />
-                                        )}
-                                        PaperComponent={({ children }) => (
-                                            <Paper
-                                                sx={{
-                                                    borderRadius: '16px',
-                                                    border: "1.5px solid #E6F0FC",
-                                                    boxShadow: 'none',
-                                                    marginTop: '5px',
-                                                    marginBottom: '5px',
-                                                    overflow: 'hidden',
-                                                    "& .MuiAutocomplete-option.Mui-focused": {
-                                                        backgroundColor: '#EDF5FE !important',
-                                                    },
-                                                    "& .MuiAutocomplete-option.Mui-focused span.highlight-arrow": {
-                                                        color: '#196ED8 !important',
-                                                    }
-                                                }}
-                                            >
-                                                {children}
-                                            </Paper>
-                                        )}
-                                        renderOption={(props, option) => (
-                                            <Box
-                                                component="li"
-                                                {...props}
-                                                sx={{
-                                                    minHeight: '36px !important',
-                                                    margin: '0px 10px',
-                                                    borderRadius: '8px',
-                                                    '& .MuiAutocomplete-option.Mui-focused': {
-                                                        backgroundColor: '#F3F5FF !important',
-                                                    },
-                                                }}
-                                            >
-                                                {option}
-                                                <span className={"highlight-arrow"} style={{ color: 'white', marginLeft: 'auto' }}><ArrowOutwardIcon fontSize="small" /></span>
-                                            </Box>
-                                        )}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' && llmQuery !== "") {
-                                                e.preventDefault();
-                                                navigateToLLMAgent(llmQuery.trim());
-                                            }
-                                        }}
-                                    />
-
-                                </Box>
+                                <LlmSearchBar
+                                    setOpen={setSearchBarOpen}
+                                />
                             )}
                         </Box>
                     </Box>
@@ -501,7 +344,7 @@ const HomePage = () => {
                     }}>
                         <Container className="info-card-section" sx={{ gap: '40px', display: 'flex', flexDirection: 'row' }} >
                             {stats ? ([
-                                [PeopleIcon, stats.num_active_users_d30 || "N/A", "Active users in the past month"],
+                                [OutboundIcon, "36%", "Higher accuracy on biomedical questions"],
                                 [ApiIcon, stats.num_api_calling || "N/A", "Total external API calls since released"],
                                 [LibraryBooksIcon, stats.num_articles || "N/A", "Articles covered in GLKB database"],
                             ].map(([icon, value, description], index) => (
@@ -516,7 +359,7 @@ const HomePage = () => {
                                         height: '188px',
                                         padding: '27px 12px',
                                         borderRadius: '12px',
-                                        backgroundColor: '#FFFFFF',
+                                        backgroundColor: 'transparent',
                                         borderBottom: '5px solid #0169B0'
                                     }}>
                                         {React.createElement(icon, {

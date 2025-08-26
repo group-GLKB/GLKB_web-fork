@@ -3,7 +3,7 @@ import React from 'react';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { Box } from '@mui/material';
 
-export default function SearchButton({ onClick, disabled }) {
+export default function SearchButton({ onClick, disabled, alterColor = false }) {
     return (
         <Box
             className="search-button-big"
@@ -11,7 +11,7 @@ export default function SearchButton({ onClick, disabled }) {
                 height: "60px",
                 width: "60px",
                 borderRadius: "50%",
-                background: disabled ? "#0169B060" : "#0169B0",
+                background: disabled ? "#0169B060" : (alterColor ? "#079BD4" : "#0169B0"),
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

@@ -49,6 +49,7 @@ all {
     position: relative;
     border-radius: 30px;
     border: none !important;
+    background: none;
 }
 
 .ant-list-item {
