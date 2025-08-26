@@ -7,7 +7,7 @@
     background-color: white;
     /* margin-top: 120px; */
     /* margin-bottom:5px; */
-    gap: 2px;
+    gap: 1px;
     border-radius: 100px;
 }
 
@@ -36,7 +36,6 @@ button {
 
 .active {
     background-color: #0169B0;
-    border: 1px solid #D9D9DD;
     color: #F4F6FE;
 }
 
