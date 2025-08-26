@@ -17,6 +17,7 @@ import {
     Paper,
     Popper,
     TextField,
+    Typography,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -42,6 +43,11 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const [moreNodes, setMoreNodes] = useState(false);
     const [moreRel, setMoreRel] = useState(false);
     const [focused, setFocused] = useState(false);
+    const [isOpen, setIsOpen] = useState(false);
+
+    useEffect(() => {
+        props.setOpen && props.setOpen(isOpen);
+    }, [isOpen]);
 
     const ExampleOptions = [
         ['example_0', 'SPRY2; RFX6; HNF4A; type 2 diabetes mellitus', 'Explore relationships between Type 2 Diabetes and its associated genes.'],
@@ -53,11 +59,16 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         <Popper
             {...props}
             placement="bottom-start"
+            disablePortal={true}
             modifiers={[
                 {
                     name: 'flip',
                     enabled: false, // prevent flipping to top
                 },
+                {
+                    name: 'preventOverflow',
+                    enabled: false,
+                }
             ]}
         />
     );
@@ -354,6 +365,11 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         console.log('Selected sources (after update):', selectedSources);
     }, [selectedSources]);
 
+    const [showExample, setShowExample] = useState(false);
+    useEffect(() => {
+        setShowExample(focused && inputValue.trim() === '' && selectedSources.length === 0);
+    }, [focused, inputValue, selectedSources]);
+
     return (
         <Box maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 0, mb: 0, ml: 0, mr: 0, padding: 0, maxWidth: 'none !important' }}>
             <Box sx={{ mb: 0, backgroundColor: 'transparent' }}>
@@ -363,7 +379,10 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                     gap: 2,
                     flexDirection: isSmallScreen ? 'column' : 'row',
                     backgroundColor: 'white',
-                    borderRadius: '30px',
+                    borderRadius: isOpen ? '30px 30px 0px 0px' : '30px',
+                    borderWidth: isOpen ? '0px 1px 1px 1px' : '1px',
+                    borderStyle: 'solid',
+                    borderColor: '#E6F0FC',
                 }}>
 
                     {/* Search Input */}
@@ -379,13 +398,13 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                 }
                             }}
                             options={
-                                (ref?.current && focused && inputValue.trim() === '' && selectedSources.length === 0
+                                (ref?.current && showExample
                                     ? ExampleOptions
                                     : sourceNodeOptions
                                 ) || []}
                             filterOptions={(options) => options}
                             filterSelectedOptions={true}
-                            groupBy={(option => getDisplayCategory(option[2]))}
+                            groupBy={showExample ? undefined : (option => getDisplayCategory(option[2]))}
                             getOptionLabel={(option) => {
                                 // console.log('Option:', option);
                                 return option[1]
@@ -427,6 +446,14 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                         "& .MuiOutlinedInput-root": {
                                             paddingRight: "70px!important",
                                         },
+                                        "& .MuiChip-root": {
+                                            color: "#0169B0",
+                                            border: "1px solid #7DD3FC",
+                                            backgroundColor: "#E0F2FE",
+                                            "& .MuiChip-deleteIcon": {
+                                                color: "#0169B0BF !important"
+                                            }
+                                        }
                                     }}
                                     size="small"
 
@@ -469,6 +496,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                 <SearchButton
                                                     onClick={handleSearch}
                                                     disabled={chipData.length === 0 || inputValue !== ''}
+                                                    alterColor={props.alterColor}
                                                 />
                                             </Box>
                                         ),
@@ -479,10 +507,12 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             PaperComponent={({ children }) => (
                                 <Paper
                                     sx={{
-                                        borderRadius: '16px',
-                                        border: "1.5px solid #E6F0FC",
                                         boxShadow: 'none',
-                                        marginTop: '5px',
+                                        borderRadius: '0px 0px 30px 30px',
+                                        borderWidth: '0px 1px 1px 1px',
+                                        borderStyle: 'solid',
+                                        borderColor: '#E6F0FC',
+
                                         marginBottom: '5px',
                                         overflow: 'hidden',
                                         "& .MuiAutocomplete-option.Mui-focused": {
@@ -490,7 +520,11 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                         },
                                         "& .MuiAutocomplete-option.Mui-focused span.highlight-arrow": {
                                             color: '#196ED8 !important',
-                                        }
+                                        },
+                                        "& .MuiAutocomplete-option.Mui-focused .MuiChip-root": {
+                                            backgroundColor: '#0CA5E9 !important',
+                                            color: 'white !important'
+                                        },
                                     }}
                                 >
                                     {children}
@@ -500,6 +534,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             inputValue={inputValue}
                             onFocus={() => setFocused(true)}
                             onBlur={() => setFocused(false)}
+                            onOpen={() => setIsOpen(true)}
+                            onClose={() => setIsOpen(false)}
                             onChange={(event, newValue) => {
                                 console.log('Selected sources:', newValue);
                                 if (newValue.length === 1) {
@@ -514,21 +550,69 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                 console.log('New sources:', newValue);
                             }}
                             renderOption={(props, option) => (
-                                <Box
-                                    component="li"
-                                    {...props}
-                                    sx={{
-                                        minHeight: '36px !important',
-                                        margin: '0px 10px',
-                                        borderRadius: '8px',
-                                        '& .MuiAutocomplete-option.Mui-focused': {
-                                            backgroundColor: '#F3F5FF !important',
-                                        },
-                                    }}
-                                >
-                                    {option[1]}
-                                    <span className={"highlight-arrow"} style={{ color: 'white', marginLeft: 'auto' }}><ArrowOutwardIcon fontSize="small" /></span>
-                                </Box>
+                                showExample ?
+                                    <Box
+                                        component="li"
+                                        {...props}
+                                        sx={{
+                                            minHeight: '72px !important',
+                                            margin: '0px 10px',
+                                            marginLeft: '0px',
+                                            paddingLeft: '26px',
+                                            borderRadius: '0px 36px 36px 0px',
+                                            '& .MuiAutocomplete-option.Mui-focused': {
+                                                backgroundColor: '#F3F5FF !important',
+                                            },
+                                        }}
+                                    >
+                                        <Box sx={{ flexDirection: 'column', display: 'flex' }}>
+                                            <Typography sx={{ color: "#6B7280", fontSize: "14px", fontWeight: 600, fontFamily: "Open Sans" }}>
+                                                {option[2]}
+                                            </Typography>
+                                            <Box sx={{ gap: '12px' }}>
+                                                {
+                                                    option[1].split('; ').map((text, index) => (
+                                                        <Chip
+                                                            key={index}
+                                                            label={text}
+                                                            sx={{
+                                                                fontFamily: "Open Sans",
+                                                                fontWeight: 600,
+                                                                fontSize: "14px",
+                                                                padding: "4px 10px",
+                                                                marginRight: "12px",
+                                                                borderRadius: "30px",
+                                                                color: "#0169B0",
+                                                                border: "1px solid #7DD3FC",
+                                                                backgroundColor: "#E0F2FE",
+                                                                height: "unset",
+                                                                "& .MuiChip-label": {
+                                                                    padding: "0px"
+                                                                }
+                                                            }}
+                                                        />))
+                                                }
+                                            </Box>
+                                        </Box>
+                                        <span className={"highlight-arrow"} style={{ color: 'white', marginLeft: 'auto' }}><ArrowOutwardIcon fontSize="small" /></span>
+                                    </Box> :
+                                    <Box
+                                        component="li"
+                                        {...props}
+                                        sx={{
+                                            minHeight: '36px !important',
+                                            margin: '0px 10px',
+                                            marginLeft: '0px',
+                                            paddingLeft: '26px',
+                                            borderRadius: '0px 18px 18px 0px',
+                                            '& .MuiAutocomplete-option.Mui-focused': {
+                                                backgroundColor: '#F3F5FF !important',
+                                            },
+                                        }}
+                                    >
+                                        {option[1]}
+                                        <span className={"highlight-arrow"} style={{ color: 'white', marginLeft: 'auto' }}><ArrowOutwardIcon fontSize="small" /></span>
+                                    </Box>
                             )}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && inputValue === '' && selectedSources.length > 0) {

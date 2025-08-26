@@ -13,7 +13,7 @@ all {
 
 /* Layout */
 .result-container {
-    background: linear-gradient(to right, #F4F6FE, #DCE3FF, #F4F6FE);
+    background: #F1F5F9;
     min-width: 1200px;
     min-height: 700px;
     height: 100%;

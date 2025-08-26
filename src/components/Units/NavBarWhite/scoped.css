@@ -9,8 +9,8 @@
     border-bottom: 1px solid #3D739C;
     background-color: #FFFFFF;
     /* Changed from #FFFFFF to #4a7298 */
-    height: 120px;
-    padding-top: 40px;
+    height: 100px;
+    padding-top: 0px;
 }
 
 .left-section .logo img {

@@ -2,32 +2,32 @@ import 'antd/dist/reset.css';
 import './scoped.css';
 
 import React, {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
 } from 'react';
 
 import {
-  Button as AntButton,
-  Spin,
-  Tooltip,
+    Button as AntButton,
+    Spin,
+    Tooltip,
 } from 'antd';
 import { debounce } from 'lodash';
 import Joyride, { STATUS } from 'react-joyride';
 import {
-  useLocation,
-  useNavigate,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
 import { InfoCircleOutlined } from '@ant-design/icons';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 //import mui button as muibutton
 import {
-  Box,
-  Button as MuiButton,
-  Grid,
-  Typography,
+    Box,
+    Button as MuiButton,
+    Grid,
+    Typography,
 } from '@mui/material';
 
 import downArrow from '../../img/down_arrow.svg';
@@ -598,6 +598,8 @@ const ResultPage = () => {
     const [boolValues, setBoolValues] = useState({});
     // const [boolEdgeValues, setBoolEdgeValues] = useState({});
 
+    const [searchBarOpen, setSearchBarOpen] = useState(false);
+
     useEffect(() => {
         if (data.edges) {
             const edgeLabelsSet = new Set(data.edges.map(edge => edge.data.label));
@@ -772,7 +774,7 @@ const ResultPage = () => {
                             alignSelf: 'flex-start',
                             zIndex: 1,
                             borderRadius: '24px',
-                            transform: 'translateY(-10px)',
+                            // transform: 'translateY(-10px)',
                         }}
                             onClick={() => navigate('/')}>
                             <ArrowBackIcon />Back
@@ -796,6 +798,8 @@ const ResultPage = () => {
                                         chipDataIDResult={chipDataIDResult}
                                         displayArticleGraph={displayArticleGraph}
                                         setDisplayArticleGraph={setDisplayArticleGraph}
+                                        alterColor={true}
+                                        setOpen={setSearchBarOpen}
                                         onSearch={(data) => {
                                             // setSearchContent(data); // Update stored content
                                             // search(data);
@@ -860,13 +864,14 @@ const ResultPage = () => {
                                                         //width: '100%',
                                                         height: "100%",
                                                         //minHeight: "600px",
-                                                        bgcolor: "white",
+                                                        bgcolor: searchBarOpen ? "#f8f8f8" : "white",
                                                         position: 'relative',
                                                         // boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
                                                         // marginLeft: "1%",
                                                         // marginRight: "1%",
                                                         // marginTop: "20px",
                                                         overflow: 'hidden',
+                                                        transition: 'background-color 0.3s ease',
                                                     }} className="graph-container-wrapper">
                                                         <Tooltip title={getButtonTooltip()} className="graph-control-button-container">
                                                             <span>
@@ -1040,8 +1045,9 @@ const ResultPage = () => {
                                                     <Box sx={{
                                                         borderRadius: "20px",
                                                         height: "100%",
+                                                        background: searchBarOpen ? "#f8f8f8" : "white",
+                                                        transition: 'background-color 0.3s ease',
                                                         //minHeight: "600px",
-                                                        bgcolor: "white",
                                                         paddingBottom: "20px",
                                                         // marginLeft: "1%",
                                                         // marginRight: "1%",
@@ -1166,7 +1172,8 @@ const ResultPage = () => {
                     height: '56px',
                     fontSize: '24px',
                     borderRadius: '50%',
-                    backgroundColor: '#D3D5FF',
+                    backgroundColor: '#079BD4',
+                    color: '#FFFFFF',
                     boxShadow: '8px 6px 33px 0px #D8E6F8',
                     border: 'none',
                 }}

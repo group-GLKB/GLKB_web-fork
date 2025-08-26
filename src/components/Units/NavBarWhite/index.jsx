@@ -36,7 +36,7 @@ function NavBarWhite({ showLogo = true, activeButton }) {
                                     height: '250px', // Adjust the width of the image
                                     width: 'auto',
                                     position: 'absolute',
-                                    top: '35%',
+                                    top: '55%',
                                     transform: 'translate(-80px, -50%)',
                                 }}
                             />
