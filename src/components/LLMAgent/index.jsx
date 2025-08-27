@@ -607,18 +607,15 @@ function LLMAgent() {
                                                         </Typography>
                                                         <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '10px', minHeight: '80px' }}>
                                                             <div className="example-query"
-                                                                onClick={() => handleExampleClick("What is the role of BRCA1 in breast cancer?")}
-                                                                style={{ height: 'auto', minHeight: '100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
+                                                                onClick={() => handleExampleClick("What is the role of BRCA1 in breast cancer?")}>
                                                                 What is the role of BRCA1 in breast cancer?
                                                             </div>
                                                             <div className="example-query"
-                                                                onClick={() => handleExampleClick("How many articles about Alzheimer's disease are published in 2020?")}
-                                                                style={{ height: 'auto', minHeight: '100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
+                                                                onClick={() => handleExampleClick("How many articles about Alzheimer's disease are published in 2020?")}>
                                                                 How many articles about Alzheimer's disease are published in 2020?
                                                             </div>
                                                             <div className="example-query"
-                                                                onClick={() => handleExampleClick("What pathways does TP53 participate in?")}
-                                                                style={{ height: 'auto', minHeight: '100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
+                                                                onClick={() => handleExampleClick("What pathways does TP53 participate in?")}>
                                                                 What pathways does TP53 participate in?
                                                             </div>
                                                         </div>
