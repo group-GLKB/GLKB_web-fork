@@ -576,6 +576,7 @@
     margin-left: 56px;
     margin-right: 56px;
     gap: 4px;
+    width: calc(100% - 112px);
 }
 
 .glkb-logo {
@@ -589,8 +590,8 @@
     flex-direction: row;
     flex-wrap: nowrap;
     justify-content: space-between;
-    max-width: 900px;
-    overflow-x: hidden;
+    width: 100%;
+    overflow-x: auto;
     padding-bottom: 0;
 }
 
@@ -604,7 +605,7 @@
 .example-query {
     flex: 1 1 0;
     width: auto;
-    min-width: 0;
+    min-width: 200px;
     max-width: none;
     margin: 0 0.5rem;
     padding: 1rem 1rem;
@@ -621,6 +622,7 @@
     display: flex;
     align-items: center;
     overflow: hidden;
+    min-height: 100%;
 }
 
 .example-query:hover {
