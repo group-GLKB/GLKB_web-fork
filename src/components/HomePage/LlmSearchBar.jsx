@@ -1,6 +1,6 @@
 import React, {
-  useEffect,
-  useState,
+    useEffect,
+    useState,
 } from 'react';
 
 import { useNavigate } from 'react-router-dom';
@@ -9,11 +9,11 @@ import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import CloseIcon from '@mui/icons-material/Close';
 import {
-  Autocomplete,
-  Box,
-  Paper,
-  Popper,
-  TextField,
+    Autocomplete,
+    Box,
+    Paper,
+    Popper,
+    TextField,
 } from '@mui/material';
 
 import { trackEvent } from '../Units/analytics';
@@ -71,7 +71,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             borderWidth: (isOpen && llmQuery?.trim() === '') ? '0px 1px 1px 1px' : '1px',
             borderStyle: 'solid',
             borderColor: '#E6F0FC',
-            boxShadow: '0px 2px 4px -1px #00000026',
+            boxShadow: '0px 2px 3px -1px #00000026',
         }}>
             <Autocomplete
                 freeSolo
@@ -160,7 +160,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             borderWidth: '0px 1px 1px 1px',
                             borderStyle: 'solid',
                             borderColor: '#E6F0FC',
-                            boxShadow: '0px 2px 4px -1px #00000026',
+                            boxShadow: '0px 2px 3px -1px #00000026',
                             marginBottom: '5px',
                             paddingTop: '0px',
                             overflow: 'hidden',

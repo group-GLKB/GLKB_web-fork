@@ -1,7 +1,7 @@
 import React, {
-  useCallback,
-  useEffect,
-  useState,
+    useCallback,
+    useEffect,
+    useState,
 } from 'react';
 
 import { debounce } from 'lodash';
@@ -11,13 +11,13 @@ import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import {
-  Autocomplete,
-  Box,
-  Chip,
-  Paper,
-  Popper,
-  TextField,
-  Typography,
+    Autocomplete,
+    Box,
+    Chip,
+    Paper,
+    Popper,
+    TextField,
+    Typography,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -383,7 +383,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                     borderWidth: isOpen ? '0px 1px 1px 1px' : '1px',
                     borderStyle: 'solid',
                     borderColor: '#E6F0FC',
-                    boxShadow: '0px 2px 4px -1px #00000026',
+                    boxShadow: '0px 2px 3px -1px #00000026',
                 }}>
 
                     {/* Search Input */}
@@ -510,11 +510,12 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                 <Paper
                                     sx={{
                                         boxShadow: 'none',
+                                        boxSizing: 'border-box',
                                         borderRadius: '0px 0px 30px 30px',
                                         borderWidth: '0px 1px 1px 1px',
                                         borderStyle: 'solid',
                                         borderColor: '#E6F0FC',
-                                        boxShadow: '0px 2px 4px -1px #00000026',
+                                        boxShadow: '0px 2px 3px -1px #00000026',
                                         marginBottom: '5px',
                                         overflow: 'hidden',
                                         "& .MuiAutocomplete-option.Mui-focused": {
@@ -571,7 +572,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                             <Typography sx={{ color: "#6B7280", fontSize: "14px", fontWeight: 600, fontFamily: "Open Sans" }}>
                                                 {option[2]}
                                             </Typography>
-                                            <Box sx={{ gap: '12px' }}>
+                                            <Box sx={{ gap: '12px', paddingTop: '4px' }}>
                                                 {
                                                     option[1].split('; ').map((text, index) => (
                                                         <Chip

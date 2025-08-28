@@ -6,11 +6,18 @@
     font-size: clamp(12px, 1.6vh, 30px);
     /*background-color: #fff; !* Change this as per your color scheme *!*/
     /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); Optional: for a slight shadow under the nav bar */
-    border-bottom: 1px solid #3D739C;
+
     background-color: #FFFFFF;
     /* Changed from #FFFFFF to #4a7298 */
     height: 100px;
     padding-top: 0px;
+    padding-right: 2%;
+}
+
+@media (min-width: 1600px) {
+    .navigation-bar {
+        padding-right: 6%;
+    }
 }
 
 .left-section .logo img {
@@ -30,7 +37,6 @@
 }
 
 .navigation-bar .nav-links {
-    margin-right: 30px;
     align-items: center;
     display: flex;
 }
