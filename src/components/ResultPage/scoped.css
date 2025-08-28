@@ -170,8 +170,8 @@ all {
 .result-container-wrapper {
     position: relative;
     /* Navbar height (64px) + Search bar height (60px) */
-    height: calc(100vh - 24px - 48px - 44px - 60px - 90px);
-    max-height: calc(100vh - 24px - 48px - 44px - 60px - 90px);
+    height: calc(100vh - 36px - 134px - 100px);
+    max-height: calc(100vh - 36px - 134px - 100px);
     width: 100%;
     display: flex;
     justify-content: center;

@@ -35,7 +35,7 @@ function NavBarWhite({ showLogo = true, activeButton }) {
         <nav className="navigation-bar">
             <div className="logo">
                 {showLogo && (
-                    <Link to="/" style={{ display: 'block', height: '75px', marginLeft: '50px' }}>
+                    <Link to="/" style={{ display: 'block', height: '75px', marginLeft: '0px' }}>
                         <div style={{ height: '75px', width: '300px', overflow: 'hidden', position: 'relative' }}>
                             <img
                                 src={logo} // Path to the logo image
@@ -70,6 +70,7 @@ function NavBarWhite({ showLogo = true, activeButton }) {
                             <a className="nav-link nonactive" href="https://glkb.dcmb.med.umich.edu/api/docs" target="_blank" >API Doc</a>
                         </Stack>
                     }
+                    leaveDelay={200}
                     slotProps={{
                         "tooltip": {
                             sx: {
@@ -85,7 +86,7 @@ function NavBarWhite({ showLogo = true, activeButton }) {
                     }
                 >
                     <Link
-                        key={"About"}
+                        key={"More"}
                         className={"nav-link nonactive"}
                         style={{ position: "relative", alignItems: "center", display: "flex" }}
                     >

@@ -339,6 +339,7 @@ function LLMAgent() {
                                     alignItems: "center",
                                     display: "flex",
                                     overflow: "hidden",
+                                    transform: "translateY(-9px)",
                                 }}
                             >
                                 <img src={systemIcon} alt="Assistant" width="60" height="60" style={{ borderRadius: "50%" }} />
@@ -548,8 +549,8 @@ function LLMAgent() {
                             alignSelf: 'flex-start',
                             zIndex: 1,
                             borderRadius: '24px',
-                            marginTop: '8px',
-                            marginBottom: '8px',
+                            marginTop: '16px',
+                            marginBottom: '16px',
                             // transform: 'translateY(-10px)',
                         }}
                             onClick={() => navigate('/')}>
