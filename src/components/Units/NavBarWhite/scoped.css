@@ -105,6 +105,10 @@ button:hover {
     /* Move the text slightly down */
 }
 
+.navigation-bar .nav-links a:last-of-type {
+    margin-right: 0;
+}
+
 .navigation-bar .nav-link.active::after {
     content: "";
     position: absolute;

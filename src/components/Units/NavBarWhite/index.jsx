@@ -87,7 +87,7 @@ function NavBarWhite({ showLogo = true, activeButton }) {
                     <Link
                         key={"About"}
                         className={"nav-link nonactive"}
-                        style={{ position: "relative", alignItems: "center", display: "flex", marginRight: "0px" }}
+                        style={{ position: "relative", alignItems: "center", display: "flex" }}
                     >
                         More&nbsp;&nbsp;<KeyboardArrowDownIcon fontSize="10px" />
                     </Link>
