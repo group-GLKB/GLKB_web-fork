@@ -173,28 +173,28 @@ const HomePage = () => {
             }
         ];
 
-        const neighborSteps = [
-            {
-                target: '.search-autocomplete-box',
-                content: 'Start typing to find a biomedical term you want to explore.',
-                placement: 'bottom',
-            },
-            {
-                target: '.term-type-dropdown',
-                content: 'Select which types of terms you want to find (e.g., Genes, Diseases, Drugs).',
-                placement: 'bottom',
-            },
-            {
-                target: '.results-limit-dropdown',
-                content: 'Choose how many related terms you want to see in the results.',
-                placement: 'bottom',
-            },
-            {
-                target: '.relationship-type-dropdown',
-                content: 'Choose how you want to find related terms: through literature-based relationships or curated databases.',
-                placement: 'bottom',
-            }
-        ];
+        // const neighborSteps = [
+        //     {
+        //         target: '.search-autocomplete-box',
+        //         content: 'Start typing to find a biomedical term you want to explore.',
+        //         placement: 'bottom',
+        //     },
+        //     {
+        //         target: '.term-type-dropdown',
+        //         content: 'Select which types of terms you want to find (e.g., Genes, Diseases, Drugs).',
+        //         placement: 'bottom',
+        //     },
+        //     {
+        //         target: '.results-limit-dropdown',
+        //         content: 'Choose how many related terms you want to see in the results.',
+        //         placement: 'bottom',
+        //     },
+        //     {
+        //         target: '.relationship-type-dropdown',
+        //         content: 'Choose how you want to find related terms: through literature-based relationships or curated databases.',
+        //         placement: 'bottom',
+        //     }
+        // ];
 
         const llmSteps = [
             {
@@ -221,10 +221,8 @@ const HomePage = () => {
 
         return [
             ...commonSteps,
-            ...(activeButton === 'triplet' ? tripletSteps :
-                activeButton === 'neighbor' ? neighborSteps :
-                    llmSteps),
-            ...(activeButton !== 'llm' ? finalSteps : [])
+            ...(activeButton === 'triplet' ? [...tripletSteps, ...finalSteps] :
+                llmSteps),
         ];
     };
 
@@ -238,7 +236,7 @@ const HomePage = () => {
             />
             <div className="HomePageContainer">
                 <div className="HomePageInner" style={{
-                    backgroundColor: searchBarOpen ? '#f0f0f0' : '#fff',
+                    backgroundColor: searchBarOpen ? '#e2ecf0' : '#F1FBFF',
                     transition: 'background-color 0.3s ease',
                 }}>
                     <Joyride
@@ -313,7 +311,7 @@ const HomePage = () => {
                         <Box sx={{ paddingBottom: '40px' }}>
                             <SubNavBar activeButton={activeButton} />
                         </Box>
-                        <Box sx={{ width: "90%", maxWidth: "1240px", paddingBottom: 'calc(min(9vh, 80px))' }}>
+                        <Box className={"search-bar"} sx={{ width: "-webkit-fill-available", paddingBottom: 'calc(min(9vh, 80px))' }}>
                             {activeButton === 'triplet' ? (
                                 <SearchBarKnowledge
                                     ref={searchBarKnowledgeRef}
@@ -344,7 +342,7 @@ const HomePage = () => {
                     }}>
                         <Container className="info-card-section" sx={{ gap: '40px', display: 'flex', flexDirection: 'row' }} >
                             {stats ? ([
-                                [OutboundIcon, "36%", "Higher accuracy on biomedical questions"],
+                                [OutboundIcon, "36%", "more accurate on PubMedQA with GLKB (62.3% → 98.1%)"],
                                 [ApiIcon, stats.num_api_calling || "N/A", "Total external API calls since released"],
                                 [LibraryBooksIcon, stats.num_articles || "N/A", "Articles covered in GLKB database"],
                             ].map(([icon, value, description], index) => (
@@ -360,6 +358,7 @@ const HomePage = () => {
                                         padding: '27px 12px',
                                         borderRadius: '12px',
                                         backgroundColor: 'transparent',
+                                        border: '1px solid #0169B04D',
                                         // borderBottom: '5px solid #0169B0'
                                     }}>
                                         {React.createElement(icon, {

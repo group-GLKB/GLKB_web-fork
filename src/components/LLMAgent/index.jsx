@@ -3,47 +3,47 @@ import './scoped.css';
 import './github-markdown-light.css';
 
 import React, {
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 
 import {
-    message,
-    Select,
+  message,
+  Select,
 } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import {
-    useLocation,
-    useNavigate,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import {
-    ArrowBack as ArrowBackIcon,
-    ChatBubbleOutline as ChatBubbleOutlineIcon,
-    Check as CheckIcon,
-    Clear as ClearIcon,
-    Close as CloseIcon,
-    ContentCopy as ContentCopyIcon,
-    EditNote as EditNoteIcon,
-    FilePresent as FilePresentIcon,
-    RateReview as RateReviewIcon,
-    Refresh as RefreshIcon,
+  ArrowBack as ArrowBackIcon,
+  ChatBubbleOutline as ChatBubbleOutlineIcon,
+  Check as CheckIcon,
+  Clear as ClearIcon,
+  Close as CloseIcon,
+  ContentCopy as ContentCopyIcon,
+  EditNote as EditNoteIcon,
+  FilePresent as FilePresentIcon,
+  RateReview as RateReviewIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import {
-    Box,
-    Button as MuiButton,
-    CircularProgress,
-    Container,
-    Grid,
-    IconButton,
-    Stack,
-    TextField,
-    Typography,
+  Box,
+  Button as MuiButton,
+  CircularProgress,
+  Container,
+  Grid,
+  IconButton,
+  Stack,
+  TextField,
+  Typography,
 } from '@mui/material';
 
-import systemIcon from '../../img/Asset 1.png';
+import systemIcon from '../../img/LLM_logo.jpg';
 import { LLMAgentService } from '../../service/LLMAgent';
 import NavBarWhite from '../Units/NavBarWhite';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
@@ -333,14 +333,15 @@ function LLMAgent() {
                                     height: 32,
                                     borderRadius: 16,
                                     borderStyle: "solid",
-                                    borderColor: "black",
-                                    borderWidth: 1,
+                                    borderColor: "#0169B0",
+                                    borderWidth: "2px",
                                     justifyContent: "center",
                                     alignItems: "center",
                                     display: "flex",
+                                    overflow: "hidden",
                                 }}
                             >
-                                <img src={systemIcon} alt="Assistant" width="26" height="26" style={{ borderRadius: 13 }} />
+                                <img src={systemIcon} alt="Assistant" width="60" height="60" style={{ borderRadius: "50%" }} />
                             </Box>
                         )}
                         <Box sx={{ flex: 1 }}>
@@ -674,7 +675,8 @@ function LLMAgent() {
                                                                 alignItems: 'center', // Center the text vertically
                                                                 '& fieldset': {
                                                                     border: 'none'
-                                                                }
+                                                                },
+                                                                boxShadow: '0px 2px 4px -1px #00000026',
                                                             },
                                                             '& .MuiInputBase-input': {
                                                                 paddingLeft: '4px',
@@ -718,7 +720,7 @@ function LLMAgent() {
                                                                     />}
                                                                     {/* Search Icon */}
                                                                     <SearchButton
-                                                                        alterColor={true}
+                                                                        alterColor={1}
                                                                         onClick={() => {
                                                                             handleSubmit();
                                                                         }}

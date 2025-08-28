@@ -3,7 +3,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.5rem 1rem;
-    font-size: clamp(12px, 2vw, 20px);
+    font-size: clamp(12px, 1.6vh, 20px);
     /*background-color: #fff; !* Change this as per your color scheme *!*/
     /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); Optional: for a slight shadow under the nav bar */
     border-bottom: 1px solid #3D739C;
@@ -32,6 +32,7 @@
 .navigation-bar .nav-links {
     margin-right: 30px;
     align-items: center;
+    display: flex;
 }
 
 button:hover {
@@ -52,19 +53,36 @@ button:hover {
     margin-top: 1rem;
 }
 
-.navigation-bar .nav-link.nonactive {
+.navigation-bar .nav-link.nonactive,
+.MuiTooltip-tooltip .nav-link.nonactive {
     background-color: transparent;
     border: none;
     margin-left: 20px;
-    color: #6E6F84;
+    font-size: clamp(12px, 1.6vh, 20px);
+    font-family: "Inter", sans-serif;
+    color: #050505;
+    text-decoration: none;
     /* Changed from #3D739C to #ffffff for better contrast */
-    font-weight: 400;
+    font-weight: 500;
     /* Change this as per your color scheme */
     /* Additional styles for the links can go here */
     margin-right: 1rem;
     /* Move the text slightly to the left */
     margin-top: 1rem;
     /* Move the text slightly down */
+}
+
+.navigation-bar .nav-link.contact {
+    display: inline-block;
+    background-color: #0169B0;
+    border: none;
+    color: white;
+    width: 83px;
+    padding: 6px 13px;
+    text-align: center;
+    vertical-align: middle;
+    font-weight: 600;
+    border-radius: 5px;
 }
 
 .navigation-bar .nav-links a {
@@ -98,7 +116,8 @@ button:hover {
     /* Optional rounded corners */
 }
 
-.navigation-bar .nav-link.nonactive:hover {
+.navigation-bar .nav-link.nonactive:hover,
+.MuiTooltip-tooltip .nav-link.nonactive:hover {
     color: #5988c2;
     /* Changed from #555 to a light gray for hover effect */
 }

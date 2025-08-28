@@ -34,6 +34,18 @@
     /* overflow-y: auto; */
 }
 
+.search-bar {
+    padding-left: 2%;
+    padding-right: 2%;
+}
+
+@media (min-width: 1600px) {
+    .search-bar {
+        padding-left: 6%;
+        padding-right: 6%;
+    }
+}
+
 .footer {
     align-items: center;
     padding: 0px;
