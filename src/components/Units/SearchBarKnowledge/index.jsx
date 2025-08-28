@@ -572,7 +572,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                             <Typography sx={{ color: "#6B7280", fontSize: "14px", fontWeight: 600, fontFamily: "Open Sans" }}>
                                                 {option[2]}
                                             </Typography>
-                                            <Box sx={{ gap: '12px', paddingTop: '4px' }}>
+                                            <Box sx={{ gap: '12px', paddingTop: '8px' }}>
                                                 {
                                                     option[1].split('; ').map((text, index) => (
                                                         <Chip

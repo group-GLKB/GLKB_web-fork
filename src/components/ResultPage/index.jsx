@@ -774,8 +774,8 @@ const ResultPage = () => {
                             alignSelf: 'flex-start',
                             zIndex: 1,
                             borderRadius: '24px',
-                            marginTop: '8px',
-                            marginBottom: '8px',
+                            marginTop: '16px',
+                            marginBottom: '16px',
                             // transform: 'translateY(-10px)',
                         }}
                             onClick={() => navigate('/')}>
@@ -849,7 +849,7 @@ const ResultPage = () => {
                                             // width: '100%',
                                             // paddingTop: "20px",
                                             paddingBottom: "20px",
-                                            height: '100%',
+                                            height: 'calc(100% - 20px)',
                                             // justifyContent: 'center',
                                             // alignItems: 'center',
                                             // maxWidth: '1200px',
