@@ -372,7 +372,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
     return (
         <Box maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 0, mb: 0, ml: 0, mr: 0, padding: 0, maxWidth: 'none !important' }}>
-            <Box sx={{ mb: 0, backgroundColor: 'transparent' }}>
+            <Box sx={{ mb: 0, backgroundColor: 'transparent', }}>
                 {/* First row with term type and search input */}
                 <Box sx={{
                     display: 'flex',
@@ -383,6 +383,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                     borderWidth: isOpen ? '0px 1px 1px 1px' : '1px',
                     borderStyle: 'solid',
                     borderColor: '#E6F0FC',
+                    boxShadow: '0px 2px 4px -1px #00000026',
                 }}>
 
                     {/* Search Input */}
@@ -497,6 +498,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                     onClick={handleSearch}
                                                     disabled={chipData.length === 0 || inputValue !== ''}
                                                     alterColor={props.alterColor}
+                                                    hide={isOpen}
                                                 />
                                             </Box>
                                         ),
@@ -512,7 +514,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                         borderWidth: '0px 1px 1px 1px',
                                         borderStyle: 'solid',
                                         borderColor: '#E6F0FC',
-
+                                        boxShadow: '0px 2px 4px -1px #00000026',
                                         marginBottom: '5px',
                                         overflow: 'hidden',
                                         "& .MuiAutocomplete-option.Mui-focused": {
