@@ -4,15 +4,15 @@ import './scoped.css';
 import React from 'react';
 
 import {
-  Link,
-  useLocation,
-  useNavigate,
+    Link,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import {
-  Box,
-  Stack,
+    Box,
+    Stack,
 } from '@mui/material';
 import Tooltip from '@mui/material/Tooltip';
 
@@ -87,7 +87,7 @@ function NavBarWhite({ showLogo = true, activeButton }) {
                     <Link
                         key={"About"}
                         className={"nav-link nonactive"}
-                        style={{ position: "relative", alignItems: "center", display: "flex" }}
+                        style={{ position: "relative", alignItems: "center", display: "flex", marginRight: "0px" }}
                     >
                         More&nbsp;&nbsp;<KeyboardArrowDownIcon fontSize="10px" />
                     </Link>
