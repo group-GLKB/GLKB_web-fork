@@ -2,32 +2,32 @@ import 'antd/dist/reset.css';
 import './scoped.css';
 
 import React, {
-    useCallback,
-    useEffect,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
 } from 'react';
 
 import {
-    Button as AntButton,
-    Spin,
-    Tooltip,
+  Button as AntButton,
+  Spin,
+  Tooltip,
 } from 'antd';
 import { debounce } from 'lodash';
 import Joyride, { STATUS } from 'react-joyride';
 import {
-    useLocation,
-    useNavigate,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import { InfoCircleOutlined } from '@ant-design/icons';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 //import mui button as muibutton
 import {
-    Box,
-    Button as MuiButton,
-    Grid,
-    Typography,
+  Box,
+  Button as MuiButton,
+  Grid,
+  Typography,
 } from '@mui/material';
 
 import downArrow from '../../img/down_arrow.svg';
@@ -702,6 +702,7 @@ const ResultPage = () => {
                 border: boolValues[label] ? 'solid 2px transparent' : 'solid 2px #ccc',
                 height: '39px',
                 fontWeight: 'normal',
+                fontFamily: 'Inter, sans-serif',
                 padding: '9px 9px',
                 fontSize: '14px',
                 lineHeight: '1.5',
@@ -771,6 +772,7 @@ const ResultPage = () => {
                     <Grid item xs={12} className="subgrid">
                         <MuiButton variant="text" sx={{
                             color: '#333333',
+                            fontFamily: 'Open Sans, sans-serif',
                             alignSelf: 'flex-start',
                             zIndex: 1,
                             borderRadius: '24px',
@@ -935,7 +937,7 @@ const ResultPage = () => {
                                                                     }}
                                                                 />
                                                                 <Typography sx={{
-                                                                    fontFamily: 'Inter, sans-serif',
+                                                                    fontFamily: 'Open Sans, sans-serif',
                                                                     fontSize: '14px',
                                                                     fontWeight: 400,
                                                                 }}
@@ -993,7 +995,7 @@ const ResultPage = () => {
                                                                             <div className="legend-subsection">
                                                                                 <div className="legend-subtitle-row">
                                                                                     <div className="legend-subtitle">Legends</div>
-                                                                                    <Tooltip title={LegendTooltipContent} styles={{ root: { maxWidth: '380px' }, body: { fontSize: '16px' } }}>
+                                                                                    <Tooltip title={LegendTooltipContent} styles={{ root: { maxWidth: '380px' }, body: { fontSize: '16px', fontFamily: 'Open Sans, sans-serif' } }}>
                                                                                         <InfoCircleOutlined style={{ color: '#1890ff' }} />
                                                                                     </Tooltip>
                                                                                     <button
@@ -1056,7 +1058,7 @@ const ResultPage = () => {
                                                         // marginTop: "20px",
                                                         // boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
                                                         '& *': {
-                                                            fontFamily: "Inter !important",
+                                                            fontFamily: 'Open Sans, sans-serif',
                                                         },
 
                                                     }} className="floating-information-new">
@@ -1178,6 +1180,7 @@ const ResultPage = () => {
                     color: '#FFFFFF',
                     boxShadow: '8px 6px 33px 0px #D8E6F8',
                     border: 'none',
+                    fontFamily: 'Open Sans, sans-serif',
                 }}
                 disabled={!searchFlag}
             >

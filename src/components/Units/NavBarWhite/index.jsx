@@ -4,15 +4,15 @@ import './scoped.css';
 import React from 'react';
 
 import {
-    Link,
-    useLocation,
-    useNavigate,
+  Link,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import {
-    Box,
-    Stack,
+  Box,
+  Stack,
 } from '@mui/material';
 import Tooltip from '@mui/material/Tooltip';
 
@@ -22,7 +22,7 @@ function NavBarWhite({ showLogo = true, activeButton }) {
     const location = useLocation();
     const navigate = useNavigate();
     const { state } = location || {};
-    const relativePath = window.location.href.toString().split(window.location.host)[1] || '';
+    const relativePath = window.location.pathname || '';
 
     const handleSearchClick = () => {
         navigate('/', { state: { activeButton: "triplet" } }); // Navigate to the search page
@@ -56,7 +56,10 @@ function NavBarWhite({ showLogo = true, activeButton }) {
                 {[["Home", "/"], ["Search", "/result"], ["Chat", "/llm-agent"]].map(([name, path]) => (
                     <Link
                         key={name}
-                        className={relativePath === path ? "nav-link active" : "nav-link nonactive"}
+                        className={
+                            relativePath === path ?
+                                (path === "/" ? "nav-link active-main" : "nav-link active")
+                                : "nav-link nonactive"}
                         to={path}
                         style={{ position: "relative" }}
                     >
@@ -94,7 +97,7 @@ function NavBarWhite({ showLogo = true, activeButton }) {
                     </Link>
                 </Tooltip>
                 <Link to={"https://jieliu6.github.io/"} target='_blank'>
-                    <Box className="nav-link contact" >Contact</Box>
+                    <Box className={relativePath === "/" ? "nav-link contact-main" : "nav-link contact"} >Contact</Box>
                 </Link>
             </div>
         </nav>

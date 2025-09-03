@@ -52,6 +52,20 @@ button:hover {
     border: none;
     /* Add underline to active links */
     margin-left: 20px;
+    color: #079BD4;
+    /* Keep the color for active links */
+    font-weight: 800;
+    /* Make the font heavier */
+    margin-right: 1rem;
+    /* Move the text slightly to the left */
+    margin-top: 1rem;
+}
+
+.navigation-bar .nav-link.active-main {
+    background-color: transparent;
+    border: none;
+    /* Add underline to active links */
+    margin-left: 20px;
     color: #0169B0;
     /* Keep the color for active links */
     font-weight: 800;
@@ -81,6 +95,18 @@ button:hover {
 }
 
 .navigation-bar .nav-link.contact {
+    display: inline-block;
+    background-color: #079BD4;
+    border: none;
+    color: white;
+    padding: 6px 13px;
+    text-align: center;
+    vertical-align: middle;
+    font-weight: 600;
+    border-radius: 5px;
+}
+
+.navigation-bar .nav-link.contact-main {
     display: inline-block;
     background-color: #0169B0;
     border: none;
@@ -112,6 +138,22 @@ button:hover {
 }
 
 .navigation-bar .nav-link.active::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: -6px;
+    /* Push the underline lower */
+    width: 120%;
+    /* Longer than the text */
+    height: 3px;
+    /* Thickness */
+    background-color: #079BD4;
+    border-radius: 2px;
+    /* Optional rounded corners */
+}
+
+.navigation-bar .nav-link.active-main::after {
     content: "";
     position: absolute;
     left: 50%;

@@ -2,31 +2,31 @@ import 'antd/dist/reset.css';
 import './scoped.css';
 
 import React, {
-    useEffect,
-    useRef,
-    useState,
+  useEffect,
+  useRef,
+  useState,
 } from 'react';
 
 import { Button as AntButton } from 'antd';
 import Joyride, {
-    ACTIONS,
-    EVENTS,
-    STATUS,
+  ACTIONS,
+  EVENTS,
+  STATUS,
 } from 'react-joyride';
 import {
-    useLocation,
-    useNavigate,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import ApiIcon from '@mui/icons-material/Api';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import OutboundIcon from '@mui/icons-material/Outbound';
 import {
-    Box,
-    CircularProgress,
-    Container,
-    Grid,
-    Typography,
+  Box,
+  CircularProgress,
+  Container,
+  Grid,
+  Typography,
 } from '@mui/material';
 
 import NavBarWhite from '../Units/NavBarWhite';
@@ -258,7 +258,8 @@ const HomePage = () => {
                                 }
                             },
                             tooltipContent: {
-                                textAlign: 'left'
+                                textAlign: 'left',
+                                fontFamily: 'Open Sans, sans-serif',
                             }
                         }}
                         locale={{
@@ -417,7 +418,7 @@ const HomePage = () => {
 
                     <div className="footer">
                         <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
-                            <p style={{ textAlign: 'center', color: 'rgba(0, 0, 0, 0.8)', fontSize: '14px', margin: 0 }}>
+                            <p style={{ fontFamily: 'Open Sans, sans-serif', textAlign: 'center', color: 'rgba(0, 0, 0, 0.8)', fontSize: '14px', margin: 0 }}>
                                 © 2025 Liu Lab, Department of Computational Medicine and Bioinformatics, University of Michigan
                             </p>
                         </div>
@@ -437,6 +438,7 @@ const HomePage = () => {
                         backgroundColor: '#0169B0',
                         color: 'white',
                         border: 'none',
+                        fontFamily: 'Open Sans, sans-serif',
                     }}
                 >
                     ?
