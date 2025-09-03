@@ -1,7 +1,7 @@
 import React, {
-    useCallback,
-    useEffect,
-    useState,
+  useCallback,
+  useEffect,
+  useState,
 } from 'react';
 
 import { debounce } from 'lodash';
@@ -11,13 +11,13 @@ import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import {
-    Autocomplete,
-    Box,
-    Chip,
-    Paper,
-    Popper,
-    TextField,
-    Typography,
+  Autocomplete,
+  Box,
+  Chip,
+  Paper,
+  Popper,
+  TextField,
+  Typography,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -416,6 +416,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                         key={option.database_id}
                                         label={option[1].replace(/\s*\([^)]*\)$/, "")}
                                         size="small"
+                                        sx={{
+                                            fontFamily: 'Open Sans, sans-serif',
+                                        }}
                                         {...getTagProps({ index })} // Pass props for chip behavior
                                     />
                                 ))
@@ -437,6 +440,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                             height: '60px',
                                             borderRadius: '30px',
                                             alignItems: 'center', // Center the text vertically
+                                            fontFamily: 'Open Sans, sans-serif',
                                             '& fieldset': {
                                                 border: 'none',
                                             },
@@ -457,7 +461,6 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                         }
                                     }}
                                     size="small"
-
                                     className="search-autocomplete-box"
                                     InputProps={{
                                         ...params.InputProps,
@@ -518,6 +521,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                         boxShadow: '0px 2px 3px -1px #00000026',
                                         marginBottom: '5px',
                                         overflow: 'hidden',
+                                        fontFamily: 'Open Sans, sans-serif',
                                         "& .MuiAutocomplete-option.Mui-focused": {
                                             backgroundColor: '#EDF5FE !important',
                                         },
@@ -528,6 +532,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                             backgroundColor: '#0CA5E9 !important',
                                             color: 'white !important'
                                         },
+                                        "& .MuiAutocomplete-groupLabel": {
+                                            fontFamily: 'Open Sans, sans-serif',
+                                        }
                                     }}
                                 >
                                     {children}

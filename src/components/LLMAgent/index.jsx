@@ -3,44 +3,44 @@ import './scoped.css';
 import './github-markdown-light.css';
 
 import React, {
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 
 import {
-    message,
-    Select,
+  message,
+  Select,
 } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import {
-    useLocation,
-    useNavigate,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import {
-    ArrowBack as ArrowBackIcon,
-    ChatBubbleOutline as ChatBubbleOutlineIcon,
-    Check as CheckIcon,
-    Clear as ClearIcon,
-    Close as CloseIcon,
-    ContentCopy as ContentCopyIcon,
-    EditNote as EditNoteIcon,
-    FilePresent as FilePresentIcon,
-    RateReview as RateReviewIcon,
-    Refresh as RefreshIcon,
+  ArrowBack as ArrowBackIcon,
+  ChatBubbleOutline as ChatBubbleOutlineIcon,
+  Check as CheckIcon,
+  Clear as ClearIcon,
+  Close as CloseIcon,
+  ContentCopy as ContentCopyIcon,
+  EditNote as EditNoteIcon,
+  FilePresent as FilePresentIcon,
+  RateReview as RateReviewIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import {
-    Box,
-    Button as MuiButton,
-    CircularProgress,
-    Container,
-    Grid,
-    IconButton,
-    Stack,
-    TextField,
-    Typography,
+  Box,
+  Button as MuiButton,
+  CircularProgress,
+  Container,
+  Grid,
+  IconButton,
+  Stack,
+  TextField,
+  Typography,
 } from '@mui/material';
 
 import systemIcon from '../../img/LLM_logo.jpg';
@@ -306,7 +306,7 @@ function LLMAgent() {
                 <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: "5px", justifyContent: "flex-end" }}>
                     {!isAssistant && (
                         <Box sx={{ flex: "0 0 auto", width: "80px", textAlign: "right" }}>
-                            <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText" }}>{timestamp}</Typography>
+                            <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText", fontFamily: 'Open Sans, sans-serif' }}>{timestamp}</Typography>
                         </Box>
                     )}
                     <Box
@@ -333,7 +333,7 @@ function LLMAgent() {
                                     height: 32,
                                     borderRadius: 16,
                                     borderStyle: "solid",
-                                    borderColor: "#0169B0",
+                                    borderColor: "#0169B080",
                                     borderWidth: "2px",
                                     justifyContent: "center",
                                     alignItems: "center",
@@ -348,7 +348,7 @@ function LLMAgent() {
                         <Box sx={{ flex: 1 }}>
                             {isAssistant && (
                                 <Typography variant="body2" color="textSecondary" sx={{
-                                    fontFamily: "Inter, sans-serif", fontSize: "14px", display: "flex", color: "#19213d", alignItems: "center",
+                                    fontFamily: "Open Sans, sans-serif", fontSize: "14px", display: "flex", color: "#19213d", alignItems: "center",
                                     pt: "12px", pb: "12px", fontWeight: 500
                                 }}>
                                     LLMAgent
@@ -361,7 +361,7 @@ function LLMAgent() {
                                             bgcolor: "text.secondary",
                                         }}
                                     />
-                                    <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText" }}>{timestamp}</Typography>
+                                    <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText", fontFamily: 'Open Sans, sans-serif' }}>{timestamp}</Typography>
                                 </Typography>
                             )}
 
@@ -384,17 +384,8 @@ function LLMAgent() {
                                             sx={{ flex: 1, width: "100%" }}
                                             onChange={(e) => change(e.target.value)}
                                         /> : (
-                                            <div className="markdown-body">
-                                                <ReactMarkdown components={{
-                                                    // // Add a custom style on all nodes
-                                                    // p: ({ node, ...props }) => <p style={{ lineHeight: "150%" }} {...props} />,
-                                                    // // h1: ({ node, ...props }) => <h1 style={{}} {...props} />,
-                                                    // // h2: ({ node, ...props }) => <h2 style={{}} {...props} />,
-                                                    // // h3: ({ node, ...props }) => <h3 style={{}} {...props} />,
-                                                    // // ul: ({ node, ...props }) => <ul style={{}} {...props} />,
-                                                    // // ol: ({ node, ...props }) => <ol style={{}} {...props} />,
-                                                    // li: ({ node, ...props }) => <li style={{ lineHeight: "150%", marginTop: "5px", marginBottom: "5px" }} {...props} />
-                                                }}>
+                                            <div className="markdown-body" style={{ fontFamily: 'Open Sans, sans-serif' }}>
+                                                <ReactMarkdown>
                                                     {message.content}
                                                 </ReactMarkdown>
                                             </div>
@@ -410,32 +401,7 @@ function LLMAgent() {
                                     <IconButton size="small" onClick={() => copy(message.content)}>
                                         <ContentCopyIcon fontSize="small" />
                                     </IconButton>
-                                    {/* <IconButton size="small" onClick={()=>{}}>
-                                    <ShareIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton size="small" onClick={()=>{}}>
-                                    {0 ? <ThumbUpAltIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
-                                </IconButton>
-                                <IconButton size="small" onClick={()=>{}}>
-                                    {0 ? <ThumbDownAltIcon fontSize="small" /> : <ThumbDownOffAltIcon fontSize="small" />}
-                                </IconButton>
-                                <IconButton size="small" onClick={()=>{}}>
-                                    {0 ? <BookmarkIcon fontSize="small" /> : <BookmarkBorderIcon fontSize="small" />}
-                                </IconButton> */}
-                                    {/* <IconButton size="small">
-                                    <MoreHorizIcon fontSize="small" />
-                                </IconButton> */}
                                 </Stack>
-                                {/* <Box sx={{
-                                px: "10px",
-                                height: "40px",
-                                borderRadius: "4px",
-                                border: "none",
-                                bgcolor: "#f7f8fa",
-                                justifyContent: "center",
-                                alignItems: "center",
-                                display: "flex",
-                            }}>{tokenCount} tokens</Box> */}
                                 <MuiButton
                                     variant='contained'
                                     startIcon={<FilePresentIcon />}
@@ -444,6 +410,7 @@ function LLMAgent() {
                                     disabled={isLoading}
                                     sx={{
                                         px: "10px",
+                                        fontFamily: 'Open Sans, sans-serif',
                                         height: "40px",
                                         borderRadius: "4px",
                                         border: "none", bgcolor: "#f7f8fa", color: "#19213d",
@@ -546,6 +513,7 @@ function LLMAgent() {
                     <div className="main-content">
                         <MuiButton variant="text" sx={{
                             color: '#333333',
+                            fontFamily: 'Open Sans, sans-serif',
                             alignSelf: 'flex-start',
                             zIndex: 1,
                             borderRadius: '24px',
@@ -572,7 +540,7 @@ function LLMAgent() {
                                                     marginBottom: '1px',
                                                 }}>
                                                     <Typography sx={{
-                                                        fontFamily: 'Inter, sans-serif',
+                                                        fontFamily: 'Open Sans, sans-serif',
                                                         fontSize: '18px',
                                                         fontWeight: '500',
                                                         paddingLeft: '16px',
@@ -588,7 +556,8 @@ function LLMAgent() {
                                                         gap: "4px",
                                                         border: "1px solid #E2E8F0",
                                                         fontSize: '11px',
-                                                        color: isLoading ? '#e0e0e0' : '#64748B'
+                                                        color: isLoading ? '#e0e0e0' : '#64748B',
+                                                        fontFamily: 'Open Sans, sans-serif',
                                                     }}>
                                                         <RateReviewIcon sx={{ fontSize: '15px' }} /> New Chat
                                                     </MuiButton>
@@ -597,31 +566,29 @@ function LLMAgent() {
                                                 {chatHistory.length === 0 && (<>
                                                     <div className="empty-page-title" style={{ paddingTop: '1rem' }}>
                                                         <div style={{ gap: '1rem', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
-                                                            <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: 'clamp(0.5vw, 32px, 2vw)', fontWeight: '700', color: "#0169B0" }}>
+                                                            <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: 'clamp(0.5vw, 32px, 2vw)', fontWeight: '700', color: "#0169B0" }}>
                                                                 Explore Biomedical Literature
                                                             </Typography>
-                                                            <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: 'clamp(0.25vw, 18px, 1.1vw)', fontWeight: '500', color: "#718096" }}>
+                                                            <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: 'clamp(0.25vw, 18px, 1.1vw)', fontWeight: '500', color: "#718096" }}>
                                                                 AI-powered Genomic Literature Knowledge Base
                                                             </Typography>
                                                         </div>
                                                     </div>
                                                     <div className="example-queries-header">
-                                                        <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: '16px', fontWeight: '400', color: "#888888", width: '100%', textAlign: 'left' }}>
+                                                        <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '16px', fontWeight: '400', color: "#888888", width: '100%', textAlign: 'left' }}>
                                                             Try these example queries:
                                                         </Typography>
                                                         <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '10px', minHeight: '80px' }}>
-                                                            <div className="example-query"
-                                                                onClick={() => handleExampleClick("What is the role of BRCA1 in breast cancer?")}>
-                                                                What is the role of BRCA1 in breast cancer?
-                                                            </div>
-                                                            <div className="example-query"
-                                                                onClick={() => handleExampleClick("How many articles about Alzheimer's disease are published in 2020?")}>
-                                                                How many articles about Alzheimer's disease are published in 2020?
-                                                            </div>
-                                                            <div className="example-query"
-                                                                onClick={() => handleExampleClick("What pathways does TP53 participate in?")}>
-                                                                What pathways does TP53 participate in?
-                                                            </div>
+                                                            {
+                                                                ["What is the role of BRCA1 in breast cancer?",
+                                                                    "How many articles about Alzheimer's disease are published in 2020?",
+                                                                    "What pathways does TP53 participate in?"
+                                                                ].map((query, index) => (
+                                                                    <div className="example-query" key={index} onClick={() => handleExampleClick(query)}>
+                                                                        {query}
+                                                                    </div>
+                                                                ))
+                                                            }
                                                         </div>
                                                     </div>
                                                 </>
@@ -676,6 +643,7 @@ function LLMAgent() {
                                                                 height: '60px',
                                                                 borderRadius: '30px',
                                                                 alignItems: 'center', // Center the text vertically
+                                                                fontFamily: 'Open Sans, sans-serif',
                                                                 '& fieldset': {
                                                                     border: 'none'
                                                                 },
@@ -751,7 +719,7 @@ function LLMAgent() {
                                                         borderBottom: '1px solid #E6E6E6',
                                                         marginBottom: '1px',
                                                     }}>
-                                                        <h3 style={{ fontFamily: 'Inter, sans-serif', fontWeight: '500', fontSize: '18px', marginBottom: '0' }}>References</h3>
+                                                        <h3 style={{ fontFamily: 'Open Sans, sans-serif', fontWeight: '500', fontSize: '18px', marginBottom: '0' }}>References</h3>
                                                         <Select
                                                             size="small"
                                                             value={sortOption}
@@ -760,7 +728,8 @@ function LLMAgent() {
                                                                 { value: 'Year', label: 'Sort by Year' },
                                                                 { value: 'Citations', label: 'Sort by Citations' }
                                                             ]}
-                                                            style={{ marginRight: '16px', minWidth: '140px' }}
+                                                            style={{ marginRight: '16px', minWidth: '140px', 'font-family': 'Open Sans, sans-serif' }}
+                                                            styles={{ popup: { root: { 'font-family': 'Open Sans, sans-serif' } } }}
                                                         />
                                                     </div>
 

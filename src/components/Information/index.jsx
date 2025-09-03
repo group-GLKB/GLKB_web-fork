@@ -521,7 +521,7 @@ const Information = ({ width, ...props }) => {
 
     return (
         <div className="information" style={{
-            fontFamily: 'Inter !important',
+            fontFamily: 'Open Sans, sans-serif !important',
             "& .ant-list-item": {
                 paddingLeft: '0px',
                 paddingRight: '0px',
@@ -537,7 +537,7 @@ const Information = ({ width, ...props }) => {
                         fontSize: '24px',
                         lineHeight: '1.5',
                         fontWeight: '600',
-                        fontFamily: 'Inter',
+                        fontFamily: 'Open Sans, sans-serif',
                         borderTopLeftRadius: '10px',
                         borderTopRightRadius: '10px',
                         paddingTop: '35px',
@@ -599,7 +599,7 @@ const Information = ({ width, ...props }) => {
                                                     size="small"
                                                     defaultValue="year"
                                                     onChange={value => setSortBy(value)}
-                                                    style={{ width: 120 }}
+                                                    style={{ minWidth: '140px' }}
                                                     options={[
                                                         { value: 'year', label: 'Sort by Year' },
                                                         { value: 'citations', label: 'Sort by Citations' },
@@ -645,6 +645,7 @@ const Information = ({ width, ...props }) => {
                                                             size="small"
                                                             value={sortBy}
                                                             onChange={value => setSortBy(value)}
+                                                            style={{ minWidth: '140px' }}
                                                             options={[
                                                                 { value: 'year', label: 'Sort by Year' },
                                                                 { value: 'citations', label: 'Sort by Citations' }
@@ -757,6 +758,7 @@ const Information = ({ width, ...props }) => {
                                                             size="small"
                                                             value={sortBy}
                                                             onChange={value => setSortBy(value)}
+                                                            style={{ minWidth: '140px' }}
                                                             options={[
                                                                 { value: 'year', label: 'Sort by Year' },
                                                                 { value: 'citations', label: 'Sort by Citations' }

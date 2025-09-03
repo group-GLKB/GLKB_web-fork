@@ -3,6 +3,11 @@
     overflow-y: auto !important;
 }
 
+.ant-select-dropdown {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+}
+
 .result-container {
     /* min-width: 800px; */
     /* min-height: 700px; */
@@ -91,6 +96,7 @@
 }
 
 .references-container {
+    font-family: 'Open Sans', sans-serif;
     flex: 1;
     overflow-y: hidden;
     border: 1px solid #e0e0e0;
@@ -539,6 +545,7 @@
 }
 
 .step-item {
+    font-family: 'Open Sans', sans-serif;
     margin: 8px 0;
     line-height: 1.5;
 }
@@ -586,6 +593,7 @@
 }
 
 .example-query-list {
+    font-family: 'Open Sans', sans-serif;
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;

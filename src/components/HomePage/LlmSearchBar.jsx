@@ -1,6 +1,6 @@
 import React, {
-    useEffect,
-    useState,
+  useEffect,
+  useState,
 } from 'react';
 
 import { useNavigate } from 'react-router-dom';
@@ -9,11 +9,11 @@ import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import CloseIcon from '@mui/icons-material/Close';
 import {
-    Autocomplete,
-    Box,
-    Paper,
-    Popper,
-    TextField,
+  Autocomplete,
+  Box,
+  Paper,
+  Popper,
+  TextField,
 } from '@mui/material';
 
 import { trackEvent } from '../Units/analytics';
@@ -106,6 +106,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 height: '60px', // Adjust the height of the input field
                                 alignItems: 'center', // Center the text vertically
                                 paddingRight: '10px', // Remove right padding
+                                fontFamily: 'Open Sans, sans-serif',
                                 '& fieldset': {
                                     border: 'none',
                                 },
@@ -164,6 +165,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             marginBottom: '5px',
                             paddingTop: '0px',
                             overflow: 'hidden',
+                            fontFamily: 'Open Sans, sans-serif',
                             "& .MuiAutocomplete-option.Mui-focused": {
                                 backgroundColor: '#EDF5FE !important',
                             },
@@ -174,7 +176,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 paddingTop: '0px'
                             },
                             "& .MuiAutocomplete-groupLabel": {
-                                height: '36px'
+                                height: '36px',
+                                fontFamily: 'Open Sans, sans-serif',
                             }
                         }}
                     >

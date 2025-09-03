@@ -454,7 +454,7 @@ all {
 }
 
 .legend-subtitle {
-    font-family: 'Inter';
+    font-family: 'Open Sans', sans-serif;
     font-weight: 600;
     font-size: 16px;
     line-height: 32px;
@@ -478,6 +478,7 @@ all {
 }
 
 .legend-label {
+    font-family: 'Open Sans', sans-serif;
     display: flex;
     align-items: center;
     font-size: 14px;
