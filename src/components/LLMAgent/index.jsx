@@ -30,6 +30,7 @@ import {
     FilePresent as FilePresentIcon,
     RateReview as RateReviewIcon,
     Refresh as RefreshIcon,
+    StopCircle as StopCircleIcon,
 } from '@mui/icons-material';
 import {
     Box,
@@ -60,6 +61,7 @@ function LLMAgent() {
     const [editingMessageIndex, setEditingMessageIndex] = useState(null);
     const [editedMessageContent, setEditedMessageContent] = useState('');
     const messagesEndRef = useRef(null);
+    const abortControllerRef = useRef(null);
     const navigate = useNavigate();
 
     // Create a single instance of LLMAgentService that persists across re-renders
@@ -156,9 +158,36 @@ function LLMAgent() {
                 timestamp: timestamp
             }]);
 
-            await llmService.chat(inputText, (update) => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+            const abortController = new AbortController();
+            abortControllerRef.current = abortController;
+            console.log(1);
+            await llmService.chat(inputText, abortControllerRef.current, (update) => {
+                console.log('Received update:', update);
                 switch (update.type) {
                     case 'step':
+                        if (update.step === 'Error') {
+                            setIsProcessing(false);
+                            setChatHistory(prev => {
+                                const newHistory = [...prev];
+                                const assistantMessage = {
+                                    role: 'assistant',
+                                    content: update.content,
+                                    references: [],
+                                    timestamp: timestamp
+                                };
+                                newHistory[newHistory.length - 1] = assistantMessage;
+
+                                // Update the LLMAgentService's internal message history
+                                llmService.updateMessages(update.answer);
+
+                                return newHistory;
+                            });
+                            setSelectedMessageIndex(chatHistory.length + 1);
+                            break;
+                        }
                         setStreamingSteps(prev => {
                             const newSteps = [...prev];
                             const cleanContent = update.content.replace(/\u001b\[\d+m/g, '').trim();
@@ -190,7 +219,7 @@ function LLMAgent() {
                         });
                         setSelectedMessageIndex(chatHistory.length + 1);
                         break;
-                    case 'error':
+                    case 'error': // unsure if this is used
                         setIsProcessing(false);
                         setChatHistory(prev => {
                             const newHistory = [...prev];
@@ -224,6 +253,12 @@ function LLMAgent() {
             setIsProcessing(false);
         }
     };
+
+    useEffect(() => {
+        return () => {
+            if (abortControllerRef.current) abortControllerRef.current.abort();
+        };
+    }, []);
 
     const handleEditMessage = (index) => {
         if (chatHistory[index].role !== 'user') return;
@@ -401,6 +436,10 @@ function LLMAgent() {
                                     <IconButton size="small" onClick={() => copy(message.content)}>
                                         <ContentCopyIcon fontSize="small" />
                                     </IconButton>
+                                    {isLoading && <IconButton size="small" onClick={() => { if (abortControllerRef.current) abortControllerRef.current.abort(); }}>
+                                        <StopCircleIcon fontSize="small" />
+                                    </IconButton>
+                                    }
                                 </Stack>
                                 <MuiButton
                                     variant='contained'
@@ -728,7 +767,7 @@ function LLMAgent() {
                                                                 { value: 'Year', label: 'Sort by Year' },
                                                                 { value: 'Citations', label: 'Sort by Citations' }
                                                             ]}
-                                                            style={{ marginRight: '16px', minWidth: '140px', 'font-family': 'Open Sans, sans-serif' }}
+                                                            style={{ marginRight: '16px', minWidth: '140px', fontFamily: 'Open Sans, sans-serif' }}
                                                             styles={{ popup: { root: { 'font-family': 'Open Sans, sans-serif' } } }}
                                                         />
                                                     </div>
