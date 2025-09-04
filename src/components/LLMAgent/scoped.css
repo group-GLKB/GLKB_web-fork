@@ -620,7 +620,7 @@
     cursor: pointer;
     display: flex;
     flex: 1 1 0;
-    font-size: 14px;
+    font-size: 18px;
     font-weight: 600;
     height: auto;
     line-height: 150%;
@@ -634,6 +634,12 @@
     text-align: left;
     transition: all 0.2s ease;
     width: auto;
+}
+
+@media (max-width: 1825px) {
+    .example-query {
+        font-size: 16px;
+    }
 }
 
 .example-query:hover {

@@ -3,44 +3,44 @@ import './scoped.css';
 import './github-markdown-light.css';
 
 import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from 'react';
 
 import {
-  message,
-  Select,
+    message,
+    Select,
 } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import {
-  useLocation,
-  useNavigate,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
 import {
-  ArrowBack as ArrowBackIcon,
-  ChatBubbleOutline as ChatBubbleOutlineIcon,
-  Check as CheckIcon,
-  Clear as ClearIcon,
-  Close as CloseIcon,
-  ContentCopy as ContentCopyIcon,
-  EditNote as EditNoteIcon,
-  FilePresent as FilePresentIcon,
-  RateReview as RateReviewIcon,
-  Refresh as RefreshIcon,
+    ArrowBack as ArrowBackIcon,
+    ChatBubbleOutline as ChatBubbleOutlineIcon,
+    Check as CheckIcon,
+    Clear as ClearIcon,
+    Close as CloseIcon,
+    ContentCopy as ContentCopyIcon,
+    EditNote as EditNoteIcon,
+    FilePresent as FilePresentIcon,
+    RateReview as RateReviewIcon,
+    Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Button as MuiButton,
-  CircularProgress,
-  Container,
-  Grid,
-  IconButton,
-  Stack,
-  TextField,
-  Typography,
+    Box,
+    Button as MuiButton,
+    CircularProgress,
+    Container,
+    Grid,
+    IconButton,
+    Stack,
+    TextField,
+    Typography,
 } from '@mui/material';
 
 import systemIcon from '../../img/LLM_logo.jpg';
@@ -636,7 +636,7 @@ function LLMAgent() {
                                                         variant="outlined"
                                                         placeholder="Ask a question about the biomedical literature..."
                                                         sx={{
-                                                            backgroundColor: '#F9FBFF',
+                                                            backgroundColor: '#F4F9FE',
                                                             borderRadius: '30px',
                                                             minHeight: '60px', // Increase the height of the input box
                                                             '& .MuiInputBase-root': {
