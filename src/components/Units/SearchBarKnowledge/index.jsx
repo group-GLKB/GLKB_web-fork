@@ -1,7 +1,7 @@
 import React, {
-  useCallback,
-  useEffect,
-  useState,
+    useCallback,
+    useEffect,
+    useState,
 } from 'react';
 
 import { debounce } from 'lodash';
@@ -11,13 +11,13 @@ import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import {
-  Autocomplete,
-  Box,
-  Chip,
-  Paper,
-  Popper,
-  TextField,
-  Typography,
+    Autocomplete,
+    Box,
+    Chip,
+    Paper,
+    Popper,
+    TextField,
+    Typography,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -221,8 +221,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         setChipData(newChipData);
         setChipDataID(newChipDataID);
 
-        console.log('Updated chipData:', newChipData);
-        console.log('Updated chipDataID:', newChipDataID);
+        // console.log('Updated chipData:', newChipData);
+        // console.log('Updated chipDataID:', newChipDataID);
     }, [selectedSources]); // Trigger this effect whenever selectedSources changes
 
     useEffect(() => {
@@ -245,8 +245,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
             setChipDataID(updatedChipDataID);
         }
 
-        console.log('Filtered chipData:', updatedChipData);
-        console.log('Filtered chipDataID:', updatedChipDataID);
+        // console.log('Filtered chipData:', updatedChipData);
+        // console.log('Filtered chipDataID:', updatedChipDataID);
     }, [selectedSources]); // Trigger this effect whenever selectedSources, chipData, or chipDataID changes
 
     useEffect(() => {
@@ -293,7 +293,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
             navigate('/result', { state: { search_data, chipDataID } });
         }
 
-        console.log('Chip data:', chipDataID);
+        // console.log('Chip data:', chipDataID);
         if (props.displayArticleGraph) {
             props.setDisplayArticleGraph(false);
         }
@@ -361,9 +361,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         }
     }));
 
-    React.useEffect(() => {
-        console.log('Selected sources (after update):', selectedSources);
-    }, [selectedSources]);
+    // React.useEffect(() => {
+    //     console.log('Selected sources (after update):', selectedSources);
+    // }, [selectedSources]);
 
     const [showExample, setShowExample] = useState(false);
     useEffect(() => {
@@ -391,6 +391,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                         <Autocomplete
                             multiple
                             limitTags={5}
+                            isOptionEqualToValue={(option, value) => {
+                                return option?.[0].toString() === value?.[0].toString();
+                            }}
                             autoHighlight={!showExample}
                             onInputChange={(event, newInputValue) => {
                                 if (!tripletLimitReached) {
@@ -400,8 +403,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             }}
                             options={
                                 (ref?.current && showExample
-                                    ? ExampleOptions
-                                    : sourceNodeOptions
+                                    ? [...ExampleOptions, ...selectedSources]
+                                    : [...sourceNodeOptions, ...selectedSources]
                                 ) || []}
                             filterOptions={(options) => options}
                             filterSelectedOptions={true}
@@ -547,17 +550,17 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             onOpen={() => setIsOpen(true)}
                             onClose={() => setIsOpen(false)}
                             onChange={(event, newValue) => {
-                                console.log('Selected sources:', newValue);
+                                // console.log('Selected sources:', newValue);
                                 if (newValue.length === 1) {
                                     if (typeof newValue[0][0] === 'string' &&
                                         newValue[0][0]?.startsWith('example_')) {
-                                        console.log('Filled with example:', newValue[0][0]);
+                                        // console.log('Filled with example:', newValue[0][0]);
                                         ref.current.fillWithExample(exampleQueries[newValue[0][0].substring(8) || 1]);
                                         return;
                                     }
                                 }
                                 setSelectedSources(newValue);
-                                console.log('New sources:', newValue);
+                                // console.log('New sources:', newValue);
                             }}
                             renderOption={(props, option) => (
                                 showExample ?

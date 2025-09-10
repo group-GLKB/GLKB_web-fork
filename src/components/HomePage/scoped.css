@@ -39,7 +39,7 @@
     padding-right: 2%;
 }
 
-@media (min-width: 1600px) {
+@media (min-width: 1200px) {
     .search-bar {
         padding-left: 6%;
         padding-right: 6%;
