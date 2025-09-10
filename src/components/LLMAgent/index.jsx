@@ -116,7 +116,7 @@ function LLMAgent() {
 
     const handleSubmit = async (e, input = null, t = null) => {
         const inputText = input || userInput;
-        console.log('Submitting:', inputText);
+        // console.log('Submitting:', inputText);
         e && e.preventDefault();
         if (!inputText.trim() || isLoading) return;
 
@@ -163,9 +163,8 @@ function LLMAgent() {
             }
             const abortController = new AbortController();
             abortControllerRef.current = abortController;
-            console.log(1);
             await llmService.chat(inputText, abortControllerRef.current, (update) => {
-                console.log('Received update:', update);
+                // console.log('Received update:', update);
                 switch (update.type) {
                     case 'step':
                         if (update.step === 'Error') {

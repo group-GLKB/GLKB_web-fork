@@ -2,32 +2,32 @@ import 'antd/dist/reset.css';
 import './scoped.css';
 
 import React, {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
 } from 'react';
 
 import {
-  Button as AntButton,
-  Spin,
-  Tooltip,
+    Button as AntButton,
+    Spin,
+    Tooltip,
 } from 'antd';
 import { debounce } from 'lodash';
 import Joyride, { STATUS } from 'react-joyride';
 import {
-  useLocation,
-  useNavigate,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
 import { InfoCircleOutlined } from '@ant-design/icons';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 //import mui button as muibutton
 import {
-  Box,
-  Button as MuiButton,
-  Grid,
-  Typography,
+    Box,
+    Button as MuiButton,
+    Grid,
+    Typography,
 } from '@mui/material';
 
 import downArrow from '../../img/down_arrow.svg';
@@ -71,7 +71,7 @@ const ResultPage = () => {
     // const alltags = urlParams.get('data');
     const location = useLocation();
     const navigate = useNavigate();
-    console.log(location.state);
+    // console.log(location.state);
     const search_data = location.state?.search_data;
     const chipDataID = location.state?.chipDataID;
     // const { result } = location.state;
@@ -339,7 +339,7 @@ const ResultPage = () => {
         if (chipDataID) {
             const newArray = [];
             chipDataID.forEach(idArray => { newArray.push(idArray) });
-            console.log(newArray)
+            // console.log(newArray)
             setChipDataIDResult(newArray);
         }
         // Set information panel to open by default
@@ -414,7 +414,7 @@ const ResultPage = () => {
 
         let cypherServ = new CypherService();
         const response = await cypherServ.Triplet2Cypher(content);
-        console.log('function -> ', response);
+        // console.log('function -> ', response);
         setData(response[0]);
         // setAllNodes(response[1])
         // Store just the graph data, not the entire response
@@ -634,29 +634,29 @@ const ResultPage = () => {
         }
     }, [graphShownData, uniqueLabelsArray, uniqueEdgeLabelsArray]);
 
-    const onChangeNode = (e, label, prevChecked) => {
-        console.log(label, prevChecked);
-        if (prevChecked) {
-            const tempKeys = [];
-            for (let i = 0; i < graphShownData.nodes.length; i++) {
-                if (graphShownData.nodes[i].data.label !== label) {
-                    tempKeys.push(graphShownData.nodes[i].data.id);
-                }
-            }
-            setGraphData(tempKeys);
-            setBoolValues({ ...boolValues, [label]: false });
-        } else {
-            const tempKeys = [];
-            for (let i = 0; i < data.nodes.length; i++) {
-                if (data.nodes[i].data.label === label) {
-                    tempKeys.push(data.nodes[i].data.id);
-                }
-            }
-            const currentKeys = graphData || [];
-            setGraphData([...currentKeys, ...tempKeys]);
-            setBoolValues({ ...boolValues, [label]: true });
-        }
-    };
+    // const onChangeNode = (e, label, prevChecked) => {
+    //     console.log(label, prevChecked);
+    //     if (prevChecked) {
+    //         const tempKeys = [];
+    //         for (let i = 0; i < graphShownData.nodes.length; i++) {
+    //             if (graphShownData.nodes[i].data.label !== label) {
+    //                 tempKeys.push(graphShownData.nodes[i].data.id);
+    //             }
+    //         }
+    //         setGraphData(tempKeys);
+    //         setBoolValues({ ...boolValues, [label]: false });
+    //     } else {
+    //         const tempKeys = [];
+    //         for (let i = 0; i < data.nodes.length; i++) {
+    //             if (data.nodes[i].data.label === label) {
+    //                 tempKeys.push(data.nodes[i].data.id);
+    //             }
+    //         }
+    //         const currentKeys = graphData || [];
+    //         setGraphData([...currentKeys, ...tempKeys]);
+    //         setBoolValues({ ...boolValues, [label]: true });
+    //     }
+    // };
 
     const LegendItem = ({ label, size, color }) => {
         return (
@@ -763,6 +763,12 @@ const ResultPage = () => {
                 }}
                 callback={handleJoyrideCallback}
                 key={tourKey}
+                locale={{
+                    last: 'Close', // Change the text of the final button to "Close"
+                    next: 'Next',
+                    back: 'Back',
+                    skip: 'Skip',
+                }}
             />
             <div className="navbar-wrapper">
                 <NavBarWhite />
