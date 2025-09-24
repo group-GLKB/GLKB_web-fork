@@ -367,7 +367,7 @@ function LLMAgent() {
                                     height: 32,
                                     borderRadius: 16,
                                     borderStyle: "solid",
-                                    borderColor: "#0169B080",
+                                    borderColor: "#0169B040",
                                     borderWidth: "2px",
                                     justifyContent: "center",
                                     alignItems: "center",
@@ -604,10 +604,10 @@ function LLMAgent() {
                                                 {chatHistory.length === 0 && (<>
                                                     <div className="empty-page-title" style={{ paddingTop: '1rem' }}>
                                                         <div style={{ gap: '1rem', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
-                                                            <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: 'clamp(0.5vw, 32px, 2vw)', fontWeight: '700', color: "#0169B0" }}>
+                                                            <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '32px', fontWeight: '700', color: "#0169B0" }}>
                                                                 Explore Biomedical Literature
                                                             </Typography>
-                                                            <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: 'clamp(0.25vw, 18px, 1.1vw)', fontWeight: '500', color: "#718096" }}>
+                                                            <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '18px', fontWeight: '500', color: "#718096" }}>
                                                                 AI-powered Genomic Literature Knowledge Base
                                                             </Typography>
                                                         </div>

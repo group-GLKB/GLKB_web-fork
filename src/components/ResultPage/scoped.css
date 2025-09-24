@@ -325,8 +325,8 @@ all {
 }
 
 .main-grid {
-    margin-left: 2%;
-    margin-right: 2%;
+    margin-left: max(4%, 40px);
+    margin-right: max(4%, 40px);
 }
 
 @media (min-width: 1200px) {

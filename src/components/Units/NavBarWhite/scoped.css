@@ -11,8 +11,8 @@
     /* Changed from #FFFFFF to #4a7298 */
     height: 100px;
     padding-top: 0px;
-    padding-left: 2%;
-    padding-right: 2%;
+    padding-left: max(4%, 40px);
+    padding-right: max(4%, 40px);
 }
 
 @media (min-width: 1200px) {
@@ -66,7 +66,7 @@ button:hover {
     border: none;
     /* Add underline to active links */
     margin-left: 20px;
-    color: #0169B0;
+    color: #079BD4;
     /* Keep the color for active links */
     font-weight: 800;
     /* Make the font heavier */
@@ -108,7 +108,7 @@ button:hover {
 
 .navigation-bar .nav-link.contact-main {
     display: inline-block;
-    background-color: #0169B0;
+    background-color: #079BD4;
     border: none;
     color: white;
     padding: 6px 13px;
@@ -164,7 +164,7 @@ button:hover {
     /* Longer than the text */
     height: 3px;
     /* Thickness */
-    background-color: #0169B0;
+    background-color: #079BD4;
     border-radius: 2px;
     /* Optional rounded corners */
 }

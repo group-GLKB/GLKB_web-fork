@@ -435,7 +435,7 @@ const HomePage = () => {
                         height: '56px',
                         fontSize: '24px',
                         borderRadius: '50%',
-                        backgroundColor: '#0169B0',
+                        backgroundColor: '#079BD4',
                         color: 'white',
                         border: 'none',
                         fontFamily: 'Open Sans, sans-serif',
