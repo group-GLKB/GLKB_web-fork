@@ -415,7 +415,7 @@ const Information = ({ width, ...props }) => {
             minHeight: '300px'  // Adjust this value based on your needs
         }}>
             <Spin size="large" />
-            <Text>Loading details...</Text>
+            <Text>Loading details... This may take ~20 seconds</Text>
         </div>
     );
 

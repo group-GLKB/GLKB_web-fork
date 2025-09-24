@@ -435,7 +435,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             renderInput={(params) => (
                                 <TextField
                                     {...params}
-                                    placeholder={selectedSources.length === 0 ? "Start searching with biomedical terms" : ""}
+                                    placeholder={selectedSources.length === 0 ? "Start searching with genes, diseases, variant RSIDs, and chemicals" : ""}
                                     variant="outlined"
                                     sx={{
                                         minHeight: '60px', // Increase the height of the input box
