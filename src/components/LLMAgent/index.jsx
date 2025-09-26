@@ -58,8 +58,8 @@ function LLMAgent() {
     const [isLoading, setIsLoading] = useState(false);
     const [streamingSteps, setStreamingSteps] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [editingMessageIndex, setEditingMessageIndex] = useState(null);
-    const [editedMessageContent, setEditedMessageContent] = useState('');
+    // const [editingMessageIndex, setEditingMessageIndex] = useState(null);
+    // const [editedMessageContent, setEditedMessageContent] = useState('');
     const messagesEndRef = useRef(null);
     const abortControllerRef = useRef(null);
     const navigate = useNavigate();
@@ -259,27 +259,11 @@ function LLMAgent() {
         };
     }, []);
 
-    const handleEditMessage = (index) => {
-        if (chatHistory[index].role !== 'user') return;
-
-        setEditingMessageIndex(index);
-        setEditedMessageContent(chatHistory[index].content);
-    };
-
-    const handleSaveEdit = async (e, index) => {
-        if (editedMessageContent.trim() === '' || isLoading) return;
-
+    const handleSaveEdit = async (e, index, content) => {
+        if (content.trim() === '' || isLoading) return;
         const editedHistory = chatHistory.slice(0, index);
         setChatHistory(editedHistory);
-        setEditingMessageIndex(null);
-        setEditedMessageContent('');
-
-        handleSubmit(e, editedMessageContent);
-    };
-
-    const handleCancelEdit = () => {
-        setEditingMessageIndex(null);
-        setEditedMessageContent('');
+        handleSubmit(e, content);
     };
 
     const handleCopyMessage = (content) => {
@@ -323,10 +307,10 @@ function LLMAgent() {
         handleSubmit(e, userMessage.content, userMessage.timestamp);
     };
 
-    const MessageCard = ({ index, message, refresh, copy, edit, editContent, change, save, cancel, goref, GetSteps }) => {
+    const MessageCard = ({ index, message, refresh, copy, save, goref, GetSteps }) => {
         const isAssistant = message.role === "assistant";
         const isLastUserMessage = index === chatHistory.length - 1 && message.role === 'assistant';
-        const isEditing = index === editingMessageIndex;
+        // const isEditing = index === editingMessageIndex;
         const isLoading = isProcessing && isLastUserMessage;
         const messageID = index;
         // const liked = message.like;
@@ -334,6 +318,8 @@ function LLMAgent() {
         // const bookmarked = message.bookmark;
         // const tokenCount = 0;
         const timestamp = message.timestamp || "";
+        const [editContent, setEditContent] = useState('');
+        const [isEditing, setIsEditing] = useState(false);
 
         return (
             <div className="message-card">
@@ -416,7 +402,7 @@ function LLMAgent() {
                                             variant="filled"
                                             size="small"
                                             sx={{ flex: 1, width: "100%" }}
-                                            onChange={(e) => change(e.target.value)}
+                                            onChange={(e) => setEditContent(e.target.value)}
                                         /> : (
                                             <div className="markdown-body" style={{ fontFamily: 'Open Sans, sans-serif' }}>
                                                 <ReactMarkdown>
@@ -475,17 +461,32 @@ function LLMAgent() {
                     <Stack direction="row" spacing={1} sx={{ pb: "8px", pr: "24px" }}>
                         {
                             isEditing ? <>
-                                <IconButton size="small" onClick={() => cancel()}>
+                                <IconButton size="small" onClick={() => {
+                                    setIsEditing(false);
+                                    setEditContent('');
+                                }}>
                                     <ClearIcon fontSize="small" />
                                 </IconButton>
-                                <IconButton size="small" onClick={(e) => save(e, messageID)}>
+                                <IconButton size="small" onClick={(e) => {
+                                    if (editContent.trim() === '') {
+                                        return;
+                                    }
+                                    save(e, messageID, editContent);
+                                    setIsEditing(false);
+                                    setEditContent('');
+                                }}>
                                     <CheckIcon fontSize="small" />
                                 </IconButton>
                             </> : <div className="user-message-actions">
                                 <IconButton size="small" onClick={() => copy(message.content)}>
                                     <ContentCopyIcon fontSize="small" />
                                 </IconButton>
-                                <IconButton size="small" onClick={() => edit(messageID)}>
+                                <IconButton size="small" onClick={() => {
+                                    if (isAssistant) return;
+
+                                    setIsEditing(true);
+                                    setEditContent(message.content);
+                                }}>
                                     <EditNoteIcon fontSize="small" />
                                 </IconButton>
                             </div>
@@ -505,11 +506,7 @@ function LLMAgent() {
                 message={message}
                 refresh={handleRegenerateResponse}
                 copy={handleCopyMessage}
-                edit={handleEditMessage}
-                editContent={editedMessageContent}
-                change={setEditedMessageContent}
                 save={handleSaveEdit}
-                cancel={handleCancelEdit}
                 goref={handleMessageClick}
                 GetSteps={() => (
                     <Box sx={{ mt: 2 }}>
