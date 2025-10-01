@@ -50,6 +50,8 @@ import NavBarWhite from '../Units/NavBarWhite';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import SearchButton from '../Units/SearchButton/SearchButton';
 
+import { Helmet } from 'react-helmet-async';
+
 function LLMAgent() {
     const location = useLocation();
     const [userInput, setUserInput] = useState('');
@@ -539,6 +541,12 @@ function LLMAgent() {
     }, [references, sortOption]);
 
     return (
+        <>
+            <Helmet>
+            <title>Chat Page - Genomic Literature Knowledge Base</title>
+            <meta name="description" content="The Genomic Literature Knowledge Base (GLKB) is a comprehensive and powerful resource that integrates over 263 million biomedical terms and more than 14.6 million biomedical relationships. This collection is curated from 33 million PubMed abstracts and nine well-established biomedical repositories, offering an unparalleled wealth of knowledge for researchers and practitioners in the field." />
+            <meta property="og:title" content="Chat Page - Genomic Literature Knowledge Base" />
+            </Helmet>
         <div className="result-container">
             <div className="navbar-wrapper">
                 <NavBarWhite />
@@ -598,7 +606,7 @@ function LLMAgent() {
                                                     </MuiButton>
                                                 </Box>
                                                 {/* Add example queries section */}
-                                                {chatHistory.length === 0 && (<>
+                                                {chatHistory.length === 0 && (<div className='empty-components-container'>
                                                     <div className="empty-page-title" style={{ paddingTop: '1rem' }}>
                                                         <div style={{ gap: '1rem', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
                                                             <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '32px', fontWeight: '700', color: "#0169B0" }}>
@@ -626,7 +634,7 @@ function LLMAgent() {
                                                             }
                                                         </div>
                                                     </div>
-                                                </>
+                                                </div>
                                                 )}
 
                                                 <div className="messages-container">
@@ -803,6 +811,7 @@ function LLMAgent() {
                 </Grid>
             </Grid>
         </div>
+        </>
     );
 }
 

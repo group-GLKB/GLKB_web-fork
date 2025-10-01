@@ -40,6 +40,8 @@ import NavBarWhite from '../Units/NavBarWhite';
 import SearchBarKnowledge from '../Units/SearchBarKnowledge';
 import SearchBarNeighborhood from '../Units/SearchBarNeighborhood';
 
+import { Helmet } from 'react-helmet-async';
+
 // const StyledButton = styled(Button)(({ theme }) => ({
 //     backgroundColor: '#99c7b1',
 //     color: 'black',
@@ -739,6 +741,12 @@ const ResultPage = () => {
     // };
     const [isLegendVisible, setLegendVisible] = useState(true);
     return (
+        <>
+            <Helmet>
+            <title>Search Page - Genomic Literature Knowledge Base</title>
+            <meta name="description" content="The Genomic Literature Knowledge Base (GLKB) is a comprehensive and powerful resource that integrates over 263 million biomedical terms and more than 14.6 million biomedical relationships. This collection is curated from 33 million PubMed abstracts and nine well-established biomedical repositories, offering an unparalleled wealth of knowledge for researchers and practitioners in the field." />
+            <meta property="og:title" content="Search Page - Genomic Literature Knowledge Base" />
+            </Helmet>
         <div className="result-container" ref={containerRef}>
             <Joyride
                 steps={steps}
@@ -1193,6 +1201,7 @@ const ResultPage = () => {
                 ?
             </AntButton>
         </div>
+        </>
     )
 }
 
