@@ -2,23 +2,22 @@
     display: inline-flex;
     /* align-items: center; */
     /* justify-content: center; */
-    padding: 0.3rem 0.2rem;
+    /* padding: 0.3rem 0.2rem; */
     font-size: clamp(12px, 2vw, 16px);
     background-color: white;
     /* margin-top: 120px; */
     /* margin-bottom:5px; */
-    gap: 0.5rem;
+    gap: 1px;
     border-radius: 100px;
-    box-shadow: 0px 1px 3px 1px #00000026,
-        0px 1px 2px 0px #0000004D,
-        8px 6px 33px 0px #D8E6F8;
 }
 
 
 button {
 
-    padding: 0.5rem;
-    font-size: 1rem;
+    padding: 0px;
+    font-family: "Open Sans", sans-serif;
+    font-weight: 700;
+    font-size: 12px;
     cursor: pointer;
     background-color: white;
     border: 0px;
@@ -27,8 +26,8 @@ button {
 }
 
 #subnavbarbutton {
-    width: 120px;
-    height: 40px;
+    width: 90px;
+    height: 36px;
     transition: background-color 0.15s ease-in, color 0.15s ease-in;
     display: flex;
     align-items: center;
@@ -36,10 +35,14 @@ button {
 }
 
 .active {
-    background-color: #D3D5FF;
+    background-color: #0169B0;
+    color: #F4F6FE;
+}
+
+.nonactive {
+    color: #A7AABD;
 }
 
 .nonactive:hover {
-    background-color: #d3d5ffad;
-    color: black;
+    background-color: #EDF5FE;
 }

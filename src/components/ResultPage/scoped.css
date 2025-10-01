@@ -13,7 +13,7 @@ all {
 
 /* Layout */
 .result-container {
-    background: linear-gradient(to right, #F4F6FE, #DCE3FF, #F4F6FE);
+    background: #F1FBFF;
     min-width: 1200px;
     min-height: 700px;
     height: 100%;
@@ -170,8 +170,8 @@ all {
 .result-container-wrapper {
     position: relative;
     /* Navbar height (64px) + Search bar height (60px) */
-    height: calc(100vh - 24px - 48px - 44px - 60px - 90px);
-    max-height: calc(100vh - 24px - 48px - 44px - 60px - 90px);
+    height: calc(100vh - 36px - 134px - 100px);
+    max-height: calc(100vh - 36px - 134px - 100px);
     width: 100%;
     display: flex;
     justify-content: center;
@@ -325,11 +325,11 @@ all {
 }
 
 .main-grid {
-    margin-left: 2%;
-    margin-right: 2%;
+    margin-left: max(4%, 40px);
+    margin-right: max(4%, 40px);
 }
 
-@media (min-width: 1600px) {
+@media (min-width: 1200px) {
     .main-grid {
         margin-left: 6%;
         margin-right: 6%;
@@ -454,7 +454,7 @@ all {
 }
 
 .legend-subtitle {
-    font-family: 'Inter';
+    font-family: 'Open Sans', sans-serif;
     font-weight: 600;
     font-size: 16px;
     line-height: 32px;
@@ -478,6 +478,7 @@ all {
 }
 
 .legend-label {
+    font-family: 'Open Sans', sans-serif;
     display: flex;
     align-items: center;
     font-size: 14px;

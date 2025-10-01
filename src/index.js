@@ -19,6 +19,8 @@ import {
   trackPageView,
 } from './components/Units/analytics';
 
+import { HelmetProvider } from 'react-helmet-async';
+
 const initState = {
     searchType: ''
 }
@@ -38,12 +40,14 @@ function AppWithAnalytics() {
     }, [location]);
 
     return (
+        <HelmetProvider>
         <Routes>
             <Route path='/result' element={<ResultPage />} />
             <Route path="/" element={<HomePage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/llm-agent" element={<LLMAgent />} />
         </Routes>
+        </HelmetProvider>
     );
 }
 

@@ -3,13 +3,23 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.5rem 1rem;
-    font-size: clamp(12px, 2vw, 16px);
+    font-size: clamp(12px, 1.6vh, 30px);
     /*background-color: #fff; !* Change this as per your color scheme *!*/
     /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); Optional: for a slight shadow under the nav bar */
-    border-bottom: 1px solid #3D739C;
+
     background-color: #FFFFFF;
     /* Changed from #FFFFFF to #4a7298 */
-    height: 80px;
+    height: 100px;
+    padding-top: 0px;
+    padding-left: max(4%, 40px);
+    padding-right: max(4%, 40px);
+}
+
+@media (min-width: 1200px) {
+    .navigation-bar {
+        padding-left: 6%;
+        padding-right: 6%;
+    }
 }
 
 .left-section .logo img {
@@ -29,8 +39,8 @@
 }
 
 .navigation-bar .nav-links {
-    margin-right: 30px;
     align-items: center;
+    display: flex;
 }
 
 button:hover {
@@ -42,20 +52,38 @@ button:hover {
     border: none;
     /* Add underline to active links */
     margin-left: 20px;
-    color: #5D38D2;
+    color: #079BD4;
     /* Keep the color for active links */
-    font-weight: 900;
+    font-weight: 800;
     /* Make the font heavier */
     margin-right: 1rem;
     /* Move the text slightly to the left */
     margin-top: 1rem;
 }
 
-.navigation-bar .nav-link.nonactive {
+.navigation-bar .nav-link.active-main {
+    background-color: transparent;
+    border: none;
+    /* Add underline to active links */
+    margin-left: 20px;
+    color: #079BD4;
+    /* Keep the color for active links */
+    font-weight: 800;
+    /* Make the font heavier */
+    margin-right: 1rem;
+    /* Move the text slightly to the left */
+    margin-top: 1rem;
+}
+
+.navigation-bar .nav-link.nonactive,
+.MuiTooltip-tooltip .nav-link.nonactive {
     background-color: transparent;
     border: none;
     margin-left: 20px;
-    color: #6E6F84;
+    font-size: clamp(12px, 1.6vh, 30px);
+    font-family: "Inter", sans-serif;
+    color: #050505;
+    text-decoration: none;
     /* Changed from #3D739C to #ffffff for better contrast */
     font-weight: 500;
     /* Change this as per your color scheme */
@@ -64,6 +92,30 @@ button:hover {
     /* Move the text slightly to the left */
     margin-top: 1rem;
     /* Move the text slightly down */
+}
+
+.navigation-bar .nav-link.contact {
+    display: inline-block;
+    background-color: #079BD4;
+    border: none;
+    color: white;
+    padding: 6px 13px;
+    text-align: center;
+    vertical-align: middle;
+    font-weight: 600;
+    border-radius: 5px;
+}
+
+.navigation-bar .nav-link.contact-main {
+    display: inline-block;
+    background-color: #079BD4;
+    border: none;
+    color: white;
+    padding: 6px 13px;
+    text-align: center;
+    vertical-align: middle;
+    font-weight: 600;
+    border-radius: 5px;
 }
 
 .navigation-bar .nav-links a {
@@ -81,6 +133,10 @@ button:hover {
     /* Move the text slightly down */
 }
 
+.navigation-bar .nav-links a:last-of-type {
+    margin-right: 0;
+}
+
 .navigation-bar .nav-link.active::after {
     content: "";
     position: absolute;
@@ -92,12 +148,29 @@ button:hover {
     /* Longer than the text */
     height: 3px;
     /* Thickness */
-    background-color: #5D38D2;
+    background-color: #079BD4;
     border-radius: 2px;
     /* Optional rounded corners */
 }
 
-.navigation-bar .nav-link.nonactive:hover {
+.navigation-bar .nav-link.active-main::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: -6px;
+    /* Push the underline lower */
+    width: 120%;
+    /* Longer than the text */
+    height: 3px;
+    /* Thickness */
+    background-color: #079BD4;
+    border-radius: 2px;
+    /* Optional rounded corners */
+}
+
+.navigation-bar .nav-link.nonactive:hover,
+.MuiTooltip-tooltip .nav-link.nonactive:hover {
     color: #5988c2;
     /* Changed from #555 to a light gray for hover effect */
 }

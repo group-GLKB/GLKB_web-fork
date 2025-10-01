@@ -39,7 +39,7 @@ function SubNavBar({ activeButton }) {
                 className={activeButton === "llm" || location.pathname.endsWith("llm-agent")
                     ? "active" : "nonactive"}
             >
-                <ChatBubbleOutlineIcon sx={{ fontSize: "clamp(12px, 2vw, 16px)" }} />&nbsp;&nbsp;Chat
+                <ChatBubbleOutlineIcon sx={{ fontSize: "clamp(12px, 2vw, 16px)" }} />&nbsp;&nbsp;AI Chat
             </button>
         </div>
     );

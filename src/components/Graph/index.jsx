@@ -30,6 +30,18 @@ const arePropsEqual = (prevProps, nextProps) => {
   );
 };
 
+export const nodeAutoWidth = (label) => ((node) => {
+  const ctx = document.createElement('canvas').getContext("2d");
+  const fStyle = node.pstyle('font-style').strValue;
+  const size = node.pstyle('font-size').pfValue + 'px';
+  const family = node.pstyle('font-family').strValue;
+  const weight = node.pstyle('font-weight').strValue;
+
+  ctx.font = fStyle + ' ' + weight + ' ' + size + ' ' + family;
+  // console.log('Font used for measurement:', ctx.font);
+  return ctx.measureText(label).width;
+});
+
 // Wrap the entire Graph component with React.memo
 const Graph = forwardRef(function Graph(props, ref) {
   const [width, setWidth] = useState('100%');
@@ -131,12 +143,13 @@ const Graph = forwardRef(function Graph(props, ref) {
           'border-color': '#AAD8FF',
           'transition-duration': '0.2s',
           'label': 'data(name)',
+          // 'width': nodeAutoWidth,
           'text-valign': 'center',
           'text-halign': 'right',
-          'text-margin-x': 8,
+          // 'text-margin-x': 8,
           'color': '#333333',
-          'text-max-width': '150px',
-          'text-wrap': 'wrap',
+          // 'text-max-width': '150px',
+          // 'text-wrap': 'wrap',
           'font-family': 'Inter',
         }
       },
@@ -210,7 +223,6 @@ const Graph = forwardRef(function Graph(props, ref) {
         selector: 'node:childless',
         style: {
           'shape': 'roundrectangle',
-          'width': 'label',
           'height': '19px',
           padding: '6px',
           'text-valign': 'center',
@@ -218,8 +230,8 @@ const Graph = forwardRef(function Graph(props, ref) {
           'text-margin-x': 0,
           'color': '#ffffff',
           'font-size': '12px',
-          'text-wrap': 'wrap',
-          'text-max-width': '120px',
+          // 'text-wrap': 'wrap',
+          // 'text-max-width': '120px',
           'font-family': 'Inter',
         }
       },
@@ -288,12 +300,13 @@ const Graph = forwardRef(function Graph(props, ref) {
           // borderColor,
           'min-width': '130px',
           label: nodeId[1],
+          width: nodeAutoWidth(nodeId[1]),
           'text-halign': 'center',
           'text-valign': 'center',
-          'text-margin-x': 0,
+          // 'text-margin-x': 0,
           'color': '#000000',
-          'text-wrap': 'wrap',
-          'text-max-width': '100%',
+          // 'text-wrap': 'wrap',
+          // 'text-max-width': '100%',
         },
       };
     });

@@ -3,25 +3,32 @@ import React from 'react';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { Box } from '@mui/material';
 
-export default function SearchButton({ onClick, disabled }) {
+export default function SearchButton({ onClick, disabled, alterColor = undefined, hide = false }) {
     return (
         <Box
             className="search-button-big"
             sx={{
-                height: "60px",
-                width: "60px",
+                height: "62px",
+                width: "62px",
+                transform: "translateX(2px)",
                 borderRadius: "50%",
-                background: disabled ? "linear-gradient(90.46deg, rgba(112, 134, 253, 0.3) 0.44%, rgba(70, 99, 254, 0.3) 99.65%)" : "linear-gradient(90.46deg, #7086FD 0.44%, #4663FE 99.65%)",
+                background: hide ? "transparent" :
+                    disabled ? "#0169B060" :
+                        alterColor ? "#079BD4" : "#0169B0"
+                ,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                cursor: disabled ? 'not-allowed' : 'pointer',
             }}
         >
             <ArrowForwardIcon
                 className="search-button"
                 onClick={disabled ? () => { } : onClick}
                 sx={{
-                    color: 'white',
+                    color: !hide ? "white" :
+                        disabled ? "#0169B060" :
+                            alterColor ? "#079BD4" : "#0169B0",
                     cursor: 'pointer',
                     fontSize: '35px',
                     cursor: disabled ? 'not-allowed' : 'pointer',

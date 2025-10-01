@@ -1,7 +1,7 @@
 import React, {
-  useCallback,
-  useEffect,
-  useState,
+    useCallback,
+    useEffect,
+    useState,
 } from 'react';
 
 import { debounce } from 'lodash';
@@ -11,13 +11,13 @@ import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import {
-  Autocomplete,
-  Box,
-  Chip,
-  Container,
-  Paper,
-  Popper,
-  TextField,
+    Autocomplete,
+    Box,
+    Chip,
+    Paper,
+    Popper,
+    TextField,
+    Typography,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -25,6 +25,7 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import { CypherService } from '../../../service/Cypher';
 import SearchButton from '../SearchButton/SearchButton';
 import exampleQueries from './example_query.json';
+import { trackEvent } from '../analytics';
 
 const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const navigate = useNavigate();
@@ -43,6 +44,11 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const [moreNodes, setMoreNodes] = useState(false);
     const [moreRel, setMoreRel] = useState(false);
     const [focused, setFocused] = useState(false);
+    const [isOpen, setIsOpen] = useState(false);
+
+    useEffect(() => {
+        props.setOpen && props.setOpen(isOpen);
+    }, [isOpen]);
 
     const ExampleOptions = [
         ['example_0', 'SPRY2; RFX6; HNF4A; type 2 diabetes mellitus', 'Explore relationships between Type 2 Diabetes and its associated genes.'],
@@ -54,11 +60,16 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         <Popper
             {...props}
             placement="bottom-start"
+            disablePortal={true}
             modifiers={[
                 {
                     name: 'flip',
                     enabled: false, // prevent flipping to top
                 },
+                {
+                    name: 'preventOverflow',
+                    enabled: false,
+                }
             ]}
         />
     );
@@ -101,13 +112,14 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
     // Simple debounced search function
     const debouncedSearch = useCallback(
-        debounce((searchFn) => searchFn(), 200),
+        debounce((searchFn) => searchFn(), 500),
         []
     );
 
     // Main search function that always uses current term type
     const performSearch = async (searchValue) => {
         let cypherServ = new CypherService();
+        trackEvent('Search', 'Autocomplete Search', searchValue);
         const response = await cypherServ.Entity2Cypher(searchValue, termType);
         const sortedOptions = response.data
             ?.map((node, index) => [
@@ -211,8 +223,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         setChipData(newChipData);
         setChipDataID(newChipDataID);
 
-        console.log('Updated chipData:', newChipData);
-        console.log('Updated chipDataID:', newChipDataID);
+        // console.log('Updated chipData:', newChipData);
+        // console.log('Updated chipDataID:', newChipDataID);
     }, [selectedSources]); // Trigger this effect whenever selectedSources changes
 
     useEffect(() => {
@@ -235,8 +247,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
             setChipDataID(updatedChipDataID);
         }
 
-        console.log('Filtered chipData:', updatedChipData);
-        console.log('Filtered chipDataID:', updatedChipDataID);
+        // console.log('Filtered chipData:', updatedChipData);
+        // console.log('Filtered chipDataID:', updatedChipDataID);
     }, [selectedSources]); // Trigger this effect whenever selectedSources, chipData, or chipDataID changes
 
     useEffect(() => {
@@ -278,12 +290,14 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
             "sources": selectedSources
         };
         if (props.onSearch) {
+            trackEvent('Search', 'Custom Search Triggered in Result Page', search_data.triplets.map(t => t.source?.[1]));
             props.onSearch(search_data);
         } else {
+            trackEvent('Search', 'Custom Search Triggered from Home Page', search_data.triplets.map(t => t.source?.[1]));
             navigate('/result', { state: { search_data, chipDataID } });
         }
 
-        console.log('Chip data:', chipDataID);
+        // console.log('Chip data:', chipDataID);
         if (props.displayArticleGraph) {
             props.setDisplayArticleGraph(false);
         }
@@ -323,7 +337,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
             setChipData([]);
             setChipDataID([]);
             const newSelectedSources = [];
-
+            trackEvent('Search', 'Example Query Filled', exampleQuery.triplets.map(t => t.source?.[1]));
             exampleQuery.triplets.forEach(triplet => {
                 const sourceName = triplet.source[1].replace(/[()]/g, '');
                 const chip_str = `(${sourceName})-[any relationships]-()`;
@@ -351,21 +365,29 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         }
     }));
 
-    React.useEffect(() => {
-        console.log('Selected sources (after update):', selectedSources);
-    }, [selectedSources]);
+    // React.useEffect(() => {
+    //     console.log('Selected sources (after update):', selectedSources);
+    // }, [selectedSources]);
+
+    const [showExample, setShowExample] = useState(false);
+    useEffect(() => {
+        setShowExample(focused && inputValue.trim() === '' && selectedSources.length === 0);
+    }, [focused, inputValue, selectedSources]);
 
     return (
-        <Container maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 0, mb: 0, ml: 0, mr: 0, padding: 0, maxWidth: 'none !important' }}>
-            <Box sx={{ mb: 0, backgroundColor: 'transparent' }}>
+        <Box maxWidth={isSmallScreen ? "xs" : "md"} sx={{ mt: 0, mb: 0, ml: 0, mr: 0, padding: 0, maxWidth: 'none !important' }}>
+            <Box sx={{ mb: 0, backgroundColor: 'transparent', }}>
                 {/* First row with term type and search input */}
                 <Box sx={{
                     display: 'flex',
                     gap: 2,
                     flexDirection: isSmallScreen ? 'column' : 'row',
                     backgroundColor: 'white',
-                    borderRadius: '30px',
-                    boxShadow: '8px 6px 33px 0px #D8E6F8',
+                    borderRadius: isOpen ? '30px 30px 0px 0px' : '30px',
+                    borderWidth: isOpen ? '0px 1px 1px 1px' : '1px',
+                    borderStyle: 'solid',
+                    borderColor: '#E6F0FC',
+                    boxShadow: '0px 2px 3px -1px #00000026',
                 }}>
 
                     {/* Search Input */}
@@ -373,7 +395,10 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                         <Autocomplete
                             multiple
                             limitTags={5}
-                            autoHighlight={true}
+                            isOptionEqualToValue={(option, value) => {
+                                return option?.[0].toString() === value?.[0].toString();
+                            }}
+                            autoHighlight={!showExample}
                             onInputChange={(event, newInputValue) => {
                                 if (!tripletLimitReached) {
                                     setInputValue(newInputValue);
@@ -381,13 +406,13 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                 }
                             }}
                             options={
-                                (ref?.current && focused && inputValue.trim() === '' && selectedSources.length === 0
-                                    ? ExampleOptions
-                                    : sourceNodeOptions
+                                (ref?.current && showExample
+                                    ? [...ExampleOptions, ...selectedSources]
+                                    : [...sourceNodeOptions, ...selectedSources]
                                 ) || []}
                             filterOptions={(options) => options}
                             filterSelectedOptions={true}
-                            groupBy={(option => getDisplayCategory(option[2]))}
+                            groupBy={showExample ? undefined : (option => getDisplayCategory(option[2]))}
                             getOptionLabel={(option) => {
                                 // console.log('Option:', option);
                                 return option[1]
@@ -398,6 +423,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                         key={option.database_id}
                                         label={option[1].replace(/\s*\([^)]*\)$/, "")}
                                         size="small"
+                                        sx={{
+                                            fontFamily: 'Open Sans, sans-serif',
+                                        }}
                                         {...getTagProps({ index })} // Pass props for chip behavior
                                     />
                                 ))
@@ -411,7 +439,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             renderInput={(params) => (
                                 <TextField
                                     {...params}
-                                    placeholder={"Start searching with biomedical terms"} // Update placeholder
+                                    placeholder={selectedSources.length === 0 ? "Start searching with genes, diseases, variant RSIDs, and chemicals" : ""}
                                     variant="outlined"
                                     sx={{
                                         minHeight: '60px', // Increase the height of the input box
@@ -419,6 +447,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                             height: '60px',
                                             borderRadius: '30px',
                                             alignItems: 'center', // Center the text vertically
+                                            fontFamily: 'Open Sans, sans-serif',
                                             '& fieldset': {
                                                 border: 'none',
                                             },
@@ -429,9 +458,16 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                         "& .MuiOutlinedInput-root": {
                                             paddingRight: "70px!important",
                                         },
+                                        "& .MuiChip-root": {
+                                            color: "#0169B0",
+                                            border: "1px solid #7DD3FC",
+                                            backgroundColor: "#E0F2FE",
+                                            "& .MuiChip-deleteIcon": {
+                                                color: "#0169B0BF !important"
+                                            }
+                                        }
                                     }}
                                     size="small"
-
                                     className="search-autocomplete-box"
                                     InputProps={{
                                         ...params.InputProps,
@@ -471,6 +507,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                 <SearchButton
                                                     onClick={handleSearch}
                                                     disabled={chipData.length === 0 || inputValue !== ''}
+                                                    alterColor={props.alterColor}
+                                                    hide={isOpen}
                                                 />
                                             </Box>
                                         ),
@@ -481,17 +519,28 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             PaperComponent={({ children }) => (
                                 <Paper
                                     sx={{
-                                        borderRadius: '16px',
-                                        border: "1.5px solid #E6F0FC",
                                         boxShadow: 'none',
-                                        marginTop: '5px',
+                                        boxSizing: 'border-box',
+                                        borderRadius: '0px 0px 30px 30px',
+                                        borderWidth: '0px 1px 1px 1px',
+                                        borderStyle: 'solid',
+                                        borderColor: '#E6F0FC',
+                                        boxShadow: '0px 2px 3px -1px #00000026',
                                         marginBottom: '5px',
                                         overflow: 'hidden',
+                                        fontFamily: 'Open Sans, sans-serif',
                                         "& .MuiAutocomplete-option.Mui-focused": {
-                                            backgroundColor: '#F3F5FF !important',
+                                            backgroundColor: '#EDF5FE !important',
                                         },
                                         "& .MuiAutocomplete-option.Mui-focused span.highlight-arrow": {
-                                            color: 'black !important',
+                                            color: '#196ED8 !important',
+                                        },
+                                        "& .MuiAutocomplete-option.Mui-focused .MuiChip-root": {
+                                            backgroundColor: '#0CA5E9 !important',
+                                            color: 'white !important'
+                                        },
+                                        "& .MuiAutocomplete-groupLabel": {
+                                            fontFamily: 'Open Sans, sans-serif',
                                         }
                                     }}
                                 >
@@ -502,35 +551,85 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             inputValue={inputValue}
                             onFocus={() => setFocused(true)}
                             onBlur={() => setFocused(false)}
+                            onOpen={() => setIsOpen(true)}
+                            onClose={() => setIsOpen(false)}
                             onChange={(event, newValue) => {
-                                console.log('Selected sources:', newValue);
+                                // console.log('Selected sources:', newValue);
                                 if (newValue.length === 1) {
                                     if (typeof newValue[0][0] === 'string' &&
                                         newValue[0][0]?.startsWith('example_')) {
-                                        console.log('Filled with example:', newValue[0][0]);
+                                        // console.log('Filled with example:', newValue[0][0]);
                                         ref.current.fillWithExample(exampleQueries[newValue[0][0].substring(8) || 1]);
                                         return;
                                     }
                                 }
                                 setSelectedSources(newValue);
-                                console.log('New sources:', newValue);
+                                // console.log('New sources:', newValue);
                             }}
                             renderOption={(props, option) => (
-                                <Box
-                                    component="li"
-                                    {...props}
-                                    sx={{
-                                        minHeight: '36px !important',
-                                        margin: '0px 10px',
-                                        borderRadius: '8px',
-                                        '& .MuiAutocomplete-option.Mui-focused': {
-                                            backgroundColor: '#F3F5FF !important',
-                                        },
-                                    }}
-                                >
-                                    {option[1]}
-                                    <span className={"highlight-arrow"} style={{ color: 'white', marginLeft: 'auto' }}><ArrowOutwardIcon fontSize="small" /></span>
-                                </Box>
+                                showExample ?
+                                    <Box
+                                        component="li"
+                                        {...props}
+                                        sx={{
+                                            minHeight: '72px !important',
+                                            margin: '0px 10px',
+                                            marginLeft: '0px',
+                                            paddingLeft: '26px',
+                                            borderRadius: '0px 36px 36px 0px',
+                                            '& .MuiAutocomplete-option.Mui-focused': {
+                                                backgroundColor: '#F3F5FF !important',
+                                            },
+                                        }}
+                                    >
+                                        <Box sx={{ flexDirection: 'column', display: 'flex' }}>
+                                            <Typography sx={{ color: "#6B7280", fontSize: "14px", fontWeight: 600, fontFamily: "Open Sans" }}>
+                                                {option[2]}
+                                            </Typography>
+                                            <Box sx={{ gap: '12px', paddingTop: '8px' }}>
+                                                {
+                                                    option[1].split('; ').map((text, index) => (
+                                                        <Chip
+                                                            key={index}
+                                                            label={text}
+                                                            sx={{
+                                                                fontFamily: "Open Sans",
+                                                                fontWeight: 600,
+                                                                fontSize: "14px",
+                                                                padding: "4px 10px",
+                                                                marginRight: "12px",
+                                                                borderRadius: "30px",
+                                                                color: "#0169B0",
+                                                                border: "1px solid #7DD3FC",
+                                                                backgroundColor: "#E0F2FE",
+                                                                height: "unset",
+                                                                "& .MuiChip-label": {
+                                                                    padding: "0px"
+                                                                }
+                                                            }}
+                                                        />))
+                                                }
+                                            </Box>
+                                        </Box>
+                                        <span className={"highlight-arrow"} style={{ color: 'white', marginLeft: 'auto' }}><ArrowOutwardIcon fontSize="small" /></span>
+                                    </Box> :
+                                    <Box
+                                        component="li"
+                                        {...props}
+                                        sx={{
+                                            minHeight: '36px !important',
+                                            margin: '0px 10px',
+                                            marginLeft: '0px',
+                                            paddingLeft: '26px',
+                                            borderRadius: '0px 18px 18px 0px',
+                                            '& .MuiAutocomplete-option.Mui-focused': {
+                                                backgroundColor: '#F3F5FF !important',
+                                            },
+                                        }}
+                                    >
+                                        {option[1]}
+                                        <span className={"highlight-arrow"} style={{ color: 'white', marginLeft: 'auto' }}><ArrowOutwardIcon fontSize="small" /></span>
+                                    </Box>
                             )}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && inputValue === '' && selectedSources.length > 0) {
@@ -544,7 +643,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
                 </Box>
             </Box>
-        </Container>
+        </Box>
     );
 });
 

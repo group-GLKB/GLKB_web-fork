@@ -1,21 +1,21 @@
 import './scoped.css';
 
 import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from 'react';
 
 import {
-  Card,
-  Collapse,
-  Descriptions,
-  Empty,
-  List,
-  Select,
-  Spin,
-  Typography,
+    Card,
+    Collapse,
+    Descriptions,
+    Empty,
+    List,
+    Select,
+    Spin,
+    Typography,
 } from 'antd';
 
 import downArrow from '../../img/down_arrow.svg';
@@ -38,7 +38,7 @@ const Information = ({ width, ...props }) => {
     const merge = true;
 
     const handleCollapseChange = key => {
-        console.log('Collapse change - new key:', key);
+        // console.log('Collapse change - new key:', key);
         setActiveKey(Array.isArray(key) ? key : [key]);
     };
 
@@ -58,7 +58,7 @@ const Information = ({ width, ...props }) => {
         setNodeDetail({});
         setEdgeDetail({});
         setNodeDetails({});
-        console.log("detail changed");
+        // console.log("detail changed");
         async function searchInfoNode(content) {
             setIsLoading(true);
             let detailServ = new DetailService()
@@ -75,9 +75,9 @@ const Information = ({ width, ...props }) => {
             let detailServ = new DetailService()
             try {
                 const response = await detailServ.MergeNid2Detail(content)
-                console.log(response)
+                // console.log(response)
                 setNodeDetails(response.data);
-                console.log(nodeDetails)
+                // console.log(nodeDetails)
                 setEdgeDetail({});
             } finally {
                 setIsLoading(false);
@@ -85,11 +85,11 @@ const Information = ({ width, ...props }) => {
         }
         async function searchInfoEdge(content) {
             setIsLoading(true);
-            console.log(content)
+            // console.log(content)
             let detailServ = new DetailService()
             try {
                 const response = await detailServ.MergeEid2Detail(content)
-                console.log(response.data)
+                // console.log(response.data)
                 setEdgeDetail(response.data)
                 setNodeDetails({})
             } finally {
@@ -97,7 +97,7 @@ const Information = ({ width, ...props }) => {
             }
         }
         if (props.detailId) {
-            console.log(props.detailId)
+            // console.log(props.detailId)
             if (props.detailId[0] == "node") {
                 if (!merge) {
                     searchInfoNode(props.detailId.slice(1))
@@ -117,7 +117,7 @@ const Information = ({ width, ...props }) => {
     useEffect(() => {
         if (Object.keys(nodeDetails).length !== 0 && nodeDetails[0] && nodeDetails[0][0]) {
             if (!('title' in nodeDetails[0][0])) {
-                console.log('Regular node details loaded, setting activeKey to 0');
+                // console.log('Regular node details loaded, setting activeKey to 0');
                 setActiveKey(['0']);
             }
         }
@@ -125,7 +125,7 @@ const Information = ({ width, ...props }) => {
 
     useEffect(() => {
         if (Object.keys(edgeDetail).length > 0) {
-            console.log('Edge detail loaded, setting activeKey to 0');
+            // console.log('Edge detail loaded, setting activeKey to 0');
             setActiveKey(['0']);
         }
     }, [edgeDetail]);
@@ -139,7 +139,7 @@ const Information = ({ width, ...props }) => {
         setEdgeDetail({});
         displayArticleGraphRef.current = props.displayArticleGraph;
         forceUpdate({}); // Force a render
-        console.log("changed");
+        // console.log("changed");
     }
 
     const formatAuthors = (authors) => {
@@ -362,7 +362,7 @@ const Information = ({ width, ...props }) => {
             let elements = []
             for (const nodeDetail of nodeDetails[0]) {
                 for (const source of Object.keys(nodeDetail.external_sources)) {
-                    console.log(nodeDetail.external_sources[source])
+                    // console.log(nodeDetail.external_sources[source])
                     elements.push(
                         <div>
                             {source}: {nodeDetail.external_sources[source]}
@@ -379,10 +379,10 @@ const Information = ({ width, ...props }) => {
     //     (nodeDetails.map((nodeDetail) => nodeDetail.data)).map((node, index) => console.log(node[0].type))
 
     // }
-    if (Object.keys(edgeDetail).length !== 0) {
-        console.log(edgeDetail);
+    // if (Object.keys(edgeDetail).length !== 0) {
+    //     console.log(edgeDetail);
 
-    }
+    // }
 
     // Updated function to get the panel title
     const getPanelTitle = () => {
@@ -415,7 +415,7 @@ const Information = ({ width, ...props }) => {
             minHeight: '300px'  // Adjust this value based on your needs
         }}>
             <Spin size="large" />
-            <Text>Loading details...</Text>
+            <Text>Loading details... This may take ~20 seconds</Text>
         </div>
     );
 
@@ -521,8 +521,8 @@ const Information = ({ width, ...props }) => {
 
     return (
         <div className="information" style={{
-            fontFamily: 'Inter !important',
-            "& .ant-list-item": {
+            fontFamily: 'Open Sans, sans-serif !important',
+            "& .antListItem": {
                 paddingLeft: '0px',
                 paddingRight: '0px',
             }
@@ -537,7 +537,7 @@ const Information = ({ width, ...props }) => {
                         fontSize: '24px',
                         lineHeight: '1.5',
                         fontWeight: '600',
-                        fontFamily: 'Inter',
+                        fontFamily: 'Open Sans, sans-serif',
                         borderTopLeftRadius: '10px',
                         borderTopRightRadius: '10px',
                         paddingTop: '35px',
@@ -599,7 +599,7 @@ const Information = ({ width, ...props }) => {
                                                     size="small"
                                                     defaultValue="year"
                                                     onChange={value => setSortBy(value)}
-                                                    style={{ width: 120 }}
+                                                    style={{ minWidth: '140px' }}
                                                     options={[
                                                         { value: 'year', label: 'Sort by Year' },
                                                         { value: 'citations', label: 'Sort by Citations' },
@@ -645,6 +645,7 @@ const Information = ({ width, ...props }) => {
                                                             size="small"
                                                             value={sortBy}
                                                             onChange={value => setSortBy(value)}
+                                                            style={{ minWidth: '140px' }}
                                                             options={[
                                                                 { value: 'year', label: 'Sort by Year' },
                                                                 { value: 'citations', label: 'Sort by Citations' }
@@ -757,6 +758,7 @@ const Information = ({ width, ...props }) => {
                                                             size="small"
                                                             value={sortBy}
                                                             onChange={value => setSortBy(value)}
+                                                            style={{ minWidth: '140px' }}
                                                             options={[
                                                                 { value: 'year', label: 'Sort by Year' },
                                                                 { value: 'citations', label: 'Sort by Citations' }

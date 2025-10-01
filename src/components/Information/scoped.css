@@ -8,6 +8,10 @@
     /* Ensure it stays on top of other content */
 }
 
+.ant-select-dropdown {
+    font-family: 'Open Sans', sans-serif;
+}
+
 .sticky-title h3 {
     margin: 0;
     padding: 10px;
@@ -49,6 +53,7 @@ all {
     position: relative;
     border-radius: 30px;
     border: none !important;
+    background: none;
 }
 
 .ant-list-item {

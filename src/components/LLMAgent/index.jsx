@@ -3,51 +3,54 @@ import './scoped.css';
 import './github-markdown-light.css';
 
 import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from 'react';
 
 import {
-  message,
-  Select,
+    message,
+    Select,
 } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import {
-  useLocation,
-  useNavigate,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
 import {
-  ArrowBack as ArrowBackIcon,
-  ChatBubbleOutline as ChatBubbleOutlineIcon,
-  Check as CheckIcon,
-  Clear as ClearIcon,
-  Close as CloseIcon,
-  ContentCopy as ContentCopyIcon,
-  EditNote as EditNoteIcon,
-  FilePresent as FilePresentIcon,
-  RateReview as RateReviewIcon,
-  Refresh as RefreshIcon,
+    ArrowBack as ArrowBackIcon,
+    ChatBubbleOutline as ChatBubbleOutlineIcon,
+    Check as CheckIcon,
+    Clear as ClearIcon,
+    Close as CloseIcon,
+    ContentCopy as ContentCopyIcon,
+    EditNote as EditNoteIcon,
+    FilePresent as FilePresentIcon,
+    RateReview as RateReviewIcon,
+    Refresh as RefreshIcon,
+    StopCircle as StopCircleIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Button as MuiButton,
-  CircularProgress,
-  Container,
-  Grid,
-  IconButton,
-  Stack,
-  TextField,
-  Typography,
+    Box,
+    Button as MuiButton,
+    CircularProgress,
+    Container,
+    Grid,
+    IconButton,
+    Stack,
+    TextField,
+    Typography,
 } from '@mui/material';
 
-import systemIcon from '../../img/Asset 1.png';
+import systemIcon from '../../img/LLM_logo.jpg';
 import { LLMAgentService } from '../../service/LLMAgent';
 import NavBarWhite from '../Units/NavBarWhite';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import SearchButton from '../Units/SearchButton/SearchButton';
+
+import { Helmet } from 'react-helmet-async';
 
 function LLMAgent() {
     const location = useLocation();
@@ -57,9 +60,10 @@ function LLMAgent() {
     const [isLoading, setIsLoading] = useState(false);
     const [streamingSteps, setStreamingSteps] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [editingMessageIndex, setEditingMessageIndex] = useState(null);
-    const [editedMessageContent, setEditedMessageContent] = useState('');
+    // const [editingMessageIndex, setEditingMessageIndex] = useState(null);
+    // const [editedMessageContent, setEditedMessageContent] = useState('');
     const messagesEndRef = useRef(null);
+    const abortControllerRef = useRef(null);
     const navigate = useNavigate();
 
     // Create a single instance of LLMAgentService that persists across re-renders
@@ -114,7 +118,7 @@ function LLMAgent() {
 
     const handleSubmit = async (e, input = null, t = null) => {
         const inputText = input || userInput;
-        console.log('Submitting:', inputText);
+        // console.log('Submitting:', inputText);
         e && e.preventDefault();
         if (!inputText.trim() || isLoading) return;
 
@@ -156,9 +160,35 @@ function LLMAgent() {
                 timestamp: timestamp
             }]);
 
-            await llmService.chat(inputText, (update) => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+            const abortController = new AbortController();
+            abortControllerRef.current = abortController;
+            await llmService.chat(inputText, abortControllerRef.current, (update) => {
+                // console.log('Received update:', update);
                 switch (update.type) {
                     case 'step':
+                        if (update.step === 'Error') {
+                            setIsProcessing(false);
+                            setChatHistory(prev => {
+                                const newHistory = [...prev];
+                                const assistantMessage = {
+                                    role: 'assistant',
+                                    content: update.content,
+                                    references: [],
+                                    timestamp: timestamp
+                                };
+                                newHistory[newHistory.length - 1] = assistantMessage;
+
+                                // Update the LLMAgentService's internal message history
+                                llmService.updateMessages(update.answer);
+
+                                return newHistory;
+                            });
+                            setSelectedMessageIndex(chatHistory.length + 1);
+                            break;
+                        }
                         setStreamingSteps(prev => {
                             const newSteps = [...prev];
                             const cleanContent = update.content.replace(/\u001b\[\d+m/g, '').trim();
@@ -190,7 +220,7 @@ function LLMAgent() {
                         });
                         setSelectedMessageIndex(chatHistory.length + 1);
                         break;
-                    case 'error':
+                    case 'error': // unsure if this is used
                         setIsProcessing(false);
                         setChatHistory(prev => {
                             const newHistory = [...prev];
@@ -225,27 +255,17 @@ function LLMAgent() {
         }
     };
 
-    const handleEditMessage = (index) => {
-        if (chatHistory[index].role !== 'user') return;
+    useEffect(() => {
+        return () => {
+            if (abortControllerRef.current) abortControllerRef.current.abort();
+        };
+    }, []);
 
-        setEditingMessageIndex(index);
-        setEditedMessageContent(chatHistory[index].content);
-    };
-
-    const handleSaveEdit = async (e, index) => {
-        if (editedMessageContent.trim() === '' || isLoading) return;
-
+    const handleSaveEdit = async (e, index, content) => {
+        if (content.trim() === '' || isLoading) return;
         const editedHistory = chatHistory.slice(0, index);
         setChatHistory(editedHistory);
-        setEditingMessageIndex(null);
-        setEditedMessageContent('');
-
-        handleSubmit(e, editedMessageContent);
-    };
-
-    const handleCancelEdit = () => {
-        setEditingMessageIndex(null);
-        setEditedMessageContent('');
+        handleSubmit(e, content);
     };
 
     const handleCopyMessage = (content) => {
@@ -289,10 +309,10 @@ function LLMAgent() {
         handleSubmit(e, userMessage.content, userMessage.timestamp);
     };
 
-    const MessageCard = ({ index, message, refresh, copy, edit, editContent, change, save, cancel, goref, GetSteps }) => {
+    const MessageCard = ({ index, message, refresh, copy, save, goref, GetSteps }) => {
         const isAssistant = message.role === "assistant";
         const isLastUserMessage = index === chatHistory.length - 1 && message.role === 'assistant';
-        const isEditing = index === editingMessageIndex;
+        // const isEditing = index === editingMessageIndex;
         const isLoading = isProcessing && isLastUserMessage;
         const messageID = index;
         // const liked = message.like;
@@ -300,18 +320,20 @@ function LLMAgent() {
         // const bookmarked = message.bookmark;
         // const tokenCount = 0;
         const timestamp = message.timestamp || "";
+        const [editContent, setEditContent] = useState('');
+        const [isEditing, setIsEditing] = useState(false);
 
         return (
             <div className="message-card">
                 <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: "5px", justifyContent: "flex-end" }}>
                     {!isAssistant && (
                         <Box sx={{ flex: "0 0 auto", width: "80px", textAlign: "right" }}>
-                            <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText" }}>{timestamp}</Typography>
+                            <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText", fontFamily: 'Open Sans, sans-serif' }}>{timestamp}</Typography>
                         </Box>
                     )}
                     <Box
                         sx={{
-                            bgcolor: isAssistant ? "white" : "#EDF0FE", // Different background colors
+                            bgcolor: isAssistant ? "white" : "#EDF5FE", // Different background colors
                             maxWidth: isAssistant ? "100%" : "80%", // Adjust max width for assistant messages
                             display: "flex",
                             alignItems: "flex-start",
@@ -333,20 +355,22 @@ function LLMAgent() {
                                     height: 32,
                                     borderRadius: 16,
                                     borderStyle: "solid",
-                                    borderColor: "black",
-                                    borderWidth: 1,
+                                    borderColor: "#0169B040",
+                                    borderWidth: "2px",
                                     justifyContent: "center",
                                     alignItems: "center",
                                     display: "flex",
+                                    overflow: "hidden",
+                                    transform: "translateY(-9px)",
                                 }}
                             >
-                                <img src={systemIcon} alt="Assistant" width="26" height="26" style={{ borderRadius: 13 }} />
+                                <img src={systemIcon} alt="Assistant" width="60" height="60" style={{ borderRadius: "50%" }} />
                             </Box>
                         )}
                         <Box sx={{ flex: 1 }}>
                             {isAssistant && (
                                 <Typography variant="body2" color="textSecondary" sx={{
-                                    fontFamily: "Inter, sans-serif", fontSize: "14px", display: "flex", color: "#19213d", alignItems: "center",
+                                    fontFamily: "Open Sans, sans-serif", fontSize: "14px", display: "flex", color: "#19213d", alignItems: "center",
                                     pt: "12px", pb: "12px", fontWeight: 500
                                 }}>
                                     LLMAgent
@@ -359,7 +383,7 @@ function LLMAgent() {
                                             bgcolor: "text.secondary",
                                         }}
                                     />
-                                    <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText" }}>{timestamp}</Typography>
+                                    <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText", fontFamily: 'Open Sans, sans-serif' }}>{timestamp}</Typography>
                                 </Typography>
                             )}
 
@@ -380,19 +404,10 @@ function LLMAgent() {
                                             variant="filled"
                                             size="small"
                                             sx={{ flex: 1, width: "100%" }}
-                                            onChange={(e) => change(e.target.value)}
+                                            onChange={(e) => setEditContent(e.target.value)}
                                         /> : (
-                                            <div className="markdown-body">
-                                                <ReactMarkdown components={{
-                                                    // // Add a custom style on all nodes
-                                                    // p: ({ node, ...props }) => <p style={{ lineHeight: "150%" }} {...props} />,
-                                                    // // h1: ({ node, ...props }) => <h1 style={{}} {...props} />,
-                                                    // // h2: ({ node, ...props }) => <h2 style={{}} {...props} />,
-                                                    // // h3: ({ node, ...props }) => <h3 style={{}} {...props} />,
-                                                    // // ul: ({ node, ...props }) => <ul style={{}} {...props} />,
-                                                    // // ol: ({ node, ...props }) => <ol style={{}} {...props} />,
-                                                    // li: ({ node, ...props }) => <li style={{ lineHeight: "150%", marginTop: "5px", marginBottom: "5px" }} {...props} />
-                                                }}>
+                                            <div className="markdown-body" style={{ fontFamily: 'Open Sans, sans-serif' }}>
+                                                <ReactMarkdown>
                                                     {message.content}
                                                 </ReactMarkdown>
                                             </div>
@@ -408,32 +423,11 @@ function LLMAgent() {
                                     <IconButton size="small" onClick={() => copy(message.content)}>
                                         <ContentCopyIcon fontSize="small" />
                                     </IconButton>
-                                    {/* <IconButton size="small" onClick={()=>{}}>
-                                    <ShareIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton size="small" onClick={()=>{}}>
-                                    {0 ? <ThumbUpAltIcon fontSize="small" /> : <ThumbUpOffAltIcon fontSize="small" />}
-                                </IconButton>
-                                <IconButton size="small" onClick={()=>{}}>
-                                    {0 ? <ThumbDownAltIcon fontSize="small" /> : <ThumbDownOffAltIcon fontSize="small" />}
-                                </IconButton>
-                                <IconButton size="small" onClick={()=>{}}>
-                                    {0 ? <BookmarkIcon fontSize="small" /> : <BookmarkBorderIcon fontSize="small" />}
-                                </IconButton> */}
-                                    {/* <IconButton size="small">
-                                    <MoreHorizIcon fontSize="small" />
-                                </IconButton> */}
+                                    {isLoading && <IconButton size="small" onClick={() => { if (abortControllerRef.current) abortControllerRef.current.abort(); }}>
+                                        <StopCircleIcon fontSize="small" />
+                                    </IconButton>
+                                    }
                                 </Stack>
-                                {/* <Box sx={{
-                                px: "10px",
-                                height: "40px",
-                                borderRadius: "4px",
-                                border: "none",
-                                bgcolor: "#f7f8fa",
-                                justifyContent: "center",
-                                alignItems: "center",
-                                display: "flex",
-                            }}>{tokenCount} tokens</Box> */}
                                 <MuiButton
                                     variant='contained'
                                     startIcon={<FilePresentIcon />}
@@ -442,6 +436,7 @@ function LLMAgent() {
                                     disabled={isLoading}
                                     sx={{
                                         px: "10px",
+                                        fontFamily: 'Open Sans, sans-serif',
                                         height: "40px",
                                         borderRadius: "4px",
                                         border: "none", bgcolor: "#f7f8fa", color: "#19213d",
@@ -468,17 +463,32 @@ function LLMAgent() {
                     <Stack direction="row" spacing={1} sx={{ pb: "8px", pr: "24px" }}>
                         {
                             isEditing ? <>
-                                <IconButton size="small" onClick={() => cancel()}>
+                                <IconButton size="small" onClick={() => {
+                                    setIsEditing(false);
+                                    setEditContent('');
+                                }}>
                                     <ClearIcon fontSize="small" />
                                 </IconButton>
-                                <IconButton size="small" onClick={(e) => save(e, messageID)}>
+                                <IconButton size="small" onClick={(e) => {
+                                    if (editContent.trim() === '') {
+                                        return;
+                                    }
+                                    save(e, messageID, editContent);
+                                    setIsEditing(false);
+                                    setEditContent('');
+                                }}>
                                     <CheckIcon fontSize="small" />
                                 </IconButton>
                             </> : <div className="user-message-actions">
                                 <IconButton size="small" onClick={() => copy(message.content)}>
                                     <ContentCopyIcon fontSize="small" />
                                 </IconButton>
-                                <IconButton size="small" onClick={() => edit(messageID)}>
+                                <IconButton size="small" onClick={() => {
+                                    if (isAssistant) return;
+
+                                    setIsEditing(true);
+                                    setEditContent(message.content);
+                                }}>
                                     <EditNoteIcon fontSize="small" />
                                 </IconButton>
                             </div>
@@ -498,11 +508,7 @@ function LLMAgent() {
                 message={message}
                 refresh={handleRegenerateResponse}
                 copy={handleCopyMessage}
-                edit={handleEditMessage}
-                editContent={editedMessageContent}
-                change={setEditedMessageContent}
                 save={handleSaveEdit}
-                cancel={handleCancelEdit}
                 goref={handleMessageClick}
                 GetSteps={() => (
                     <Box sx={{ mt: 2 }}>
@@ -535,6 +541,12 @@ function LLMAgent() {
     }, [references, sortOption]);
 
     return (
+        <>
+            <Helmet>
+            <title>Chat Page - Genomic Literature Knowledge Base</title>
+            <meta name="description" content="The Genomic Literature Knowledge Base (GLKB) is a comprehensive and powerful resource that integrates over 263 million biomedical terms and more than 14.6 million biomedical relationships. This collection is curated from 33 million PubMed abstracts and nine well-established biomedical repositories, offering an unparalleled wealth of knowledge for researchers and practitioners in the field." />
+            <meta property="og:title" content="Chat Page - Genomic Literature Knowledge Base" />
+            </Helmet>
         <div className="result-container">
             <div className="navbar-wrapper">
                 <NavBarWhite />
@@ -544,10 +556,13 @@ function LLMAgent() {
                     <div className="main-content">
                         <MuiButton variant="text" sx={{
                             color: '#333333',
+                            fontFamily: 'Open Sans, sans-serif',
                             alignSelf: 'flex-start',
                             zIndex: 1,
                             borderRadius: '24px',
-                            transform: 'translateY(-10px)',
+                            marginTop: '16px',
+                            marginBottom: '16px',
+                            // transform: 'translateY(-10px)',
                         }}
                             onClick={() => navigate('/')}>
                             <ArrowBackIcon />Back
@@ -568,7 +583,7 @@ function LLMAgent() {
                                                     marginBottom: '1px',
                                                 }}>
                                                     <Typography sx={{
-                                                        fontFamily: 'Inter, sans-serif',
+                                                        fontFamily: 'Open Sans, sans-serif',
                                                         fontSize: '18px',
                                                         fontWeight: '500',
                                                         paddingLeft: '16px',
@@ -584,46 +599,42 @@ function LLMAgent() {
                                                         gap: "4px",
                                                         border: "1px solid #E2E8F0",
                                                         fontSize: '11px',
-                                                        color: isLoading ? '#e0e0e0' : '#64748B'
+                                                        color: isLoading ? '#e0e0e0' : '#64748B',
+                                                        fontFamily: 'Open Sans, sans-serif',
                                                     }}>
                                                         <RateReviewIcon sx={{ fontSize: '15px' }} /> New Chat
                                                     </MuiButton>
                                                 </Box>
                                                 {/* Add example queries section */}
-                                                {chatHistory.length === 0 && (<>
+                                                {chatHistory.length === 0 && (<div className='empty-components-container'>
                                                     <div className="empty-page-title" style={{ paddingTop: '1rem' }}>
                                                         <div style={{ gap: '1rem', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
-                                                            <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: 'clamp(0.5vw, 32px, 2vw)', fontWeight: '700', color: "#00199D" }}>
+                                                            <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '32px', fontWeight: '700', color: "#0169B0" }}>
                                                                 Explore Biomedical Literature
                                                             </Typography>
-                                                            <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: 'clamp(0.25vw, 18px, 1.1vw)', fontWeight: '500', color: "#718096" }}>
+                                                            <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '18px', fontWeight: '500', color: "#718096" }}>
                                                                 AI-powered Genomic Literature Knowledge Base
                                                             </Typography>
                                                         </div>
                                                     </div>
                                                     <div className="example-queries-header">
-                                                        <Typography sx={{ fontFamily: "Inter, sans-serif", fontSize: '16px', fontWeight: '400', color: "#888888", width: '100%', textAlign: 'left' }}>
+                                                        <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '16px', fontWeight: '400', color: "#888888", width: '100%', textAlign: 'left' }}>
                                                             Try these example queries:
                                                         </Typography>
                                                         <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '10px', minHeight: '80px' }}>
-                                                            <div className="example-query"
-                                                                onClick={() => handleExampleClick("What is the role of BRCA1 in breast cancer?")}
-                                                                style={{ height: 'auto', minHeight: '100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
-                                                                What is the role of BRCA1 in breast cancer?
-                                                            </div>
-                                                            <div className="example-query"
-                                                                onClick={() => handleExampleClick("How many articles about Alzheimer's disease are published in 2020?")}
-                                                                style={{ height: 'auto', minHeight: '100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
-                                                                How many articles about Alzheimer's disease are published in 2020?
-                                                            </div>
-                                                            <div className="example-query"
-                                                                onClick={() => handleExampleClick("What pathways does TP53 participate in?")}
-                                                                style={{ height: 'auto', minHeight: '100%', display: 'flex', alignItems: 'center', minWidth: '175px' }}>
-                                                                What pathways does TP53 participate in?
-                                                            </div>
+                                                            {
+                                                                ["What is the role of BRCA1 in breast cancer?",
+                                                                    "How many articles about Alzheimer's disease are published in 2020?",
+                                                                    "What pathways does TP53 participate in?"
+                                                                ].map((query, index) => (
+                                                                    <div className="example-query" key={index} onClick={() => handleExampleClick(query)}>
+                                                                        {query}
+                                                                    </div>
+                                                                ))
+                                                            }
                                                         </div>
                                                     </div>
-                                                </>
+                                                </div>
                                                 )}
 
                                                 <div className="messages-container">
@@ -668,16 +679,18 @@ function LLMAgent() {
                                                         variant="outlined"
                                                         placeholder="Ask a question about the biomedical literature..."
                                                         sx={{
-                                                            backgroundColor: '#F9FBFF',
+                                                            backgroundColor: '#F4F9FE',
                                                             borderRadius: '30px',
                                                             minHeight: '60px', // Increase the height of the input box
                                                             '& .MuiInputBase-root': {
                                                                 height: '60px',
                                                                 borderRadius: '30px',
                                                                 alignItems: 'center', // Center the text vertically
+                                                                fontFamily: 'Open Sans, sans-serif',
                                                                 '& fieldset': {
                                                                     border: 'none'
-                                                                }
+                                                                },
+                                                                boxShadow: '0px 2px 3px -1px #00000026',
                                                             },
                                                             '& .MuiInputBase-input': {
                                                                 paddingLeft: '4px',
@@ -721,6 +734,7 @@ function LLMAgent() {
                                                                     />}
                                                                     {/* Search Icon */}
                                                                     <SearchButton
+                                                                        alterColor={1}
                                                                         onClick={() => {
                                                                             handleSubmit();
                                                                         }}
@@ -748,7 +762,7 @@ function LLMAgent() {
                                                         borderBottom: '1px solid #E6E6E6',
                                                         marginBottom: '1px',
                                                     }}>
-                                                        <h3 style={{ fontFamily: 'Inter, sans-serif', fontWeight: '500', fontSize: '18px', marginBottom: '0' }}>References</h3>
+                                                        <h3 style={{ fontFamily: 'Open Sans, sans-serif', fontWeight: '500', fontSize: '18px', marginBottom: '0' }}>References</h3>
                                                         <Select
                                                             size="small"
                                                             value={sortOption}
@@ -757,7 +771,8 @@ function LLMAgent() {
                                                                 { value: 'Year', label: 'Sort by Year' },
                                                                 { value: 'Citations', label: 'Sort by Citations' }
                                                             ]}
-                                                            style={{ marginRight: '16px', minWidth: '140px' }}
+                                                            style={{ marginRight: '16px', minWidth: '140px', fontFamily: 'Open Sans, sans-serif' }}
+                                                            styles={{ popup: { root: { 'font-family': 'Open Sans, sans-serif' } } }}
                                                         />
                                                     </div>
 
@@ -796,6 +811,7 @@ function LLMAgent() {
                 </Grid>
             </Grid>
         </div>
+        </>
     );
 }
 

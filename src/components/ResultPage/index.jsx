@@ -2,32 +2,32 @@ import 'antd/dist/reset.css';
 import './scoped.css';
 
 import React, {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
 } from 'react';
 
 import {
-  Button as AntButton,
-  Spin,
-  Tooltip,
+    Button as AntButton,
+    Spin,
+    Tooltip,
 } from 'antd';
 import { debounce } from 'lodash';
 import Joyride, { STATUS } from 'react-joyride';
 import {
-  useLocation,
-  useNavigate,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
 import { InfoCircleOutlined } from '@ant-design/icons';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 //import mui button as muibutton
 import {
-  Box,
-  Button as MuiButton,
-  Grid,
-  Typography,
+    Box,
+    Button as MuiButton,
+    Grid,
+    Typography,
 } from '@mui/material';
 
 import downArrow from '../../img/down_arrow.svg';
@@ -39,6 +39,8 @@ import { trackEvent } from '../Units/analytics';
 import NavBarWhite from '../Units/NavBarWhite';
 import SearchBarKnowledge from '../Units/SearchBarKnowledge';
 import SearchBarNeighborhood from '../Units/SearchBarNeighborhood';
+
+import { Helmet } from 'react-helmet-async';
 
 // const StyledButton = styled(Button)(({ theme }) => ({
 //     backgroundColor: '#99c7b1',
@@ -71,7 +73,7 @@ const ResultPage = () => {
     // const alltags = urlParams.get('data');
     const location = useLocation();
     const navigate = useNavigate();
-    console.log(location.state);
+    // console.log(location.state);
     const search_data = location.state?.search_data;
     const chipDataID = location.state?.chipDataID;
     // const { result } = location.state;
@@ -339,7 +341,7 @@ const ResultPage = () => {
         if (chipDataID) {
             const newArray = [];
             chipDataID.forEach(idArray => { newArray.push(idArray) });
-            console.log(newArray)
+            // console.log(newArray)
             setChipDataIDResult(newArray);
         }
         // Set information panel to open by default
@@ -414,7 +416,7 @@ const ResultPage = () => {
 
         let cypherServ = new CypherService();
         const response = await cypherServ.Triplet2Cypher(content);
-        console.log('function -> ', response);
+        // console.log('function -> ', response);
         setData(response[0]);
         // setAllNodes(response[1])
         // Store just the graph data, not the entire response
@@ -598,6 +600,8 @@ const ResultPage = () => {
     const [boolValues, setBoolValues] = useState({});
     // const [boolEdgeValues, setBoolEdgeValues] = useState({});
 
+    const [searchBarOpen, setSearchBarOpen] = useState(false);
+
     useEffect(() => {
         if (data.edges) {
             const edgeLabelsSet = new Set(data.edges.map(edge => edge.data.label));
@@ -632,29 +636,29 @@ const ResultPage = () => {
         }
     }, [graphShownData, uniqueLabelsArray, uniqueEdgeLabelsArray]);
 
-    const onChangeNode = (e, label, prevChecked) => {
-        console.log(label, prevChecked);
-        if (prevChecked) {
-            const tempKeys = [];
-            for (let i = 0; i < graphShownData.nodes.length; i++) {
-                if (graphShownData.nodes[i].data.label !== label) {
-                    tempKeys.push(graphShownData.nodes[i].data.id);
-                }
-            }
-            setGraphData(tempKeys);
-            setBoolValues({ ...boolValues, [label]: false });
-        } else {
-            const tempKeys = [];
-            for (let i = 0; i < data.nodes.length; i++) {
-                if (data.nodes[i].data.label === label) {
-                    tempKeys.push(data.nodes[i].data.id);
-                }
-            }
-            const currentKeys = graphData || [];
-            setGraphData([...currentKeys, ...tempKeys]);
-            setBoolValues({ ...boolValues, [label]: true });
-        }
-    };
+    // const onChangeNode = (e, label, prevChecked) => {
+    //     console.log(label, prevChecked);
+    //     if (prevChecked) {
+    //         const tempKeys = [];
+    //         for (let i = 0; i < graphShownData.nodes.length; i++) {
+    //             if (graphShownData.nodes[i].data.label !== label) {
+    //                 tempKeys.push(graphShownData.nodes[i].data.id);
+    //             }
+    //         }
+    //         setGraphData(tempKeys);
+    //         setBoolValues({ ...boolValues, [label]: false });
+    //     } else {
+    //         const tempKeys = [];
+    //         for (let i = 0; i < data.nodes.length; i++) {
+    //             if (data.nodes[i].data.label === label) {
+    //                 tempKeys.push(data.nodes[i].data.id);
+    //             }
+    //         }
+    //         const currentKeys = graphData || [];
+    //         setGraphData([...currentKeys, ...tempKeys]);
+    //         setBoolValues({ ...boolValues, [label]: true });
+    //     }
+    // };
 
     const LegendItem = ({ label, size, color }) => {
         return (
@@ -700,6 +704,7 @@ const ResultPage = () => {
                 border: boolValues[label] ? 'solid 2px transparent' : 'solid 2px #ccc',
                 height: '39px',
                 fontWeight: 'normal',
+                fontFamily: 'Inter, sans-serif',
                 padding: '9px 9px',
                 fontSize: '14px',
                 lineHeight: '1.5',
@@ -736,6 +741,12 @@ const ResultPage = () => {
     // };
     const [isLegendVisible, setLegendVisible] = useState(true);
     return (
+        <>
+            <Helmet>
+            <title>Search Page - Genomic Literature Knowledge Base</title>
+            <meta name="description" content="The Genomic Literature Knowledge Base (GLKB) is a comprehensive and powerful resource that integrates over 263 million biomedical terms and more than 14.6 million biomedical relationships. This collection is curated from 33 million PubMed abstracts and nine well-established biomedical repositories, offering an unparalleled wealth of knowledge for researchers and practitioners in the field." />
+            <meta property="og:title" content="Search Page - Genomic Literature Knowledge Base" />
+            </Helmet>
         <div className="result-container" ref={containerRef}>
             <Joyride
                 steps={steps}
@@ -760,6 +771,12 @@ const ResultPage = () => {
                 }}
                 callback={handleJoyrideCallback}
                 key={tourKey}
+                locale={{
+                    last: 'Close', // Change the text of the final button to "Close"
+                    next: 'Next',
+                    back: 'Back',
+                    skip: 'Skip',
+                }}
             />
             <div className="navbar-wrapper">
                 <NavBarWhite />
@@ -769,10 +786,13 @@ const ResultPage = () => {
                     <Grid item xs={12} className="subgrid">
                         <MuiButton variant="text" sx={{
                             color: '#333333',
+                            fontFamily: 'Open Sans, sans-serif',
                             alignSelf: 'flex-start',
                             zIndex: 1,
                             borderRadius: '24px',
-                            transform: 'translateY(-10px)',
+                            marginTop: '16px',
+                            marginBottom: '16px',
+                            // transform: 'translateY(-10px)',
                         }}
                             onClick={() => navigate('/')}>
                             <ArrowBackIcon />Back
@@ -796,6 +816,8 @@ const ResultPage = () => {
                                         chipDataIDResult={chipDataIDResult}
                                         displayArticleGraph={displayArticleGraph}
                                         setDisplayArticleGraph={setDisplayArticleGraph}
+                                        alterColor={1}
+                                        setOpen={setSearchBarOpen}
                                         onSearch={(data) => {
                                             // setSearchContent(data); // Update stored content
                                             // search(data);
@@ -843,7 +865,7 @@ const ResultPage = () => {
                                             // width: '100%',
                                             // paddingTop: "20px",
                                             paddingBottom: "20px",
-                                            height: '100%',
+                                            height: 'calc(100% - 20px)',
                                             // justifyContent: 'center',
                                             // alignItems: 'center',
                                             // maxWidth: '1200px',
@@ -860,13 +882,14 @@ const ResultPage = () => {
                                                         //width: '100%',
                                                         height: "100%",
                                                         //minHeight: "600px",
-                                                        bgcolor: "white",
+                                                        bgcolor: searchBarOpen ? "#f8f8f8" : "white",
                                                         position: 'relative',
                                                         // boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
                                                         // marginLeft: "1%",
                                                         // marginRight: "1%",
                                                         // marginTop: "20px",
                                                         overflow: 'hidden',
+                                                        transition: 'background-color 0.3s ease',
                                                     }} className="graph-container-wrapper">
                                                         <Tooltip title={getButtonTooltip()} className="graph-control-button-container">
                                                             <span>
@@ -928,7 +951,7 @@ const ResultPage = () => {
                                                                     }}
                                                                 />
                                                                 <Typography sx={{
-                                                                    fontFamily: 'Inter, sans-serif',
+                                                                    fontFamily: 'Open Sans, sans-serif',
                                                                     fontSize: '14px',
                                                                     fontWeight: 400,
                                                                 }}
@@ -986,7 +1009,7 @@ const ResultPage = () => {
                                                                             <div className="legend-subsection">
                                                                                 <div className="legend-subtitle-row">
                                                                                     <div className="legend-subtitle">Legends</div>
-                                                                                    <Tooltip title={LegendTooltipContent} styles={{ root: { maxWidth: '380px' }, body: { fontSize: '16px' } }}>
+                                                                                    <Tooltip title={LegendTooltipContent} styles={{ root: { maxWidth: '380px' }, body: { fontSize: '16px', fontFamily: 'Open Sans, sans-serif' } }}>
                                                                                         <InfoCircleOutlined style={{ color: '#1890ff' }} />
                                                                                     </Tooltip>
                                                                                     <button
@@ -1040,15 +1063,16 @@ const ResultPage = () => {
                                                     <Box sx={{
                                                         borderRadius: "20px",
                                                         height: "100%",
+                                                        background: searchBarOpen ? "#f8f8f8" : "white",
+                                                        transition: 'background-color 0.3s ease',
                                                         //minHeight: "600px",
-                                                        bgcolor: "white",
                                                         paddingBottom: "20px",
                                                         // marginLeft: "1%",
                                                         // marginRight: "1%",
                                                         // marginTop: "20px",
                                                         // boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
                                                         '& *': {
-                                                            fontFamily: "Inter !important",
+                                                            fontFamily: 'Open Sans, sans-serif',
                                                         },
 
                                                     }} className="floating-information-new">
@@ -1166,15 +1190,18 @@ const ResultPage = () => {
                     height: '56px',
                     fontSize: '24px',
                     borderRadius: '50%',
-                    backgroundColor: '#D3D5FF',
+                    backgroundColor: '#079BD4',
+                    color: '#FFFFFF',
                     boxShadow: '8px 6px 33px 0px #D8E6F8',
                     border: 'none',
+                    fontFamily: 'Open Sans, sans-serif',
                 }}
                 disabled={!searchFlag}
             >
                 ?
             </AntButton>
         </div>
+        </>
     )
 }
 

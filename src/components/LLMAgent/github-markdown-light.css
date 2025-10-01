@@ -5,7 +5,7 @@
   -webkit-text-size-adjust: 100%;
   margin: 0;
   color: #1f2328;
-  font-family: "Inter";
+  font-family: "Open Sans", sans-serif;
   letter-spacing: -.01em;
   font-size: 16px;
   line-height: 24px;
@@ -49,7 +49,7 @@
 
 .markdown-body a {
   background-color: transparent;
-  color: #0069c2;
+  color: rgb(1, 141, 255);
   text-decoration: none;
 }
 
@@ -176,7 +176,7 @@
 }
 
 .markdown-body a:hover {
-  color: #00437d;
+  color: rgb(0, 116, 210);
 }
 
 .markdown-body ::placeholder {
