@@ -2,39 +2,38 @@ import 'antd/dist/reset.css';
 import './scoped.css';
 
 import React, {
-    useEffect,
-    useRef,
-    useState,
+  useEffect,
+  useRef,
+  useState,
 } from 'react';
 
 import { Button as AntButton } from 'antd';
+import { Helmet } from 'react-helmet-async';
 import Joyride, {
-    ACTIONS,
-    EVENTS,
-    STATUS,
+  ACTIONS,
+  EVENTS,
+  STATUS,
 } from 'react-joyride';
 import {
-    useLocation,
-    useNavigate,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import ApiIcon from '@mui/icons-material/Api';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import OutboundIcon from '@mui/icons-material/Outbound';
 import {
-    Box,
-    CircularProgress,
-    Container,
-    Grid,
-    Typography,
+  Box,
+  CircularProgress,
+  Container,
+  Grid,
+  Typography,
 } from '@mui/material';
 
 import NavBarWhite from '../Units/NavBarWhite';
 import SearchBarKnowledge from '../Units/SearchBarKnowledge';
 import SubNavBar from '../Units/SubNavBar';
 import LlmSearchBar from './LlmSearchBar';
-
-import { Helmet } from 'react-helmet-async';
 
 // const { Search } = Input;
 
@@ -233,226 +232,226 @@ const HomePage = () => {
 
     return (
         <>
-        <Helmet>
-        <title>Home Page - Genomic Literature Knowledge Base</title>
-        <meta name="description" content="The Genomic Literature Knowledge Base (GLKB) is a comprehensive and powerful resource that integrates over 263 million biomedical terms and more than 14.6 million biomedical relationships. This collection is curated from 33 million PubMed abstracts and nine well-established biomedical repositories, offering an unparalleled wealth of knowledge for researchers and practitioners in the field." />
-        <meta property="og:title" content="Home Page - Genomic Literature Knowledge Base" />
-        </Helmet>
-        <div style={{ maxHeight: '100vh', overflowY: 'hidden' }}>
-            <NavBarWhite
-                showLogo={true} activeButton={activeButton}
-            />
-            <div className="HomePageContainer">
-                <div className="HomePageInner" style={{
-                    backgroundColor: searchBarOpen ? '#e2ecf0' : '#F1FBFF',
-                    transition: 'background-color 0.3s ease',
-                }}>
-                    <Joyride
-                        steps={steps}
-                        run={runTour}
-                        continuous={true}
-                        showSkipButton={true}
-                        showProgress={true}
-                        callback={handleJoyrideCallback}
-                        styles={{
-                            options: {
-                                primaryColor: '#007bff',
-                                zIndex: 10000
-                            },
-                            tooltip: {
-                                textAlign: 'left',
-                                content: {
-                                    textAlign: 'left'
+            <Helmet>
+                <title>Home Page - Genomic Literature Knowledge Base</title>
+                <meta name="description" content="Discover insights from 33M+ genomic research articles. GLKB enables AI-powered search across genes, diseases, variants, and chemicals with high accuracy." />
+                <meta property="og:title" content="Genomic Literature Knowledge Base | AI-Powered Genomics Search" />
+            </Helmet>
+            <div style={{ maxHeight: '100vh', overflowY: 'hidden' }}>
+                <NavBarWhite
+                    showLogo={true} activeButton={activeButton}
+                />
+                <div className="HomePageContainer">
+                    <div className="HomePageInner" style={{
+                        backgroundColor: searchBarOpen ? '#e2ecf0' : '#F1FBFF',
+                        transition: 'background-color 0.3s ease',
+                    }}>
+                        <Joyride
+                            steps={steps}
+                            run={runTour}
+                            continuous={true}
+                            showSkipButton={true}
+                            showProgress={true}
+                            callback={handleJoyrideCallback}
+                            styles={{
+                                options: {
+                                    primaryColor: '#007bff',
+                                    zIndex: 10000
+                                },
+                                tooltip: {
+                                    textAlign: 'left',
+                                    content: {
+                                        textAlign: 'left'
+                                    }
+                                },
+                                tooltipContent: {
+                                    textAlign: 'left',
+                                    fontFamily: 'Open Sans, sans-serif',
                                 }
-                            },
-                            tooltipContent: {
-                                textAlign: 'left',
-                                fontFamily: 'Open Sans, sans-serif',
-                            }
-                        }}
-                        locale={{
-                            last: 'Close', // Change the text of the final button to "Close"
-                            next: 'Next',
-                            back: 'Back',
-                            skip: 'Skip',
-                        }}
-                        disableOverlayClose={true}
-                        disableBeacon={true}
-                        disableCloseOnEsc={true}
-                        disableScrolling={true}
-                        spotlightClicks={true}
-                        spotlightPadding={0}
-                        scrollToFirstStep={true}
-                    />
-                    <Box className="homepage-top" sx={{
-                        width: "100%",
-                        paddingTop: '13vh',
-                        backgroundColor: '#079BD4',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        display: 'flex',
-                        flexDirection: 'column'
-                    }}>
-                        <Typography sx={{
-                            fontFamily: 'Open Sans',
-                            fontWeight: 700,
-                            fontSize: '48px',
-                            leadingTrim: 'NONE',
-                            lineHeight: '100%',
-                            letterSpacing: '0%',
-                            textAlign: 'center',
-                            paddingBottom: '16px',
-                            color: 'white',
-                        }} className='glkb-title'>
-                            Genomic Literature Knowledge Base
-                        </Typography>
-                        <Typography sx={{
-                            fontFamily: 'Open Sans',
-                            fontWeight: 400,
-                            fontSize: '20px',
-                            color: 'white',
-                            textAlign: 'center',
-                            paddingBottom: '30px',
-                            maxWidth: '500px',
+                            }}
+                            locale={{
+                                last: 'Close', // Change the text of the final button to "Close"
+                                next: 'Next',
+                                back: 'Back',
+                                skip: 'Skip',
+                            }}
+                            disableOverlayClose={true}
+                            disableBeacon={true}
+                            disableCloseOnEsc={true}
+                            disableScrolling={true}
+                            spotlightClicks={true}
+                            spotlightPadding={0}
+                            scrollToFirstStep={true}
+                        />
+                        <Box className="homepage-top" sx={{
+                            width: "100%",
+                            paddingTop: '13vh',
+                            backgroundColor: '#079BD4',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            display: 'flex',
+                            flexDirection: 'column'
                         }}>
-                            Discover insights from genomic research with AI-powered search and analysis
-                        </Typography>
-                        <Box sx={{ paddingBottom: '40px' }}>
-                            <SubNavBar activeButton={activeButton} />
+                            <Typography sx={{
+                                fontFamily: 'Open Sans',
+                                fontWeight: 700,
+                                fontSize: '48px',
+                                leadingTrim: 'NONE',
+                                lineHeight: '100%',
+                                letterSpacing: '0%',
+                                textAlign: 'center',
+                                paddingBottom: '16px',
+                                color: 'white',
+                            }} className='glkb-title'>
+                                Genomic Literature Knowledge Base
+                            </Typography>
+                            <Typography sx={{
+                                fontFamily: 'Open Sans',
+                                fontWeight: 400,
+                                fontSize: '20px',
+                                color: 'white',
+                                textAlign: 'center',
+                                paddingBottom: '30px',
+                                maxWidth: '500px',
+                            }}>
+                                Discover insights from genomic research with AI-powered search and analysis
+                            </Typography>
+                            <Box sx={{ paddingBottom: '40px' }}>
+                                <SubNavBar activeButton={activeButton} />
+                            </Box>
+                            <Box className={"search-bar"} sx={{ width: "-webkit-fill-available", paddingBottom: 'calc(min(9vh, 80px))' }}>
+                                {activeButton === 'triplet' ? (
+                                    <SearchBarKnowledge
+                                        ref={searchBarKnowledgeRef}
+                                        chipData={[]}
+                                        setOpen={setSearchBarOpen}
+                                        onSearch={(data) => {
+                                            // console.log('Triplet Search Data:', {
+                                            //     search_data: data,
+                                            //     searchType: 'triplet',
+                                            // });
+                                            navigate('/result', {
+                                                state: {
+                                                    search_data: data,
+                                                    searchType: 'triplet',
+                                                }
+                                            });
+                                        }}
+                                    />
+                                ) : (
+                                    <LlmSearchBar
+                                        setOpen={setSearchBarOpen}
+                                    />
+                                )}
+                            </Box>
                         </Box>
-                        <Box className={"search-bar"} sx={{ width: "-webkit-fill-available", paddingBottom: 'calc(min(9vh, 80px))' }}>
-                            {activeButton === 'triplet' ? (
-                                <SearchBarKnowledge
-                                    ref={searchBarKnowledgeRef}
-                                    chipData={[]}
-                                    setOpen={setSearchBarOpen}
-                                    onSearch={(data) => {
-                                        // console.log('Triplet Search Data:', {
-                                        //     search_data: data,
-                                        //     searchType: 'triplet',
-                                        // });
-                                        navigate('/result', {
-                                            state: {
-                                                search_data: data,
-                                                searchType: 'triplet',
-                                            }
-                                        });
-                                    }}
-                                />
-                            ) : (
-                                <LlmSearchBar
-                                    setOpen={setSearchBarOpen}
-                                />
-                            )}
-                        </Box>
-                    </Box>
-                    <Grid container spacing={2} className="content HomePageMain" justifyContent="center" alignItems="center" sx={{
-                        marginTop: 'calc(min(4vh, 45px))'
-                    }}>
-                        <Container className="info-card-section" sx={{ gap: '40px', display: 'flex', flexDirection: 'row' }} >
-                            {stats ? ([
-                                [OutboundIcon, "36%", "more accurate on PubMedQA with GLKB (62.3% → 98.1%)"],
-                                [ApiIcon, stats.num_api_calling || "N/A", "Total external API calls since released"],
-                                [LibraryBooksIcon, stats.num_articles || "N/A", "Articles covered in GLKB database"],
-                            ].map(([icon, value, description], index) => (
-                                <Grid item xs={4} key={index}>
+                        <Grid container spacing={2} className="content HomePageMain" justifyContent="center" alignItems="center" sx={{
+                            marginTop: 'calc(min(4vh, 45px))'
+                        }}>
+                            <Container className="info-card-section" sx={{ gap: '40px', display: 'flex', flexDirection: 'row' }} >
+                                {stats ? ([
+                                    [OutboundIcon, "36%", "more accurate on PubMedQA with GLKB (62.3% → 98.1%)"],
+                                    [ApiIcon, stats.num_api_calling || "N/A", "Total external API calls since released"],
+                                    [LibraryBooksIcon, stats.num_articles || "N/A", "Articles covered in GLKB database"],
+                                ].map(([icon, value, description], index) => (
+                                    <Grid item xs={4} key={index}>
+                                        <Box sx={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            width: '100%',
+                                            minHeight: '100%',
+                                            height: '188px',
+                                            padding: '27px 12px',
+                                            borderRadius: '12px',
+                                            backgroundColor: 'transparent',
+                                            border: '1px solid #0169B04D',
+                                            // borderBottom: '5px solid #0169B0'
+                                        }}>
+                                            {React.createElement(icon, {
+                                                sx: {
+                                                    fontSize: '64px',
+                                                    color: '#0169B0'
+                                                }
+                                            })}
+                                            <Box
+                                                sx={{
+                                                    textAlign: 'left',
+                                                    display: 'flex',
+                                                    flexDirection: 'row',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'flex-start',
+                                                    width: '100%',
+                                                    whiteSpace: 'normal',
+                                                }}>
+                                                <div style={{
+                                                    fontFamily: 'Open Sans',
+                                                    fontWeight: '400',
+                                                    fontSize: '40px',
+                                                    color: '#0169B0',
+                                                    padding: '0px 10px',
+                                                    minWidth: '120px',
+                                                    textAlign: 'center',
+                                                    transform: 'translateY(-2px)',
+                                                }}>
+                                                    {value}
+                                                </div>
+                                                <div style={{
+                                                    fontFamily: 'Open Sans',
+                                                    fontWeight: '400',
+                                                    fontSize: '14px',
+                                                    color: '#646B96',
+                                                    maxWidth: '150px'
+                                                }}>
+                                                    {description}
+                                                </div>
+                                            </Box>
+                                        </Box>
+                                    </Grid>
+                                ))) : (
                                     <Box sx={{
                                         display: 'flex',
-                                        flexDirection: 'column',
+                                        alignContent: 'center',
                                         alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        width: '100%',
-                                        minHeight: '100%',
                                         height: '188px',
                                         padding: '27px 12px',
-                                        borderRadius: '12px',
-                                        backgroundColor: 'transparent',
-                                        border: '1px solid #0169B04D',
-                                        // borderBottom: '5px solid #0169B0'
                                     }}>
-                                        {React.createElement(icon, {
-                                            sx: {
-                                                fontSize: '64px',
-                                                color: '#0169B0'
-                                            }
-                                        })}
-                                        <Box
-                                            sx={{
-                                                textAlign: 'left',
-                                                display: 'flex',
-                                                flexDirection: 'row',
-                                                alignItems: 'center',
-                                                justifyContent: 'flex-start',
-                                                width: '100%',
-                                                whiteSpace: 'normal',
-                                            }}>
-                                            <div style={{
-                                                fontFamily: 'Open Sans',
-                                                fontWeight: '400',
-                                                fontSize: '40px',
-                                                color: '#0169B0',
-                                                padding: '0px 10px',
-                                                minWidth: '120px',
-                                                textAlign: 'center',
-                                                transform: 'translateY(-2px)',
-                                            }}>
-                                                {value}
-                                            </div>
-                                            <div style={{
-                                                fontFamily: 'Open Sans',
-                                                fontWeight: '400',
-                                                fontSize: '14px',
-                                                color: '#646B96',
-                                                maxWidth: '150px'
-                                            }}>
-                                                {description}
-                                            </div>
-                                        </Box>
+                                        <CircularProgress />
                                     </Box>
-                                </Grid>
-                            ))) : (
-                                <Box sx={{
-                                    display: 'flex',
-                                    alignContent: 'center',
-                                    alignItems: 'center',
-                                    height: '188px',
-                                    padding: '27px 12px',
-                                }}>
-                                    <CircularProgress />
-                                </Box>
-                            )}
-                        </Container>
-                    </Grid>
+                                )}
+                            </Container>
+                        </Grid>
 
-                    <div className="footer">
-                        <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
-                            <p style={{ fontFamily: 'Open Sans, sans-serif', textAlign: 'center', color: 'rgba(0, 0, 0, 0.8)', fontSize: '14px', margin: 0 }}>
-                                © 2025 Liu Lab, Department of Computational Medicine and Bioinformatics, University of Michigan
-                            </p>
+                        <div className="footer">
+                            <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
+                                <p style={{ fontFamily: 'Open Sans, sans-serif', textAlign: 'center', color: 'rgba(0, 0, 0, 0.8)', fontSize: '14px', margin: 0 }}>
+                                    © 2025 Liu Lab, Department of Computational Medicine and Bioinformatics, University of Michigan
+                                </p>
+                            </div>
                         </div>
                     </div>
+                    <AntButton
+                        onClick={() => setRunTour(true)}
+                        // style={{ marginTop: '20px' }}
+                        style={{
+                            position: 'fixed',
+                            bottom: '50px',
+                            right: '20px',
+                            width: '56px',
+                            height: '56px',
+                            fontSize: '24px',
+                            borderRadius: '50%',
+                            backgroundColor: '#079BD4',
+                            color: 'white',
+                            border: 'none',
+                            fontFamily: 'Open Sans, sans-serif',
+                        }}
+                    >
+                        ?
+                    </AntButton>
                 </div>
-                <AntButton
-                    onClick={() => setRunTour(true)}
-                    // style={{ marginTop: '20px' }}
-                    style={{
-                        position: 'fixed',
-                        bottom: '50px',
-                        right: '20px',
-                        width: '56px',
-                        height: '56px',
-                        fontSize: '24px',
-                        borderRadius: '50%',
-                        backgroundColor: '#079BD4',
-                        color: 'white',
-                        border: 'none',
-                        fontFamily: 'Open Sans, sans-serif',
-                    }}
-                >
-                    ?
-                </AntButton>
             </div>
-        </div>
         </>
     )
 }
