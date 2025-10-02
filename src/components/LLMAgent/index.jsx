@@ -3,45 +3,46 @@ import './scoped.css';
 import './github-markdown-light.css';
 
 import React, {
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 
 import {
-    message,
-    Select,
+  message,
+  Select,
 } from 'antd';
+import { Helmet } from 'react-helmet-async';
 import ReactMarkdown from 'react-markdown';
 import {
-    useLocation,
-    useNavigate,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import {
-    ArrowBack as ArrowBackIcon,
-    ChatBubbleOutline as ChatBubbleOutlineIcon,
-    Check as CheckIcon,
-    Clear as ClearIcon,
-    Close as CloseIcon,
-    ContentCopy as ContentCopyIcon,
-    EditNote as EditNoteIcon,
-    FilePresent as FilePresentIcon,
-    RateReview as RateReviewIcon,
-    Refresh as RefreshIcon,
-    StopCircle as StopCircleIcon,
+  ArrowBack as ArrowBackIcon,
+  ChatBubbleOutline as ChatBubbleOutlineIcon,
+  Check as CheckIcon,
+  Clear as ClearIcon,
+  Close as CloseIcon,
+  ContentCopy as ContentCopyIcon,
+  EditNote as EditNoteIcon,
+  FilePresent as FilePresentIcon,
+  RateReview as RateReviewIcon,
+  Refresh as RefreshIcon,
+  StopCircle as StopCircleIcon,
 } from '@mui/icons-material';
 import {
-    Box,
-    Button as MuiButton,
-    CircularProgress,
-    Container,
-    Grid,
-    IconButton,
-    Stack,
-    TextField,
-    Typography,
+  Box,
+  Button as MuiButton,
+  CircularProgress,
+  Container,
+  Grid,
+  IconButton,
+  Stack,
+  TextField,
+  Typography,
 } from '@mui/material';
 
 import systemIcon from '../../img/LLM_logo.jpg';
@@ -49,8 +50,6 @@ import { LLMAgentService } from '../../service/LLMAgent';
 import NavBarWhite from '../Units/NavBarWhite';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import SearchButton from '../Units/SearchButton/SearchButton';
-
-import { Helmet } from 'react-helmet-async';
 
 function LLMAgent() {
     const location = useLocation();
@@ -543,106 +542,106 @@ function LLMAgent() {
     return (
         <>
             <Helmet>
-            <title>Chat Page - Genomic Literature Knowledge Base</title>
-            <meta name="description" content="The Genomic Literature Knowledge Base (GLKB) is a comprehensive and powerful resource that integrates over 263 million biomedical terms and more than 14.6 million biomedical relationships. This collection is curated from 33 million PubMed abstracts and nine well-established biomedical repositories, offering an unparalleled wealth of knowledge for researchers and practitioners in the field." />
-            <meta property="og:title" content="Chat Page - Genomic Literature Knowledge Base" />
+                <title>AI Chat - Genomic Literature Knowledge Base</title>
+                <meta name="description" content="Discover insights from 33M+ genomic research articles. GLKB enables AI-powered search across genes, diseases, variants, and chemicals with high accuracy." />
+                <meta property="og:title" content="AI Chat - Genomic Literature Knowledge Base | AI-Powered Genomics Search" />
             </Helmet>
-        <div className="result-container">
-            <div className="navbar-wrapper">
-                <NavBarWhite />
-            </div>
-            <Grid className="main-grid" container sx={{ marginTop: '40px', width: "unset" }} >
-                <Grid item xs={12} className="subgrid">
-                    <div className="main-content">
-                        <MuiButton variant="text" sx={{
-                            color: '#333333',
-                            fontFamily: 'Open Sans, sans-serif',
-                            alignSelf: 'flex-start',
-                            zIndex: 1,
-                            borderRadius: '24px',
-                            marginTop: '16px',
-                            marginBottom: '16px',
-                            // transform: 'translateY(-10px)',
-                        }}
-                            onClick={() => navigate('/')}>
-                            <ArrowBackIcon />Back
-                        </MuiButton>
-                        <div className='result-content'>
-                            <div className="llm-agent-container">
-                                <div className="chat-and-references">
-                                    <Grid container spacing={'48px'}>
-                                        <Grid item xs={7} height={"100%"}>
-                                            <div className="chat-container">
-                                                <Box className="llm-header" sx={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'space-between',
-                                                    padding: '16px',
-                                                    height: '55px',
-                                                    borderBottom: '1px solid #E6E6E6',
-                                                    marginBottom: '1px',
-                                                }}>
-                                                    <Typography sx={{
-                                                        fontFamily: 'Open Sans, sans-serif',
-                                                        fontSize: '18px',
-                                                        fontWeight: '500',
-                                                        paddingLeft: '16px',
+            <div className="result-container">
+                <div className="navbar-wrapper">
+                    <NavBarWhite />
+                </div>
+                <Grid className="main-grid" container sx={{ marginTop: '40px', width: "unset" }} >
+                    <Grid item xs={12} className="subgrid">
+                        <div className="main-content">
+                            <MuiButton variant="text" sx={{
+                                color: '#333333',
+                                fontFamily: 'Open Sans, sans-serif',
+                                alignSelf: 'flex-start',
+                                zIndex: 1,
+                                borderRadius: '24px',
+                                marginTop: '16px',
+                                marginBottom: '16px',
+                                // transform: 'translateY(-10px)',
+                            }}
+                                onClick={() => navigate('/')}>
+                                <ArrowBackIcon />Back
+                            </MuiButton>
+                            <div className='result-content'>
+                                <div className="llm-agent-container">
+                                    <div className="chat-and-references">
+                                        <Grid container spacing={'48px'}>
+                                            <Grid item xs={7} height={"100%"}>
+                                                <div className="chat-container">
+                                                    <Box className="llm-header" sx={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between',
+                                                        padding: '16px',
+                                                        height: '55px',
+                                                        borderBottom: '1px solid #E6E6E6',
+                                                        marginBottom: '1px',
                                                     }}>
-                                                        AI Chat
-                                                    </Typography>
-                                                    <MuiButton onClick={handleClear} disabled={isLoading || chatHistory.length === 0} sx={{
-                                                        width: 92,
-                                                        height: 26,
-                                                        borderRadius: "4px",
-                                                        borderWidth: "1px",
-                                                        padding: "4px",
-                                                        gap: "4px",
-                                                        border: "1px solid #E2E8F0",
-                                                        fontSize: '11px',
-                                                        color: isLoading ? '#e0e0e0' : '#64748B',
-                                                        fontFamily: 'Open Sans, sans-serif',
-                                                    }}>
-                                                        <RateReviewIcon sx={{ fontSize: '15px' }} /> New Chat
-                                                    </MuiButton>
-                                                </Box>
-                                                {/* Add example queries section */}
-                                                {chatHistory.length === 0 && (<div className='empty-components-container'>
-                                                    <div className="empty-page-title" style={{ paddingTop: '1rem' }}>
-                                                        <div style={{ gap: '1rem', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
-                                                            <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '32px', fontWeight: '700', color: "#0169B0" }}>
-                                                                Explore Biomedical Literature
-                                                            </Typography>
-                                                            <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '18px', fontWeight: '500', color: "#718096" }}>
-                                                                AI-powered Genomic Literature Knowledge Base
-                                                            </Typography>
-                                                        </div>
-                                                    </div>
-                                                    <div className="example-queries-header">
-                                                        <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '16px', fontWeight: '400', color: "#888888", width: '100%', textAlign: 'left' }}>
-                                                            Try these example queries:
+                                                        <Typography sx={{
+                                                            fontFamily: 'Open Sans, sans-serif',
+                                                            fontSize: '18px',
+                                                            fontWeight: '500',
+                                                            paddingLeft: '16px',
+                                                        }}>
+                                                            AI Chat
                                                         </Typography>
-                                                        <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '10px', minHeight: '80px' }}>
-                                                            {
-                                                                ["What is the role of BRCA1 in breast cancer?",
-                                                                    "How many articles about Alzheimer's disease are published in 2020?",
-                                                                    "What pathways does TP53 participate in?"
-                                                                ].map((query, index) => (
-                                                                    <div className="example-query" key={index} onClick={() => handleExampleClick(query)}>
-                                                                        {query}
-                                                                    </div>
-                                                                ))
-                                                            }
+                                                        <MuiButton onClick={handleClear} disabled={isLoading || chatHistory.length === 0} sx={{
+                                                            width: 92,
+                                                            height: 26,
+                                                            borderRadius: "4px",
+                                                            borderWidth: "1px",
+                                                            padding: "4px",
+                                                            gap: "4px",
+                                                            border: "1px solid #E2E8F0",
+                                                            fontSize: '11px',
+                                                            color: isLoading ? '#e0e0e0' : '#64748B',
+                                                            fontFamily: 'Open Sans, sans-serif',
+                                                        }}>
+                                                            <RateReviewIcon sx={{ fontSize: '15px' }} /> New Chat
+                                                        </MuiButton>
+                                                    </Box>
+                                                    {/* Add example queries section */}
+                                                    {chatHistory.length === 0 && (<div className='empty-components-container'>
+                                                        <div className="empty-page-title" style={{ paddingTop: '1rem' }}>
+                                                            <div style={{ gap: '1rem', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
+                                                                <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '32px', fontWeight: '700', color: "#0169B0" }}>
+                                                                    Explore Biomedical Literature
+                                                                </Typography>
+                                                                <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '18px', fontWeight: '500', color: "#718096" }}>
+                                                                    AI-powered Genomic Literature Knowledge Base
+                                                                </Typography>
+                                                            </div>
+                                                        </div>
+                                                        <div className="example-queries-header">
+                                                            <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '16px', fontWeight: '400', color: "#888888", width: '100%', textAlign: 'left' }}>
+                                                                Try these example queries:
+                                                            </Typography>
+                                                            <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '10px', minHeight: '80px' }}>
+                                                                {
+                                                                    ["What is the role of BRCA1 in breast cancer?",
+                                                                        "How many articles about Alzheimer's disease are published in 2020?",
+                                                                        "What pathways does TP53 participate in?"
+                                                                    ].map((query, index) => (
+                                                                        <div className="example-query" key={index} onClick={() => handleExampleClick(query)}>
+                                                                            {query}
+                                                                        </div>
+                                                                    ))
+                                                                }
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                                )}
+                                                    )}
 
-                                                <div className="messages-container">
-                                                    {renderMessages()}
-                                                    <div ref={messagesEndRef} />
-                                                </div>
+                                                    <div className="messages-container">
+                                                        {renderMessages()}
+                                                        <div ref={messagesEndRef} />
+                                                    </div>
 
-                                                {/* <div className="chat-header">
+                                                    {/* <div className="chat-header">
                                                     <form onSubmit={handleSubmit} className="input-form">
                                                         <input
                                                             type="text"
@@ -669,148 +668,148 @@ function LLMAgent() {
                                                         </Button>
                                                     </form>
                                                 </div> */}
-                                                <div className="chat-header">
-                                                    <TextField
-                                                        className="input-form"
-                                                        size="small"
-                                                        value={userInput}
-                                                        onChange={(e) => setUserInput(e.target.value)}
-                                                        disabled={isLoading}
-                                                        variant="outlined"
-                                                        placeholder="Ask a question about the biomedical literature..."
-                                                        sx={{
-                                                            backgroundColor: '#F4F9FE',
-                                                            borderRadius: '30px',
-                                                            minHeight: '60px', // Increase the height of the input box
-                                                            '& .MuiInputBase-root': {
-                                                                height: '60px',
-                                                                borderRadius: '30px',
-                                                                alignItems: 'center', // Center the text vertically
-                                                                fontFamily: 'Open Sans, sans-serif',
-                                                                '& fieldset': {
-                                                                    border: 'none'
-                                                                },
-                                                                boxShadow: '0px 2px 3px -1px #00000026',
-                                                            },
-                                                            '& .MuiInputBase-input': {
-                                                                paddingLeft: '4px',
-                                                            },
-                                                            '& .MuiOutlinedInput-notchedOutline': {
-                                                                borderColor: 'grey', // Optional: Customize border color
-                                                            },
-                                                            "& .MuiOutlinedInput-root": {
-                                                                paddingLeft: "0px!important",
-                                                                paddingRight: "70px!important",
-                                                            },
-                                                        }}
-                                                        InputProps={{
-                                                            startAdornment: (
-                                                                <ChatBubbleOutlineIcon sx={{ color: '#a1a1a1', marginLeft: '25px', marginRight: '5px', fontSize: '20px' }} />
-                                                            ),
-                                                            endAdornment: (
-                                                                <Box
-                                                                    sx={{
-                                                                        display: 'flex',
-                                                                        alignItems: 'center',
-                                                                        gap: 1,
-                                                                        justifyContent: 'center',
-                                                                        position: 'absolute',
-                                                                        right: 0,
-                                                                        height: '100%', // Ensure alignment with TextField height
-                                                                    }}
-                                                                >
-                                                                    {/* Clear Icon */}
-                                                                    {userInput !== "" && <CloseIcon
-                                                                        className="close-button"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            setUserInput('');
-                                                                        }}
-                                                                        sx={{
-                                                                            color: 'grey.500',
-                                                                            cursor: 'pointer',
-                                                                            fontSize: '20px', // Adjust size as needed 
-                                                                        }}
-                                                                    />}
-                                                                    {/* Search Icon */}
-                                                                    <SearchButton
-                                                                        alterColor={1}
-                                                                        onClick={() => {
-                                                                            handleSubmit();
-                                                                        }}
-                                                                        disabled={isLoading || !userInput.trim()}
-                                                                    />
-                                                                </Box>
-                                                            ),
-                                                        }}
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter' && userInput !== "" && !isLoading) {
-                                                                e.preventDefault();
-                                                                handleSubmit();
-                                                            }
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </Grid>
-                                        <Grid item xs={5} height={"100%"}>
-                                            <div style={{ height: '100%', width: '100%' }}>
-                                                <div className="references-container">
-                                                    <div style={{
-                                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                        height: '55px',
-                                                        borderBottom: '1px solid #E6E6E6',
-                                                        marginBottom: '1px',
-                                                    }}>
-                                                        <h3 style={{ fontFamily: 'Open Sans, sans-serif', fontWeight: '500', fontSize: '18px', marginBottom: '0' }}>References</h3>
-                                                        <Select
+                                                    <div className="chat-header">
+                                                        <TextField
+                                                            className="input-form"
                                                             size="small"
-                                                            value={sortOption}
-                                                            onChange={value => setSortOption(value)}
-                                                            options={[
-                                                                { value: 'Year', label: 'Sort by Year' },
-                                                                { value: 'Citations', label: 'Sort by Citations' }
-                                                            ]}
-                                                            style={{ marginRight: '16px', minWidth: '140px', fontFamily: 'Open Sans, sans-serif' }}
-                                                            styles={{ popup: { root: { 'font-family': 'Open Sans, sans-serif' } } }}
+                                                            value={userInput}
+                                                            onChange={(e) => setUserInput(e.target.value)}
+                                                            disabled={isLoading}
+                                                            variant="outlined"
+                                                            placeholder="Ask a question about the biomedical literature..."
+                                                            sx={{
+                                                                backgroundColor: '#F4F9FE',
+                                                                borderRadius: '30px',
+                                                                minHeight: '60px', // Increase the height of the input box
+                                                                '& .MuiInputBase-root': {
+                                                                    height: '60px',
+                                                                    borderRadius: '30px',
+                                                                    alignItems: 'center', // Center the text vertically
+                                                                    fontFamily: 'Open Sans, sans-serif',
+                                                                    '& fieldset': {
+                                                                        border: 'none'
+                                                                    },
+                                                                    boxShadow: '0px 2px 3px -1px #00000026',
+                                                                },
+                                                                '& .MuiInputBase-input': {
+                                                                    paddingLeft: '4px',
+                                                                },
+                                                                '& .MuiOutlinedInput-notchedOutline': {
+                                                                    borderColor: 'grey', // Optional: Customize border color
+                                                                },
+                                                                "& .MuiOutlinedInput-root": {
+                                                                    paddingLeft: "0px!important",
+                                                                    paddingRight: "70px!important",
+                                                                },
+                                                            }}
+                                                            InputProps={{
+                                                                startAdornment: (
+                                                                    <ChatBubbleOutlineIcon sx={{ color: '#a1a1a1', marginLeft: '25px', marginRight: '5px', fontSize: '20px' }} />
+                                                                ),
+                                                                endAdornment: (
+                                                                    <Box
+                                                                        sx={{
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            gap: 1,
+                                                                            justifyContent: 'center',
+                                                                            position: 'absolute',
+                                                                            right: 0,
+                                                                            height: '100%', // Ensure alignment with TextField height
+                                                                        }}
+                                                                    >
+                                                                        {/* Clear Icon */}
+                                                                        {userInput !== "" && <CloseIcon
+                                                                            className="close-button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setUserInput('');
+                                                                            }}
+                                                                            sx={{
+                                                                                color: 'grey.500',
+                                                                                cursor: 'pointer',
+                                                                                fontSize: '20px', // Adjust size as needed 
+                                                                            }}
+                                                                        />}
+                                                                        {/* Search Icon */}
+                                                                        <SearchButton
+                                                                            alterColor={1}
+                                                                            onClick={() => {
+                                                                                handleSubmit();
+                                                                            }}
+                                                                            disabled={isLoading || !userInput.trim()}
+                                                                        />
+                                                                    </Box>
+                                                                ),
+                                                            }}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter' && userInput !== "" && !isLoading) {
+                                                                    e.preventDefault();
+                                                                    handleSubmit();
+                                                                }
+                                                            }}
                                                         />
                                                     </div>
-
-                                                    {sortedReferences.length > 0 ? (
-                                                        <div className="references-list" style={{ maxHeight: 'calc(100% - 56px)', overflowY: 'auto', paddingLeft: '2rem', paddingRight: '2rem' }}>
-                                                            {sortedReferences.map((ref, index) => {
-                                                                const url = [
-                                                                    ref.title,
-                                                                    ref.url,
-                                                                    ref.citation_count,
-                                                                    ref.year,
-                                                                    ref.journal,
-                                                                    ref.authors
-                                                                ];
-                                                                return (
-                                                                    <div key={index} style={{ marginTop: '12px' }}>
-                                                                        <ReferenceCard url={url} handleClick={handleClick} />
-                                                                        <hr style={{ border: 'none', height: '1px', backgroundColor: 'rgba(5, 5, 5, 0.06)', marginTop: '12px' }} />
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    ) : (
-                                                        <p style={{ padding: '16px 32px' }}>No references available for this response.</p>
-                                                    )}
                                                 </div>
-                                            </div>
+                                            </Grid>
+                                            <Grid item xs={5} height={"100%"}>
+                                                <div style={{ height: '100%', width: '100%' }}>
+                                                    <div className="references-container">
+                                                        <div style={{
+                                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                            height: '55px',
+                                                            borderBottom: '1px solid #E6E6E6',
+                                                            marginBottom: '1px',
+                                                        }}>
+                                                            <h3 style={{ fontFamily: 'Open Sans, sans-serif', fontWeight: '500', fontSize: '18px', marginBottom: '0' }}>References</h3>
+                                                            <Select
+                                                                size="small"
+                                                                value={sortOption}
+                                                                onChange={value => setSortOption(value)}
+                                                                options={[
+                                                                    { value: 'Year', label: 'Sort by Year' },
+                                                                    { value: 'Citations', label: 'Sort by Citations' }
+                                                                ]}
+                                                                style={{ marginRight: '16px', minWidth: '140px', fontFamily: 'Open Sans, sans-serif' }}
+                                                                styles={{ popup: { root: { 'font-family': 'Open Sans, sans-serif' } } }}
+                                                            />
+                                                        </div>
+
+                                                        {sortedReferences.length > 0 ? (
+                                                            <div className="references-list" style={{ maxHeight: 'calc(100% - 56px)', overflowY: 'auto', paddingLeft: '2rem', paddingRight: '2rem' }}>
+                                                                {sortedReferences.map((ref, index) => {
+                                                                    const url = [
+                                                                        ref.title,
+                                                                        ref.url,
+                                                                        ref.citation_count,
+                                                                        ref.year,
+                                                                        ref.journal,
+                                                                        ref.authors
+                                                                    ];
+                                                                    return (
+                                                                        <div key={index} style={{ marginTop: '12px' }}>
+                                                                            <ReferenceCard url={url} handleClick={handleClick} />
+                                                                            <hr style={{ border: 'none', height: '1px', backgroundColor: 'rgba(5, 5, 5, 0.06)', marginTop: '12px' }} />
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        ) : (
+                                                            <p style={{ padding: '16px 32px' }}>No references available for this response.</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </Grid>
                                         </Grid>
-                                    </Grid>
 
 
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </Grid>
                 </Grid>
-            </Grid>
-        </div>
+            </div>
         </>
     );
 }
