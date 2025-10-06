@@ -70,7 +70,7 @@ function NavBarWhite({ showLogo = true, activeButton }) {
                     title={
                         <Stack>
                             <a className="nav-link nonactive" href="/about" >About</a>
-                            <a className="nav-link nonactive" href="https://glkb.dcmb.med.umich.edu/api/docs" target="_blank" >API Doc</a>
+                            <a className="nav-link nonactive" href="https://glkb.dcmb.med.umich.edu/docs" target="_blank" >API Doc</a>
                         </Stack>
                     }
                     leaveDelay={200}
