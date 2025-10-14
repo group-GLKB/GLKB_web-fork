@@ -44,7 +44,7 @@ const HomePage = () => {
     let navigate = useNavigate();
     // const [tags, setTags] = useState([]);
     const [runTour, setRunTour] = useState(false);
-    const [activeButton, setActiveButton] = useState(state?.activeButton || "triplet");  // Changed default to 'triplet'
+    const [activeButton, setActiveButton] = useState(state?.activeButton || "llm");
 
     // const [focused, setFocused] = useState(false);
     // const theme = useTheme();
@@ -233,9 +233,9 @@ const HomePage = () => {
     return (
         <>
             <Helmet>
-                <title>Home Page - Genomic Literature Knowledge Base</title>
+                <title>GLKB | AI-Powered Genomics Search</title>
                 <meta name="description" content="Discover insights from 33M+ genomic research articles. GLKB enables AI-powered search across genes, diseases, variants, and chemicals with high accuracy." />
-                <meta property="og:title" content="Genomic Literature Knowledge Base | AI-Powered Genomics Search" />
+                <meta property="og:title" content="Home Page - Genomic Literature Knowledge Base" />
             </Helmet>
             <div style={{ maxHeight: '100vh', overflowY: 'hidden' }}>
                 <NavBarWhite
