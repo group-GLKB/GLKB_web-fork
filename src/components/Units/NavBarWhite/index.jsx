@@ -66,7 +66,7 @@ function NavBarWhite({ showLogo = true, activeButton }) {
                 <a
                     key="API Doc"
                     className="nav-link nonactive"
-                    href="https://glkb.dcmb.med.umich.edu/api/docs"
+                    href="https://glkb.dcmb.med.umich.edu/docs"
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ position: "relative" }}
