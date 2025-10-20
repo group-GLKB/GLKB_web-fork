@@ -29,6 +29,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const navigate = useNavigate();
+    const inputTimeoutRef = React.useRef(null);
+    const hasTrackedInputRef = React.useRef(false);
     useEffect(() => {
         // console.log(props);
         props.setOpen(isOpen);
@@ -52,6 +54,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         />
     );
     const navigateToLLMAgent = (query = '') => {
+        // Clear input timeout to prevent search_input event after submission
+        if (inputTimeoutRef.current) {
+            clearTimeout(inputTimeoutRef.current);
+            hasTrackedInputRef.current = true;
+        }
         // Track event
         trackEvent('Navigation', 'Navigate to LLM Agent', query ? 'With Query' : 'Direct Navigation');
         if (query) {
@@ -79,16 +86,36 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 options={LLMExampleQueries}
                 filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
                 onChange={(event, newValue) => {
+                    // Track example click if value is from example queries
+                    if (newValue && LLMExampleQueries.includes(newValue)) {
+                        const exampleIndex = LLMExampleQueries.indexOf(newValue);
+                        trackEvent('Search', 'search_example_click', `LLM Example ${exampleIndex + 1}: ${newValue}`);
+                    }
                     setLlmQuery(newValue || '');
                 }}
                 onInputChange={(event, newInputValue) => {
                     setLlmQuery(newInputValue || '');
+                    
+                    // Track search_input event when user types but doesn't submit
+                    if (inputTimeoutRef.current) {
+                        clearTimeout(inputTimeoutRef.current);
+                    }
+                    if (newInputValue && newInputValue.trim() !== '') {
+                        hasTrackedInputRef.current = false;
+                        inputTimeoutRef.current = setTimeout(() => {
+                            if (!hasTrackedInputRef.current) {
+                                trackEvent('Search', 'search_input', newInputValue);
+                                hasTrackedInputRef.current = true;
+                            }
+                        }, 2000); // Track after 2 seconds of inactivity
+                    }
                 }}
                 openOnFocus
                 groupBy={() => 'Example Queries'}
                 getOptionLabel={(option) => option}
-                // onFocus={() => setFocused(true)}
-                // onBlur={() => setFocused(false)}
+                onFocus={() => {
+                    trackEvent('Search', 'search_click', 'LLM Search Bar Focused');
+                }}
                 inputValue={llmQuery}
                 onOpen={() => setIsOpen(true)}
                 onClose={() => setIsOpen(false)}

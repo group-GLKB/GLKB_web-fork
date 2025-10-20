@@ -1,6 +1,15 @@
 import React from 'react';
+import { IconButton } from '@mui/material';
+import { FormatQuote as FormatQuoteIcon } from '@mui/icons-material';
 
-const ReferenceCard = ({ url, handleClick }) => {
+const ReferenceCard = ({ url, handleClick, onCiteClick }) => {
+    
+    const handleCiteClick = (event) => {
+        event.stopPropagation();
+        if (onCiteClick) {
+            onCiteClick(url);
+        }
+    };
 
     const authors = url[5] || [];
 
@@ -46,7 +55,6 @@ const ReferenceCard = ({ url, handleClick }) => {
             }}
             className="custom-div-url"
         >
-            {/* Section 1: PubMed ID and Citations */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                 <div style={{ color: '#018DFF', fontSize: '14px' }}>
                     PubMed ID: {url[1].split('/').filter(Boolean).pop()}
@@ -56,7 +64,6 @@ const ReferenceCard = ({ url, handleClick }) => {
                 </div>
             </div>
 
-            {/* Section 2: Title and Year */}
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr auto',
@@ -90,7 +97,6 @@ const ReferenceCard = ({ url, handleClick }) => {
                 </div>
             </div>
 
-            {/* Section 3: Authors */}
             <div style={{
                 display: 'flex',
                 flexWrap: 'wrap',
@@ -101,13 +107,37 @@ const ReferenceCard = ({ url, handleClick }) => {
                 {renderAuthors()}
             </div>
 
-            {/* Section 4: Journal Name */}
             <div style={{
                 fontSize: '14px',
                 wordBreak: 'break-word',
                 color: 'grey',
             }} title="Journal">
                 {url[4]}
+            </div>
+            
+            <div style={{ 
+                display: 'flex', 
+                justifyContent: 'flex-end',
+                marginTop: '8px',
+            }}>
+                <div
+                    onClick={handleCiteClick}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        cursor: 'pointer',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        transition: 'background-color 0.2s',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    title="Cite this reference"
+                >
+                    <FormatQuoteIcon sx={{ fontSize: '18px', color: '#4A90E2' }} />
+                    <span style={{ fontSize: '14px', color: '#4A90E2', fontWeight: '500' }}>Cite</span>
+                </div>
             </div>
         </div>
 

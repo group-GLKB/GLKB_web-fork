@@ -45,6 +45,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const [moreRel, setMoreRel] = useState(false);
     const [focused, setFocused] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
+    const inputTimeoutRef = React.useRef(null);
+    const hasTrackedInputRef = React.useRef(false);
 
     useEffect(() => {
         props.setOpen && props.setOpen(isOpen);
@@ -265,6 +267,11 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         if (!chipData || chipData.length === 0 || !chipDataID || chipDataID.length === 0) {
             return;
         }
+        // Clear input timeout to prevent search_input event after submission
+        if (inputTimeoutRef.current) {
+            clearTimeout(inputTimeoutRef.current);
+            hasTrackedInputRef.current = true;
+        }
         const search_data = {
             "triplets": chipData.map((triplet, index) => {
                 const parts = triplet.replace(/{|}/g, "").split("-");
@@ -403,6 +410,20 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                 if (!tripletLimitReached) {
                                     setInputValue(newInputValue);
                                     updateSource(event, newInputValue);
+                                    
+                                    // Track search_input event when user types but doesn't submit
+                                    if (inputTimeoutRef.current) {
+                                        clearTimeout(inputTimeoutRef.current);
+                                    }
+                                    if (newInputValue && newInputValue.trim() !== '') {
+                                        hasTrackedInputRef.current = false;
+                                        inputTimeoutRef.current = setTimeout(() => {
+                                            if (!hasTrackedInputRef.current) {
+                                                trackEvent('Search', 'search_input', newInputValue);
+                                                hasTrackedInputRef.current = true;
+                                            }
+                                        }, 2000); // Track after 2 seconds of inactivity
+                                    }
                                 }
                             }}
                             options={
@@ -549,7 +570,10 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             )}
                             value={selectedSources}
                             inputValue={inputValue}
-                            onFocus={() => setFocused(true)}
+                            onFocus={() => {
+                                setFocused(true);
+                                trackEvent('Search', 'search_click', 'Search Bar Focused');
+                            }}
                             onBlur={() => setFocused(false)}
                             onOpen={() => setIsOpen(true)}
                             onClose={() => setIsOpen(false)}
@@ -559,7 +583,9 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                     if (typeof newValue[0][0] === 'string' &&
                                         newValue[0][0]?.startsWith('example_')) {
                                         // console.log('Filled with example:', newValue[0][0]);
-                                        ref.current.fillWithExample(exampleQueries[newValue[0][0].substring(8) || 1]);
+                                        const exampleIndex = newValue[0][0].substring(8) || 1;
+                                        trackEvent('Search', 'search_example_click', `Example ${parseInt(exampleIndex) + 1}: ${newValue[0][1]}`);
+                                        ref.current.fillWithExample(exampleQueries[exampleIndex]);
                                         return;
                                     }
                                 }
