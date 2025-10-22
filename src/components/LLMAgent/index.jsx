@@ -94,11 +94,34 @@ function LLMAgent() {
         const container = document.querySelector('.chat-container');
         if (!container) return;
 
+        const handleMouseOver = (e) => {
+            const link = e.target.closest('a[href*="pubmed.ncbi.nlm.nih.gov"]');
+            if (link && link.href) {
+                const pubmedId = link.href.split('/').filter(Boolean).pop();
+                setHoveredPubmedId(pubmedId);
+            }
+        };
+
+        const handleMouseOut = (e) => {
+            const link = e.target.closest('a[href*="pubmed.ncbi.nlm.nih.gov"]');
+            if (link) {
+                setHoveredPubmedId(null);
+            }
+        };
+
+        container.addEventListener('mouseover', handleMouseOver);
+        container.addEventListener('mouseout', handleMouseOut);
+
         const links = container.querySelectorAll('a');
         links.forEach(link => {
             link.setAttribute('target', '_blank');
             link.setAttribute('rel', 'noopener noreferrer');
         });
+
+        return () => {
+            container.removeEventListener('mouseover', handleMouseOver);
+            container.removeEventListener('mouseout', handleMouseOut);
+        };
     }, [chatHistory]);
 
     const parseReferences = (refs) => {
@@ -417,7 +440,7 @@ function LLMAgent() {
                                     <IconButton size="small" onClick={() => copy(message.content)}>
                                         <ContentCopyIcon fontSize="small" />
                                     </IconButton>
-                                    {!isLoading && <IconButton size="small" onClick={downloadConversation} title="Download conversation">
+                                    {!isLoading && <IconButton size="small" onClick={() => downloadConversation(messageID)} title="Download this Q&A">
                                         <DownloadIcon fontSize="small" />
                                     </IconButton>}
                                     {isLoading && <IconButton size="small" onClick={() => { if (abortControllerRef.current) abortControllerRef.current.abort(); }}>
@@ -525,6 +548,8 @@ function LLMAgent() {
     const [sortOption, setSortOption] = useState('Year');
     const [citeDialogOpen, setCiteDialogOpen] = useState(false);
     const [selectedCitation, setSelectedCitation] = useState(null);
+    const [hoveredPubmedId, setHoveredPubmedId] = useState(null);
+    const referencesListRef = useRef(null);
 
     const references = selectedMessageIndex !== null
         ? chatHistory[selectedMessageIndex]?.references || []
@@ -543,22 +568,31 @@ function LLMAgent() {
     const handleExportReferences = () => {
         if (sortedReferences.length === 0) return;
         
-        const citationsText = sortedReferences.map((ref, index) => {
+        const bibTexContent = sortedReferences.map((ref, index) => {
             const pubmedId = ref.url.split('/').filter(Boolean).pop();
-            return `${index + 1}. ${ref.authors} (${ref.year}). ${ref.title}. ${ref.journal}. PubMed ID: ${pubmedId}`;
+            const cleanTitle = ref.title.replace(/[{}]/g, '');
+            const cleanAuthors = ref.authors.replace(/,/g, ' and');
+            
+            return `@article{pubmed${pubmedId},
+  author = {${cleanAuthors}},
+  title = {${cleanTitle}},
+  journal = {${ref.journal}},
+  year = {${ref.year}},
+  note = {PubMed ID: ${pubmedId}}
+}`;
         }).join('\n\n');
         
-        const blob = new Blob([citationsText], { type: 'text/plain' });
+        const blob = new Blob([bibTexContent], { type: 'application/x-bibtex' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'references.txt';
+        a.download = 'references.bib';
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
         
-        message.success('References exported');
+        message.success('References exported as BibTeX');
     };
 
     const handleCiteClick = (url) => {
@@ -613,43 +647,61 @@ function LLMAgent() {
             });
     };
 
-    const handleDownloadConversation = () => {
+    useEffect(() => {
+        if (!hoveredPubmedId || !referencesListRef.current) return;
+
+        const targetElement = document.querySelector(`[data-pubmed-id="${hoveredPubmedId}"]`);
+        if (targetElement) {
+            targetElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }
+    }, [hoveredPubmedId]);
+
+    const handleDownloadConversation = (messageIndex) => {
         if (chatHistory.length === 0) return;
 
-        let conversationText = 'Conversation History\n';
+        const assistantMessage = chatHistory[messageIndex];
+        const userMessage = messageIndex > 0 ? chatHistory[messageIndex - 1] : null;
+
+        if (!assistantMessage || assistantMessage.role !== 'assistant') return;
+
+        let conversationText = 'Q&A Export\n';
         conversationText += '='.repeat(50) + '\n\n';
 
-        chatHistory.forEach((msg, index) => {
-            const role = msg.role === 'user' ? 'User' : 'Assistant';
-            const timestamp = msg.timestamp || '';
-            
-            conversationText += `[${role}] ${timestamp}\n`;
+        if (userMessage && userMessage.role === 'user') {
+            conversationText += `[User] ${userMessage.timestamp || ''}\n`;
             conversationText += '-'.repeat(50) + '\n';
-            conversationText += msg.content + '\n';
-            
-            if (msg.role === 'assistant' && msg.references && msg.references.length > 0) {
-                conversationText += '\nReferences:\n';
-                msg.references.forEach((ref, refIndex) => {
-                    const pubmedId = ref.url.split('/').filter(Boolean).pop();
-                    conversationText += `${refIndex + 1}. ${ref.authors} (${ref.year}). ${ref.title}. ${ref.journal}. PubMed ID: ${pubmedId}\n`;
-                });
-            }
-            
-            conversationText += '\n' + '='.repeat(50) + '\n\n';
-        });
+            conversationText += userMessage.content + '\n\n';
+            conversationText += '='.repeat(50) + '\n\n';
+        }
+
+        conversationText += `[Assistant] ${assistantMessage.timestamp || ''}\n`;
+        conversationText += '-'.repeat(50) + '\n';
+        conversationText += assistantMessage.content + '\n';
+
+        if (assistantMessage.references && assistantMessage.references.length > 0) {
+            conversationText += '\n\nReferences:\n';
+            conversationText += '-'.repeat(50) + '\n';
+            assistantMessage.references.forEach((ref, refIndex) => {
+                const pubmedId = ref.url.split('/').filter(Boolean).pop();
+                conversationText += `[${refIndex + 1}] ${ref.authors} (${ref.year}). ${ref.title}. ${ref.journal}. PubMed ID: ${pubmedId}\n\n`;
+            });
+        }
 
         const blob = new Blob([conversationText], { type: 'text/plain;charset=utf-8' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         const date = new Date().toISOString().split('T')[0];
-        a.download = `conversation_${date}.txt`;
+        a.download = `qa_export_${date}.txt`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
 
-        message.success('Conversation downloaded');
+        message.success('Q&A downloaded');
     };
 
     return (
@@ -999,7 +1051,7 @@ function LLMAgent() {
                                                         </div>
 
                                                         {sortedReferences.length > 0 ? (
-                                                            <div className="references-list" style={{ maxHeight: 'calc(100% - 56px)', overflowY: 'auto', paddingLeft: '2rem', paddingRight: '2rem' }}>
+                                                            <div ref={referencesListRef} className="references-list" style={{ maxHeight: 'calc(100% - 56px)', overflowY: 'auto', paddingLeft: '2rem', paddingRight: '2rem' }}>
                                                                 {sortedReferences.map((ref, index) => {
                                                                     const url = [
                                                                         ref.title,
@@ -1009,9 +1061,11 @@ function LLMAgent() {
                                                                         ref.journal,
                                                                         ref.authors
                                                                     ];
+                                                                    const pubmedId = ref.url.split('/').filter(Boolean).pop();
+                                                                    const isHighlighted = hoveredPubmedId === pubmedId;
                                                                     return (
-                                                                        <div key={index} style={{ marginTop: '12px' }}>
-                                                                            <ReferenceCard url={url} handleClick={handleClick} onCiteClick={handleCiteClick} />
+                                                                        <div key={index} style={{ marginTop: '12px' }} data-pubmed-id={pubmedId}>
+                                                                            <ReferenceCard url={url} handleClick={handleClick} onCiteClick={handleCiteClick} isHighlighted={isHighlighted} />
                                                                             <hr style={{ border: 'none', height: '1px', backgroundColor: 'rgba(5, 5, 5, 0.06)', marginTop: '12px' }} />
                                                                         </div>
                                                                     );

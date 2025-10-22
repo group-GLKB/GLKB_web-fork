@@ -893,3 +893,18 @@
 .message-card:hover .user-message-actions {
     opacity: 1;
 }
+
+.markdown-body a[href*="pubmed.ncbi.nlm.nih.gov"] {
+    position: relative;
+    text-decoration: underline;
+    color: #0366d6;
+    transition: all 0.2s ease;
+}
+
+.markdown-body a[href*="pubmed.ncbi.nlm.nih.gov"]:hover {
+    color: #0056b3;
+    text-decoration: underline;
+    background-color: rgba(255, 249, 230, 0.5);
+    padding: 2px 4px;
+    border-radius: 3px;
+}

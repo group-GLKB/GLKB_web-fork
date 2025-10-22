@@ -2,7 +2,7 @@ import React from 'react';
 import { IconButton } from '@mui/material';
 import { FormatQuote as FormatQuoteIcon } from '@mui/icons-material';
 
-const ReferenceCard = ({ url, handleClick, onCiteClick }) => {
+const ReferenceCard = ({ url, handleClick, onCiteClick, isHighlighted = false }) => {
     
     const handleCiteClick = (event) => {
         event.stopPropagation();
@@ -50,8 +50,10 @@ const ReferenceCard = ({ url, handleClick, onCiteClick }) => {
                 cursor: 'pointer',
                 marginBottom: '2px',
                 borderRadius: '10px',
-                backgroundColor: '#fff',
+                backgroundColor: isHighlighted ? '#FFF9E6' : '#fff',
                 width: '100%',
+                transition: 'background-color 0.3s ease',
+                padding: isHighlighted ? '8px' : '0px',
             }}
             className="custom-div-url"
         >
@@ -79,7 +81,7 @@ const ReferenceCard = ({ url, handleClick, onCiteClick }) => {
                     style={{
                         color: 'black',
                         textDecoration: 'none',
-                        fontWeight: '600',
+                        fontWeight: '800',
                         fontSize: '14px',
                         paddingRight: '8px',
                         wordBreak: 'break-word'
