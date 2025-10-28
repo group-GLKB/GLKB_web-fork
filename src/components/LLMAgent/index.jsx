@@ -390,7 +390,7 @@ function LLMAgent() {
                                     fontFamily: "Open Sans, sans-serif", fontSize: "14px", display: "flex", color: "#19213d", alignItems: "center",
                                     pt: "12px", pb: "12px", fontWeight: 500
                                 }}>
-                                    LLMAgent
+                                    GLKB AI
                                     <Box
                                         component="span"
                                         sx={{
@@ -586,7 +586,10 @@ function LLMAgent() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'references.bib';
+        const now = new Date();
+        const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const time = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
+        a.download = `references_${date}_${time}.bib`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -694,8 +697,10 @@ function LLMAgent() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        const date = new Date().toISOString().split('T')[0];
-        a.download = `qa_export_${date}.txt`;
+        const now = new Date();
+        const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const time = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
+        a.download = `qa_export_${date}_${time}.txt`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -809,10 +814,10 @@ function LLMAgent() {
                 <div className="navbar-wrapper">
                     <NavBarWhite />
                 </div>
-                <Grid className="main-grid" container sx={{ marginTop: '40px', width: "unset" }} >
+                <Grid className="main-grid" container sx={{ marginTop: '64px', width: "unset" }} >
                     <Grid item xs={12} className="subgrid">
                         <div className="main-content">
-                            <MuiButton variant="text" sx={{
+                            {/* <MuiButton variant="text" sx={{
                                 color: '#333333',
                                 fontFamily: 'Open Sans, sans-serif',
                                 alignSelf: 'flex-start',
@@ -820,11 +825,10 @@ function LLMAgent() {
                                 borderRadius: '24px',
                                 marginTop: '16px',
                                 marginBottom: '16px',
-                                // transform: 'translateY(-10px)',
                             }}
                                 onClick={() => navigate('/')}>
                                 <ArrowBackIcon />Back
-                            </MuiButton>
+                            </MuiButton> */}
                             <div className='result-content'>
                                 <div className="llm-agent-container">
                                     <div className="chat-and-references">
