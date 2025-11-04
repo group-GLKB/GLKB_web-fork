@@ -314,6 +314,18 @@ function LLMAgent() {
         }
     };
 
+    // useEffect(() => {
+    //     if (!isLoading && !isProcessing && chatHistory.length > 0) {
+    //         const lastMessage = chatHistory[chatHistory.length - 1];
+    //         if (lastMessage.role === 'assistant' && selectedMessageIndex === null) {
+    //             const lastAssistantIndex = chatHistory.length - 1;
+    //             setTimeout(() => {
+    //                 setSelectedMessageIndex(lastAssistantIndex);
+    //             }, 300);
+    //         }
+    //     }
+    // }, [isLoading, isProcessing, chatHistory]);
+
     const handleExampleClick = async (query) => {
         if (isLoading) return;
 
@@ -1024,14 +1036,26 @@ function LLMAgent() {
                                                             borderBottom: '1px solid #E6E6E6',
                                                             marginBottom: '1px',
                                                         }}>
+                                                            <h3 style={{ fontFamily: 'Open Sans, sans-serif', fontWeight: '500', fontSize: '18px', marginBottom: '0', paddingLeft: '32px' }}>References</h3>
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                <h3 style={{ fontFamily: 'Open Sans, sans-serif', fontWeight: '500', fontSize: '18px', marginBottom: '0' }}>References</h3>
+                                                                <Select
+                                                                    size="small"
+                                                                    value={sortOption}
+                                                                    onChange={value => setSortOption(value)}
+                                                                    options={[
+                                                                        { value: 'Year', label: 'Sort by Year' },
+                                                                        { value: 'Citations', label: 'Sort by Citations' }
+                                                                    ]}
+                                                                    style={{ minWidth: '140px', fontFamily: 'Open Sans, sans-serif' }}
+                                                                    styles={{ popup: { root: { 'font-family': 'Open Sans, sans-serif' } } }}
+                                                                />
                                                                 <IconButton 
                                                                     size="small"
                                                                     onClick={handleExportReferences}
                                                                     disabled={sortedReferences.length === 0}
                                                                     sx={{
                                                                         padding: '6px',
+                                                                        marginRight: '16px',
                                                                         '&:hover': {
                                                                             backgroundColor: '#f0f0f0',
                                                                         }
@@ -1041,17 +1065,6 @@ function LLMAgent() {
                                                                     <DownloadIcon sx={{ fontSize: '20px', color: sortedReferences.length === 0 ? '#ccc' : '#666' }} />
                                                                 </IconButton>
                                                             </div>
-                                                            <Select
-                                                                size="small"
-                                                                value={sortOption}
-                                                                onChange={value => setSortOption(value)}
-                                                                options={[
-                                                                    { value: 'Year', label: 'Sort by Year' },
-                                                                    { value: 'Citations', label: 'Sort by Citations' }
-                                                                ]}
-                                                                style={{ marginRight: '16px', minWidth: '140px', fontFamily: 'Open Sans, sans-serif' }}
-                                                                styles={{ popup: { root: { 'font-family': 'Open Sans, sans-serif' } } }}
-                                                            />
                                                         </div>
 
                                                         {sortedReferences.length > 0 ? (
