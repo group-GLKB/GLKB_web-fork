@@ -81,8 +81,15 @@ function NavBarWhite({ showLogo = true, activeButton }) {
                 >
                     About
                 </Link>
-                <Link to={"https://jieliu6.github.io/"} target='_blank'>
-                    <Box className={relativePath === "/" ? "nav-link contact-main" : "nav-link contact"} >Contact</Box>
+                <Link
+                    key="Contact"
+                    className="nav-link nonactive"
+                    to="https://jieliu6.github.io/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ position: "relative" }}
+                >
+                    Contact
                 </Link>
             </div>
         </nav>

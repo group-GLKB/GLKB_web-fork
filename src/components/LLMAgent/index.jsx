@@ -80,6 +80,7 @@ function LLMAgent() {
     };
 
     useEffect(() => {
+        console.log('🌟 [State Changed] streamingSteps updated:', streamingSteps);
         scrollToBottom();
     }, [chatHistory, streamingSteps]);
 
@@ -220,6 +221,7 @@ function LLMAgent() {
                                     content: cleanContent
                                 });
                             }
+                            console.log('📊 [Step Update] New steps array:', newSteps);
                             return newSteps;
                         });
                         break;
@@ -347,6 +349,7 @@ function LLMAgent() {
         const isAssistant = message.role === "assistant";
         const isLastUserMessage = index === chatHistory.length - 1 && message.role === 'assistant';
         const isLoading = isProcessing && isLastUserMessage;
+        console.log(`🎯 [MessageCard ${index}] isLoading=${isLoading}, isProcessing=${isProcessing}, isLastUserMessage=${isLastUserMessage}`);
         const messageID = index;
         const timestamp = message.timestamp || "";
         const [editContent, setEditContent] = useState('');
@@ -418,6 +421,7 @@ function LLMAgent() {
 
                             <Box mt={1}>
                                 {isLoading ? (<>
+                                    {console.log('🔥 [Rendering GetSteps] isLoading=true, calling GetSteps...')}
                                     <GetSteps />
                                     <Box display="flex" justifyContent="center" py={2}>
                                         <CircularProgress size={24} />
@@ -543,16 +547,25 @@ function LLMAgent() {
                 save={handleSaveEdit}
                 goref={handleMessageClick}
                 downloadConversation={handleDownloadConversation}
-                GetSteps={() => (
-                    <Box sx={{ mt: 2 }}>
-                        {streamingSteps.map((step, stepIndex) => (
-                            <div key={stepIndex} className="step-item">
-                                <strong>{step.step}: </strong>
-                                <span>{step.content}</span>
-                            </div>
-                        ))}
-                    </Box>
-                )}
+                GetSteps={() => {
+                    console.log('✨ [GetSteps Function Called] streamingSteps captured in closure:', streamingSteps);
+                    return (
+                        <Box sx={{ mt: 2 }}>
+                            {streamingSteps.length > 0 ? (
+                                streamingSteps.map((step, stepIndex) => (
+                                    <div key={stepIndex} className="step-item">
+                                        <strong>{step.step}: </strong>
+                                        <span>{step.content}</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <div style={{ color: '#999', fontStyle: 'italic' }}>
+                                    (No steps captured - closure issue!)
+                                </div>
+                            )}
+                        </Box>
+                    );
+                }}
             />
         ))}</Box>);
     };

@@ -313,9 +313,9 @@ const HomePage = () => {
                                 color: 'white',
                                 textAlign: 'center',
                                 paddingBottom: '30px',
-                                maxWidth: '500px',
+                                maxWidth: '600px',
                             }}>
-                                Discover insights from genomic research with AI-powered search and analysis
+                                Discover insights from genomic research with <Box component="span" sx={{ whiteSpace: 'nowrap' }}>AI-powered</Box> search and analysis
                             </Typography>
                             <Box sx={{ paddingBottom: '40px' }}>
                                 <SubNavBar activeButton={activeButton} />
