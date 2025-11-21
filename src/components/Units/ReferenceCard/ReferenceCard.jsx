@@ -110,18 +110,20 @@ const ReferenceCard = ({ url, handleClick, onCiteClick, isHighlighted = false })
             </div>
 
             <div style={{
-                fontSize: '14px',
-                wordBreak: 'break-word',
-                color: 'grey',
-            }} title="Journal">
-                {url[4]}
-            </div>
-            
-            <div style={{ 
-                display: 'flex', 
-                justifyContent: 'flex-end',
-                marginTop: '8px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: '4px',
             }}>
+                <div style={{
+                    fontSize: '14px',
+                    wordBreak: 'break-word',
+                    color: 'grey',
+                    flex: 1,
+                }} title="Journal">
+                    {url[4]}
+                </div>
+                
                 <div
                     onClick={handleCiteClick}
                     style={{
@@ -132,6 +134,7 @@ const ReferenceCard = ({ url, handleClick, onCiteClick, isHighlighted = false })
                         padding: '4px 8px',
                         borderRadius: '4px',
                         transition: 'background-color 0.2s',
+                        flexShrink: 0,
                     }}
                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
