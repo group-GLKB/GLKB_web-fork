@@ -33,6 +33,7 @@ import {
 import NavBarWhite from '../Units/NavBarWhite';
 import SearchBarKnowledge from '../Units/SearchBarKnowledge';
 import SubNavBar from '../Units/SubNavBar';
+import { trackEvent } from '../Units/analytics';
 import LlmSearchBar from './LlmSearchBar';
 
 // const { Search } = Input;
@@ -44,7 +45,7 @@ const HomePage = () => {
     let navigate = useNavigate();
     // const [tags, setTags] = useState([]);
     const [runTour, setRunTour] = useState(false);
-    const [activeButton, setActiveButton] = useState(state?.activeButton || "triplet");  // Changed default to 'triplet'
+    const [activeButton, setActiveButton] = useState(state?.activeButton || "llm");
 
     // const [focused, setFocused] = useState(false);
     // const theme = useTheme();
@@ -233,9 +234,9 @@ const HomePage = () => {
     return (
         <>
             <Helmet>
-                <title>Home Page - Genomic Literature Knowledge Base</title>
+                <title>GLKB | AI-Powered Genomics Search</title>
                 <meta name="description" content="Discover insights from 33M+ genomic research articles. GLKB enables AI-powered search across genes, diseases, variants, and chemicals with high accuracy." />
-                <meta property="og:title" content="Genomic Literature Knowledge Base | AI-Powered Genomics Search" />
+                <meta property="og:title" content="Home Page - Genomic Literature Knowledge Base" />
             </Helmet>
             <div style={{ maxHeight: '100vh', overflowY: 'hidden' }}>
                 <NavBarWhite
@@ -312,9 +313,9 @@ const HomePage = () => {
                                 color: 'white',
                                 textAlign: 'center',
                                 paddingBottom: '30px',
-                                maxWidth: '500px',
+                                maxWidth: '600px',
                             }}>
-                                Discover insights from genomic research with AI-powered search and analysis
+                                Discover insights from genomic research with <Box component="span" sx={{ whiteSpace: 'nowrap' }}>AI-powered</Box> search and analysis
                             </Typography>
                             <Box sx={{ paddingBottom: '40px' }}>
                                 <SubNavBar activeButton={activeButton} />
@@ -426,13 +427,19 @@ const HomePage = () => {
                         <div className="footer">
                             <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
                                 <p style={{ fontFamily: 'Open Sans, sans-serif', textAlign: 'center', color: 'rgba(0, 0, 0, 0.8)', fontSize: '14px', margin: 0 }}>
-                                    © 2025 Liu Lab, Department of Computational Medicine and Bioinformatics, University of Michigan
+                                    © 2025 GLKB – Genomic Literature Knowledge Base | glkb.org
+                                </p>
+                                <p style={{ fontFamily: 'Open Sans, sans-serif', textAlign: 'center', color: 'rgba(0, 0, 0, 0.8)', fontSize: '14px', margin: 0 }}>
+                                    Developed and maintained by the Jie Liu Lab, Department of Computational Medicine and Bioinformatics, University of Michigan.
                                 </p>
                             </div>
                         </div>
                     </div>
                     <AntButton
-                        onClick={() => setRunTour(true)}
+                        onClick={() => {
+                            trackEvent('Tutorial', 'tutorial_click', 'Help Icon Clicked');
+                            setRunTour(true);
+                        }}
                         // style={{ marginTop: '20px' }}
                         style={{
                             position: 'fixed',

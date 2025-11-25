@@ -9,12 +9,9 @@ import {
   useNavigate,
 } from 'react-router-dom';
 
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import {
   Box,
-  Stack,
 } from '@mui/material';
-import Tooltip from '@mui/material/Tooltip';
 
 import logo from '../../../img/glkb-6.png';
 
@@ -53,7 +50,7 @@ function NavBarWhite({ showLogo = true, activeButton }) {
 
             </div>
             <div className="nav-links">
-                {[["Home", "/"], ["Search", "/result"], ["Chat", "/llm-agent"]].map(([name, path]) => (
+                {[["Home", "/"], ["Chat", "/llm-agent"], ["Search", "/result"]].map(([name, path]) => (
                     <Link
                         key={name}
                         className={
@@ -66,38 +63,33 @@ function NavBarWhite({ showLogo = true, activeButton }) {
                         {name}
                     </Link>
                 ))}
-                <Tooltip
-                    title={
-                        <Stack>
-                            <a className="nav-link nonactive" href="/about" >About</a>
-                            <a className="nav-link nonactive" href="https://glkb.dcmb.med.umich.edu/api/docs" target="_blank" >API Doc</a>
-                        </Stack>
-                    }
-                    leaveDelay={200}
-                    slotProps={{
-                        "tooltip": {
-                            sx: {
-                                Width: "100px",
-                                paddingBottom: "1rem",
-                                Height: "auto",
-                                backgroundColor: "white",
-                                boxShadow: "0px 0px 4px 0px #00000040",
-                                borderRadius: "5px",
-                            }
-                        }
-                    }
-                    }
+                <a
+                    key="API Doc"
+                    className="nav-link nonactive"
+                    href="https://glkb.dcmb.med.umich.edu/docs"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ position: "relative" }}
                 >
-                    <Link
-                        key={"More"}
-                        className={"nav-link nonactive"}
-                        style={{ position: "relative", alignItems: "center", display: "flex" }}
-                    >
-                        More&nbsp;&nbsp;<KeyboardArrowDownIcon fontSize="10px" />
-                    </Link>
-                </Tooltip>
-                <Link to={"https://jieliu6.github.io/"} target='_blank'>
-                    <Box className={relativePath === "/" ? "nav-link contact-main" : "nav-link contact"} >Contact</Box>
+                    API Doc
+                </a>
+                <Link
+                    key="About"
+                    className={relativePath === "/about" ? "nav-link active" : "nav-link nonactive"}
+                    to="/about"
+                    style={{ position: "relative" }}
+                >
+                    About
+                </Link>
+                <Link
+                    key="Contact"
+                    className="nav-link nonactive"
+                    to="https://jieliu6.github.io/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ position: "relative" }}
+                >
+                    Contact
                 </Link>
             </div>
         </nav>

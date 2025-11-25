@@ -1,6 +1,15 @@
 import React from 'react';
+import { IconButton } from '@mui/material';
+import { FormatQuote as FormatQuoteIcon } from '@mui/icons-material';
 
-const ReferenceCard = ({ url, handleClick }) => {
+const ReferenceCard = ({ url, handleClick, onCiteClick, isHighlighted = false }) => {
+    
+    const handleCiteClick = (event) => {
+        event.stopPropagation();
+        if (onCiteClick) {
+            onCiteClick(url);
+        }
+    };
 
     const authors = url[5] || [];
 
@@ -41,12 +50,13 @@ const ReferenceCard = ({ url, handleClick }) => {
                 cursor: 'pointer',
                 marginBottom: '2px',
                 borderRadius: '10px',
-                backgroundColor: '#fff',
+                backgroundColor: isHighlighted ? '#FFF9E6' : '#fff',
                 width: '100%',
+                transition: 'background-color 0.3s ease',
+                padding: isHighlighted ? '8px' : '0px',
             }}
             className="custom-div-url"
         >
-            {/* Section 1: PubMed ID and Citations */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                 <div style={{ color: '#018DFF', fontSize: '14px' }}>
                     PubMed ID: {url[1].split('/').filter(Boolean).pop()}
@@ -56,7 +66,6 @@ const ReferenceCard = ({ url, handleClick }) => {
                 </div>
             </div>
 
-            {/* Section 2: Title and Year */}
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr auto',
@@ -72,7 +81,7 @@ const ReferenceCard = ({ url, handleClick }) => {
                     style={{
                         color: 'black',
                         textDecoration: 'none',
-                        fontWeight: '600',
+                        fontWeight: '800',
                         fontSize: '14px',
                         paddingRight: '8px',
                         wordBreak: 'break-word'
@@ -90,7 +99,6 @@ const ReferenceCard = ({ url, handleClick }) => {
                 </div>
             </div>
 
-            {/* Section 3: Authors */}
             <div style={{
                 display: 'flex',
                 flexWrap: 'wrap',
@@ -101,13 +109,40 @@ const ReferenceCard = ({ url, handleClick }) => {
                 {renderAuthors()}
             </div>
 
-            {/* Section 4: Journal Name */}
             <div style={{
-                fontSize: '14px',
-                wordBreak: 'break-word',
-                color: 'grey',
-            }} title="Journal">
-                {url[4]}
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: '4px',
+            }}>
+                <div style={{
+                    fontSize: '14px',
+                    wordBreak: 'break-word',
+                    color: 'grey',
+                    flex: 1,
+                }} title="Journal">
+                    {url[4]}
+                </div>
+                
+                <div
+                    onClick={handleCiteClick}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        cursor: 'pointer',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        transition: 'background-color 0.2s',
+                        flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    title="Cite this reference"
+                >
+                    <FormatQuoteIcon sx={{ fontSize: '18px', color: '#4A90E2' }} />
+                    <span style={{ fontSize: '14px', color: '#4A90E2', fontWeight: '500' }}>Cite</span>
+                </div>
             </div>
         </div>
 

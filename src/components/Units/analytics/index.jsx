@@ -17,6 +17,9 @@ export const trackPageView = (page) => {
 
 // Track events
 export const trackEvent = (category, action, label) => {
+    // Console log for debugging (remove in production)
+    console.log('GA4 Event:', { category, action, label });
+    
     if (window.gtag) {
         window.gtag('event', action, {
             event_category: category,

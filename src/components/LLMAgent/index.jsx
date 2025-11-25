@@ -27,6 +27,7 @@ import {
   Clear as ClearIcon,
   Close as CloseIcon,
   ContentCopy as ContentCopyIcon,
+  Download as DownloadIcon,
   EditNote as EditNoteIcon,
   FilePresent as FilePresentIcon,
   RateReview as RateReviewIcon,
@@ -38,6 +39,10 @@ import {
   Button as MuiButton,
   CircularProgress,
   Container,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Divider,
   Grid,
   IconButton,
   Stack,
@@ -59,14 +64,11 @@ function LLMAgent() {
     const [isLoading, setIsLoading] = useState(false);
     const [streamingSteps, setStreamingSteps] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
-    // const [editingMessageIndex, setEditingMessageIndex] = useState(null);
-    // const [editedMessageContent, setEditedMessageContent] = useState('');
     const messagesEndRef = useRef(null);
     const abortControllerRef = useRef(null);
     const navigate = useNavigate();
 
-    // Create a single instance of LLMAgentService that persists across re-renders
-    const llmService = React.useMemo(() => new LLMAgentService(), []);
+    const llmService = useMemo(() => new LLMAgentService(), []);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -92,11 +94,34 @@ function LLMAgent() {
         const container = document.querySelector('.chat-container');
         if (!container) return;
 
+        const handleMouseOver = (e) => {
+            const link = e.target.closest('a[href*="pubmed.ncbi.nlm.nih.gov"]');
+            if (link && link.href) {
+                const pubmedId = link.href.split('/').filter(Boolean).pop();
+                setHoveredPubmedId(pubmedId);
+            }
+        };
+
+        const handleMouseOut = (e) => {
+            const link = e.target.closest('a[href*="pubmed.ncbi.nlm.nih.gov"]');
+            if (link) {
+                setHoveredPubmedId(null);
+            }
+        };
+
+        container.addEventListener('mouseover', handleMouseOver);
+        container.addEventListener('mouseout', handleMouseOut);
+
         const links = container.querySelectorAll('a');
         links.forEach(link => {
             link.setAttribute('target', '_blank');
             link.setAttribute('rel', 'noopener noreferrer');
         });
+
+        return () => {
+            container.removeEventListener('mouseover', handleMouseOver);
+            container.removeEventListener('mouseout', handleMouseOut);
+        };
     }, [chatHistory]);
 
     const parseReferences = (refs) => {
@@ -117,7 +142,6 @@ function LLMAgent() {
 
     const handleSubmit = async (e, input = null, t = null) => {
         const inputText = input || userInput;
-        // console.log('Submitting:', inputText);
         e && e.preventDefault();
         if (!inputText.trim() || isLoading) return;
 
@@ -165,7 +189,6 @@ function LLMAgent() {
             const abortController = new AbortController();
             abortControllerRef.current = abortController;
             await llmService.chat(inputText, abortControllerRef.current, (update) => {
-                // console.log('Received update:', update);
                 switch (update.type) {
                     case 'step':
                         if (update.step === 'Error') {
@@ -291,6 +314,18 @@ function LLMAgent() {
         }
     };
 
+    // useEffect(() => {
+    //     if (!isLoading && !isProcessing && chatHistory.length > 0) {
+    //         const lastMessage = chatHistory[chatHistory.length - 1];
+    //         if (lastMessage.role === 'assistant' && selectedMessageIndex === null) {
+    //             const lastAssistantIndex = chatHistory.length - 1;
+    //             setTimeout(() => {
+    //                 setSelectedMessageIndex(lastAssistantIndex);
+    //             }, 300);
+    //         }
+    //     }
+    // }, [isLoading, isProcessing, chatHistory]);
+
     const handleExampleClick = async (query) => {
         if (isLoading) return;
 
@@ -308,16 +343,11 @@ function LLMAgent() {
         handleSubmit(e, userMessage.content, userMessage.timestamp);
     };
 
-    const MessageCard = ({ index, message, refresh, copy, save, goref, GetSteps }) => {
+    const MessageCard = ({ index, message, refresh, copy, save, goref, GetSteps, downloadConversation }) => {
         const isAssistant = message.role === "assistant";
         const isLastUserMessage = index === chatHistory.length - 1 && message.role === 'assistant';
-        // const isEditing = index === editingMessageIndex;
         const isLoading = isProcessing && isLastUserMessage;
         const messageID = index;
-        // const liked = message.like;
-        // const disliked = message.dislike;
-        // const bookmarked = message.bookmark;
-        // const tokenCount = 0;
         const timestamp = message.timestamp || "";
         const [editContent, setEditContent] = useState('');
         const [isEditing, setIsEditing] = useState(false);
@@ -372,7 +402,7 @@ function LLMAgent() {
                                     fontFamily: "Open Sans, sans-serif", fontSize: "14px", display: "flex", color: "#19213d", alignItems: "center",
                                     pt: "12px", pb: "12px", fontWeight: 500
                                 }}>
-                                    LLMAgent
+                                    GLKB AI
                                     <Box
                                         component="span"
                                         sx={{
@@ -422,6 +452,9 @@ function LLMAgent() {
                                     <IconButton size="small" onClick={() => copy(message.content)}>
                                         <ContentCopyIcon fontSize="small" />
                                     </IconButton>
+                                    {!isLoading && <IconButton size="small" onClick={() => downloadConversation(messageID)} title="Download this Q&A">
+                                        <DownloadIcon fontSize="small" />
+                                    </IconButton>}
                                     {isLoading && <IconButton size="small" onClick={() => { if (abortControllerRef.current) abortControllerRef.current.abort(); }}>
                                         <StopCircleIcon fontSize="small" />
                                     </IconButton>
@@ -509,21 +542,34 @@ function LLMAgent() {
                 copy={handleCopyMessage}
                 save={handleSaveEdit}
                 goref={handleMessageClick}
-                GetSteps={() => (
-                    <Box sx={{ mt: 2 }}>
-                        {streamingSteps.map((step, stepIndex) => (
-                            <div key={stepIndex} className="step-item">
-                                <strong>{step.step}: </strong>
-                                <span>{step.content}</span>
-                            </div>
-                        ))}
-                    </Box>
-                )}
+                downloadConversation={handleDownloadConversation}
+                GetSteps={() => {
+                    return (
+                        <Box sx={{ mt: 2 }}>
+                            {streamingSteps.length > 0 ? (
+                                streamingSteps.map((step, stepIndex) => (
+                                    <div key={stepIndex} className="step-item">
+                                        <strong>{step.step}: </strong>
+                                        <span>{step.content}</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <div style={{ color: '#999', fontStyle: 'italic' }}>
+                                    (No steps captured - closure issue!)
+                                </div>
+                            )}
+                        </Box>
+                    );
+                }}
             />
         ))}</Box>);
     };
 
     const [sortOption, setSortOption] = useState('Year');
+    const [citeDialogOpen, setCiteDialogOpen] = useState(false);
+    const [selectedCitation, setSelectedCitation] = useState(null);
+    const [hoveredPubmedId, setHoveredPubmedId] = useState(null);
+    const referencesListRef = useRef(null);
 
     const references = selectedMessageIndex !== null
         ? chatHistory[selectedMessageIndex]?.references || []
@@ -539,6 +585,150 @@ function LLMAgent() {
         return sorted;
     }, [references, sortOption]);
 
+    const handleExportReferences = () => {
+        if (sortedReferences.length === 0) return;
+        
+        const bibTexContent = sortedReferences.map((ref, index) => {
+            const pubmedId = ref.url.split('/').filter(Boolean).pop();
+            const cleanTitle = ref.title.replace(/[{}]/g, '');
+            const cleanAuthors = ref.authors.replace(/,/g, ' and');
+            
+            return `@article{pubmed${pubmedId},
+  author = {${cleanAuthors}},
+  title = {${cleanTitle}},
+  journal = {${ref.journal}},
+  year = {${ref.year}},
+  note = {PubMed ID: ${pubmedId}}
+}`;
+        }).join('\n\n');
+        
+        const blob = new Blob([bibTexContent], { type: 'application/x-bibtex' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const now = new Date();
+        const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const time = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
+        a.download = `references_${date}_${time}.bib`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        message.success('References exported as BibTeX');
+    };
+
+    const handleCiteClick = (url) => {
+        setSelectedCitation(url);
+        setCiteDialogOpen(true);
+    };
+
+    const handleCloseCiteDialog = () => {
+        setCiteDialogOpen(false);
+        setSelectedCitation(null);
+    };
+
+    const generateCitation = (format) => {
+        if (!selectedCitation) return '';
+        
+        const title = selectedCitation[0];
+        const pubmedUrl = selectedCitation[1];
+        const year = selectedCitation[3];
+        const journal = selectedCitation[4];
+        const authors = selectedCitation[5];
+        const pubmedId = pubmedUrl.split('/').filter(Boolean).pop();
+        
+        switch (format) {
+            case 'MLA':
+                return `${authors}. "${title}." ${journal} ${year}. PubMed ID: ${pubmedId}.`;
+            case 'APA':
+                return `${authors} (${year}). ${title}. ${journal}. PubMed ID: ${pubmedId}.`;
+            case 'Chicago':
+                return `${authors}. "${title}." ${journal} (${year}). PubMed ID: ${pubmedId}.`;
+            case 'Harvard':
+                return `${authors} (${year}). ${title}. ${journal}. PubMed ID: ${pubmedId}.`;
+            case 'Vancouver':
+                return `${authors}. ${title}. ${journal}. ${year}. PubMed ID: ${pubmedId}.`;
+            case 'BibTeX':
+                return `@article{${pubmedId},\n  author = {${authors}},\n  title = {${title}},\n  journal = {${journal}},\n  year = {${year}},\n  note = {PubMed ID: ${pubmedId}}\n}`;
+            case 'EndNote':
+                return `%0 Journal Article\n%A ${authors}\n%T ${title}\n%J ${journal}\n%D ${year}\n%M ${pubmedId}`;
+            default:
+                return '';
+        }
+    };
+
+    const handleCopyCitation = (format) => {
+        const citation = generateCitation(format);
+        navigator.clipboard.writeText(citation)
+            .then(() => {
+                message.success(`${format} citation copied to clipboard`);
+            })
+            .catch(err => {
+                console.error('Failed to copy citation: ', err);
+                message.error('Copy failed');
+            });
+    };
+
+    useEffect(() => {
+        if (!hoveredPubmedId || !referencesListRef.current) return;
+
+        const targetElement = document.querySelector(`[data-pubmed-id="${hoveredPubmedId}"]`);
+        if (targetElement) {
+            targetElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }
+    }, [hoveredPubmedId]);
+
+    const handleDownloadConversation = (messageIndex) => {
+        if (chatHistory.length === 0) return;
+
+        const assistantMessage = chatHistory[messageIndex];
+        const userMessage = messageIndex > 0 ? chatHistory[messageIndex - 1] : null;
+
+        if (!assistantMessage || assistantMessage.role !== 'assistant') return;
+
+        let conversationText = 'Q&A Export\n';
+        conversationText += '='.repeat(50) + '\n\n';
+
+        if (userMessage && userMessage.role === 'user') {
+            conversationText += `[User] ${userMessage.timestamp || ''}\n`;
+            conversationText += '-'.repeat(50) + '\n';
+            conversationText += userMessage.content + '\n\n';
+            conversationText += '='.repeat(50) + '\n\n';
+        }
+
+        conversationText += `[Assistant] ${assistantMessage.timestamp || ''}\n`;
+        conversationText += '-'.repeat(50) + '\n';
+        conversationText += assistantMessage.content + '\n';
+
+        if (assistantMessage.references && assistantMessage.references.length > 0) {
+            conversationText += '\n\nReferences:\n';
+            conversationText += '-'.repeat(50) + '\n';
+            assistantMessage.references.forEach((ref, refIndex) => {
+                const pubmedId = ref.url.split('/').filter(Boolean).pop();
+                conversationText += `[${refIndex + 1}] ${ref.authors} (${ref.year}). ${ref.title}. ${ref.journal}. PubMed ID: ${pubmedId}\n\n`;
+            });
+        }
+
+        const blob = new Blob([conversationText], { type: 'text/plain;charset=utf-8' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const now = new Date();
+        const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const time = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
+        a.download = `qa_export_${date}_${time}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        message.success('Q&A downloaded');
+    };
+
     return (
         <>
             <Helmet>
@@ -546,14 +736,108 @@ function LLMAgent() {
                 <meta name="description" content="Discover insights from 33M+ genomic research articles. GLKB enables AI-powered search across genes, diseases, variants, and chemicals with high accuracy." />
                 <meta property="og:title" content="AI Chat - Genomic Literature Knowledge Base | AI-Powered Genomics Search" />
             </Helmet>
+            
+            <Dialog 
+                open={citeDialogOpen} 
+                onClose={handleCloseCiteDialog}
+                maxWidth="md"
+                fullWidth
+                PaperProps={{
+                    sx: {
+                        borderRadius: '12px',
+                        padding: '8px'
+                    }
+                }}
+            >
+                <DialogTitle sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    fontFamily: 'Open Sans, sans-serif',
+                    fontSize: '20px',
+                    fontWeight: '600'
+                }}>
+                    Cite
+                    <IconButton onClick={handleCloseCiteDialog} size="small">
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent>
+                    <Stack spacing={2}>
+                        {['MLA', 'APA', 'Chicago', 'Harvard', 'Vancouver'].map((format) => (
+                            <Box key={format}>
+                                <Box sx={{ 
+                                    display: 'flex', 
+                                    justifyContent: 'space-between', 
+                                    alignItems: 'center',
+                                    mb: 1
+                                }}>
+                                    <Typography sx={{ 
+                                        fontFamily: 'Open Sans, sans-serif',
+                                        fontWeight: '600',
+                                        fontSize: '14px'
+                                    }}>
+                                        {format}
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ 
+                                    backgroundColor: '#f5f5f5',
+                                    padding: '12px',
+                                    borderRadius: '8px',
+                                    fontFamily: 'Open Sans, sans-serif',
+                                    fontSize: '14px',
+                                    cursor: 'pointer',
+                                    '&:hover': {
+                                        backgroundColor: '#ebebeb'
+                                    }
+                                }}
+                                onClick={() => handleCopyCitation(format)}
+                                >
+                                    {generateCitation(format)}
+                                </Box>
+                            </Box>
+                        ))}
+                        
+                        <Divider sx={{ my: 2 }} />
+                        
+                        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                            <MuiButton
+                                variant="outlined"
+                                onClick={() => handleCopyCitation('BibTeX')}
+                                sx={{
+                                    fontFamily: 'Open Sans, sans-serif',
+                                    textTransform: 'none',
+                                    borderRadius: '8px',
+                                    padding: '8px 24px'
+                                }}
+                            >
+                                BibTeX
+                            </MuiButton>
+                            <MuiButton
+                                variant="outlined"
+                                onClick={() => handleCopyCitation('EndNote')}
+                                sx={{
+                                    fontFamily: 'Open Sans, sans-serif',
+                                    textTransform: 'none',
+                                    borderRadius: '8px',
+                                    padding: '8px 24px'
+                                }}
+                            >
+                                EndNote
+                            </MuiButton>
+                        </Box>
+                    </Stack>
+                </DialogContent>
+            </Dialog>
+
             <div className="result-container">
                 <div className="navbar-wrapper">
                     <NavBarWhite />
                 </div>
-                <Grid className="main-grid" container sx={{ marginTop: '40px', width: "unset" }} >
+                <Grid className="main-grid" container sx={{ marginTop: '64px', width: "unset" }} >
                     <Grid item xs={12} className="subgrid">
                         <div className="main-content">
-                            <MuiButton variant="text" sx={{
+                            {/* <MuiButton variant="text" sx={{
                                 color: '#333333',
                                 fontFamily: 'Open Sans, sans-serif',
                                 alignSelf: 'flex-start',
@@ -561,11 +845,10 @@ function LLMAgent() {
                                 borderRadius: '24px',
                                 marginTop: '16px',
                                 marginBottom: '16px',
-                                // transform: 'translateY(-10px)',
                             }}
                                 onClick={() => navigate('/')}>
                                 <ArrowBackIcon />Back
-                            </MuiButton>
+                            </MuiButton> */}
                             <div className='result-content'>
                                 <div className="llm-agent-container">
                                     <div className="chat-and-references">
@@ -761,22 +1044,39 @@ function LLMAgent() {
                                                             borderBottom: '1px solid #E6E6E6',
                                                             marginBottom: '1px',
                                                         }}>
-                                                            <h3 style={{ fontFamily: 'Open Sans, sans-serif', fontWeight: '500', fontSize: '18px', marginBottom: '0' }}>References</h3>
-                                                            <Select
-                                                                size="small"
-                                                                value={sortOption}
-                                                                onChange={value => setSortOption(value)}
-                                                                options={[
-                                                                    { value: 'Year', label: 'Sort by Year' },
-                                                                    { value: 'Citations', label: 'Sort by Citations' }
-                                                                ]}
-                                                                style={{ marginRight: '16px', minWidth: '140px', fontFamily: 'Open Sans, sans-serif' }}
-                                                                styles={{ popup: { root: { 'font-family': 'Open Sans, sans-serif' } } }}
-                                                            />
+                                                            <h3 style={{ fontFamily: 'Open Sans, sans-serif', fontWeight: '500', fontSize: '18px', marginBottom: '0', paddingLeft: '32px' }}>References</h3>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                <Select
+                                                                    size="small"
+                                                                    value={sortOption}
+                                                                    onChange={value => setSortOption(value)}
+                                                                    options={[
+                                                                        { value: 'Year', label: 'Sort by Year' },
+                                                                        { value: 'Citations', label: 'Sort by Citations' }
+                                                                    ]}
+                                                                    style={{ minWidth: '140px', fontFamily: 'Open Sans, sans-serif' }}
+                                                                    styles={{ popup: { root: { 'font-family': 'Open Sans, sans-serif' } } }}
+                                                                />
+                                                                <IconButton 
+                                                                    size="small"
+                                                                    onClick={handleExportReferences}
+                                                                    disabled={sortedReferences.length === 0}
+                                                                    sx={{
+                                                                        padding: '6px',
+                                                                        marginRight: '16px',
+                                                                        '&:hover': {
+                                                                            backgroundColor: '#f0f0f0',
+                                                                        }
+                                                                    }}
+                                                                    title="Export all references"
+                                                                >
+                                                                    <DownloadIcon sx={{ fontSize: '20px', color: sortedReferences.length === 0 ? '#ccc' : '#666' }} />
+                                                                </IconButton>
+                                                            </div>
                                                         </div>
 
                                                         {sortedReferences.length > 0 ? (
-                                                            <div className="references-list" style={{ maxHeight: 'calc(100% - 56px)', overflowY: 'auto', paddingLeft: '2rem', paddingRight: '2rem' }}>
+                                                            <div ref={referencesListRef} className="references-list" style={{ maxHeight: 'calc(100% - 56px)', overflowY: 'auto', paddingLeft: '2rem', paddingRight: '2rem' }}>
                                                                 {sortedReferences.map((ref, index) => {
                                                                     const url = [
                                                                         ref.title,
@@ -786,9 +1086,11 @@ function LLMAgent() {
                                                                         ref.journal,
                                                                         ref.authors
                                                                     ];
+                                                                    const pubmedId = ref.url.split('/').filter(Boolean).pop();
+                                                                    const isHighlighted = hoveredPubmedId === pubmedId;
                                                                     return (
-                                                                        <div key={index} style={{ marginTop: '12px' }}>
-                                                                            <ReferenceCard url={url} handleClick={handleClick} />
+                                                                        <div key={index} style={{ marginTop: '12px' }} data-pubmed-id={pubmedId}>
+                                                                            <ReferenceCard url={url} handleClick={handleClick} onCiteClick={handleCiteClick} isHighlighted={isHighlighted} />
                                                                             <hr style={{ border: 'none', height: '1px', backgroundColor: 'rgba(5, 5, 5, 0.06)', marginTop: '12px' }} />
                                                                         </div>
                                                                     );

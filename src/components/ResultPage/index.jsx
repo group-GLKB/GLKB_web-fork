@@ -317,6 +317,12 @@ const ResultPage = () => {
             setData(graphData);
             // setAllNodes(nodesList);
             setSearchFlag(true);
+            
+            // Track search_no_result event if no results found
+            if (!graphData?.nodes || graphData.nodes.length === 0) {
+                const searchTerm = searchData.source?.name || 'Unknown';
+                trackEvent('Search', 'search_no_result', `Neighbor Search: ${searchTerm}`);
+            }
         } catch (error) {
             console.error('Error fetching neighbor data:', error);
             // Add error handling UI here
@@ -330,6 +336,12 @@ const ResultPage = () => {
             setData(response[0]);
             // setAllNodes(response[1]);
             setSearchFlag(true);
+            
+            // Track search_no_result event if no results found
+            if (!response[0]?.nodes || response[0].nodes.length === 0) {
+                const searchTerms = searchData.triplets?.map(t => t.source?.[1]).join(', ') || 'Unknown';
+                trackEvent('Search', 'search_no_result', `Triplet Search: ${searchTerms}`);
+            }
         } catch (error) {
             console.error('Error fetching triplet data:', error);
             // Add error handling UI here

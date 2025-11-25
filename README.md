@@ -1,5 +1,9 @@
 # GLKB_web
 
+## Link to the homepage
+
+https://glkb.org/
+
 ## NavBar Connecting to Backend API (branch 5)
 The latest version is pushed at the branch yijia/5/revise-nav-bar.
 
