@@ -82,6 +82,14 @@ function NavBarWhite({ showLogo = true, activeButton }) {
                     About
                 </Link>
                 <Link
+                    key="Login"
+                    className={relativePath === "/login" ? "nav-link active" : "nav-link nonactive"}
+                    to="/login"
+                    style={{ position: "relative" }}
+                >
+                    Login
+                </Link>
+                <Link
                     key="Contact"
                     className="nav-link nonactive"
                     to="https://jieliu6.github.io/"

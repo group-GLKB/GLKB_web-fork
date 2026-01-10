@@ -1,27 +1,44 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Alert, Typography, Space } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import './scoped.css';
-
-const { Title, Text } = Typography;
+import NavBarWhite from '../../Units/NavBarWhite';
+import { FcGoogle } from "react-icons/fc";
+import { FaApple } from "react-icons/fa";
 
 const LoginPage = () => {
-  const [form] = Form.useForm();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPasswordInput, setShowPasswordInput] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const onFinish = async (values) => {
+  const handleContinue = () => {
+    if (email.trim()) {
+      setShowPasswordInput(true);
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    // TODO: Implement Google OAuth
+    console.log('Google login clicked');
+  };
+
+  const handleAppleLogin = () => {
+    // TODO: Implement Apple OAuth
+    console.log('Apple login clicked');
+  };
+
+  const handleEmailLogin = async (e) => {
+    e.preventDefault();
     setLoading(true);
     setError('');
 
-    const result = await login(values.username, values.password);
+    const result = await login(email, password);
 
     if (result.success) {
-      // Redirect to home page or previous page
       navigate('/');
     } else {
       setError(result.message);
@@ -30,78 +47,98 @@ const LoginPage = () => {
     setLoading(false);
   };
 
+  const handleClose = () => {
+    navigate('/');
+  };
+
   return (
-    <div className="login-container">
-      <Card className="login-card">
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          <div className="login-header">
-            <Title level={2}>GLKB Login</Title>
-            <Text type="secondary">Welcome back! Please login to your account.</Text>
+    <>
+      <NavBarWhite />
+      <div className="login-page-container">
+        <div className="login-modal">
+          <div className="login-logo">
+            <img src="/GLKB_login_logo.jpg" alt="GLKB Logo" />
           </div>
-
-          {error && (
-            <Alert
-              message="Login Failed"
-              description={error}
-              type="error"
-              showIcon
-              closable
-              onClose={() => setError('')}
-            />
-          )}
-
-          <Form
-            form={form}
-            name="login"
-            onFinish={onFinish}
-            autoComplete="off"
-            layout="vertical"
-            size="large"
-          >
-            <Form.Item
-              name="username"
-              rules={[
-                { required: true, message: 'Please input your username!' }
-              ]}
-            >
-              <Input
-                prefix={<UserOutlined />}
-                placeholder="Username"
+          
+          <h2 className="login-title">Please log in to unlock more features of GLKB</h2>
+          
+          <button className="oauth-button google-button" onClick={handleGoogleLogin}>
+            <span className="oauth-icon"><FcGoogle size={30} /></span>
+            Continue with Google
+          </button>
+          
+          <button className="oauth-button apple-button" onClick={handleAppleLogin}>
+            <span className="oauth-icon"><FaApple size={30} /></span>
+            Continue with Apple
+          </button>
+          
+          <div className="divider">
+            <span>OR</span>
+          </div>
+          
+          {!showPasswordInput ? (
+            <>
+              <input
+                type="text"
+                className="login-input"
+                placeholder="Email address or phone number"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleContinue()}
               />
-            </Form.Item>
-
-            <Form.Item
-              name="password"
-              rules={[
-                { required: true, message: 'Please input your password!' }
-              ]}
-            >
-              <Input.Password
-                prefix={<LockOutlined />}
-                placeholder="Password"
-              />
-            </Form.Item>
-
-            <Form.Item>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={loading}
-                block
+              
+              <button 
+                className="continue-button"
+                onClick={handleContinue}
+                disabled={!email.trim()}
               >
-                Login
-              </Button>
-            </Form.Item>
-
-            <div className="login-footer">
-              <Text type="secondary">
-                Don't have an account? <Link to="/signup">Sign up</Link>
-              </Text>
-            </div>
-          </Form>
-        </Space>
-      </Card>
-    </div>
+                Continue
+              </button>
+            </>
+          ) : (
+            <form onSubmit={handleEmailLogin}>
+              <input
+                type="text"
+                className="login-input"
+                placeholder="Email address or phone number"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <input
+                type="password"
+                className="login-input"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoFocus
+              />
+              
+              <div className="forgot-password-link">
+                <Link to="/forgot-password">Forgot password?</Link>
+              </div>
+              
+              {error && <div className="error-message">{error}</div>}
+              
+              <button 
+                type="submit"
+                className="continue-button"
+                disabled={loading || !password.trim()}
+              >
+                {loading ? 'Logging in...' : 'Log in'}
+              </button>
+            </form>
+          )}
+          
+          <div className="signup-link">
+            Don't have an account? <Link to="/signup">Sign up</Link>
+          </div>
+          
+          <button className="close-button" onClick={handleClose}>
+            Close
+          </button>
+        </div>
+      </div>
+    </>
   );
 };
 

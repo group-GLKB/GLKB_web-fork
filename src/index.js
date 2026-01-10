@@ -16,10 +16,10 @@ import HomePage from './components/HomePage';
 import LLMAgent from './components/LLMAgent';
 import ResultPage from './components/ResultPage';
 import TestAuth from './components/TestAuth';
-// import LoginPage from './components/Auth/LoginPage';
+import LoginPage from './components/Auth/LoginPage';
 // import SignupPage from './components/Auth/SignupPage';
 // import ProtectedRoute from './components/Auth/ProtectedRoute';
-// import { AuthProvider } from './components/Auth/AuthContext';
+import { AuthProvider } from './components/Auth/AuthContext';
 import {
   initGA,
   trackPageView,
@@ -54,31 +54,10 @@ function AppWithAnalytics() {
             <Route path="/llm-agent" element={<LLMAgent />} />
             <Route path="/test-auth" element={<TestAuth />} />
             
-            {/* Authentication routes - commented out for now */}
-            {/* <Route path="/login" element={<LoginPage />} /> */}
+            {/* Authentication routes */}
+            <Route path="/login" element={<LoginPage />} />
             {/* <Route path="/signup" element={<SignupPage />} /> */}
             
-            {/* Protected routes - commented out for now */}
-            {/* <Route path='/result' element={
-                <ProtectedRoute>
-                    <ResultPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/" element={
-                <ProtectedRoute>
-                    <HomePage />
-                </ProtectedRoute>
-            } />
-            <Route path="/about" element={
-                <ProtectedRoute>
-                    <AboutPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/llm-agent" element={
-                <ProtectedRoute>
-                    <LLMAgent />
-                </ProtectedRoute>
-            } /> */}
         </Routes>
         </HelmetProvider>
     );
@@ -88,16 +67,9 @@ function AppWithAnalytics() {
 const root = createRoot(document.getElementById('root'));
 root.render(
     <Router>
-        <AppWithAnalytics />
+        <AuthProvider>
+            <AppWithAnalytics />
+        </AuthProvider>
     </Router>
 );
-
-// AuthProvider commented out for now
-// root.render(
-//     <Router>
-//         <AuthProvider>
-//             <AppWithAnalytics />
-//         </AuthProvider>
-//     </Router>
-// );
 
