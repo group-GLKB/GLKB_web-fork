@@ -50,7 +50,7 @@ function NavBarWhite({ showLogo = true, activeButton }) {
 
             </div>
             <div className="nav-links">
-                {[["Home", "/"], ["Chat", "/llm-agent"], ["Search", "/result"]].map(([name, path]) => (
+                {[["Home", "/"], ["Chat", "/chat"], ["Search", "/search"]].map(([name, path]) => (
                     <Link
                         key={name}
                         className={

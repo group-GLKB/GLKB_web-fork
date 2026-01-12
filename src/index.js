@@ -48,10 +48,10 @@ function AppWithAnalytics() {
     return (
         <HelmetProvider>
         <Routes>
-            <Route path='/result' element={<ResultPage />} />
+            <Route path='/search' element={<ResultPage />} />
             <Route path="/" element={<HomePage />} />
             <Route path="/about" element={<AboutPage />} />
-            <Route path="/llm-agent" element={<LLMAgent />} />
+            <Route path="/chat" element={<LLMAgent />} />
             <Route path="/test-auth" element={<TestAuth />} />
             
             {/* Authentication routes */}

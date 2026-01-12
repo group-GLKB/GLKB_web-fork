@@ -301,7 +301,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
             props.onSearch(search_data);
         } else {
             trackEvent('Search', 'Custom Search Triggered from Home Page', search_data.triplets.map(t => t.source?.[1]));
-            navigate('/result', { state: { search_data, chipDataID } });
+            navigate('/search', { state: { search_data, chipDataID } });
         }
 
         // console.log('Chip data:', chipDataID);

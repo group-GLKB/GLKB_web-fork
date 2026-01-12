@@ -18,7 +18,7 @@ const LoginPage = () => {
   const handleContinue = () => {
     if (email.trim()) {
       setShowPasswordInput(true);
-    }
+    } // .trim() to remove leading/trailing spaces
   };
 
   const handleGoogleLogin = () => {
@@ -90,7 +90,7 @@ const LoginPage = () => {
               <button 
                 className="continue-button"
                 onClick={handleContinue}
-                disabled={!email.trim()}
+                disabled={!email.trim()} // button disabled if email is empty
               >
                 Continue
               </button>
@@ -105,7 +105,7 @@ const LoginPage = () => {
                 onChange={(e) => setEmail(e.target.value)}
               />
               <input
-                type="password"
+                type="password" // changed to password type for security (asterisks)
                 className="login-input"
                 placeholder="Password"
                 value={password}
@@ -122,7 +122,7 @@ const LoginPage = () => {
               <button 
                 type="submit"
                 className="continue-button"
-                disabled={loading || !password.trim()}
+                disabled={loading || !password.trim()} // button disabled if password is empty
               >
                 {loading ? 'Logging in...' : 'Log in'}
               </button>

@@ -833,7 +833,7 @@ const ResultPage = () => {
                                                 // setSearchContent(data); // Update stored content
                                                 // search(data);
                                                 window.location.reload();
-                                                navigate('/result', {
+                                                navigate('/search', {
                                                     state: {
                                                         search_data: data,
                                                         searchType: 'triplet',
