@@ -62,9 +62,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         // Track event
         trackEvent('Navigation', 'Navigate to LLM Agent', query ? 'With Query' : 'Direct Navigation');
         if (query) {
-            navigate('/llm-agent', { state: { initialQuery: query } });
+            navigate('/chat', { state: { initialQuery: query } });
         } else {
-            navigate('/llm-agent');
+            navigate('/chat');
         }
     };
     return (

@@ -331,7 +331,7 @@ const HomePage = () => {
                                             //     search_data: data,
                                             //     searchType: 'triplet',
                                             // });
-                                            navigate('/result', {
+                                            navigate('/search', {
                                                 state: {
                                                     search_data: data,
                                                     searchType: 'triplet',

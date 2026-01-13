@@ -82,7 +82,7 @@ const SearchBarNeighborhood = React.forwardRef((props, ref) => {
         if (props.onSearch) {
             props.onSearch(search_data);
         } else {
-            navigate('/result', { 
+            navigate('/search', { 
                 state: { 
                     search_data,
                     searchType: 'neighbor'
