@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const API_BASE_URL = '/api/v1/auth';
+const EMAIL_AUTH_BASE_URL = '/api/v1/email-auth';
 
 /**
  * Auth Service
@@ -100,4 +101,54 @@ export const getToken = () => {
 // Check if user is authenticated
 export const isAuthenticated = () => {
   return !!getToken();
+};
+
+// ============ Email Verification Auth ============
+
+// Send verification code to email (auto-registers new users)
+export const sendVerificationCode = async (email) => {
+  try {
+    const response = await axios.post(`${EMAIL_AUTH_BASE_URL}/send-code`, {
+      email
+    });
+    return {
+      success: true,
+      message: response.data.message,
+      isNewUser: response.data.is_new_user,
+      expiresIn: response.data.expires_in
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Failed to send verification code. Please try again.'
+    };
+  }
+};
+
+// Verify code and get JWT token
+export const verifyCode = async (email, code) => {
+  try {
+    const response = await axios.post(`${EMAIL_AUTH_BASE_URL}/verify`, {
+      email,
+      code
+    });
+    
+    const { access_token, token_type, user } = response.data;
+    
+    // Store token in localStorage
+    localStorage.setItem('access_token', access_token);
+    localStorage.setItem('token_type', token_type);
+    localStorage.setItem('user', JSON.stringify(user));
+    
+    return {
+      success: true,
+      token: access_token,
+      user: user
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Verification failed. Please check your code.'
+    };
+  }
 };

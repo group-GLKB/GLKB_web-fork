@@ -17,6 +17,7 @@ import LLMAgent from './components/LLMAgent';
 import ResultPage from './components/ResultPage';
 import TestAuth from './components/TestAuth';
 import LoginPage from './components/Auth/LoginPage';
+import VerifyCodePage from './components/Auth/VerifyCodePage';
 // import SignupPage from './components/Auth/SignupPage';
 // import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './components/Auth/AuthContext';
@@ -56,6 +57,7 @@ function AppWithAnalytics() {
             
             {/* Authentication routes */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/verify-code" element={<VerifyCodePage />} />
             {/* <Route path="/signup" element={<SignupPage />} /> */}
             
         </Routes>
