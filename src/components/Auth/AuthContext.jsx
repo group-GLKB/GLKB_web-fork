@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  // Login function
+  // Login function (password-based - legacy)
   const login = async (username, password) => {
     const result = await AuthService.login(username, password);
     
@@ -37,9 +37,27 @@ export const AuthProvider = ({ children }) => {
     return result;
   };
 
-  // Signup function
+  // Signup function (legacy)
   const signup = async (username, email, password) => {
     const result = await AuthService.signup(username, email, password);
+    return result;
+  };
+
+  // Send verification code (new email auth)
+  const sendCode = async (email) => {
+    const result = await AuthService.sendVerificationCode(email);
+    return result;
+  };
+
+  // Verify code and login (new email auth)
+  const verifyCode = async (email, code) => {
+    const result = await AuthService.verifyCode(email, code);
+    
+    if (result.success) {
+      setUser(result.user);
+      setIsAuthenticated(true);
+    }
+    
     return result;
   };
 
@@ -59,6 +77,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     signup,
+    sendCode,
+    verifyCode,
     logout
   };
 

@@ -16,14 +16,11 @@ import HomePage from './components/HomePage';
 import LLMAgent from './components/LLMAgent';
 import ResultPage from './components/ResultPage';
 import TestAuth from './components/TestAuth';
-// import LoginPage from './components/Auth/LoginPage';
+import LoginPage from './components/Auth/LoginPage';
+import VerifyCodePage from './components/Auth/VerifyCodePage';
 // import SignupPage from './components/Auth/SignupPage';
 // import ProtectedRoute from './components/Auth/ProtectedRoute';
-// import { AuthProvider } from './components/Auth/AuthContext';
-// import {
-//   initGA,
-//   trackPageView,
-// } from './components/Units/analytics';
+import { AuthProvider } from './components/Auth/AuthContext';
 
 import { HelmetProvider } from 'react-helmet-async';
 
@@ -35,15 +32,15 @@ const initState = {
 function AppWithAnalytics() {
     const location = useLocation();
 
-    // useEffect(() => {
-    //     // Initialize GA when the app starts
-    //     initGA();
-    // }, []);
+    useEffect(() => {
+        // Initialize GA when the app starts
+        initGA();
+    }, []);
 
-    // useEffect(() => {
-    //     // Track page views when location changes
-    //     trackPageView(location.pathname);
-    // }, [location]);
+    useEffect(() => {
+        // Track page views when location changes
+        trackPageView(location.pathname);
+    }, [location]);
 
     return (
         <HelmetProvider>
@@ -54,31 +51,11 @@ function AppWithAnalytics() {
             <Route path="/chat" element={<LLMAgent />} />
             <Route path="/test-auth" element={<TestAuth />} />
             
-            {/* Authentication routes - commented out for now */}
-            {/* <Route path="/login" element={<LoginPage />} /> */}
+            {/* Authentication routes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/verify-code" element={<VerifyCodePage />} />
             {/* <Route path="/signup" element={<SignupPage />} /> */}
             
-            {/* Protected routes - commented out for now */}
-            {/* <Route path='/result' element={
-                <ProtectedRoute>
-                    <ResultPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/" element={
-                <ProtectedRoute>
-                    <HomePage />
-                </ProtectedRoute>
-            } />
-            <Route path="/about" element={
-                <ProtectedRoute>
-                    <AboutPage />
-                </ProtectedRoute>
-            } />
-            <Route path="/llm-agent" element={
-                <ProtectedRoute>
-                    <LLMAgent />
-                </ProtectedRoute>
-            } /> */}
         </Routes>
         </HelmetProvider>
     );
@@ -88,16 +65,9 @@ function AppWithAnalytics() {
 const root = createRoot(document.getElementById('root'));
 root.render(
     <Router>
-        <AppWithAnalytics />
+        <AuthProvider>
+            <AppWithRoutes />
+        </AuthProvider>
     </Router>
 );
-
-// AuthProvider commented out for now
-// root.render(
-//     <Router>
-//         <AuthProvider>
-//             <AppWithAnalytics />
-//         </AuthProvider>
-//     </Router>
-// );
 

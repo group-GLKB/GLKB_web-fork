@@ -33,7 +33,6 @@ import {
 import NavBarWhite from '../Units/NavBarWhite';
 import SearchBarKnowledge from '../Units/SearchBarKnowledge';
 import SubNavBar from '../Units/SubNavBar';
-// import { trackEvent } from '../Units/analytics';
 import LlmSearchBar from './LlmSearchBar';
 
 // const { Search } = Input;
@@ -437,7 +436,7 @@ const HomePage = () => {
                     </div>
                     <AntButton
                         onClick={() => {
-                            // trackEvent('Tutorial', 'tutorial_click', 'Help Icon Clicked');
+                            trackEvent('Tutorial', 'tutorial_click', 'Help Icon Clicked');
                             setRunTour(true);
                         }}
                         // style={{ marginTop: '20px' }}

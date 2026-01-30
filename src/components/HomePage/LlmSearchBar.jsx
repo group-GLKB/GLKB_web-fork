@@ -16,7 +16,6 @@ import {
     TextField,
 } from '@mui/material';
 
-// import { trackEvent } from '../Units/analytics';
 import SearchButton from '../Units/SearchButton/SearchButton';
 
 const LLMExampleQueries = [
@@ -60,7 +59,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             hasTrackedInputRef.current = true;
         }
         // Track event
-        // trackEvent('Navigation', 'Navigate to LLM Agent', query ? 'With Query' : 'Direct Navigation');
+        trackEvent('Navigation', 'Navigate to LLM Agent', query ? 'With Query' : 'Direct Navigation');
         if (query) {
             navigate('/chat', { state: { initialQuery: query } });
         } else {
@@ -89,7 +88,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     // Track example click if value is from example queries
                     if (newValue && LLMExampleQueries.includes(newValue)) {
                         const exampleIndex = LLMExampleQueries.indexOf(newValue);
-                        // trackEvent('Search', 'search_example_click', `LLM Example ${exampleIndex + 1}: ${newValue}`);
+                        trackEvent('Search', 'search_example_click', `LLM Example ${exampleIndex + 1}: ${newValue}`);
                     }
                     setLlmQuery(newValue || '');
                 }}
@@ -104,7 +103,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         hasTrackedInputRef.current = false;
                         inputTimeoutRef.current = setTimeout(() => {
                             if (!hasTrackedInputRef.current) {
-                                // trackEvent('Search', 'search_input', newInputValue);
+                                trackEvent('Search', 'search_input', newInputValue);
                                 hasTrackedInputRef.current = true;
                             }
                         }, 2000); // Track after 2 seconds of inactivity
@@ -114,7 +113,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 groupBy={() => 'Example Queries'}
                 getOptionLabel={(option) => option}
                 onFocus={() => {
-                    // trackEvent('Search', 'search_click', 'LLM Search Bar Focused');
+                    trackEvent('Search', 'search_click', 'LLM Search Bar Focused');
                 }}
                 inputValue={llmQuery}
                 onOpen={() => setIsOpen(true)}

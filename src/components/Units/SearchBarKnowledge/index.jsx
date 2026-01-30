@@ -25,7 +25,6 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import { CypherService } from '../../../service/Cypher';
 import SearchButton from '../SearchButton/SearchButton';
 import exampleQueries from './example_query.json';
-// import { trackEvent } from '../analytics';
 
 const SearchBarKnowledge = React.forwardRef((props, ref) => {
     const navigate = useNavigate();
@@ -121,7 +120,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
     // Main search function that always uses current term type
     const performSearch = async (searchValue) => {
         let cypherServ = new CypherService();
-        // trackEvent('Search', 'Autocomplete Search', searchValue);
+        trackEvent('Search', 'Autocomplete Search', searchValue);
         const response = await cypherServ.Entity2Cypher(searchValue, termType);
         const sortedOptions = response.data
             ?.map((node, index) => [
@@ -297,11 +296,11 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
             "sources": selectedSources
         };
         if (props.onSearch) {
-            // trackEvent('Search', 'Custom Search Triggered in Result Page', search_data.triplets.map(t => t.source?.[1]));
+            trackEvent('Search', 'Custom Search Triggered in Result Page', search_data.triplets.map(t => t.source?.[1]));
             props.onSearch(search_data);
         } else {
-            // trackEvent('Search', 'Custom Search Triggered from Home Page', search_data.triplets.map(t => t.source?.[1]));
-            navigate('/search', { state: { search_data, chipDataID } });
+            trackEvent('Search', 'Custom Search Triggered from Home Page', search_data.triplets.map(t => t.source?.[1]));
+            navigate('/result', { state: { search_data, chipDataID } });
         }
 
         // console.log('Chip data:', chipDataID);
@@ -344,7 +343,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
             setChipData([]);
             setChipDataID([]);
             const newSelectedSources = [];
-            // trackEvent('Search', 'Example Query Filled', exampleQuery.triplets.map(t => t.source?.[1]));
+            trackEvent('Search', 'Example Query Filled', exampleQuery.triplets.map(t => t.source?.[1]));
             exampleQuery.triplets.forEach(triplet => {
                 const sourceName = triplet.source[1].replace(/[()]/g, '');
                 const chip_str = `(${sourceName})-[any relationships]-()`;
@@ -419,7 +418,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                         hasTrackedInputRef.current = false;
                                         inputTimeoutRef.current = setTimeout(() => {
                                             if (!hasTrackedInputRef.current) {
-                                                // trackEvent('Search', 'search_input', newInputValue);
+                                                trackEvent('Search', 'search_input', newInputValue);
                                                 hasTrackedInputRef.current = true;
                                             }
                                         }, 2000); // Track after 2 seconds of inactivity
@@ -572,7 +571,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                             inputValue={inputValue}
                             onFocus={() => {
                                 setFocused(true);
-                                // trackEvent('Search', 'search_click', 'Search Bar Focused');
+                                trackEvent('Search', 'search_click', 'Search Bar Focused');
                             }}
                             onBlur={() => setFocused(false)}
                             onOpen={() => setIsOpen(true)}
@@ -584,7 +583,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                         newValue[0][0]?.startsWith('example_')) {
                                         // console.log('Filled with example:', newValue[0][0]);
                                         const exampleIndex = newValue[0][0].substring(8) || 1;
-                                        // trackEvent('Search', 'search_example_click', `Example ${parseInt(exampleIndex) + 1}: ${newValue[0][1]}`);
+                                        trackEvent('Search', 'search_example_click', `Example ${parseInt(exampleIndex) + 1}: ${newValue[0][1]}`);
                                         ref.current.fillWithExample(exampleQueries[exampleIndex]);
                                         return;
                                     }

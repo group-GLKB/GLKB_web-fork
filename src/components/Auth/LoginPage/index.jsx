@@ -1,28 +1,38 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Alert, Typography, Space } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import './scoped.css';
-
-const { Title, Text } = Typography;
+import NavBarWhite from '../../Units/NavBarWhite';
+import { FcGoogle } from "react-icons/fc";
+import { FaApple } from "react-icons/fa";
 
 const LoginPage = () => {
-  const [form] = Form.useForm();
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { sendCode } = useAuth();
 
-  const onFinish = async (values) => {
+  const handleGoogleLogin = () => {
+    // TODO: Implement Google OAuth
+    console.log('Google login clicked');
+  };
+
+  const handleAppleLogin = () => {
+    // TODO: Implement Apple OAuth
+    console.log('Apple login clicked');
+  };
+
+  const handleContinue = async (e) => {
+    e.preventDefault();
     setLoading(true);
     setError('');
 
-    const result = await login(values.username, values.password);
+    const result = await sendCode(email);
 
     if (result.success) {
-      // Redirect to home page or previous page
-      navigate('/');
+      // Navigate to verification page with email
+      navigate('/verify-code', { state: { email } });
     } else {
       setError(result.message);
     }
@@ -30,78 +40,68 @@ const LoginPage = () => {
     setLoading(false);
   };
 
+  const handleClose = () => {
+    navigate('/');
+  };
+
   return (
-    <div className="login-container">
-      <Card className="login-card">
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          <div className="login-header">
-            <Title level={2}>GLKB Login</Title>
-            <Text type="secondary">Welcome back! Please login to your account.</Text>
+    <>
+      <NavBarWhite />
+      <div className="login-page-container">
+        <div className="login-modal">
+          <div className="login-logo">
+            <img src="/GLKB_login_logo.jpg" alt="GLKB Logo" />
           </div>
-
-          {error && (
-            <Alert
-              message="Login Failed"
-              description={error}
-              type="error"
-              showIcon
-              closable
-              onClose={() => setError('')}
+          
+          <h2 className="login-title">Sign in below to unlock the full potential of GLKB</h2>
+          
+          <p className="login-subtitle">New to GLKB? An account will be <strong>automatically created</strong> for you upon your first sign-in.</p>
+          
+          <button className="oauth-button google-button" onClick={handleGoogleLogin}>
+            <span className="oauth-icon"><FcGoogle size={24} /></span>
+            Continue with Google
+          </button>
+          
+          <button className="oauth-button apple-button" onClick={handleAppleLogin}>
+            <span className="oauth-icon"><FaApple size={24} /></span>
+            Continue with Apple
+          </button>
+          
+          <div className="divider">
+            <span>OR</span>
+          </div>
+          
+          <form onSubmit={handleContinue}>
+            <input
+              type="email"
+              className="login-input"
+              placeholder="sarah@yahoo.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
             />
-          )}
-
-          <Form
-            form={form}
-            name="login"
-            onFinish={onFinish}
-            autoComplete="off"
-            layout="vertical"
-            size="large"
-          >
-            <Form.Item
-              name="username"
-              rules={[
-                { required: true, message: 'Please input your username!' }
-              ]}
+            
+            {error && <div className="error-message">{error}</div>}
+            
+            <button 
+              type="submit"
+              className="continue-button"
+              disabled={loading || !email.trim()}
             >
-              <Input
-                prefix={<UserOutlined />}
-                placeholder="Username"
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="password"
-              rules={[
-                { required: true, message: 'Please input your password!' }
-              ]}
-            >
-              <Input.Password
-                prefix={<LockOutlined />}
-                placeholder="Password"
-              />
-            </Form.Item>
-
-            <Form.Item>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={loading}
-                block
-              >
-                Login
-              </Button>
-            </Form.Item>
-
-            <div className="login-footer">
-              <Text type="secondary">
-                Don't have an account? <Link to="/signup">Sign up</Link>
-              </Text>
-            </div>
-          </Form>
-        </Space>
-      </Card>
-    </div>
+              {loading ? 'Sending...' : 'Continue'}
+            </button>
+          </form>
+          
+          <div className="sso-text">
+            Single sign-on (SSO)
+          </div>
+          
+          <div className="privacy-text">
+            By clicking continuing, you agree to our <a href="/privacy-policy">privacy policy</a>.
+          </div>
+        </div>
+      </div>
+    </>
   );
 };
 
