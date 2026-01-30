@@ -6,12 +6,16 @@ module.exports = function (app) {
         next();
     });
 
-    // Proxy API requests to backend
+    // Proxy /api requests to /reorg-api on the backend
     app.use(
         '/api',
         createProxyMiddleware({
-            target: 'http://localhost:8000',
+            target: 'https://glkb.dcmb.med.umich.edu',
             changeOrigin: true,
+            secure: false,
+            pathRewrite: {
+                '^/api': '/reorg-api/api', // Rewrite /api to /reorg-api/api
+            },
         })
     );
 };
