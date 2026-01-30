@@ -20,10 +20,10 @@ import TestAuth from './components/TestAuth';
 // import SignupPage from './components/Auth/SignupPage';
 // import ProtectedRoute from './components/Auth/ProtectedRoute';
 // import { AuthProvider } from './components/Auth/AuthContext';
-import {
-  initGA,
-  trackPageView,
-} from './components/Units/analytics';
+// import {
+//   initGA,
+//   trackPageView,
+// } from './components/Units/analytics';
 
 import { HelmetProvider } from 'react-helmet-async';
 
@@ -35,15 +35,15 @@ const initState = {
 function AppWithAnalytics() {
     const location = useLocation();
 
-    useEffect(() => {
-        // Initialize GA when the app starts
-        initGA();
-    }, []);
+    // useEffect(() => {
+    //     // Initialize GA when the app starts
+    //     initGA();
+    // }, []);
 
-    useEffect(() => {
-        // Track page views when location changes
-        trackPageView(location.pathname);
-    }, [location]);
+    // useEffect(() => {
+    //     // Track page views when location changes
+    //     trackPageView(location.pathname);
+    // }, [location]);
 
     return (
         <HelmetProvider>
