@@ -21,10 +21,6 @@ import VerifyCodePage from './components/Auth/VerifyCodePage';
 // import SignupPage from './components/Auth/SignupPage';
 // import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './components/Auth/AuthContext';
-import {
-  initGA,
-  trackPageView,
-} from './components/Units/analytics';
 
 import { HelmetProvider } from 'react-helmet-async';
 
@@ -32,20 +28,8 @@ const initState = {
     searchType: ''
 }
 
-// Create a wrapper component for analytics
-function AppWithAnalytics() {
-    const location = useLocation();
-
-    useEffect(() => {
-        // Initialize GA when the app starts
-        initGA();
-    }, []);
-
-    useEffect(() => {
-        // Track page views when location changes
-        trackPageView(location.pathname);
-    }, [location]);
-
+// Create a wrapper component
+function AppWithRoutes() {
     return (
         <HelmetProvider>
         <Routes>
@@ -70,7 +54,7 @@ const root = createRoot(document.getElementById('root'));
 root.render(
     <Router>
         <AuthProvider>
-            <AppWithAnalytics />
+            <AppWithRoutes />
         </AuthProvider>
     </Router>
 );
