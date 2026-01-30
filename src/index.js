@@ -28,20 +28,8 @@ const initState = {
     searchType: ''
 }
 
-// Create a wrapper component for analytics
-function AppWithAnalytics() {
-    const location = useLocation();
-
-    useEffect(() => {
-        // Initialize GA when the app starts
-        initGA();
-    }, []);
-
-    useEffect(() => {
-        // Track page views when location changes
-        trackPageView(location.pathname);
-    }, [location]);
-
+// Create a wrapper component
+function AppWithRoutes() {
     return (
         <HelmetProvider>
         <Routes>

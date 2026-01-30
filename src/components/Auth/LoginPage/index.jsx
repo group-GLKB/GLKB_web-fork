@@ -49,10 +49,6 @@ const LoginPage = () => {
       <NavBarWhite />
       <div className="login-page-container">
         <div className="login-modal">
-          <div className="login-logo">
-            <img src="/GLKB_login_logo.jpg" alt="GLKB Logo" />
-          </div>
-          
           <h2 className="login-title">Sign in below to unlock the full potential of GLKB</h2>
           
           <p className="login-subtitle">New to GLKB? An account will be <strong>automatically created</strong> for you upon your first sign-in.</p>
