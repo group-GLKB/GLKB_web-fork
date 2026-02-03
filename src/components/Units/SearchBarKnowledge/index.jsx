@@ -297,7 +297,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         if (props.onSearch) {
             props.onSearch(search_data);
         } else {
-            navigate('/result', { state: { search_data, chipDataID } });
+            navigate('/search', { state: { search_data, chipDataID } });
         }
 
         // console.log('Chip data:', chipDataID);
