@@ -410,14 +410,6 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                     if (inputTimeoutRef.current) {
                                         clearTimeout(inputTimeoutRef.current);
                                     }
-                                    if (newInputValue && newInputValue.trim() !== '') {
-                                        hasTrackedInputRef.current = false;
-                                        inputTimeoutRef.current = setTimeout(() => {
-                                            if (!hasTrackedInputRef.current) {
-                                                hasTrackedInputRef.current = true;
-                                            }
-                                        }, 2000); // Track after 2 seconds of inactivity
-                                    }
                                 }
                             }}
                             options={
