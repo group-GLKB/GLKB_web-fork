@@ -203,8 +203,6 @@ const ResultPage = () => {
 
     // Add this new function to start the tour
     const startTour = () => {
-        // Track tour starts
-        trackEvent('Tour', 'Start Tour', 'Result Page');
         setRunTour(true);
         setTourKey(prevKey => prevKey + 1);
     };
@@ -320,7 +318,6 @@ const ResultPage = () => {
             // Track search_no_result event if no results found
             if (!graphData?.nodes || graphData.nodes.length === 0) {
                 const searchTerm = searchData.source?.name || 'Unknown';
-                trackEvent('Search', 'search_no_result', `Neighbor Search: ${searchTerm}`);
             }
         } catch (error) {
             console.error('Error fetching neighbor data:', error);
@@ -339,7 +336,6 @@ const ResultPage = () => {
             // Track search_no_result event if no results found
             if (!response[0]?.nodes || response[0].nodes.length === 0) {
                 const searchTerms = searchData.triplets?.map(t => t.source?.[1]).join(', ') || 'Unknown';
-                trackEvent('Search', 'search_no_result', `Triplet Search: ${searchTerms}`);
             }
         } catch (error) {
             console.error('Error fetching triplet data:', error);

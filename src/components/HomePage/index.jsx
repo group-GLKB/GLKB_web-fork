@@ -436,7 +436,6 @@ const HomePage = () => {
                     </div>
                     <AntButton
                         onClick={() => {
-                            trackEvent('Tutorial', 'tutorial_click', 'Help Icon Clicked');
                             setRunTour(true);
                         }}
                         // style={{ marginTop: '20px' }}
