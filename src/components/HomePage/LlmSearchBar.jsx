@@ -83,33 +83,14 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 options={LLMExampleQueries}
                 filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
                 onChange={(event, newValue) => {
-                    // Track example click if value is from example queries
-                    if (newValue && LLMExampleQueries.includes(newValue)) {
-                        const exampleIndex = LLMExampleQueries.indexOf(newValue);
-                    }
                     setLlmQuery(newValue || '');
                 }}
                 onInputChange={(event, newInputValue) => {
                     setLlmQuery(newInputValue || '');
-                    
-                    // Track search_input event when user types but doesn't submit
-                    if (inputTimeoutRef.current) {
-                        clearTimeout(inputTimeoutRef.current);
-                    }
-                    if (newInputValue && newInputValue.trim() !== '') {
-                        hasTrackedInputRef.current = false;
-                        inputTimeoutRef.current = setTimeout(() => {
-                            if (!hasTrackedInputRef.current) {
-                                hasTrackedInputRef.current = true;
-                            }
-                        }, 2000); // Track after 2 seconds of inactivity
-                    }
                 }}
                 openOnFocus
                 groupBy={() => 'Example Queries'}
                 getOptionLabel={(option) => option}
-                onFocus={() => {
-                }}
                 inputValue={llmQuery}
                 onOpen={() => setIsOpen(true)}
                 onClose={() => setIsOpen(false)}

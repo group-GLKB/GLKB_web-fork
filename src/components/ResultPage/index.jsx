@@ -203,6 +203,7 @@ const ResultPage = () => {
 
     // Add this new function to start the tour
     const startTour = () => {
+        // Track tour starts
         setRunTour(true);
         setTourKey(prevKey => prevKey + 1);
     };
