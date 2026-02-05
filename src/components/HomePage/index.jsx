@@ -295,6 +295,20 @@ const HomePage = () => {
                         }}>
                             <Typography sx={{
                                 fontFamily: 'Open Sans',
+                                fontWeight: 600,
+                                fontSize: '16px',
+                                textAlign: 'center',
+                                paddingBottom: '12px',
+                                color: '#FFF9C4',
+                                backgroundColor: 'rgba(0,0,0,0.2)',
+                                padding: '8px 24px',
+                                borderRadius: '8px',
+                                marginBottom: '16px',
+                            }}>
+                                ⚠️ This site is currently under maintenance. Some features may be temporarily unavailable.
+                            </Typography>
+                            <Typography sx={{
+                                fontFamily: 'Open Sans',
                                 fontWeight: 700,
                                 fontSize: '48px',
                                 leadingTrim: 'NONE',
