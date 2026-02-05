@@ -293,7 +293,7 @@ const HomePage = () => {
                             display: 'flex',
                             flexDirection: 'column'
                         }}>
-                            <Typography sx={{
+                            {/* <Typography sx={{
                                 fontFamily: 'Open Sans',
                                 fontWeight: 600,
                                 fontSize: '16px',
@@ -306,7 +306,7 @@ const HomePage = () => {
                                 marginBottom: '16px',
                             }}>
                                 ⚠️ This site is currently under maintenance. Some features may be temporarily unavailable.
-                            </Typography>
+                            </Typography> */}
                             <Typography sx={{
                                 fontFamily: 'Open Sans',
                                 fontWeight: 700,
