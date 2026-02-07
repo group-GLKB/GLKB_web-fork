@@ -56,6 +56,58 @@ import NavBarWhite from '../Units/NavBarWhite';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import SearchButton from '../Units/SearchButton/SearchButton';
 
+// Thinking steps component with animation independent of MessageCard
+function ThinkingSteps({ currentStep }) {
+    const thinkingSteps = [
+        'Thinking...',
+        'Understanding your question...',
+        'Gathering information from multiple sources...',
+        'Checking how key concepts are connected...',
+        'Searching for relevant articles and references...',
+        'Comparing and organizing the information...',
+        'Preparing a clear answer...'
+    ];
+
+    return (
+        <Box sx={{ mt: 2, mb: 2, overflow: 'hidden', height: '41px', position: 'relative' }}>
+            <Box 
+                key={currentStep}
+                sx={{ 
+                    width: '544px',
+                    maxWidth: '100%',
+                    px: '16px',
+                    py: '8px',
+                    borderRadius: '16px',
+                    cursor: 'pointer',
+                    backgroundColor: 'transparent',
+                    '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                    },
+                    color: '#5B5B5B',
+                    fontFamily: 'Inter, Open Sans, sans-serif',
+                    fontSize: '16px',
+                    fontWeight: 400,
+                    lineHeight: '24.4px',
+                    // animation: 'slideUpFade 0.5s ease-out forwards',
+                    // '@keyframes slideUpFade': {
+                    //     '0%': {
+                    //         transform: 'translateY(100%)',
+                    //         opacity: 0
+                    //     },
+                    //     '100%': {
+                    //         transform: 'translateY(0)',
+                    //         opacity: 1
+                    //     }
+                    // }
+                }}
+            >
+                {thinkingSteps[currentStep]}
+            </Box>
+        </Box>
+    );
+}
+
 function LLMAgent() {
     const location = useLocation();
     const [userInput, setUserInput] = useState('');
@@ -64,9 +116,25 @@ function LLMAgent() {
     const [isLoading, setIsLoading] = useState(false);
     const [streamingSteps, setStreamingSteps] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [currentStep, setCurrentStep] = useState(0);
     const messagesEndRef = useRef(null);
     const abortControllerRef = useRef(null);
     const navigate = useNavigate();
+    
+
+    // Timer to cycle through thinking steps every 3 seconds
+    useEffect(() => {
+        if (!isProcessing) {
+            setCurrentStep(0);
+            return;
+        }
+
+        const timer = setInterval(() => {
+            setCurrentStep((prev) => (prev + 1) % 7);
+        }, 3000);
+
+        return () => clearInterval(timer);
+    }, [isProcessing]);
 
     const llmService = useMemo(() => new LLMAgentService(), []);
 
@@ -543,24 +611,7 @@ function LLMAgent() {
                 save={handleSaveEdit}
                 goref={handleMessageClick}
                 downloadConversation={handleDownloadConversation}
-                GetSteps={() => {
-                    return (
-                        <Box sx={{ mt: 2 }}>
-                            {streamingSteps.length > 0 ? (
-                                streamingSteps.map((step, stepIndex) => (
-                                    <div key={stepIndex} className="step-item">
-                                        <strong>{step.step}: </strong>
-                                        <span>{step.content}</span>
-                                    </div>
-                                ))
-                            ) : (
-                                <div style={{ color: '#999', fontStyle: 'italic' }}>
-                                    (No steps captured - closure issue!)
-                                </div>
-                            )}
-                        </Box>
-                    );
-                }}
+                GetSteps={() => <ThinkingSteps currentStep={currentStep} />}
             />
         ))}</Box>);
     };
