@@ -12,12 +12,11 @@ export class CypherService {
                 'Access-Control-Allow-Origin': '*'
             },
             params: {
-                query: content
+                name: content
             }
         }
         await axios
-            .get("https://glkb.dcmb.med.umich.edu/api/frontend/frontend_term2graph?query=" + content)
-            // .get("/frontend/frontend_term2graph?query=" + content)
+            .get("/api/v1/graphs/term-graph", config)
             .then(function (response) {
                 res = response
             })
@@ -43,7 +42,7 @@ export class CypherService {
         }
 
         await axios
-            .post("https://glkb.dcmb.med.umich.edu/api/frontend/frontend_triplet2graph", JSON.stringify(content), config)
+            .post("/api/v1/graphs/triplet2graph", JSON.stringify(content), config)
             // .post("/frontend/frontend_triplet2graph", JSON.stringify(content), config)
             .then(function (response) {
                 res = response.data;
@@ -67,12 +66,12 @@ export class CypherService {
                 'Access-Control-Allow-Origin': '*'
             },
             params: {
-                query: content,
+                name: content,
                 ent_type: type
             }
         }
         await axios
-            .get("https://glkb.dcmb.med.umich.edu/api/frontend/entity_search", config)
+            .get("/api/v1/search/entity-name-search", config)
             // .get("/frontend/entity_search", config)
             .then(function (response) {
                 res = response
@@ -94,7 +93,7 @@ export class CypherService {
             }
         };
         await axios
-            .post("https://glkb.dcmb.med.umich.edu/api/frontend/frontend_ent2art_graph", JSON.stringify(content), config)
+            .post("/api/v1/graphs/ent2art-graph", JSON.stringify(content), config)
             // .post("/frontend/frontend_ent2art_graph", JSON.stringify(content), config)
             .then(function (response) {
                 res = response.data;
@@ -129,7 +128,7 @@ export class CypherService {
         // console.log('params:', params.toString());
         let res = '';
         try {
-            const response = await axios.get("https://glkb.dcmb.med.umich.edu/api/frontend/frontend_qa", { params });
+            const response = await axios.get("/api/frontend/frontend_qa", { params });
             // const response = await axios.get("/frontend/frontend_qa", { params });
             res = response.data;
             // console.log('response:', res);
@@ -152,7 +151,7 @@ export class CypherService {
         try {
             // Send the question data directly
             // const response = await axios.post("/frontend/frontend_qa", questionData, config);
-            const response = await axios.post("https://glkb.dcmb.med.umich.edu/api/frontend/frontend_qa", questionData, config);
+            const response = await axios.post("/api/frontend/frontend_qa", questionData, config);
             return response.data;
         } catch (error) {
             console.error('Error fetching free answer:', error);
@@ -179,7 +178,7 @@ export class CypherService {
         }
         await axios
             // .get("/frontend/frontend_neighbor_graph", config)
-            .get("https://glkb.dcmb.med.umich.edu/api/frontend/frontend_neighbor_graph", config)
+            .get("/api/v1/graphs/neighbor-graph", config)
             .then(function (response) {
                 res = response.data
             })

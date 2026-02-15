@@ -469,12 +469,46 @@ const ResultPage = () => {
 
     // Memoize handleSelect
     const handleSelect = useCallback((target) => {
-        let temp_id;
-        if (target.article_source) {
-            temp_id = ["edge", ...target.eid];
-        } else {
-            temp_id = ["node", ...target.database_id];
+        console.log('[GraphDebug] ResultPage.handleSelect target:', target);
+        const asIdArray = (value) => {
+            if (Array.isArray(value)) {
+                return value.filter(v => v !== undefined && v !== null && `${v}`.trim() !== '');
+            }
+            if (value === undefined || value === null || `${value}`.trim() === '') {
+                return [];
+            }
+            return [value];
+        };
+
+        const edgeIds = asIdArray(target.eid);
+        const nodeDatabaseIds = asIdArray(target.database_id);
+        const nodeElementIds = asIdArray(target.element_id);
+        const nodeIds = Array.from(new Set([
+            ...nodeDatabaseIds,
+            ...nodeElementIds,
+            ...asIdArray(target.id),
+        ]));
+        const edgeFallbackIds = edgeIds.length > 0 ? edgeIds : asIdArray(target.id);
+
+        const isEdge = target?.source !== undefined && target?.target !== undefined;
+        const temp_id = isEdge
+            ? ["edge", ...edgeFallbackIds]
+            : ["node", ...nodeIds];
+
+        console.log('[GraphDebug] ResultPage.handleSelect id candidates:', {
+            database_id: target.database_id,
+            element_id: target.element_id,
+            id: target.id,
+            chosen: nodeIds,
+        });
+        console.log('[GraphDebug] ResultPage.handleSelect computed detailId:', temp_id);
+
+        if (temp_id.length <= 1) {
+            console.warn('[GraphDebug] ResultPage.handleSelect invalid detailId payload; clearing detail panel');
+            setDetailId(null);
+            return;
         }
+
         setDetailId(temp_id);
     }, []);
 

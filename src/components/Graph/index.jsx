@@ -344,7 +344,9 @@ const Graph = forwardRef(function Graph(props, ref) {
 
   // Memoize the click handlers
   const handleNodeClick = useCallback((node) => {
-    props.handleSelect(node.data());
+    const nodeData = node.data();
+    console.log('[GraphDebug] Node clicked:', nodeData);
+    props.handleSelect(nodeData);
     if (!props.informationOpen) {
       props.expandInformation();
     }
@@ -352,7 +354,9 @@ const Graph = forwardRef(function Graph(props, ref) {
 
   // Add debouncing to prevent multiple rapid clicks
   const handleEdgeClick = useCallback(debounce((edge) => {
-    props.handleSelect(edge.data());
+    const edgeData = edge.data();
+    console.log('[GraphDebug] Edge clicked:', edgeData);
+    props.handleSelect(edgeData);
     if (!props.informationOpen) {
       props.expandInformation();
     }
@@ -361,6 +365,7 @@ const Graph = forwardRef(function Graph(props, ref) {
   // Modify the cyInitCallback to use the debounced handler
   const cyInitCallback = useCallback((cy) => {
     myCyRef.current = cy;
+    console.log('[GraphDebug] cyInitCallback: attaching Cytoscape listeners');
 
     const handleClick = (e) => {
       const sel = e.target;
@@ -391,10 +396,13 @@ const Graph = forwardRef(function Graph(props, ref) {
     cy.removeAllListeners();
 
     cy.on('click', handleClick);
+    cy.on('tap', handleClick);
     cy.on('mouseover', 'node', e => e.target.addClass('hover'));
     cy.on('mouseout', 'node', e => e.target.removeClass('hover'));
     cy.on('click', 'node', e => handleNodeClick(e.target));
+    cy.on('tap', 'node', e => handleNodeClick(e.target));
     cy.on('click', 'edge', e => handleEdgeClick(e.target));
+    cy.on('tap', 'edge', e => handleEdgeClick(e.target));
 
     return () => {
       cy.removeAllListeners();

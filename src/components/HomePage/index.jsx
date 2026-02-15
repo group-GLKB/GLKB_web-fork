@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import axios from 'axios';
 
 import { Button as AntButton } from 'antd';
 import { Helmet } from 'react-helmet-async';
@@ -58,8 +59,7 @@ const HomePage = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await fetch('https://glkb.dcmb.med.umich.edu/api/frontend/statistics');
-                const data = await response.json();
+                const { data } = await axios.get('/api/v1/statistics');
                 Object.keys(data).forEach(key => {
                     data[key] = data[key] ? new Intl.NumberFormat('en', {
                         notation: 'compact',

@@ -55,15 +55,18 @@ const Information = ({ width, ...props }) => {
     };
 
     useEffect(() => {
+        console.log('[GraphDebug] Information received detailId:', props.detailId);
         setNodeDetail({});
         setEdgeDetail({});
         setNodeDetails({});
         // console.log("detail changed");
         async function searchInfoNode(content) {
+            console.log('[GraphDebug] Information.searchInfoNode request payload:', content);
             setIsLoading(true);
             let detailServ = new DetailService()
             try {
                 const response = await detailServ.Nid2Detail(content)
+                console.log('[GraphDebug] Information.searchInfoNode response:', response?.data);
                 setNodeDetail(response.data)
                 setEdgeDetail({})
             } finally {
@@ -71,12 +74,20 @@ const Information = ({ width, ...props }) => {
             }
         }
         async function searchMergeInfoNode(content) {
+            console.log('[GraphDebug] Information.searchMergeInfoNode request payload:', content);
             setIsLoading(true);
             let detailServ = new DetailService()
             try {
                 const response = await detailServ.MergeNid2Detail(content)
                 // console.log(response)
-                setNodeDetails(response.data);
+                console.log('[GraphDebug] Information.searchMergeInfoNode response:', response?.data);
+                const payload = response?.data;
+                // Backward compatible: old API returned [nodes, articles], new API may return { nodes, articles, error }.
+                const normalizedNodeDetails = Array.isArray(payload)
+                    ? payload
+                    : [payload?.nodes || [], payload?.articles || []];
+                console.log('[GraphDebug] Information.searchMergeInfoNode normalized payload:', normalizedNodeDetails);
+                setNodeDetails(normalizedNodeDetails);
                 // console.log(nodeDetails)
                 setEdgeDetail({});
             } finally {
@@ -84,12 +95,14 @@ const Information = ({ width, ...props }) => {
             }
         }
         async function searchInfoEdge(content) {
+            console.log('[GraphDebug] Information.searchInfoEdge request payload:', content);
             setIsLoading(true);
             // console.log(content)
             let detailServ = new DetailService()
             try {
                 const response = await detailServ.MergeEid2Detail(content)
                 // console.log(response.data)
+                console.log('[GraphDebug] Information.searchInfoEdge response:', response?.data);
                 setEdgeDetail(response.data)
                 setNodeDetails({})
             } finally {
@@ -168,7 +181,52 @@ const Information = ({ width, ...props }) => {
         return authorString;
     };
 
-    const nodeForMap = (url) => {
+    const normalizeArticleRecord = (article) => {
+        if (Array.isArray(article)) {
+            const pmidFromUrl = typeof article[1] === 'string'
+                ? article[1].split('/').filter(Boolean).pop()
+                : '';
+            const safeUrl = typeof article[1] === 'string'
+                ? article[1]
+                : (pmidFromUrl ? `https://www.ncbi.nlm.nih.gov/pubmed/${pmidFromUrl}` : '');
+            const safeAuthors = Array.isArray(article[5])
+                ? article[5]
+                : (article[5] ? [String(article[5])] : []);
+            return [
+                article[0] || '',
+                String(safeUrl || ''),
+                article[2] ?? 0,
+                article[3] ?? '',
+                article[4] || '',
+                safeAuthors,
+            ];
+        }
+
+        if (article && typeof article === 'object') {
+            const pmid = article.pmid || article.pubmed_id || article.pubmedId || '';
+            const safeUrl = article.url || article.pubmed_url || article.link ||
+                (pmid ? `https://www.ncbi.nlm.nih.gov/pubmed/${pmid}` : '');
+            const safeAuthors = Array.isArray(article.authors)
+                ? article.authors
+                : (article.authors ? [String(article.authors)] : []);
+            return [
+                article.title || article.name || article.display || '',
+                String(safeUrl || ''),
+                article.n_citation ?? article.citations ?? article.cited_by ?? 0,
+                article.year ?? article.date ?? article.pub_year ?? '',
+                article.journal || article.venue || '',
+                safeAuthors,
+            ];
+        }
+
+        return null;
+    };
+
+    const nodeForMap = (article) => {
+        const normalized = normalizeArticleRecord(article);
+        if (!normalized) return null;
+
+        const url = normalized;
         const authors = url[5] || [];
         const getLastName = (fullName) => {
             const parts = fullName.trim().split(' ');
@@ -283,26 +341,21 @@ const Information = ({ width, ...props }) => {
 
     const sortedRawNodes = useMemo(() => {
         if (!nodeDetails[1]) return [];
-        return [...nodeDetails[1]].sort((a, b) => {
+        const normalized = nodeDetails[1]
+            .map(normalizeArticleRecord)
+            .filter(Boolean);
+        return normalized.sort((a, b) => {
             if (sortBy === 'year') return parseInt(b[3]) - parseInt(a[3]);
             if (sortBy === 'citations') return parseInt(b[2]) - parseInt(a[2]);
             return 0;
         });
     }, [nodeDetails, sortBy]);
 
-    const urls = sortedRawNodes.map(nodeForMap);
+    const urls = sortedRawNodes.map(nodeForMap).filter(Boolean);
 
     const sortedUrls = useMemo(() => {
-
-        return [...urls].sort((a, b) => {
-            if (sortBy === 'year') {
-                return parseInt(b[3]) - parseInt(a[3]); // Newest first
-            } else if (sortBy === 'citations') {
-                return parseInt(b[2]) - parseInt(a[2]); // Most cited first
-            }
-            return 0;
-        });
-    }, [urls, sortBy]);
+        return urls;
+    }, [urls]);
 
 
     const sortedEdges = useMemo(() => {
@@ -310,8 +363,9 @@ const Information = ({ width, ...props }) => {
 
         return Object.entries(edgeDetail).map(([label, urlsWrapper]) => {
             const urls = urlsWrapper?.[1] || [];
+            const normalized = urls.map(normalizeArticleRecord).filter(Boolean);
 
-            const sortedUrls = [...urls].sort((a, b) => {
+            const sortedUrls = [...normalized].sort((a, b) => {
                 if (sortBy === 'year') {
                     return parseInt(b[3]) - parseInt(a[3]);
                 } else if (sortBy === 'citations') {
@@ -326,7 +380,7 @@ const Information = ({ width, ...props }) => {
 
     const edgeItems = useMemo(() => {
         return sortedEdges.flatMap((edge) => {
-            return edge?.[1]?.[1]?.map(nodeForMap) || [];
+            return edge?.[1]?.[1]?.map(nodeForMap).filter(Boolean) || [];
         });
     }, [sortedEdges]);
     // if (Object.keys(nodeDetails).length !== 0) {
@@ -428,6 +482,9 @@ const Information = ({ width, ...props }) => {
     const renderNodeDetails = (node) => {
         // Check if this is an article node (has 'title' property)
         if ('title' in node) {
+            const safeAuthors = Array.isArray(node.authors)
+                ? node.authors.join('; ')
+                : (node.authors || 'N/A');
             return (
                 <Descriptions column={1} size="small" className="custom-descriptions" style={{ borderRadius: '30px' }}>
                     <Descriptions.Item label="Title">{node.title}</Descriptions.Item>
@@ -442,7 +499,7 @@ const Information = ({ width, ...props }) => {
                         </a>
                     </Descriptions.Item>
                     <Descriptions.Item label="Authors">
-                        {node.authors.join('; ')}
+                        {safeAuthors}
                     </Descriptions.Item>
                     <Descriptions.Item label="Journal">{node.journal}</Descriptions.Item>
                     <Descriptions.Item label="Year">{node.date}</Descriptions.Item>
@@ -455,16 +512,26 @@ const Information = ({ width, ...props }) => {
         }
 
         // Regular node rendering
+        const safeType = Array.isArray(node.type)
+            ? node.type.join('; ')
+            : (typeof node.type === 'string' ? node.type : 'N/A');
+        const safeAliases = Array.isArray(node.aliases)
+            ? node.aliases
+            : (node.aliases ? [String(node.aliases)] : []);
+        const safeDescription = typeof node.description === 'string'
+            ? node.description
+            : '';
+
         return (
             <Descriptions column={1} size="small" className="custom-descriptions" style={{ borderRadius: '30px' }}>
                 <Descriptions.Item label="Entity ID">{node.element_id}</Descriptions.Item>
-                <Descriptions.Item label="Type">{node.type.join('; ')}</Descriptions.Item>
-                {node.description && node.description.trim() !== "" && (
-                    <Descriptions.Item label="Description">{node.description}</Descriptions.Item>
+                <Descriptions.Item label="Type">{safeType}</Descriptions.Item>
+                {safeDescription.trim() !== "" && (
+                    <Descriptions.Item label="Description">{safeDescription}</Descriptions.Item>
                 )}
-                {node.aliases && node.aliases.length > 0 && (
+                {safeAliases.length > 0 && (
                     <Descriptions.Item label="Aliases">
-                        {node.aliases.join('; ')}
+                        {safeAliases.join('; ')}
                     </Descriptions.Item>
                 )}
             </Descriptions>
