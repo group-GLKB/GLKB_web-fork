@@ -2,33 +2,32 @@ import 'antd/dist/reset.css';
 import './scoped.css';
 
 import React, {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
 } from 'react';
 
 import {
-  Button as AntButton,
-  Spin,
-  Tooltip,
+    Button as AntButton,
+    Spin,
+    Tooltip,
 } from 'antd';
 import { debounce } from 'lodash';
 import { Helmet } from 'react-helmet-async';
 import Joyride, { STATUS } from 'react-joyride';
 import {
-  useLocation,
-  useNavigate,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
 import { InfoCircleOutlined } from '@ant-design/icons';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 //import mui button as muibutton
 import {
-  Box,
-  Button as MuiButton,
-  Grid,
-  Typography,
+    Box,
+    Button as MuiButton,
+    Typography,
 } from '@mui/material';
 
 import downArrow from '../../img/down_arrow.svg';
@@ -241,7 +240,7 @@ const ResultPage = () => {
             if (windowWidth < minWidth) {
                 containerRef.current.style.width = `${minWidth}px`;
             } else {
-                containerRef.current.style.width = '100vw';
+                containerRef.current.style.width = '100%';
             }
         }
 
@@ -315,7 +314,7 @@ const ResultPage = () => {
             setData(graphData);
             // setAllNodes(nodesList);
             setSearchFlag(true);
-            
+
             // Track search_no_result event if no results found
             if (!graphData?.nodes || graphData.nodes.length === 0) {
                 const searchTerm = searchData.source?.name || 'Unknown';
@@ -333,7 +332,7 @@ const ResultPage = () => {
             setData(response[0]);
             // setAllNodes(response[1]);
             setSearchFlag(true);
-            
+
             // Track search_no_result event if no results found
             if (!response[0]?.nodes || response[0].nodes.length === 0) {
                 const searchTerms = searchData.triplets?.map(t => t.source?.[1]).join(', ') || 'Unknown';
@@ -389,8 +388,8 @@ const ResultPage = () => {
     useEffect(() => {
         const updateGraphPosition = () => {
             if (graphContainerRef.current) {
-                const searchBarHeight = document.querySelector('.search-bar-container').offsetHeight;
-                const navbarHeight = document.querySelector('.navbar-wrapper').offsetHeight;
+                const searchBarHeight = document.querySelector('.search-bar-container')?.offsetHeight || 0;
+                const navbarHeight = document.querySelector('.navbar-wrapper')?.offsetHeight || 0;
                 const topOffset = navbarHeight + searchBarHeight;
 
                 // graphContainerRef.current.style.position = 'fixed';
@@ -812,326 +811,244 @@ const ResultPage = () => {
                         skip: 'Skip',
                     }}
                 />
-                <div className="navbar-wrapper">
-                    <NavBarWhite />
-                </div>
-                <Box sx={{ width: '100%', marginTop: '40px' }}>
-                    <Grid className="main-grid" container sx={{ width: "unset" }} >
-                        <Grid item xs={12} className="subgrid">
-                            <MuiButton variant="text" sx={{
-                                color: '#333333',
-                                fontFamily: 'Open Sans, sans-serif',
-                                alignSelf: 'flex-start',
-                                zIndex: 1,
-                                borderRadius: '24px',
-                                marginTop: '16px',
-                                marginBottom: '16px',
-                                // transform: 'translateY(-10px)',
-                            }}
-                                onClick={() => navigate('/')}>
-                                <ArrowBackIcon />Back
-                            </MuiButton>
-                            <div className="search-bar-container" >
-                                <div className="search-bar-wrapper" >
-                                    {searchType === 'neighbor' ? (
-                                        <SearchBarNeighborhood
-                                            initialContent={searchContent} // Pass initial content
-                                            onSearch={(data) => {
-                                                setSearchContent(data); // Update stored content
-                                                setSearchFlag(false);
-                                                handleNeighborSearch(data);
-                                            }}
-                                        />
-                                    ) : (
-                                        <SearchBarKnowledge
-                                            ref={searchBarKnowledgeRef}
-                                            initialContent={searchContent} // Pass initial content
-                                            chipData={[]}
-                                            chipDataIDResult={chipDataIDResult}
-                                            displayArticleGraph={displayArticleGraph}
-                                            setDisplayArticleGraph={setDisplayArticleGraph}
-                                            alterColor={1}
-                                            setOpen={setSearchBarOpen}
-                                            onSearch={(data) => {
-                                                // setSearchContent(data); // Update stored content
-                                                // search(data);
-                                                window.location.reload();
-                                                navigate('/search', {
-                                                    state: {
-                                                        search_data: data,
-                                                        searchType: 'triplet',
-                                                    }
-                                                });
-                                            }}
-                                        />
-                                    )}
+                <NavBarWhite />
+                <Box className="result-body" sx={{ width: '100%', paddingTop: 0, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                    <Box className="main-grid" sx={{ width: '100%', height: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', marginLeft: 0, marginRight: 0 }}>
+                        <Box className="main-content" sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                            {(!searchFlag) && (
+                                <div className='loading-container'>
+                                    <Spin size='large' />
                                 </div>
-                                {/* <div className="graph-controls">
-                                <Button
-                                    onClick={startTour}
-                                    className="start-tour-button"
-                                    disabled={!searchFlag || isGraphLoading}
-                                    style={{
-                                        backgroundColor: 'transparent',
-                                        border: 'none',
-                                        marginLeft: "1vw",
-                                        marginRight: "0.5vw"
-                                    }}
-                                >
-                                    <InfoCircleOutlined style={{ fontSize: "30px", color: "#8D8D8D" }} />
-                                </Button>
-                            </div> */}
-                            </div>
-                        </Grid>
-                        <Grid item xs={12}>
-                            <div className='main-content' style={{ minHeight: "unset", height: "100%" }}>
-                                {(!searchFlag) && (
-                                    <div className='loading-container'>
-                                        <Spin size='large' />
-                                    </div>
-                                )}
-                                {searchFlag && (
-                                    <div className='result-content' style={{ paddingTop: "36px" }}>
-                                        <div className='result-container-wrapper'>
+                            )}
+                            {searchFlag && (
+                                <Box className="result-content result-split" sx={{ paddingTop: 0, display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', gap: 0 }}>
+                                    <Box className="result-left" sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, gap: '24px', padding: '24px' }}>
+                                        <MuiButton variant="text" sx={{
+                                            color: '#333333',
+                                            fontFamily: 'Open Sans, sans-serif',
+                                            alignSelf: 'flex-start',
+                                            zIndex: 1,
+                                            borderRadius: '24px',
+                                            marginBottom: '16px',
+                                        }}
+                                            onClick={() => navigate('/')}>
+                                            <ArrowBackIcon />Back
+                                        </MuiButton>
+                                        <div className="search-bar-container" style={{ boxShadow: "0 1px 10px 0 rgba(0, 0, 0, 0.05)", borderRadius: '20px' }}>
+                                            <div className="search-bar-wrapper">
+                                                {searchType === 'neighbor' ? (
+                                                    <SearchBarNeighborhood
+                                                        initialContent={searchContent} // Pass initial content
+                                                        onSearch={(data) => {
+                                                            setSearchContent(data); // Update stored content
+                                                            setSearchFlag(false);
+                                                            handleNeighborSearch(data);
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <SearchBarKnowledge
+                                                        ref={searchBarKnowledgeRef}
+                                                        initialContent={searchContent} // Pass initial content
+                                                        chipData={[]}
+                                                        chipDataIDResult={chipDataIDResult}
+                                                        displayArticleGraph={displayArticleGraph}
+                                                        setDisplayArticleGraph={setDisplayArticleGraph}
+                                                        alterColor={1}
+                                                        setOpen={setSearchBarOpen}
+                                                        onSearch={(data) => {
+                                                            window.location.reload();
+                                                            navigate('/search', {
+                                                                state: {
+                                                                    search_data: data,
+                                                                    searchType: 'triplet',
+                                                                }
+                                                            });
+                                                        }}
+                                                    />
+                                                )}
+                                            </div>
+                                        </div>
+                                        <Box className="result-container-wrapper" sx={{ flex: 1, minHeight: 0 }}>
                                             <Box sx={{
-                                                // display: 'flex',
-                                                // flexDirection: 'row',
-                                                // width: '100%',
-                                                // paddingTop: "20px",
-                                                paddingBottom: "20px",
-                                                height: 'calc(100% - 20px)',
-                                                // justifyContent: 'center',
-                                                // alignItems: 'center',
-                                                // maxWidth: '1200px',
-                                                // marginLeft: '20px',
-                                                // marginRight: '20px',
+                                                height: '100%',
                                                 flexDirection: 'row',
                                                 flexGrow: 1,
+                                                width: '100%',
                                             }}>
-                                                <Grid container spacing={'48px'} height={"calc(100% + 48px)"}>
-                                                    {/* Left */}
-                                                    <Grid item xs={6} height={"100%"}>
+                                                <Box sx={{
+                                                    borderRadius: "20px",
+                                                    height: "100%",
+                                                    bgcolor: searchBarOpen ? "#f8f8f8" : "white",
+                                                    position: 'relative',
+                                                    overflow: 'hidden',
+                                                    transition: 'background-color 0.3s ease',
+                                                    boxShadow: "0 1px 10px 0 rgba(0, 0, 0, 0.05)",
+                                                }} className="graph-container-wrapper">
+                                                    <Tooltip title={getButtonTooltip()} className="graph-control-button-container">
+                                                        <span />
+                                                    </Tooltip>
+                                                    {!graphShownData?.nodes?.length ?
                                                         <Box sx={{
-                                                            borderRadius: "20px",
-                                                            //width: '100%',
-                                                            height: "100%",
-                                                            //minHeight: "600px",
-                                                            bgcolor: searchBarOpen ? "#f8f8f8" : "white",
-                                                            position: 'relative',
-                                                            // boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
-                                                            // marginLeft: "1%",
-                                                            // marginRight: "1%",
-                                                            // marginTop: "20px",
-                                                            overflow: 'hidden',
-                                                            transition: 'background-color 0.3s ease',
-                                                        }} className="graph-container-wrapper">
-                                                            <Tooltip title={getButtonTooltip()} className="graph-control-button-container">
-                                                                <span>
-                                                                    {/* <StyledButton
-                                                            onClick={changeLeftPanel}
-                                                            variant="contained"
-                                                            startIcon={displayArticleGraph ? <ApartmentOutlined /> : <FileTextOutlined />}
-                                                            className="graph-control-button"
-                                                            disabled={totalNodeCount > NODE_LIMIT && !displayArticleGraph}
-                                                        >
-                                                            {displayArticleGraph ? "Convert to biomedical term graph" : "Convert to article graph"}
-                                                        </StyledButton> */}
-                                                                    {/* <MuiButton
-                                                                    onClick={changeLeftPanel}
-                                                                    variant="contained"
-                                                                    className="graph-control-button"
-                                                                    disabled={totalNodeCount > NODE_LIMIT && !displayArticleGraph}
-                                                                    startIcon={<SwapHorizIcon />}
-                                                                    sx={{
-                                                                        backgroundColor: '#F5F9FD',
-                                                                        color: 'black',
-                                                                        '&:hover': {
-                                                                            backgroundColor: '#F7FBFF',
-                                                                            color: 'black',
-                                                                        },
-                                                                        '&:focus': {
-                                                                            color: 'black',
-                                                                        },
-                                                                        minWidth: '40px',
-                                                                        height: '25px',
-                                                                        fontSize: '16px',
-                                                                        fontWeight: 400,
-                                                                        letterSpacing: '0px',
-                                                                        boxShadow: 'none',
-                                                                        cornerRadius: '8px',
-                                                                    }}>
-                                                                    {displayArticleGraph ? "Biomedical term graph" : "Article graph"}
-                                                                </MuiButton> */}
-                                                                </span>
-                                                            </Tooltip>
-                                                            {!graphShownData?.nodes?.length ?
-                                                                <Box sx={{
-                                                                    display: 'flex',
-                                                                    justifyContent: 'center',
-                                                                    flexDirection: 'column',
-                                                                    alignItems: 'center',
+                                                            display: 'flex',
+                                                            justifyContent: 'center',
+                                                            flexDirection: 'column',
+                                                            alignItems: 'center',
+                                                            height: '100%',
+                                                            fontSize: '20px',
+                                                            color: '#888888',
+                                                        }}>
+                                                            <Box
+                                                                component="img"
+                                                                src={NoResultImage}
+                                                                alt="No results"
+                                                                sx={{
+                                                                    width: '100px',
+                                                                    height: '100px',
+                                                                    marginBottom: '4px',
+                                                                }}
+                                                            />
+                                                            <Typography sx={{
+                                                                fontFamily: 'Open Sans, sans-serif',
+                                                                fontSize: '14px',
+                                                                fontWeight: 400,
+                                                            }}
+                                                            >
+                                                                Start searching to view relationship graph
+                                                            </Typography>
+                                                        </Box> :
+                                                        <>
+                                                            <Box sx={{
+                                                                width: '100%',
+                                                                height: isLegendVisible ? 'calc(100% - 175px)' : '85%',
+                                                            }}>
+                                                                <div className="graph-container" style={{
+                                                                    position: 'relative',
+                                                                    width: '100%',
                                                                     height: '100%',
-                                                                    fontSize: '20px',
-                                                                    color: '#888888',
+                                                                    overflow: 'hidden'
                                                                 }}>
-                                                                    <Box
-                                                                        component="img"
-                                                                        src={NoResultImage}
-                                                                        alt="No results"
-                                                                        sx={{
-                                                                            width: '100px',
-                                                                            height: '100px',
-                                                                            marginBottom: '4px',
+                                                                    <Graph
+                                                                        data={graphShownData}
+                                                                        selectedID={selectedID}
+                                                                        minGtdcFreq={minGtdcFreq}
+                                                                        maxGtdcFreq={maxGtdcFreq}
+                                                                        minGtdcNoc={minGtdcNoc}
+                                                                        maxGtdcNoc={maxGtdcNoc}
+                                                                        gtdcFreq={gtdcFreq}
+                                                                        handleGtdcFreq={handleGtdcFreq}
+                                                                        handleMinGtdcFreq={handleMinGtdcFreq}
+                                                                        handleMaxGtdcFreq={handleMaxGtdcFreq}
+                                                                        gtdcNoc={gtdcNoc}
+                                                                        handleGtdcNoc={handleGtdcNoc}
+                                                                        handleMinGtdcNoc={handleMinGtdcNoc}
+                                                                        handleMaxGtdcNoc={handleMaxGtdcNoc}
+                                                                        handleSelect={handleSelect}
+                                                                        handleInformation={handleInformation}
+                                                                        informationOpen={informationOpen}
+                                                                        expandInformation={expandInformation}
+                                                                        className="graph"
+                                                                        ref={graphContainerRef}
+                                                                        style={{
+                                                                            width: '100%',
+                                                                            height: '100%'
                                                                         }}
                                                                     />
-                                                                    <Typography sx={{
-                                                                        fontFamily: 'Open Sans, sans-serif',
-                                                                        fontSize: '14px',
-                                                                        fontWeight: 400,
-                                                                    }}
-                                                                    >
-                                                                        Start searching to view relationship graph
-                                                                    </Typography>
-                                                                </Box> :
-                                                                <>
-                                                                    <Box sx={{
-                                                                        width: '100%',
-                                                                        height: isLegendVisible ? 'calc(100% - 175px)' : '85%',
-                                                                    }}>
-                                                                        <div className="graph-container" style={{
-                                                                            position: 'relative',
-                                                                            width: '100%',
-                                                                            height: '100%',
-                                                                            overflow: 'hidden'
-                                                                        }}>
-                                                                            <Graph
-                                                                                data={graphShownData}
-                                                                                selectedID={selectedID}
-                                                                                minGtdcFreq={minGtdcFreq}
-                                                                                maxGtdcFreq={maxGtdcFreq}
-                                                                                minGtdcNoc={minGtdcNoc}
-                                                                                maxGtdcNoc={maxGtdcNoc}
-                                                                                gtdcFreq={gtdcFreq}
-                                                                                handleGtdcFreq={handleGtdcFreq}
-                                                                                handleMinGtdcFreq={handleMinGtdcFreq}
-                                                                                handleMaxGtdcFreq={handleMaxGtdcFreq}
-                                                                                gtdcNoc={gtdcNoc}
-                                                                                handleGtdcNoc={handleGtdcNoc}
-                                                                                handleMinGtdcNoc={handleMinGtdcNoc}
-                                                                                handleMaxGtdcNoc={handleMaxGtdcNoc}
-                                                                                handleSelect={handleSelect}
-                                                                                handleInformation={handleInformation}
-                                                                                informationOpen={informationOpen}
-                                                                                expandInformation={expandInformation}
-                                                                                className="graph"
-                                                                                ref={graphContainerRef}
-                                                                                style={{
-                                                                                    width: '100%',
-                                                                                    height: '100%'
-                                                                                }}
-                                                                            />
-                                                                        </div>
-                                                                    </Box>
-                                                                    <Box sx={{
-                                                                        // width: '100%',
-                                                                        // height: '50%',
-                                                                        // position: 'relative',
-                                                                        // left: '0',
-                                                                    }}>
-                                                                        <div className="graph-legend">
-                                                                            <div className="legend-section">
-                                                                                <div className="legend-subsection">
-                                                                                    <div className="legend-subtitle-row">
-                                                                                        <div className="legend-subtitle">Legends</div>
-                                                                                        <Tooltip title={LegendTooltipContent} styles={{ root: { maxWidth: '380px' }, body: { fontSize: '16px', fontFamily: 'Open Sans, sans-serif' } }}>
-                                                                                            <InfoCircleOutlined style={{ color: '#1890ff' }} />
-                                                                                        </Tooltip>
-                                                                                        <button
-                                                                                            className="toggle-button"
-                                                                                            onClick={() => setLegendVisible(!isLegendVisible)}
-                                                                                        >
-                                                                                            <img
-                                                                                                src={downArrow}
-                                                                                                alt="Toggle legend"
-                                                                                                className="legend-toggle-icon"
-                                                                                                style={isLegendVisible ? {} : { transform: 'rotate(180deg)' }}
-                                                                                            />
-                                                                                        </button>
-                                                                                    </div>
-
-                                                                                    {isLegendVisible && (
-                                                                                        <div>
-                                                                                            <div className="legend-column">
-                                                                                                {legendData.map((item, index) => (
-                                                                                                    <LegendButton
-                                                                                                        key={index}
-                                                                                                        label={item.label}
-                                                                                                        size={item.size}
-                                                                                                        color={item.color}
-                                                                                                    />
-                                                                                                ))}
-                                                                                            </div>
-                                                                                            <div className="legend-column">
-                                                                                                {legendEdgeData.map((item, index) => (
-                                                                                                    <LegendItem
-                                                                                                        key={index}
-                                                                                                        label={item.label}
-                                                                                                        size={item.size}
-                                                                                                        color={item.color}
-                                                                                                    />
-                                                                                                ))}
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    )}
-                                                                                </div>
-
+                                                                </div>
+                                                            </Box>
+                                                            <Box>
+                                                                <div className="graph-legend">
+                                                                    <div className="legend-section">
+                                                                        <div className="legend-subsection">
+                                                                            <div className="legend-subtitle-row">
+                                                                                <div className="legend-subtitle">Legends</div>
+                                                                                <Tooltip title={LegendTooltipContent} styles={{ root: { maxWidth: '380px' }, body: { fontSize: '16px', fontFamily: 'Open Sans, sans-serif' } }}>
+                                                                                    <InfoCircleOutlined style={{ color: '#1890ff' }} />
+                                                                                </Tooltip>
+                                                                                <button
+                                                                                    className="toggle-button"
+                                                                                    onClick={() => setLegendVisible(!isLegendVisible)}
+                                                                                >
+                                                                                    <img
+                                                                                        src={downArrow}
+                                                                                        alt="Toggle legend"
+                                                                                        className="legend-toggle-icon"
+                                                                                        style={isLegendVisible ? {} : { transform: 'rotate(180deg)' }}
+                                                                                    />
+                                                                                </button>
                                                                             </div>
+
+                                                                            {isLegendVisible && (
+                                                                                <div>
+                                                                                    <div className="legend-column">
+                                                                                        {legendData.map((item, index) => (
+                                                                                            <LegendButton
+                                                                                                key={index}
+                                                                                                label={item.label}
+                                                                                                size={item.size}
+                                                                                                color={item.color}
+                                                                                            />
+                                                                                        ))}
+                                                                                    </div>
+                                                                                    <div className="legend-column">
+                                                                                        {legendEdgeData.map((item, index) => (
+                                                                                            <LegendItem
+                                                                                                key={index}
+                                                                                                label={item.label}
+                                                                                                size={item.size}
+                                                                                                color={item.color}
+                                                                                            />
+                                                                                        ))}
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
-                                                                    </Box>
-                                                                </>
-                                                            }
-                                                        </Box>
-                                                    </Grid>
-                                                    {/* Right */}
-                                                    <Grid item xs={6} height={"100%"}>
-                                                        <Box sx={{
-                                                            borderRadius: "20px",
-                                                            height: "100%",
-                                                            background: searchBarOpen ? "#f8f8f8" : "white",
-                                                            transition: 'background-color 0.3s ease',
-                                                            //minHeight: "600px",
-                                                            paddingBottom: "20px",
-                                                            // marginLeft: "1%",
-                                                            // marginRight: "1%",
-                                                            // marginTop: "20px",
-                                                            // boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.25)",
-                                                            '& *': {
-                                                                fontFamily: 'Open Sans, sans-serif',
-                                                            },
 
-                                                        }} className="floating-information-new">
-                                                            <Information
-                                                                isOpen={informationOpen}
-                                                                toggleSidebar={handleInformation}
-                                                                detailId={detailId}
-                                                                displayArticleGraph={displayArticleGraph}
-                                                            />
-                                                        </Box>
-                                                    </Grid>
-                                                </Grid>
+                                                                    </div>
+                                                                </div>
+                                                            </Box>
+                                                        </>
+                                                    }
+                                                </Box>
                                             </Box>
+                                        </Box>
+                                    </Box>
+                                    <Box className="result-right" sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                                        <Box sx={{
+                                            borderRadius: 0,
+                                            height: "100%",
+                                            background: '#ffffff',
+                                            transition: 'background-color 0.3s ease',
+                                            paddingBottom: 0,
+                                            borderLeft: '1px solid #F4F4F4',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            flex: 1,
+                                            minHeight: 0,
+                                            overflow: 'hidden',
+                                            '& *': {
+                                                fontFamily: 'Open Sans, sans-serif',
+                                            },
 
+                                        }} className="floating-information-new">
+                                            <Box className="result-right-scroll" sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+                                                <Information
+                                                    isOpen={informationOpen}
+                                                    toggleSidebar={handleInformation}
+                                                    detailId={detailId}
+                                                    displayArticleGraph={displayArticleGraph}
+                                                />
+                                            </Box>
+                                        </Box>
+                                    </Box>
 
-                                        </div>
-
-                                        {/* <Button
+                                    {/* <Button
                                         className="legend-toggle-button"
                                         onClick={toggleLegend}
                                         icon={isLegendVisible ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />}
                                     >
                                         Legend
                                     </Button> */}
-                                        {/* <div ref={settingsRef} className={`floating-settings ${isSettingsVisible ? 'open' : ''}`} style={{ width: settingsWidth, minWidth: '400px', display: 'none' }}>
+                                    {/* <div ref={settingsRef} className={`floating-settings ${isSettingsVisible ? 'open' : ''}`} style={{ width: settingsWidth, minWidth: '400px', display: 'none' }}>
                                         <Settings
                                             minGtdcFreq={minGtdcFreq}
                                             maxGtdcFreq={maxGtdcFreq}
@@ -1207,11 +1124,10 @@ const ResultPage = () => {
                                         onClick={toggleInformation}
                                         className={`information-float-button ${!isInformationVisible ? 'collapsed' : ''}`}
                                     /> */}
-                                    </div>
-                                )}
-                            </div>
-                        </Grid>
-                    </Grid>
+                                </Box>
+                            )}
+                        </Box>
+                    </Box>
                 </Box>
                 <AntButton
                     onClick={() => startTour()}

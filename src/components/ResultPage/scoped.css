@@ -13,16 +13,17 @@ all {
 
 /* Layout */
 .result-container {
-    background: #F1FBFF;
+    background: #FAFCFF;
     min-width: 1200px;
-    min-height: 700px;
-    height: 100%;
+    min-height: 100vh;
+    height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow-x: auto;
+    overflow: hidden;
     /* Remove padding-top */
     position: relative;
     z-index: 1;
+    --result-gutter: max(4%, 40px);
 }
 
 .result-content {
@@ -33,6 +34,10 @@ all {
     padding-bottom: 0px;
     padding-top: 0px;
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
 }
 
 .subgrid {
@@ -166,12 +171,51 @@ all {
     right: 24px;
 }
 
+.result-split {
+    display: flex;
+    flex-direction: row;
+    gap: 48px;
+    height: 100%;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.result-left,
+.result-right {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+}
+
+.result-right-scroll {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.result-container .main-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.result-left {
+    gap: 24px;
+}
+
 /* Graph container */
 .result-container-wrapper {
     position: relative;
-    /* Navbar height (64px) + Search bar height (60px) */
-    height: calc(100vh - 36px - 134px - 100px);
-    max-height: calc(100vh - 36px - 134px - 100px);
+    flex: 1;
+    min-height: 0;
+    height: auto;
+    max-height: none;
     width: 100%;
     display: flex;
     justify-content: center;
@@ -195,16 +239,14 @@ all {
 /* Hide scrollbars */
 .graph-container,
 .result-list-container,
-.search-bar-container,
-.navbar-wrapper {
+.search-bar-container {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
 
 .graph-container::-webkit-scrollbar,
 .result-list-container::-webkit-scrollbar,
-.search-bar-container::-webkit-scrollbar,
-.navbar-wrapper::-webkit-scrollbar {
+.search-bar-container::-webkit-scrollbar {
     display: none;
 }
 
@@ -270,18 +312,6 @@ all {
     }
 }
 
-/* Fixed elements */
-.navbar-wrapper {
-    position: relative;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 64px;
-    /* Set a fixed height for the navbar */
-    z-index: 1000;
-    background: #F4F6FE;
-}
-
 .search-bar-container {
     /* position: absolute; */
     /* top: 96px; */
@@ -325,14 +355,17 @@ all {
 }
 
 .main-grid {
-    margin-left: max(4%, 40px);
-    margin-right: max(4%, 40px);
+    margin-left: var(--result-gutter);
+    margin-right: var(--result-gutter);
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
 }
 
 @media (min-width: 1200px) {
-    .main-grid {
-        margin-left: 6%;
-        margin-right: 6%;
+    .result-container {
+        --result-gutter: 6%;
     }
 }
 
@@ -598,26 +631,30 @@ all {
     display: block;
 }
 
-.graph-container>div {
-    width: 100% !important;
-    height: 100% !important;
-    display: block;
-}
-
-.graph-container>div>div {
-    width: 100% !important;
-    height: 100% !important;
-    display: block;
-}
-
-.graph-container>div>div>div {
-    width: 100% !important;
-    height: 100% !important;
-    display: block;
-}
-
+.graph-container>div,
+.graph-container>div>div,
+.graph-container>div>div>div,
 .graph-container>div>div>div>div {
     width: 100% !important;
     height: 100% !important;
     display: block;
+}
+
+.result-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.result-body .main-grid {
+    flex: 1;
+    min-height: 0;
+}
+
+.result-body .main-grid>.MuiGrid-item {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }

@@ -2,84 +2,80 @@ import 'antd/dist/reset.css';
 import './scoped.css';
 
 import React, {
-  useEffect,
-  useRef,
-  useState,
+    useEffect,
+    useRef,
+    useState,
 } from 'react';
-import axios from 'axios';
 
 import { Button as AntButton } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import Joyride, {
-  ACTIONS,
-  EVENTS,
-  STATUS,
+    ACTIONS,
+    EVENTS,
+    STATUS,
 } from 'react-joyride';
-import {
-  useLocation,
-  useNavigate,
-} from 'react-router-dom';
 
-import ApiIcon from '@mui/icons-material/Api';
-import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
-import OutboundIcon from '@mui/icons-material/Outbound';
 import {
-  Box,
-  CircularProgress,
-  Container,
-  Grid,
-  Typography,
+    ArrowOutward as ArrowOutwardIcon,
+    Close as CloseIcon,
+    DescriptionOutlined as DescriptionOutlinedIcon,
+    LightbulbOutlined as LightbulbOutlinedIcon,
+    ShowChart as ShowChartIcon,
+    StackedBarChartOutlined as StackedBarChartOutlinedIcon,
+} from '@mui/icons-material';
+import {
+    Box,
+    IconButton,
+    Paper,
+    Typography,
 } from '@mui/material';
 
 import NavBarWhite from '../Units/NavBarWhite';
-import SearchBarKnowledge from '../Units/SearchBarKnowledge';
-import SubNavBar from '../Units/SubNavBar';
-import LlmSearchBar from './LlmSearchBar';
+import exampleSchema from './exampleSchema.json';
+import LlmSearchBar from './LlmSearchBarHome';
 
 // const { Search } = Input;
 
 
 const HomePage = () => {
-    const location = useLocation();
-    const { state } = location || {};
-    let navigate = useNavigate();
     // const [tags, setTags] = useState([]);
     const [runTour, setRunTour] = useState(false);
-    const [activeButton, setActiveButton] = useState(state?.activeButton || "llm");
+    const [searchBarOpen, setSearchBarOpen] = useState(false);
+    const [showExamples, setShowExamples] = useState(undefined);
+    const [prefillQuery, setPrefillQuery] = useState('');
+    const examplePanelRef = useRef(null);
+    const iconMap = {
+        lightbulb: <LightbulbOutlinedIcon />,
+        chart: <ShowChartIcon />,
+        book: <DescriptionOutlinedIcon />,
+        knowledge: <StackedBarChartOutlinedIcon />,
+    };
+    const pills = (exampleSchema.pills || []).map((pill) => ({
+        ...pill,
+        icon: iconMap[pill.icon] || <LightbulbOutlinedIcon />,
+    }));
+    const activePill = pills.find((pill) => pill.id === showExamples);
 
     // const [focused, setFocused] = useState(false);
     // const theme = useTheme();
     // const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-    // Add refs for the search components
-    const searchBarKnowledgeRef = useRef(null);
-    // const searchBarNeighborhoodRef = useRef(null);
-    const [stats, setStats] = useState(null);
-    const [searchBarOpen, setSearchBarOpen] = useState(false);
 
     useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const { data } = await axios.get('/api/v1/statistics');
-                Object.keys(data).forEach(key => {
-                    data[key] = data[key] ? new Intl.NumberFormat('en', {
-                        notation: 'compact',
-                        compactDisplay: 'short',
-                    }).format(data[key]) : "N/A";
-                });
-                setStats(data);
-            } catch (error) {
-                console.error('Error fetching statistics:', error);
+        if (!showExamples) {
+            return;
+        }
+
+        const handleClickOutside = (event) => {
+            if (examplePanelRef.current && !examplePanelRef.current.contains(event.target)) {
+                setShowExamples(undefined);
             }
         };
-        fetchStats();
-    }, []);
 
-    useEffect(() => {
-        // Update activeButton if state changes
-        if (state?.activeButton) {
-            setActiveButton(state.activeButton);
-        }
-    }, [state?.activeButton]);
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showExamples]);
 
 
     // const handleSearch = async (v) => {
@@ -135,67 +131,11 @@ const HomePage = () => {
         const commonSteps = [
             {
                 target: '.glkb-title',
-                content: 'Welcome to GLKB! Let\'s explore how to use the search and visualize the biomedical knowledge from 33 million+ Pubmed articles and nine well-curated databases.',
+                content: 'Welcome to GLKB AI Chat. Ask questions and explore biomedical literature with our agent.',
                 placement: 'bottom',
                 disableBeacon: true,
             },
-            {
-                target: '.sub-navigation-bar',
-                content: 'Choose between two search modes: "Graphical Search" to explore relationships between multiple terms, or "LLM Agent" to automatically search for relevant information with natural language.',
-                placement: 'bottom',
-            }
         ];
-
-        const tripletSteps = [
-            // {
-            //     target: '.search-autocomplete-box',
-            //     content: 'Start typing here to see autocomplete suggestions for your search terms.',
-            //     placement: 'bottom',
-            // },
-            // {
-            //     target: '.add-biomedical-term-button',
-            //     content: 'After selecting a term, click here to add it to your search query.',
-            //     placement: 'bottom',
-            // },
-            // {
-            //     target: '.log-box',
-            //     content: 'Your added terms will appear here. You can add up to five terms in one search. Remove terms by clicking the "X" button.',
-            //     placement: 'bottom',
-            // }
-            {
-                target: '.search-autocomplete-box',
-                content: 'Start typing here to see autocomplete suggestions for your search terms. Click the term to add it to your search query.',
-                placement: 'bottom',
-            },
-            {
-                target: '.search-autocomplete-box',
-                content: 'You can add up to five terms in one search.',
-                placement: 'top',
-            }
-        ];
-
-        // const neighborSteps = [
-        //     {
-        //         target: '.search-autocomplete-box',
-        //         content: 'Start typing to find a biomedical term you want to explore.',
-        //         placement: 'bottom',
-        //     },
-        //     {
-        //         target: '.term-type-dropdown',
-        //         content: 'Select which types of terms you want to find (e.g., Genes, Diseases, Drugs).',
-        //         placement: 'bottom',
-        //     },
-        //     {
-        //         target: '.results-limit-dropdown',
-        //         content: 'Choose how many related terms you want to see in the results.',
-        //         placement: 'bottom',
-        //     },
-        //     {
-        //         target: '.relationship-type-dropdown',
-        //         content: 'Choose how you want to find related terms: through literature-based relationships or curated databases.',
-        //         placement: 'bottom',
-        //     }
-        // ];
 
         const llmSteps = [
             {
@@ -205,25 +145,14 @@ const HomePage = () => {
             },
             {
                 target: '.search-button-big',
-                content: 'Click here to initiate the search with your selected terms.',
-                placement: 'bottom',
-            }
-        ];
-
-        const finalSteps = [
-            {
-                target: '.search-button-big',
-                content: activeButton === 'triplet'
-                    ? 'Click here to visualize the relationships between your selected terms.'
-                    : 'Click here to find related terms based on your settings.',
+                content: 'Click here to launch the chat with your question.',
                 placement: 'bottom',
             }
         ];
 
         return [
             ...commonSteps,
-            ...(activeButton === 'triplet' ? [...tripletSteps, ...finalSteps] :
-                llmSteps),
+            ...llmSteps,
         ];
     };
 
@@ -237,13 +166,11 @@ const HomePage = () => {
                 <meta name="description" content="Discover insights from 33M+ genomic research articles. GLKB enables AI-powered search across genes, diseases, variants, and chemicals with high accuracy." />
                 <meta property="og:title" content="Home Page - Genomic Literature Knowledge Base" />
             </Helmet>
-            <div style={{ maxHeight: '100vh', overflowY: 'hidden' }}>
-                <NavBarWhite
-                    showLogo={true} activeButton={activeButton}
-                />
+            <div className="HomePageRoot">
+                <NavBarWhite showLogo={true} />
                 <div className="HomePageContainer">
                     <div className="HomePageInner" style={{
-                        backgroundColor: searchBarOpen ? '#e2ecf0' : '#F1FBFF',
+                        backgroundColor: '#FAFCFF',
                         transition: 'background-color 0.3s ease',
                     }}>
                         <Joyride
@@ -283,145 +210,92 @@ const HomePage = () => {
                             spotlightPadding={0}
                             scrollToFirstStep={true}
                         />
-                        <Box className="homepage-top" sx={{
-                            width: "100%",
-                            paddingTop: '13vh',
-                            backgroundColor: '#079BD4',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            display: 'flex',
-                            flexDirection: 'column'
-                        }}>
-                            <Typography sx={{
-                                fontFamily: 'Open Sans',
-                                fontWeight: 700,
-                                fontSize: '48px',
-                                leadingTrim: 'NONE',
-                                lineHeight: '100%',
-                                letterSpacing: '0%',
-                                textAlign: 'center',
-                                paddingBottom: '16px',
-                                color: 'white',
-                            }} className='glkb-title'>
-                                Genomic Literature Knowledge Base
-                            </Typography>
-                            <Typography sx={{
-                                fontFamily: 'Open Sans',
-                                fontWeight: 400,
-                                fontSize: '20px',
-                                color: 'white',
-                                textAlign: 'center',
-                                paddingBottom: '30px',
-                                maxWidth: '600px',
-                            }}>
-                                Discover insights from genomic research with <Box component="span" sx={{ whiteSpace: 'nowrap' }}>AI-powered</Box> search and analysis
-                            </Typography>
-                            <Box sx={{ paddingBottom: '40px' }}>
-                                <SubNavBar activeButton={activeButton} />
+                        <Box className="homepage-hero">
+                            <Box className="homepage-hero-inner">
+                                <Typography
+                                    className="glkb-title"
+                                    sx={{
+                                        fontFamily: 'DM Sans, sans-serif',
+                                        fontWeight: 700,
+                                        fontSize: '36px',
+                                        color: '#164563',
+                                    }}
+                                >
+                                    Ask. Answer. Cite.
+                                </Typography>
+                                <Typography
+                                    className="glkb-subtitle"
+                                    sx={{
+                                        fontFamily: 'DM Sans, sans-serif',
+                                        fontWeight: 600,
+                                        fontSize: '16px',
+                                        color: '#646464',
+                                    }}
+                                >
+                                    Discover insights from genomic research with AI-powered search and analysis
+                                </Typography>
                             </Box>
-                            <Box className={"search-bar"} sx={{ width: "-webkit-fill-available", paddingBottom: 'calc(min(9vh, 80px))' }}>
-                                {activeButton === 'triplet' ? (
-                                    <SearchBarKnowledge
-                                        ref={searchBarKnowledgeRef}
-                                        chipData={[]}
-                                        setOpen={setSearchBarOpen}
-                                        onSearch={(data) => {
-                                            // console.log('Triplet Search Data:', {
-                                            //     search_data: data,
-                                            //     searchType: 'triplet',
-                                            // });
-                                            navigate('/search', {
-                                                state: {
-                                                    search_data: data,
-                                                    searchType: 'triplet',
-                                                }
-                                            });
-                                        }}
-                                    />
-                                ) : (
-                                    <LlmSearchBar
-                                        setOpen={setSearchBarOpen}
-                                    />
-                                )}
+                            <Box className="homepage-hero-search">
+                                <Box className="search-bar">
+                                    <Box className="homepage-search-stack">
+                                        <LlmSearchBar
+                                            setOpen={setSearchBarOpen}
+                                            prefillQuery={prefillQuery}
+                                            autocompleteOptions={exampleSchema.autocomplete || []}
+                                        />
+                                        {activePill && (
+                                            <Paper className="homepage-examples-panel" ref={examplePanelRef}>
+                                                <Box className="homepage-examples-header">
+                                                    <Typography className="homepage-examples-title">
+                                                        {activePill.panelTitle || `${activePill.label} Examples`}
+                                                    </Typography>
+                                                    <IconButton
+                                                        aria-label="Close examples"
+                                                        size="small"
+                                                        onClick={() => setShowExamples(undefined)}
+                                                        className="homepage-examples-close"
+                                                    >
+                                                        <CloseIcon sx={{ fontSize: 18 }} />
+                                                    </IconButton>
+                                                </Box>
+                                                <Box className="homepage-examples-list">
+                                                    {(activePill.examples || []).map((example) => (
+                                                        <button
+                                                            key={example}
+                                                            type="button"
+                                                            className="homepage-examples-item"
+                                                            onClick={() => {
+                                                                setPrefillQuery(example);
+                                                                setShowExamples(undefined);
+                                                            }}
+                                                        >
+                                                            <span>{example}</span>
+                                                            <span className="homepage-examples-arrow">
+                                                                <ArrowOutwardIcon fontSize="small" />
+                                                            </span>
+                                                        </button>
+                                                    ))}
+                                                </Box>
+                                            </Paper>
+                                        )}
+                                    </Box>
+                                </Box>
+                                <Box className="homepage-pills">
+                                    {pills.map((pill) => (
+                                        <Box
+                                            key={pill.id}
+                                            className={`homepage-pill${showExamples === pill.id ? ' is-active' : ''}`}
+                                            onClick={() => {
+                                                setShowExamples((current) => current === pill.id ? undefined : pill.id);
+                                            }}
+                                        >
+                                            <span className="homepage-pill-icon">{pill.icon}</span>
+                                            <span className="homepage-pill-label">{pill.label}</span>
+                                        </Box>
+                                    ))}
+                                </Box>
                             </Box>
                         </Box>
-                        <Grid container spacing={2} className="content HomePageMain" justifyContent="center" alignItems="center" sx={{
-                            marginTop: 'calc(min(4vh, 45px))'
-                        }}>
-                            <Container className="info-card-section" sx={{ gap: '40px', display: 'flex', flexDirection: 'row' }} >
-                                {stats ? ([
-                                    [OutboundIcon, "36%", "more accurate on PubMedQA with GLKB (62.3% → 98.1%)"],
-                                    [ApiIcon, stats.num_api_calling || "N/A", "Total external API calls since released"],
-                                    [LibraryBooksIcon, stats.num_articles || "N/A", "Articles covered in GLKB database"],
-                                ].map(([icon, value, description], index) => (
-                                    <Grid item xs={4} key={index}>
-                                        <Box sx={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            width: '100%',
-                                            minHeight: '100%',
-                                            height: '188px',
-                                            padding: '27px 12px',
-                                            borderRadius: '12px',
-                                            backgroundColor: 'transparent',
-                                            border: '1px solid #0169B04D',
-                                            // borderBottom: '5px solid #0169B0'
-                                        }}>
-                                            {React.createElement(icon, {
-                                                sx: {
-                                                    fontSize: '64px',
-                                                    color: '#0169B0'
-                                                }
-                                            })}
-                                            <Box
-                                                sx={{
-                                                    textAlign: 'left',
-                                                    display: 'flex',
-                                                    flexDirection: 'row',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'flex-start',
-                                                    width: '100%',
-                                                    whiteSpace: 'normal',
-                                                }}>
-                                                <div style={{
-                                                    fontFamily: 'Open Sans',
-                                                    fontWeight: '400',
-                                                    fontSize: '40px',
-                                                    color: '#0169B0',
-                                                    padding: '0px 10px',
-                                                    minWidth: '120px',
-                                                    textAlign: 'center',
-                                                    transform: 'translateY(-2px)',
-                                                }}>
-                                                    {value}
-                                                </div>
-                                                <div style={{
-                                                    fontFamily: 'Open Sans',
-                                                    fontWeight: '400',
-                                                    fontSize: '14px',
-                                                    color: '#646B96',
-                                                    maxWidth: '150px'
-                                                }}>
-                                                    {description}
-                                                </div>
-                                            </Box>
-                                        </Box>
-                                    </Grid>
-                                ))) : (
-                                    <Box sx={{
-                                        display: 'flex',
-                                        alignContent: 'center',
-                                        alignItems: 'center',
-                                        height: '188px',
-                                        padding: '27px 12px',
-                                    }}>
-                                        <CircularProgress />
-                                    </Box>
-                                )}
-                            </Container>
-                        </Grid>
 
                         <div className="footer">
                             <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
@@ -447,10 +321,11 @@ const HomePage = () => {
                             height: '56px',
                             fontSize: '24px',
                             borderRadius: '50%',
-                            backgroundColor: '#079BD4',
-                            color: 'white',
-                            border: 'none',
-                            fontFamily: 'Open Sans, sans-serif',
+                            backgroundColor: '#E7F1FF',
+                            color: '#155DFC',
+                            border: '1px solid #D8E6FF',
+                            fontFamily: 'DM Sans, sans-serif',
+                            boxShadow: '0 6px 12px rgba(21, 93, 252, 0.28)',
                         }}
                     >
                         ?
