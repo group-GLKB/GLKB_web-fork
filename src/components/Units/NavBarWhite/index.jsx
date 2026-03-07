@@ -380,15 +380,15 @@ function NavBarWhite({ showLogo = true }) {
                         </Box>
                     )}
                 </Box>
-                <Divider />
+                <Divider sx={{ display: 'none' }} />
                 <List sx={{ px: 1, py: 1 }}>
                     {topItems.map((item) => renderNavItem(item))}
                 </List>
-                <Divider />
+                <Divider sx={{ mx: 3.5 }} />
                 <List sx={{ px: 1, py: 1 }}>
                     {middleItems.map((item) => renderNavItem(item))}
                 </List>
-                <Divider />
+                <Divider sx={{ mx: 3.5 }} />
                 <List sx={{ px: 1, py: 1 }}>
                     {bottomItems.map((item) => renderNavItem(item))}
                 </List>
