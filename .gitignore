@@ -25,6 +25,8 @@ chrome-user-data
 *.swo
 yarn.zip
 nohup.out
+yarn.lock
+.yarn/
 test-auth-server.js
 
 packages/react-devtools-core/dist
