@@ -93,13 +93,36 @@ function NavBarWhite({ showLogo = true }) {
     const location = useLocation();
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
-    const [open, setOpen] = useState(!isSmallScreen);
+    const [open, setOpen] = useState(() => {
+        if (typeof window === 'undefined') {
+            return true;
+        }
+        const storedOpen = window.localStorage.getItem('sidebar-open');
+        if (storedOpen === null) {
+            return !isSmallScreen;
+        }
+        return storedOpen === 'true';
+    });
 
     useEffect(() => {
         if (isSmallScreen) {
             setOpen(false);
+            return;
+        }
+
+        const storedOpen = window.localStorage.getItem('sidebar-open');
+        if (storedOpen !== null) {
+            setOpen(storedOpen === 'true');
         }
     }, [isSmallScreen]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined' || isSmallScreen) {
+            return;
+        }
+
+        window.localStorage.setItem('sidebar-open', String(open));
+    }, [open, isSmallScreen]);
 
     useEffect(() => {
         const body = document.body;
