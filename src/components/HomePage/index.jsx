@@ -19,9 +19,9 @@ import {
     ArrowOutward as ArrowOutwardIcon,
     Close as CloseIcon,
     DescriptionOutlined as DescriptionOutlinedIcon,
+    Layers as LayersIcon,
     LightbulbOutlined as LightbulbOutlinedIcon,
-    ShowChart as ShowChartIcon,
-    StackedBarChartOutlined as StackedBarChartOutlinedIcon,
+    TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import {
     Box,
@@ -46,9 +46,9 @@ const HomePage = () => {
     const examplePanelRef = useRef(null);
     const iconMap = {
         lightbulb: <LightbulbOutlinedIcon />,
-        chart: <ShowChartIcon />,
+        chart: <TrendingUpIcon />,
         book: <DescriptionOutlinedIcon />,
-        knowledge: <StackedBarChartOutlinedIcon />,
+        knowledge: <LayersIcon />,
     };
     const pills = (exampleSchema.pills || []).map((pill) => ({
         ...pill,
