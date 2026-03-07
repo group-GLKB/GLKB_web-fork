@@ -3,51 +3,50 @@ import './scoped.css';
 import './github-markdown-light.css';
 
 import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from 'react';
 
 import {
-  message,
-  Select,
+    message,
+    Select,
 } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import ReactMarkdown from 'react-markdown';
 import {
-  useLocation,
-  useNavigate,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
 import {
-  ArrowBack as ArrowBackIcon,
-  ChatBubbleOutline as ChatBubbleOutlineIcon,
-  Check as CheckIcon,
-  Clear as ClearIcon,
-  Close as CloseIcon,
-  ContentCopy as ContentCopyIcon,
-  Download as DownloadIcon,
-  EditNote as EditNoteIcon,
-  FilePresent as FilePresentIcon,
-  RateReview as RateReviewIcon,
-  Refresh as RefreshIcon,
-  StopCircle as StopCircleIcon,
+    ChatBubbleOutline as ChatBubbleOutlineIcon,
+    Check as CheckIcon,
+    Clear as ClearIcon,
+    Close as CloseIcon,
+    ContentCopy as ContentCopyIcon,
+    Download as DownloadIcon,
+    EditNote as EditNoteIcon,
+    FilePresent as FilePresentIcon,
+    RateReview as RateReviewIcon,
+    Refresh as RefreshIcon,
+    StopCircle as StopCircleIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Button as MuiButton,
-  CircularProgress,
-  Container,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  Grid,
-  IconButton,
-  Stack,
-  TextField,
-  Typography,
+    Box,
+    Button as MuiButton,
+    CircularProgress,
+    Container,
+    Dialog,
+    DialogContent,
+    DialogTitle,
+    Divider,
+    Grid,
+    IconButton,
+    Stack,
+    TextField,
+    Typography,
 } from '@mui/material';
 
 import systemIcon from '../../img/LLM_logo.jpg';
@@ -70,9 +69,9 @@ function ThinkingSteps({ currentStep }) {
 
     return (
         <Box sx={{ mt: 2, mb: 2, overflow: 'hidden', height: '41px', position: 'relative' }}>
-            <Box 
+            <Box
                 key={currentStep}
-                sx={{ 
+                sx={{
                     width: '544px',
                     maxWidth: '100%',
                     px: '16px',
@@ -120,7 +119,7 @@ function LLMAgent() {
     const messagesEndRef = useRef(null);
     const abortControllerRef = useRef(null);
     const navigate = useNavigate();
-    
+
 
     // Timer to cycle through thinking steps every 3 seconds
     useEffect(() => {
@@ -430,7 +429,8 @@ function LLMAgent() {
                     )}
                     <Box
                         sx={{
-                            bgcolor: isAssistant ? "white" : "#EDF5FE", // Different background colors
+                            bgcolor: isAssistant ? "transparent" : "#ffffff", // Different background colors
+                            boxShadow: isAssistant ? "none" : "0 4px 16px 0 rgba(0, 0, 0, 0.05)",
                             maxWidth: isAssistant ? "100%" : "80%", // Adjust max width for assistant messages
                             display: "flex",
                             alignItems: "flex-start",
@@ -638,12 +638,12 @@ function LLMAgent() {
 
     const handleExportReferences = () => {
         if (sortedReferences.length === 0) return;
-        
+
         const bibTexContent = sortedReferences.map((ref, index) => {
             const pubmedId = ref.url.split('/').filter(Boolean).pop();
             const cleanTitle = ref.title.replace(/[{}]/g, '');
             const cleanAuthors = ref.authors.replace(/,/g, ' and');
-            
+
             return `@article{pubmed${pubmedId},
   author = {${cleanAuthors}},
   title = {${cleanTitle}},
@@ -652,7 +652,7 @@ function LLMAgent() {
   note = {PubMed ID: ${pubmedId}}
 }`;
         }).join('\n\n');
-        
+
         const blob = new Blob([bibTexContent], { type: 'application/x-bibtex' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -665,7 +665,7 @@ function LLMAgent() {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        
+
         message.success('References exported as BibTeX');
     };
 
@@ -681,14 +681,14 @@ function LLMAgent() {
 
     const generateCitation = (format) => {
         if (!selectedCitation) return '';
-        
+
         const title = selectedCitation[0];
         const pubmedUrl = selectedCitation[1];
         const year = selectedCitation[3];
         const journal = selectedCitation[4];
         const authors = selectedCitation[5];
         const pubmedId = pubmedUrl.split('/').filter(Boolean).pop();
-        
+
         switch (format) {
             case 'MLA':
                 return `${authors}. "${title}." ${journal} ${year}. PubMed ID: ${pubmedId}.`;
@@ -787,9 +787,9 @@ function LLMAgent() {
                 <meta name="description" content="Discover insights from 33M+ genomic research articles. GLKB enables AI-powered search across genes, diseases, variants, and chemicals with high accuracy." />
                 <meta property="og:title" content="AI Chat - Genomic Literature Knowledge Base | AI-Powered Genomics Search" />
             </Helmet>
-            
-            <Dialog 
-                open={citeDialogOpen} 
+
+            <Dialog
+                open={citeDialogOpen}
                 onClose={handleCloseCiteDialog}
                 maxWidth="md"
                 fullWidth
@@ -800,9 +800,9 @@ function LLMAgent() {
                     }
                 }}
             >
-                <DialogTitle sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
+                <DialogTitle sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
                     fontFamily: 'Open Sans, sans-serif',
                     fontSize: '20px',
@@ -817,13 +817,13 @@ function LLMAgent() {
                     <Stack spacing={2}>
                         {['MLA', 'APA', 'Chicago', 'Harvard', 'Vancouver'].map((format) => (
                             <Box key={format}>
-                                <Box sx={{ 
-                                    display: 'flex', 
-                                    justifyContent: 'space-between', 
+                                <Box sx={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
                                     alignItems: 'center',
                                     mb: 1
                                 }}>
-                                    <Typography sx={{ 
+                                    <Typography sx={{
                                         fontFamily: 'Open Sans, sans-serif',
                                         fontWeight: '600',
                                         fontSize: '14px'
@@ -831,7 +831,7 @@ function LLMAgent() {
                                         {format}
                                     </Typography>
                                 </Box>
-                                <Box sx={{ 
+                                <Box sx={{
                                     backgroundColor: '#f5f5f5',
                                     padding: '12px',
                                     borderRadius: '8px',
@@ -842,15 +842,15 @@ function LLMAgent() {
                                         backgroundColor: '#ebebeb'
                                     }
                                 }}
-                                onClick={() => handleCopyCitation(format)}
+                                    onClick={() => handleCopyCitation(format)}
                                 >
                                     {generateCitation(format)}
                                 </Box>
                             </Box>
                         ))}
-                        
+
                         <Divider sx={{ my: 2 }} />
-                        
+
                         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
                             <MuiButton
                                 variant="outlined"
@@ -881,13 +881,11 @@ function LLMAgent() {
                 </DialogContent>
             </Dialog>
 
-            <div className="result-container">
-                <div className="navbar-wrapper">
-                    <NavBarWhite />
-                </div>
-                <Grid className="main-grid" container sx={{ marginTop: '64px', width: "unset" }} >
-                    <Grid item xs={12} className="subgrid">
-                        <div className="main-content">
+            <div className="llm-page">
+                <NavBarWhite />
+                <Grid className="llm-grid" container sx={{ width: "100%" }}>
+                    <Grid item xs={12} className="llm-subgrid">
+                        <div className="llm-main-content">
                             {/* <MuiButton variant="text" sx={{
                                 color: '#333333',
                                 fontFamily: 'Open Sans, sans-serif',
@@ -900,11 +898,11 @@ function LLMAgent() {
                                 onClick={() => navigate('/')}>
                                 <ArrowBackIcon />Back
                             </MuiButton> */}
-                            <div className='result-content'>
+                            <div className='llm-content'>
                                 <div className="llm-agent-container">
                                     <div className="chat-and-references">
-                                        <Grid container spacing={'48px'}>
-                                            <Grid item xs={7} height={"100%"}>
+                                        <Grid container spacing={0} className="llm-split">
+                                            <Grid item xs={8} className="llm-column">
                                                 <div className="chat-container">
                                                     <Box className="llm-header" sx={{
                                                         display: 'flex',
@@ -931,9 +929,13 @@ function LLMAgent() {
                                                             padding: "4px",
                                                             gap: "4px",
                                                             border: "1px solid #E2E8F0",
+                                                            backgroundColor: '#ffffff',
                                                             fontSize: '11px',
                                                             color: isLoading ? '#e0e0e0' : '#64748B',
                                                             fontFamily: 'Open Sans, sans-serif',
+                                                            '&:hover': {
+                                                                backgroundColor: '#ffffff',
+                                                            },
                                                         }}>
                                                             <RateReviewIcon sx={{ fontSize: '15px' }} /> New Chat
                                                         </MuiButton>
@@ -1086,7 +1088,7 @@ function LLMAgent() {
                                                     </div>
                                                 </div>
                                             </Grid>
-                                            <Grid item xs={5} height={"100%"}>
+                                            <Grid item xs={4} className="llm-column">
                                                 <div style={{ height: '100%', width: '100%' }}>
                                                     <div className="references-container">
                                                         <div style={{
@@ -1108,7 +1110,7 @@ function LLMAgent() {
                                                                     style={{ minWidth: '140px', fontFamily: 'Open Sans, sans-serif' }}
                                                                     styles={{ popup: { root: { 'font-family': 'Open Sans, sans-serif' } } }}
                                                                 />
-                                                                <IconButton 
+                                                                <IconButton
                                                                     size="small"
                                                                     onClick={handleExportReferences}
                                                                     disabled={sortedReferences.length === 0}
