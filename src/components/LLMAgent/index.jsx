@@ -22,11 +22,9 @@ import {
     Check as CheckIcon,
     Clear as ClearIcon,
     Close as CloseIcon,
-    ContentCopy as ContentCopyIcon,
     EditNote as EditNoteIcon,
     ExpandMore as ExpandMoreIcon,
     FilePresent as FilePresentIcon,
-    Refresh as RefreshIcon,
     StopCircle as StopCircleIcon,
 } from '@mui/icons-material';
 import {
@@ -47,64 +45,14 @@ import {
     Typography,
 } from '@mui/material';
 
-import downloadIcon from '../../img/llm/download_2.svg';
+import contentCopyIcon from '../../img/llm/content_copy.svg';
+import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
+import replayIcon from '../../img/llm/replay.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import { LLMAgentService } from '../../service/LLMAgent';
 import NavBarWhite from '../Units/NavBarWhite';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import ChatSearchBar from './ChatSearchBar';
-
-// Thinking steps component with animation independent of MessageCard
-function ThinkingSteps({ currentStep }) {
-    const thinkingSteps = [
-        'Thinking...',
-        'Understanding your question...',
-        'Gathering information from multiple sources...',
-        'Checking how key concepts are connected...',
-        'Searching for relevant articles and references...',
-        'Comparing and organizing the information...',
-        'Preparing a clear answer...'
-    ];
-
-    return (
-        <Box sx={{ mt: 2, mb: 2, overflow: 'hidden', height: '41px', position: 'relative' }}>
-            <Box
-                key={currentStep}
-                sx={{
-                    width: '544px',
-                    maxWidth: '100%',
-                    px: '16px',
-                    py: '8px',
-                    borderRadius: '16px',
-                    cursor: 'pointer',
-                    backgroundColor: 'transparent',
-                    '&:hover': {
-                        backgroundColor: 'rgba(0, 0, 0, 0.08)',
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-                    },
-                    color: '#5B5B5B',
-                    fontFamily: 'Inter, Open Sans, sans-serif',
-                    fontSize: '16px',
-                    fontWeight: 400,
-                    lineHeight: '24.4px',
-                    // animation: 'slideUpFade 0.5s ease-out forwards',
-                    // '@keyframes slideUpFade': {
-                    //     '0%': {
-                    //         transform: 'translateY(100%)',
-                    //         opacity: 0
-                    //     },
-                    //     '100%': {
-                    //         transform: 'translateY(0)',
-                    //         opacity: 1
-                    //     }
-                    // }
-                }}
-            >
-                {thinkingSteps[currentStep]}
-            </Box>
-        </Box>
-    );
-}
 
 const formatDuration = (durationMs) => {
     if (durationMs === null || durationMs === undefined) return '';
@@ -128,11 +76,44 @@ const logDev = (...args) => {
     }
 };
 
+const getStoredChatHistory = () => {
+    if (typeof window === 'undefined') return [];
+    try {
+        const raw = sessionStorage.getItem('llmChatHistory');
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        return [];
+    }
+};
+
+const getStoredProcessingFlag = () => {
+    if (typeof window === 'undefined') return false;
+    return sessionStorage.getItem('llmWasProcessing') === 'true';
+};
+
+const getStoredIncompleteFlag = () => {
+    if (typeof window === 'undefined') return false;
+    try {
+        const raw = sessionStorage.getItem('llmChatHistory');
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed) || parsed.length === 0) return false;
+        const lastMessage = parsed[parsed.length - 1];
+        return lastMessage?.role === 'assistant' && !lastMessage?.content;
+    } catch (error) {
+        return false;
+    }
+};
+
 const STEP_LABELS = {
     'agent.AGENT_START': 'Agent Start',
     load_skill: 'Load Skill',
     article_search: 'Article Search',
     search_pubmed: 'Search PubMed',
+    get_database_schema: 'Get Database Schema',
+    vocabulary_search: 'Vocabulary Search',
     execute_cypher: 'Execute Cypher',
     fetch_abstract: 'Fetch Abstract',
     'agent.AGENT_INPUT': 'Agent Input',
@@ -159,7 +140,14 @@ const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
 });
 
 const ThoughtGroup = React.memo(
-    function ThoughtGroup({ group, groupIndex, expanded, onToggle }) {
+    function ThoughtGroup({
+        group,
+        groupIndex,
+        expanded,
+        onToggle,
+        disableAnimation = false,
+        disableToggle = false,
+    }) {
         const hasLines = group.lines.length > 0;
         return (
             <Box>
@@ -176,7 +164,7 @@ const ThoughtGroup = React.memo(
                     }}>
                         {getStepLabel(group.name)}
                     </Typography>
-                    {hasLines && (
+                    {hasLines && !disableToggle && (
                         <IconButton
                             size="small"
                             onClick={() => onToggle(groupIndex)}
@@ -188,7 +176,7 @@ const ThoughtGroup = React.memo(
                                     fontSize: '16px',
                                     color: '#646464',
                                     transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                                    transition: 'transform 0.2s ease',
+                                    transition: disableAnimation ? 'none' : 'transform 0.2s ease',
                                 }}
                             />
                         </IconButton>
@@ -215,7 +203,11 @@ const ThoughtGroup = React.memo(
             </Box>
         );
     },
-    (prev, next) => prev.group === next.group && prev.expanded === next.expanded
+    (prev, next) => (
+        prev.group === next.group
+        && prev.expanded === next.expanded
+        && prev.disableToggle === next.disableToggle
+    )
 );
 
 const parseThinkingEntry = (entry) => {
@@ -272,31 +264,18 @@ const groupThinkingSteps = (steps) => {
 function LLMAgent() {
     const location = useLocation();
     const [userInput, setUserInput] = useState('');
-    const [chatHistory, setChatHistory] = useState([]);
+    const [chatHistory, setChatHistory] = useState(getStoredChatHistory);
     const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [streamingGroups, setStreamingGroups] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [currentStep, setCurrentStep] = useState(0);
+    const [showReloadPrompt, setShowReloadPrompt] = useState(
+        () => getStoredProcessingFlag() || getStoredIncompleteFlag()
+    );
     const messagesEndRef = useRef(null);
     const abortControllerRef = useRef(null);
     const thinkingStepsRef = useRef([]);
     const navigate = useNavigate();
-
-
-    // Timer to cycle through thinking steps every 3 seconds
-    useEffect(() => {
-        if (!isProcessing) {
-            setCurrentStep(0);
-            return;
-        }
-
-        const timer = setInterval(() => {
-            setCurrentStep((prev) => (prev + 1) % 7);
-        }, 3000);
-
-        return () => clearInterval(timer);
-    }, [isProcessing]);
 
     const llmService = useMemo(() => new LLMAgentService(), []);
 
@@ -312,6 +291,27 @@ function LLMAgent() {
     useEffect(() => {
         scrollToBottom();
     }, [chatHistory, streamingGroups]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        sessionStorage.setItem('llmChatHistory', JSON.stringify(chatHistory));
+    }, [chatHistory]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        sessionStorage.setItem('llmWasProcessing', isProcessing ? 'true' : 'false');
+    }, [isProcessing]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const handlePageShow = (event) => {
+            if (event.persisted && isProcessing) {
+                setShowReloadPrompt(true);
+            }
+        };
+        window.addEventListener('pageshow', handlePageShow);
+        return () => window.removeEventListener('pageshow', handlePageShow);
+    }, [isProcessing]);
 
     useEffect(() => {
         if (location.state && location.state.initialQuery && chatHistory.length === 0) {
@@ -374,6 +374,8 @@ function LLMAgent() {
         const inputText = input || userInput;
         e && e.preventDefault();
         if (!inputText.trim() || isLoading) return;
+
+        setShowReloadPrompt(false);
 
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const requestStartedAt = Date.now();
@@ -575,11 +577,13 @@ function LLMAgent() {
         setSelectedMessageIndex(null);
         setStreamingGroups([]);
         thinkingStepsRef.current = [];
+        setShowReloadPrompt(false);
         llmService.clearHistory();
     };
 
     const handleMessageClick = (index) => {
         if (chatHistory[index].role === 'assistant') {
+            prevSelectedMessageIndexRef.current = null;
             setSelectedMessageIndex(index);
         }
     };
@@ -613,15 +617,35 @@ function LLMAgent() {
         handleSubmit(e, userMessage.content, userMessage.timestamp);
     };
 
-    const MessageCard = ({ index, message, refresh, copy, save, goref, GetSteps, downloadConversation }) => {
+    const handleReloadLatest = () => {
+        if (isLoading) return;
+        const lastIndex = chatHistory.length - 1;
+        if (lastIndex < 1) return;
+        const lastMessage = chatHistory[lastIndex];
+        if (!lastMessage || lastMessage.role !== 'assistant') return;
+        setShowReloadPrompt(false);
+        handleRegenerateResponse(null, lastIndex);
+    };
+
+    const MessageCard = ({
+        index,
+        message,
+        refresh,
+        copy,
+        save,
+        goref,
+        downloadConversation,
+        showReloadPrompt,
+        onReloadLatest,
+    }) => {
         const isAssistant = message.role === "assistant";
         const isLastUserMessage = index === chatHistory.length - 1 && message.role === 'assistant';
         const isLoading = isProcessing && isLastUserMessage;
         const messageID = index;
         const [editContent, setEditContent] = useState('');
         const [isEditing, setIsEditing] = useState(false);
-        const [thoughtsExpanded, setThoughtsExpanded] = useState(false);
         const [expandedGroups, setExpandedGroups] = useState({});
+        const [thoughtsExpanded, setThoughtsExpanded] = useState(() => isLoading);
         const thoughtDurationLabel = formatDuration(message.thoughtDurationMs);
         const groupedThoughts = useMemo(
             () => groupThinkingSteps(message.thinkingSteps),
@@ -630,9 +654,11 @@ function LLMAgent() {
         const activeStreamingGroups = isLoading ? streamingGroups : [];
         const displayGroups = isLoading ? activeStreamingGroups : groupedThoughts;
         const hasDisplayGroups = displayGroups.length > 0;
+        const loadingCurrentIndex = isLoading ? displayGroups.length - 1 : -1;
         const thoughtHeaderText = isLoading ? 'Thinking...' : `Thought for ${thoughtDurationLabel}`;
         const showThoughtHeader = isAssistant
-            && ((isLoading && hasDisplayGroups) || (!isLoading && thoughtDurationLabel));
+            && (isLoading || (!isLoading && thoughtDurationLabel));
+        const showReloadInMessage = showReloadPrompt && isLastUserMessage && isAssistant && !isLoading;
 
         const toggleGroup = useCallback((index) => {
             setExpandedGroups((prev) => ({
@@ -642,13 +668,19 @@ function LLMAgent() {
         }, []);
 
         useEffect(() => {
-            if (isLoading && hasDisplayGroups) {
+            if (isLoading) {
                 setThoughtsExpanded(true);
+                return;
             }
-        }, [isLoading, hasDisplayGroups]);
+            setThoughtsExpanded(false);
+        }, [isLoading]);
 
         return (
-            <div className="message-card">
+            <div
+                className="message-card"
+                data-message-index={index}
+                data-message-role={message.role}
+            >
                 <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: "5px", justifyContent: "flex-end" }}>
                     <Box
                         sx={{
@@ -683,19 +715,19 @@ function LLMAgent() {
                                     }}>
                                         {thoughtHeaderText}
                                     </Typography>
-                                    {hasDisplayGroups && (
+                                    {!isLoading && hasDisplayGroups && (
                                         <IconButton
                                             size="small"
-                                            onClick={() => setThoughtsExpanded(prev => !prev)}
-                                            aria-label="Toggle thinking process"
+                                            onClick={() => setThoughtsExpanded((prev) => !prev)}
+                                            aria-label={thoughtsExpanded ? 'Collapse thoughts' : 'Expand thoughts'}
                                             sx={{ padding: '2px' }}
                                         >
                                             <ExpandMoreIcon
                                                 sx={{
-                                                    fontSize: '18px',
+                                                    fontSize: '16px',
                                                     color: '#646464',
                                                     transform: thoughtsExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                                                    transition: 'transform 0.2s ease'
+                                                    transition: 'transform 0.2s ease',
                                                 }}
                                             />
                                         </IconButton>
@@ -703,7 +735,7 @@ function LLMAgent() {
                                 </Box>
                             )}
 
-                            {isAssistant && hasDisplayGroups && thoughtsExpanded && (
+                            {isAssistant && thoughtsExpanded && (isLoading || hasDisplayGroups) && (
                                 <Box sx={{
                                     mt: '6px',
                                     display: 'flex',
@@ -717,22 +749,66 @@ function LLMAgent() {
                                             key={`${group.name}-${groupIndex}`}
                                             group={group}
                                             groupIndex={groupIndex}
-                                            expanded={!!expandedGroups[groupIndex]}
+                                            expanded={isLoading ? groupIndex === loadingCurrentIndex : !!expandedGroups[groupIndex]}
                                             onToggle={toggleGroup}
+                                            disableAnimation={isLoading}
+                                            disableToggle={isLoading}
                                         />
                                     ))}
                                 </Box>
                             )}
 
                             <Box mt={1}>
-                                {isLoading ? (
+                                {showReloadInMessage ? (
+                                    <Box
+                                        sx={{
+                                            backgroundColor: '#F4F4F4',
+                                            borderRadius: '8px',
+                                            padding: '6px 8px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            gap: '8px',
+                                        }}
+                                    >
+                                        <Typography
+                                            sx={{
+                                                fontFamily: 'DM Sans, sans-serif',
+                                                fontSize: '12px',
+                                                fontWeight: 500,
+                                                color: '#646464',
+                                            }}
+                                        >
+                                            Response interrupted. Reload latest message.
+                                        </Typography>
+                                        <MuiButton
+                                            variant="outlined"
+                                            size="small"
+                                            onClick={onReloadLatest}
+                                            sx={{
+                                                textTransform: 'none',
+                                                fontFamily: 'DM Sans, sans-serif',
+                                                fontWeight: 600,
+                                                fontSize: '12px',
+                                                minHeight: '28px',
+                                                padding: '2px 8px',
+                                                borderRadius: '8px',
+                                                borderColor: '#D0D0D0',
+                                                color: '#646464',
+                                                '&:hover': {
+                                                    borderColor: '#B8B8B8',
+                                                    backgroundColor: '#EDEDED',
+                                                },
+                                            }}
+                                        >
+                                            Reload
+                                        </MuiButton>
+                                    </Box>
+                                ) : isLoading ? (
                                     hasDisplayGroups ? null : (
-                                        <>
-                                            <GetSteps />
-                                            <Box display="flex" justifyContent="center" py={2}>
-                                                <CircularProgress size={24} />
-                                            </Box>
-                                        </>
+                                        <Box display="flex" justifyContent="center" py={2}>
+                                            <CircularProgress size={24} />
+                                        </Box>
                                     )
                                 ) :
                                     isEditing ?
@@ -758,16 +834,23 @@ function LLMAgent() {
                             {isAssistant && <Box sx={{ justifyContent: "space-between", direction: "row", display: "flex", alignItems: "center", mt: "5px" }}>
                                 <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
                                     <IconButton size="small" onClick={(e) => refresh(e, messageID)}>
-                                        <RefreshIcon fontSize="small" />
+                                        <img
+                                            src={replayIcon}
+                                            alt="Refresh"
+                                            style={{ width: '16px', height: '16px', display: 'block' }}
+                                        />
                                     </IconButton>
                                     <IconButton size="small" onClick={() => copy(message.content)}>
-                                        <ContentCopyIcon fontSize="small" />
+                                        <img
+                                            src={contentCopyIcon}
+                                            alt="Copy"
+                                            style={{ width: '16px', height: '16px', display: 'block' }}
+                                        />
                                     </IconButton>
                                     {!isLoading && <IconButton size="small" onClick={() => downloadConversation(messageID)} title="Download this Q&A">
-                                        <img
-                                            src={downloadIcon}
-                                            alt="Download"
-                                            style={{ width: '16px', height: '16px', display: 'block' }}
+                                        <DownloadIcon
+                                            aria-label="Download"
+                                            style={{ width: '16px', height: '16px', display: 'block', color: '#646464' }}
                                         />
                                     </IconButton>}
                                     {isLoading && <IconButton size="small" onClick={() => { if (abortControllerRef.current) abortControllerRef.current.abort(); }}>
@@ -828,7 +911,11 @@ function LLMAgent() {
                                 </IconButton>
                             </> : <div className="user-message-actions">
                                 <IconButton size="small" onClick={() => copy(message.content)}>
-                                    <ContentCopyIcon fontSize="small" />
+                                    <img
+                                        src={contentCopyIcon}
+                                        alt="Copy"
+                                        style={{ width: '16px', height: '16px', display: 'block' }}
+                                    />
                                 </IconButton>
                                 <IconButton size="small" onClick={() => {
                                     if (isAssistant) return;
@@ -858,7 +945,8 @@ function LLMAgent() {
                 save={handleSaveEdit}
                 goref={handleMessageClick}
                 downloadConversation={handleDownloadConversation}
-                GetSteps={() => <ThinkingSteps currentStep={currentStep} />}
+                showReloadPrompt={showReloadPrompt}
+                onReloadLatest={handleReloadLatest}
             />
         ))}</Box>);
     };
@@ -1163,9 +1251,10 @@ function LLMAgent() {
                                                         marginBottom: '1px',
                                                     }}>
                                                         <Typography sx={{
-                                                            fontFamily: 'Open Sans, sans-serif',
-                                                            fontSize: '18px',
-                                                            fontWeight: '500',
+                                                            fontFamily: 'DM Sans, sans-serif',
+                                                            fontSize: '16px',
+                                                            fontWeight: 600,
+                                                            color: '#164563',
                                                             paddingLeft: '16px',
                                                         }}>
                                                             AI Chat
@@ -1276,7 +1365,7 @@ function LLMAgent() {
                                                             borderBottom: '1px solid #E6E6E6',
                                                             marginBottom: '1px',
                                                         }}>
-                                                            <h3 style={{ fontFamily: 'Open Sans, sans-serif', fontWeight: '500', fontSize: '18px', marginBottom: '0', paddingLeft: '32px' }}>References</h3>
+                                                            <h3 style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: '16px', color: '#164563', marginBottom: '0', paddingLeft: '32px' }}>References</h3>
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                                 <ToggleButtonGroup
                                                                     size="small"
@@ -1329,13 +1418,13 @@ function LLMAgent() {
                                                                     }}
                                                                     title="Export all references"
                                                                 >
-                                                                    <img
-                                                                        src={downloadIcon}
-                                                                        alt="Download references"
+                                                                    <DownloadIcon
+                                                                        aria-label="Download references"
                                                                         style={{
                                                                             width: '20px',
                                                                             height: '20px',
                                                                             display: 'block',
+                                                                            color: '#164563',
                                                                         }}
                                                                     />
                                                                 </IconButton>
