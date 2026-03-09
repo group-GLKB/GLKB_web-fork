@@ -3,16 +3,14 @@ import './scoped.css';
 import './github-markdown-light.css';
 
 import React, {
+    useCallback,
     useEffect,
     useMemo,
     useRef,
     useState,
 } from 'react';
 
-import {
-    message,
-    Select,
-} from 'antd';
+import { message } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import ReactMarkdown from 'react-markdown';
 import {
@@ -21,15 +19,13 @@ import {
 } from 'react-router-dom';
 
 import {
-    ChatBubbleOutline as ChatBubbleOutlineIcon,
     Check as CheckIcon,
     Clear as ClearIcon,
     Close as CloseIcon,
     ContentCopy as ContentCopyIcon,
-    Download as DownloadIcon,
     EditNote as EditNoteIcon,
+    ExpandMore as ExpandMoreIcon,
     FilePresent as FilePresentIcon,
-    RateReview as RateReviewIcon,
     Refresh as RefreshIcon,
     StopCircle as StopCircleIcon,
 } from '@mui/icons-material';
@@ -46,14 +42,17 @@ import {
     IconButton,
     Stack,
     TextField,
+    ToggleButton,
+    ToggleButtonGroup,
     Typography,
 } from '@mui/material';
 
-import systemIcon from '../../img/LLM_logo.jpg';
+import downloadIcon from '../../img/llm/download_2.svg';
+import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import { LLMAgentService } from '../../service/LLMAgent';
 import NavBarWhite from '../Units/NavBarWhite';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
-import SearchButton from '../Units/SearchButton/SearchButton';
+import ChatSearchBar from './ChatSearchBar';
 
 // Thinking steps component with animation independent of MessageCard
 function ThinkingSteps({ currentStep }) {
@@ -107,17 +106,181 @@ function ThinkingSteps({ currentStep }) {
     );
 }
 
+const formatDuration = (durationMs) => {
+    if (durationMs === null || durationMs === undefined) return '';
+    const totalSeconds = Math.max(0, Math.round(durationMs / 1000));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+    }
+    if (minutes > 0) {
+        return `${minutes}m ${seconds}s`;
+    }
+    return `${seconds}s`;
+};
+
+const logDev = (...args) => {
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(...args);
+    }
+};
+
+const STEP_LABELS = {
+    'agent.AGENT_START': 'Agent Start',
+    load_skill: 'Load Skill',
+    article_search: 'Article Search',
+    search_pubmed: 'Search PubMed',
+    execute_cypher: 'Execute Cypher',
+    fetch_abstract: 'Fetch Abstract',
+    'agent.AGENT_INPUT': 'Agent Input',
+    'agent.AGENT_OUTPUT': 'Agent Output',
+};
+
+const getStepLabel = (stepName) => STEP_LABELS[stepName] || stepName;
+
+const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
+    return (
+        <Typography
+            sx={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '12px',
+                fontWeight: 400,
+                color: '#5B5B5B',
+                whiteSpace: 'pre-wrap',
+            }}
+            data-line-key={lineKey}
+        >
+            {line}
+        </Typography>
+    );
+});
+
+const ThoughtGroup = React.memo(
+    function ThoughtGroup({ group, groupIndex, expanded, onToggle }) {
+        const hasLines = group.lines.length > 0;
+        return (
+            <Box>
+                <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                }}>
+                    <Typography sx={{
+                        fontFamily: 'DM Sans, sans-serif',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        color: '#164563',
+                    }}>
+                        {getStepLabel(group.name)}
+                    </Typography>
+                    {hasLines && (
+                        <IconButton
+                            size="small"
+                            onClick={() => onToggle(groupIndex)}
+                            aria-label={`Toggle ${group.name} details`}
+                            sx={{ padding: '2px' }}
+                        >
+                            <ExpandMoreIcon
+                                sx={{
+                                    fontSize: '16px',
+                                    color: '#646464',
+                                    transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.2s ease',
+                                }}
+                            />
+                        </IconButton>
+                    )}
+                </Box>
+                {expanded && hasLines && (
+                    <Box sx={{
+                        mt: '6px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
+                        borderLeft: '2px solid #D9D9D9',
+                        pl: '10px',
+                    }}>
+                        {group.lines.map((line, lineIndex) => (
+                            <ThoughtLine
+                                key={`${group.name}-${lineIndex}`}
+                                line={line}
+                                lineKey={`${group.name}-${lineIndex}`}
+                            />
+                        ))}
+                    </Box>
+                )}
+            </Box>
+        );
+    },
+    (prev, next) => prev.group === next.group && prev.expanded === next.expanded
+);
+
+const parseThinkingEntry = (entry) => {
+    const raw = entry?.content ?? '';
+    const trimmed = raw.trim();
+    if (!trimmed) {
+        return { stepName: 'Step', line: raw };
+    }
+
+    let action = '';
+    let rest = trimmed;
+    const match = trimmed.match(/^\s*\[([^\]]+)\]\s*([\s\S]*)$/);
+    if (match) {
+        action = match[1].trim();
+        rest = match[2].trim();
+    }
+
+    let stepName = rest;
+    let detail = '';
+    if (rest.includes('|')) {
+        const parts = rest.split('|');
+        stepName = parts.shift().trim();
+        detail = parts.join('|').trim();
+    }
+
+    if (!stepName) {
+        stepName = action || 'Step';
+    }
+
+    if (stepName === 'GLKBAgent' && action) {
+        const actionKey = action.trim().replace(/\s+/g, '_').toUpperCase();
+        stepName = `agent.${actionKey}`;
+    }
+
+    return { stepName, line: raw };
+};
+
+const groupThinkingSteps = (steps) => {
+    if (!Array.isArray(steps)) return [];
+    const groups = [];
+
+    steps.forEach((entry) => {
+        const { stepName, line } = parseThinkingEntry(entry);
+        if (groups.length === 0 || groups[groups.length - 1].name !== stepName) {
+            groups.push({ name: stepName, lines: line ? [line] : [] });
+        } else if (line) {
+            groups[groups.length - 1].lines.push(line);
+        }
+    });
+
+    return groups;
+};
+
 function LLMAgent() {
     const location = useLocation();
     const [userInput, setUserInput] = useState('');
     const [chatHistory, setChatHistory] = useState([]);
     const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [streamingSteps, setStreamingSteps] = useState([]);
+    const [streamingGroups, setStreamingGroups] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
     const messagesEndRef = useRef(null);
     const abortControllerRef = useRef(null);
+    const thinkingStepsRef = useRef([]);
     const navigate = useNavigate();
 
 
@@ -148,7 +311,7 @@ function LLMAgent() {
 
     useEffect(() => {
         scrollToBottom();
-    }, [chatHistory, streamingSteps]);
+    }, [chatHistory, streamingGroups]);
 
     useEffect(() => {
         if (location.state && location.state.initialQuery && chatHistory.length === 0) {
@@ -213,6 +376,7 @@ function LLMAgent() {
         if (!inputText.trim() || isLoading) return;
 
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const requestStartedAt = Date.now();
 
         // Create new user message
         const newMessage = {
@@ -227,7 +391,8 @@ function LLMAgent() {
         setUserInput('');
         setIsLoading(true);
         setIsProcessing(true);
-        setStreamingSteps([]);
+        setStreamingGroups([]);
+        thinkingStepsRef.current = [];
 
         try {
             // Convert chat history to format expected by backend
@@ -242,12 +407,16 @@ function LLMAgent() {
                 content: newMessage.content
             });
 
+            logDev('[LLM] submit', { input: inputText, history: conversationHistory });
+
             // Append a blank message
             setChatHistory(prev => [...prev, {
                 role: 'assistant',
                 content: '',
                 references: [],
-                timestamp: timestamp
+                timestamp: timestamp,
+                thinkingSteps: [],
+                thoughtDurationMs: null
             }]);
 
             if (abortControllerRef.current) {
@@ -256,6 +425,7 @@ function LLMAgent() {
             const abortController = new AbortController();
             abortControllerRef.current = abortController;
             await llmService.chat(inputText, abortControllerRef.current, (update) => {
+                logDev('[LLM] update', update);
                 switch (update.type) {
                     case 'step':
                         if (update.step === 'Error') {
@@ -266,7 +436,9 @@ function LLMAgent() {
                                     role: 'assistant',
                                     content: update.content,
                                     references: [],
-                                    timestamp: timestamp
+                                    timestamp: timestamp,
+                                    thinkingSteps: thinkingStepsRef.current,
+                                    thoughtDurationMs: Date.now() - requestStartedAt
                                 };
                                 newHistory[newHistory.length - 1] = assistantMessage;
 
@@ -278,17 +450,41 @@ function LLMAgent() {
                             setSelectedMessageIndex(chatHistory.length + 1);
                             break;
                         }
-                        setStreamingSteps(prev => {
-                            const newSteps = [...prev];
-                            const cleanContent = update.content.replace(/\u001b\[\d+m/g, '').trim();
-                            if (cleanContent) {
-                                newSteps.push({
-                                    step: update.step,
-                                    content: cleanContent
+                        {
+                            const rawContent = update.content ?? '';
+                            if (rawContent.trim()) {
+                                const newEntry = { step: update.step, content: rawContent };
+                                thinkingStepsRef.current = [...thinkingStepsRef.current, newEntry];
+                                const parsedEntry = parseThinkingEntry(newEntry);
+
+                                setStreamingGroups((prev) => {
+                                    if (!parsedEntry.line.trim()) {
+                                        return prev;
+                                    }
+
+                                    const lastGroup = prev[prev.length - 1];
+                                    if (!lastGroup || lastGroup.name !== parsedEntry.stepName) {
+                                        return [
+                                            ...prev,
+                                            {
+                                                name: parsedEntry.stepName,
+                                                lines: parsedEntry.line ? [parsedEntry.line] : []
+                                            }
+                                        ];
+                                    }
+
+                                    if (!parsedEntry.line) {
+                                        return prev;
+                                    }
+
+                                    const updatedLast = {
+                                        ...lastGroup,
+                                        lines: [...lastGroup.lines, parsedEntry.line]
+                                    };
+                                    return [...prev.slice(0, -1), updatedLast];
                                 });
                             }
-                            return newSteps;
-                        });
+                        }
                         break;
                     case 'final':
                         setIsProcessing(false);
@@ -298,7 +494,9 @@ function LLMAgent() {
                                 role: 'assistant',
                                 content: update.answer,
                                 references: parseReferences(update.references),
-                                timestamp: timestamp
+                                timestamp: timestamp,
+                                thinkingSteps: thinkingStepsRef.current,
+                                thoughtDurationMs: Date.now() - requestStartedAt
                             };
                             newHistory[newHistory.length - 1] = assistantMessage;
 
@@ -317,7 +515,9 @@ function LLMAgent() {
                                 role: 'assistant',
                                 content: `Error: ${update.error}`,
                                 references: [],
-                                timestamp: timestamp
+                                timestamp: timestamp,
+                                thinkingSteps: thinkingStepsRef.current,
+                                thoughtDurationMs: Date.now() - requestStartedAt
                             };
                             newHistory[newHistory.length - 1] = errorMessage;
                             return newHistory;
@@ -333,7 +533,9 @@ function LLMAgent() {
                     role: 'assistant',
                     content: 'Sorry, I encountered an error while processing your request. Please try again.',
                     references: [],
-                    timestamp: timestamp
+                    timestamp: timestamp,
+                    thinkingSteps: thinkingStepsRef.current,
+                    thoughtDurationMs: Date.now() - requestStartedAt
                 };
                 newHistory[newHistory.length - 1] = errorMessage;
                 return newHistory;
@@ -371,7 +573,8 @@ function LLMAgent() {
     const handleClear = () => {
         setChatHistory([]);
         setSelectedMessageIndex(null);
-        setStreamingSteps([]);
+        setStreamingGroups([]);
+        thinkingStepsRef.current = [];
         llmService.clearHistory();
     };
 
@@ -415,18 +618,38 @@ function LLMAgent() {
         const isLastUserMessage = index === chatHistory.length - 1 && message.role === 'assistant';
         const isLoading = isProcessing && isLastUserMessage;
         const messageID = index;
-        const timestamp = message.timestamp || "";
         const [editContent, setEditContent] = useState('');
         const [isEditing, setIsEditing] = useState(false);
+        const [thoughtsExpanded, setThoughtsExpanded] = useState(false);
+        const [expandedGroups, setExpandedGroups] = useState({});
+        const thoughtDurationLabel = formatDuration(message.thoughtDurationMs);
+        const groupedThoughts = useMemo(
+            () => groupThinkingSteps(message.thinkingSteps),
+            [message.thinkingSteps]
+        );
+        const activeStreamingGroups = isLoading ? streamingGroups : [];
+        const displayGroups = isLoading ? activeStreamingGroups : groupedThoughts;
+        const hasDisplayGroups = displayGroups.length > 0;
+        const thoughtHeaderText = isLoading ? 'Thinking...' : `Thought for ${thoughtDurationLabel}`;
+        const showThoughtHeader = isAssistant
+            && ((isLoading && hasDisplayGroups) || (!isLoading && thoughtDurationLabel));
+
+        const toggleGroup = useCallback((index) => {
+            setExpandedGroups((prev) => ({
+                ...prev,
+                [index]: !prev[index],
+            }));
+        }, []);
+
+        useEffect(() => {
+            if (isLoading && hasDisplayGroups) {
+                setThoughtsExpanded(true);
+            }
+        }, [isLoading, hasDisplayGroups]);
 
         return (
             <div className="message-card">
                 <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: "5px", justifyContent: "flex-end" }}>
-                    {!isAssistant && (
-                        <Box sx={{ flex: "0 0 auto", width: "80px", textAlign: "right" }}>
-                            <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText", fontFamily: 'Open Sans, sans-serif' }}>{timestamp}</Typography>
-                        </Box>
-                    )}
                     <Box
                         sx={{
                             bgcolor: isAssistant ? "transparent" : "#ffffff", // Different background colors
@@ -443,54 +666,74 @@ function LLMAgent() {
                             flex: 1, // Occupy maximum width
                         }}
                     >
-                        {isAssistant && (
-                            <Box
-                                sx={{
-                                    m: 2,
-                                    ml: 0,
-                                    width: 32,
-                                    height: 32,
-                                    borderRadius: 16,
-                                    borderStyle: "solid",
-                                    borderColor: "#0169B040",
-                                    borderWidth: "2px",
-                                    justifyContent: "center",
-                                    alignItems: "center",
-                                    display: "flex",
-                                    overflow: "hidden",
-                                    transform: "translateY(-9px)",
-                                }}
-                            >
-                                <img src={systemIcon} alt="Assistant" width="60" height="60" style={{ borderRadius: "50%" }} />
-                            </Box>
-                        )}
                         <Box sx={{ flex: 1 }}>
-                            {isAssistant && (
-                                <Typography variant="body2" color="textSecondary" sx={{
-                                    fontFamily: "Open Sans, sans-serif", fontSize: "14px", display: "flex", color: "#19213d", alignItems: "center",
-                                    pt: "12px", pb: "12px", fontWeight: 500
+                            {showThoughtHeader && (
+                                <Box sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    mt: '8px',
+                                    mb: '8px',
                                 }}>
-                                    GLKB AI
-                                    <Box
-                                        component="span"
-                                        sx={{
-                                            mx: 1,
-                                            width: "1px",
-                                            height: "1em",
-                                            bgcolor: "text.secondary",
-                                        }}
-                                    />
-                                    <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText", fontFamily: 'Open Sans, sans-serif' }}>{timestamp}</Typography>
-                                </Typography>
+                                    <Typography sx={{
+                                        fontFamily: 'DM Sans, sans-serif',
+                                        fontSize: '14px',
+                                        fontWeight: 700,
+                                        color: '#646464',
+                                    }}>
+                                        {thoughtHeaderText}
+                                    </Typography>
+                                    {hasDisplayGroups && (
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => setThoughtsExpanded(prev => !prev)}
+                                            aria-label="Toggle thinking process"
+                                            sx={{ padding: '2px' }}
+                                        >
+                                            <ExpandMoreIcon
+                                                sx={{
+                                                    fontSize: '18px',
+                                                    color: '#646464',
+                                                    transform: thoughtsExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                                    transition: 'transform 0.2s ease'
+                                                }}
+                                            />
+                                        </IconButton>
+                                    )}
+                                </Box>
+                            )}
+
+                            {isAssistant && hasDisplayGroups && thoughtsExpanded && (
+                                <Box sx={{
+                                    mt: '6px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '10px',
+                                    borderLeft: '2px solid #E6E6E6',
+                                    pl: '12px',
+                                }}>
+                                    {displayGroups.map((group, groupIndex) => (
+                                        <ThoughtGroup
+                                            key={`${group.name}-${groupIndex}`}
+                                            group={group}
+                                            groupIndex={groupIndex}
+                                            expanded={!!expandedGroups[groupIndex]}
+                                            onToggle={toggleGroup}
+                                        />
+                                    ))}
+                                </Box>
                             )}
 
                             <Box mt={1}>
-                                {isLoading ? (<>
-                                    <GetSteps />
-                                    <Box display="flex" justifyContent="center" py={2}>
-                                        <CircularProgress size={24} />
-                                    </Box>
-                                </>
+                                {isLoading ? (
+                                    hasDisplayGroups ? null : (
+                                        <>
+                                            <GetSteps />
+                                            <Box display="flex" justifyContent="center" py={2}>
+                                                <CircularProgress size={24} />
+                                            </Box>
+                                        </>
+                                    )
                                 ) :
                                     isEditing ?
                                         <TextField
@@ -521,7 +764,11 @@ function LLMAgent() {
                                         <ContentCopyIcon fontSize="small" />
                                     </IconButton>
                                     {!isLoading && <IconButton size="small" onClick={() => downloadConversation(messageID)} title="Download this Q&A">
-                                        <DownloadIcon fontSize="small" />
+                                        <img
+                                            src={downloadIcon}
+                                            alt="Download"
+                                            style={{ width: '16px', height: '16px', display: 'block' }}
+                                        />
                                     </IconButton>}
                                     {isLoading && <IconButton size="small" onClick={() => { if (abortControllerRef.current) abortControllerRef.current.abort(); }}>
                                         <StopCircleIcon fontSize="small" />
@@ -621,6 +868,8 @@ function LLMAgent() {
     const [selectedCitation, setSelectedCitation] = useState(null);
     const [hoveredPubmedId, setHoveredPubmedId] = useState(null);
     const referencesListRef = useRef(null);
+    const isNewChatDisabled = isLoading || chatHistory.length === 0;
+    const newChatColor = isNewChatDisabled ? '#B0B0B0' : '#155DFC';
 
     const references = selectedMessageIndex !== null
         ? chatHistory[selectedMessageIndex]?.references || []
@@ -909,7 +1158,7 @@ function LLMAgent() {
                                                         alignItems: 'center',
                                                         justifyContent: 'space-between',
                                                         padding: '16px',
-                                                        height: '55px',
+                                                        height: '70px',
                                                         borderBottom: '1px solid #E6E6E6',
                                                         marginBottom: '1px',
                                                     }}>
@@ -921,23 +1170,29 @@ function LLMAgent() {
                                                         }}>
                                                             AI Chat
                                                         </Typography>
-                                                        <MuiButton onClick={handleClear} disabled={isLoading || chatHistory.length === 0} sx={{
-                                                            width: 92,
-                                                            height: 26,
-                                                            borderRadius: "4px",
-                                                            borderWidth: "1px",
-                                                            padding: "4px",
-                                                            gap: "4px",
-                                                            border: "1px solid #E2E8F0",
+                                                        <MuiButton onClick={handleClear} disabled={isNewChatDisabled} sx={{
+                                                            borderRadius: '16px',
+                                                            border: `1px solid ${newChatColor}`,
                                                             backgroundColor: '#ffffff',
-                                                            fontSize: '11px',
-                                                            color: isLoading ? '#e0e0e0' : '#64748B',
-                                                            fontFamily: 'Open Sans, sans-serif',
+                                                            color: newChatColor,
+                                                            fontFamily: 'DM Sans, sans-serif',
+                                                            fontSize: '14px',
+                                                            fontWeight: 700,
+                                                            padding: '8px',
+                                                            gap: '6px',
+                                                            textTransform: 'none',
+                                                            opacity: 1,
+                                                            '&.Mui-disabled': {
+                                                                color: newChatColor,
+                                                                border: `1px solid ${newChatColor}`,
+                                                                opacity: 1,
+                                                            },
                                                             '&:hover': {
                                                                 backgroundColor: '#ffffff',
                                                             },
                                                         }}>
-                                                            <RateReviewIcon sx={{ fontSize: '15px' }} /> New Chat
+                                                            <AddIcon style={{ width: '16px', height: '16px', color: newChatColor }} />
+                                                            New Chat
                                                         </MuiButton>
                                                     </Box>
                                                     {/* Add example queries section */}
@@ -1004,88 +1259,12 @@ function LLMAgent() {
                                                         </Button>
                                                     </form>
                                                 </div> */}
-                                                    <div className="chat-header">
-                                                        <TextField
-                                                            className="input-form"
-                                                            size="small"
-                                                            value={userInput}
-                                                            onChange={(e) => setUserInput(e.target.value)}
-                                                            disabled={isLoading}
-                                                            variant="outlined"
-                                                            placeholder="Ask a question about the biomedical literature..."
-                                                            sx={{
-                                                                backgroundColor: '#F4F9FE',
-                                                                borderRadius: '30px',
-                                                                minHeight: '60px', // Increase the height of the input box
-                                                                '& .MuiInputBase-root': {
-                                                                    height: '60px',
-                                                                    borderRadius: '30px',
-                                                                    alignItems: 'center', // Center the text vertically
-                                                                    fontFamily: 'Open Sans, sans-serif',
-                                                                    '& fieldset': {
-                                                                        border: 'none'
-                                                                    },
-                                                                    boxShadow: '0px 2px 3px -1px #00000026',
-                                                                },
-                                                                '& .MuiInputBase-input': {
-                                                                    paddingLeft: '4px',
-                                                                },
-                                                                '& .MuiOutlinedInput-notchedOutline': {
-                                                                    borderColor: 'grey', // Optional: Customize border color
-                                                                },
-                                                                "& .MuiOutlinedInput-root": {
-                                                                    paddingLeft: "0px!important",
-                                                                    paddingRight: "70px!important",
-                                                                },
-                                                            }}
-                                                            InputProps={{
-                                                                startAdornment: (
-                                                                    <ChatBubbleOutlineIcon sx={{ color: '#a1a1a1', marginLeft: '25px', marginRight: '5px', fontSize: '20px' }} />
-                                                                ),
-                                                                endAdornment: (
-                                                                    <Box
-                                                                        sx={{
-                                                                            display: 'flex',
-                                                                            alignItems: 'center',
-                                                                            gap: 1,
-                                                                            justifyContent: 'center',
-                                                                            position: 'absolute',
-                                                                            right: 0,
-                                                                            height: '100%', // Ensure alignment with TextField height
-                                                                        }}
-                                                                    >
-                                                                        {/* Clear Icon */}
-                                                                        {userInput !== "" && <CloseIcon
-                                                                            className="close-button"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                setUserInput('');
-                                                                            }}
-                                                                            sx={{
-                                                                                color: 'grey.500',
-                                                                                cursor: 'pointer',
-                                                                                fontSize: '20px', // Adjust size as needed 
-                                                                            }}
-                                                                        />}
-                                                                        {/* Search Icon */}
-                                                                        <SearchButton
-                                                                            alterColor={1}
-                                                                            onClick={() => {
-                                                                                handleSubmit();
-                                                                            }}
-                                                                            disabled={isLoading || !userInput.trim()}
-                                                                        />
-                                                                    </Box>
-                                                                ),
-                                                            }}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter' && userInput !== "" && !isLoading) {
-                                                                    e.preventDefault();
-                                                                    handleSubmit();
-                                                                }
-                                                            }}
-                                                        />
-                                                    </div>
+                                                    <ChatSearchBar
+                                                        userInput={userInput}
+                                                        setUserInput={setUserInput}
+                                                        isLoading={isLoading}
+                                                        onSubmit={handleSubmit}
+                                                    />
                                                 </div>
                                             </Grid>
                                             <Grid item xs={4} className="llm-column">
@@ -1093,23 +1272,50 @@ function LLMAgent() {
                                                     <div className="references-container">
                                                         <div style={{
                                                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                            height: '55px',
+                                                            height: '70px',
                                                             borderBottom: '1px solid #E6E6E6',
                                                             marginBottom: '1px',
                                                         }}>
                                                             <h3 style={{ fontFamily: 'Open Sans, sans-serif', fontWeight: '500', fontSize: '18px', marginBottom: '0', paddingLeft: '32px' }}>References</h3>
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                <Select
+                                                                <ToggleButtonGroup
                                                                     size="small"
+                                                                    exclusive
                                                                     value={sortOption}
-                                                                    onChange={value => setSortOption(value)}
-                                                                    options={[
-                                                                        { value: 'Year', label: 'Sort by Year' },
-                                                                        { value: 'Citations', label: 'Sort by Citations' }
-                                                                    ]}
-                                                                    style={{ minWidth: '140px', fontFamily: 'Open Sans, sans-serif' }}
-                                                                    styles={{ popup: { root: { 'font-family': 'Open Sans, sans-serif' } } }}
-                                                                />
+                                                                    onChange={(event, value) => {
+                                                                        if (value !== null) {
+                                                                            setSortOption(value);
+                                                                        }
+                                                                    }}
+                                                                    sx={{
+                                                                        border: '1px solid #E7F1FF',
+                                                                        borderRadius: '14px',
+                                                                        padding: '1px',
+                                                                        overflow: 'hidden',
+                                                                        '& .MuiToggleButton-root': {
+                                                                            textTransform: 'none',
+                                                                            fontFamily: 'DM Sans, sans-serif',
+                                                                            fontSize: '12px',
+                                                                            fontWeight: 700,
+                                                                            color: '#164563',
+                                                                            border: 'none',
+                                                                            padding: '0 8px',
+                                                                            height: '26px',
+                                                                            minHeight: '26px',
+                                                                            borderRadius: '13px',
+                                                                        },
+                                                                        '& .MuiToggleButton-root.Mui-selected': {
+                                                                            backgroundColor: '#E7F1FF',
+                                                                            color: '#164563',
+                                                                        },
+                                                                        '& .MuiToggleButton-root.Mui-selected:hover': {
+                                                                            backgroundColor: '#E0EDFF',
+                                                                        },
+                                                                    }}
+                                                                >
+                                                                    <ToggleButton value="Citations">Citation</ToggleButton>
+                                                                    <ToggleButton value="Year">Year</ToggleButton>
+                                                                </ToggleButtonGroup>
                                                                 <IconButton
                                                                     size="small"
                                                                     onClick={handleExportReferences}
@@ -1123,7 +1329,15 @@ function LLMAgent() {
                                                                     }}
                                                                     title="Export all references"
                                                                 >
-                                                                    <DownloadIcon sx={{ fontSize: '20px', color: sortedReferences.length === 0 ? '#ccc' : '#666' }} />
+                                                                    <img
+                                                                        src={downloadIcon}
+                                                                        alt="Download references"
+                                                                        style={{
+                                                                            width: '20px',
+                                                                            height: '20px',
+                                                                            display: 'block',
+                                                                        }}
+                                                                    />
                                                                 </IconButton>
                                                             </div>
                                                         </div>
@@ -1144,7 +1358,7 @@ function LLMAgent() {
                                                                     return (
                                                                         <div key={index} style={{ marginTop: '12px' }} data-pubmed-id={pubmedId}>
                                                                             <ReferenceCard url={url} handleClick={handleClick} onCiteClick={handleCiteClick} isHighlighted={isHighlighted} />
-                                                                            <hr style={{ border: 'none', height: '1px', backgroundColor: 'rgba(5, 5, 5, 0.06)', marginTop: '12px' }} />
+                                                                            <hr style={{ border: 'none', height: '1px', backgroundColor: '#D9D9D9', marginTop: '12px' }} />
                                                                         </div>
                                                                     );
                                                                 })}
