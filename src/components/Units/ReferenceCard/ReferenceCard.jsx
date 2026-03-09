@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import { IconButton } from '@mui/material';
 
 import formatQuoteIcon from '../../../img/llm/format_quote.svg';
 
 const ReferenceCard = ({ url, handleClick, onCiteClick, isHighlighted = false }) => {
+    const [isHovered, setIsHovered] = useState(false);
+    const showHighlight = isHighlighted || isHovered;
 
     const handleCiteClick = (event) => {
         event.stopPropagation();
@@ -48,14 +50,16 @@ const ReferenceCard = ({ url, handleClick, onCiteClick, isHighlighted = false })
     return (
         <div
             onClick={(event) => handleClick(event, url[1])}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
             style={{
                 cursor: 'pointer',
                 marginBottom: '2px',
-                borderRadius: '10px',
-                backgroundColor: isHighlighted ? '#FFF9E6' : '#fff',
+                borderRadius: showHighlight ? '8px' : '10px',
+                backgroundColor: showHighlight ? '#E7F1FF' : '#fff',
                 width: '100%',
                 transition: 'background-color 0.3s ease',
-                padding: isHighlighted ? '8px' : '0px',
+                padding: showHighlight ? '4px' : '0px',
                 fontFamily: 'DM Sans, sans-serif',
             }}
             className="custom-div-url"

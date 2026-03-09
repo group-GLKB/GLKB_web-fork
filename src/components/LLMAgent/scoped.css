@@ -915,18 +915,37 @@
 }
 
 .markdown-body a[href*="pubmed.ncbi.nlm.nih.gov"] {
+    display: inline-flex;
+    align-items: center;
     position: relative;
-    text-decoration: underline;
-    color: #0366d6;
-    transition: all 0.2s ease;
+    text-decoration: none;
+    color: #646464;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    padding: 4px;
+    border-radius: 12px;
+    background-color: #F4F4F4;
+    transition: background-color 0.2s ease;
+}
+
+.markdown-body a[href*="pubmed.ncbi.nlm.nih.gov"]::before {
+    content: '';
+    width: 14px;
+    height: 14px;
+    margin-right: 4px;
+    flex-shrink: 0;
+    background: url('../../img/llm/draft.svg') no-repeat center / 14px 14px;
 }
 
 .markdown-body a[href*="pubmed.ncbi.nlm.nih.gov"]:hover {
-    color: #0056b3;
-    text-decoration: underline;
-    background-color: rgba(255, 249, 230, 0.5);
-    padding: 2px 4px;
-    border-radius: 3px;
+    color: #646464;
+    background-color: #EDEDED;
+}
+
+.markdown-body h1,
+.markdown-body h2 {
+    color: #164563;
 }
 
 .message-wrapper.user .message,
