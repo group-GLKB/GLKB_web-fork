@@ -18,8 +18,8 @@ import {
     Typography,
 } from 'antd';
 
-import downArrow from '../../img/down_arrow.svg';
-import rightArrow from '../../img/right_arrow.svg';
+import downArrow from '../../img/result/down_arrow.svg';
+import rightArrow from '../../img/result/right_arrow.svg';
 import { DetailService } from '../../service/Detail';
 
 const { Panel } = Collapse;

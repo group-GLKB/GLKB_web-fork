@@ -177,6 +177,24 @@ function NavBarWhite({ showLogo = true }) {
         return location.pathname.startsWith(item.to);
     };
 
+    const tooltipProps = {
+        placement: 'right',
+        componentsProps: {
+            tooltip: {
+                sx: {
+                    backgroundColor: '#E7F1FF',
+                    color: '#164563',
+                    fontFamily: 'DM Sans, sans-serif',
+                    fontWeight: 500,
+                    fontSize: '14px',
+                    padding: '4px 12px',
+                    borderRadius: '8px',
+                    boxShadow: 'none',
+                },
+            },
+        },
+    };
+
     const renderNavItem = (item) => {
         const linkProps = item.to
             ? { component: Link, to: item.to }
@@ -264,7 +282,7 @@ function NavBarWhite({ showLogo = true }) {
         }
 
         return (
-            <Tooltip key={item.label} title={item.label} placement="right">
+            <Tooltip key={item.label} title={item.label} {...tooltipProps}>
                 {button}
             </Tooltip>
         );
@@ -292,71 +310,87 @@ function NavBarWhite({ showLogo = true }) {
                                 pl: 1,
                             }}
                         >
-                            <IconButton
-                                aria-label={open ? 'Go to home' : 'Expand sidebar'}
-                                component={open ? Link : 'button'}
-                                to={open ? '/' : undefined}
-                                onClick={open ? undefined : () => setOpen(true)}
-                                size="small"
-                                className="sidebar-logo-link"
-                                sx={{
-                                    p: 0,
-                                    width: 48,
-                                    height: 48,
-                                    borderRadius: '50%',
-                                    '&:hover': {
-                                        backgroundColor: 'rgba(1, 105, 176, 0.04)',
-                                    },
-                                    '& .sidebar-logo-image': {
-                                        opacity: 1,
-                                        transition: 'opacity 0.2s ease',
-                                    },
-                                    '& .sidebar-logo-chevron': {
-                                        opacity: 0,
-                                        transition: 'opacity 0.2s ease',
-                                    },
-                                    ...(!open && {
-                                        '&:hover .sidebar-logo-image, &:focus-visible .sidebar-logo-image': {
-                                            opacity: 0,
+                            <Tooltip
+                                title={open ? '' : 'Open sidebar'}
+                                disableHoverListener={open}
+                                {...tooltipProps}
+                                PopperProps={{
+                                    modifiers: [
+                                        {
+                                            name: 'offset',
+                                            options: {
+                                                offset: [0, 12],
+                                            },
                                         },
-                                        '&:hover .sidebar-logo-chevron, &:focus-visible .sidebar-logo-chevron': {
-                                            opacity: 1,
-                                        },
-                                    }),
+                                    ],
                                 }}
                             >
-                                <Box
+                                <IconButton
+                                    aria-label={open ? 'Go to home' : 'Expand sidebar'}
+                                    component={open ? Link : 'button'}
+                                    to={open ? '/' : undefined}
+                                    onClick={open ? undefined : () => setOpen(true)}
+                                    size="small"
+                                    className="sidebar-logo-link"
                                     sx={{
+                                        p: 0,
                                         width: 48,
                                         height: 48,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        position: 'relative',
+                                        borderRadius: '50%',
+                                        '&:hover': {
+                                            backgroundColor: 'rgba(1, 105, 176, 0.04)',
+                                        },
+                                        '& .sidebar-logo-image': {
+                                            opacity: 1,
+                                            transition: 'opacity 0.2s ease',
+                                        },
+                                        '& .sidebar-logo-chevron': {
+                                            opacity: 0,
+                                            transition: 'opacity 0.2s ease',
+                                        },
+                                        ...(!open && {
+                                            '&:hover .sidebar-logo-image, &:focus-visible .sidebar-logo-image': {
+                                                opacity: 0,
+                                            },
+                                            '&:hover .sidebar-logo-chevron, &:focus-visible .sidebar-logo-chevron': {
+                                                opacity: 1,
+                                            },
+                                        }),
                                     }}
                                 >
                                     <Box
-                                        component="img"
-                                        src={logo}
-                                        alt="GLKB logo"
-                                        className="sidebar-logo-image"
                                         sx={{
-                                            height: 36,
-                                            width: 'auto',
-                                            objectFit: 'contain',
+                                            width: 48,
+                                            height: 48,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            position: 'relative',
                                         }}
-                                    />
-                                    <SidebarLeftIcon
-                                        className="sidebar-logo-chevron"
-                                        style={{
-                                            width: 22,
-                                            height: 22,
-                                            position: 'absolute',
-                                            color: '#2c5cf3',
-                                        }}
-                                    />
-                                </Box>
-                            </IconButton>
+                                    >
+                                        <Box
+                                            component="img"
+                                            src={logo}
+                                            alt="GLKB logo"
+                                            className="sidebar-logo-image"
+                                            sx={{
+                                                height: 36,
+                                                width: 'auto',
+                                                objectFit: 'contain',
+                                            }}
+                                        />
+                                        <SidebarLeftIcon
+                                            className="sidebar-logo-chevron"
+                                            style={{
+                                                width: 22,
+                                                height: 22,
+                                                position: 'absolute',
+                                                color: '#2c5cf3',
+                                            }}
+                                        />
+                                    </Box>
+                                </IconButton>
+                            </Tooltip>
                             <Typography
                                 className="sidebar-logo-text"
                                 sx={{

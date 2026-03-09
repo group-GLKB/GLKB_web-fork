@@ -30,14 +30,14 @@ import {
     Typography,
 } from '@mui/material';
 
-import downArrow from '../../img/down_arrow.svg';
-import NoResultImage from '../../img/placeholdericon.png';
+import downArrow from '../../img/result/down_arrow.svg';
+import NoResultImage from '../../img/result/placeholdericon.png';
 import { CypherService } from '../../service/Cypher';
 import Graph from '../Graph';
 import Information from '../Information';
 import NavBarWhite from '../Units/NavBarWhite';
-import SearchBarKnowledge from '../Units/SearchBarKnowledge';
-import SearchBarNeighborhood from '../Units/SearchBarNeighborhood';
+import SearchBarKnowledge from './SearchBarKnowledge';
+import SearchBarNeighborhood from './SearchBarNeighborhood';
 
 // const StyledButton = styled(Button)(({ theme }) => ({
 //     backgroundColor: '#99c7b1',
@@ -822,7 +822,7 @@ const ResultPage = () => {
                             )}
                             {searchFlag && (
                                 <Box className="result-content result-split" sx={{ paddingTop: 0, display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', gap: 0 }}>
-                                    <Box className="result-left" sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, gap: '24px', padding: '24px' }}>
+                                    <Box className="result-left" sx={{ display: 'flex', flexDirection: 'column', flex: 6, minHeight: 0, gap: '24px', padding: '24px 80px 36px' }}>
                                         <MuiButton variant="text" sx={{
                                             color: '#333333',
                                             fontFamily: 'Open Sans, sans-serif',
@@ -1012,7 +1012,7 @@ const ResultPage = () => {
                                             </Box>
                                         </Box>
                                     </Box>
-                                    <Box className="result-right" sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                                    <Box className="result-right" sx={{ display: 'flex', flexDirection: 'column', flex: 5, minHeight: 0 }}>
                                         <Box sx={{
                                             borderRadius: 0,
                                             height: "100%",

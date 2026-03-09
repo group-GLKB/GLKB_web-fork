@@ -1,9 +1,11 @@
 import React from 'react';
+
 import { IconButton } from '@mui/material';
-import { FormatQuote as FormatQuoteIcon } from '@mui/icons-material';
+
+import formatQuoteIcon from '../../../img/llm/format_quote.svg';
 
 const ReferenceCard = ({ url, handleClick, onCiteClick, isHighlighted = false }) => {
-    
+
     const handleCiteClick = (event) => {
         event.stopPropagation();
         if (onCiteClick) {
@@ -54,94 +56,112 @@ const ReferenceCard = ({ url, handleClick, onCiteClick, isHighlighted = false })
                 width: '100%',
                 transition: 'background-color 0.3s ease',
                 padding: isHighlighted ? '8px' : '0px',
+                fontFamily: 'DM Sans, sans-serif',
             }}
             className="custom-div-url"
         >
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <div style={{ color: '#018DFF', fontSize: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <div style={{ color: '#808080', fontSize: '14px', fontWeight: 400 }}>
                     PubMed ID: {url[1].split('/').filter(Boolean).pop()}
                 </div>
-                <div style={{ fontSize: '14px' }}>
-                    Citations: {url[2]}
-                </div>
+                <IconButton
+                    size="small"
+                    onClick={handleCiteClick}
+                    sx={{
+                        padding: '4px',
+                        color: '#323232',
+                        '&:hover': {
+                            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        },
+                    }}
+                    title="Cite this reference"
+                >
+                    <img
+                        src={formatQuoteIcon}
+                        alt="Quote"
+                        style={{ width: '18px', height: '18px', display: 'block' }}
+                    />
+                </IconButton>
             </div>
 
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr auto',
-                alignItems: 'start',
-                marginBottom: '4px'
-            }}>
-                <a
-                    href={url[1]}
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        handleClick(event, url[1]);
-                    }}
-                    style={{
-                        color: 'black',
-                        textDecoration: 'none',
-                        fontWeight: '800',
-                        fontSize: '14px',
-                        paddingRight: '8px',
-                        wordBreak: 'break-word'
-                    }}
-                >
-                    {url[0]}
-                </a>
-                <div style={{
-                    fontSize: '14px',
-                    whiteSpace: 'nowrap',
-                    textAlign: 'right',
-                    marginLeft: '8px',
-                }}>
-                    {url[3]}
-                </div>
-            </div>
+            <a
+                href={url[1]}
+                onClick={(event) => {
+                    event.stopPropagation();
+                    handleClick(event, url[1]);
+                }}
+                style={{
+                    color: '#323232',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                    fontSize: '16px',
+                    display: 'block',
+                    marginBottom: '6px',
+                    wordBreak: 'break-word',
+                }}
+            >
+                {url[0]}
+            </a>
 
             <div style={{
                 display: 'flex',
-                flexWrap: 'wrap',
-                gap: '6px',
-                fontSize: '14px',
-                marginBottom: '4px'
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                gap: '12px',
+                marginBottom: '6px',
             }}>
-                {renderAuthors()}
+                <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '6px',
+                    fontSize: '14px',
+                    fontWeight: 400,
+                    fontStyle: 'italic',
+                    color: '#808080',
+                    flex: 1,
+                }}>
+                    {renderAuthors()}
+                </div>
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-end',
+                    fontSize: '14px',
+                    fontWeight: 400,
+                    color: '#323232',
+                    lineHeight: 1.4,
+                    flexShrink: 0,
+                }}>
+                    <span>Citations: {url[2]}</span>
+                </div>
             </div>
 
             <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center',
-                marginTop: '4px',
+                alignItems: 'flex-end',
+                gap: '12px',
             }}>
                 <div style={{
                     fontSize: '14px',
+                    fontWeight: 400,
+                    color: '#323232',
                     wordBreak: 'break-word',
-                    color: 'grey',
                     flex: 1,
                 }} title="Journal">
                     {url[4]}
                 </div>
-                
-                <div
-                    onClick={handleCiteClick}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        cursor: 'pointer',
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        transition: 'background-color 0.2s',
-                        flexShrink: 0,
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f0f0'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    title="Cite this reference"
-                >
-                    <FormatQuoteIcon sx={{ fontSize: '18px', color: '#4A90E2' }} />
-                    <span style={{ fontSize: '14px', color: '#4A90E2', fontWeight: '500' }}>Cite</span>
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-end',
+                    fontSize: '14px',
+                    fontWeight: 400,
+                    color: '#323232',
+                    lineHeight: 1.4,
+                    flexShrink: 0,
+                }}>
+                    <span>{url[3]}</span>
                 </div>
             </div>
         </div>
