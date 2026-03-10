@@ -26,6 +26,8 @@ import {
     ListItemButton,
     ListItemIcon,
     ListItemText,
+    Menu,
+    MenuItem,
     Tooltip,
     Typography,
     useMediaQuery,
@@ -36,6 +38,10 @@ import {
 } from '@mui/material/styles';
 
 import logo from '../../../img/GLKB_logo_icon.png';
+import userAccountIcon from '../../../img/user/ic_outline-account-circle.svg';
+import userSettingsIcon from '../../../img/user/lsicon_setting-outline.svg';
+import userLogoutIcon from '../../../img/user/mynaui_logout.svg';
+import { useAuth } from '../../Auth/AuthContext';
 import { ReactComponent as AddIcon } from '../../../img/navbar/add.svg';
 import {
     ReactComponent as CategorySearchIcon,
@@ -90,6 +96,7 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 );
 
 function NavBarWhite({ showLogo = true }) {
+    const { isAuthenticated, user, logout } = useAuth();
     const location = useLocation();
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
@@ -103,6 +110,7 @@ function NavBarWhite({ showLogo = true }) {
         }
         return storedOpen === 'true';
     });
+    const [userMenuAnchorEl, setUserMenuAnchorEl] = useState(null);
 
     useEffect(() => {
         if (isSmallScreen) {
@@ -162,8 +170,43 @@ function NavBarWhite({ showLogo = true }) {
     ), []);
 
     const loginItem = useMemo(() => (
-        { label: 'Login', to: '/login', icon: <PersonIcon sx={{ fontSize: 22 }} /> }
+        {
+            label: 'Login',
+            to: '/login',
+            icon: <PersonIcon sx={{ fontSize: 22 }} />,
+            iconBoxSx: {
+                backgroundColor: '#e9f1fe',
+                color: '#164563',
+            },
+        }
     ), []);
+
+    const userDisplayName = user?.username || user?.email || 'Account';
+    const isUserMenuOpen = Boolean(userMenuAnchorEl);
+
+    const handleOpenUserMenu = (event) => {
+        setUserMenuAnchorEl(event.currentTarget);
+    };
+
+    const handleCloseUserMenu = () => {
+        setUserMenuAnchorEl(null);
+    };
+
+    const handleAccountClick = () => {
+        handleCloseUserMenu();
+        console.log('Account clicked');
+    };
+
+    const handleSettingsClick = () => {
+        handleCloseUserMenu();
+        console.log('Settings clicked');
+    };
+
+    const handleLogoutClick = async () => {
+        handleCloseUserMenu();
+        await logout();
+        window.location.href = '/';
+    };
 
     const isSelected = (item) => {
         if (!item.to) {
@@ -196,9 +239,11 @@ function NavBarWhite({ showLogo = true }) {
     };
 
     const renderNavItem = (item) => {
-        const linkProps = item.to
-            ? { component: Link, to: item.to }
-            : { component: 'a', href: item.href, target: '_blank', rel: 'noopener noreferrer' };
+        const linkProps = item.onClick
+            ? { component: 'button', onClick: item.onClick, type: 'button' }
+            : item.to
+                ? { component: Link, to: item.to }
+                : { component: 'a', href: item.href, target: '_blank', rel: 'noopener noreferrer' };
 
         const icon = item.icon;
 
@@ -208,6 +253,7 @@ function NavBarWhite({ showLogo = true }) {
                 aria-label={item.label}
                 {...linkProps}
                 sx={{
+                    width: '100%',
                     minHeight: 48,
                     mb: 0.5,
                     borderRadius: 1.5,
@@ -249,6 +295,7 @@ function NavBarWhite({ showLogo = true }) {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
+                            ...item.iconBoxSx,
                         }}
                     >
                         {icon}
@@ -451,10 +498,112 @@ function NavBarWhite({ showLogo = true }) {
                 </List>
                 <Box sx={{ mt: 'auto', pb: 2 }}>
                     <List sx={{ px: 1, py: 1 }}>
-                        {renderNavItem(loginItem)}
+                        {!isAuthenticated ? (
+                            renderNavItem(loginItem)
+                        ) : (
+                            renderNavItem({
+                                label: userDisplayName,
+                                icon: <PersonIcon sx={{ fontSize: 22 }} />,
+                                onClick: handleOpenUserMenu,
+                                iconBoxSx: {
+                                    backgroundColor: '#2c5cf3',
+                                    color: '#ffffff',
+                                },
+                            })
+                        )}
                     </List>
                 </Box>
             </Box>
+            <Menu
+                anchorEl={userMenuAnchorEl}
+                open={isUserMenuOpen}
+                onClose={handleCloseUserMenu}
+                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                MenuListProps={{
+                    sx: {
+                        py: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 1,
+                    },
+                }}
+                PaperProps={{
+                    sx: {
+                        minWidth: 240,
+                        borderRadius: 2,
+                        boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
+                        '& .MuiMenuItem-root': {
+                            color: '#444444',
+                            fontFamily: 'DM Sans, sans-serif',
+                            fontWeight: 400,
+                            fontSize: '14px',
+                        },
+                        '& .MuiListItemText-primary': {
+                            color: '#444444',
+                            fontFamily: 'DM Sans, sans-serif',
+                            fontWeight: 400,
+                            fontSize: '14px',
+                        },
+                    },
+                }}
+            >
+                <MenuItem
+                    sx={{
+                        px: 2,
+                        py: 1,
+                        cursor: 'default',
+                        '&:hover': {
+                            backgroundColor: 'transparent',
+                        },
+                    }}
+                >
+                    <Typography
+                        sx={{
+                            fontFamily: 'DM Sans, sans-serif',
+                            fontWeight: 400,
+                            fontSize: '14px',
+                            color: '#444444',
+                        }}
+                    >
+                        {userDisplayName}
+                    </Typography>
+                </MenuItem>
+                <MenuItem onClick={handleAccountClick} sx={{ px: 2, py: 1 }}>
+                    <ListItemIcon sx={{ minWidth: "16px !important", mr: 1 }}>
+                        <Box
+                            component="img"
+                            src={userAccountIcon}
+                            alt="Account"
+                            sx={{ width: 16, height: 16, objectFit: 'contain' }}
+                        />
+                    </ListItemIcon>
+                    <ListItemText>Account</ListItemText>
+                </MenuItem>
+                <MenuItem onClick={handleSettingsClick} sx={{ px: 2, py: 1 }}>
+                    <ListItemIcon sx={{ minWidth: "16px !important", mr: 1 }}>
+                        <Box
+                            component="img"
+                            src={userSettingsIcon}
+                            alt="Settings"
+                            sx={{ width: 16, height: 16, objectFit: 'contain' }}
+                        />
+                    </ListItemIcon>
+                    <ListItemText>Settings</ListItemText>
+                </MenuItem>
+                <Divider />
+                <MenuItem onClick={handleLogoutClick} sx={{ px: 2, py: 1 }}>
+                    <ListItemIcon sx={{ minWidth: "16px !important", mr: 1 }}>
+                        <Box
+                            component="img"
+                            src={userLogoutIcon}
+                            alt="Log out"
+                            sx={{ width: 16, height: 16, objectFit: 'contain' }}
+                        />
+                    </ListItemIcon>
+                    <ListItemText>Log out</ListItemText>
+                </MenuItem>
+            </Menu>
         </Drawer>
     );
 }

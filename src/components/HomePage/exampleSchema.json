@@ -1,52 +1,52 @@
 {
     "autocomplete": [
-        "Summarize recent findings on BRCA1 and DNA repair.",
-        "Show publication trends for CRISPR from 2015 to 2024.",
-        "List key papers on APOE and Alzheimer's disease."
+        "What biological functions are associated with the TP53 gene?",
+        "How has the number of publications on Alzheimer's disease changed over the past 10 years?",
+        "What recent studies investigate the role of the gut microbiome in autoimmune diseases?"
     ],
     "pills": [
         {
             "id": "insights",
-            "label": "Gene insight",
-            "panelTitle": "Gene insight Examples",
+            "label": "Entity Insights",
+            "panelTitle": "Entity Insights",
             "icon": "lightbulb",
             "examples": [
-                "Summarize recent findings on BRCA1 and DNA repair.",
-                "What are the top insights about TP53 in tumor suppression?",
-                "Key takeaways on APOE and Alzheimer's disease risk."
+                "What biological functions are associated with the TP53 gene?",
+                "Which genes are most strongly associated with Alzheimer's disease in the literature?",
+                "What pathways involve the mTOR signaling pathway and what processes does it regulate?"
             ]
         },
         {
             "id": "disease",
-            "label": "Disease insight",
-            "panelTitle": "Disease insight Examples",
+            "label": "Research Trend",
+            "panelTitle": "Research Trend",
             "icon": "chart",
             "examples": [
-                "Show publication trends for CRISPR from 2015 to 2024.",
-                "Trends in Alzheimer's disease research over the last decade.",
-                "Emerging topics in genomic medicine since 2022."
+                "How has the number of publications on Alzheimer's disease changed over the past 10 years?",
+                "Which genes have seen the largest increase in publications related to Type 1 Diabetes since 2020?",
+                "What are the most rapidly growing research topics in CRISPR-based gene editing?"
             ]
         },
         {
             "id": "literature",
-            "label": "Literature Review",
-            "panelTitle": "Literature Examples",
+            "label": "Mechanisms & Relationships",
+            "panelTitle": "Mechanisms and Relationships",
             "icon": "book",
             "examples": [
-                "Key papers on APOE and Alzheimer's disease.",
-                "Most cited papers on genome-wide association studies.",
-                "Recent reviews on gene therapy for sickle cell disease."
+                "Which transcription factors regulate INS gene expression in pancreatic beta cells?",
+                "What molecular pathways link IL6 signaling to inflammatory responses?",
+                "Which proteins interact with ACE2 during viral infection?"
             ]
         },
         {
             "id": "usecases",
-            "label": "Use Cases",
-            "panelTitle": "Use Cases Examples",
+            "label": "Literature Discovery",
+            "panelTitle": "Literature Discovery",
             "icon": "knowledge",
             "examples": [
-                "What pathways does TP53 participate in?",
-                "Genes interacting with BRCA1 in DNA repair.",
-                "Which variants are linked to type 2 diabetes?"
+                "What recent studies investigate the role of the gut microbiome in autoimmune diseases?",
+                "Which genes have recently been implicated in beta-cell dysfunction in Type 1 Diabetes?",
+                "Are there studies linking viral infections to the onset of autoimmune diabetes?"
             ]
         }
     ]

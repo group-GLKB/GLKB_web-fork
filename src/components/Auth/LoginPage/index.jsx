@@ -11,7 +11,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { sendCode } = useAuth();
+  const { login } = useAuth();
 
   const handleGoogleLogin = () => {
     // TODO: Implement Google OAuth
@@ -28,7 +28,7 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
 
-    const result = await sendCode(email);
+    const result = await login(email);
 
     if (result.success) {
       // Navigate to verification page with email
