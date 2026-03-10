@@ -181,6 +181,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     <Box
                                         role="button"
                                         aria-label="Start chat"
+                                        className="search-button-big"
                                         onClick={!llmQuery.trim() ? undefined : () => { navigateToLLMAgent(llmQuery.trim()); }}
                                         sx={{
                                             height: '48px',

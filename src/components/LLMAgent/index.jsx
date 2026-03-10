@@ -275,6 +275,7 @@ function LLMAgent() {
     const messagesEndRef = useRef(null);
     const abortControllerRef = useRef(null);
     const thinkingStepsRef = useRef([]);
+    const prevSelectedMessageIndexRef = useRef(null);
     const navigate = useNavigate();
 
     const llmService = useMemo(() => new LLMAgentService(), []);
@@ -715,6 +716,9 @@ function LLMAgent() {
                                     }}>
                                         {thoughtHeaderText}
                                     </Typography>
+                                    {isLoading && (
+                                        <CircularProgress size={14} sx={{ color: '#646464' }} />
+                                    )}
                                     {!isLoading && hasDisplayGroups && (
                                         <IconButton
                                             size="small"
@@ -804,13 +808,7 @@ function LLMAgent() {
                                             Reload
                                         </MuiButton>
                                     </Box>
-                                ) : isLoading ? (
-                                    hasDisplayGroups ? null : (
-                                        <Box display="flex" justifyContent="center" py={2}>
-                                            <CircularProgress size={24} />
-                                        </Box>
-                                    )
-                                ) :
+                                ) : isLoading ? null :
                                     isEditing ?
                                         <TextField
                                             hiddenLabel
@@ -1447,7 +1445,6 @@ function LLMAgent() {
                                                                     return (
                                                                         <div key={index} style={{ marginTop: '12px' }} data-pubmed-id={pubmedId}>
                                                                             <ReferenceCard url={url} handleClick={handleClick} onCiteClick={handleCiteClick} isHighlighted={isHighlighted} />
-                                                                            <hr style={{ border: 'none', height: '1px', backgroundColor: '#D9D9D9', marginTop: '12px' }} />
                                                                         </div>
                                                                     );
                                                                 })}

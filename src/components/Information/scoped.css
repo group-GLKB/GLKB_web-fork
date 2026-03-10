@@ -59,6 +59,33 @@ all {
 .ant-list-item {
     padding-left: 0px !important;
     padding-right: 0px !important;
+    width: 100%;
+}
+
+.related-article-item {
+    width: 100%;
+}
+
+.related-article-item.ant-list-item {
+    border-bottom: none !important;
+}
+
+.related-article-item>* {
+    width: 100%;
+}
+
+.ant-list-items .related-article-item:last-child {
+    padding-bottom: 0;
+}
+
+.reference-separator {
+    height: 2px;
+    background-color: #D9D9D9;
+    margin-top: 12px;
+}
+
+.related-article-item:last-child .reference-separator {
+    display: none;
 }
 
 /* Remove any styles for .related if it's no longer used */
@@ -80,7 +107,8 @@ all {
 }
 
 .ant-card-head {
-    padding-left: 2vw !important;
+    padding-left: 24px !important;
+    padding-right: 24px !important;
 }
 
 .ant-collapse {
@@ -163,27 +191,45 @@ all {
 }
 
 .transcriptGradientTop {
-    width: calc(95% - 40px);
+    width: calc(100% - 48px);
     /* height: 20px; */
     position: absolute;
     top: 0px;
-    right: 40px;
+    right: 24px;
     z-index: 20;
     background: -webkit-linear-gradient(rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 1) 100%);
     background: linear-gradient(to bottom, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
 }
 
 .transcriptGradientBottom {
-    width: calc(95% - 40px);
+    width: calc(100% - 48px);
     height: 20px;
     position: absolute;
-    right: 40px;
+    right: 24px;
     bottom: 0px;
     background: -webkit-linear-gradient(rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
     background: linear-gradient(to top, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
 }
 
 .ant-descriptions-item {
-    padding-top: 4px !important;
-    padding-bottom: 2px !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+}
+
+.information .ant-descriptions-item-label {
+    color: #646464 !important;
+    font-weight: 600 !important;
+    font-size: 16px !important;
+    text-align: left;
+    min-width: 160px;
+    padding-right: 12px !important;
+    white-space: nowrap;
+}
+
+.information .ant-descriptions-item-content {
+    color: #323232 !important;
+    font-weight: 400 !important;
+    font-size: 16px !important;
+    text-align: left;
+    padding-left: 0 !important;
 }
