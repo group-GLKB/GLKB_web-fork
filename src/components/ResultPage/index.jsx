@@ -22,7 +22,6 @@ import {
 } from 'react-router-dom';
 
 import { InfoCircleOutlined } from '@ant-design/icons';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 //import mui button as muibutton
 import {
     Box,
@@ -30,6 +29,9 @@ import {
     Typography,
 } from '@mui/material';
 
+import {
+    ReactComponent as CategorySearchIcon,
+} from '../../img/navbar/category_search.svg';
 import downArrow from '../../img/result/down_arrow.svg';
 import NoResultImage from '../../img/result/placeholdericon.png';
 import { CypherService } from '../../service/Cypher';
@@ -62,6 +64,12 @@ const LegendTooltipContent = (
         Two types of relationships are supported:<br />
         - Semantic Relationships, which are automatically extracted from PubMed abstracts<br />
         - Curated Relationships, which are manually annotated from established data repositories.
+    </div>
+);
+
+const ExploreTooltipContent = (
+    <div className="legends-tooltip-content">
+        Each node should represent a single concept. Add more concepts as separate nodes.
     </div>
 );
 
@@ -188,6 +196,7 @@ const ResultPage = () => {
         {
             target: '.floating-information-new',
             content: 'View detailed information about selected nodes or edges.',
+            placement: 'left',
         },
     ];
 
@@ -823,51 +832,82 @@ const ResultPage = () => {
                             {searchFlag && (
                                 <Box className="result-content result-split" sx={{ paddingTop: 0, display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', gap: 0 }}>
                                     <Box className="result-left" sx={{ display: 'flex', flexDirection: 'column', flex: 6, minHeight: 0, gap: '24px', padding: '24px 80px 36px' }}>
-                                        <MuiButton variant="text" sx={{
-                                            color: '#333333',
-                                            fontFamily: 'Open Sans, sans-serif',
-                                            alignSelf: 'flex-start',
-                                            zIndex: 1,
-                                            borderRadius: '24px',
-                                            marginBottom: '16px',
-                                        }}
-                                            onClick={() => navigate('/')}>
-                                            <ArrowBackIcon />Back
-                                        </MuiButton>
-                                        <div className="search-bar-container" style={{ boxShadow: "0 1px 10px 0 rgba(0, 0, 0, 0.05)", borderRadius: '20px' }}>
-                                            <div className="search-bar-wrapper">
-                                                {searchType === 'neighbor' ? (
-                                                    <SearchBarNeighborhood
-                                                        initialContent={searchContent} // Pass initial content
-                                                        onSearch={(data) => {
-                                                            setSearchContent(data); // Update stored content
-                                                            setSearchFlag(false);
-                                                            handleNeighborSearch(data);
-                                                        }}
-                                                    />
-                                                ) : (
-                                                    <SearchBarKnowledge
-                                                        ref={searchBarKnowledgeRef}
-                                                        initialContent={searchContent} // Pass initial content
-                                                        chipData={[]}
-                                                        chipDataIDResult={chipDataIDResult}
-                                                        displayArticleGraph={displayArticleGraph}
-                                                        setDisplayArticleGraph={setDisplayArticleGraph}
-                                                        alterColor={1}
-                                                        setOpen={setSearchBarOpen}
-                                                        onSearch={(data) => {
-                                                            window.location.reload();
-                                                            navigate('/search', {
-                                                                state: {
-                                                                    search_data: data,
-                                                                    searchType: 'triplet',
-                                                                }
-                                                            });
-                                                        }}
-                                                    />
-                                                )}
+                                        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <CategorySearchIcon style={{ width: 36, height: 36, color: '#164563' }} />
+                                                <Typography sx={{
+                                                    fontFamily: 'DM Sans, sans-serif',
+                                                    fontWeight: 600,
+                                                    fontSize: '32px',
+                                                    color: '#164563',
+                                                }}>
+                                                    Explore
+                                                </Typography>
+                                            </Box>
+                                            <Typography sx={{
+                                                marginTop: '8px',
+                                                fontFamily: 'DM Sans, sans-serif',
+                                                fontWeight: 500,
+                                                fontSize: '14px',
+                                                color: '#646464',
+                                            }}>
+                                                Explore relationships between genes, diseases, and biological processes
+                                            </Typography>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '24px' }}>
+                                                <Typography sx={{
+                                                    fontFamily: 'DM Sans, sans-serif',
+                                                    fontWeight: 400,
+                                                    fontSize: '14px',
+                                                    color: '#646464',
+                                                }}>
+                                                    Add one concept per node
+                                                </Typography>
+                                                <Tooltip
+                                                    title={ExploreTooltipContent}
+                                                    styles={{
+                                                        root: { maxWidth: '380px' },
+                                                        body: { fontSize: '16px', fontFamily: 'Open Sans, sans-serif' },
+                                                    }}
+                                                >
+                                                    <InfoCircleOutlined style={{ color: '#1890ff' }} />
+                                                </Tooltip>
+                                            </Box>
+                                            <div className="search-bar-container" style={{ marginTop: '8px', boxShadow: "0 1px 10px 0 rgba(0, 0, 0, 0.05)", borderRadius: '20px' }}>
+                                                <div className="search-bar-wrapper">
+                                                    {searchType === 'neighbor' ? (
+                                                        <SearchBarNeighborhood
+                                                            initialContent={searchContent} // Pass initial content
+                                                            onSearch={(data) => {
+                                                                setSearchContent(data); // Update stored content
+                                                                setSearchFlag(false);
+                                                                handleNeighborSearch(data);
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <SearchBarKnowledge
+                                                            ref={searchBarKnowledgeRef}
+                                                            initialContent={searchContent} // Pass initial content
+                                                            chipData={[]}
+                                                            chipDataIDResult={chipDataIDResult}
+                                                            displayArticleGraph={displayArticleGraph}
+                                                            setDisplayArticleGraph={setDisplayArticleGraph}
+                                                            alterColor={1}
+                                                            setOpen={setSearchBarOpen}
+                                                            onSearch={(data) => {
+                                                                setSearchFlag(false);
+                                                                navigate('/search', {
+                                                                    state: {
+                                                                        search_data: data,
+                                                                        searchType: 'triplet',
+                                                                    },
+                                                                    replace: true,
+                                                                });
+                                                            }}
+                                                        />
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
+                                        </Box>
                                         <Box className="result-container-wrapper" sx={{ flex: 1, minHeight: 0 }}>
                                             <Box sx={{
                                                 height: '100%',
@@ -1140,11 +1180,11 @@ const ResultPage = () => {
                         height: '56px',
                         fontSize: '24px',
                         borderRadius: '50%',
-                        backgroundColor: '#079BD4',
-                        color: '#FFFFFF',
-                        boxShadow: '8px 6px 33px 0px #D8E6F8',
+                        backgroundColor: '#E7F1FF',
+                        color: '#155DFC',
+                        boxShadow: '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',
                         border: 'none',
-                        fontFamily: 'Open Sans, sans-serif',
+                        fontFamily: 'DM Sans, sans-serif',
                     }}
                     disabled={!searchFlag}
                 >

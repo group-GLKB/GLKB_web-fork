@@ -1,12 +1,31 @@
-import React, { useEffect, useState } from 'react'
-import './scoped.css'
-import { Row, Col, Slider, Collapse, Transfer, InputNumber, Typography, Button, Modal, Tree, Input, Menu, Checkbox, Dropdown, Space, Spin, Card } from 'antd';
-import { DownOutlined, SmileOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { CaretRightOutlined, PlusCircleOutlined, MinusCircleOutlined } from '@ant-design/icons';
-import { NewGraph } from '../../service/NewNode'
-import { CypherService } from '../../service/Cypher'
-import { render } from '@testing-library/react';
-import { Tooltip } from 'antd';
+import './scoped.css';
+
+import React, {
+    useEffect,
+    useState,
+} from 'react';
+
+import {
+    Button,
+    Card,
+    Checkbox,
+    Collapse,
+    Dropdown,
+    Input,
+    Tooltip,
+    Typography,
+} from 'antd';
+
+import {
+    DownOutlined,
+    InfoCircleOutlined,
+    MinusCircleOutlined,
+    PlusCircleOutlined,
+} from '@ant-design/icons';
+
+import { CypherService } from '../../service/Cypher';
+import { NewGraph } from '../../service/NewNode';
+
 const { Panel } = Collapse;
 const { Title } = Typography;
 
@@ -364,11 +383,11 @@ const Filter = props => {
             // Group nodes by their parent/group
             const groupedNodes = {};
             nodes.forEach(node => {
-                if (node.data.label !== 'Article' && 
-                    node.data.name && 
-                    node.data.database_id && 
+                if (node.data.label !== 'Article' &&
+                    node.data.name &&
+                    node.data.database_id &&
                     node.data.database_id.length > 0) {
-                    
+
                     const groupKey = node.data.parent || node.data.id;
                     if (!groupedNodes[groupKey]) {
                         // Store only the first node from each group
@@ -586,8 +605,8 @@ const Filter = props => {
                                 value={userQuestion}
                                 onChange={(e) => setUserQuestion(e.target.value)}
                             />
-                            <Button 
-                                onClick={handleUserQuestionSubmit} 
+                            <Button
+                                onClick={handleUserQuestionSubmit}
                                 loading={loadingCustomQuestion}
                             >
                                 Submit Question
@@ -614,8 +633,8 @@ const Filter = props => {
                                     <Button>{entityA2.name} <DownOutlined /></Button>
                                 </Dropdown>
                             </div>
-                            <Button 
-                                onClick={updateAnswer3} 
+                            <Button
+                                onClick={updateAnswer3}
                                 loading={loadingArticleRelation}
                             >
                                 Generate Answer
@@ -641,8 +660,8 @@ const Filter = props => {
                                         <Button>{entityB1.name} <DownOutlined /></Button>
                                     </Dropdown>
                                 </div>
-                                <Button 
-                                    onClick={updateAnswer1} 
+                                <Button
+                                    onClick={updateAnswer1}
                                     loading={loadingAssociation}
                                 >
                                     Generate Answer
@@ -664,8 +683,8 @@ const Filter = props => {
                                         <Button>{entityA2.name} <DownOutlined /></Button>
                                     </Dropdown>
                                 </div>
-                                <Button 
-                                    onClick={updateAnswer2} 
+                                <Button
+                                    onClick={updateAnswer2}
                                     loading={loadingSpecificTerm}
                                 >
                                     Generate Answer

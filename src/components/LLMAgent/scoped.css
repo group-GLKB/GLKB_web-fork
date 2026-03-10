@@ -338,6 +338,24 @@
     border-radius: 4px;
 }
 
+.references-list>div {
+    width: 100%;
+}
+
+.references-list .custom-div-url {
+    width: 100%;
+}
+
+.references-list>div {
+    border-bottom: 2px solid #D9D9D9;
+    padding-bottom: 12px;
+}
+
+.references-list>div:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
 .message-wrapper {
     padding: 8px 16px;
     width: 100%;

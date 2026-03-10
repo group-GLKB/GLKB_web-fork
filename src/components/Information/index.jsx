@@ -13,14 +13,19 @@ import {
     Descriptions,
     Empty,
     List,
-    Select,
     Spin,
     Typography,
 } from 'antd';
 
+import {
+    ToggleButton,
+    ToggleButtonGroup,
+} from '@mui/material';
+
 import downArrow from '../../img/result/down_arrow.svg';
 import rightArrow from '../../img/result/right_arrow.svg';
 import { DetailService } from '../../service/Detail';
+import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 
 const { Panel } = Collapse;
 const { Text } = Typography;
@@ -190,8 +195,8 @@ const Information = ({ width, ...props }) => {
                 ? article[1]
                 : (pmidFromUrl ? `https://www.ncbi.nlm.nih.gov/pubmed/${pmidFromUrl}` : '');
             const safeAuthors = Array.isArray(article[5])
-                ? article[5]
-                : (article[5] ? [String(article[5])] : []);
+                ? article[5].join(', ')
+                : (article[5] ? String(article[5]) : '');
             return [
                 article[0] || '',
                 String(safeUrl || ''),
@@ -207,8 +212,8 @@ const Information = ({ width, ...props }) => {
             const safeUrl = article.url || article.pubmed_url || article.link ||
                 (pmid ? `https://www.ncbi.nlm.nih.gov/pubmed/${pmid}` : '');
             const safeAuthors = Array.isArray(article.authors)
-                ? article.authors
-                : (article.authors ? [String(article.authors)] : []);
+                ? article.authors.join(', ')
+                : (article.authors ? String(article.authors) : '');
             return [
                 article.title || article.name || article.display || '',
                 String(safeUrl || ''),
@@ -226,118 +231,53 @@ const Information = ({ width, ...props }) => {
         const normalized = normalizeArticleRecord(article);
         if (!normalized) return null;
 
-        const url = normalized;
-        const authors = url[5] || [];
-        const getLastName = (fullName) => {
-            const parts = fullName.trim().split(' ');
-            return parts[parts.length - 1];
-        };
-
-        const renderAuthors = () => {
-            if (authors.length === 0) return null;
-            if (authors.length === 1) {
-                return renderAuthorBubbles([authors[0]]);
-            }
-            if (authors.length === 2) {
-                return renderAuthorBubbles(authors);
-            }
-            return renderAuthorBubbles([
-                authors[0],
-                '...',
-                authors[authors.length - 1]
-            ]);
-        };
-        const renderAuthorBubbles = (list) => (
-            list.map((author, idx) => (
-                <span
-                    key={idx}
-                >
-                    {author}{idx < list.length - 1 ? ',' : ''}
-                </span>
-            ))
-        );
         return (
-            <div
-                onClick={(event) => handleClick(event, url[1])}
-                className="custom-div-url"
-                style={{
-                    cursor: 'pointer',
-                    marginBottom: '2px',
-                    borderRadius: '10px',
-                    padding: 0,
-                    backgroundColor: '#fff',
-                    width: '100%',
-                }}
-            >
-                {/* Section 1: PubMed ID and Citations */}
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <div style={{ color: '#018DFF', fontSize: '14px' }}>
-                        PubMed ID: {url[1].split('/').filter(Boolean).pop()}
-                    </div>
-                    <div style={{ fontSize: '14px' }}>
-                        Citations: {url[2]}
-                    </div>
-                </div>
-
-                {/* Section 2: Title and Year */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr auto',
-                    alignItems: 'start',
-                }}>
-                    <a
-                        href={url[1]}
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            handleClick(event, url[1]);
-                        }}
-                        style={{
-                            color: 'black',
-                            textDecoration: 'none',
-                            fontWeight: '600',
-                            fontSize: '14px',
-                            paddingRight: '8px',
-                            wordBreak: 'break-word'
-                        }}
-                    >
-                        {url[0]}
-                    </a>
-                    <div style={{
-                        fontSize: '14px',
-                        whiteSpace: 'nowrap',
-                        textAlign: 'right',
-                        marginLeft: '8px',
-                    }}>
-                        {url[3]}
-                    </div>
-                </div>
-
-                {/* Section 3: Authors */}
-                <div style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '6px',
-                    fontSize: '14px'
-                }}>
-                    {renderAuthors()}
-                </div>
-
-                {/* Section 4: Journal Name */}
-                <div style={{
-                    fontSize: '14px',
-                    wordBreak: 'break-word',
-                    color: 'grey',
-                }} title="Journal">
-                    {url[4]}
-                </div>
+            <div style={{ marginTop: '12px' }}>
+                <ReferenceCard url={normalized} handleClick={handleClick} />
+                <div className="reference-separator" />
             </div>
-
-
-        )
-    }
+        );
+    };
 
 
     const [sortBy, setSortBy] = useState('year'); // 'year' or 'citations'
+    const referencesTitleStyle = {
+        fontFamily: 'DM Sans, sans-serif',
+        fontWeight: 600,
+        fontSize: '16px',
+        color: '#164563',
+        margin: 0,
+    };
+    const referencesDividerStyle = {
+        height: '2px',
+        backgroundColor: '#D9D9D9',
+        margin: '8px 0 12px',
+    };
+    const sortToggleSx = {
+        border: '1px solid #E7F1FF',
+        borderRadius: '14px',
+        padding: '1px',
+        overflow: 'hidden',
+        '& .MuiToggleButton-root': {
+            textTransform: 'none',
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '12px',
+            fontWeight: 700,
+            color: '#164563',
+            border: 'none',
+            padding: '0 8px',
+            height: '26px',
+            minHeight: '26px',
+            borderRadius: '13px',
+        },
+        '& .MuiToggleButton-root.Mui-selected': {
+            backgroundColor: '#E7F1FF',
+            color: '#164563',
+        },
+        '& .MuiToggleButton-root.Mui-selected:hover': {
+            backgroundColor: '#E0EDFF',
+        },
+    };
 
     const sortedRawNodes = useMemo(() => {
         if (!nodeDetails[1]) return [];
@@ -600,18 +540,15 @@ const Information = ({ width, ...props }) => {
 
                 styles={{
                     header: {
-                        color: 'black',
+                        color: '#164563',
                         fontSize: '24px',
                         lineHeight: '1.5',
-                        fontWeight: '600',
-                        fontFamily: 'Open Sans, sans-serif',
+                        fontWeight: '700',
+                        fontFamily: 'DM Sans, sans-serif',
                         borderTopLeftRadius: '10px',
                         borderTopRightRadius: '10px',
-                        paddingTop: '35px',
-                        //paddingLeft: "2.5vw",
-                        // marginLeft:"2.6vw",
-                        // paddingBottom: '20px',
-                        minHeight: '90px',
+                        paddingTop: '24px',
+                        paddingBottom: '16px',
                         border: 'none',
                         background: 'transparent',
                         wordWrap: 'break-word !important',
@@ -641,7 +578,7 @@ const Information = ({ width, ...props }) => {
                 ) : (
                     <div style={{ position: 'relative', height: '100%' }}>
                         <div className="transcriptGradientTop"></div>
-                        <div style={{ paddingLeft: '2vw', paddingRight: '2vw', paddingTop: '0px', paddingBottom: '20px', overflowY: 'auto', maxHeight: '100%' }}>
+                        <div style={{ paddingLeft: '24px', paddingRight: '24px', paddingTop: '0px', paddingBottom: '20px', overflowY: 'auto', maxHeight: '100%' }}>
 
                             {/* Article Node Details - Direct Display */}
                             {Object.keys(nodeDetails).length !== 0 && nodeDetails[0] && nodeDetails[0][0] && 'title' in nodeDetails[0][0] && (
@@ -649,29 +586,29 @@ const Information = ({ width, ...props }) => {
                                     {renderNodeDetails(nodeDetails[0][0])}
                                     {/* Related Articles for Article Node */}
                                     {urls.length > 0 && (
-                                        <div style={{ paddingLeft: '12px' }}>
+                                        <div>
+                                            <div style={referencesDividerStyle} />
                                             <div style={{
                                                 display: 'flex',
                                                 justifyContent: 'space-between',
                                                 alignItems: 'center',
                                                 marginBottom: '10px'
                                             }}>
-                                                <h4 style={{
-                                                    color: '#8c8c8c',
-                                                    margin: 0,
-                                                    fontWeight: 'normal',
-                                                    fontSize: '14px',
-                                                }}>Related Articles</h4>
-                                                <Select
+                                                <h4 style={referencesTitleStyle}>References</h4>
+                                                <ToggleButtonGroup
                                                     size="small"
-                                                    defaultValue="year"
-                                                    onChange={value => setSortBy(value)}
-                                                    style={{ minWidth: '140px' }}
-                                                    options={[
-                                                        { value: 'year', label: 'Sort by Year' },
-                                                        { value: 'citations', label: 'Sort by Citations' },
-                                                    ]}
-                                                />
+                                                    exclusive
+                                                    value={sortBy}
+                                                    onChange={(event, value) => {
+                                                        if (value !== null) {
+                                                            setSortBy(value);
+                                                        }
+                                                    }}
+                                                    sx={sortToggleSx}
+                                                >
+                                                    <ToggleButton value="citations">Citation</ToggleButton>
+                                                    <ToggleButton value="year">Year</ToggleButton>
+                                                </ToggleButtonGroup>
                                             </div>
                                             <List
                                                 size="small"
@@ -696,28 +633,28 @@ const Information = ({ width, ...props }) => {
                                             {/* Add Related Articles section for nodes */}
                                             {urls.length > 0 && (
                                                 <div style={{}}>
+                                                    <div style={referencesDividerStyle} />
                                                     <div style={{
                                                         display: 'flex',
                                                         justifyContent: 'space-between',
                                                         alignItems: 'center',
                                                         marginBottom: '10px'
                                                     }}>
-                                                        <h4 style={{
-                                                            color: '#8c8c8c',
-                                                            margin: 0,
-                                                            fontWeight: 'normal',
-                                                            fontSize: '14px',
-                                                        }}>Related Articles</h4>
-                                                        <Select
+                                                        <h4 style={referencesTitleStyle}>References</h4>
+                                                        <ToggleButtonGroup
                                                             size="small"
+                                                            exclusive
                                                             value={sortBy}
-                                                            onChange={value => setSortBy(value)}
-                                                            style={{ minWidth: '140px' }}
-                                                            options={[
-                                                                { value: 'year', label: 'Sort by Year' },
-                                                                { value: 'citations', label: 'Sort by Citations' }
-                                                            ]}
-                                                        />
+                                                            onChange={(event, value) => {
+                                                                if (value !== null) {
+                                                                    setSortBy(value);
+                                                                }
+                                                            }}
+                                                            sx={sortToggleSx}
+                                                        >
+                                                            <ToggleButton value="citations">Citation</ToggleButton>
+                                                            <ToggleButton value="year">Year</ToggleButton>
+                                                        </ToggleButtonGroup>
                                                     </div>
                                                     <List
                                                         size="small"
@@ -808,6 +745,7 @@ const Information = ({ width, ...props }) => {
                                             {/* Related Articles */}
                                             {edge[1] && edge[1].length > 0 && (
                                                 <div>
+                                                    <div style={referencesDividerStyle} />
                                                     <div style={{
                                                         display: 'flex',
                                                         justifyContent: 'space-between',
@@ -815,22 +753,21 @@ const Information = ({ width, ...props }) => {
                                                         marginBottom: '10px',
                                                         marginTop: '8px'
                                                     }}>
-                                                        <h4 style={{
-                                                            color: '#8c8c8c',
-                                                            margin: 0,
-                                                            fontWeight: 'normal',
-                                                            fontSize: '14px',
-                                                        }}>Related Articles</h4>
-                                                        <Select
+                                                        <h4 style={referencesTitleStyle}>References</h4>
+                                                        <ToggleButtonGroup
                                                             size="small"
+                                                            exclusive
                                                             value={sortBy}
-                                                            onChange={value => setSortBy(value)}
-                                                            style={{ minWidth: '140px' }}
-                                                            options={[
-                                                                { value: 'year', label: 'Sort by Year' },
-                                                                { value: 'citations', label: 'Sort by Citations' }
-                                                            ]}
-                                                        />
+                                                            onChange={(event, value) => {
+                                                                if (value !== null) {
+                                                                    setSortBy(value);
+                                                                }
+                                                            }}
+                                                            sx={sortToggleSx}
+                                                        >
+                                                            <ToggleButton value="citations">Citation</ToggleButton>
+                                                            <ToggleButton value="year">Year</ToggleButton>
+                                                        </ToggleButtonGroup>
                                                     </div>
                                                     <List
                                                         size="small"

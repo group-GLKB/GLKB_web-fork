@@ -323,9 +323,9 @@ const HomePage = () => {
                             borderRadius: '50%',
                             backgroundColor: '#E7F1FF',
                             color: '#155DFC',
-                            border: '1px solid #D8E6FF',
+                            border: 'none',
                             fontFamily: 'DM Sans, sans-serif',
-                            boxShadow: '0 6px 12px rgba(21, 93, 252, 0.28)',
+                            boxShadow: '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',
                         }}
                     >
                         ?
