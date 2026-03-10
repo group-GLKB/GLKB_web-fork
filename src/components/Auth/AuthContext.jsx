@@ -25,15 +25,24 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  // Login function (password-based - legacy)
-  const login = async (username, password) => {
-    const result = await AuthService.login(username, password);
-    
+  // Login function
+  // - Email-only mode: login(email) => send verification code
+  // - Legacy mode: login(username, password) => password login
+  const login = async (identifier, password) => {
+    // Email login/signup in one flow
+    if (!password) {
+      const result = await AuthService.sendVerificationCode(identifier);
+      return result;
+    }
+
+    // Legacy username/password login
+    const result = await AuthService.login(identifier, password);
+
     if (result.success) {
       setUser(result.user);
       setIsAuthenticated(true);
     }
-    
+
     return result;
   };
 
