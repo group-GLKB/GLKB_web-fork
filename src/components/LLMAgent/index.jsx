@@ -20,6 +20,8 @@ import {
 
 import {
     Check as CheckIcon,
+    ChevronLeft as ChevronLeftIcon,
+    ChevronRight as ChevronRightIcon,
     Clear as ClearIcon,
     Close as CloseIcon,
     EditNote as EditNoteIcon,
@@ -269,6 +271,11 @@ function LLMAgent() {
     const [isLoading, setIsLoading] = useState(false);
     const [streamingGroups, setStreamingGroups] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [leftPaneWidth, setLeftPaneWidth] = useState(66);
+    const [isDraggingSplit, setIsDraggingSplit] = useState(false);
+    const [dragIndicatorY, setDragIndicatorY] = useState(0);
+    const [isReferencesCollapsed, setIsReferencesCollapsed] = useState(false);
+    const [lastSplitWidth, setLastSplitWidth] = useState(66);
     const [showReloadPrompt, setShowReloadPrompt] = useState(
         () => getStoredProcessingFlag() || getStoredIncompleteFlag()
     );
@@ -276,6 +283,8 @@ function LLMAgent() {
     const abortControllerRef = useRef(null);
     const thinkingStepsRef = useRef([]);
     const prevSelectedMessageIndexRef = useRef(null);
+    const splitContainerRef = useRef(null);
+    const isDraggingSplitRef = useRef(false);
     const navigate = useNavigate();
 
     const llmService = useMemo(() => new LLMAgentService(), []);
@@ -320,6 +329,79 @@ function LLMAgent() {
             handleExampleClick(query);
         }
     }, [location.state]);
+
+    const collapseReferences = useCallback((widthToStore) => {
+        if (isReferencesCollapsed) return;
+        const nextWidth = Number.isFinite(widthToStore) ? widthToStore : leftPaneWidth;
+        setLastSplitWidth(nextWidth);
+        setLeftPaneWidth(100);
+        setIsReferencesCollapsed(true);
+    }, [isReferencesCollapsed, leftPaneWidth]);
+
+    const expandReferences = useCallback(() => {
+        const restored = lastSplitWidth || 66;
+        setLeftPaneWidth(Math.min(80, Math.max(45, restored)));
+        setIsReferencesCollapsed(false);
+    }, [lastSplitWidth]);
+
+    const updateSplitWidth = useCallback((clientX) => {
+        if (!splitContainerRef.current) return;
+        if (isReferencesCollapsed) return;
+        const rect = splitContainerRef.current.getBoundingClientRect();
+        const offset = clientX - rect.left;
+        const nextWidth = (offset / rect.width) * 100;
+        const collapseThreshold = 84;
+        if (nextWidth >= collapseThreshold) {
+            const clamped = Math.min(80, Math.max(45, nextWidth));
+            collapseReferences(clamped);
+            return;
+        }
+        const clamped = Math.min(80, Math.max(45, nextWidth));
+        setLeftPaneWidth(clamped);
+    }, [collapseReferences, isReferencesCollapsed]);
+
+    const updateSplitIndicator = useCallback((clientY) => {
+        if (!splitContainerRef.current) return;
+        const rect = splitContainerRef.current.getBoundingClientRect();
+        const offset = clientY - rect.top;
+        const clamped = Math.min(rect.height, Math.max(0, offset));
+        setDragIndicatorY(clamped);
+    }, []);
+
+    const handleSplitMouseDown = (event) => {
+        if (isReferencesCollapsed) return;
+        event.preventDefault();
+        isDraggingSplitRef.current = true;
+        setIsDraggingSplit(true);
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        updateSplitWidth(event.clientX);
+        updateSplitIndicator(event.clientY);
+    };
+
+    useEffect(() => {
+        const handleMouseMove = (event) => {
+            if (!isDraggingSplitRef.current) return;
+            updateSplitWidth(event.clientX);
+            updateSplitIndicator(event.clientY);
+        };
+
+        const handleMouseUp = () => {
+            if (!isDraggingSplitRef.current) return;
+            isDraggingSplitRef.current = false;
+            setIsDraggingSplit(false);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [updateSplitWidth, updateSplitIndicator]);
+
 
     useEffect(() => {
         const container = document.querySelector('.chat-container');
@@ -1236,8 +1318,8 @@ function LLMAgent() {
                             <div className='llm-content'>
                                 <div className="llm-agent-container">
                                     <div className="chat-and-references">
-                                        <Grid container spacing={0} className="llm-split">
-                                            <Grid item xs={8} className="llm-column">
+                                        <Box ref={splitContainerRef} className="llm-split" sx={{ display: 'flex', minHeight: 0, height: '100%' }}>
+                                            <Box className="llm-column" sx={{ flex: `0 0 ${leftPaneWidth}%`, minWidth: '360px' }}>
                                                 <div className="chat-container">
                                                     <Box className="llm-header" sx={{
                                                         display: 'flex',
@@ -1353,109 +1435,143 @@ function LLMAgent() {
                                                         onSubmit={handleSubmit}
                                                     />
                                                 </div>
-                                            </Grid>
-                                            <Grid item xs={4} className="llm-column">
-                                                <div style={{ height: '100%', width: '100%' }}>
-                                                    <div className="references-container">
-                                                        <div style={{
-                                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                            height: '70px',
-                                                            borderBottom: '1px solid #E6E6E6',
-                                                            marginBottom: '1px',
-                                                        }}>
-                                                            <h3 style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: '16px', color: '#164563', marginBottom: '0', paddingLeft: '32px' }}>References</h3>
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                <ToggleButtonGroup
-                                                                    size="small"
-                                                                    exclusive
-                                                                    value={sortOption}
-                                                                    onChange={(event, value) => {
-                                                                        if (value !== null) {
-                                                                            setSortOption(value);
-                                                                        }
-                                                                    }}
-                                                                    sx={{
-                                                                        border: '1px solid #E7F1FF',
-                                                                        borderRadius: '14px',
-                                                                        padding: '1px',
-                                                                        overflow: 'hidden',
-                                                                        '& .MuiToggleButton-root': {
-                                                                            textTransform: 'none',
-                                                                            fontFamily: 'DM Sans, sans-serif',
-                                                                            fontSize: '12px',
-                                                                            fontWeight: 700,
-                                                                            color: '#164563',
-                                                                            border: 'none',
-                                                                            padding: '0 8px',
-                                                                            height: '26px',
-                                                                            minHeight: '26px',
-                                                                            borderRadius: '13px',
-                                                                        },
-                                                                        '& .MuiToggleButton-root.Mui-selected': {
-                                                                            backgroundColor: '#E7F1FF',
-                                                                            color: '#164563',
-                                                                        },
-                                                                        '& .MuiToggleButton-root.Mui-selected:hover': {
-                                                                            backgroundColor: '#E0EDFF',
-                                                                        },
-                                                                    }}
-                                                                >
-                                                                    <ToggleButton value="Citations">Citation</ToggleButton>
-                                                                    <ToggleButton value="Year">Year</ToggleButton>
-                                                                </ToggleButtonGroup>
-                                                                <IconButton
-                                                                    size="small"
-                                                                    onClick={handleExportReferences}
-                                                                    disabled={sortedReferences.length === 0}
-                                                                    sx={{
-                                                                        padding: '6px',
-                                                                        marginRight: '16px',
-                                                                        '&:hover': {
-                                                                            backgroundColor: '#f0f0f0',
-                                                                        }
-                                                                    }}
-                                                                    title="Export all references"
-                                                                >
-                                                                    <DownloadIcon
-                                                                        aria-label="Download references"
-                                                                        style={{
-                                                                            width: '20px',
-                                                                            height: '20px',
-                                                                            display: 'block',
-                                                                            color: '#164563',
-                                                                        }}
-                                                                    />
-                                                                </IconButton>
-                                                            </div>
-                                                        </div>
-
-                                                        {sortedReferences.length > 0 ? (
-                                                            <div ref={referencesListRef} className="references-list" style={{ maxHeight: 'calc(100% - 56px)', overflowY: 'auto', paddingLeft: '2rem', paddingRight: '2rem' }}>
-                                                                {sortedReferences.map((ref, index) => {
-                                                                    const url = [
-                                                                        ref.title,
-                                                                        ref.url,
-                                                                        ref.citation_count,
-                                                                        ref.year,
-                                                                        ref.journal,
-                                                                        ref.authors
-                                                                    ];
-                                                                    const pubmedId = ref.url.split('/').filter(Boolean).pop();
-                                                                    const isHighlighted = hoveredPubmedId === pubmedId;
-                                                                    return (
-                                                                        <div key={index} style={{ marginTop: '12px' }} data-pubmed-id={pubmedId}>
-                                                                            <ReferenceCard url={url} handleClick={handleClick} onCiteClick={handleCiteClick} isHighlighted={isHighlighted} />
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        ) : (
-                                                            <p style={{ padding: '16px 32px' }}>No references available for this response.</p>
+                                            </Box>
+                                            {!isReferencesCollapsed && (
+                                                <>
+                                                    <div className="llm-split-divider" onMouseDown={handleSplitMouseDown}>
+                                                        {isDraggingSplit && (
+                                                            <div
+                                                                className="llm-split-drag-indicator"
+                                                                style={{ top: `${dragIndicatorY}px` }}
+                                                            />
                                                         )}
                                                     </div>
-                                                </div>
-                                            </Grid>
-                                        </Grid>
+                                                    <Box className="llm-column" sx={{ flex: 1, minWidth: '360px' }}>
+                                                        <div style={{ height: '100%', width: '100%' }}>
+                                                            <div className="references-container">
+                                                                <div style={{
+                                                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                                    height: '70px',
+                                                                    borderBottom: '1px solid #E6E6E6',
+                                                                    marginBottom: '1px',
+                                                                }}>
+                                                                    <h3 style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: '16px', color: '#164563', marginBottom: '0', paddingLeft: '32px' }}>References</h3>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                        <ToggleButtonGroup
+                                                                            size="small"
+                                                                            exclusive
+                                                                            value={sortOption}
+                                                                            onChange={(event, value) => {
+                                                                                if (value !== null) {
+                                                                                    setSortOption(value);
+                                                                                }
+                                                                            }}
+                                                                            sx={{
+                                                                                border: '1px solid #E7F1FF',
+                                                                                borderRadius: '14px',
+                                                                                padding: '1px',
+                                                                                overflow: 'hidden',
+                                                                                '& .MuiToggleButton-root': {
+                                                                                    textTransform: 'none',
+                                                                                    fontFamily: 'DM Sans, sans-serif',
+                                                                                    fontSize: '12px',
+                                                                                    fontWeight: 700,
+                                                                                    color: '#164563',
+                                                                                    border: 'none',
+                                                                                    padding: '0 8px',
+                                                                                    height: '26px',
+                                                                                    minHeight: '26px',
+                                                                                    borderRadius: '13px',
+                                                                                },
+                                                                                '& .MuiToggleButton-root.Mui-selected': {
+                                                                                    backgroundColor: '#E7F1FF',
+                                                                                    color: '#164563',
+                                                                                },
+                                                                                '& .MuiToggleButton-root.Mui-selected:hover': {
+                                                                                    backgroundColor: '#E0EDFF',
+                                                                                },
+                                                                            }}
+                                                                        >
+                                                                            <ToggleButton value="Citations">Citation</ToggleButton>
+                                                                            <ToggleButton value="Year">Year</ToggleButton>
+                                                                        </ToggleButtonGroup>
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            onClick={collapseReferences}
+                                                                            sx={{
+                                                                                padding: '6px',
+                                                                                '&:hover': {
+                                                                                    backgroundColor: '#f0f0f0',
+                                                                                }
+                                                                            }}
+                                                                            title="Collapse references"
+                                                                        >
+                                                                            <ChevronRightIcon sx={{ color: '#164563' }} />
+                                                                        </IconButton>
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            onClick={handleExportReferences}
+                                                                            disabled={sortedReferences.length === 0}
+                                                                            sx={{
+                                                                                padding: '6px',
+                                                                                marginRight: '16px',
+                                                                                '&:hover': {
+                                                                                    backgroundColor: '#f0f0f0',
+                                                                                }
+                                                                            }}
+                                                                            title="Export all references"
+                                                                        >
+                                                                            <DownloadIcon
+                                                                                aria-label="Download references"
+                                                                                style={{
+                                                                                    width: '20px',
+                                                                                    height: '20px',
+                                                                                    display: 'block',
+                                                                                    color: '#164563',
+                                                                                }}
+                                                                            />
+                                                                        </IconButton>
+                                                                    </div>
+                                                                </div>
+
+                                                                {sortedReferences.length > 0 ? (
+                                                                    <div ref={referencesListRef} className="references-list" style={{ maxHeight: 'calc(100% - 70px)', overflowY: 'auto', paddingLeft: '2rem', paddingRight: '2rem' }}>
+                                                                        {sortedReferences.map((ref, index) => {
+                                                                            const url = [
+                                                                                ref.title,
+                                                                                ref.url,
+                                                                                ref.citation_count,
+                                                                                ref.year,
+                                                                                ref.journal,
+                                                                                ref.authors
+                                                                            ];
+                                                                            const pubmedId = ref.url.split('/').filter(Boolean).pop();
+                                                                            const isHighlighted = hoveredPubmedId === pubmedId;
+                                                                            return (
+                                                                                <div key={index} style={{ marginTop: '12px' }} data-pubmed-id={pubmedId}>
+                                                                                    <ReferenceCard url={url} handleClick={handleClick} onCiteClick={handleCiteClick} isHighlighted={isHighlighted} />
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                ) : (
+                                                                    <p style={{ padding: '16px 32px' }}>No references available for this response.</p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </Box>
+                                                </>
+                                            )}
+                                        </Box>
+                                        {isReferencesCollapsed && (
+                                            <IconButton
+                                                className="references-collapse-button"
+                                                onClick={expandReferences}
+                                                aria-label="Open references"
+                                            >
+                                                <ChevronLeftIcon />
+                                            </IconButton>
+                                        )}
 
 
                                     </div>

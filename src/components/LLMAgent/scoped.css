@@ -15,6 +15,7 @@
     display: flex;
     flex-direction: column;
     background-color: #F8FAFC;
+    overflow: hidden;
 }
 
 .llm-grid {
@@ -83,12 +84,68 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
 .llm-split {
+    display: flex;
     flex: 1;
     min-height: 0;
     height: 100%;
+}
+
+.llm-split-divider {
+    flex: 0 0 8px;
+    cursor: col-resize;
+    position: relative;
+    background-color: transparent;
+}
+
+.llm-split-divider::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 3px;
+    width: 1px;
+    background-color: #F4F4F4;
+}
+
+.llm-split-divider:hover::before {
+    background-color: #D0D0D0;
+}
+
+.llm-split-drag-indicator {
+    position: absolute;
+    left: 50%;
+    width: 18px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+    border-radius: 8px;
+    background-color: #E7F1FF;
+    border: 1px solid #B7D3FF;
+    box-shadow: 0 6px 16px rgba(22, 69, 99, 0.18);
+    pointer-events: none;
+    z-index: 2;
+}
+
+.references-collapse-button.MuiIconButton-root {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 56px;
+    border-radius: 12px;
+    background-color: #ffffff;
+    border: 1px solid #E0E0E0;
+    box-shadow: 0 8px 24px rgba(22, 69, 99, 0.18);
+    color: #164563;
+    z-index: 5;
+}
+
+.references-collapse-button:hover {
+    background-color: #F2F6FF;
 }
 
 .llm-column {
@@ -120,7 +177,6 @@
     overflow-y: hidden;
     border: none;
     border-radius: 0;
-    border-left: 1px solid #F4F4F4;
     height: 100%;
     min-height: 0;
     background-color: #ffffff;
