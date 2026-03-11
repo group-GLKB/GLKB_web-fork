@@ -1,57 +1,57 @@
 import './scoped.css';
 
 import React, {
-    useEffect,
-    useMemo,
-    useState,
+  useEffect,
+  useMemo,
+  useState,
 } from 'react';
 
 import {
-    Link,
-    useLocation,
+  Link,
+  useLocation,
 } from 'react-router-dom';
 
 import {
-    ChatBubbleOutline as ChatBubbleOutlineIcon,
-    ContactPage as ContactPageIcon,
-    InfoOutlined as InfoOutlinedIcon,
-    Person as PersonIcon,
+  ChatBubbleOutline as ChatBubbleOutlineIcon,
+  ContactPage as ContactPageIcon,
+  InfoOutlined as InfoOutlinedIcon,
+  Person as PersonIcon,
 } from '@mui/icons-material';
 import {
-    Box,
-    Divider,
-    Drawer as MuiDrawer,
-    IconButton,
-    List,
-    ListItemButton,
-    ListItemIcon,
-    ListItemText,
-    Menu,
-    MenuItem,
-    Tooltip,
-    Typography,
-    useMediaQuery,
+  Box,
+  Divider,
+  Drawer as MuiDrawer,
+  IconButton,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Tooltip,
+  Typography,
+  useMediaQuery,
 } from '@mui/material';
 import {
-    styled,
-    useTheme,
+  styled,
+  useTheme,
 } from '@mui/material/styles';
 
 import logo from '../../../img/GLKB_logo_icon.png';
+import { ReactComponent as AddIcon } from '../../../img/navbar/add.svg';
+import {
+  ReactComponent as CategorySearchIcon,
+} from '../../../img/navbar/category_search.svg';
+import {
+  ReactComponent as CodeBlocksIcon,
+} from '../../../img/navbar/code_blocks.svg';
+import {
+  ReactComponent as SidebarLeftIcon,
+} from '../../../img/navbar/sidebar.left.svg';
 import userAccountIcon from '../../../img/user/ic_outline-account-circle.svg';
 import userSettingsIcon from '../../../img/user/lsicon_setting-outline.svg';
 import userLogoutIcon from '../../../img/user/mynaui_logout.svg';
 import { useAuth } from '../../Auth/AuthContext';
-import { ReactComponent as AddIcon } from '../../../img/navbar/add.svg';
-import {
-    ReactComponent as CategorySearchIcon,
-} from '../../../img/navbar/category_search.svg';
-import {
-    ReactComponent as CodeBlocksIcon,
-} from '../../../img/navbar/code_blocks.svg';
-import {
-    ReactComponent as SidebarLeftIcon,
-} from '../../../img/navbar/sidebar.left.svg';
 
 const drawerWidth = 240;
 const collapsedWidth = 88;
@@ -344,7 +344,7 @@ function NavBarWhite({ showLogo = true }) {
                         flexDirection: 'column',
                         gap: 1,
                         px: 1.5,
-                        py: 2,
+                        py: 1,
                     }}
                 >
                     {showLogo && (
@@ -465,21 +465,23 @@ function NavBarWhite({ showLogo = true }) {
                                     transition: 'opacity 0.2s ease, width 0.2s ease',
                                 }}
                             >
-                                <IconButton
-                                    aria-label="Collapse sidebar"
-                                    onClick={() => setOpen((prev) => !prev)}
-                                    size="small"
-                                    sx={{
-                                        width: 48,
-                                        height: 48,
-                                        borderRadius: '50%',
-                                        '&:hover': {
-                                            backgroundColor: 'rgba(1, 105, 176, 0.04)',
-                                        },
-                                    }}
-                                >
-                                    <SidebarLeftIcon style={{ width: 22, height: 22 }} />
-                                </IconButton>
+                                <Tooltip title="Collapse sidebar" {...tooltipProps}>
+                                    <IconButton
+                                        aria-label="Collapse sidebar"
+                                        onClick={() => setOpen((prev) => !prev)}
+                                        size="small"
+                                        sx={{
+                                            width: 48,
+                                            height: 48,
+                                            borderRadius: '50%',
+                                            '&:hover': {
+                                                backgroundColor: 'rgba(1, 105, 176, 0.04)',
+                                            },
+                                        }}
+                                    >
+                                        <SidebarLeftIcon style={{ width: 22, height: 22 }} />
+                                    </IconButton>
+                                </Tooltip>
                             </Box>
                         </Box>
                     )}
