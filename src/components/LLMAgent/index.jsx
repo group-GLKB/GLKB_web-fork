@@ -3,48 +3,48 @@ import './scoped.css';
 import './github-markdown-light.css';
 
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 
 import { message } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import ReactMarkdown from 'react-markdown';
 import {
-    useLocation,
-    useNavigate,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import {
-    Check as CheckIcon,
-    ChevronLeft as ChevronLeftIcon,
-    ChevronRight as ChevronRightIcon,
-    Clear as ClearIcon,
-    Close as CloseIcon,
-    EditNote as EditNoteIcon,
-    ExpandMore as ExpandMoreIcon,
-    FilePresent as FilePresentIcon,
-    StopCircle as StopCircleIcon,
+  Check as CheckIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  Clear as ClearIcon,
+  Close as CloseIcon,
+  EditNote as EditNoteIcon,
+  ExpandMore as ExpandMoreIcon,
+  FilePresent as FilePresentIcon,
+  StopCircle as StopCircleIcon,
 } from '@mui/icons-material';
 import {
-    Box,
-    Button as MuiButton,
-    CircularProgress,
-    Container,
-    Dialog,
-    DialogContent,
-    DialogTitle,
-    Divider,
-    Grid,
-    IconButton,
-    Stack,
-    TextField,
-    ToggleButton,
-    ToggleButtonGroup,
-    Typography,
+  Box,
+  Button as MuiButton,
+  CircularProgress,
+  Container,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  Grid,
+  IconButton,
+  Stack,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
 } from '@mui/material';
 
 import contentCopyIcon from '../../img/llm/content_copy.svg';
@@ -121,6 +121,14 @@ const STEP_LABELS = {
     'agent.AGENT_INPUT': 'Agent Input',
     'agent.AGENT_OUTPUT': 'Agent Output',
 };
+
+const LEFT_MIN_PX = 360;
+const RIGHT_MIN_PX = 360;
+const DIVIDER_PX = 8;
+const DEFAULT_LEFT_PERCENT = 66;
+const FALLBACK_MIN_LEFT_PERCENT = 45;
+const FALLBACK_MAX_LEFT_PERCENT = 80;
+const FALLBACK_COLLAPSE_THRESHOLD = 84;
 
 const getStepLabel = (stepName) => STEP_LABELS[stepName] || stepName;
 
@@ -275,7 +283,6 @@ function LLMAgent() {
     const [isDraggingSplit, setIsDraggingSplit] = useState(false);
     const [dragIndicatorY, setDragIndicatorY] = useState(0);
     const [isReferencesCollapsed, setIsReferencesCollapsed] = useState(false);
-    const [lastSplitWidth, setLastSplitWidth] = useState(66);
     const [showReloadPrompt, setShowReloadPrompt] = useState(
         () => getStoredProcessingFlag() || getStoredIncompleteFlag()
     );
@@ -283,6 +290,7 @@ function LLMAgent() {
     const abortControllerRef = useRef(null);
     const thinkingStepsRef = useRef([]);
     const prevSelectedMessageIndexRef = useRef(null);
+    const hasConsumedInitialQueryRef = useRef(false);
     const splitContainerRef = useRef(null);
     const isDraggingSplitRef = useRef(false);
     const navigate = useNavigate();
@@ -324,39 +332,60 @@ function LLMAgent() {
     }, [isProcessing]);
 
     useEffect(() => {
-        if (location.state && location.state.initialQuery && chatHistory.length === 0) {
+        if (location.state && location.state.initialQuery && !hasConsumedInitialQueryRef.current) {
+            hasConsumedInitialQueryRef.current = true;
             const query = location.state.initialQuery;
-            handleExampleClick(query);
+            if (!isLoading) {
+                handleSubmit(null, query);
+            }
         }
-    }, [location.state]);
+    }, [location.state, isLoading]);
 
     const collapseReferences = useCallback((widthToStore) => {
         if (isReferencesCollapsed) return;
         const nextWidth = Number.isFinite(widthToStore) ? widthToStore : leftPaneWidth;
-        setLastSplitWidth(nextWidth);
         setLeftPaneWidth(100);
         setIsReferencesCollapsed(true);
     }, [isReferencesCollapsed, leftPaneWidth]);
 
     const expandReferences = useCallback(() => {
-        const restored = lastSplitWidth || 66;
-        setLeftPaneWidth(Math.min(80, Math.max(45, restored)));
+        let nextWidth = DEFAULT_LEFT_PERCENT;
+
+        if (splitContainerRef.current) {
+            const rect = splitContainerRef.current.getBoundingClientRect();
+            const availableWidth = Math.max(1, rect.width - DIVIDER_PX);
+            const minLeftPercent = Math.min(100, (LEFT_MIN_PX / availableWidth) * 100);
+            const maxLeftPercent = Math.max(0, 100 - (RIGHT_MIN_PX / availableWidth) * 100);
+            const safeMin = Math.min(minLeftPercent, maxLeftPercent);
+            const safeMax = Math.max(minLeftPercent, maxLeftPercent);
+            nextWidth = Math.min(safeMax, Math.max(safeMin, nextWidth));
+        } else {
+            nextWidth = Math.min(FALLBACK_MAX_LEFT_PERCENT, Math.max(FALLBACK_MIN_LEFT_PERCENT, nextWidth));
+        }
+
+        setLeftPaneWidth(nextWidth);
         setIsReferencesCollapsed(false);
-    }, [lastSplitWidth]);
+    }, []);
 
     const updateSplitWidth = useCallback((clientX) => {
         if (!splitContainerRef.current) return;
         if (isReferencesCollapsed) return;
         const rect = splitContainerRef.current.getBoundingClientRect();
+        const availableWidth = Math.max(1, rect.width - DIVIDER_PX);
         const offset = clientX - rect.left;
         const nextWidth = (offset / rect.width) * 100;
-        const collapseThreshold = 84;
+        const minLeftPercent = Math.min(100, (LEFT_MIN_PX / availableWidth) * 100);
+        const maxLeftPercent = Math.max(0, 100 - (RIGHT_MIN_PX / availableWidth) * 100);
+        const safeMin = Math.min(minLeftPercent, maxLeftPercent);
+        const safeMax = Math.max(minLeftPercent, maxLeftPercent);
+        const collapseThreshold = Math.min(FALLBACK_COLLAPSE_THRESHOLD, safeMax + 2);
+
         if (nextWidth >= collapseThreshold) {
-            const clamped = Math.min(80, Math.max(45, nextWidth));
+            const clamped = Math.min(safeMax, Math.max(safeMin, nextWidth));
             collapseReferences(clamped);
             return;
         }
-        const clamped = Math.min(80, Math.max(45, nextWidth));
+        const clamped = Math.min(safeMax, Math.max(safeMin, nextWidth));
         setLeftPaneWidth(clamped);
     }, [collapseReferences, isReferencesCollapsed]);
 
@@ -666,6 +695,9 @@ function LLMAgent() {
 
     const handleMessageClick = (index) => {
         if (chatHistory[index].role === 'assistant') {
+            if (isReferencesCollapsed) {
+                expandReferences();
+            }
             prevSelectedMessageIndexRef.current = null;
             setSelectedMessageIndex(index);
         }
@@ -1319,7 +1351,7 @@ function LLMAgent() {
                                 <div className="llm-agent-container">
                                     <div className="chat-and-references">
                                         <Box ref={splitContainerRef} className="llm-split" sx={{ display: 'flex', minHeight: 0, height: '100%' }}>
-                                            <Box className="llm-column" sx={{ flex: `0 0 ${leftPaneWidth}%`, minWidth: '360px' }}>
+                                            <Box className="llm-column" sx={{ flex: `0 0 ${leftPaneWidth}%`, minWidth: `${LEFT_MIN_PX}px` }}>
                                                 <div className="chat-container">
                                                     <Box className="llm-header" sx={{
                                                         display: 'flex',
@@ -1446,7 +1478,7 @@ function LLMAgent() {
                                                             />
                                                         )}
                                                     </div>
-                                                    <Box className="llm-column" sx={{ flex: 1, minWidth: '360px' }}>
+                                                    <Box className="llm-column" sx={{ flex: 1, minWidth: `${RIGHT_MIN_PX}px` }}>
                                                         <div style={{ height: '100%', width: '100%' }}>
                                                             <div className="references-container">
                                                                 <div style={{
