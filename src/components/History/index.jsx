@@ -18,7 +18,6 @@ import {
   migrateLegacyChatHistory,
   setActiveConversationId,
 } from '../../utils/chatHistory';
-import NavBarWhite from '../Units/NavBarWhite';
 
 const formatTimestamp = (value) => {
     if (!value) return '';
@@ -59,7 +58,6 @@ const History = () => {
 
     return (
         <div className="history-page">
-            <NavBarWhite />
             <Box className="history-body">
                 <Box className="history-content">
                     <Box className="history-header">

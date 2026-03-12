@@ -13,7 +13,6 @@ import {
 import { ReactComponent as BookIcon } from '../../img/navbar/book_4.svg';
 import { getBookmarks } from '../../utils/bookmarks';
 import CiteDialog from '../Units/CiteDialog';
-import NavBarWhite from '../Units/NavBarWhite';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 
 const Library = () => {
@@ -42,7 +41,6 @@ const Library = () => {
 
     return (
         <div className="library-page">
-            <NavBarWhite />
             <CiteDialog
                 open={citeDialogOpen}
                 onClose={handleCloseCiteDialog}

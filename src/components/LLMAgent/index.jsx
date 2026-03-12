@@ -58,7 +58,6 @@ import {
   upsertConversation,
 } from '../../utils/chatHistory';
 import CiteDialog from '../Units/CiteDialog';
-import NavBarWhite from '../Units/NavBarWhite';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import ChatSearchBar from './ChatSearchBar';
 
@@ -555,11 +554,34 @@ function LLMAgent() {
             }
         };
 
+        const handleReferenceClick = (e) => {
+            const link = e.target.closest('a[href*="pubmed.ncbi.nlm.nih.gov"]');
+            if (!link || !link.href) return;
+            e.preventDefault();
+            const pubmedId = link.href.split('/').filter(Boolean).pop();
+            if (!pubmedId) return;
+            const messageCard = link.closest('.message-card');
+            const messageIndex = messageCard ? Number(messageCard.dataset.messageIndex) : null;
+            const messageRole = messageCard?.dataset?.messageRole;
+            if (Number.isFinite(messageIndex) && messageRole === 'assistant') {
+                handleMessageClick(messageIndex);
+            } else if (isReferencesCollapsed) {
+                expandReferences();
+            }
+            setHoveredPubmedId(pubmedId);
+        };
+
         container.addEventListener('mouseover', handleMouseOver);
         container.addEventListener('mouseout', handleMouseOut);
+        container.addEventListener('click', handleReferenceClick);
 
         const links = container.querySelectorAll('a');
         links.forEach(link => {
+            if (link.href && link.href.includes('pubmed.ncbi.nlm.nih.gov')) {
+                link.removeAttribute('target');
+                link.removeAttribute('rel');
+                return;
+            }
             link.setAttribute('target', '_blank');
             link.setAttribute('rel', 'noopener noreferrer');
         });
@@ -567,8 +589,9 @@ function LLMAgent() {
         return () => {
             container.removeEventListener('mouseover', handleMouseOver);
             container.removeEventListener('mouseout', handleMouseOut);
+            container.removeEventListener('click', handleReferenceClick);
         };
-    }, [chatHistory]);
+    }, [chatHistory, expandReferences, isReferencesCollapsed]);
 
     const parseReferences = (refs) => {
         if (!refs || !Array.isArray(refs)) return [];
@@ -1313,7 +1336,6 @@ function LLMAgent() {
             />
 
             <div className="llm-page">
-                <NavBarWhite />
                 <Grid className="llm-grid" container sx={{ width: "100%" }}>
                     <Grid item xs={12} className="llm-subgrid">
                         <div className="llm-main-content">

@@ -192,7 +192,7 @@ function NavBarWhite({ showLogo = true }) {
     const middleItems = useMemo(() => (
         [
             { label: 'Explore', to: '/search', icon: <CategorySearchIcon style={{ width: 22, height: 22 }} /> },
-            { label: 'API', href: 'https://glkb.dcmb.med.umich.edu/docs', icon: <CodeBlocksIcon style={{ width: 22, height: 22 }} /> },
+            { label: 'API', to: '/api-page', icon: <CodeBlocksIcon style={{ width: 22, height: 22 }} /> },
             { label: 'Library', to: '/library', icon: <BookIcon className="sidebar-book-icon" style={{ width: 22, height: 22 }} /> },
             { label: 'History', to: '/history', icon: <HistoryIcon className="sidebar-history-icon" style={{ width: 22, height: 22 }} /> },
         ]
@@ -548,7 +548,16 @@ function NavBarWhite({ showLogo = true }) {
                 </List>
                 {open && (
                     <Box className="sidebar-recent-section">
-                        <Typography className="sidebar-recent-title">
+                        <Typography
+                            className="sidebar-recent-title"
+                            sx={{
+                                fontFamily: 'DM Sans, sans-serif',
+                                fontWeight: 700,
+                                fontSize: '12px',
+                                color: '#969696',
+                                textTransform: 'none',
+                            }}
+                        >
                             Recent
                         </Typography>
                         <Box className="sidebar-recent-list">

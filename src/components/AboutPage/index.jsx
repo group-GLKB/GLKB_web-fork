@@ -2,8 +2,6 @@ import React from 'react';
 
 import { Helmet } from 'react-helmet-async';
 
-import NavBarWhite from '../Units/NavBarWhite';
-
 const AboutPage = () => {
     return (
         <>
@@ -13,7 +11,6 @@ const AboutPage = () => {
                 <meta property="og:title" content="About - Genomic Literature Knowledge Base | AI-Powered Genomics Search" />
             </Helmet>
             <div className="AboutPageContainer">
-                <NavBarWhite />
                 <div className="content" style={{ maxWidth: '800px', margin: '40px auto', padding: '0 20px' }}>
                     <h1 style={{ fontFamily: 'Open Sans, sans-serif', fontWeight: '600', textAlign: 'center', marginBottom: '20px' }}>About GLKB</h1>
                     <div className="glkb-introduction">

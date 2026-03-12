@@ -2,35 +2,34 @@ import 'antd/dist/reset.css';
 import './scoped.css';
 
 import React, {
-    useEffect,
-    useRef,
-    useState,
+  useEffect,
+  useRef,
+  useState,
 } from 'react';
 
 import { Button as AntButton } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import Joyride, {
-    ACTIONS,
-    EVENTS,
-    STATUS,
+  ACTIONS,
+  EVENTS,
+  STATUS,
 } from 'react-joyride';
 
 import {
-    ArrowOutward as ArrowOutwardIcon,
-    Close as CloseIcon,
-    DescriptionOutlined as DescriptionOutlinedIcon,
-    Layers as LayersIcon,
-    LightbulbOutlined as LightbulbOutlinedIcon,
-    TrendingUp as TrendingUpIcon,
+  ArrowOutward as ArrowOutwardIcon,
+  Close as CloseIcon,
+  DescriptionOutlined as DescriptionOutlinedIcon,
+  Layers as LayersIcon,
+  LightbulbOutlined as LightbulbOutlinedIcon,
+  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import {
-    Box,
-    IconButton,
-    Paper,
-    Typography,
+  Box,
+  IconButton,
+  Paper,
+  Typography,
 } from '@mui/material';
 
-import NavBarWhite from '../Units/NavBarWhite';
 import exampleSchema from './exampleSchema.json';
 import LlmSearchBar from './LlmSearchBarHome';
 
@@ -167,7 +166,6 @@ const HomePage = () => {
                 <meta property="og:title" content="Home Page - Genomic Literature Knowledge Base" />
             </Helmet>
             <div className="HomePageRoot">
-                <NavBarWhite showLogo={true} />
                 <div className="HomePageContainer">
                     <div className="HomePageInner" style={{
                         backgroundColor: '#FAFCFF',
