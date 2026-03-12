@@ -49,13 +49,23 @@ export class LLMAgentService {
                                 references: data.references || [],
                                 messages: data.messages || []
                             });
+                        } else if (data.step === 'Saved') {
+                            await onUpdate({
+                                type: 'saved',
+                                historyId: data.history_id
+                            });
+                        } else if (data.step === 'Error') {
+                            await onUpdate({
+                                type: 'error',
+                                error: data.error || data.detail || 'Unknown error'
+                            });
                         }
                         // Forward all other steps to the UI
-                        else if (data.step && data.content) {
+                        else if (data.step) {
                             onUpdate({
                                 type: 'step',
                                 step: data.step,
-                                content: data.content
+                                content: data.message || data.content || ''
                             });
                         }
                     } catch (e) {
@@ -81,10 +91,10 @@ export class LLMAgentService {
         }
     }
 
-    async chat(question, abortController, onUpdate, messagesOverride = null) {
+    async chat(question, abortController, onUpdate, options = {}) {
         try {
-            if (Array.isArray(messagesOverride)) {
-                this.messages = [...messagesOverride];
+            if (Array.isArray(options.messagesOverride)) {
+                this.messages = [...options.messagesOverride];
             } else {
                 // Add user message to history
                 this.messages.push({
@@ -121,11 +131,21 @@ export class LLMAgentService {
                                 references: data.references || [],
                                 messages: data.messages || []
                             });
-                        } else if (data.step && data.content) {
+                        } else if (data.step === 'Saved') {
+                            onUpdate({
+                                type: 'saved',
+                                historyId: data.history_id
+                            });
+                        } else if (data.step === 'Error') {
+                            onUpdate({
+                                type: 'error',
+                                error: data.error || data.detail || 'Unknown error'
+                            });
+                        } else if (data.step) {
                             onUpdate({
                                 type: 'step',
                                 step: data.step,
-                                content: data.content
+                                content: data.message || data.content || ''
                             });
                         }
                     } catch (e) {
@@ -134,10 +154,19 @@ export class LLMAgentService {
                 }
             };
 
-            await axios.post('/api/v1/llm-agent/stream', {
+            const historyId = Number.isFinite(Number(options.historyId))
+                ? Number(options.historyId)
+                : null;
+            const payload = {
                 question,
-                messages: this.messages
-            }, {
+                messages: this.messages,
+                history_id: historyId,
+            };
+            if (Number.isFinite(Number(options.maxArticles))) {
+                payload.max_articles = Number(options.maxArticles);
+            }
+
+            await axios.post('/api/v1/new-llm-agent/stream', payload, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'text/event-stream',
@@ -171,7 +200,7 @@ export class LLMAgentService {
     async getAnswer(question) {
         // console.log('Getting answer from LLM agent');
         try {
-            const response = await axios.post('/api/v1/llm-agent/chat', {
+            const response = await axios.post('/api/v1/new-llm-agent/chat', {
                 question,
                 messages: this.messages
             });
