@@ -20,7 +20,6 @@ import {
 
 import {
   Check as CheckIcon,
-  ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   Clear as ClearIcon,
   EditNote as EditNoteIcon,
@@ -46,12 +45,16 @@ import contentCopyIcon from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import replayIcon from '../../img/llm/replay.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
+import {
+  ReactComponent as SidebarLeftIcon,
+} from '../../img/navbar/sidebar.left.svg';
 import { LLMAgentService } from '../../service/LLMAgent';
 import {
   createConversation,
+  fetchConversationDetail,
+  fetchConversations,
   getActiveConversationId,
   getConversations,
-  migrateLegacyChatHistory,
   setActiveConversationId,
   setConversations,
   updateConversationMessages,
@@ -314,6 +317,7 @@ function LLMAgent() {
     const [isReferencesCollapsed, setIsReferencesCollapsed] = useState(false);
     const [, setConversationsState] = useState(() => getConversations());
     const [activeConversationId, setActiveConversationIdState] = useState(() => getActiveConversationId());
+    const [isConversationLoading, setIsConversationLoading] = useState(false);
     const [showReloadPrompt, setShowReloadPrompt] = useState(
         () => getStoredProcessingFlag() || getStoredIncompleteFlag()
     );
@@ -334,41 +338,89 @@ function LLMAgent() {
     }, [activeConversationId]);
 
     useEffect(() => {
-        const migrated = migrateLegacyChatHistory();
-        const stored = migrated.length ? migrated : getConversations();
-        let nextActiveId = getActiveConversationId();
+        let isMounted = true;
 
-        if (!nextActiveId && stored.length > 0) {
-            nextActiveId = stored[0].id;
-            setActiveConversationId(nextActiveId);
-        }
+        const initializeConversations = async () => {
+            const cached = getConversations();
+            let nextActiveId = getActiveConversationId();
 
-        setConversationsState(stored);
-        setActiveConversationIdState(nextActiveId || null);
-        activeConversationIdRef.current = nextActiveId || null;
+            if (cached.length > 0) {
+                setConversationsState(cached);
+            }
 
-        if (nextActiveId) {
-            const active = stored.find((item) => item.id === nextActiveId);
-            setChatHistory(active?.messages || []);
-        }
+            try {
+                const list = await fetchConversations();
+                if (!isMounted) return;
+                setConversationsState(list);
+
+                if (!nextActiveId && list.length > 0) {
+                    nextActiveId = list[0].id;
+                    setActiveConversationId(nextActiveId);
+                }
+            } catch (error) {
+                logDev('[LLM] Failed to load conversations', error);
+            }
+
+            if (nextActiveId) {
+                setIsConversationLoading(true);
+                try {
+                    const detail = await fetchConversationDetail(nextActiveId);
+                    if (!isMounted) return;
+                    setChatHistory(detail?.messages || []);
+                    setActiveConversationIdState(String(nextActiveId));
+                    activeConversationIdRef.current = String(nextActiveId);
+                } catch (error) {
+                    logDev('[LLM] Failed to load conversation detail', error);
+                } finally {
+                    if (isMounted) {
+                        setIsConversationLoading(false);
+                    }
+                }
+            } else {
+                setActiveConversationIdState(null);
+                activeConversationIdRef.current = null;
+                setIsConversationLoading(false);
+            }
+        };
+
+        initializeConversations();
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     useEffect(() => {
         const conversationId = location.state?.conversationId;
         if (!conversationId) return;
+        let isMounted = true;
 
-        const stored = getConversations();
-        const active = stored.find((item) => item.id === conversationId);
-        if (!active) return;
+        const loadConversation = async () => {
+            setIsConversationLoading(true);
+            try {
+                const detail = await fetchConversationDetail(conversationId);
+                if (!isMounted) return;
+                const nextId = String(detail?.id || conversationId);
+                setConversationsState(getConversations());
+                setActiveConversationId(nextId);
+                setActiveConversationIdState(nextId);
+                activeConversationIdRef.current = nextId;
+                setChatHistory(detail?.messages || []);
+                setSelectedMessageIndex(null);
+                setShowReloadPrompt(false);
+                llmService.clearHistory();
+            } catch (error) {
+                logDev('[LLM] Failed to load selected conversation', error);
+            } finally {
+                if (isMounted) {
+                    setIsConversationLoading(false);
+                }
+            }
+        };
 
-        setConversationsState(stored);
-        setActiveConversationId(conversationId);
-        setActiveConversationIdState(conversationId);
-        activeConversationIdRef.current = conversationId;
-        setChatHistory(active.messages || []);
-        setSelectedMessageIndex(null);
-        setShowReloadPrompt(false);
-        llmService.clearHistory();
+        loadConversation();
+        return () => {
+            isMounted = false;
+        };
     }, [location.state, llmService]);
 
     const startNewConversation = useCallback(() => {
@@ -377,6 +429,7 @@ function LLMAgent() {
         setStreamingGroups([]);
         thinkingStepsRef.current = [];
         setShowReloadPrompt(false);
+        setIsConversationLoading(false);
         setActiveConversationIdState(null);
         activeConversationIdRef.current = null;
         setActiveConversationId(null);
@@ -630,14 +683,23 @@ function LLMAgent() {
             timestamp: t || timestamp
         };
 
+        let historyId = activeConversationIdRef.current;
         if (shouldStartNewConversation) {
-            const conversation = createConversation([...baseHistory, newMessage]);
-            const nextList = upsertConversation(getConversations(), conversation);
-            setConversationsState(nextList);
-            setConversations(nextList);
-            setActiveConversationIdState(conversation.id);
-            activeConversationIdRef.current = conversation.id;
-            setActiveConversationId(conversation.id);
+            try {
+                const leadingTitle = inputText.trim().slice(0, 200) || null;
+                const conversation = await createConversation(leadingTitle);
+                const nextList = upsertConversation(getConversations(), conversation);
+                setConversationsState(nextList);
+                setConversations(nextList);
+                historyId = conversation?.id || null;
+                setActiveConversationIdState(historyId);
+                activeConversationIdRef.current = historyId;
+                if (historyId) {
+                    setActiveConversationId(historyId);
+                }
+            } catch (error) {
+                logDev('[LLM] Failed to create conversation', error);
+            }
         }
 
         // Update chat history with user message
@@ -761,6 +823,18 @@ function LLMAgent() {
                         });
                         setSelectedMessageIndex(chatHistory.length + 1);
                         break;
+                    case 'saved': {
+                        const savedId = update.historyId ? String(update.historyId) : null;
+                        if (savedId && savedId !== activeConversationIdRef.current) {
+                            setActiveConversationId(savedId);
+                            setActiveConversationIdState(savedId);
+                            activeConversationIdRef.current = savedId;
+                        }
+                        fetchConversations()
+                            .then((list) => setConversationsState(list))
+                            .catch((error) => logDev('[LLM] Failed to refresh conversations', error));
+                        break;
+                    }
                     case 'error': // unsure if this is used
                         setIsProcessing(false);
                         setChatHistory(prev => {
@@ -778,7 +852,10 @@ function LLMAgent() {
                         });
                         break;
                 }
-            }, conversationHistory); // Pass the conversation history to chat method
+            }, {
+                messagesOverride: conversationHistory,
+                historyId
+            });
         } catch (error) {
             console.error('Error in chat:', error);
             setChatHistory(prev => {
@@ -1218,6 +1295,7 @@ function LLMAgent() {
         }
         return sorted;
     }, [references, sortOption]);
+    const isExportDisabled = sortedReferences.length === 0;
 
     const handleExportReferences = () => {
         if (sortedReferences.length === 0) return;
@@ -1401,41 +1479,55 @@ function LLMAgent() {
                                                         </MuiButton>
                                                     </Box>
                                                     {/* Add example queries section */}
-                                                    {chatHistory.length === 0 && (<div className='empty-components-container'>
-                                                        <div className="empty-page-title" style={{ paddingTop: '1rem' }}>
-                                                            <div style={{ gap: '1rem', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
-                                                                <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '32px', fontWeight: '700', color: "#0169B0" }}>
-                                                                    Explore Biomedical Literature
+                                                    {!isConversationLoading && chatHistory.length === 0 && (
+                                                        <div className='empty-components-container'>
+                                                            <div className="empty-page-title" style={{ paddingTop: '1rem' }}>
+                                                                <div style={{ gap: '1rem', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
+                                                                    <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '32px', fontWeight: '700', color: "#0169B0" }}>
+                                                                        Explore Biomedical Literature
+                                                                    </Typography>
+                                                                    <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '18px', fontWeight: '500', color: "#718096" }}>
+                                                                        AI-powered Genomic Literature Knowledge Base
+                                                                    </Typography>
+                                                                </div>
+                                                            </div>
+                                                            <div className="example-queries-header">
+                                                                <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '16px', fontWeight: '400', color: "#888888", width: '100%', textAlign: 'left' }}>
+                                                                    Try these example queries:
                                                                 </Typography>
-                                                                <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '18px', fontWeight: '500', color: "#718096" }}>
-                                                                    AI-powered Genomic Literature Knowledge Base
-                                                                </Typography>
+                                                                <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '10px', minHeight: '80px' }}>
+                                                                    {
+                                                                        ["What is the role of BRCA1 in breast cancer?",
+                                                                            "How many articles about Alzheimer's disease are published in 2020?",
+                                                                            "What pathways does TP53 participate in?"
+                                                                        ].map((query, index) => (
+                                                                            <div className="example-query" key={index} onClick={() => handleExampleClick(query)}>
+                                                                                {query}
+                                                                            </div>
+                                                                        ))
+                                                                    }
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                        <div className="example-queries-header">
-                                                            <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '16px', fontWeight: '400', color: "#888888", width: '100%', textAlign: 'left' }}>
-                                                                Try these example queries:
-                                                            </Typography>
-                                                            <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '10px', minHeight: '80px' }}>
-                                                                {
-                                                                    ["What is the role of BRCA1 in breast cancer?",
-                                                                        "How many articles about Alzheimer's disease are published in 2020?",
-                                                                        "What pathways does TP53 participate in?"
-                                                                    ].map((query, index) => (
-                                                                        <div className="example-query" key={index} onClick={() => handleExampleClick(query)}>
-                                                                            {query}
-                                                                        </div>
-                                                                    ))
-                                                                }
-                                                            </div>
-                                                        </div>
-                                                    </div>
                                                     )}
 
                                                     <div className="messages-container">
-                                                        {renderMessages()}
+                                                        {!isConversationLoading && renderMessages()}
                                                         <div ref={messagesEndRef} />
                                                     </div>
+                                                    {isConversationLoading && (
+                                                        <div className="chat-loading-overlay">
+                                                            <CircularProgress size={28} sx={{ color: '#164563' }} />
+                                                            <Typography sx={{
+                                                                fontFamily: 'Open Sans, sans-serif',
+                                                                fontSize: '14px',
+                                                                fontWeight: 400,
+                                                                color: '#646464',
+                                                            }}>
+                                                                Loading chat history... This may take ~20 seconds
+                                                            </Typography>
+                                                        </div>
+                                                    )}
 
                                                     {/* <div className="chat-header">
                                                     <form onSubmit={handleSubmit} className="input-form">
@@ -1533,28 +1625,9 @@ function LLMAgent() {
                                                                         </ToggleButtonGroup>
                                                                         <IconButton
                                                                             size="small"
-                                                                            onClick={collapseReferences}
-                                                                            sx={{
-                                                                                padding: '6px',
-                                                                                '&:hover': {
-                                                                                    backgroundColor: '#f0f0f0',
-                                                                                }
-                                                                            }}
-                                                                            title="Collapse references"
-                                                                        >
-                                                                            <ChevronRightIcon sx={{ color: '#164563' }} />
-                                                                        </IconButton>
-                                                                        <IconButton
-                                                                            size="small"
+                                                                            className="references-action-button"
                                                                             onClick={handleExportReferences}
-                                                                            disabled={sortedReferences.length === 0}
-                                                                            sx={{
-                                                                                padding: '6px',
-                                                                                marginRight: '16px',
-                                                                                '&:hover': {
-                                                                                    backgroundColor: '#f0f0f0',
-                                                                                }
-                                                                            }}
+                                                                            disabled={isExportDisabled}
                                                                             title="Export all references"
                                                                         >
                                                                             <DownloadIcon
@@ -1563,9 +1636,18 @@ function LLMAgent() {
                                                                                     width: '20px',
                                                                                     height: '20px',
                                                                                     display: 'block',
-                                                                                    color: '#164563',
+                                                                                    color: isExportDisabled ? '#B0B0B0' : '#164563',
                                                                                 }}
                                                                             />
+                                                                        </IconButton>
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            className="references-action-button"
+                                                                            onClick={collapseReferences}
+                                                                            sx={{ marginRight: '8px' }}
+                                                                            title="Collapse references"
+                                                                        >
+                                                                            <ChevronRightIcon sx={{ color: '#164563' }} />
                                                                         </IconButton>
                                                                     </div>
                                                                 </div>
@@ -1605,7 +1687,10 @@ function LLMAgent() {
                                                 onClick={expandReferences}
                                                 aria-label="Open references"
                                             >
-                                                <ChevronLeftIcon />
+                                                <SidebarLeftIcon
+                                                    className="references-collapse-icon"
+                                                />
+                                                <span className="references-collapse-label">REFERENCES</span>
                                             </IconButton>
                                         )}
 

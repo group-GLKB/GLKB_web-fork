@@ -14,8 +14,8 @@ import {
 
 import { ReactComponent as HistoryIcon } from '../../img/navbar/history.svg';
 import {
+  fetchConversations,
   getConversations,
-  migrateLegacyChatHistory,
   setActiveConversationId,
 } from '../../utils/chatHistory';
 
@@ -32,14 +32,15 @@ const formatTimestamp = (value) => {
     });
 };
 
-const getConversationTitle = (conversation) => {
-    const firstUser = conversation.messages?.find((msg) => msg.role === 'user');
-    return firstUser?.content || 'Untitled conversation';
-};
+const getConversationTitle = (conversation) => (
+    conversation.leadingTitle || 'Untitled conversation'
+);
 
 const getConversationSubtitle = (conversation) => {
-    const firstAssistant = conversation.messages?.find((msg) => msg.role === 'assistant');
-    return firstAssistant?.content || 'No response yet.';
+    const count = typeof conversation.messageCount === 'number'
+        ? conversation.messageCount
+        : 0;
+    return `${count} ${count === 1 ? 'message' : 'messages'}`;
 };
 
 const History = () => {
@@ -47,8 +48,25 @@ const History = () => {
     const [conversations, setConversations] = useState([]);
 
     useEffect(() => {
-        migrateLegacyChatHistory();
-        setConversations(getConversations());
+        let isMounted = true;
+        const cached = getConversations();
+        if (cached.length > 0) {
+            setConversations(cached);
+        }
+
+        fetchConversations()
+            .then((list) => {
+                if (!isMounted) return;
+                setConversations(list);
+            })
+            .catch(() => {
+                if (!isMounted) return;
+                setConversations(getConversations());
+            });
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     const handleOpenConversation = (conversationId) => {

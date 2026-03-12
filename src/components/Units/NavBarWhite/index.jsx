@@ -54,6 +54,7 @@ import userAccountIcon from '../../../img/user/ic_outline-account-circle.svg';
 import userSettingsIcon from '../../../img/user/lsicon_setting-outline.svg';
 import userLogoutIcon from '../../../img/user/mynaui_logout.svg';
 import {
+  fetchConversations,
   getActiveConversationId,
   getConversations,
   setActiveConversationId,
@@ -155,6 +156,16 @@ function NavBarWhite({ showLogo = true }) {
     }, [open]);
 
     useEffect(() => {
+        let isMounted = true;
+
+        if (!isAuthenticated) {
+            setRecentConversations([]);
+            setActiveConversationIdState(null);
+            return () => {
+                isMounted = false;
+            };
+        }
+
         const updateRecent = (event) => {
             const next = event?.detail || getConversations();
             setRecentConversations(next);
@@ -162,9 +173,22 @@ function NavBarWhite({ showLogo = true }) {
         };
 
         updateRecent();
+        fetchConversations()
+            .then((list) => {
+                if (!isMounted) return;
+                setRecentConversations(list);
+            })
+            .catch(() => {
+                if (!isMounted) return;
+                setRecentConversations(getConversations());
+            });
+
         window.addEventListener('glkb-conversations-updated', updateRecent);
-        return () => window.removeEventListener('glkb-conversations-updated', updateRecent);
-    }, []);
+        return () => {
+            isMounted = false;
+            window.removeEventListener('glkb-conversations-updated', updateRecent);
+        };
+    }, [isAuthenticated]);
 
     useEffect(() => {
         const updateCount = () => {
@@ -256,16 +280,18 @@ function NavBarWhite({ showLogo = true }) {
         return location.pathname.startsWith(item.to);
     };
 
-    const getConversationTitle = (conversation) => {
-        const firstUser = conversation?.messages?.find((msg) => msg.role === 'user');
-        return firstUser?.content || 'Untitled conversation';
-    };
+    const getConversationTitle = (conversation) => (
+        conversation?.leadingTitle || 'Untitled conversation'
+    );
 
     const isActiveConversation = (conversation) => {
         if (!conversation?.id) return false;
         if (location.pathname !== '/chat') return false;
         if (conversation.id !== activeConversationId) return false;
-        return Array.isArray(conversation.messages) && conversation.messages.length > 0;
+        if (Array.isArray(conversation.messages)) {
+            return conversation.messages.length > 0;
+        }
+        return (conversation.messageCount ?? 0) > 0;
     };
 
     const tooltipProps = {
@@ -578,7 +604,7 @@ function NavBarWhite({ showLogo = true }) {
                         </Box>
                     </Box>
                 )}
-                <Box sx={{ mt: 'auto', pb: 2 }}>
+                <Box sx={{ mt: 'auto', pb: 1 }}>
                     <List sx={{ px: 1, py: 1 }}>
                         {!isAuthenticated ? (
                             renderNavItem(loginItem)

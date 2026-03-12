@@ -1,6 +1,6 @@
 import React, {
-    useEffect,
-    useState,
+  useEffect,
+  useState,
 } from 'react';
 
 import { useNavigate } from 'react-router-dom';
@@ -9,17 +9,20 @@ import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import {
-    Autocomplete,
-    Box,
-    Paper,
-    Popper,
-    TextField,
+  Autocomplete,
+  Box,
+  Paper,
+  Popper,
+  TextField,
 } from '@mui/material';
+
+import { useAuth } from '../Auth/AuthContext';
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
     const inputTimeoutRef = React.useRef(null);
     const hasTrackedInputRef = React.useRef(false);
     const lastPrefillRef = React.useRef(undefined);
@@ -65,6 +68,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         if (inputTimeoutRef.current) {
             clearTimeout(inputTimeoutRef.current);
             hasTrackedInputRef.current = true;
+        }
+        if (!isAuthenticated) {
+            navigate('/login');
+            return;
         }
         if (query) {
             navigate('/chat', { state: { initialQuery: query } });
