@@ -135,7 +135,7 @@
     top: 50%;
     transform: translateY(-50%);
     width: 48px;
-    height: 140px;
+    height: 155px;
     border-radius: 12px;
     background-color: #ffffff;
     border: 1px solid #E0E0E0;
@@ -174,8 +174,8 @@
 }
 
 .references-collapse-icon {
-    width: 22px;
-    height: 22px;
+    width: 15px;
+    height: 15px;
     color: #164563;
     display: block;
     transform: translateY(-4px) scaleX(-1);
@@ -375,7 +375,7 @@
     padding-left: 56px;
     padding-right: 56px;
     padding-top: 0px;
-    padding-bottom: 40px;
+    padding-bottom: 30px;
     gap: 20px;
     background: #F8FAFC;
     width: 100%;
