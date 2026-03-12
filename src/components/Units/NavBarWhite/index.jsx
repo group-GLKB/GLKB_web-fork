@@ -9,10 +9,10 @@ import React, {
 import {
   Link,
   useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import {
-  ChatBubbleOutline as ChatBubbleOutlineIcon,
   ContactPage as ContactPageIcon,
   InfoOutlined as InfoOutlinedIcon,
   Person as PersonIcon,
@@ -39,18 +39,25 @@ import {
 
 import logo from '../../../img/GLKB_logo_icon.png';
 import { ReactComponent as AddIcon } from '../../../img/navbar/add.svg';
+import { ReactComponent as BookIcon } from '../../../img/navbar/book_4.svg';
 import {
   ReactComponent as CategorySearchIcon,
 } from '../../../img/navbar/category_search.svg';
 import {
   ReactComponent as CodeBlocksIcon,
 } from '../../../img/navbar/code_blocks.svg';
+import { ReactComponent as HistoryIcon } from '../../../img/navbar/history.svg';
 import {
   ReactComponent as SidebarLeftIcon,
 } from '../../../img/navbar/sidebar.left.svg';
 import userAccountIcon from '../../../img/user/ic_outline-account-circle.svg';
 import userSettingsIcon from '../../../img/user/lsicon_setting-outline.svg';
 import userLogoutIcon from '../../../img/user/mynaui_logout.svg';
+import {
+  getActiveConversationId,
+  getConversations,
+  setActiveConversationId,
+} from '../../../utils/chatHistory';
 import { useAuth } from '../../Auth/AuthContext';
 
 const drawerWidth = 240;
@@ -98,6 +105,7 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 function NavBarWhite({ showLogo = true }) {
     const { isAuthenticated, user, logout } = useAuth();
     const location = useLocation();
+    const navigate = useNavigate();
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
     const [open, setOpen] = useState(() => {
@@ -111,6 +119,9 @@ function NavBarWhite({ showLogo = true }) {
         return storedOpen === 'true';
     });
     const [userMenuAnchorEl, setUserMenuAnchorEl] = useState(null);
+    const [recentConversations, setRecentConversations] = useState([]);
+    const [activeConversationId, setActiveConversationIdState] = useState(null);
+    const [maxRecentCount, setMaxRecentCount] = useState(2);
 
     useEffect(() => {
         if (isSmallScreen) {
@@ -143,6 +154,30 @@ function NavBarWhite({ showLogo = true }) {
         };
     }, [open]);
 
+    useEffect(() => {
+        const updateRecent = (event) => {
+            const next = event?.detail || getConversations();
+            setRecentConversations(next);
+            setActiveConversationIdState(getActiveConversationId());
+        };
+
+        updateRecent();
+        window.addEventListener('glkb-conversations-updated', updateRecent);
+        return () => window.removeEventListener('glkb-conversations-updated', updateRecent);
+    }, []);
+
+    useEffect(() => {
+        const updateCount = () => {
+            const available = window.innerHeight - 560;
+            const estimated = Math.floor(available / 56);
+            setMaxRecentCount(Math.max(1, Math.min(6, estimated)));
+        };
+
+        updateCount();
+        window.addEventListener('resize', updateCount);
+        return () => window.removeEventListener('resize', updateCount);
+    }, []);
+
     const topItems = useMemo(() => (
         [
             {
@@ -156,9 +191,10 @@ function NavBarWhite({ showLogo = true }) {
 
     const middleItems = useMemo(() => (
         [
-            { label: 'Chat', to: '/chat', icon: <ChatBubbleOutlineIcon sx={{ fontSize: 22 }} /> },
             { label: 'Explore', to: '/search', icon: <CategorySearchIcon style={{ width: 22, height: 22 }} /> },
-            { label: 'API', href: 'https://glkb.dcmb.med.umich.edu/docs', icon: <CodeBlocksIcon style={{ width: 22, height: 22 }} /> },
+            { label: 'API', to: '/api-page', icon: <CodeBlocksIcon style={{ width: 22, height: 22 }} /> },
+            { label: 'Library', to: '/library', icon: <BookIcon className="sidebar-book-icon" style={{ width: 22, height: 22 }} /> },
+            { label: 'History', to: '/history', icon: <HistoryIcon className="sidebar-history-icon" style={{ width: 22, height: 22 }} /> },
         ]
     ), []);
 
@@ -218,6 +254,18 @@ function NavBarWhite({ showLogo = true }) {
         }
 
         return location.pathname.startsWith(item.to);
+    };
+
+    const getConversationTitle = (conversation) => {
+        const firstUser = conversation?.messages?.find((msg) => msg.role === 'user');
+        return firstUser?.content || 'Untitled conversation';
+    };
+
+    const isActiveConversation = (conversation) => {
+        if (!conversation?.id) return false;
+        if (location.pathname !== '/chat') return false;
+        if (conversation.id !== activeConversationId) return false;
+        return Array.isArray(conversation.messages) && conversation.messages.length > 0;
     };
 
     const tooltipProps = {
@@ -498,6 +546,38 @@ function NavBarWhite({ showLogo = true }) {
                 <List sx={{ px: 1, py: 1 }}>
                     {bottomItems.map((item) => renderNavItem(item))}
                 </List>
+                {open && (
+                    <Box className="sidebar-recent-section">
+                        <Typography
+                            className="sidebar-recent-title"
+                            sx={{
+                                fontFamily: 'DM Sans, sans-serif',
+                                fontWeight: 700,
+                                fontSize: '12px',
+                                color: '#969696',
+                                textTransform: 'none',
+                            }}
+                        >
+                            Recent
+                        </Typography>
+                        <Box className="sidebar-recent-list">
+                            {recentConversations.slice(0, maxRecentCount).map((conversation) => (
+                                <button
+                                    key={conversation.id}
+                                    type="button"
+                                    className={`sidebar-recent-item${isActiveConversation(conversation) ? ' active' : ''}`}
+                                    onClick={() => {
+                                        setActiveConversationId(conversation.id);
+                                        setActiveConversationIdState(conversation.id);
+                                        navigate('/chat', { state: { conversationId: conversation.id } });
+                                    }}
+                                >
+                                    {getConversationTitle(conversation)}
+                                </button>
+                            ))}
+                        </Box>
+                    </Box>
+                )}
                 <Box sx={{ mt: 'auto', pb: 2 }}>
                     <List sx={{ px: 1, py: 1 }}>
                         {!isAuthenticated ? (

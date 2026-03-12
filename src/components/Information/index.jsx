@@ -1,30 +1,31 @@
 import './scoped.css';
 
 import React, {
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 
 import {
-    Card,
-    Collapse,
-    Descriptions,
-    Empty,
-    List,
-    Spin,
-    Typography,
+  Card,
+  Collapse,
+  Descriptions,
+  Empty,
+  List,
+  Spin,
+  Typography,
 } from 'antd';
 
 import {
-    ToggleButton,
-    ToggleButtonGroup,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 
 import downArrow from '../../img/result/down_arrow.svg';
 import rightArrow from '../../img/result/right_arrow.svg';
 import { DetailService } from '../../service/Detail';
+import CiteDialog from '../Units/CiteDialog';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 
 const { Panel } = Collapse;
@@ -39,6 +40,8 @@ const Information = ({ width, ...props }) => {
     const [activeKey, setActiveKey] = useState(['0']);
     const [isLoading, setIsLoading] = useState(false);
     const [sentenceVisibility, setSentenceVisibility] = useState({});
+    const [citeDialogOpen, setCiteDialogOpen] = useState(false);
+    const [selectedCitation, setSelectedCitation] = useState(null);
 
     const merge = true;
 
@@ -50,6 +53,16 @@ const Information = ({ width, ...props }) => {
     const handleClick = (event, link) => {
         event.preventDefault();
         window.open(link, '_blank');
+    };
+
+    const handleCiteClick = (citation) => {
+        setSelectedCitation(citation);
+        setCiteDialogOpen(true);
+    };
+
+    const handleCloseCiteDialog = () => {
+        setCiteDialogOpen(false);
+        setSelectedCitation(null);
     };
 
     const toggleSentences = (index) => {
@@ -233,7 +246,7 @@ const Information = ({ width, ...props }) => {
 
         return (
             <div style={{ marginTop: '12px' }}>
-                <ReferenceCard url={normalized} handleClick={handleClick} />
+                <ReferenceCard url={normalized} handleClick={handleClick} onCiteClick={handleCiteClick} />
                 <div className="reference-separator" />
             </div>
         );
@@ -534,6 +547,11 @@ const Information = ({ width, ...props }) => {
                 paddingRight: '0px',
             }
         }}>
+            <CiteDialog
+                open={citeDialogOpen}
+                onClose={handleCloseCiteDialog}
+                citation={selectedCitation}
+            />
             <Card
                 title={getPanelTitle()}
                 className="information-content"

@@ -1,22 +1,31 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../AuthContext';
 import './scoped.css';
-import NavBarWhite from '../../Units/NavBarWhite';
-import { MdEmail } from "react-icons/md";
+
+import React, {
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+
+import { MdEmail } from 'react-icons/md';
+import {
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
+
+import { useAuth } from '../AuthContext';
 
 const VerifyCodePage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { verifyCode, sendCode } = useAuth();
-  
+
   const [email, setEmail] = useState(location.state?.email || '');
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
-  
+
   const inputRefs = useRef([]);
 
   useEffect(() => {
@@ -60,13 +69,13 @@ const VerifyCodePage = () => {
     e.preventDefault();
     const pastedData = e.clipboardData.getData('text');
     const digits = pastedData.replace(/\D/g, '').slice(0, 6);
-    
+
     const newCode = [...code];
     for (let i = 0; i < digits.length; i++) {
       newCode[i] = digits[i];
     }
     setCode(newCode);
-    
+
     // Focus the next empty input or the last one
     const nextIndex = Math.min(digits.length, 5);
     inputRefs.current[nextIndex]?.focus();
@@ -74,7 +83,7 @@ const VerifyCodePage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const verificationCode = code.join('');
     if (verificationCode.length !== 6) {
       setError('Please enter the complete 6-digit code');
@@ -121,26 +130,25 @@ const VerifyCodePage = () => {
 
   return (
     <>
-      <NavBarWhite />
       <div className="verify-page-container">
         <div className="verify-modal">
           <div className="email-icon">
             <MdEmail size={48} color="#4169E1" />
           </div>
-          
+
           <h2 className="verify-title">Check your email</h2>
-          
+
           <p className="verify-subtitle">
             To sign in, click the temporary link or enter the 6-digit code we sent to:
           </p>
-          
+
           <div className="email-display">
             <span className="email-text">{email}</span>
             <button className="change-email-button" onClick={handleChangeEmail}>
               Change
             </button>
           </div>
-          
+
           <form onSubmit={handleSubmit}>
             <div className="code-inputs">
               {code.map((digit, index) => (
@@ -158,11 +166,11 @@ const VerifyCodePage = () => {
                 />
               ))}
             </div>
-            
+
             {error && <div className="error-message">{error}</div>}
             {resendSuccess && <div className="success-message">Code sent successfully!</div>}
-            
-            <button 
+
+            <button
               type="submit"
               className="submit-button"
               disabled={loading || code.some(d => !d)}
@@ -170,10 +178,10 @@ const VerifyCodePage = () => {
               {loading ? 'Verifying...' : 'Submit'}
             </button>
           </form>
-          
+
           <div className="resend-section">
             <span className="resend-text">Didn't receive the code? </span>
-            <button 
+            <button
               className="resend-button"
               onClick={handleResend}
               disabled={resendLoading}
@@ -181,7 +189,7 @@ const VerifyCodePage = () => {
               {resendLoading ? 'Sending...' : 'Click to resend'}
             </button>
           </div>
-          
+
           <div className="privacy-text">
             By clicking continuing, you agree to our <a href="/privacy-policy">privacy policy</a>.
           </div>
