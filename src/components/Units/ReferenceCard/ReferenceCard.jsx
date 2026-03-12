@@ -1,12 +1,31 @@
-import React, { useState } from 'react';
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
+import {
+  Bookmark as BookmarkIcon,
+  BookmarkBorder as BookmarkBorderIcon,
+} from '@mui/icons-material';
 import { IconButton } from '@mui/material';
 
 import formatQuoteIcon from '../../../img/llm/format_quote.svg';
+import {
+  getBookmarks,
+  toggleBookmark,
+} from '../../../utils/bookmarks';
 
-const ReferenceCard = ({ url, handleClick, onCiteClick, isHighlighted = false }) => {
+const ReferenceCard = ({ url, handleClick, onCiteClick, isHighlighted = false, transparentBackground = false }) => {
     const [isHovered, setIsHovered] = useState(false);
+    const [isBookmarked, setIsBookmarked] = useState(false);
     const showHighlight = isHighlighted || isHovered;
+
+    const pubmedId = useMemo(() => {
+        const urlValue = url?.[1] || '';
+        const parts = urlValue.split('/').filter(Boolean);
+        return parts[parts.length - 1] || urlValue;
+    }, [url]);
 
     const handleCiteClick = (event) => {
         event.stopPropagation();
@@ -15,7 +34,32 @@ const ReferenceCard = ({ url, handleClick, onCiteClick, isHighlighted = false })
         }
     };
 
-    const authors = url[5] || [];
+    const handleBookmarkClick = (event) => {
+        event.stopPropagation();
+        const entry = {
+            id: pubmedId,
+            title: url?.[0] || '',
+            url: url?.[1] || '',
+            citation_count: url?.[2] || 0,
+            year: url?.[3] || '',
+            journal: url?.[4] || '',
+            authors: Array.isArray(url?.[5]) ? url[5].join(', ') : (url?.[5] || ''),
+        };
+        const next = toggleBookmark(entry);
+        setIsBookmarked(next.some((item) => item.id === pubmedId));
+    };
+
+    useEffect(() => {
+        const update = () => {
+            const next = getBookmarks();
+            setIsBookmarked(next.some((item) => item.id === pubmedId));
+        };
+        update();
+        window.addEventListener('glkb-bookmarks-updated', update);
+        return () => window.removeEventListener('glkb-bookmarks-updated', update);
+    }, [pubmedId]);
+
+    const authors = Array.isArray(url?.[5]) ? url[5].join(', ') : (url?.[5] || '');
 
     const getLastName = (fullName) => {
         const parts = fullName.trim().split(' ');
@@ -56,7 +100,7 @@ const ReferenceCard = ({ url, handleClick, onCiteClick, isHighlighted = false })
                 cursor: 'pointer',
                 marginBottom: '2px',
                 borderRadius: showHighlight ? '8px' : '10px',
-                backgroundColor: showHighlight ? '#E7F1FF' : '#fff',
+                backgroundColor: showHighlight ? '#E7F1FF' : (transparentBackground ? 'transparent' : '#fff'),
                 width: '100%',
                 transition: 'background-color 0.3s ease',
                 padding: showHighlight ? '4px' : '0px',
@@ -66,26 +110,46 @@ const ReferenceCard = ({ url, handleClick, onCiteClick, isHighlighted = false })
         >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                 <div style={{ color: '#808080', fontSize: '14px', fontWeight: 400 }}>
-                    PubMed ID: {url[1].split('/').filter(Boolean).pop()}
+                    PubMed ID: {pubmedId}
                 </div>
-                <IconButton
-                    size="small"
-                    onClick={handleCiteClick}
-                    sx={{
-                        padding: '4px',
-                        color: '#323232',
-                        '&:hover': {
-                            backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                        },
-                    }}
-                    title="Cite this reference"
-                >
-                    <img
-                        src={formatQuoteIcon}
-                        alt="Quote"
-                        style={{ width: '18px', height: '18px', display: 'block' }}
-                    />
-                </IconButton>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <IconButton
+                        size="small"
+                        onClick={handleCiteClick}
+                        sx={{
+                            padding: '4px',
+                            color: '#323232',
+                            '&:hover': {
+                                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                            },
+                        }}
+                        title="Cite this reference"
+                    >
+                        <img
+                            src={formatQuoteIcon}
+                            alt="Quote"
+                            style={{ width: '18px', height: '18px', display: 'block' }}
+                        />
+                    </IconButton>
+                    <IconButton
+                        size="small"
+                        onClick={handleBookmarkClick}
+                        sx={{
+                            padding: '4px',
+                            color: isBookmarked ? '#2c5cf3' : '#323232',
+                            '&:hover': {
+                                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                            },
+                        }}
+                        title={isBookmarked ? 'Remove bookmark' : 'Bookmark this reference'}
+                    >
+                        {isBookmarked ? (
+                            <BookmarkIcon sx={{ fontSize: 18 }} />
+                        ) : (
+                            <BookmarkBorderIcon sx={{ fontSize: 18 }} />
+                        )}
+                    </IconButton>
+                </div>
             </div>
 
             <a

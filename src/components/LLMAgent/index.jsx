@@ -23,7 +23,6 @@ import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   Clear as ClearIcon,
-  Close as CloseIcon,
   EditNote as EditNoteIcon,
   ExpandMore as ExpandMoreIcon,
   FilePresent as FilePresentIcon,
@@ -34,10 +33,6 @@ import {
   Button as MuiButton,
   CircularProgress,
   Container,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  Divider,
   Grid,
   IconButton,
   Stack,
@@ -52,6 +47,17 @@ import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import replayIcon from '../../img/llm/replay.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import { LLMAgentService } from '../../service/LLMAgent';
+import {
+  createConversation,
+  getActiveConversationId,
+  getConversations,
+  migrateLegacyChatHistory,
+  setActiveConversationId,
+  setConversations,
+  updateConversationMessages,
+  upsertConversation,
+} from '../../utils/chatHistory';
+import CiteDialog from '../Units/CiteDialog';
 import NavBarWhite from '../Units/NavBarWhite';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import ChatSearchBar from './ChatSearchBar';
@@ -80,14 +86,10 @@ const logDev = (...args) => {
 
 const getStoredChatHistory = () => {
     if (typeof window === 'undefined') return [];
-    try {
-        const raw = sessionStorage.getItem('llmChatHistory');
-        if (!raw) return [];
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-    } catch (error) {
-        return [];
-    }
+    const conversations = getConversations();
+    const activeId = getActiveConversationId();
+    const active = conversations.find((item) => item.id === activeId);
+    return active?.messages || [];
 };
 
 const getStoredProcessingFlag = () => {
@@ -98,9 +100,7 @@ const getStoredProcessingFlag = () => {
 const getStoredIncompleteFlag = () => {
     if (typeof window === 'undefined') return false;
     try {
-        const raw = sessionStorage.getItem('llmChatHistory');
-        if (!raw) return false;
-        const parsed = JSON.parse(raw);
+        const parsed = getStoredChatHistory();
         if (!Array.isArray(parsed) || parsed.length === 0) return false;
         const lastMessage = parsed[parsed.length - 1];
         return lastMessage?.role === 'assistant' && !lastMessage?.content;
@@ -129,6 +129,36 @@ const DEFAULT_LEFT_PERCENT = 66;
 const FALLBACK_MIN_LEFT_PERCENT = 45;
 const FALLBACK_MAX_LEFT_PERCENT = 80;
 const FALLBACK_COLLAPSE_THRESHOLD = 84;
+
+const areMessagesEqual = (left, right) => {
+    if (left === right) return true;
+    if (!Array.isArray(left) || !Array.isArray(right)) return false;
+    if (left.length !== right.length) return false;
+
+    for (let i = 0; i < left.length; i += 1) {
+        const leftMsg = left[i];
+        const rightMsg = right[i];
+        const leftSignature = JSON.stringify({
+            role: leftMsg?.role,
+            content: leftMsg?.content,
+            timestamp: leftMsg?.timestamp,
+            references: leftMsg?.references,
+            thinkingSteps: leftMsg?.thinkingSteps,
+            thoughtDurationMs: leftMsg?.thoughtDurationMs,
+        });
+        const rightSignature = JSON.stringify({
+            role: rightMsg?.role,
+            content: rightMsg?.content,
+            timestamp: rightMsg?.timestamp,
+            references: rightMsg?.references,
+            thinkingSteps: rightMsg?.thinkingSteps,
+            thoughtDurationMs: rightMsg?.thoughtDurationMs,
+        });
+        if (leftSignature !== rightSignature) return false;
+    }
+
+    return true;
+};
 
 const getStepLabel = (stepName) => STEP_LABELS[stepName] || stepName;
 
@@ -283,6 +313,8 @@ function LLMAgent() {
     const [isDraggingSplit, setIsDraggingSplit] = useState(false);
     const [dragIndicatorY, setDragIndicatorY] = useState(0);
     const [isReferencesCollapsed, setIsReferencesCollapsed] = useState(false);
+    const [, setConversationsState] = useState(() => getConversations());
+    const [activeConversationId, setActiveConversationIdState] = useState(() => getActiveConversationId());
     const [showReloadPrompt, setShowReloadPrompt] = useState(
         () => getStoredProcessingFlag() || getStoredIncompleteFlag()
     );
@@ -291,11 +323,66 @@ function LLMAgent() {
     const thinkingStepsRef = useRef([]);
     const prevSelectedMessageIndexRef = useRef(null);
     const hasConsumedInitialQueryRef = useRef(false);
+    const activeConversationIdRef = useRef(getActiveConversationId());
     const splitContainerRef = useRef(null);
     const isDraggingSplitRef = useRef(false);
     const navigate = useNavigate();
 
     const llmService = useMemo(() => new LLMAgentService(), []);
+
+    useEffect(() => {
+        activeConversationIdRef.current = activeConversationId;
+    }, [activeConversationId]);
+
+    useEffect(() => {
+        const migrated = migrateLegacyChatHistory();
+        const stored = migrated.length ? migrated : getConversations();
+        let nextActiveId = getActiveConversationId();
+
+        if (!nextActiveId && stored.length > 0) {
+            nextActiveId = stored[0].id;
+            setActiveConversationId(nextActiveId);
+        }
+
+        setConversationsState(stored);
+        setActiveConversationIdState(nextActiveId || null);
+        activeConversationIdRef.current = nextActiveId || null;
+
+        if (nextActiveId) {
+            const active = stored.find((item) => item.id === nextActiveId);
+            setChatHistory(active?.messages || []);
+        }
+    }, []);
+
+    useEffect(() => {
+        const conversationId = location.state?.conversationId;
+        if (!conversationId) return;
+
+        const stored = getConversations();
+        const active = stored.find((item) => item.id === conversationId);
+        if (!active) return;
+
+        setConversationsState(stored);
+        setActiveConversationId(conversationId);
+        setActiveConversationIdState(conversationId);
+        activeConversationIdRef.current = conversationId;
+        setChatHistory(active.messages || []);
+        setSelectedMessageIndex(null);
+        setShowReloadPrompt(false);
+        llmService.clearHistory();
+    }, [location.state, llmService]);
+
+    const startNewConversation = useCallback(() => {
+        setChatHistory([]);
+        setSelectedMessageIndex(null);
+        setStreamingGroups([]);
+        thinkingStepsRef.current = [];
+        setShowReloadPrompt(false);
+        setActiveConversationIdState(null);
+        activeConversationIdRef.current = null;
+        setActiveConversationId(null);
+        llmService.clearHistory();
+    }, [llmService]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -336,10 +423,27 @@ function LLMAgent() {
             hasConsumedInitialQueryRef.current = true;
             const query = location.state.initialQuery;
             if (!isLoading) {
-                handleSubmit(null, query);
+                startNewConversation();
+                handleSubmit(null, query, null, { forceNewConversation: true });
             }
         }
-    }, [location.state, isLoading]);
+    }, [location.state, isLoading, startNewConversation]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (!activeConversationIdRef.current) return;
+        const currentList = getConversations();
+        const active = currentList.find((item) => item.id === activeConversationIdRef.current);
+        const storedMessages = active?.messages || [];
+        if (areMessagesEqual(storedMessages, chatHistory)) return;
+        const nextList = updateConversationMessages(
+            currentList,
+            activeConversationIdRef.current,
+            chatHistory
+        );
+        setConversationsState(nextList);
+        setConversations(nextList);
+    }, [chatHistory]);
 
     const collapseReferences = useCallback((widthToStore) => {
         if (isReferencesCollapsed) return;
@@ -482,10 +586,13 @@ function LLMAgent() {
         });
     };
 
-    const handleSubmit = async (e, input = null, t = null) => {
+    const handleSubmit = async (e, input = null, t = null, options = {}) => {
         const inputText = input || userInput;
         e && e.preventDefault();
         if (!inputText.trim() || isLoading) return;
+
+        const shouldStartNewConversation = options.forceNewConversation || !activeConversationIdRef.current;
+        const baseHistory = shouldStartNewConversation ? [] : chatHistory;
 
         setShowReloadPrompt(false);
 
@@ -500,8 +607,18 @@ function LLMAgent() {
             timestamp: t || timestamp
         };
 
+        if (shouldStartNewConversation) {
+            const conversation = createConversation([...baseHistory, newMessage]);
+            const nextList = upsertConversation(getConversations(), conversation);
+            setConversationsState(nextList);
+            setConversations(nextList);
+            setActiveConversationIdState(conversation.id);
+            activeConversationIdRef.current = conversation.id;
+            setActiveConversationId(conversation.id);
+        }
+
         // Update chat history with user message
-        setChatHistory(prev => [...prev, newMessage]);
+        setChatHistory([...baseHistory, newMessage]);
         setUserInput('');
         setIsLoading(true);
         setIsProcessing(true);
@@ -510,7 +627,7 @@ function LLMAgent() {
 
         try {
             // Convert chat history to format expected by backend
-            const conversationHistory = chatHistory.map(msg => ({
+            const conversationHistory = baseHistory.map(msg => ({
                 role: msg.role,
                 content: msg.content
             }));
@@ -685,12 +802,7 @@ function LLMAgent() {
     };
 
     const handleClear = () => {
-        setChatHistory([]);
-        setSelectedMessageIndex(null);
-        setStreamingGroups([]);
-        thinkingStepsRef.current = [];
-        setShowReloadPrompt(false);
-        llmService.clearHistory();
+        startNewConversation();
     };
 
     const handleMessageClick = (index) => {
@@ -717,9 +829,8 @@ function LLMAgent() {
 
     const handleExampleClick = async (query) => {
         if (isLoading) return;
-
-        setChatHistory(_ => []);
-        handleSubmit(null, query);
+        startNewConversation();
+        handleSubmit(null, query, null, { forceNewConversation: true });
     };
 
     const handleRegenerateResponse = (e, index) => {
@@ -1128,48 +1239,6 @@ function LLMAgent() {
         setSelectedCitation(null);
     };
 
-    const generateCitation = (format) => {
-        if (!selectedCitation) return '';
-
-        const title = selectedCitation[0];
-        const pubmedUrl = selectedCitation[1];
-        const year = selectedCitation[3];
-        const journal = selectedCitation[4];
-        const authors = selectedCitation[5];
-        const pubmedId = pubmedUrl.split('/').filter(Boolean).pop();
-
-        switch (format) {
-            case 'MLA':
-                return `${authors}. "${title}." ${journal} ${year}. PubMed ID: ${pubmedId}.`;
-            case 'APA':
-                return `${authors} (${year}). ${title}. ${journal}. PubMed ID: ${pubmedId}.`;
-            case 'Chicago':
-                return `${authors}. "${title}." ${journal} (${year}). PubMed ID: ${pubmedId}.`;
-            case 'Harvard':
-                return `${authors} (${year}). ${title}. ${journal}. PubMed ID: ${pubmedId}.`;
-            case 'Vancouver':
-                return `${authors}. ${title}. ${journal}. ${year}. PubMed ID: ${pubmedId}.`;
-            case 'BibTeX':
-                return `@article{${pubmedId},\n  author = {${authors}},\n  title = {${title}},\n  journal = {${journal}},\n  year = {${year}},\n  note = {PubMed ID: ${pubmedId}}\n}`;
-            case 'EndNote':
-                return `%0 Journal Article\n%A ${authors}\n%T ${title}\n%J ${journal}\n%D ${year}\n%M ${pubmedId}`;
-            default:
-                return '';
-        }
-    };
-
-    const handleCopyCitation = (format) => {
-        const citation = generateCitation(format);
-        navigator.clipboard.writeText(citation)
-            .then(() => {
-                message.success(`${format} citation copied to clipboard`);
-            })
-            .catch(err => {
-                console.error('Failed to copy citation: ', err);
-                message.error('Copy failed');
-            });
-    };
-
     useEffect(() => {
         if (!hoveredPubmedId || !referencesListRef.current) return;
 
@@ -1237,98 +1306,11 @@ function LLMAgent() {
                 <meta property="og:title" content="AI Chat - Genomic Literature Knowledge Base | AI-Powered Genomics Search" />
             </Helmet>
 
-            <Dialog
+            <CiteDialog
                 open={citeDialogOpen}
                 onClose={handleCloseCiteDialog}
-                maxWidth="md"
-                fullWidth
-                PaperProps={{
-                    sx: {
-                        borderRadius: '12px',
-                        padding: '8px'
-                    }
-                }}
-            >
-                <DialogTitle sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    fontFamily: 'Open Sans, sans-serif',
-                    fontSize: '20px',
-                    fontWeight: '600'
-                }}>
-                    Cite
-                    <IconButton onClick={handleCloseCiteDialog} size="small">
-                        <CloseIcon />
-                    </IconButton>
-                </DialogTitle>
-                <DialogContent>
-                    <Stack spacing={2}>
-                        {['MLA', 'APA', 'Chicago', 'Harvard', 'Vancouver'].map((format) => (
-                            <Box key={format}>
-                                <Box sx={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    mb: 1
-                                }}>
-                                    <Typography sx={{
-                                        fontFamily: 'Open Sans, sans-serif',
-                                        fontWeight: '600',
-                                        fontSize: '14px'
-                                    }}>
-                                        {format}
-                                    </Typography>
-                                </Box>
-                                <Box sx={{
-                                    backgroundColor: '#f5f5f5',
-                                    padding: '12px',
-                                    borderRadius: '8px',
-                                    fontFamily: 'Open Sans, sans-serif',
-                                    fontSize: '14px',
-                                    cursor: 'pointer',
-                                    '&:hover': {
-                                        backgroundColor: '#ebebeb'
-                                    }
-                                }}
-                                    onClick={() => handleCopyCitation(format)}
-                                >
-                                    {generateCitation(format)}
-                                </Box>
-                            </Box>
-                        ))}
-
-                        <Divider sx={{ my: 2 }} />
-
-                        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-                            <MuiButton
-                                variant="outlined"
-                                onClick={() => handleCopyCitation('BibTeX')}
-                                sx={{
-                                    fontFamily: 'Open Sans, sans-serif',
-                                    textTransform: 'none',
-                                    borderRadius: '8px',
-                                    padding: '8px 24px'
-                                }}
-                            >
-                                BibTeX
-                            </MuiButton>
-                            <MuiButton
-                                variant="outlined"
-                                onClick={() => handleCopyCitation('EndNote')}
-                                sx={{
-                                    fontFamily: 'Open Sans, sans-serif',
-                                    textTransform: 'none',
-                                    borderRadius: '8px',
-                                    padding: '8px 24px'
-                                }}
-                            >
-                                EndNote
-                            </MuiButton>
-                        </Box>
-                    </Stack>
-                </DialogContent>
-            </Dialog>
+                citation={selectedCitation}
+            />
 
             <div className="llm-page">
                 <NavBarWhite />

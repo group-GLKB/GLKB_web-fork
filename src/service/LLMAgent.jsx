@@ -81,13 +81,17 @@ export class LLMAgentService {
         }
     }
 
-    async chat(question, abortController, onUpdate) {
+    async chat(question, abortController, onUpdate, messagesOverride = null) {
         try {
-            // Add user message to history
-            this.messages.push({
-                role: 'user',
-                content: question
-            });
+            if (Array.isArray(messagesOverride)) {
+                this.messages = [...messagesOverride];
+            } else {
+                // Add user message to history
+                this.messages.push({
+                    role: 'user',
+                    content: question
+                });
+            }
             // console.log('Added user message to history. Current messages:', this.messages);
 
             // console.log('Sending request to server with messages:', {
