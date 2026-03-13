@@ -13,11 +13,11 @@ import React, {
 import { message } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import {
   useLocation,
   useNavigate,
 } from 'react-router-dom';
+import remarkGfm from 'remark-gfm';
 
 import {
   Bookmark as BookmarkIcon,
@@ -328,7 +328,7 @@ function LLMAgent() {
     const [loadingConversationId, setLoadingConversationId] = useState(null);
     const [conversationBookmarks, setConversationBookmarksState] = useState(() => getConversationBookmarks());
     const [showReloadPrompt, setShowReloadPrompt] = useState(
-            () => getStoredProcessingFlag() || getStoredIncompleteFlag() || false
+        () => getStoredProcessingFlag() || getStoredIncompleteFlag()
     );
     const messagesEndRef = useRef(null);
     const abortControllerRef = useRef(null);
@@ -337,6 +337,7 @@ function LLMAgent() {
     const hasConsumedInitialQueryRef = useRef(false);
     const activeConversationIdRef = useRef(getActiveConversationId());
     const loadingConversationIdRef = useRef(null);
+    const activeStreamIdRef = useRef(null);
     const splitContainerRef = useRef(null);
     const isDraggingSplitRef = useRef(false);
     const navigate = useNavigate();
@@ -437,13 +438,27 @@ function LLMAgent() {
         };
     }, []);
 
+    const cancelStreaming = useCallback((options = {}) => {
+        const { abort = true } = options;
+        if (abort && abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = null;
+        activeStreamIdRef.current = null;
+        setIsLoading(false);
+        setIsProcessing(false);
+        setStreamingGroups([]);
+        thinkingStepsRef.current = [];
+    }, []);
+
     useEffect(() => {
         const conversationId = location.state?.conversationId;
         if (!conversationId) return;
         let isMounted = true;
 
         const loadConversation = async () => {
-            const targetId = String(conversationId || '');
+            cancelStreaming({ abort: false });
+            const targetId = String(conversationId);
             loadingConversationIdRef.current = targetId;
             setLoadingConversationId(targetId);
             setIsConversationLoading(true);
@@ -473,21 +488,21 @@ function LLMAgent() {
         return () => {
             isMounted = false;
         };
-    }, [location.state, llmService]);
+    }, [location.state, cancelStreaming, llmService]);
 
     const startNewConversation = useCallback(() => {
+        cancelStreaming();
         setChatHistory([]);
         setSelectedMessageIndex(null);
-        setStreamingGroups([]);
-        thinkingStepsRef.current = [];
         setShowReloadPrompt(false);
         setIsConversationLoading(false);
         setLoadingConversationId(null);
+        loadingConversationIdRef.current = null;
         setActiveConversationIdState(null);
         activeConversationIdRef.current = null;
         setActiveConversationId(null);
         llmService.clearHistory();
-    }, [llmService]);
+    }, [cancelStreaming, llmService]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -722,6 +737,8 @@ function LLMAgent() {
 
         const shouldStartNewConversation = options.forceNewConversation || !activeConversationIdRef.current;
         const baseHistory = shouldStartNewConversation ? [] : chatHistory;
+        const streamId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        activeStreamIdRef.current = streamId;
 
         setShowReloadPrompt(false);
 
@@ -794,9 +811,14 @@ function LLMAgent() {
             const abortController = new AbortController();
             abortControllerRef.current = abortController;
             await llmService.chat(inputText, abortControllerRef.current, (update) => {
+                const isActiveStream = activeStreamIdRef.current === streamId;
+                if (!isActiveStream && update.type !== 'saved') {
+                    return;
+                }
                 logDev('[LLM] update', update);
                 switch (update.type) {
                     case 'step':
+                        if (!isActiveStream) return;
                         if (update.step === 'Error') {
                             setIsProcessing(false);
                             setChatHistory(prev => {
@@ -856,6 +878,7 @@ function LLMAgent() {
                         }
                         break;
                     case 'final':
+                        if (!isActiveStream) return;
                         setIsProcessing(false);
                         setChatHistory(prev => {
                             const newHistory = [...prev];
@@ -877,11 +900,13 @@ function LLMAgent() {
                         setSelectedMessageIndex(chatHistory.length + 1);
                         break;
                     case 'saved': {
-                        const savedId = update.historyId ? String(update.historyId) : null;
-                        if (savedId && savedId !== activeConversationIdRef.current) {
-                            setActiveConversationId(savedId);
-                            setActiveConversationIdState(savedId);
-                            activeConversationIdRef.current = savedId;
+                        if (isActiveStream) {
+                            const savedId = update.historyId ? String(update.historyId) : null;
+                            if (savedId && savedId !== activeConversationIdRef.current) {
+                                setActiveConversationId(savedId);
+                                setActiveConversationIdState(savedId);
+                                activeConversationIdRef.current = savedId;
+                            }
                         }
                         fetchConversations()
                             .then((list) => setConversationsState(list))
@@ -889,6 +914,7 @@ function LLMAgent() {
                         break;
                     }
                     case 'error': // unsure if this is used
+                        if (!isActiveStream) return;
                         setIsProcessing(false);
                         setChatHistory(prev => {
                             const newHistory = [...prev];
@@ -911,22 +937,27 @@ function LLMAgent() {
             });
         } catch (error) {
             console.error('Error in chat:', error);
-            setChatHistory(prev => {
-                const newHistory = [...prev];
-                const errorMessage = {
-                    role: 'assistant',
-                    content: 'Sorry, I encountered an error while processing your request. Please try again.',
-                    references: [],
-                    timestamp: timestamp,
-                    thinkingSteps: thinkingStepsRef.current,
-                    thoughtDurationMs: Date.now() - requestStartedAt
-                };
-                newHistory[newHistory.length - 1] = errorMessage;
-                return newHistory;
-            });
+            if (activeStreamIdRef.current === streamId) {
+                setChatHistory(prev => {
+                    const newHistory = [...prev];
+                    const errorMessage = {
+                        role: 'assistant',
+                        content: 'Sorry, I encountered an error while processing your request. Please try again.',
+                        references: [],
+                        timestamp: timestamp,
+                        thinkingSteps: thinkingStepsRef.current,
+                        thoughtDurationMs: Date.now() - requestStartedAt
+                    };
+                    newHistory[newHistory.length - 1] = errorMessage;
+                    return newHistory;
+                });
+            }
         } finally {
-            setIsLoading(false);
-            setIsProcessing(false);
+            if (activeStreamIdRef.current === streamId) {
+                setIsLoading(false);
+                setIsProcessing(false);
+                activeStreamIdRef.current = null;
+            }
         }
     };
 
