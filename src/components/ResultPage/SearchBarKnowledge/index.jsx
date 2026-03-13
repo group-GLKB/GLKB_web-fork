@@ -1,9 +1,9 @@
 import './scoped.css';
 
 import React, {
-    useCallback,
-    useEffect,
-    useState,
+  useCallback,
+  useEffect,
+  useState,
 } from 'react';
 
 import { debounce } from 'lodash';
@@ -12,12 +12,12 @@ import { useNavigate } from 'react-router-dom';
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import CancelIcon from '@mui/icons-material/Cancel';
 import {
-    Autocomplete,
-    Box,
-    IconButton,
-    Paper,
-    Popper,
-    TextField,
+  Autocomplete,
+  Box,
+  IconButton,
+  Paper,
+  Popper,
+  TextField,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -379,7 +379,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
     // Handle search button click
     const handleSearch = () => {
-        if (!chipData || chipData.length === 0 || !chipDataID || chipDataID.length === 0) {
+        if (!selectedSources.length) {
             return;
         }
         // Clear input timeout to prevent search_input event after submission
@@ -387,20 +387,42 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
             clearTimeout(inputTimeoutRef.current);
             hasTrackedInputRef.current = true;
         }
-        const search_data = {
-            "triplets": chipData.map((triplet, index) => {
+        const normalizedSources = selectedSources.map((source) => {
+            const sourceName = source.name || source[1].replace(/\s*\([^)]*\)$/, "").trim();
+            return {
+                databaseId: normalizeDatabaseId(source[0]),
+                name: sourceName,
+                label: source[2],
+            };
+        });
+        const hasChipTriplets = Array.isArray(chipData)
+            && chipData.length > 0
+            && Array.isArray(chipDataID)
+            && chipDataID.length > 0;
+        const triplets = hasChipTriplets
+            ? chipData.map((triplet, index) => {
                 const parts = parseTripletParts(triplet);
                 const sourceNode = chipDataID[index]?.[0];
                 if (!sourceNode) {
                     console.error(`Missing sourceNode for chipDataID at index ${index}`);
-                    return null; // Skip this triplet if sourceNode is missing
+                    return null;
                 }
                 return {
-                    "source": [normalizeDatabaseId(sourceNode.database_id), parts.source.trim()],
-                    "rel": parts.rel.trim(),
-                    "target": [0, parts.target.trim()]
+                    source: [normalizeDatabaseId(sourceNode.database_id), parts.source.trim()],
+                    rel: parts.rel.trim(),
+                    target: [0, parts.target.trim()],
                 };
-            }),
+            }).filter(Boolean)
+            : normalizedSources.map((source) => ({
+                source: [source.databaseId, source.name],
+                rel: 'any relationships',
+                target: [0, ''],
+            }));
+        if (!triplets.length) {
+            return;
+        }
+        const search_data = {
+            "triplets": triplets,
             "params": {
                 "max_articles": maxArticles,
                 "max_terms": maxBioTerms,
@@ -409,10 +431,10 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                 "more_rels": moreRel ? "True" : "False",
                 "merge": "True"
             },
-            "sources": selectedSources.map((source) => [
-                normalizeDatabaseId(source[0]),
-                source[1],
-                source[2],
+            "sources": normalizedSources.map((source) => [
+                source.databaseId,
+                source.name,
+                source.label,
             ])
         };
         if (props.onSearch) {
@@ -461,20 +483,33 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
             setChipData([]);
             setChipDataID([]);
             const newSelectedSources = [];
-            exampleQuery.triplets.forEach(triplet => {
-                const sourceName = triplet.source[1].replace(/[()]/g, '');
-                const chip_str = `(${sourceName})-[any relationships]-()`;
+            const sources = Array.isArray(exampleQuery.sources) && exampleQuery.sources.length
+                ? exampleQuery.sources
+                : [];
+            const triplets = Array.isArray(exampleQuery.triplets) ? exampleQuery.triplets : [];
+            const selectedFromSources = sources.length
+                ? sources.map((source) => [
+                    source[0],
+                    `${source[1]}`.replace(/[()]/g, ''),
+                    source[2],
+                ])
+                : null;
+            const selected = selectedFromSources
+                || triplets.map((triplet) => [
+                    triplet.source[0],
+                    `${triplet.source[1]}`.replace(/[()]/g, ''),
+                    triplet.source[2],
+                ]);
+            selected.forEach((source) => {
+                const sourceName = source[1];
+                const chipStr = `(${sourceName})-[any relationships]-()`;
                 const sourceNode = [
-                    { database_id: triplet.source[0], name: sourceName },
-                    null
+                    { database_id: source[0], name: sourceName },
+                    null,
                 ];
-                setChipData(prev => [...prev, chip_str]);
+                setChipData(prev => [...prev, chipStr]);
                 setChipDataID(prev => [...prev, sourceNode]);
-                // console.log('ChipdataID is:',sourceNode)
-                // Add to newSelectedSources
-                newSelectedSources.push(
-                    [triplet.source[0], sourceName, triplet.source[2]]
-                );
+                newSelectedSources.push([source[0], sourceName, source[2]]);
             });
             setSelectedSources(newSelectedSources);
 

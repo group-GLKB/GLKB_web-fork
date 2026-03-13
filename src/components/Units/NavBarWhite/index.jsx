@@ -234,8 +234,8 @@ function NavBarWhite({ showLogo = true }) {
             to: '/login',
             icon: <PersonIcon sx={{ fontSize: 22 }} />,
             iconBoxSx: {
-                backgroundColor: '#e9f1fe',
-                color: '#164563',
+                backgroundColor: '#2c5cf3',
+                color: '#ffffff',
             },
         }
     ), []);
@@ -572,10 +572,10 @@ function NavBarWhite({ showLogo = true }) {
                 <List sx={{ px: 1, py: 1 }}>
                     {middleItems.map((item) => renderNavItem(item))}
                 </List>
-                <Divider sx={{ mx: 3.5 }} />
+                {/* <Divider sx={{ mx: 3.5 }} />
                 <List sx={{ px: 1, py: 1 }}>
                     {bottomItems.map((item) => renderNavItem(item))}
-                </List>
+                </List> */}
                 {open && (
                     <Box className="sidebar-recent-section">
                         <Typography
@@ -618,8 +618,8 @@ function NavBarWhite({ showLogo = true }) {
                                 icon: <PersonIcon sx={{ fontSize: 22 }} />,
                                 onClick: handleOpenUserMenu,
                                 iconBoxSx: {
-                                    backgroundColor: '#2c5cf3',
-                                    color: '#ffffff',
+                                    backgroundColor: '#e9f1fe',
+                                    color: '#2c5cf3',
                                 },
                             })
                         )}

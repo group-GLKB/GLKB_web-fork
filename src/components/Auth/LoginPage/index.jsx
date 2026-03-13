@@ -50,6 +50,14 @@ const LoginPage = () => {
     <>
       <div className="login-page-container">
         <div className="login-modal">
+          <button
+            type="button"
+            className="login-close"
+            aria-label="Close login"
+            onClick={handleClose}
+          >
+            &times;
+          </button>
           <h2 className="login-title">Sign in below to unlock the full potential of GLKB</h2>
 
           <p className="login-subtitle">New to GLKB? An account will be <strong>automatically created</strong> for you upon your first sign-in.</p>
@@ -89,9 +97,9 @@ const LoginPage = () => {
             </button>
           </form>
 
-          <div className="sso-text">
+          {/* <div className="sso-text">
             Single sign-on (SSO)
-          </div>
+          </div> */}
 
           <div className="privacy-text">
             By clicking continuing, you agree to our <a href="/privacy-policy">privacy policy</a>.

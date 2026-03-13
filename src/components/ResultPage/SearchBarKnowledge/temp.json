@@ -1,0 +1,68 @@
+[
+    [
+        {
+            "id": "91689747",
+            "name": "SPRY2",
+            "type": "Gene"
+        },
+        {
+            "id": "91737592",
+            "name": "HNF4A",
+            "type": "Gene"
+        },
+        {
+            "id": "91683743",
+            "name": "RFX6",
+            "type": "Gene"
+        },
+        {
+            "id": "92032097",
+            "name": "Diabetes Mellitus, Type 2",
+            "type": "MeshTerm"
+        }
+    ],
+    [
+        {
+            "id": "91705649",
+            "name": "TP53",
+            "type": "Gene"
+        },
+        {
+            "id": "441215018",
+            "name": "rs3761624",
+            "type": "SequenceVariant"
+        },
+        {
+            "id": "91666190",
+            "name": "respiratory syncytial virus infectious disease",
+            "type": "DiseaseOrPhenotypicFeature"
+        },
+        {
+            "id": "91708843",
+            "name": "TLR8",
+            "type": "Gene"
+        }
+    ],
+    [
+        {
+            "id": "91663193",
+            "name": "atrial fibrillation",
+            "type": "DiseaseOrPhenotypicFeature"
+        },
+        {
+            "id": "92115666",
+            "name": "Acute coronary syndrome",
+            "type": "DiseaseOrPhenotypicFeature"
+        },
+        {
+            "id": "91700271",
+            "name": "vascular disease",
+            "type": "DiseaseOrPhenotypicFeature"
+        },
+        {
+            "id": "92231875",
+            "name": "clopidogrel",
+            "type": "ChemicalEntity"
+        }
+    ]
+]

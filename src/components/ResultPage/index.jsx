@@ -4,6 +4,7 @@ import './scoped.css';
 import React, {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -26,6 +27,7 @@ import { InfoCircleOutlined } from '@ant-design/icons';
 import {
   Box,
   Button as MuiButton,
+  Popover,
   Typography,
 } from '@mui/material';
 
@@ -33,11 +35,17 @@ import {
   ReactComponent as CategorySearchIcon,
 } from '../../img/navbar/category_search.svg';
 import downArrow from '../../img/result/down_arrow.svg';
+import {
+  ReactComponent as PageMenuIcon,
+} from '../../img/result/page_menu_ios.svg';
 import NoResultImage from '../../img/result/placeholdericon.png';
 import { CypherService } from '../../service/Cypher';
 import Graph from '../Graph';
+import nodeStyleColors from '../Graph/nodeStyleColors.json';
 import Information from '../Information';
 import SearchBarKnowledge from './SearchBarKnowledge';
+import exampleQueries from './SearchBarKnowledge/example_query.json';
+import exampleTerms from './SearchBarKnowledge/temp.json';
 import SearchBarNeighborhood from './SearchBarNeighborhood';
 
 // const StyledButton = styled(Button)(({ theme }) => ({
@@ -71,6 +79,62 @@ const ExploreTooltipContent = (
         Each node should represent a single concept. Add more concepts as separate nodes.
     </div>
 );
+
+const ExampleOptions = [
+    ['example_0', 'SPRY2; RFX6; HNF4A; type 2 diabetes mellitus', 'Explore relationships between Type 2 Diabetes and its associated genes.'],
+    ['example_1', 'TP53; rs3761624; respiratory syncytial virus infectious disease; TLR8', 'Explore relationships between rs3761624 and RSV infectious disease.'],
+    ['example_2', 'Acute coronary syndrome; atrial fibrillation; vascular disease; clopidogrel', 'Explore relationships between clopidogrel and different diseases.'],
+];
+
+const hexToRgb = (hex) => {
+    if (!hex) return { r: 0, g: 0, b: 0 };
+    const cleaned = hex.replace('#', '');
+    const normalized = cleaned.length === 3
+        ? cleaned.split('').map((char) => `${char}${char}`).join('')
+        : cleaned;
+    const value = parseInt(normalized, 16);
+    if (Number.isNaN(value)) return { r: 0, g: 0, b: 0 };
+    return {
+        r: (value >> 16) & 255,
+        g: (value >> 8) & 255,
+        b: value & 255,
+    };
+};
+
+const rgbToHex = (r, g, b) => {
+    const toHex = (value) => value.toString(16).padStart(2, '0');
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
+
+const mixHex = (baseHex, mixHexValue, amount) => {
+    const base = hexToRgb(baseHex);
+    const mix = hexToRgb(mixHexValue);
+    const ratio = Math.min(Math.max(amount, 0), 1);
+    const r = Math.round(base.r * (1 - ratio) + mix.r * ratio);
+    const g = Math.round(base.g * (1 - ratio) + mix.g * ratio);
+    const b = Math.round(base.b * (1 - ratio) + mix.b * ratio);
+    return rgbToHex(r, g, b);
+};
+
+const toRgba = (hex, alpha) => {
+    const { r, g, b } = hexToRgb(hex);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const getPillColors = (label) => {
+    const base = nodeStyleColors[label] || nodeStyleColors.default || '#E5E5E5';
+    return {
+        base,
+        background: mixHex(base, '#ffffff', 0.75),
+        text: mixHex(base, '#000000', 0.35),
+        shadow: toRgba(base, 0.3),
+    };
+};
+
+const cleanPillLabel = (value) => {
+    if (!value) return '';
+    return `${value}`.replace(/[()]/g, '').trim();
+};
 
 const ResultPage = () => {
     // const urlParams = new URLSearchParams(window.location.search);
@@ -152,6 +216,9 @@ const ResultPage = () => {
     const [displayArticleGraph, setDisplayArticleGraph] = useState(false);
     const [isSettingsVisible, setIsSettingsVisible] = useState(true);
     const [isInformationVisible, setIsInformationVisible] = useState(true);
+    const [examplesOpen, setExamplesOpen] = useState(false);
+    const [pendingExample, setPendingExample] = useState(null);
+    const [examplesAnchorPosition, setExamplesAnchorPosition] = useState(null);
 
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const containerRef = useRef(null);
@@ -168,6 +235,8 @@ const ResultPage = () => {
     // const [cachedArticleGraph, setCachedArticleGraph] = useState(null);
 
     const graphContainerRef = useRef(null);
+    const searchBarContainerRef = useRef(null);
+    const exampleButtonRef = useRef(null);
 
     // Add new state for the tour
     const [runTour, setRunTour] = useState(false);
@@ -313,6 +382,8 @@ const ResultPage = () => {
             // Add validation check for neighborData
             if (!Array.isArray(neighborData) || neighborData.length < 2) {
                 console.error('Invalid neighbor data format:', neighborData);
+                setData({ nodes: [], edges: [] });
+                setSearchFlag(true);
                 return;
             }
 
@@ -329,7 +400,8 @@ const ResultPage = () => {
             }
         } catch (error) {
             console.error('Error fetching neighbor data:', error);
-            // Add error handling UI here
+            setData({ nodes: [], edges: [] });
+            setSearchFlag(true);
         }
     };
 
@@ -337,6 +409,12 @@ const ResultPage = () => {
         try {
             let cypherServ = new CypherService();
             const response = await cypherServ.Triplet2Cypher(searchData);
+            if (!Array.isArray(response) || !response[0]) {
+                console.error('Invalid triplet data format:', response);
+                setData({ nodes: [], edges: [] });
+                setSearchFlag(true);
+                return;
+            }
             setData(response[0]);
             // setAllNodes(response[1]);
             setSearchFlag(true);
@@ -347,7 +425,8 @@ const ResultPage = () => {
             }
         } catch (error) {
             console.error('Error fetching triplet data:', error);
-            // Add error handling UI here
+            setData({ nodes: [], edges: [] });
+            setSearchFlag(true);
         }
     };
 
@@ -642,6 +721,80 @@ const ResultPage = () => {
     // const [boolEdgeValues, setBoolEdgeValues] = useState({});
 
     const [searchBarOpen, setSearchBarOpen] = useState(false);
+    const exampleItems = useMemo(() => (
+        ExampleOptions.map(([id, pillText, description], index) => {
+            const baseQuery = exampleQueries?.[index] || {};
+            const typedTerms = Array.isArray(exampleTerms?.[index])
+                ? exampleTerms[index]
+                : [];
+            const query = {
+                triplets: typedTerms.map((term) => ({
+                    source: [Number(term.id), `(${term.name})`, term.type],
+                    rel: '',
+                    target: [0, ''],
+                })),
+                params: baseQuery.params,
+                sources: typedTerms.map((term) => ([
+                    Number(term.id),
+                    term.name,
+                    term.type,
+                ])),
+            };
+            const pills = typedTerms.length
+                ? typedTerms.map((term) => ({
+                    label: cleanPillLabel(term?.name),
+                    type: term?.type || 'default',
+                }))
+                : pillText
+                    .split(';')
+                    .map((entry) => entry.trim())
+                    .filter(Boolean)
+                    .map((label) => ({ label, type: 'default' }));
+            return {
+                id,
+                description,
+                pills,
+                query,
+                index,
+            };
+        })
+    ), []);
+    const examplesAnchorEl = exampleButtonRef.current || searchBarContainerRef.current;
+    const isExamplesOpen = examplesOpen && Boolean(examplesAnchorEl);
+
+    const handleOpenExamples = () => {
+        const searchRect = searchBarContainerRef.current?.getBoundingClientRect();
+        const buttonRect = exampleButtonRef.current?.getBoundingClientRect();
+        if (searchRect && buttonRect) {
+            setExamplesAnchorPosition({
+                top: Math.round(searchRect.top + window.scrollY),
+                left: Math.round(buttonRect.left + window.scrollX),
+            });
+        } else {
+            setExamplesAnchorPosition(null);
+        }
+        setExamplesOpen(true);
+    };
+
+    const handleCloseExamples = () => {
+        setExamplesOpen(false);
+    };
+
+    const handleSelectExample = (example) => {
+        if (!example?.query) return;
+        setSearchType('triplet');
+        setSearchContent(example.query);
+        setPendingExample(example.query);
+        setExamplesOpen(false);
+    };
+
+    useEffect(() => {
+        if (!pendingExample) return;
+        if (searchType !== 'triplet') return;
+        if (!searchBarKnowledgeRef.current?.fillWithExample) return;
+        searchBarKnowledgeRef.current.fillWithExample(pendingExample);
+        setPendingExample(null);
+    }, [pendingExample, searchType]);
 
     useEffect(() => {
         if (data.edges) {
@@ -845,15 +998,15 @@ const ResultPage = () => {
                                         }}>
                                             Explore relationships between genes, diseases, and biological processes
                                         </Typography>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '24px' }}>
-                                            <Typography sx={{
-                                                fontFamily: 'DM Sans, sans-serif',
-                                                fontWeight: 400,
-                                                fontSize: '14px',
-                                                color: '#646464',
-                                            }}>
-                                                Add one concept per node
-                                            </Typography>
+                                        <Box
+                                            sx={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px',
+                                                marginTop: '24px',
+                                                color: '#97A7BD',
+                                            }}
+                                        >
                                             <Tooltip
                                                 title={ExploreTooltipContent}
                                                 styles={{
@@ -861,10 +1014,45 @@ const ResultPage = () => {
                                                     body: { fontSize: '16px', fontFamily: 'Open Sans, sans-serif' },
                                                 }}
                                             >
-                                                <InfoCircleOutlined style={{ color: '#1890ff' }} />
+                                                <InfoCircleOutlined style={{ color: 'inherit' }} />
                                             </Tooltip>
+                                            <Typography sx={{
+                                                fontFamily: 'DM Sans, sans-serif',
+                                                fontWeight: 400,
+                                                fontSize: '14px',
+                                                color: 'inherit',
+                                            }}>
+                                                Add one concept per node
+                                            </Typography>
+                                            <MuiButton
+                                                ref={exampleButtonRef}
+                                                onClick={handleOpenExamples}
+                                                className="examples-trigger"
+                                                sx={{
+                                                    minWidth: 0,
+                                                    padding: 0,
+                                                    textTransform: 'none',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px',
+                                                    color: 'inherit',
+                                                    fontFamily: 'DM Sans, sans-serif',
+                                                    fontSize: '14px',
+                                                    fontWeight: 600,
+                                                    '&:hover': {
+                                                        backgroundColor: 'transparent',
+                                                    },
+                                                }}
+                                            >
+                                                <PageMenuIcon className="examples-trigger-icon" />
+                                                <span>Examples</span>
+                                            </MuiButton>
                                         </Box>
-                                        <div className="search-bar-container" style={{ marginTop: '8px', boxShadow: "0 1px 10px 0 rgba(0, 0, 0, 0.05)", borderRadius: '20px' }}>
+                                        <div
+                                            ref={searchBarContainerRef}
+                                            className="search-bar-container"
+                                            style={{ marginTop: '8px', boxShadow: "0 1px 10px 0 rgba(0, 0, 0, 0.05)", borderRadius: '20px' }}
+                                        >
                                             <div className="search-bar-wrapper">
                                                 {searchType === 'neighbor' ? (
                                                     <SearchBarNeighborhood
@@ -899,6 +1087,53 @@ const ResultPage = () => {
                                                 )}
                                             </div>
                                         </div>
+                                        <Popover
+                                            open={isExamplesOpen}
+                                            onClose={handleCloseExamples}
+                                            anchorReference={examplesAnchorPosition ? 'anchorPosition' : 'anchorEl'}
+                                            anchorPosition={examplesAnchorPosition || undefined}
+                                            anchorEl={examplesAnchorEl}
+                                            anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
+                                            transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                                            PaperProps={{ className: 'examples-popover' }}
+                                        >
+                                            <Box className="examples-popover-content">
+                                                <Box className="examples-list">
+                                                    {exampleItems.map((example) => (
+                                                        <Box
+                                                            key={example.id}
+                                                            component="button"
+                                                            type="button"
+                                                            className="example-card"
+                                                            onClick={() => handleSelectExample(example)}
+                                                        >
+                                                            <Typography className="example-description">
+                                                                {example.description}
+                                                            </Typography>
+                                                            <Box className="example-pill-row">
+                                                                {example.pills.map((pill, index) => {
+                                                                    const colors = getPillColors(pill.type || 'default');
+                                                                    return (
+                                                                        <Box
+                                                                            key={`${example.id}-pill-${index}`}
+                                                                            className="explore-pill explore-pill-filled example-pill"
+                                                                            sx={{
+                                                                                borderColor: colors.base,
+                                                                                backgroundColor: colors.background,
+                                                                                color: colors.text,
+                                                                                boxShadow: `0px 4px 6px ${colors.shadow}`,
+                                                                            }}
+                                                                        >
+                                                                            <span className="explore-pill-label">{pill.label}</span>
+                                                                        </Box>
+                                                                    );
+                                                                })}
+                                                            </Box>
+                                                        </Box>
+                                                    ))}
+                                                </Box>
+                                            </Box>
+                                        </Popover>
                                     </Box>
                                     <Box className="result-container-wrapper" sx={{ flex: 1, minHeight: 0 }}>
                                         <Box sx={{
