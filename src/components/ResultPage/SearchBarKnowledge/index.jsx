@@ -379,7 +379,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
 
     // Handle search button click
     const handleSearch = () => {
-        if (!chipData || chipData.length === 0 || !chipDataID || chipDataID.length === 0) {
+        if (!selectedSources.length) {
             return;
         }
         // Clear input timeout to prevent search_input event after submission
@@ -387,20 +387,42 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
             clearTimeout(inputTimeoutRef.current);
             hasTrackedInputRef.current = true;
         }
-        const search_data = {
-            "triplets": chipData.map((triplet, index) => {
+        const normalizedSources = selectedSources.map((source) => {
+            const sourceName = source.name || source[1].replace(/\s*\([^)]*\)$/, "").trim();
+            return {
+                databaseId: normalizeDatabaseId(source[0]),
+                name: sourceName,
+                label: source[2],
+            };
+        });
+        const hasChipTriplets = Array.isArray(chipData)
+            && chipData.length > 0
+            && Array.isArray(chipDataID)
+            && chipDataID.length > 0;
+        const triplets = hasChipTriplets
+            ? chipData.map((triplet, index) => {
                 const parts = parseTripletParts(triplet);
                 const sourceNode = chipDataID[index]?.[0];
                 if (!sourceNode) {
                     console.error(`Missing sourceNode for chipDataID at index ${index}`);
-                    return null; // Skip this triplet if sourceNode is missing
+                    return null;
                 }
                 return {
-                    "source": [normalizeDatabaseId(sourceNode.database_id), parts.source.trim()],
-                    "rel": parts.rel.trim(),
-                    "target": [0, parts.target.trim()]
+                    source: [normalizeDatabaseId(sourceNode.database_id), parts.source.trim()],
+                    rel: parts.rel.trim(),
+                    target: [0, parts.target.trim()],
                 };
-            }),
+            }).filter(Boolean)
+            : normalizedSources.map((source) => ({
+                source: [source.databaseId, source.name],
+                rel: 'any relationships',
+                target: [0, ''],
+            }));
+        if (!triplets.length) {
+            return;
+        }
+        const search_data = {
+            "triplets": triplets,
             "params": {
                 "max_articles": maxArticles,
                 "max_terms": maxBioTerms,
@@ -409,10 +431,10 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                 "more_rels": moreRel ? "True" : "False",
                 "merge": "True"
             },
-            "sources": selectedSources.map((source) => [
-                normalizeDatabaseId(source[0]),
-                source[1],
-                source[2],
+            "sources": normalizedSources.map((source) => [
+                source.databaseId,
+                source.name,
+                source.label,
             ])
         };
         if (props.onSearch) {

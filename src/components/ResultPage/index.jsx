@@ -313,6 +313,8 @@ const ResultPage = () => {
             // Add validation check for neighborData
             if (!Array.isArray(neighborData) || neighborData.length < 2) {
                 console.error('Invalid neighbor data format:', neighborData);
+                setData({ nodes: [], edges: [] });
+                setSearchFlag(true);
                 return;
             }
 
@@ -329,7 +331,8 @@ const ResultPage = () => {
             }
         } catch (error) {
             console.error('Error fetching neighbor data:', error);
-            // Add error handling UI here
+            setData({ nodes: [], edges: [] });
+            setSearchFlag(true);
         }
     };
 
@@ -337,6 +340,12 @@ const ResultPage = () => {
         try {
             let cypherServ = new CypherService();
             const response = await cypherServ.Triplet2Cypher(searchData);
+            if (!Array.isArray(response) || !response[0]) {
+                console.error('Invalid triplet data format:', response);
+                setData({ nodes: [], edges: [] });
+                setSearchFlag(true);
+                return;
+            }
             setData(response[0]);
             // setAllNodes(response[1]);
             setSearchFlag(true);
@@ -347,7 +356,8 @@ const ResultPage = () => {
             }
         } catch (error) {
             console.error('Error fetching triplet data:', error);
-            // Add error handling UI here
+            setData({ nodes: [], edges: [] });
+            setSearchFlag(true);
         }
     };
 
