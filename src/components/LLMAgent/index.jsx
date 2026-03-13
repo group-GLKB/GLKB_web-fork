@@ -13,6 +13,7 @@ import React, {
 import { message } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   useLocation,
   useNavigate,
@@ -324,9 +325,10 @@ function LLMAgent() {
     const [conversationsState, setConversationsState] = useState(() => getConversations());
     const [activeConversationId, setActiveConversationIdState] = useState(() => getActiveConversationId());
     const [isConversationLoading, setIsConversationLoading] = useState(false);
+    const [loadingConversationId, setLoadingConversationId] = useState(null);
     const [conversationBookmarks, setConversationBookmarksState] = useState(() => getConversationBookmarks());
     const [showReloadPrompt, setShowReloadPrompt] = useState(
-        () => getStoredProcessingFlag() || getStoredIncompleteFlag()
+            () => getStoredProcessingFlag() || getStoredIncompleteFlag() || false
     );
     const messagesEndRef = useRef(null);
     const abortControllerRef = useRef(null);
@@ -334,6 +336,7 @@ function LLMAgent() {
     const prevSelectedMessageIndexRef = useRef(null);
     const hasConsumedInitialQueryRef = useRef(false);
     const activeConversationIdRef = useRef(getActiveConversationId());
+    const loadingConversationIdRef = useRef(null);
     const splitContainerRef = useRef(null);
     const isDraggingSplitRef = useRef(false);
     const navigate = useNavigate();
@@ -376,6 +379,9 @@ function LLMAgent() {
         const initializeConversations = async () => {
             const cached = getConversations();
             let nextActiveId = getActiveConversationId();
+            const hasInitialQuery = Boolean(location.state?.initialQuery);
+            const hasConversationId = Boolean(location.state?.conversationId);
+            const shouldSkipRestore = hasInitialQuery || hasConversationId;
 
             if (cached.length > 0) {
                 setConversationsState(cached);
@@ -386,7 +392,7 @@ function LLMAgent() {
                 if (!isMounted) return;
                 setConversationsState(list);
 
-                if (!nextActiveId && list.length > 0) {
+                if (!shouldSkipRestore && !nextActiveId && list.length > 0) {
                     nextActiveId = list[0].id;
                     setActiveConversationId(nextActiveId);
                 }
@@ -394,7 +400,14 @@ function LLMAgent() {
                 logDev('[LLM] Failed to load conversations', error);
             }
 
+            if (shouldSkipRestore) {
+                return;
+            }
+
             if (nextActiveId) {
+                const targetId = String(nextActiveId);
+                loadingConversationIdRef.current = targetId;
+                setLoadingConversationId(targetId);
                 setIsConversationLoading(true);
                 try {
                     const detail = await fetchConversationDetail(nextActiveId);
@@ -405,14 +418,16 @@ function LLMAgent() {
                 } catch (error) {
                     logDev('[LLM] Failed to load conversation detail', error);
                 } finally {
-                    if (isMounted) {
+                    if (isMounted && loadingConversationIdRef.current === targetId) {
                         setIsConversationLoading(false);
+                        setLoadingConversationId(null);
                     }
                 }
             } else {
                 setActiveConversationIdState(null);
                 activeConversationIdRef.current = null;
                 setIsConversationLoading(false);
+                setLoadingConversationId(null);
             }
         };
 
@@ -428,6 +443,9 @@ function LLMAgent() {
         let isMounted = true;
 
         const loadConversation = async () => {
+            const targetId = String(conversationId || '');
+            loadingConversationIdRef.current = targetId;
+            setLoadingConversationId(targetId);
             setIsConversationLoading(true);
             try {
                 const detail = await fetchConversationDetail(conversationId);
@@ -444,8 +462,9 @@ function LLMAgent() {
             } catch (error) {
                 logDev('[LLM] Failed to load selected conversation', error);
             } finally {
-                if (isMounted) {
+                if (isMounted && loadingConversationIdRef.current === targetId) {
                     setIsConversationLoading(false);
+                    setLoadingConversationId(null);
                 }
             }
         };
@@ -463,6 +482,7 @@ function LLMAgent() {
         thinkingStepsRef.current = [];
         setShowReloadPrompt(false);
         setIsConversationLoading(false);
+        setLoadingConversationId(null);
         setActiveConversationIdState(null);
         activeConversationIdRef.current = null;
         setActiveConversationId(null);
@@ -1192,7 +1212,7 @@ function LLMAgent() {
                                             onChange={(e) => setEditContent(e.target.value)}
                                         /> : (
                                             <div className="markdown-body" style={{ fontFamily: 'Open Sans, sans-serif' }}>
-                                                <ReactMarkdown>
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                     {message.content}
                                                 </ReactMarkdown>
                                             </div>
@@ -1609,7 +1629,7 @@ function LLMAgent() {
                                                         {!isConversationLoading && renderMessages()}
                                                         <div ref={messagesEndRef} />
                                                     </div>
-                                                    {isConversationLoading && (
+                                                    {isConversationLoading && loadingConversationId && (
                                                         <div className="chat-loading-overlay">
                                                             <CircularProgress size={28} sx={{ color: '#164563' }} />
                                                             <Typography sx={{
