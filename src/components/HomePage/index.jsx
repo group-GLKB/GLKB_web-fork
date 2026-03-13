@@ -219,7 +219,7 @@ const HomePage = () => {
                                         color: '#164563',
                                     }}
                                 >
-                                    Ask. Answer. Cite.
+                                    Ask. Analyze. Cite.
                                 </Typography>
                                 <Typography
                                     className="glkb-subtitle"

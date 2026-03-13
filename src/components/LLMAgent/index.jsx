@@ -19,6 +19,8 @@ import {
 } from 'react-router-dom';
 
 import {
+  Bookmark as BookmarkIcon,
+  BookmarkBorder as BookmarkBorderIcon,
   Check as CheckIcon,
   ChevronRight as ChevronRightIcon,
   Clear as ClearIcon,
@@ -60,6 +62,10 @@ import {
   updateConversationMessages,
   upsertConversation,
 } from '../../utils/chatHistory';
+import {
+  getConversationBookmarks,
+  toggleConversationBookmark,
+} from '../../utils/conversationBookmarks';
 import CiteDialog from '../Units/CiteDialog';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import ChatSearchBar from './ChatSearchBar';
@@ -315,9 +321,10 @@ function LLMAgent() {
     const [isDraggingSplit, setIsDraggingSplit] = useState(false);
     const [dragIndicatorY, setDragIndicatorY] = useState(0);
     const [isReferencesCollapsed, setIsReferencesCollapsed] = useState(false);
-    const [, setConversationsState] = useState(() => getConversations());
+    const [conversationsState, setConversationsState] = useState(() => getConversations());
     const [activeConversationId, setActiveConversationIdState] = useState(() => getActiveConversationId());
     const [isConversationLoading, setIsConversationLoading] = useState(false);
+    const [conversationBookmarks, setConversationBookmarksState] = useState(() => getConversationBookmarks());
     const [showReloadPrompt, setShowReloadPrompt] = useState(
         () => getStoredProcessingFlag() || getStoredIncompleteFlag()
     );
@@ -332,10 +339,36 @@ function LLMAgent() {
     const navigate = useNavigate();
 
     const llmService = useMemo(() => new LLMAgentService(), []);
+    const activeConversation = useMemo(() => {
+        const currentId = activeConversationIdRef.current || activeConversationId;
+        if (!currentId) return null;
+        return conversationsState.find((item) => String(item.id) === String(currentId)) || null;
+    }, [activeConversationId, conversationsState]);
+    const chatTitle = useMemo(() => {
+        if (activeConversation?.leadingTitle) return activeConversation.leadingTitle;
+        const firstUser = chatHistory.find((msg) => msg.role === 'user');
+        if (firstUser?.content) return firstUser.content;
+        return 'New Chat';
+    }, [activeConversation, chatHistory]);
+    const isConversationBookmarked = useMemo(() => {
+        const currentId = activeConversationIdRef.current || activeConversationId;
+        if (!currentId) return false;
+        return conversationBookmarks.some((item) => String(item.id) === String(currentId));
+    }, [activeConversationId, conversationBookmarks]);
 
     useEffect(() => {
         activeConversationIdRef.current = activeConversationId;
     }, [activeConversationId]);
+
+    useEffect(() => {
+        const update = (event) => {
+            const next = event?.detail || getConversationBookmarks();
+            setConversationBookmarksState(next);
+        };
+        update();
+        window.addEventListener('glkb-conversation-bookmarks-updated', update);
+        return () => window.removeEventListener('glkb-conversation-bookmarks-updated', update);
+    }, []);
 
     useEffect(() => {
         let isMounted = true;
@@ -905,6 +938,19 @@ function LLMAgent() {
         startNewConversation();
     };
 
+    const handleToggleConversationBookmark = () => {
+        const currentId = activeConversationIdRef.current || activeConversationId;
+        if (!currentId) return;
+        const entry = {
+            id: String(currentId),
+            title: chatTitle,
+            updatedAt: activeConversation?.updatedAt || new Date().toISOString(),
+            messageCount: activeConversation?.messageCount ?? chatHistory.length,
+        };
+        const next = toggleConversationBookmark(entry);
+        setConversationBookmarksState(next);
+    };
+
     const handleMessageClick = (index) => {
         if (chatHistory[index].role === 'assistant') {
             if (isReferencesCollapsed) {
@@ -1444,15 +1490,63 @@ function LLMAgent() {
                                                         borderBottom: '1px solid #E6E6E6',
                                                         marginBottom: '1px',
                                                     }}>
-                                                        <Typography sx={{
-                                                            fontFamily: 'DM Sans, sans-serif',
-                                                            fontSize: '16px',
-                                                            fontWeight: 600,
-                                                            color: '#164563',
+                                                        <Box sx={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '8px',
                                                             paddingLeft: '16px',
+                                                            minWidth: 0,
+                                                            flex: 1,
                                                         }}>
-                                                            AI Chat
-                                                        </Typography>
+                                                            <Typography sx={{
+                                                                fontFamily: 'DM Sans, sans-serif',
+                                                                fontSize: '16px',
+                                                                fontWeight: 500,
+                                                                color: '#164563',
+                                                                textDecoration: 'underline',
+                                                            }}>
+                                                                AI Chat
+                                                            </Typography>
+                                                            <Typography sx={{
+                                                                fontFamily: 'DM Sans, sans-serif',
+                                                                fontSize: '16px',
+                                                                fontWeight: 500,
+                                                                color: '#8A8A8A',
+                                                            }}>
+                                                                &gt;
+                                                            </Typography>
+                                                            <Typography sx={{
+                                                                fontFamily: 'DM Sans, sans-serif',
+                                                                fontSize: '16px',
+                                                                fontWeight: 600,
+                                                                color: '#164563',
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'nowrap',
+                                                                maxWidth: '280px',
+                                                            }}>
+                                                                {chatTitle}
+                                                            </Typography>
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={handleToggleConversationBookmark}
+                                                                disabled={!activeConversationIdRef.current && !activeConversationId}
+                                                                sx={{
+                                                                    padding: '4px',
+                                                                    color: isConversationBookmarked ? '#2c5cf3' : '#8A8A8A',
+                                                                    '&:hover': {
+                                                                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                                                    },
+                                                                }}
+                                                                title={isConversationBookmarked ? 'Remove bookmark' : 'Bookmark this chat'}
+                                                            >
+                                                                {isConversationBookmarked ? (
+                                                                    <BookmarkIcon sx={{ fontSize: 18 }} />
+                                                                ) : (
+                                                                    <BookmarkBorderIcon sx={{ fontSize: 18 }} />
+                                                                )}
+                                                            </IconButton>
+                                                        </Box>
                                                         <MuiButton onClick={handleClear} disabled={isNewChatDisabled} sx={{
                                                             borderRadius: '16px',
                                                             border: `1px solid ${newChatColor}`,
