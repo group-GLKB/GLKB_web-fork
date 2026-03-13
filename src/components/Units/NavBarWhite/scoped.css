@@ -9,6 +9,10 @@ body[data-has-sidebar="true"] .app-layout-content {
     min-height: 100vh;
 }
 
+.MuiDrawer-paper {
+    background-color: #ffffff;
+}
+
 .sidebar-logo-link {
     display: inline-flex;
     align-items: center;

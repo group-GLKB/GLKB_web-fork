@@ -13,7 +13,6 @@ import {
 } from 'react-router-dom';
 
 import {
-  ContactPage as ContactPageIcon,
   InfoOutlined as InfoOutlinedIcon,
   Person as PersonIcon,
 } from '@mui/icons-material';
@@ -47,6 +46,7 @@ import {
   ReactComponent as CodeBlocksIcon,
 } from '../../../img/navbar/code_blocks.svg';
 import { ReactComponent as HistoryIcon } from '../../../img/navbar/history.svg';
+import logoWordmark from '../../../img/navbar/logo.jpg';
 import {
   ReactComponent as SidebarLeftIcon,
 } from '../../../img/navbar/sidebar.left.svg';
@@ -225,7 +225,6 @@ function NavBarWhite({ showLogo = true }) {
     const bottomItems = useMemo(() => (
         [
             { label: 'About', to: '/about', icon: <InfoOutlinedIcon sx={{ fontSize: 22 }} /> },
-            { label: 'Contact', href: 'https://jieliu6.github.io/', icon: <ContactPageIcon sx={{ fontSize: 22 }} /> },
         ]
     ), []);
 
@@ -512,24 +511,29 @@ function NavBarWhite({ showLogo = true }) {
                                     </Box>
                                 </IconButton>
                             </Tooltip>
-                            <Typography
+                            <Box
                                 className="sidebar-logo-text"
                                 sx={{
-                                    fontFamily: 'DM Sans, sans-serif',
-                                    fontWeight: 600,
-                                    fontSize: '32px',
-                                    transform: 'scaleX(0.8)',
-                                    letterSpacing: '3px',
-                                    color: '#2c67a9',
+                                    display: 'flex',
+                                    alignItems: 'center',
                                     opacity: open ? 1 : 0,
                                     width: open ? 'auto' : 0,
                                     overflow: 'hidden',
-                                    whiteSpace: 'nowrap',
+                                    marginLeft: '6px',
                                     transition: 'opacity 0.2s ease, width 0.2s ease',
                                 }}
                             >
-                                GLKB
-                            </Typography>
+                                <Box
+                                    component="img"
+                                    src={logoWordmark}
+                                    alt="GLKB"
+                                    sx={{
+                                        height: 28,
+                                        width: 'auto',
+                                        objectFit: 'contain',
+                                    }}
+                                />
+                            </Box>
                             <Box
                                 sx={{
                                     opacity: open ? 1 : 0,
