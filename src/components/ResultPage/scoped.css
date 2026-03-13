@@ -410,13 +410,12 @@ all {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .example-card:hover {
-    border-color: #2c5cf3;
-    box-shadow: 0px 10px 18px rgba(44, 92, 243, 0.12);
-    transform: translateY(-1px);
+    border-color: #C9DBF5;
+    background-color: #F6F9FF;
 }
 
 .example-description {

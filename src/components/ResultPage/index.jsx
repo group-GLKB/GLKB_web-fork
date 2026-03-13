@@ -218,6 +218,7 @@ const ResultPage = () => {
     const [isInformationVisible, setIsInformationVisible] = useState(true);
     const [examplesOpen, setExamplesOpen] = useState(false);
     const [pendingExample, setPendingExample] = useState(null);
+    const [examplesAnchorPosition, setExamplesAnchorPosition] = useState(null);
 
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const containerRef = useRef(null);
@@ -758,10 +759,20 @@ const ResultPage = () => {
             };
         })
     ), []);
-    const examplesAnchorEl = searchBarContainerRef.current || exampleButtonRef.current;
+    const examplesAnchorEl = exampleButtonRef.current || searchBarContainerRef.current;
     const isExamplesOpen = examplesOpen && Boolean(examplesAnchorEl);
 
     const handleOpenExamples = () => {
+        const searchRect = searchBarContainerRef.current?.getBoundingClientRect();
+        const buttonRect = exampleButtonRef.current?.getBoundingClientRect();
+        if (searchRect && buttonRect) {
+            setExamplesAnchorPosition({
+                top: Math.round(searchRect.top + window.scrollY),
+                left: Math.round(buttonRect.left + window.scrollX),
+            });
+        } else {
+            setExamplesAnchorPosition(null);
+        }
         setExamplesOpen(true);
     };
 
@@ -1079,15 +1090,14 @@ const ResultPage = () => {
                                         <Popover
                                             open={isExamplesOpen}
                                             onClose={handleCloseExamples}
+                                            anchorReference={examplesAnchorPosition ? 'anchorPosition' : 'anchorEl'}
+                                            anchorPosition={examplesAnchorPosition || undefined}
                                             anchorEl={examplesAnchorEl}
                                             anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
                                             transformOrigin={{ vertical: 'top', horizontal: 'left' }}
                                             PaperProps={{ className: 'examples-popover' }}
                                         >
                                             <Box className="examples-popover-content">
-                                                <Typography className="examples-popover-title">
-                                                    Examples
-                                                </Typography>
                                                 <Box className="examples-list">
                                                     {exampleItems.map((example) => (
                                                         <Box
