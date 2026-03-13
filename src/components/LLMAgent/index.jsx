@@ -334,6 +334,7 @@ function LLMAgent() {
     const abortControllerRef = useRef(null);
     const thinkingStepsRef = useRef([]);
     const prevSelectedMessageIndexRef = useRef(null);
+    const lastAutoSelectedRef = useRef(null);
     const hasConsumedInitialQueryRef = useRef(false);
     const activeConversationIdRef = useRef(getActiveConversationId());
     const loadingConversationIdRef = useRef(null);
@@ -1011,6 +1012,28 @@ function LLMAgent() {
             setSelectedMessageIndex(index);
         }
     };
+
+    useEffect(() => {
+        if (!chatHistory.length) {
+            lastAutoSelectedRef.current = null;
+            setSelectedMessageIndex(null);
+            return;
+        }
+        if (isProcessing) return;
+
+        let lastAssistantIndex = -1;
+        for (let i = chatHistory.length - 1; i >= 0; i -= 1) {
+            if (chatHistory[i]?.role === 'assistant') {
+                lastAssistantIndex = i;
+                break;
+            }
+        }
+        if (lastAssistantIndex < 0) return;
+        if (lastAutoSelectedRef.current === lastAssistantIndex) return;
+
+        lastAutoSelectedRef.current = lastAssistantIndex;
+        setSelectedMessageIndex(lastAssistantIndex);
+    }, [chatHistory, isProcessing]);
 
     // useEffect(() => {
     //     if (!isLoading && !isProcessing && chatHistory.length > 0) {

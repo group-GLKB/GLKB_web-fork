@@ -1,0 +1,18 @@
+{
+    "agent.AGENT_START": "Agent Start",
+    "load_skill": "Preparing my approach",
+    "load_skill_resource": "Preparing my approach",
+    "get_database_schema": "Preparing my approach",
+    "article_search": "Searching for relevant articles",
+    "search_pubmed": "Searching for relevant articles",
+    "vocabulary_search": "Exploring the knowledge graph",
+    "execute_cypher": "Exploring the knowledge graph",
+    "fetch_abstract": "Reading article details",
+    "get_fulltext": "Reading article details",
+    "comprehensive_report": "Reading article details",
+    "find_similar_articles": "Following citation trails",
+    "get_citing_articles": "Following citation trails",
+    "cite_evidence": "Selecting supporting evidence",
+    "agent.AGENT_INPUT": "Collecting information",
+    "agent.AGENT_OUTPUT": "Formulating response"
+}

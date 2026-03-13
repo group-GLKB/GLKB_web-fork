@@ -1,9 +1,9 @@
 import './scoped.css';
 
 import React, {
-    useCallback,
-    useEffect,
-    useState,
+  useCallback,
+  useEffect,
+  useState,
 } from 'react';
 
 import { debounce } from 'lodash';
@@ -12,12 +12,12 @@ import { useNavigate } from 'react-router-dom';
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import CancelIcon from '@mui/icons-material/Cancel';
 import {
-    Autocomplete,
-    Box,
-    IconButton,
-    Paper,
-    Popper,
-    TextField,
+  Autocomplete,
+  Box,
+  IconButton,
+  Paper,
+  Popper,
+  TextField,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -483,20 +483,33 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
             setChipData([]);
             setChipDataID([]);
             const newSelectedSources = [];
-            exampleQuery.triplets.forEach(triplet => {
-                const sourceName = triplet.source[1].replace(/[()]/g, '');
-                const chip_str = `(${sourceName})-[any relationships]-()`;
+            const sources = Array.isArray(exampleQuery.sources) && exampleQuery.sources.length
+                ? exampleQuery.sources
+                : [];
+            const triplets = Array.isArray(exampleQuery.triplets) ? exampleQuery.triplets : [];
+            const selectedFromSources = sources.length
+                ? sources.map((source) => [
+                    source[0],
+                    `${source[1]}`.replace(/[()]/g, ''),
+                    source[2],
+                ])
+                : null;
+            const selected = selectedFromSources
+                || triplets.map((triplet) => [
+                    triplet.source[0],
+                    `${triplet.source[1]}`.replace(/[()]/g, ''),
+                    triplet.source[2],
+                ]);
+            selected.forEach((source) => {
+                const sourceName = source[1];
+                const chipStr = `(${sourceName})-[any relationships]-()`;
                 const sourceNode = [
-                    { database_id: triplet.source[0], name: sourceName },
-                    null
+                    { database_id: source[0], name: sourceName },
+                    null,
                 ];
-                setChipData(prev => [...prev, chip_str]);
+                setChipData(prev => [...prev, chipStr]);
                 setChipDataID(prev => [...prev, sourceNode]);
-                // console.log('ChipdataID is:',sourceNode)
-                // Add to newSelectedSources
-                newSelectedSources.push(
-                    [triplet.source[0], sourceName, triplet.source[2]]
-                );
+                newSelectedSources.push([source[0], sourceName, source[2]]);
             });
             setSelectedSources(newSelectedSources);
 
