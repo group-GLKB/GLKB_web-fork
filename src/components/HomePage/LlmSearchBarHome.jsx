@@ -42,6 +42,18 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         }
     }, [props.prefillQuery]);
 
+    const handleAuthGate = (event) => {
+        if (isAuthenticated) {
+            return false;
+        }
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        navigate('/login');
+        return true;
+    };
+
     const CustomPopper = (props) => (
         <Popper
             {...props}
@@ -80,7 +92,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         }
     };
     return (
-        <Box className="llm-searchbar" sx={{
+        <Box
+            className="llm-searchbar"
+            onMouseDown={handleAuthGate}
+            onTouchStart={handleAuthGate}
+            sx={{
             width: '100%',
             display: 'flex',
             gap: 2,
@@ -119,7 +135,12 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     },
                 }}
                 inputValue={llmQuery}
-                onOpen={() => setIsOpen(true)}
+                onOpen={(event) => {
+                    if (handleAuthGate(event)) {
+                        return;
+                    }
+                    setIsOpen(true);
+                }}
                 onClose={() => setIsOpen(false)}
                 PopperComponent={CustomPopper}
                 renderInput={(params) => (
