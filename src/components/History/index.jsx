@@ -6,8 +6,8 @@ import React, {
 } from 'react';
 
 import {
-    Navigate,
-    useNavigate,
+  Navigate,
+  useNavigate,
 } from 'react-router-dom';
 
 import {
@@ -16,12 +16,12 @@ import {
 } from '@mui/material';
 
 import { ReactComponent as HistoryIcon } from '../../img/navbar/history.svg';
-import { useAuth } from '../Auth/AuthContext';
 import {
   fetchConversations,
   getConversations,
   setActiveConversationId,
 } from '../../utils/chatHistory';
+import { useAuth } from '../Auth/AuthContext';
 
 const formatTimestamp = (value) => {
     if (!value) return '';

@@ -70,6 +70,7 @@ const normalizeDetail = (detail) => ({
             content: message.content ?? '',
             references: normalizeReferences(message.references),
             timestamp: formatTimestamp(message.created_at),
+            trajectory: message.trajectory || null,
         }))
         : [],
 });

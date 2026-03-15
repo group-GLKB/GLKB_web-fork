@@ -445,14 +445,27 @@
 
 .loading-step-label {
     display: inline-block;
+    background-image: linear-gradient(90deg, #5B5B5B 0%, #B6C0CB 10%, #5B5B5B 20%);
+    background-size: 420% 100%;
+    background-position: 200% 50%;
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: llm-loading-shimmer 2s linear infinite;
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 140ms ease, transform 180ms ease;
+    will-change: background-position, opacity, transform;
 }
 
 .loading-step-label--out {
-    animation: llm-step-label-out 140ms ease forwards;
+    opacity: 0;
+    transform: translateY(-6px);
 }
 
 .loading-step-label--in {
-    animation: llm-step-label-in 180ms ease forwards;
+    opacity: 1;
+    transform: translateY(0);
 }
 
 @keyframes llm-step-label-out {
@@ -476,6 +489,16 @@
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+@keyframes llm-loading-shimmer {
+    0% {
+        background-position: 70% 50%;
+    }
+
+    100% {
+        background-position: -70% 50%;
     }
 }
 
