@@ -47,12 +47,14 @@ export class LLMAgentService {
                                 type: 'final',
                                 answer: data.response,
                                 references: data.references || [],
-                                messages: data.messages || []
+                                messages: data.messages || [],
+                                sessionId: data.session_id || null
                             });
                         } else if (data.step === 'Saved') {
                             await onUpdate({
                                 type: 'saved',
-                                historyId: data.history_id
+                                historyId: data.history_id,
+                                sessionId: data.session_id || null
                             });
                         } else if (data.step === 'Error') {
                             await onUpdate({
@@ -129,12 +131,14 @@ export class LLMAgentService {
                                 type: 'final',
                                 answer: data.response,
                                 references: data.references || [],
-                                messages: data.messages || []
+                                messages: data.messages || [],
+                                sessionId: data.session_id || null
                             });
                         } else if (data.step === 'Saved') {
                             onUpdate({
                                 type: 'saved',
-                                historyId: data.history_id
+                                historyId: data.history_id,
+                                sessionId: data.session_id || null
                             });
                         } else if (data.step === 'Error') {
                             onUpdate({
@@ -157,11 +161,17 @@ export class LLMAgentService {
             const historyId = Number.isFinite(Number(options.historyId))
                 ? Number(options.historyId)
                 : null;
+            const sessionId = options.sessionId || null;
             const payload = {
                 question,
-                messages: this.messages,
                 history_id: historyId,
             };
+            if (Array.isArray(this.messages) && this.messages.length > 0) {
+                payload.messages = this.messages;
+            }
+            if (sessionId) {
+                payload.session_id = sessionId;
+            }
             if (Number.isFinite(Number(options.maxArticles))) {
                 payload.max_articles = Number(options.maxArticles);
             }
@@ -206,7 +216,7 @@ export class LLMAgentService {
             });
 
             return {
-                answer: response.data.response,
+                answer: response.data.answer,
                 references: response.data.references || [],
                 messages: response.data.messages || []
             };

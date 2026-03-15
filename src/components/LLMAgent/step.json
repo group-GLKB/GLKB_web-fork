@@ -1,5 +1,6 @@
 {
-    "agent.AGENT_START": "Agent Start",
+    "QuestionRouterAgent": "Routing the question",
+    "KgQueryAgent": "Exploring the knowledge graph",
     "load_skill": "Preparing my approach",
     "load_skill_resource": "Preparing my approach",
     "get_database_schema": "Preparing my approach",
@@ -13,6 +14,5 @@
     "find_similar_articles": "Following citation trails",
     "get_citing_articles": "Following citation trails",
     "cite_evidence": "Selecting supporting evidence",
-    "agent.AGENT_INPUT": "Collecting information",
-    "agent.AGENT_OUTPUT": "Formulating response"
+    "FinalAnswerAgent": "Formulating the final answer"
 }

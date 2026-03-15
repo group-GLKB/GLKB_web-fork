@@ -70,6 +70,7 @@ import {
 import CiteDialog from '../Units/CiteDialog';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import ChatSearchBar from './ChatSearchBar';
+import stepLabels from './step.json';
 
 const formatDuration = (durationMs) => {
     if (durationMs === null || durationMs === undefined) return '';
@@ -118,18 +119,38 @@ const getStoredIncompleteFlag = () => {
     }
 };
 
-const STEP_LABELS = {
-    'agent.AGENT_START': 'Agent Start',
-    load_skill: 'Load Skill',
-    article_search: 'Article Search',
-    search_pubmed: 'Search PubMed',
-    get_database_schema: 'Get Database Schema',
-    vocabulary_search: 'Vocabulary Search',
-    execute_cypher: 'Execute Cypher',
-    fetch_abstract: 'Fetch Abstract',
-    'agent.AGENT_INPUT': 'Agent Input',
-    'agent.AGENT_OUTPUT': 'Agent Output',
+const SESSION_ID_KEY = 'llmSessionIds';
+
+const getSessionIdMap = () => {
+    if (typeof window === 'undefined') return {};
+    try {
+        const raw = sessionStorage.getItem(SESSION_ID_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (error) {
+        return {};
+    }
 };
+
+const getStoredSessionId = (historyId) => {
+    if (!historyId || typeof window === 'undefined') return null;
+    const map = getSessionIdMap();
+    return map[String(historyId)] || null;
+};
+
+const setStoredSessionId = (historyId, sessionId) => {
+    if (!historyId || typeof window === 'undefined') return;
+    const map = getSessionIdMap();
+    if (sessionId) {
+        map[String(historyId)] = sessionId;
+    } else {
+        delete map[String(historyId)];
+    }
+    sessionStorage.setItem(SESSION_ID_KEY, JSON.stringify(map));
+};
+
+const STEP_LABELS = stepLabels || {};
 
 const LEFT_MIN_PX = 360;
 const RIGHT_MIN_PX = 360;
@@ -178,7 +199,7 @@ const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '12px',
                 fontWeight: 400,
-                color: '#5B5B5B',
+                color: '#969696',
                 whiteSpace: 'pre-wrap',
             }}
             data-line-key={lineKey}
@@ -198,37 +219,50 @@ const ThoughtGroup = React.memo(
         disableToggle = false,
     }) {
         const hasLines = group.lines.length > 0;
+        const canToggle = hasLines && !disableToggle;
         return (
             <Box>
-                <Box sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                }}>
+                <Box
+                    role={canToggle ? 'button' : undefined}
+                    tabIndex={canToggle ? 0 : -1}
+                    onClick={canToggle ? () => onToggle(groupIndex) : undefined}
+                    onKeyDown={(event) => {
+                        if (!canToggle) return;
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            onToggle(groupIndex);
+                        }
+                    }}
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        cursor: canToggle ? 'pointer' : 'default',
+                        '&:hover': canToggle ? { backgroundColor: 'rgba(0, 0, 0, 0.04)' } : undefined,
+                        '&:hover .thought-step-arrow': canToggle ? { opacity: 1 } : undefined,
+                    }}
+                >
                     <Typography sx={{
                         fontFamily: 'DM Sans, sans-serif',
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        color: '#164563',
+                        fontSize: '16px',
+                        fontWeight: 400,
+                        color: '#5B5B5B',
                     }}>
                         {getStepLabel(group.name)}
                     </Typography>
-                    {hasLines && !disableToggle && (
-                        <IconButton
-                            size="small"
-                            onClick={() => onToggle(groupIndex)}
-                            aria-label={`Toggle ${group.name} details`}
-                            sx={{ padding: '2px' }}
-                        >
-                            <ExpandMoreIcon
-                                sx={{
-                                    fontSize: '16px',
-                                    color: '#646464',
-                                    transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                                    transition: disableAnimation ? 'none' : 'transform 0.2s ease',
-                                }}
-                            />
-                        </IconButton>
+                    {canToggle && (
+                        <ExpandMoreIcon
+                            className="thought-step-arrow"
+                            sx={{
+                                fontSize: '18px',
+                                color: '#8A8A8A',
+                                opacity: 0,
+                                transition: 'opacity 0.2s ease, transform 0.2s ease',
+                                transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                            }}
+                        />
                     )}
                 </Box>
                 {expanded && hasLines && (
@@ -286,11 +320,6 @@ const parseThinkingEntry = (entry) => {
         stepName = action || 'Step';
     }
 
-    if (stepName === 'GLKBAgent' && action) {
-        const actionKey = action.trim().replace(/\s+/g, '_').toUpperCase();
-        stepName = `agent.${actionKey}`;
-    }
-
     return { stepName, line: raw };
 };
 
@@ -335,6 +364,7 @@ function LLMAgent() {
     const thinkingStepsRef = useRef([]);
     const prevSelectedMessageIndexRef = useRef(null);
     const lastAutoSelectedRef = useRef(null);
+    const sessionIdRef = useRef(null);
     const hasConsumedInitialQueryRef = useRef(false);
     const activeConversationIdRef = useRef(getActiveConversationId());
     const loadingConversationIdRef = useRef(null);
@@ -414,6 +444,7 @@ function LLMAgent() {
                 try {
                     const detail = await fetchConversationDetail(nextActiveId);
                     if (!isMounted) return;
+                    sessionIdRef.current = getStoredSessionId(nextActiveId);
                     setChatHistory(detail?.messages || []);
                     setActiveConversationIdState(String(nextActiveId));
                     activeConversationIdRef.current = String(nextActiveId);
@@ -471,6 +502,9 @@ function LLMAgent() {
                 setActiveConversationId(nextId);
                 setActiveConversationIdState(nextId);
                 activeConversationIdRef.current = nextId;
+                sessionIdRef.current = getStoredSessionId(nextId);
+                lastAutoSelectedRef.current = null;
+                setHoveredPubmedId(null);
                 setChatHistory(detail?.messages || []);
                 setSelectedMessageIndex(null);
                 setShowReloadPrompt(false);
@@ -495,6 +529,9 @@ function LLMAgent() {
         cancelStreaming();
         setChatHistory([]);
         setSelectedMessageIndex(null);
+        lastAutoSelectedRef.current = null;
+        setHoveredPubmedId(null);
+        sessionIdRef.current = null;
         setShowReloadPrompt(false);
         setIsConversationLoading(false);
         setLoadingConversationId(null);
@@ -693,9 +730,14 @@ function LLMAgent() {
             setHoveredPubmedId(pubmedId);
         };
 
+        const handleMouseLeave = () => {
+            setHoveredPubmedId(null);
+        };
+
         container.addEventListener('mouseover', handleMouseOver);
         container.addEventListener('mouseout', handleMouseOut);
         container.addEventListener('click', handleReferenceClick);
+        container.addEventListener('mouseleave', handleMouseLeave);
 
         const links = container.querySelectorAll('a');
         links.forEach(link => {
@@ -712,21 +754,38 @@ function LLMAgent() {
             container.removeEventListener('mouseover', handleMouseOver);
             container.removeEventListener('mouseout', handleMouseOut);
             container.removeEventListener('click', handleReferenceClick);
+            container.removeEventListener('mouseleave', handleMouseLeave);
         };
     }, [chatHistory, expandReferences, isReferencesCollapsed]);
 
     const parseReferences = (refs) => {
         if (!refs || !Array.isArray(refs)) return [];
 
-        return refs.map(ref => {
-            const [title, pubmed_url, citation_count, year, journal, authors] = ref;
+        return refs.map((ref) => {
+            if (Array.isArray(ref)) {
+                const [title, pubmedUrl, citationCount, year, journal, authors] = ref;
+                return {
+                    title,
+                    url: pubmedUrl,
+                    citation_count: citationCount,
+                    year,
+                    journal,
+                    authors: Array.isArray(authors) ? authors.join(', ') : 'Authors not available',
+                };
+            }
+            const title = ref?.title || '';
+            const url = ref?.url || '';
+            const citationCount = ref?.n_citation ?? ref?.citation_count ?? 0;
+            const year = ref?.date ?? ref?.year ?? '';
+            const journal = ref?.journal || '';
+            const authors = Array.isArray(ref?.authors) ? ref.authors.join(', ') : 'Authors not available';
             return {
-                title: title,
-                url: pubmed_url,
-                citation_count: citation_count,
-                year: year,
-                journal: journal,
-                authors: Array.isArray(authors) ? authors.join(', ') : 'Authors not available'
+                title,
+                url,
+                citation_count: citationCount,
+                year,
+                journal,
+                authors,
             };
         });
     };
@@ -772,6 +831,7 @@ function LLMAgent() {
                 logDev('[LLM] Failed to create conversation', error);
             }
         }
+        sessionIdRef.current = getStoredSessionId(historyId) || sessionIdRef.current;
 
         // Update chat history with user message
         setChatHistory([...baseHistory, newMessage]);
@@ -880,6 +940,9 @@ function LLMAgent() {
                         break;
                     case 'final':
                         if (!isActiveStream) return;
+                        if (update.sessionId) {
+                            sessionIdRef.current = update.sessionId;
+                        }
                         setIsProcessing(false);
                         setChatHistory(prev => {
                             const newHistory = [...prev];
@@ -908,6 +971,13 @@ function LLMAgent() {
                                 setActiveConversationIdState(savedId);
                                 activeConversationIdRef.current = savedId;
                             }
+                            if (savedId) {
+                                const nextSessionId = update.sessionId || sessionIdRef.current;
+                                if (nextSessionId) {
+                                    sessionIdRef.current = nextSessionId;
+                                    setStoredSessionId(savedId, nextSessionId);
+                                }
+                            }
                         }
                         fetchConversations()
                             .then((list) => setConversationsState(list))
@@ -934,7 +1004,8 @@ function LLMAgent() {
                 }
             }, {
                 messagesOverride: conversationHistory,
-                historyId
+                historyId,
+                sessionId: sessionIdRef.current
             });
         } catch (error) {
             console.error('Error in chat:', error);
@@ -1092,6 +1163,10 @@ function LLMAgent() {
         const [isEditing, setIsEditing] = useState(false);
         const [expandedGroups, setExpandedGroups] = useState({});
         const [thoughtsExpanded, setThoughtsExpanded] = useState(() => isLoading);
+        const [animatedStepLabel, setAnimatedStepLabel] = useState('');
+        const [stepLabelPhase, setStepLabelPhase] = useState('idle');
+        const stepLabelTimersRef = useRef([]);
+        const renderedStepLabelRef = useRef('');
         const thoughtDurationLabel = formatDuration(message.thoughtDurationMs);
         const groupedThoughts = useMemo(
             () => groupThinkingSteps(message.thinkingSteps),
@@ -1101,10 +1176,23 @@ function LLMAgent() {
         const displayGroups = isLoading ? activeStreamingGroups : groupedThoughts;
         const hasDisplayGroups = displayGroups.length > 0;
         const loadingCurrentIndex = isLoading ? displayGroups.length - 1 : -1;
-        const thoughtHeaderText = isLoading ? 'Thinking...' : `Thought for ${thoughtDurationLabel}`;
+        const currentStepLabel = useMemo(() => {
+            if (!isLoading) return '';
+            if (!activeStreamingGroups.length) return 'Thinking';
+            return getStepLabel(activeStreamingGroups[activeStreamingGroups.length - 1].name);
+        }, [isLoading, activeStreamingGroups]);
+        const loadingStepLabel = useMemo(() => {
+            if (!isLoading) return '';
+            if (!currentStepLabel) return 'Thinking...';
+            return currentStepLabel.endsWith('...') ? currentStepLabel : `${currentStepLabel}...`;
+        }, [isLoading, currentStepLabel]);
+        const thoughtHeaderText = isLoading
+            ? (animatedStepLabel || loadingStepLabel)
+            : `Thought for ${thoughtDurationLabel}`;
         const showThoughtHeader = isAssistant
             && (isLoading || (!isLoading && thoughtDurationLabel));
         const showReloadInMessage = showReloadPrompt && isLastUserMessage && isAssistant && !isLoading;
+        const canToggleThoughts = !isLoading && hasDisplayGroups;
 
         const toggleGroup = useCallback((index) => {
             setExpandedGroups((prev) => ({
@@ -1121,6 +1209,52 @@ function LLMAgent() {
             setThoughtsExpanded(false);
         }, [isLoading]);
 
+        useEffect(() => {
+            const clearTimers = () => {
+                stepLabelTimersRef.current.forEach((timerId) => clearTimeout(timerId));
+                stepLabelTimersRef.current = [];
+            };
+
+            clearTimers();
+
+            if (!isLoading || !loadingStepLabel) {
+                renderedStepLabelRef.current = '';
+                setAnimatedStepLabel('');
+                setStepLabelPhase('idle');
+                return undefined;
+            }
+
+            const currentLabel = renderedStepLabelRef.current;
+            if (!currentLabel) {
+                renderedStepLabelRef.current = loadingStepLabel;
+                setAnimatedStepLabel(loadingStepLabel);
+                setStepLabelPhase('idle');
+                return undefined;
+            }
+
+            if (currentLabel === loadingStepLabel) {
+                return undefined;
+            }
+
+            const OUT_MS = 140;
+            const BUFFER_MS = 80;
+            const IN_MS = 180;
+
+            setStepLabelPhase('out');
+            const outTimer = setTimeout(() => {
+                renderedStepLabelRef.current = loadingStepLabel;
+                setAnimatedStepLabel(loadingStepLabel);
+                setStepLabelPhase('in');
+                const inTimer = setTimeout(() => {
+                    setStepLabelPhase('idle');
+                }, IN_MS);
+                stepLabelTimersRef.current.push(inTimer);
+            }, OUT_MS + BUFFER_MS);
+            stepLabelTimersRef.current.push(outTimer);
+
+            return clearTimers;
+        }, [isLoading, loadingStepLabel]);
+
         return (
             <div
                 className="message-card"
@@ -1133,6 +1267,7 @@ function LLMAgent() {
                             bgcolor: isAssistant ? "transparent" : "#ffffff", // Different background colors
                             boxShadow: isAssistant ? "none" : "0 4px 16px 0 rgba(0, 0, 0, 0.05)",
                             maxWidth: isAssistant ? "100%" : "80%", // Adjust max width for assistant messages
+                            width: isAssistant ? "100%" : "auto",
                             display: "flex",
                             alignItems: "flex-start",
                             px: isAssistant ? "0px" : "24px",
@@ -1149,28 +1284,50 @@ function LLMAgent() {
                                 <Box sx={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '6px',
                                     mt: '8px',
                                     mb: '8px',
                                 }}>
-                                    <Typography sx={{
-                                        fontFamily: 'DM Sans, sans-serif',
-                                        fontSize: '14px',
-                                        fontWeight: 700,
-                                        color: '#646464',
-                                    }}>
-                                        {thoughtHeaderText}
-                                    </Typography>
-                                    {isLoading && (
-                                        <CircularProgress size={14} sx={{ color: '#646464' }} />
-                                    )}
-                                    {!isLoading && hasDisplayGroups && (
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => setThoughtsExpanded((prev) => !prev)}
-                                            aria-label={thoughtsExpanded ? 'Collapse thoughts' : 'Expand thoughts'}
-                                            sx={{ padding: '2px' }}
+                                    <Box
+                                        role={canToggleThoughts ? 'button' : undefined}
+                                        tabIndex={canToggleThoughts ? 0 : -1}
+                                        onClick={canToggleThoughts ? () => setThoughtsExpanded((prev) => !prev) : undefined}
+                                        onKeyDown={(event) => {
+                                            if (!canToggleThoughts) return;
+                                            if (event.key === 'Enter' || event.key === ' ') {
+                                                event.preventDefault();
+                                                setThoughtsExpanded((prev) => !prev);
+                                            }
+                                        }}
+                                        aria-label={
+                                            canToggleThoughts
+                                                ? (thoughtsExpanded ? 'Collapse thoughts' : 'Expand thoughts')
+                                                : undefined
+                                        }
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            padding: '4px 8px',
+                                            borderRadius: '18px',
+                                            cursor: canToggleThoughts ? 'pointer' : 'default',
+                                            '&:hover': canToggleThoughts ? { backgroundColor: 'rgba(0, 0, 0, 0.04)' } : undefined,
+                                        }}
+                                    >
+                                        <Box
+                                            component="span"
+                                            className={isLoading
+                                                ? `loading-step-label${stepLabelPhase !== 'idle' ? ` loading-step-label--${stepLabelPhase}` : ''}`
+                                                : undefined}
+                                            sx={{
+                                                fontFamily: 'DM Sans, sans-serif',
+                                                fontSize: '16px',
+                                                fontWeight: isLoading ? 400 : 600,
+                                                color: '#5B5B5B',
+                                            }}
                                         >
+                                            {thoughtHeaderText}
+                                        </Box>
+                                        {canToggleThoughts && (
                                             <ExpandMoreIcon
                                                 sx={{
                                                     fontSize: '16px',
@@ -1179,17 +1336,17 @@ function LLMAgent() {
                                                     transition: 'transform 0.2s ease',
                                                 }}
                                             />
-                                        </IconButton>
-                                    )}
+                                        )}
+                                    </Box>
                                 </Box>
                             )}
 
-                            {isAssistant && thoughtsExpanded && (isLoading || hasDisplayGroups) && (
+                            {isAssistant && !isLoading && thoughtsExpanded && hasDisplayGroups && (
                                 <Box sx={{
                                     mt: '6px',
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    gap: '10px',
+                                    gap: '0px',
                                     borderLeft: '2px solid #E6E6E6',
                                     pl: '12px',
                                 }}>
@@ -1405,6 +1562,17 @@ function LLMAgent() {
     const references = selectedMessageIndex !== null
         ? chatHistory[selectedMessageIndex]?.references || []
         : [];
+
+    useEffect(() => {
+        if (!hoveredPubmedId) return;
+        const isStillVisible = references.some((ref) => {
+            const pubmedId = ref.url?.split('/')?.filter(Boolean)?.pop();
+            return pubmedId === hoveredPubmedId;
+        });
+        if (!isStillVisible) {
+            setHoveredPubmedId(null);
+        }
+    }, [hoveredPubmedId, references]);
 
     const sortedReferences = useMemo(() => {
         const sorted = [...references];

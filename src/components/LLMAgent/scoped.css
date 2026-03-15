@@ -443,6 +443,42 @@
     border-radius: 4px;
 }
 
+.loading-step-label {
+    display: inline-block;
+}
+
+.loading-step-label--out {
+    animation: llm-step-label-out 140ms ease forwards;
+}
+
+.loading-step-label--in {
+    animation: llm-step-label-in 180ms ease forwards;
+}
+
+@keyframes llm-step-label-out {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+}
+
+@keyframes llm-step-label-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .references-list::-webkit-scrollbar {
     width: 8px;
 }

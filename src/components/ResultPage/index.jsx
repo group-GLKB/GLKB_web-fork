@@ -23,6 +23,7 @@ import {
 } from 'react-router-dom';
 
 import { InfoCircleOutlined } from '@ant-design/icons';
+import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 //import mui button as muibutton
 import {
   Box,
@@ -1107,9 +1108,12 @@ const ResultPage = () => {
                                                             className="example-card"
                                                             onClick={() => handleSelectExample(example)}
                                                         >
-                                                            <Typography className="example-description">
-                                                                {example.description}
-                                                            </Typography>
+                                                            <Box className="example-card-header">
+                                                                <Typography className="example-description">
+                                                                    {example.description}
+                                                                </Typography>
+                                                                <ArrowOutwardIcon className="example-arrow-icon" />
+                                                            </Box>
                                                             <Box className="example-pill-row">
                                                                 {example.pills.map((pill, index) => {
                                                                     const colors = getPillColors(pill.type || 'default');
