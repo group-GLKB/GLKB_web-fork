@@ -179,6 +179,7 @@ const Library = () => {
                                                 handleClick={handleClick}
                                                 onCiteClick={handleCiteClick}
                                                 transparentBackground
+                                                showCitations={false}
                                             />
                                         </div>
                                     ))

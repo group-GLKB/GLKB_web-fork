@@ -7,6 +7,7 @@ import React, {
 import {
   Bookmark as BookmarkIcon,
   BookmarkBorder as BookmarkBorderIcon,
+    ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
 import { IconButton } from '@mui/material';
 
@@ -16,9 +17,18 @@ import {
   toggleBookmark,
 } from '../../../utils/bookmarks';
 
-const ReferenceCard = ({ url, handleClick, onCiteClick, isHighlighted = false, transparentBackground = false }) => {
+const ReferenceCard = ({
+    url,
+    evidence = [],
+    handleClick,
+    onCiteClick,
+    isHighlighted = false,
+    transparentBackground = false,
+    showCitations = true,
+}) => {
     const [isHovered, setIsHovered] = useState(false);
     const [isBookmarked, setIsBookmarked] = useState(false);
+    const [isEvidenceOpen, setIsEvidenceOpen] = useState(false);
     const showHighlight = isHighlighted || isHovered;
 
     const pubmedId = useMemo(() => {
@@ -60,6 +70,11 @@ const ReferenceCard = ({ url, handleClick, onCiteClick, isHighlighted = false, t
     }, [pubmedId]);
 
     const authors = Array.isArray(url?.[5]) ? url[5].join(', ') : (url?.[5] || '');
+    const evidenceItems = useMemo(
+        () => (Array.isArray(evidence) ? evidence.filter((item) => item?.quote) : []),
+        [evidence]
+    );
+    const hasEvidence = evidenceItems.length > 0;
 
     const getLastName = (fullName) => {
         const parts = fullName.trim().split(' ');
@@ -190,18 +205,6 @@ const ReferenceCard = ({ url, handleClick, onCiteClick, isHighlighted = false, t
                 }}>
                     {renderAuthors()}
                 </div>
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'flex-end',
-                    fontSize: '14px',
-                    fontWeight: 400,
-                    color: '#323232',
-                    lineHeight: 1.4,
-                    flexShrink: 0,
-                }}>
-                    <span>Citations: {url[2]}</span>
-                </div>
             </div>
 
             <div style={{
@@ -219,6 +222,68 @@ const ReferenceCard = ({ url, handleClick, onCiteClick, isHighlighted = false, t
                 }} title="Journal">
                     {url[4]}
                 </div>
+                {showCitations && (
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-end',
+                        fontSize: '14px',
+                        fontWeight: 400,
+                        color: '#323232',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                    }}>
+                        <span>Citations: {url[2]}</span>
+                    </div>
+                )}
+            </div>
+
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '12px',
+                marginTop: '4px',
+            }}>
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    minHeight: '20px',
+                }}>
+                    {hasEvidence && (
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                setIsEvidenceOpen((prev) => !prev);
+                            }}
+                            style={{
+                                padding: 0,
+                                border: 'none',
+                                background: 'none',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontFamily: 'DM Sans, sans-serif',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                color: '#2c5cf3',
+                                cursor: 'pointer',
+                            }}
+                            aria-expanded={isEvidenceOpen}
+                        >
+                            Original sentences
+                            <ExpandMoreIcon
+                                sx={{
+                                    fontSize: 16,
+                                    color: '#2c5cf3',
+                                    transform: isEvidenceOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.2s ease',
+                                }}
+                            />
+                        </button>
+                    )}
+                </div>
                 <div style={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -232,6 +297,24 @@ const ReferenceCard = ({ url, handleClick, onCiteClick, isHighlighted = false, t
                     <span>{url[3]}</span>
                 </div>
             </div>
+            {hasEvidence && isEvidenceOpen && (
+                <div style={{
+                    marginTop: '8px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                    fontFamily: 'DM Sans, sans-serif',
+                    fontSize: '13px',
+                    fontWeight: 400,
+                    color: '#646464',
+                }}>
+                    {evidenceItems.map((item, idx) => (
+                        <div key={`${pubmedId}-evidence-${idx}`} style={{ lineHeight: 1.5 }}>
+                            “{item.quote}”
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
 
 
