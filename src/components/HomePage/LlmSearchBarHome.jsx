@@ -97,17 +97,17 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             onMouseDown={handleAuthGate}
             onTouchStart={handleAuthGate}
             sx={{
-            width: '100%',
-            display: 'flex',
-            gap: 2,
-            margin: '0 auto',
-            backgroundColor: '#ffffff',
-            borderRadius: '16px',
-            borderWidth: '1px',
-            borderStyle: 'solid',
-            borderColor: '#E7F1FF',
-            boxShadow: '0px 6px 18px rgba(22, 69, 99, 0.08)',
-        }}>
+                width: '100%',
+                display: 'flex',
+                gap: 2,
+                margin: '0 auto',
+                backgroundColor: '#ffffff',
+                borderRadius: '16px',
+                borderWidth: '1px',
+                borderStyle: 'solid',
+                borderColor: '#E7F1FF',
+                boxShadow: '0px 6px 18px rgba(22, 69, 99, 0.08)',
+            }}>
             <Autocomplete
                 freeSolo
                 fullWidth

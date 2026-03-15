@@ -48,7 +48,8 @@ export class LLMAgentService {
                                 answer: data.response,
                                 references: data.references || [],
                                 messages: data.messages || [],
-                                sessionId: data.session_id || null
+                                sessionId: data.session_id || null,
+                                trajectory: data.trajectory || null
                             });
                         } else if (data.step === 'Saved') {
                             await onUpdate({
@@ -132,7 +133,8 @@ export class LLMAgentService {
                                 answer: data.response,
                                 references: data.references || [],
                                 messages: data.messages || [],
-                                sessionId: data.session_id || null
+                                sessionId: data.session_id || null,
+                                trajectory: data.trajectory || null
                             });
                         } else if (data.step === 'Saved') {
                             onUpdate({

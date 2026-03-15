@@ -175,6 +175,7 @@ const areMessagesEqual = (left, right) => {
             references: leftMsg?.references,
             thinkingSteps: leftMsg?.thinkingSteps,
             thoughtDurationMs: leftMsg?.thoughtDurationMs,
+            trajectory: leftMsg?.trajectory,
         });
         const rightSignature = JSON.stringify({
             role: rightMsg?.role,
@@ -183,6 +184,7 @@ const areMessagesEqual = (left, right) => {
             references: rightMsg?.references,
             thinkingSteps: rightMsg?.thinkingSteps,
             thoughtDurationMs: rightMsg?.thoughtDurationMs,
+            trajectory: rightMsg?.trajectory,
         });
         if (leftSignature !== rightSignature) return false;
     }
@@ -193,6 +195,68 @@ const areMessagesEqual = (left, right) => {
 const getStepLabel = (stepName) => STEP_LABELS[stepName] || stepName;
 
 const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
+    const isTrajectoryLine = line && typeof line === 'object' && !Array.isArray(line);
+
+    if (isTrajectoryLine) {
+        const tool = line.tool || '';
+        const summary = line.summary || '';
+        const result = line.result || '';
+        return (
+            <Box
+                sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                }}
+                data-line-key={lineKey}
+            >
+                {(tool || summary) && (
+                    <Typography
+                        sx={{
+                            fontFamily: 'DM Sans, sans-serif',
+                            fontSize: '16px',
+                            fontWeight: 400,
+                            color: '#5B5B5B',
+                            whiteSpace: 'pre-wrap',
+                            lineHeight: 1.5,
+                        }}
+                    >
+                        {tool && (
+                            <Box
+                                component="span"
+                                sx={{
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontSize: '16px',
+                                    fontWeight: 800,
+                                    textTransform: 'uppercase',
+                                    color: '#7A7A7A',
+                                    marginRight: '6px',
+                                }}
+                            >
+                                {tool}
+                            </Box>
+                        )}
+                        {summary}
+                    </Typography>
+                )}
+                {result && (
+                    <Typography
+                        sx={{
+                            fontFamily: 'DM Sans, sans-serif',
+                            fontSize: '16px',
+                            fontWeight: 400,
+                            color: '#5B5B5B',
+                            whiteSpace: 'pre-wrap',
+                            lineHeight: 1.5,
+                        }}
+                    >
+                        {result}
+                    </Typography>
+                )}
+            </Box>
+        );
+    }
+
     return (
         <Typography
             sx={{
@@ -217,6 +281,7 @@ const ThoughtGroup = React.memo(
         onToggle,
         disableAnimation = false,
         disableToggle = false,
+        showBorder = true,
     }) {
         const hasLines = group.lines.length > 0;
         const canToggle = hasLines && !disableToggle;
@@ -271,8 +336,9 @@ const ThoughtGroup = React.memo(
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '4px',
-                        borderLeft: '2px solid #D9D9D9',
-                        pl: '10px',
+                        borderLeft: showBorder ? '2px solid #D9D9D9' : 'none',
+                        pl: showBorder ? '10px' : '0px',
+                        ml: showBorder ? 2 : '0px',
                     }}>
                         {group.lines.map((line, lineIndex) => (
                             <ThoughtLine
@@ -339,6 +405,51 @@ const groupThinkingSteps = (steps) => {
     return groups;
 };
 
+const normalizeTrajectory = (trajectory) => {
+    if (!trajectory) return [];
+    if (Array.isArray(trajectory)) return trajectory;
+    if (typeof trajectory === 'string') {
+        try {
+            const parsed = JSON.parse(trajectory);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            return [];
+        }
+    }
+    return [];
+};
+
+const trajectoryToGroups = (trajectory) => {
+    const normalized = normalizeTrajectory(trajectory);
+    if (!normalized.length) return [];
+
+    return normalized
+        .map((entry, index) => {
+            const phase = typeof entry?.phase === 'string' ? entry.phase.trim() : '';
+            const name = phase || `Phase ${index + 1}`;
+            const actions = Array.isArray(entry?.actions) ? entry.actions : [];
+            const lines = [];
+
+            actions.forEach((action) => {
+                if (!action) return;
+                const tool = typeof action.tool === 'string' ? action.tool.trim() : '';
+                const summary = typeof action.summary === 'string' ? action.summary.trim() : '';
+                const result = typeof action.result === 'string' ? action.result.trim() : '';
+
+                if (tool || summary) {
+                    lines.push({
+                        tool,
+                        summary: summary || 'Action',
+                        result: result ? `Result: ${result}` : '',
+                    });
+                }
+            });
+
+            return { name, lines };
+        })
+        .filter((group) => group.name || group.lines.length > 0);
+};
+
 const MessageCard = React.memo(function MessageCard({
     index,
     message,
@@ -373,9 +484,17 @@ const MessageCard = React.memo(function MessageCard({
         () => groupThinkingSteps(message.thinkingSteps),
         [message.thinkingSteps]
     );
+    const trajectoryGroups = useMemo(
+        () => trajectoryToGroups(message.trajectory),
+        [message.trajectory]
+    );
     const activeStreamingGroups = isLoading ? streamingGroups : [];
-    const displayGroups = isLoading ? activeStreamingGroups : groupedThoughts;
+    const staticGroups = !isLoading && trajectoryGroups.length
+        ? trajectoryGroups
+        : groupedThoughts;
+    const displayGroups = isLoading ? activeStreamingGroups : staticGroups;
     const hasDisplayGroups = displayGroups.length > 0;
+    const isTrajectoryDisplay = !isLoading && trajectoryGroups.length > 0;
     const loadingCurrentIndex = isLoading ? displayGroups.length - 1 : -1;
     const currentStepLabel = useMemo(() => {
         if (!isLoading) return '';
@@ -390,9 +509,9 @@ const MessageCard = React.memo(function MessageCard({
     }, [isLoading, currentStepLabel]);
     const thoughtHeaderText = isLoading
         ? (animatedStepLabel || loadingStepLabel)
-        : `Thought for ${thoughtDurationLabel}`;
+        : (thoughtDurationLabel ? `Thought for ${thoughtDurationLabel}` : 'Thought summary');
     const showThoughtHeader = isAssistant
-        && (isLoading || (!isLoading && thoughtDurationLabel));
+        && (isLoading || thoughtDurationLabel || hasDisplayGroups);
     const showReloadInMessage = showReloadPrompt && isLastUserMessage && isAssistant && !isLoading;
     const canToggleThoughts = !isLoading && hasDisplayGroups;
 
@@ -550,7 +669,8 @@ const MessageCard = React.memo(function MessageCard({
                                 flexDirection: 'column',
                                 gap: '0px',
                                 borderLeft: '2px solid #E6E6E6',
-                                pl: '12px',
+                                pl: '4px',
+                                ml: 1,
                             }}>
                                 {displayGroups.map((group, groupIndex) => (
                                     <ThoughtGroup
@@ -1264,7 +1384,8 @@ function LLMAgent() {
                 references: [],
                 timestamp: timestamp,
                 thinkingSteps: [],
-                thoughtDurationMs: null
+                thoughtDurationMs: null,
+                trajectory: null,
             }]);
 
             if (abortControllerRef.current) {
@@ -1358,7 +1479,8 @@ function LLMAgent() {
                                 references: parseReferences(update.references),
                                 timestamp: timestamp,
                                 thinkingSteps: thinkingStepsRef.current,
-                                thoughtDurationMs: Date.now() - requestStartedAt
+                                thoughtDurationMs: Date.now() - requestStartedAt,
+                                trajectory: update.trajectory || null,
                             };
                             newHistory[newHistory.length - 1] = assistantMessage;
 
@@ -1583,9 +1705,17 @@ function LLMAgent() {
             () => groupThinkingSteps(message.thinkingSteps),
             [message.thinkingSteps]
         );
+        const trajectoryGroups = useMemo(
+            () => trajectoryToGroups(message.trajectory),
+            [message.trajectory]
+        );
         const activeStreamingGroups = isLoading ? streamingGroups : [];
-        const displayGroups = isLoading ? activeStreamingGroups : groupedThoughts;
+        const staticGroups = !isLoading && trajectoryGroups.length
+            ? trajectoryGroups
+            : groupedThoughts;
+        const displayGroups = isLoading ? activeStreamingGroups : staticGroups;
         const hasDisplayGroups = displayGroups.length > 0;
+        const isTrajectoryDisplay = !isLoading && trajectoryGroups.length > 0;
         const loadingCurrentIndex = isLoading ? displayGroups.length - 1 : -1;
         const currentStepLabel = useMemo(() => {
             if (!isLoading) return '';
@@ -1599,9 +1729,9 @@ function LLMAgent() {
         }, [isLoading, currentStepLabel]);
         const thoughtHeaderText = isLoading
             ? (animatedStepLabel || loadingStepLabel)
-            : `Thought for ${thoughtDurationLabel}`;
+            : (thoughtDurationLabel ? `Thought for ${thoughtDurationLabel}` : 'Thought summary');
         const showThoughtHeader = isAssistant
-            && (isLoading || (!isLoading && thoughtDurationLabel));
+            && (isLoading || thoughtDurationLabel || hasDisplayGroups);
         const showReloadInMessage = showReloadPrompt && isLastUserMessage && isAssistant && !isLoading;
         const canToggleThoughts = !isLoading && hasDisplayGroups;
 
@@ -1758,8 +1888,8 @@ function LLMAgent() {
                                     display: 'flex',
                                     flexDirection: 'column',
                                     gap: '0px',
-                                    borderLeft: '2px solid #E6E6E6',
-                                    pl: '12px',
+                                    borderLeft: isTrajectoryDisplay ? 'none' : '2px solid #E6E6E6',
+                                    pl: isTrajectoryDisplay ? '0px' : '12px',
                                 }}>
                                     {displayGroups.map((group, groupIndex) => (
                                         <ThoughtGroup
@@ -1770,6 +1900,7 @@ function LLMAgent() {
                                             onToggle={toggleGroup}
                                             disableAnimation={isLoading}
                                             disableToggle={isLoading}
+                                            showBorder={!isTrajectoryDisplay}
                                         />
                                     ))}
                                 </Box>
