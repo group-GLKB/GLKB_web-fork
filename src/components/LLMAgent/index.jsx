@@ -643,7 +643,8 @@ const MessageCard = React.memo(function MessageCard({
                                             fontFamily: 'DM Sans, sans-serif',
                                             fontSize: '16px',
                                             fontWeight: isLoading ? 400 : 600,
-                                            color: '#5B5B5B',
+                                            color: isLoading ? 'transparent' : '#5B5B5B',
+                                            WebkitTextFillColor: isLoading ? 'transparent' : undefined,
                                         }}
                                     >
                                         {thoughtHeaderText}
@@ -1402,35 +1403,36 @@ function LLMAgent() {
                 switch (update.type) {
                     case 'step':
                         if (!isActiveStream) return;
-                        if (update.step) {
-                            setStreamingStepName(update.step);
-                        }
-                        if (update.step === 'Error') {
-                            setIsProcessing(false);
-                            setStreamingStepName('');
-                            setChatHistory(prev => {
-                                const newHistory = [...prev];
-                                const assistantMessage = {
-                                    role: 'assistant',
-                                    content: update.content,
-                                    references: [],
-                                    timestamp: timestamp,
-                                    thinkingSteps: thinkingStepsRef.current,
-                                    thoughtDurationMs: Date.now() - requestStartedAt
-                                };
-                                newHistory[newHistory.length - 1] = assistantMessage;
-
-                                // Update the LLMAgentService's internal message history
-                                llmService.updateMessages(update.answer);
-
-                                return newHistory;
-                            });
-                            setSelectedMessageIndex(chatHistory.length + 1);
-                            break;
-                        }
                         {
                             const rawContent = update.content ?? '';
-                            if (rawContent.trim()) {
+                            const hasContent = Boolean(rawContent.trim());
+                            if (update.step && hasContent) {
+                                setStreamingStepName(update.step);
+                            }
+                            if (update.step === 'Error') {
+                                setIsProcessing(false);
+                                setStreamingStepName('');
+                                setChatHistory(prev => {
+                                    const newHistory = [...prev];
+                                    const assistantMessage = {
+                                        role: 'assistant',
+                                        content: update.content,
+                                        references: [],
+                                        timestamp: timestamp,
+                                        thinkingSteps: thinkingStepsRef.current,
+                                        thoughtDurationMs: Date.now() - requestStartedAt
+                                    };
+                                    newHistory[newHistory.length - 1] = assistantMessage;
+
+                                    // Update the LLMAgentService's internal message history
+                                    llmService.updateMessages(update.answer);
+
+                                    return newHistory;
+                                });
+                                setSelectedMessageIndex(chatHistory.length + 1);
+                                break;
+                            }
+                            if (hasContent) {
                                 const newEntry = { step: update.step, content: rawContent };
                                 thinkingStepsRef.current = [...thinkingStepsRef.current, newEntry];
                                 const parsedEntry = parseThinkingEntry(newEntry);
@@ -1863,7 +1865,8 @@ function LLMAgent() {
                                                 fontFamily: 'DM Sans, sans-serif',
                                                 fontSize: '16px',
                                                 fontWeight: isLoading ? 400 : 600,
-                                                color: '#5B5B5B',
+                                                color: isLoading ? 'transparent' : '#5B5B5B',
+                                                WebkitTextFillColor: isLoading ? 'transparent' : undefined,
                                             }}
                                         >
                                             {thoughtHeaderText}
