@@ -35,14 +35,34 @@ const formatTimestamp = (value) => {
 const normalizeReferences = (refs) => {
     if (!Array.isArray(refs)) return [];
     return refs.map((ref) => {
-        const [title, pubmedUrl, citationCount, year, journal, authors] = ref;
+        if (Array.isArray(ref)) {
+            const [title, pubmedUrl, citationCount, year, journal, authors] = ref;
+            return {
+                title,
+                url: pubmedUrl,
+                citation_count: citationCount,
+                year,
+                journal,
+                authors: Array.isArray(authors) ? authors.join(', ') : 'Authors not available',
+                evidence: [],
+            };
+        }
+
+        const title = ref?.title || '';
+        const url = ref?.url || '';
+        const citationCount = ref?.n_citation ?? ref?.citation_count ?? 0;
+        const year = ref?.date ?? ref?.year ?? '';
+        const journal = ref?.journal || '';
+        const authors = Array.isArray(ref?.authors) ? ref.authors.join(', ') : 'Authors not available';
+        const evidence = Array.isArray(ref?.evidence) ? ref.evidence : [];
         return {
             title,
-            url: pubmedUrl,
+            url,
             citation_count: citationCount,
             year,
             journal,
-            authors: Array.isArray(authors) ? authors.join(', ') : 'Authors not available',
+            authors,
+            evidence,
         };
     });
 };

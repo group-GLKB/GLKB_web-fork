@@ -1292,6 +1292,7 @@ function LLMAgent() {
                     year,
                     journal,
                     authors: Array.isArray(authors) ? authors.join(', ') : 'Authors not available',
+                    evidence: [],
                 };
             }
             const title = ref?.title || '';
@@ -1300,6 +1301,7 @@ function LLMAgent() {
             const year = ref?.date ?? ref?.year ?? '';
             const journal = ref?.journal || '';
             const authors = Array.isArray(ref?.authors) ? ref.authors.join(', ') : 'Authors not available';
+            const evidence = Array.isArray(ref?.evidence) ? ref.evidence : [];
             return {
                 title,
                 url,
@@ -1307,6 +1309,7 @@ function LLMAgent() {
                 year,
                 journal,
                 authors,
+                evidence,
             };
         });
     };
@@ -2554,7 +2557,13 @@ function LLMAgent() {
                                                                             const isHighlighted = hoveredPubmedId === pubmedId;
                                                                             return (
                                                                                 <div key={index} style={{ marginTop: '12px' }} data-pubmed-id={pubmedId}>
-                                                                                    <ReferenceCard url={url} handleClick={handleClick} onCiteClick={handleCiteClick} isHighlighted={isHighlighted} />
+                                                                                    <ReferenceCard
+                                                                                        url={url}
+                                                                                        evidence={ref.evidence}
+                                                                                        handleClick={handleClick}
+                                                                                        onCiteClick={handleCiteClick}
+                                                                                        isHighlighted={isHighlighted}
+                                                                                    />
                                                                                 </div>
                                                                             );
                                                                         })}
