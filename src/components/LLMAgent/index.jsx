@@ -339,6 +339,403 @@ const groupThinkingSteps = (steps) => {
     return groups;
 };
 
+const MessageCard = React.memo(function MessageCard({
+    index,
+    message,
+    totalMessages,
+    isProcessing,
+    streamingGroups,
+    streamingStepName,
+    selectedMessageIndex,
+    showReloadPrompt,
+    onReloadLatest,
+    onStop,
+    refresh,
+    copy,
+    save,
+    goref,
+    downloadConversation,
+}) {
+    const isAssistant = message.role === "assistant";
+    const isLastUserMessage = index === totalMessages - 1 && message.role === 'assistant';
+    const isLoading = isProcessing && isLastUserMessage;
+    const messageID = index;
+    const [editContent, setEditContent] = useState('');
+    const [isEditing, setIsEditing] = useState(false);
+    const [expandedGroups, setExpandedGroups] = useState({});
+    const [thoughtsExpanded, setThoughtsExpanded] = useState(() => isLoading);
+    const [animatedStepLabel, setAnimatedStepLabel] = useState('');
+    const [stepLabelPhase, setStepLabelPhase] = useState('idle');
+    const stepLabelTimersRef = useRef([]);
+    const renderedStepLabelRef = useRef('');
+    const thoughtDurationLabel = formatDuration(message.thoughtDurationMs);
+    const groupedThoughts = useMemo(
+        () => groupThinkingSteps(message.thinkingSteps),
+        [message.thinkingSteps]
+    );
+    const activeStreamingGroups = isLoading ? streamingGroups : [];
+    const displayGroups = isLoading ? activeStreamingGroups : groupedThoughts;
+    const hasDisplayGroups = displayGroups.length > 0;
+    const loadingCurrentIndex = isLoading ? displayGroups.length - 1 : -1;
+    const currentStepLabel = useMemo(() => {
+        if (!isLoading) return '';
+        if (streamingStepName) return getStepLabel(streamingStepName);
+        if (!activeStreamingGroups.length) return 'Thinking';
+        return getStepLabel(activeStreamingGroups[activeStreamingGroups.length - 1].name);
+    }, [isLoading, streamingStepName, activeStreamingGroups]);
+    const loadingStepLabel = useMemo(() => {
+        if (!isLoading) return '';
+        if (!currentStepLabel) return 'Thinking...';
+        return currentStepLabel.endsWith('...') ? currentStepLabel : `${currentStepLabel}...`;
+    }, [isLoading, currentStepLabel]);
+    const thoughtHeaderText = isLoading
+        ? (animatedStepLabel || loadingStepLabel)
+        : `Thought for ${thoughtDurationLabel}`;
+    const showThoughtHeader = isAssistant
+        && (isLoading || (!isLoading && thoughtDurationLabel));
+    const showReloadInMessage = showReloadPrompt && isLastUserMessage && isAssistant && !isLoading;
+    const canToggleThoughts = !isLoading && hasDisplayGroups;
+
+    const toggleGroup = useCallback((nextIndex) => {
+        setExpandedGroups((prev) => ({
+            ...prev,
+            [nextIndex]: !prev[nextIndex],
+        }));
+    }, []);
+
+    useEffect(() => {
+        if (isLoading) {
+            setThoughtsExpanded(true);
+            return;
+        }
+        setThoughtsExpanded(false);
+    }, [isLoading]);
+
+    useEffect(() => {
+        const clearTimers = () => {
+            stepLabelTimersRef.current.forEach((timerId) => clearTimeout(timerId));
+            stepLabelTimersRef.current = [];
+        };
+
+        clearTimers();
+
+        if (!isLoading || !loadingStepLabel) {
+            renderedStepLabelRef.current = '';
+            setAnimatedStepLabel('');
+            setStepLabelPhase('idle');
+            return undefined;
+        }
+
+        const currentLabel = renderedStepLabelRef.current;
+        if (!currentLabel) {
+            renderedStepLabelRef.current = loadingStepLabel;
+            setAnimatedStepLabel(loadingStepLabel);
+            setStepLabelPhase('idle');
+            return undefined;
+        }
+
+        if (currentLabel === loadingStepLabel) {
+            return undefined;
+        }
+
+        const OUT_MS = 140;
+        const BUFFER_MS = 80;
+        const IN_MS = 180;
+
+        setStepLabelPhase('out');
+        const outTimer = setTimeout(() => {
+            renderedStepLabelRef.current = loadingStepLabel;
+            setAnimatedStepLabel(loadingStepLabel);
+            setStepLabelPhase('in');
+            const inTimer = setTimeout(() => {
+                setStepLabelPhase('idle');
+            }, IN_MS);
+            stepLabelTimersRef.current.push(inTimer);
+        }, OUT_MS + BUFFER_MS);
+        stepLabelTimersRef.current.push(outTimer);
+
+        return clearTimers;
+    }, [isLoading, loadingStepLabel]);
+
+    return (
+        <div
+            className="message-card"
+            data-message-index={index}
+            data-message-role={message.role}
+        >
+            <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: "5px", justifyContent: "flex-end" }}>
+                <Box
+                    sx={{
+                        bgcolor: isAssistant ? "transparent" : "#ffffff", // Different background colors
+                        boxShadow: isAssistant ? "none" : "0 4px 16px 0 rgba(0, 0, 0, 0.05)",
+                        maxWidth: isAssistant ? "100%" : "80%", // Adjust max width for assistant messages
+                        width: isAssistant ? "100%" : "auto",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        px: isAssistant ? "0px" : "24px",
+                        pt: isAssistant ? "12px" : "0px",
+                        pb: isAssistant ? "24px" : "12px",
+                        // border: isAssistant ? "1px solid" : "none",
+                        borderColor: "divider",
+                        borderRadius: "24px",
+                        flex: 1, // Occupy maximum width
+                    }}
+                >
+                    <Box sx={{ flex: 1 }}>
+                        {showThoughtHeader && (
+                            <Box sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                mt: '8px',
+                                mb: '8px',
+                            }}>
+                                <Box
+                                    role={canToggleThoughts ? 'button' : undefined}
+                                    tabIndex={canToggleThoughts ? 0 : -1}
+                                    onClick={canToggleThoughts ? () => setThoughtsExpanded((prev) => !prev) : undefined}
+                                    onKeyDown={(event) => {
+                                        if (!canToggleThoughts) return;
+                                        if (event.key === 'Enter' || event.key === ' ') {
+                                            event.preventDefault();
+                                            setThoughtsExpanded((prev) => !prev);
+                                        }
+                                    }}
+                                    aria-label={
+                                        canToggleThoughts
+                                            ? (thoughtsExpanded ? 'Collapse thoughts' : 'Expand thoughts')
+                                            : undefined
+                                    }
+                                    sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        padding: '4px 8px',
+                                        borderRadius: '18px',
+                                        cursor: canToggleThoughts ? 'pointer' : 'default',
+                                        '&:hover': canToggleThoughts ? { backgroundColor: 'rgba(0, 0, 0, 0.04)' } : undefined,
+                                    }}
+                                >
+                                    <Box
+                                        component="span"
+                                        className={isLoading
+                                            ? `loading-step-label${stepLabelPhase !== 'idle' ? ` loading-step-label--${stepLabelPhase}` : ''}`
+                                            : undefined}
+                                        sx={{
+                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontSize: '16px',
+                                            fontWeight: isLoading ? 400 : 600,
+                                            color: '#5B5B5B',
+                                        }}
+                                    >
+                                        {thoughtHeaderText}
+                                    </Box>
+                                    {canToggleThoughts && (
+                                        <ExpandMoreIcon
+                                            sx={{
+                                                fontSize: '16px',
+                                                color: '#646464',
+                                                transform: thoughtsExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                                transition: 'transform 0.2s ease',
+                                            }}
+                                        />
+                                    )}
+                                </Box>
+                            </Box>
+                        )}
+
+                        {isAssistant && !isLoading && thoughtsExpanded && hasDisplayGroups && (
+                            <Box sx={{
+                                mt: '6px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0px',
+                                borderLeft: '2px solid #E6E6E6',
+                                pl: '12px',
+                            }}>
+                                {displayGroups.map((group, groupIndex) => (
+                                    <ThoughtGroup
+                                        key={`${group.name}-${groupIndex}`}
+                                        group={group}
+                                        groupIndex={groupIndex}
+                                        expanded={isLoading ? groupIndex === loadingCurrentIndex : !!expandedGroups[groupIndex]}
+                                        onToggle={toggleGroup}
+                                        disableAnimation={isLoading}
+                                        disableToggle={isLoading}
+                                    />
+                                ))}
+                            </Box>
+                        )}
+
+                        <Box mt={1}>
+                            {showReloadInMessage ? (
+                                <Box
+                                    sx={{
+                                        backgroundColor: '#F4F4F4',
+                                        borderRadius: '8px',
+                                        padding: '6px 8px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: '8px',
+                                    }}
+                                >
+                                    <Typography
+                                        sx={{
+                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontSize: '12px',
+                                            fontWeight: 500,
+                                            color: '#646464',
+                                        }}
+                                    >
+                                        Response interrupted. Reload latest message.
+                                    </Typography>
+                                    <MuiButton
+                                        variant="outlined"
+                                        size="small"
+                                        onClick={onReloadLatest}
+                                        sx={{
+                                            textTransform: 'none',
+                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontWeight: 600,
+                                            fontSize: '12px',
+                                            minHeight: '28px',
+                                            padding: '2px 8px',
+                                            borderRadius: '8px',
+                                            borderColor: '#D0D0D0',
+                                            color: '#646464',
+                                            '&:hover': {
+                                                borderColor: '#B8B8B8',
+                                                backgroundColor: '#EDEDED',
+                                            },
+                                        }}
+                                    >
+                                        Reload
+                                    </MuiButton>
+                                </Box>
+                            ) : isLoading ? null :
+                                isEditing ?
+                                    <TextField
+                                        hiddenLabel
+                                        multiline
+                                        id="filled-hidden-label-small"
+                                        value={editContent}
+                                        variant="filled"
+                                        size="small"
+                                        sx={{ flex: 1, width: "100%" }}
+                                        onChange={(event) => setEditContent(event.target.value)}
+                                    /> : (
+                                        <div className="markdown-body" style={{ fontFamily: 'Open Sans, sans-serif' }}>
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                {message.content}
+                                            </ReactMarkdown>
+                                        </div>
+                                    )}
+                        </Box>
+
+                        {isAssistant && <Box sx={{ justifyContent: "space-between", direction: "row", display: "flex", alignItems: "center", mt: "5px" }}>
+                            <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
+                                <IconButton size="small" onClick={(event) => refresh(event, messageID)}>
+                                    <img
+                                        src={replayIcon}
+                                        alt="Refresh"
+                                        style={{ width: '16px', height: '16px', display: 'block' }}
+                                    />
+                                </IconButton>
+                                <IconButton size="small" onClick={() => copy(message.content)}>
+                                    <img
+                                        src={contentCopyIcon}
+                                        alt="Copy"
+                                        style={{ width: '16px', height: '16px', display: 'block' }}
+                                    />
+                                </IconButton>
+                                {!isLoading && <IconButton size="small" onClick={() => downloadConversation(messageID)} title="Download this Q&A">
+                                    <DownloadIcon
+                                        aria-label="Download"
+                                        style={{ width: '16px', height: '16px', display: 'block', color: '#646464' }}
+                                    />
+                                </IconButton>}
+                                {isLoading && (
+                                    <IconButton size="small" onClick={onStop}>
+                                        <StopCircleIcon fontSize="small" />
+                                    </IconButton>
+                                )}
+                            </Stack>
+                            <MuiButton
+                                variant='contained'
+                                startIcon={<FilePresentIcon />}
+                                size="small"
+                                onClick={() => goref(messageID)}
+                                disabled={isLoading}
+                                sx={{
+                                    px: "10px",
+                                    fontFamily: 'Open Sans, sans-serif',
+                                    height: "40px",
+                                    borderRadius: "4px",
+                                    border: "none", bgcolor: "#f7f8fa", color: "#19213d",
+                                    "&:hover": {
+                                        bgcolor: "#e1e2e4",
+                                        color: "#09112d",
+                                        boxShadow: index == selectedMessageIndex ? "0 0 0 1px #19213d" : "none",
+                                    },
+                                    boxShadow: index == selectedMessageIndex ? "0 0 0 1px #19213d" : "none",
+                                    mb: "2px"
+                                }}
+                            >
+                                {index == selectedMessageIndex ? <b>References</b> : <>References</>}
+                            </MuiButton>
+
+                        </Box>}
+
+                    </Box>
+
+                </Box>
+
+            </Container>
+            {!isAssistant && <Box sx={{ justifyContent: "flex-end", direction: "row", display: "flex", alignItems: "center" }}>
+                <Stack direction="row" spacing={1} sx={{ pb: "8px", pr: "24px" }}>
+                    {
+                        isEditing ? <>
+                            <IconButton size="small" onClick={() => {
+                                setIsEditing(false);
+                                setEditContent('');
+                            }}>
+                                <ClearIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton size="small" onClick={(event) => {
+                                if (editContent.trim() === '') {
+                                    return;
+                                }
+                                save(event, messageID, editContent);
+                                setIsEditing(false);
+                                setEditContent('');
+                            }}>
+                                <CheckIcon fontSize="small" />
+                            </IconButton>
+                        </> : <div className="user-message-actions">
+                            <IconButton size="small" onClick={() => copy(message.content)}>
+                                <img
+                                    src={contentCopyIcon}
+                                    alt="Copy"
+                                    style={{ width: '16px', height: '16px', display: 'block' }}
+                                />
+                            </IconButton>
+                            <IconButton size="small" onClick={() => {
+                                if (isAssistant) return;
+
+                                setIsEditing(true);
+                                setEditContent(message.content);
+                            }}>
+                                <EditNoteIcon fontSize="small" />
+                            </IconButton>
+                        </div>
+                    }
+
+                </Stack>
+            </Box>}
+        </div>
+    );
+});
+
 function LLMAgent() {
     const location = useLocation();
     const [userInput, setUserInput] = useState('');
@@ -346,6 +743,7 @@ function LLMAgent() {
     const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [streamingGroups, setStreamingGroups] = useState([]);
+    const [streamingStepName, setStreamingStepName] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [leftPaneWidth, setLeftPaneWidth] = useState(66);
     const [isDraggingSplit, setIsDraggingSplit] = useState(false);
@@ -480,6 +878,7 @@ function LLMAgent() {
         setIsLoading(false);
         setIsProcessing(false);
         setStreamingGroups([]);
+        setStreamingStepName('');
         thinkingStepsRef.current = [];
     }, []);
 
@@ -532,6 +931,7 @@ function LLMAgent() {
         lastAutoSelectedRef.current = null;
         setHoveredPubmedId(null);
         sessionIdRef.current = null;
+        setStreamingStepName('');
         setShowReloadPrompt(false);
         setIsConversationLoading(false);
         setLoadingConversationId(null);
@@ -839,6 +1239,7 @@ function LLMAgent() {
         setIsLoading(true);
         setIsProcessing(true);
         setStreamingGroups([]);
+        setStreamingStepName('');
         thinkingStepsRef.current = [];
 
         try {
@@ -880,8 +1281,12 @@ function LLMAgent() {
                 switch (update.type) {
                     case 'step':
                         if (!isActiveStream) return;
+                        if (update.step) {
+                            setStreamingStepName(update.step);
+                        }
                         if (update.step === 'Error') {
                             setIsProcessing(false);
+                            setStreamingStepName('');
                             setChatHistory(prev => {
                                 const newHistory = [...prev];
                                 const assistantMessage = {
@@ -944,6 +1349,7 @@ function LLMAgent() {
                             sessionIdRef.current = update.sessionId;
                         }
                         setIsProcessing(false);
+                        setStreamingStepName('');
                         setChatHistory(prev => {
                             const newHistory = [...prev];
                             const assistantMessage = {
@@ -987,6 +1393,7 @@ function LLMAgent() {
                     case 'error': // unsure if this is used
                         if (!isActiveStream) return;
                         setIsProcessing(false);
+                        setStreamingStepName('');
                         setChatHistory(prev => {
                             const newHistory = [...prev];
                             const errorMessage = {
@@ -1144,7 +1551,11 @@ function LLMAgent() {
         handleRegenerateResponse(null, lastIndex);
     };
 
-    const MessageCard = ({
+    const handleStopStreaming = useCallback(() => {
+        if (abortControllerRef.current) abortControllerRef.current.abort();
+    }, []);
+
+    const MessageCardInner = ({
         index,
         message,
         refresh,
@@ -1540,6 +1951,11 @@ function LLMAgent() {
                 key={index}
                 index={index}
                 message={message}
+                totalMessages={chatHistory.length}
+                isProcessing={isProcessing}
+                streamingGroups={streamingGroups}
+                streamingStepName={streamingStepName}
+                selectedMessageIndex={selectedMessageIndex}
                 refresh={handleRegenerateResponse}
                 copy={handleCopyMessage}
                 save={handleSaveEdit}
@@ -1547,6 +1963,7 @@ function LLMAgent() {
                 downloadConversation={handleDownloadConversation}
                 showReloadPrompt={showReloadPrompt}
                 onReloadLatest={handleReloadLatest}
+                onStop={handleStopStreaming}
             />
         ))}</Box>);
     };

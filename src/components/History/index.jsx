@@ -5,7 +5,10 @@ import React, {
   useState,
 } from 'react';
 
-import { useNavigate } from 'react-router-dom';
+import {
+    Navigate,
+    useNavigate,
+} from 'react-router-dom';
 
 import {
   Box,
@@ -13,6 +16,7 @@ import {
 } from '@mui/material';
 
 import { ReactComponent as HistoryIcon } from '../../img/navbar/history.svg';
+import { useAuth } from '../Auth/AuthContext';
 import {
   fetchConversations,
   getConversations,
@@ -45,9 +49,23 @@ const getConversationSubtitle = (conversation) => {
 
 const History = () => {
     const navigate = useNavigate();
+    const { isAuthenticated, loading } = useAuth();
     const [conversations, setConversations] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredConversations = conversations.filter((conversation) => {
+        const query = searchQuery.trim().toLowerCase();
+        if (!query) return true;
+        const title = getConversationTitle(conversation).toLowerCase();
+        const subtitle = getConversationSubtitle(conversation).toLowerCase();
+        return title.includes(query) || subtitle.includes(query);
+    });
 
     useEffect(() => {
+        if (loading || !isAuthenticated) {
+            return undefined;
+        }
+
         let isMounted = true;
         const cached = getConversations();
         if (cached.length > 0) {
@@ -67,12 +85,20 @@ const History = () => {
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [isAuthenticated, loading]);
 
     const handleOpenConversation = (conversationId) => {
         setActiveConversationId(conversationId);
         navigate('/chat', { state: { conversationId } });
     };
+
+    if (loading) {
+        return null;
+    }
+
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
 
     return (
         <div className="history-page">
@@ -99,10 +125,41 @@ const History = () => {
                         }}>
                             Search for archived reference, chat, etc.
                         </Typography>
+                        <div className="history-search">
+                            <input
+                                className="history-search-input"
+                                type="text"
+                                id="history-search"
+                                name="historySearch"
+                                value={searchQuery}
+                                onChange={(event) => setSearchQuery(event.target.value)}
+                                placeholder="Search conversations"
+                                aria-label="Search conversations"
+                            />
+                            {searchQuery.trim() && (
+                                <button
+                                    type="button"
+                                    className="history-search-clear"
+                                    onClick={() => setSearchQuery('')}
+                                    aria-label="Clear search"
+                                >
+                                    Clear
+                                </button>
+                            )}
+                        </div>
+                        <Typography sx={{
+                            marginTop: '8px',
+                            fontFamily: 'DM Sans',
+                            fontWeight: 500,
+                            fontSize: '13px',
+                            color: '#808080',
+                        }}>
+                            {filteredConversations.length} search history records with GLKB
+                        </Typography>
                     </Box>
                     <Box className="history-list">
-                        {conversations.length > 0 ? (
-                            conversations.map((conversation) => (
+                        {filteredConversations.length > 0 ? (
+                            filteredConversations.map((conversation) => (
                                 <button
                                     key={conversation.id}
                                     type="button"
@@ -148,7 +205,7 @@ const History = () => {
                                 fontSize: '14px',
                                 color: '#646464',
                             }}>
-                                No conversations yet.
+                                {searchQuery.trim() ? 'No matches found.' : 'No conversations yet.'}
                             </Typography>
                         )}
                     </Box>

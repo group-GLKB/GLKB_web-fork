@@ -1,10 +1,10 @@
 import './scoped.css';
 
 import React, {
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 
 import stepLabels from '../LLMAgent/step.json';
@@ -109,9 +109,8 @@ function DebugPage() {
                 <div className="debug-title">Loading Step Animation</div>
                 <div className="debug-step-row">
                     <span
-                        className={`loading-step-label${
-                            phase !== 'idle' ? ` loading-step-label--${phase}` : ''
-                        }`}
+                        className={`loading-step-label${phase !== 'idle' ? ` loading-step-label--${phase}` : ''
+                            }`}
                     >
                         {displayLabel}
                     </span>

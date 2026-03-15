@@ -19,6 +19,7 @@ import ApiPage from './components/ApiPage';
 import { AuthProvider } from './components/Auth/AuthContext';
 import LoginPage from './components/Auth/LoginPage';
 import VerifyCodePage from './components/Auth/VerifyCodePage';
+import DebugPage from './components/Debug';
 import History from './components/History';
 import HomePage from './components/HomePage';
 import AppLayout from './components/Layout';
@@ -26,7 +27,6 @@ import Library from './components/Library';
 import LLMAgent from './components/LLMAgent';
 import ResultPage from './components/ResultPage';
 import TestAuth from './components/TestAuth';
-import DebugPage from './components/Debug';
 
 const initState = {
     searchType: ''
