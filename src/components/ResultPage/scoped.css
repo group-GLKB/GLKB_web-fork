@@ -382,7 +382,7 @@ all {
 
 .examples-popover-content {
     padding: 16px 18px;
-    width: min(560px, 85vw);
+    width: min(700px, 90vw);
     box-sizing: border-box;
 }
 
@@ -423,6 +423,21 @@ all {
     font-weight: 500;
     font-size: 13px;
     color: #646464;
+    margin: 0;
+    flex: 1;
+}
+
+.example-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.example-arrow-icon {
+    color: #2c5cf3;
+    font-size: 18px;
+    flex: 0 0 auto;
 }
 
 .example-pill-row {

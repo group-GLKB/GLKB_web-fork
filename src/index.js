@@ -26,6 +26,7 @@ import Library from './components/Library';
 import LLMAgent from './components/LLMAgent';
 import ResultPage from './components/ResultPage';
 import TestAuth from './components/TestAuth';
+import DebugPage from './components/Debug';
 
 const initState = {
     searchType: ''
@@ -33,9 +34,11 @@ const initState = {
 
 // Create a wrapper component
 function AppWithRoutes() {
+    const isDev = process.env.NODE_ENV !== 'production';
     return (
         <HelmetProvider>
             <Routes>
+                {isDev && <Route path="/debug" element={<DebugPage />} />}
                 <Route element={<AppLayout />}>
                     <Route path='/search' element={<ResultPage />} />
                     <Route path="/" element={<HomePage />} />

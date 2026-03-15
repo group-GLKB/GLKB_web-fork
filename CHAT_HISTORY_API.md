@@ -281,48 +281,66 @@ POST /new-llm-agent/stream
 ```
 Streams an AI response using Server-Sent Events. The prompt and answer are automatically saved to chat history after streaming completes.
 
-**Request body**
+**First turn (new conversation)**
 ```json
 {
   "question": "What is the role of BRCA1 in breast cancer?",
-  "messages": [],
-  "max_articles": 5,
-  "history_id": 1
+  "max_articles": 5
 }
 ```
+
+**Subsequent turns (continuing conversation)**
+```json
+{
+  "question": "Can you summarize this chat?",
+  "max_articles": 5,
+  "history_id": 1,
+  "session_id": "stream_d28c148b"
+}
+```
+
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `question` | `string` | Yes | The user's question |
-| `messages` | `{role, content}[]` | No | Prior conversation context (default `[]`) |
 | `max_articles` | `int` | No | Articles to retrieve, 1–20 (default `5`) |
 | `history_id` | `int \| null` | No | Append to existing history. If `null`, a new history is created automatically. |
+| `session_id` | `string \| null` | No | ADK agent session token. Omit on first turn. **Echo back the value from the `Saved` event on every subsequent turn** to maintain agent memory. |
+| `messages` | `{role, content}[]` | No | Prior conversation context (default `[]`). Usually left empty — session memory is maintained server-side via `session_id`. |
 
 **Response `200`** — `text/event-stream`
 
 Each SSE event is a JSON object on a `data:` line:
 
 ```
-data: {"step": "Planning", "message": "Analyzing question..."}
+data: {"step": "Processing", "content": "[TOOL CALL] article_search | ..."}
 
-data: {"step": "Executing", "message": "Querying database..."}
+data: {"step": "Complete", "response": "BRCA1 plays a critical role...", "references": [...], "session_id": "stream_d28c148b", "done": true}
 
-data: {"step": "Complete", "response": "BRCA1 plays a critical role...", "references": [...]}
-
-data: {"step": "Saved", "history_id": 1}
+data: {"step": "Saved", "history_id": 1, "session_id": "stream_d28c148b"}
 ```
 
 | `step` value | Description |
 |---|---|
-| `Planning` / `Executing` / `Answering` | Progress events, display as status updates |
-| `Complete` | Final answer. Fields: `response` (string), `references` (array), `execution_time` (float) |
-| `Saved` | Emitted after history is persisted. Field: `history_id` (int) — use this to track the session |
-| `Error` | An error occurred. Fields: `error` (string), `detail` (string) |
+| `Processing` | Progress events from the agent (tool calls, reasoning). Display as status updates. |
+| `Complete` | Final answer. Fields: `response` (string), `references` (array), `session_id` (string), `execution_time` (float), `done` (true) |
+| `Saved` | Emitted after history is persisted (authenticated users only). Fields: `history_id` (int), `session_id` (string) — **save both for the next turn** |
+| `Error` | An error occurred. Fields: `error` (string), `detail` (string, optional) |
 
-**Reference item format** (inside `Complete.references`):
+**Reference object format** (inside `Complete.references`):
 ```json
-["Article title", "https://pubmed.ncbi.nlm.nih.gov/12345678/", 42, 2023, "Nature", ["Author A"]]
+{
+  "pmid": "34081848",
+  "title": "Adjuvant Olaparib for Patients with BRCA1- or BRCA2-Mutated Breast Cancer.",
+  "url": "https://pubmed.ncbi.nlm.nih.gov/34081848/",
+  "n_citation": 559,
+  "date": 2021,
+  "journal": "N Engl J Med",
+  "authors": ["Andrew N J Tutt", "Judy E Garber"],
+  "evidence": [
+    { "quote": "adjuvant olaparib ... was associated with significantly longer survival", "context_type": "abstract" }
+  ]
+}
 ```
-Positional: `[title, url, n_citation, date, journal, authors]`
 
 ---
 
@@ -357,14 +375,23 @@ Same as `/stream` but returns the full answer in one JSON response. The exchange
 ## Typical Frontend Flow
 
 ```
-1.  POST /email-auth/send-code          → send OTP to user email
-2.  POST /email-auth/verify             → exchange OTP for JWT token
-3.  GET  /new-llm-agent/history         → load user's chat sidebar list
-4.  POST /new-llm-agent/history         → create new chat session → get hid
-5.  POST /new-llm-agent/stream          → stream question into hid, listen for SSE
-        listen for step="Complete"      → render answer and references
-        listen for step="Saved"         → confirm history_id persisted
-6.  GET  /new-llm-agent/history/{hid}   → reload full conversation (on page refresh)
-7.  PATCH /new-llm-agent/history/{hid}  → rename session title
-8.  DELETE /new-llm-agent/history/{hid} → delete session
+1.  POST /email-auth/send-code              → send OTP to user email
+2.  POST /email-auth/verify                 → exchange OTP for JWT token
+3.  GET  /new-llm-agent/history             → load user's chat sidebar list
+
+Turn 1 (new conversation):
+4.  POST /new-llm-agent/stream              → { question, max_articles }
+        on step="Complete"                  → render answer and references
+        on step="Saved"                     → store history_id and session_id
+
+Turn 2+ (continuing conversation):
+5.  POST /new-llm-agent/stream              → { question, max_articles, history_id, session_id }
+        on step="Complete"                  → render answer and references
+        on step="Saved"                     → update stored session_id (stays the same)
+
+6.  GET  /new-llm-agent/history/{hid}       → reload full conversation (on page refresh)
+7.  PATCH /new-llm-agent/history/{hid}      → rename session title
+8.  DELETE /new-llm-agent/history/{hid}     → delete session
 ```
+
+> **Key change from legacy:** The frontend no longer manages `session_id` manually. Send `null`/omit on turn 1, then echo back the `session_id` from the `Saved` event on every subsequent turn. The agent uses this to recall the full conversation context.
