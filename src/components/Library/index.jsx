@@ -5,7 +5,10 @@ import React, {
   useState,
 } from 'react';
 
-import { useNavigate } from 'react-router-dom';
+import {
+  Navigate,
+  useNavigate,
+} from 'react-router-dom';
 
 import { Bookmark as BookmarkIcon } from '@mui/icons-material';
 import {
@@ -15,12 +18,17 @@ import {
 } from '@mui/material';
 
 import { ReactComponent as BookIcon } from '../../img/navbar/book_4.svg';
-import { getBookmarks } from '../../utils/bookmarks';
+import {
+  fetchBookmarks,
+  getBookmarks,
+} from '../../utils/bookmarks';
 import { setActiveConversationId } from '../../utils/chatHistory';
 import {
+  fetchConversationBookmarks,
   getConversationBookmarks,
   toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
+import { useAuth } from '../Auth/AuthContext';
 import CiteDialog from '../Units/CiteDialog';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 
@@ -30,20 +38,56 @@ const Library = () => {
     const [conversationBookmarks, setConversationBookmarks] = useState([]);
     const [citeDialogOpen, setCiteDialogOpen] = useState(false);
     const [selectedCitation, setSelectedCitation] = useState(null);
+    const { isAuthenticated, loading } = useAuth();
 
     useEffect(() => {
-        setBookmarks(getBookmarks());
-    }, []);
+        if (loading || !isAuthenticated) {
+            setBookmarks([]);
+            return undefined;
+        }
+
+        let isMounted = true;
+        fetchBookmarks()
+            .then((list) => {
+                if (!isMounted) return;
+                setBookmarks(list);
+            })
+            .catch(() => {
+                if (!isMounted) return;
+                setBookmarks(getBookmarks());
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [isAuthenticated, loading]);
 
     useEffect(() => {
+        if (loading || !isAuthenticated) {
+            setConversationBookmarks([]);
+            return undefined;
+        }
+
+        let isMounted = true;
         const update = (event) => {
             const next = event?.detail || getConversationBookmarks();
+            if (!isMounted) return;
             setConversationBookmarks(next);
         };
-        update();
+
+        fetchConversationBookmarks()
+            .then((list) => {
+                if (!isMounted) return;
+                setConversationBookmarks(list);
+            })
+            .catch(() => update());
+
         window.addEventListener('glkb-conversation-bookmarks-updated', update);
-        return () => window.removeEventListener('glkb-conversation-bookmarks-updated', update);
-    }, []);
+        return () => {
+            isMounted = false;
+            window.removeEventListener('glkb-conversation-bookmarks-updated', update);
+        };
+    }, [isAuthenticated, loading]);
 
     const handleClick = (event, link) => {
         event.preventDefault();
@@ -66,7 +110,7 @@ const Library = () => {
         navigate('/chat', { state: { conversationId: String(conversationId) } });
     };
 
-    const handleToggleConversationBookmark = (conversation) => {
+    const handleToggleConversationBookmark = async (conversation) => {
         if (!conversation) return;
         const entry = {
             id: String(conversation.id),
@@ -74,9 +118,21 @@ const Library = () => {
             updatedAt: conversation.updatedAt || new Date().toISOString(),
             messageCount: conversation.messageCount ?? 0,
         };
-        const next = toggleConversationBookmark(entry);
-        setConversationBookmarks(next);
+        try {
+            const next = await toggleConversationBookmark(entry);
+            setConversationBookmarks(next);
+        } catch (error) {
+            setConversationBookmarks(getConversationBookmarks());
+        }
     };
+
+    if (loading) {
+        return null;
+    }
+
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
 
     return (
         <div className="library-page">

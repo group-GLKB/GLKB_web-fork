@@ -168,9 +168,6 @@ export class LLMAgentService {
                 question,
                 history_id: historyId,
             };
-            if (Array.isArray(this.messages) && this.messages.length > 0) {
-                payload.messages = this.messages;
-            }
             if (sessionId) {
                 payload.session_id = sessionId;
             }
