@@ -460,7 +460,13 @@
 
 .loading-step-label--out {
     opacity: 0;
+    transform: translateY(6px);
+}
+
+.loading-step-label--swap {
+    opacity: 0;
     transform: translateY(-6px);
+    transition: none;
 }
 
 .loading-step-label--in {

@@ -14,5 +14,6 @@
     "find_similar_articles": "Following citation trails",
     "get_citing_articles": "Following citation trails",
     "cite_evidence": "Selecting supporting evidence",
-    "FinalAnswerAgent": "Formulating the final answer"
+    "FinalAnswerAgent": "Formulating the final answer",
+    "GLKBAgent": "Agent is thinking"
 }
