@@ -363,10 +363,11 @@ const ThoughtGroup = React.memo(
 );
 
 const parseThinkingEntry = (entry) => {
+    const stepFromEntry = typeof entry?.step === 'string' ? entry.step.trim() : '';
     const raw = entry?.content ?? '';
     const trimmed = raw.trim();
     if (!trimmed) {
-        return { stepName: 'Step', line: raw };
+        return { stepName: stepFromEntry || 'Step', line: raw };
     }
 
     let action = '';
@@ -387,6 +388,14 @@ const parseThinkingEntry = (entry) => {
 
     if (!stepName) {
         stepName = action || 'Step';
+    }
+
+    if (stepFromEntry && STEP_LABELS[stepFromEntry]) {
+        stepName = stepFromEntry;
+    } else if (STEP_LABELS[stepName]) {
+        stepName = stepName;
+    } else if (stepFromEntry) {
+        stepName = stepFromEntry;
     }
 
     return { stepName, line: raw };
@@ -565,16 +574,21 @@ const MessageCard = React.memo(function MessageCard({
         const OUT_MS = 140;
         const BUFFER_MS = 80;
         const IN_MS = 180;
+        const SWAP_MS = 16;
 
         setStepLabelPhase('out');
         const outTimer = setTimeout(() => {
             renderedStepLabelRef.current = loadingStepLabel;
             setAnimatedStepLabel(loadingStepLabel);
-            setStepLabelPhase('in');
-            const inTimer = setTimeout(() => {
-                setStepLabelPhase('idle');
-            }, IN_MS);
-            stepLabelTimersRef.current.push(inTimer);
+            setStepLabelPhase('swap');
+            const swapTimer = setTimeout(() => {
+                setStepLabelPhase('in');
+                const inTimer = setTimeout(() => {
+                    setStepLabelPhase('idle');
+                }, IN_MS);
+                stepLabelTimersRef.current.push(inTimer);
+            }, SWAP_MS);
+            stepLabelTimersRef.current.push(swapTimer);
         }, OUT_MS + BUFFER_MS);
         stepLabelTimersRef.current.push(outTimer);
 
@@ -1436,9 +1450,6 @@ function LLMAgent() {
                         {
                             const rawContent = update.content ?? '';
                             const hasContent = Boolean(rawContent.trim());
-                            if (update.step && hasContent) {
-                                setStreamingStepName(update.step);
-                            }
                             if (update.step === 'Error') {
                                 setIsProcessing(false);
                                 setStreamingStepName('');
@@ -1466,6 +1477,9 @@ function LLMAgent() {
                                 const newEntry = { step: update.step, content: rawContent };
                                 thinkingStepsRef.current = [...thinkingStepsRef.current, newEntry];
                                 const parsedEntry = parseThinkingEntry(newEntry);
+                                if (parsedEntry.stepName) {
+                                    setStreamingStepName(parsedEntry.stepName);
+                                }
 
                                 setStreamingGroups((prev) => {
                                     if (!parsedEntry.line.trim()) {
@@ -1861,16 +1875,21 @@ function LLMAgent() {
             const OUT_MS = 140;
             const BUFFER_MS = 80;
             const IN_MS = 180;
+            const SWAP_MS = 16;
 
             setStepLabelPhase('out');
             const outTimer = setTimeout(() => {
                 renderedStepLabelRef.current = loadingStepLabel;
                 setAnimatedStepLabel(loadingStepLabel);
-                setStepLabelPhase('in');
-                const inTimer = setTimeout(() => {
-                    setStepLabelPhase('idle');
-                }, IN_MS);
-                stepLabelTimersRef.current.push(inTimer);
+                setStepLabelPhase('swap');
+                const swapTimer = setTimeout(() => {
+                    setStepLabelPhase('in');
+                    const inTimer = setTimeout(() => {
+                        setStepLabelPhase('idle');
+                    }, IN_MS);
+                    stepLabelTimersRef.current.push(inTimer);
+                }, SWAP_MS);
+                stepLabelTimersRef.current.push(swapTimer);
             }, OUT_MS + BUFFER_MS);
             stepLabelTimersRef.current.push(outTimer);
 
