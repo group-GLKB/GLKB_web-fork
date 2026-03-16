@@ -61,12 +61,15 @@ import {
   setActiveConversationId,
   setConversations,
   updateConversationMessages,
+  updateConversationTitle,
   upsertConversation,
 } from '../../utils/chatHistory';
 import {
+  fetchConversationBookmarks,
   getConversationBookmarks,
   toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
+import { useAuth } from '../Auth/AuthContext';
 import CiteDialog from '../Units/CiteDialog';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import ChatSearchBar from './ChatSearchBar';
@@ -471,12 +474,14 @@ const MessageCard = React.memo(function MessageCard({
     const isLastUserMessage = index === totalMessages - 1 && message.role === 'assistant';
     const isLoading = isProcessing && isLastUserMessage;
     const messageID = index;
+    const allowUserEdit = false;
     const [editContent, setEditContent] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [expandedGroups, setExpandedGroups] = useState({});
     const [thoughtsExpanded, setThoughtsExpanded] = useState(() => isLoading);
     const [animatedStepLabel, setAnimatedStepLabel] = useState('');
     const [stepLabelPhase, setStepLabelPhase] = useState('idle');
+    const allowResponseRefresh = false;
     const stepLabelTimersRef = useRef([]);
     const renderedStepLabelRef = useRef('');
     const thoughtDurationLabel = formatDuration(message.thoughtDurationMs);
@@ -754,6 +759,15 @@ const MessageCard = React.memo(function MessageCard({
                         </Box>
 
                         {isAssistant && <Box sx={{ justifyContent: "space-between", direction: "row", display: "flex", alignItems: "center", mt: "5px" }}>
+                                    {allowResponseRefresh && (
+                                        <IconButton size="small" onClick={(event) => refresh(event, messageID)}>
+                                            <img
+                                                src={replayIcon}
+                                                alt="Refresh"
+                                                style={{ width: '16px', height: '16px', display: 'block' }}
+                                            />
+                                        </IconButton>
+                                    )}
                             <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
                                 <IconButton size="small" onClick={(event) => refresh(event, messageID)}>
                                     <img
@@ -840,14 +854,19 @@ const MessageCard = React.memo(function MessageCard({
                                     style={{ width: '16px', height: '16px', display: 'block' }}
                                 />
                             </IconButton>
-                            <IconButton size="small" onClick={() => {
-                                if (isAssistant) return;
+                            {allowUserEdit && (
+                                <IconButton
+                                    size="small"
+                                    onClick={() => {
+                                        if (!allowUserEdit || isAssistant) return;
 
-                                setIsEditing(true);
-                                setEditContent(message.content);
-                            }}>
-                                <EditNoteIcon fontSize="small" />
-                            </IconButton>
+                                        setIsEditing(true);
+                                        setEditContent(message.content);
+                                    }}
+                                >
+                                    <EditNoteIcon fontSize="small" />
+                                </IconButton>
+                            )}
                         </div>
                     }
 
@@ -878,6 +897,8 @@ function LLMAgent() {
     const [showReloadPrompt, setShowReloadPrompt] = useState(
         () => getStoredProcessingFlag() || getStoredIncompleteFlag()
     );
+    const [isEditingChatTitle, setIsEditingChatTitle] = useState(false);
+    const [chatTitleDraft, setChatTitleDraft] = useState('');
     const messagesEndRef = useRef(null);
     const abortControllerRef = useRef(null);
     const thinkingStepsRef = useRef([]);
@@ -891,6 +912,7 @@ function LLMAgent() {
     const splitContainerRef = useRef(null);
     const isDraggingSplitRef = useRef(false);
     const navigate = useNavigate();
+    const { isAuthenticated, loading: authLoading } = useAuth();
 
     const llmService = useMemo(() => new LLMAgentService(), []);
     const activeConversation = useMemo(() => {
@@ -915,14 +937,31 @@ function LLMAgent() {
     }, [activeConversationId]);
 
     useEffect(() => {
+        if (authLoading || !isAuthenticated) {
+            setConversationBookmarksState([]);
+            return undefined;
+        }
+
+        let isMounted = true;
         const update = (event) => {
             const next = event?.detail || getConversationBookmarks();
+            if (!isMounted) return;
             setConversationBookmarksState(next);
         };
-        update();
+
+        fetchConversationBookmarks()
+            .then((list) => {
+                if (!isMounted) return;
+                setConversationBookmarksState(list);
+            })
+            .catch(() => update());
+
         window.addEventListener('glkb-conversation-bookmarks-updated', update);
-        return () => window.removeEventListener('glkb-conversation-bookmarks-updated', update);
-    }, []);
+        return () => {
+            isMounted = false;
+            window.removeEventListener('glkb-conversation-bookmarks-updated', update);
+        };
+    }, [authLoading, isAuthenticated]);
 
     useEffect(() => {
         let isMounted = true;
@@ -1367,19 +1406,7 @@ function LLMAgent() {
         thinkingStepsRef.current = [];
 
         try {
-            // Convert chat history to format expected by backend
-            const conversationHistory = baseHistory.map(msg => ({
-                role: msg.role,
-                content: msg.content
-            }));
-
-            // Add current message to history
-            conversationHistory.push({
-                role: newMessage.role,
-                content: newMessage.content
-            });
-
-            logDev('[LLM] submit', { input: inputText, history: conversationHistory });
+            logDev('[LLM] submit', { input: inputText });
 
             // Append a blank message
             setChatHistory(prev => [...prev, {
@@ -1537,7 +1564,6 @@ function LLMAgent() {
                         break;
                 }
             }, {
-                messagesOverride: conversationHistory,
                 historyId,
                 sessionId: sessionIdRef.current
             });
@@ -1595,7 +1621,12 @@ function LLMAgent() {
         startNewConversation();
     };
 
-    const handleToggleConversationBookmark = () => {
+    const handleToggleConversationBookmark = async () => {
+        if (authLoading) return;
+        if (!isAuthenticated) {
+            navigate('/login');
+            return;
+        }
         const currentId = activeConversationIdRef.current || activeConversationId;
         if (!currentId) return;
         const entry = {
@@ -1604,8 +1635,52 @@ function LLMAgent() {
             updatedAt: activeConversation?.updatedAt || new Date().toISOString(),
             messageCount: activeConversation?.messageCount ?? chatHistory.length,
         };
-        const next = toggleConversationBookmark(entry);
-        setConversationBookmarksState(next);
+        try {
+            const next = await toggleConversationBookmark(entry);
+            setConversationBookmarksState(next);
+        } catch (error) {
+            setConversationBookmarksState(getConversationBookmarks());
+        }
+    };
+
+    const handleEditChatTitle = () => {
+        if (authLoading) return;
+        if (!isAuthenticated) {
+            navigate('/login');
+            return;
+        }
+        const currentId = activeConversationIdRef.current || activeConversationId;
+        if (!currentId) return;
+        setChatTitleDraft(chatTitle || '');
+        setIsEditingChatTitle(true);
+    };
+
+    const handleCancelChatTitleEdit = () => {
+        setIsEditingChatTitle(false);
+        setChatTitleDraft('');
+    };
+
+    const handleConfirmChatTitleEdit = async () => {
+        if (authLoading) return;
+        if (!isAuthenticated) {
+            navigate('/login');
+            return;
+        }
+        const currentId = activeConversationIdRef.current || activeConversationId;
+        if (!currentId) return;
+        const currentTitle = chatTitle || '';
+        const trimmed = chatTitleDraft.trim();
+        if (!trimmed || trimmed === currentTitle) {
+            handleCancelChatTitleEdit();
+            return;
+        }
+        try {
+            await updateConversationTitle(currentId, trimmed);
+            setConversationsState(getConversations());
+            handleCancelChatTitleEdit();
+        } catch (error) {
+            message.error('Unable to update chat title');
+        }
     };
 
     const handleMessageClick = (index) => {
@@ -1697,6 +1772,7 @@ function LLMAgent() {
         const isLastUserMessage = index === chatHistory.length - 1 && message.role === 'assistant';
         const isLoading = isProcessing && isLastUserMessage;
         const messageID = index;
+        const allowUserEdit = false;
         const [editContent, setEditContent] = useState('');
         const [isEditing, setIsEditing] = useState(false);
         const [expandedGroups, setExpandedGroups] = useState({});
@@ -2065,14 +2141,19 @@ function LLMAgent() {
                                         style={{ width: '16px', height: '16px', display: 'block' }}
                                     />
                                 </IconButton>
-                                <IconButton size="small" onClick={() => {
-                                    if (isAssistant) return;
+                                {allowUserEdit && (
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => {
+                                            if (!allowUserEdit || isAssistant) return;
 
-                                    setIsEditing(true);
-                                    setEditContent(message.content);
-                                }}>
-                                    <EditNoteIcon fontSize="small" />
-                                </IconButton>
+                                            setIsEditing(true);
+                                            setEditContent(message.content);
+                                        }}
+                                    >
+                                        <EditNoteIcon fontSize="small" />
+                                    </IconButton>
+                                )}
                             </div>
                         }
 
@@ -2311,22 +2392,77 @@ function LLMAgent() {
                                                             }}>
                                                                 &gt;
                                                             </Typography>
-                                                            <Typography sx={{
-                                                                fontFamily: 'DM Sans, sans-serif',
-                                                                fontSize: '16px',
-                                                                fontWeight: 600,
-                                                                color: '#164563',
-                                                                overflow: 'hidden',
-                                                                textOverflow: 'ellipsis',
-                                                                whiteSpace: 'nowrap',
-                                                                maxWidth: '280px',
-                                                            }}>
-                                                                {chatTitle}
-                                                            </Typography>
+                                                            {isEditingChatTitle ? (
+                                                                <TextField
+                                                                    value={chatTitleDraft}
+                                                                    onChange={(event) => setChatTitleDraft(event.target.value)}
+                                                                    size="small"
+                                                                    autoFocus
+                                                                    onKeyDown={(event) => {
+                                                                        if (event.key === 'Enter') {
+                                                                            event.preventDefault();
+                                                                            handleConfirmChatTitleEdit();
+                                                                        }
+                                                                        if (event.key === 'Escape') {
+                                                                            event.preventDefault();
+                                                                            handleCancelChatTitleEdit();
+                                                                        }
+                                                                    }}
+                                                                    sx={{
+                                                                        maxWidth: '280px',
+                                                                        '& .MuiInputBase-root': {
+                                                                            fontFamily: 'DM Sans, sans-serif',
+                                                                            fontSize: '14px',
+                                                                            fontWeight: 500,
+                                                                            color: '#164563',
+                                                                        },
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                <Typography sx={{
+                                                                    fontFamily: 'DM Sans, sans-serif',
+                                                                    fontSize: '16px',
+                                                                    fontWeight: 600,
+                                                                    color: '#164563',
+                                                                    overflow: 'hidden',
+                                                                    textOverflow: 'ellipsis',
+                                                                    whiteSpace: 'nowrap',
+                                                                    maxWidth: '280px',
+                                                                }}>
+                                                                    {chatTitle}
+                                                                </Typography>
+                                                            )}
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={isEditingChatTitle ? handleConfirmChatTitleEdit : handleEditChatTitle}
+                                                                disabled={
+                                                                    authLoading
+                                                                    || !isAuthenticated
+                                                                    || (!activeConversationIdRef.current && !activeConversationId)
+                                                                }
+                                                                sx={{
+                                                                    padding: '4px',
+                                                                    color: isEditingChatTitle ? '#2c5cf3' : '#8A8A8A',
+                                                                    '&:hover': {
+                                                                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                                                    },
+                                                                }}
+                                                                title={isEditingChatTitle ? 'Save chat title' : 'Edit chat title'}
+                                                            >
+                                                                {isEditingChatTitle ? (
+                                                                    <CheckIcon sx={{ fontSize: 18 }} />
+                                                                ) : (
+                                                                    <EditNoteIcon sx={{ fontSize: 18 }} />
+                                                                )}
+                                                            </IconButton>
                                                             <IconButton
                                                                 size="small"
                                                                 onClick={handleToggleConversationBookmark}
-                                                                disabled={!activeConversationIdRef.current && !activeConversationId}
+                                                                disabled={
+                                                                    authLoading
+                                                                    || !isAuthenticated
+                                                                    || (!activeConversationIdRef.current && !activeConversationId)
+                                                                }
                                                                 sx={{
                                                                     padding: '4px',
                                                                     color: isConversationBookmarked ? '#2c5cf3' : '#8A8A8A',
@@ -2560,6 +2696,7 @@ function LLMAgent() {
                                                                                     <ReferenceCard
                                                                                         url={url}
                                                                                         evidence={ref.evidence}
+                                                                                        sourceHid={activeConversationIdRef.current || activeConversationId}
                                                                                         handleClick={handleClick}
                                                                                         onCiteClick={handleCiteClick}
                                                                                         isHighlighted={isHighlighted}

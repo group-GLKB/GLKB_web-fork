@@ -4,22 +4,27 @@ import React, {
   useState,
 } from 'react';
 
+import { useNavigate } from 'react-router-dom';
+
 import {
   Bookmark as BookmarkIcon,
   BookmarkBorder as BookmarkBorderIcon,
-    ExpandMore as ExpandMoreIcon,
+  ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
 import { IconButton } from '@mui/material';
 
 import formatQuoteIcon from '../../../img/llm/format_quote.svg';
 import {
+  fetchBookmarks,
   getBookmarks,
   toggleBookmark,
 } from '../../../utils/bookmarks';
+import { useAuth } from '../../Auth/AuthContext';
 
 const ReferenceCard = ({
     url,
     evidence = [],
+    sourceHid = null,
     handleClick,
     onCiteClick,
     isHighlighted = false,
@@ -29,6 +34,8 @@ const ReferenceCard = ({
     const [isHovered, setIsHovered] = useState(false);
     const [isBookmarked, setIsBookmarked] = useState(false);
     const [isEvidenceOpen, setIsEvidenceOpen] = useState(false);
+    const { isAuthenticated, loading } = useAuth();
+    const navigate = useNavigate();
     const showHighlight = isHighlighted || isHovered;
 
     const pubmedId = useMemo(() => {
@@ -44,8 +51,13 @@ const ReferenceCard = ({
         }
     };
 
-    const handleBookmarkClick = (event) => {
+    const handleBookmarkClick = async (event) => {
         event.stopPropagation();
+        if (loading) return;
+        if (!isAuthenticated) {
+            navigate('/login');
+            return;
+        }
         const entry = {
             id: pubmedId,
             title: url?.[0] || '',
@@ -54,20 +66,33 @@ const ReferenceCard = ({
             year: url?.[3] || '',
             journal: url?.[4] || '',
             authors: Array.isArray(url?.[5]) ? url[5].join(', ') : (url?.[5] || ''),
+            evidence: Array.isArray(evidence) ? evidence : [],
         };
-        const next = toggleBookmark(entry);
-        setIsBookmarked(next.some((item) => item.id === pubmedId));
+        try {
+            const next = await toggleBookmark(entry, { sourceHid });
+            setIsBookmarked(next.some((item) => item.id === pubmedId || item.pmid === pubmedId));
+        } catch (error) {
+            setIsBookmarked(getBookmarks().some((item) => item.id === pubmedId || item.pmid === pubmedId));
+        }
     };
 
     useEffect(() => {
-        const update = () => {
-            const next = getBookmarks();
-            setIsBookmarked(next.some((item) => item.id === pubmedId));
+        let isMounted = true;
+        const update = (event) => {
+            const next = event?.detail || getBookmarks();
+            if (!isMounted) return;
+            setIsBookmarked(next.some((item) => item.id === pubmedId || item.pmid === pubmedId));
         };
         update();
+        if (isAuthenticated) {
+            fetchBookmarks().then(update).catch(() => update());
+        }
         window.addEventListener('glkb-bookmarks-updated', update);
-        return () => window.removeEventListener('glkb-bookmarks-updated', update);
-    }, [pubmedId]);
+        return () => {
+            isMounted = false;
+            window.removeEventListener('glkb-bookmarks-updated', update);
+        };
+    }, [isAuthenticated, pubmedId]);
 
     const authors = Array.isArray(url?.[5]) ? url[5].join(', ') : (url?.[5] || '');
     const evidenceItems = useMemo(
