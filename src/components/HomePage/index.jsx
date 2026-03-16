@@ -230,7 +230,7 @@ const HomePage = () => {
                                         color: '#646464',
                                     }}
                                 >
-                                    Discover insights from genomic research with AI-powered search and analysis
+                                    Weeks of research, done in minutes.
                                 </Typography>
                             </Box>
                             <Box className="homepage-hero-search">

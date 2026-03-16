@@ -530,13 +530,33 @@
 }
 
 .references-list>div {
+    padding: 8px;
+    border-radius: 10px;
+    position: relative;
+    transition: background-color 0.2s ease, border-radius 0.2s ease, padding 0.2s ease;
+}
+
+.references-list>div::after {
+    content: '';
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 0;
     border-bottom: 2px solid #D9D9D9;
-    padding-bottom: 12px;
+}
+
+.references-list>div:hover {
+    background-color: #E7F1FF;
+    border-radius: 12px;
+    padding: 10px;
 }
 
 .references-list>div:last-child {
-    border-bottom: none;
     padding-bottom: 0;
+}
+
+.references-list>div:last-child::after {
+    border-bottom: none;
 }
 
 .message-wrapper {

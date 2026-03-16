@@ -13,6 +13,39 @@ const sortConversations = (list) => (
     [...list].sort((a, b) => new Date(b?.updatedAt || 0) - new Date(a?.updatedAt || 0))
 );
 
+const getConversationMessageCount = (conversation) => {
+    if (!conversation) return 0;
+    const count = Number(conversation.messageCount);
+    if (Number.isFinite(count) && count > 0) {
+        return count;
+    }
+    if (Array.isArray(conversation.messages)) {
+        return conversation.messages.length;
+    }
+    return Number.isFinite(count) ? count : 0;
+};
+
+const isTransientZeroMessageState = () => {
+    if (typeof window === 'undefined') return false;
+    const inChatPage = window.location.pathname === '/chat';
+    const wasProcessing = sessionStorage.getItem('llmWasProcessing') === 'true';
+    return inChatPage || wasProcessing;
+};
+
+const pruneZeroMessageConversations = (list, activeId) => {
+    const normalizedActiveId = activeId ? String(activeId) : null;
+    const source = Array.isArray(list) ? list : [];
+    const allowTransientZero = isTransientZeroMessageState();
+    return source.filter((conversation) => {
+        const id = String(conversation?.id || '');
+        if (!id) return false;
+        const messageCount = getConversationMessageCount(conversation);
+        if (messageCount > 0) return true;
+        // Keep only active zero-message conversation in transient chat states.
+        return allowTransientZero && normalizedActiveId === id;
+    });
+};
+
 const readConversations = () => {
     if (typeof window === 'undefined') return [];
     try {
@@ -95,11 +128,18 @@ const normalizeDetail = (detail) => ({
         : [],
 });
 
-export const getConversations = () => sortConversations(readConversations());
+export const getConversations = () => {
+    const activeId = getActiveConversationId();
+    return sortConversations(pruneZeroMessageConversations(readConversations(), activeId));
+};
 
-export const setConversations = (list) => {
+export const setConversations = (list, options = {}) => {
     if (typeof window === 'undefined') return [];
-    const sorted = sortConversations(list);
+    const activeId = Object.prototype.hasOwnProperty.call(options, 'activeId')
+        ? options.activeId
+        : getActiveConversationId();
+    const cleaned = pruneZeroMessageConversations(list, activeId);
+    const sorted = sortConversations(cleaned);
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
     window.dispatchEvent(new CustomEvent('glkb-conversations-updated', { detail: sorted }));
     return sorted;
@@ -127,7 +167,7 @@ export const createConversation = async (leadingTitle = null) => {
     const data = await createChatHistory(leadingTitle);
     const conversation = normalizeSummary(data);
     const next = upsertConversation(getConversations(), conversation);
-    setConversations(next);
+    setConversations(next, { activeId: conversation.id });
     setActiveConversationId(conversation.id);
     return conversation;
 };
@@ -161,9 +201,12 @@ export const setActiveConversationId = (id) => {
     if (typeof window === 'undefined') return;
     if (!id) {
         sessionStorage.removeItem(ACTIVE_KEY);
+        setConversations(readConversations(), { activeId: null });
         return;
     }
-    sessionStorage.setItem(ACTIVE_KEY, String(id));
+    const normalizedId = String(id);
+    sessionStorage.setItem(ACTIVE_KEY, normalizedId);
+    setConversations(readConversations(), { activeId: normalizedId });
 };
 
 export const upsertConversation = (list, conversation) => {
