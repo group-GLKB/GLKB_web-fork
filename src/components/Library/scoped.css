@@ -26,6 +26,7 @@
 .library-header {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
 }
 
 .library-title-row {
@@ -56,6 +57,7 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+    align-items: flex-start;
 }
 
 .library-section-title {
@@ -63,6 +65,8 @@
     font-weight: 700;
     font-size: 16px;
     color: #164563;
+    width: 100%;
+    text-align: left;
 }
 
 .library-empty-text {
@@ -95,6 +99,8 @@
 .library-chat-item:hover {
     background-color: #F2F6FF;
     border-color: #C7D8FF;
+    border-radius: 12px;
+    padding: 12px 16px;
 }
 
 .library-chat-text {
@@ -128,11 +134,31 @@
 }
 
 .library-list>div {
+    padding: 8px;
+    border-radius: 10px;
+    position: relative;
+    transition: background-color 0.2s ease, border-radius 0.2s ease, padding 0.2s ease;
+}
+
+.library-list>div::after {
+    content: '';
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 0;
     border-bottom: 2px solid #D9D9D9;
-    padding-bottom: 12px;
+}
+
+.library-list>div:hover {
+    background-color: #E7F1FF;
+    border-radius: 12px;
+    padding: 10px;
 }
 
 .library-list>div:last-child {
-    border-bottom: none;
     padding-bottom: 0;
+}
+
+.library-list>div:last-child::after {
+    border-bottom: none;
 }

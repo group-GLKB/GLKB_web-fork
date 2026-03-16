@@ -161,6 +161,8 @@ const Library = () => {
                             fontWeight: 500,
                             fontSize: '14px',
                             color: '#646464',
+                            textAlign: 'left',
+                            width: '100%',
                         }}>
                             Collect papers, explore connections, and organize your research journey.
                         </Typography>

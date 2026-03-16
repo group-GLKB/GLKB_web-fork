@@ -646,7 +646,7 @@ const MessageCard = React.memo(function MessageCard({
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '6px',
-                                        padding: '4px 8px',
+                                        padding: '4px 0',
                                         borderRadius: '18px',
                                         cursor: canToggleThoughts ? 'pointer' : 'default',
                                         '&:hover': canToggleThoughts ? { backgroundColor: 'rgba(0, 0, 0, 0.04)' } : undefined,

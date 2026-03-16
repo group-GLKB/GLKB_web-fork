@@ -55,6 +55,12 @@ body[data-has-sidebar="true"] .app-layout-content {
     gap: 6px;
 }
 
+.sidebar-recent-item-row {
+    position: relative;
+    width: 100%;
+    min-height: 32px;
+}
+
 .sidebar-recent-item {
     border: 1px solid transparent;
     background: transparent;
@@ -63,13 +69,22 @@ body[data-has-sidebar="true"] .app-layout-content {
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
     font-weight: 500;
+    line-height: 1.4;
     color: #164563;
     text-align: left;
     cursor: pointer;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: block;
+    width: 100%;
+    padding-right: 8px;
     transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.sidebar-recent-item-row:hover .sidebar-recent-item,
+.sidebar-recent-item-row:focus-within .sidebar-recent-item {
+    padding-right: 36px;
 }
 
 .sidebar-recent-item:hover {
@@ -79,4 +94,29 @@ body[data-has-sidebar="true"] .app-layout-content {
 .sidebar-recent-item.active {
     border-color: #155DFC;
     background-color: #E7F1FF;
+}
+
+.sidebar-recent-more {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    color: #164563;
+    z-index: 1;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.16s ease, background-color 0.16s ease;
+}
+
+.sidebar-recent-item-row:hover .sidebar-recent-more,
+.sidebar-recent-item-row:focus-within .sidebar-recent-more {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.sidebar-recent-more:hover {
+    background-color: rgba(1, 105, 176, 0.1);
 }
