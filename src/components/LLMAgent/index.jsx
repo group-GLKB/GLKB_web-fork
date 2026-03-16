@@ -46,7 +46,6 @@ import {
 
 import contentCopyIcon from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
-import replayIcon from '../../img/llm/replay.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import {
   ReactComponent as SidebarLeftIcon,
@@ -773,23 +772,7 @@ const MessageCard = React.memo(function MessageCard({
                         </Box>
 
                         {isAssistant && <Box sx={{ justifyContent: "space-between", direction: "row", display: "flex", alignItems: "center", mt: "5px" }}>
-                                    {allowResponseRefresh && (
-                                        <IconButton size="small" onClick={(event) => refresh(event, messageID)}>
-                                            <img
-                                                src={replayIcon}
-                                                alt="Refresh"
-                                                style={{ width: '16px', height: '16px', display: 'block' }}
-                                            />
-                                        </IconButton>
-                                    )}
                             <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
-                                <IconButton size="small" onClick={(event) => refresh(event, messageID)}>
-                                    <img
-                                        src={replayIcon}
-                                        alt="Refresh"
-                                        style={{ width: '16px', height: '16px', display: 'block' }}
-                                    />
-                                </IconButton>
                                 <IconButton size="small" onClick={() => copy(message.content)}>
                                     <img
                                         src={contentCopyIcon}
@@ -2076,13 +2059,6 @@ function LLMAgent() {
                             {/* Buttons below message */}
                             {isAssistant && <Box sx={{ justifyContent: "space-between", direction: "row", display: "flex", alignItems: "center", mt: "5px" }}>
                                 <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
-                                    <IconButton size="small" onClick={(e) => refresh(e, messageID)}>
-                                        <img
-                                            src={replayIcon}
-                                            alt="Refresh"
-                                            style={{ width: '16px', height: '16px', display: 'block' }}
-                                        />
-                                    </IconButton>
                                     <IconButton size="small" onClick={() => copy(message.content)}>
                                         <img
                                             src={contentCopyIcon}
