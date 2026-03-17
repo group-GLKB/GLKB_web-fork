@@ -639,6 +639,10 @@ all {
     flex-shrink: 0;
 }
 
+.explore-help-tooltip {
+    z-index: 3000 !important;
+}
+
 .legend-item .anticon-info-circle {
     font-size: 14px;
     margin-left: 4px;

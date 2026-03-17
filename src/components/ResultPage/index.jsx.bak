@@ -47,6 +47,7 @@ import Information from '../Information';
 import SearchBarKnowledge from './SearchBarKnowledge';
 import exampleQueries from './SearchBarKnowledge/example_query.json';
 import exampleTerms from './SearchBarKnowledge/temp.json';
+import SearchBarNeighborhood from './SearchBarNeighborhood';
 
 // const StyledButton = styled(Button)(({ theme }) => ({
 //     backgroundColor: '#99c7b1',
@@ -356,11 +357,54 @@ const ResultPage = () => {
         if (search_data) {
             // Store the initial search content
             setSearchContent(search_data);
-            handleTripletSearch(search_data);
+            const searchType = location.state.searchType;
+
+            if (searchType === 'neighbor') {
+                handleNeighborSearch(search_data);
+            } else {
+                handleTripletSearch(search_data);
+            }
         } else {
             setSearchFlag(true);
         }
     }, [search_data]);
+
+    const handleNeighborSearch = async (searchData) => {
+        try {
+            let cypherServ = new CypherService();
+            const neighborData = await cypherServ.Neighbor2Cypher(
+                searchData.source.database_id,
+                searchData.params.type,
+                searchData.params.limit,
+                searchData.params.rel_type,
+                searchData.source.name
+            );
+
+            // Add validation check for neighborData
+            if (!Array.isArray(neighborData) || neighborData.length < 2) {
+                console.error('Invalid neighbor data format:', neighborData);
+                setData({ nodes: [], edges: [] });
+                setSearchFlag(true);
+                return;
+            }
+
+            const graphData = neighborData[0];  // Contains nodes and edges
+            // const nodesList = neighborData[1];  // Contains simplified node list
+
+            setData(graphData);
+            // setAllNodes(nodesList);
+            setSearchFlag(true);
+
+            // Track search_no_result event if no results found
+            if (!graphData?.nodes || graphData.nodes.length === 0) {
+                const searchTerm = searchData.source?.name || 'Unknown';
+            }
+        } catch (error) {
+            console.error('Error fetching neighbor data:', error);
+            setData({ nodes: [], edges: [] });
+            setSearchFlag(true);
+        }
+    };
 
     const handleTripletSearch = async (searchData) => {
         try {
@@ -498,10 +542,12 @@ const ResultPage = () => {
                 edges: filteredEdges
             };
             setGraphShownData(filteredData);
+            setNodeCount(filteredNodes.length);
             setTotalNodeCount(data.nodes?.length || 0);
         } else {
             if (data.edges) {
                 setGraphShownData(data);
+                setNodeCount(data.nodes?.length || 0);
                 setTotalNodeCount(data.nodes?.length || 0);
                 setSearchFlag(true);
             }
@@ -616,11 +662,15 @@ const ResultPage = () => {
     // }
 
     // async function articleToEntity(content) {
-    //     if (cachedTermGraph) {
-    //         setData(cachedTermGraph[0]);
-    //         setAllNodes(cachedTermGraph[1]);
+    //     if (searchType === 'neighbor') {
+    //         handleNeighborSearch(content);
     //     } else {
-    //         search(content);
+    //         if (cachedTermGraph) {
+    //             setData(cachedTermGraph[0]);
+    //             setAllNodes(cachedTermGraph[1]);
+    //         } else {
+    //             search(content);
+    //         }
     //     }
     // }
 
@@ -639,8 +689,18 @@ const ResultPage = () => {
         return () => window.removeEventListener('resize', updateSettingsWidth);
     }, []);
 
+    // Add state to track search type
+    const [searchType, setSearchType] = useState('triplet'); // default to triplet
+
+    useEffect(() => {
+        if (location.state?.searchType) {
+            setSearchType(location.state.searchType);
+        }
+    }, [location.state]);
+
     // Add new state for node count
     const [totalNodeCount, setTotalNodeCount] = useState(0);
+    const [nodeCount, setNodeCount] = useState(0);
     const NODE_LIMIT = 10;
 
     const getButtonTooltip = () => {
@@ -723,6 +783,7 @@ const ResultPage = () => {
 
     const handleSelectExample = (example) => {
         if (!example?.query) return;
+        setSearchType('triplet');
         setSearchContent(example.query);
         setPendingExample(example.query);
         setExamplesOpen(false);
@@ -730,10 +791,11 @@ const ResultPage = () => {
 
     useEffect(() => {
         if (!pendingExample) return;
+        if (searchType !== 'triplet') return;
         if (!searchBarKnowledgeRef.current?.fillWithExample) return;
         searchBarKnowledgeRef.current.fillWithExample(pendingExample);
         setPendingExample(null);
-    }, [pendingExample]);
+    }, [pendingExample, searchType]);
 
     useEffect(() => {
         if (data.edges) {
@@ -948,9 +1010,6 @@ const ResultPage = () => {
                                         >
                                             <Tooltip
                                                 title={ExploreTooltipContent}
-                                                placement="bottomLeft"
-                                                zIndex={3000}
-                                                classNames={{root:"explore-help-tooltip"}}
                                                 styles={{
                                                     root: { maxWidth: '380px' },
                                                     body: { fontSize: '16px', fontFamily: 'Open Sans, sans-serif' },
@@ -996,25 +1055,37 @@ const ResultPage = () => {
                                             style={{ marginTop: '8px', boxShadow: "0 1px 10px 0 rgba(0, 0, 0, 0.05)", borderRadius: '20px' }}
                                         >
                                             <div className="search-bar-wrapper">
-                                                <SearchBarKnowledge
-                                                    ref={searchBarKnowledgeRef}
-                                                    initialContent={searchContent} // Pass initial content
-                                                    chipData={[]}
-                                                    chipDataIDResult={chipDataIDResult}
-                                                    displayArticleGraph={displayArticleGraph}
-                                                    setDisplayArticleGraph={setDisplayArticleGraph}
-                                                    alterColor={1}
-                                                    setOpen={setSearchBarOpen}
-                                                    onSearch={(data) => {
-                                                        setSearchFlag(false);
-                                                        navigate('/search', {
-                                                            state: {
-                                                                search_data: data,
-                                                            },
-                                                            replace: true,
-                                                        });
-                                                    }}
-                                                />
+                                                {searchType === 'neighbor' ? (
+                                                    <SearchBarNeighborhood
+                                                        initialContent={searchContent} // Pass initial content
+                                                        onSearch={(data) => {
+                                                            setSearchContent(data); // Update stored content
+                                                            setSearchFlag(false);
+                                                            handleNeighborSearch(data);
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <SearchBarKnowledge
+                                                        ref={searchBarKnowledgeRef}
+                                                        initialContent={searchContent} // Pass initial content
+                                                        chipData={[]}
+                                                        chipDataIDResult={chipDataIDResult}
+                                                        displayArticleGraph={displayArticleGraph}
+                                                        setDisplayArticleGraph={setDisplayArticleGraph}
+                                                        alterColor={1}
+                                                        setOpen={setSearchBarOpen}
+                                                        onSearch={(data) => {
+                                                            setSearchFlag(false);
+                                                            navigate('/search', {
+                                                                state: {
+                                                                    search_data: data,
+                                                                    searchType: 'triplet',
+                                                                },
+                                                                replace: true,
+                                                            });
+                                                        }}
+                                                    />
+                                                )}
                                             </div>
                                         </div>
                                         <Popover
