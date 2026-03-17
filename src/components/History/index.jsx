@@ -13,6 +13,7 @@ import {
 import {
   Box,
     Checkbox,
+    Tooltip,
   Typography,
 } from '@mui/material';
 import { DeleteOutline as DeleteOutlineIcon } from '@mui/icons-material';
@@ -161,78 +162,114 @@ const History = () => {
         <div className="history-page">
             <Box className="history-body">
                 <Box className="history-content">
-                    <Box className="history-header">
-                        <Box className="history-title-row">
-                            <HistoryIcon className="history-icon" style={{ width: 36, height: 36, color: '#164563' }} />
+                    <Box className="history-top">
+                        <Box className="history-header">
+                            <Box className="history-title-row">
+                                <HistoryIcon className="history-icon" style={{ width: 36, height: 36, color: '#164563' }} />
+                                <Typography sx={{
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontWeight: 600,
+                                    fontSize: '32px',
+                                    color: '#164563',
+                                }}>
+                                    History
+                                </Typography>
+                            </Box>
                             <Typography sx={{
+                                marginTop: '8px',
                                 fontFamily: 'DM Sans, sans-serif',
-                                fontWeight: 600,
-                                fontSize: '32px',
-                                color: '#164563',
+                                fontWeight: 500,
+                                fontSize: '14px',
+                                color: '#646464',
+                                textAlign: 'left',
                             }}>
-                                History
+                                Search for archived reference, chat, etc.
                             </Typography>
+                            <div className="history-search">
+                                <input
+                                    className="history-search-input"
+                                    type="text"
+                                    id="history-search"
+                                    name="historySearch"
+                                    value={searchQuery}
+                                    onChange={(event) => setSearchQuery(event.target.value)}
+                                    placeholder="Search conversations"
+                                    aria-label="Search conversations"
+                                />
+                                {searchQuery.trim() && (
+                                    <button
+                                        type="button"
+                                        className="history-search-clear"
+                                        onClick={() => setSearchQuery('')}
+                                        aria-label="Clear search"
+                                    >
+                                        Clear
+                                    </button>
+                                )}
+                            </div>
                         </Box>
-                        <Typography sx={{
-                            marginTop: '8px',
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontWeight: 500,
-                            fontSize: '14px',
-                            color: '#646464',
-                            textAlign: 'left',
-                        }}>
-                            Search for archived reference, chat, etc.
-                        </Typography>
-                        <div className="history-search">
-                            <input
-                                className="history-search-input"
-                                type="text"
-                                id="history-search"
-                                name="historySearch"
-                                value={searchQuery}
-                                onChange={(event) => setSearchQuery(event.target.value)}
-                                placeholder="Search conversations"
-                                aria-label="Search conversations"
-                            />
-                            {searchQuery.trim() && (
-                                <button
-                                    type="button"
-                                    className="history-search-clear"
-                                    onClick={() => setSearchQuery('')}
-                                    aria-label="Clear search"
-                                >
-                                    Clear
-                                </button>
-                            )}
-                        </div>
                         <Box className="history-meta-row">
                             {selectMode ? (
                                 <>
                                     <Box className="history-select-toolbar">
-                                        <Checkbox
-                                            checked={allFilteredSelected}
-                                            indeterminate={isPartiallySelected}
-                                            onChange={handleToggleSelectAllFiltered}
-                                            inputProps={{ 'aria-label': 'Select all conversations' }}
-                                            sx={{
-                                                color: '#155DFC',
-                                                padding: '4px',
-                                                '&.Mui-checked': { color: '#155DFC' },
-                                                '&.MuiCheckbox-indeterminate': { color: '#155DFC' },
+                                        <Tooltip
+                                            title={allFilteredSelected ? 'Deselect All' : 'Select All'}
+                                            placement="bottom"
+                                            PopperProps={{
+                                                modifiers: [
+                                                    {
+                                                        name: 'offset',
+                                                        options: {
+                                                            offset: [0, -4],
+                                                        },
+                                                    },
+                                                ],
                                             }}
-                                        />
-                                        <Typography className="history-meta-text">
-                                            {selectedCount} selected
-                                        </Typography>
-                                        <button
-                                            type="button"
-                                            className="history-delete-action"
-                                            onClick={handleDeleteSelected}
-                                            disabled={selectedCount === 0 || isDeleting}
+                                            componentsProps={{
+                                                tooltip: {
+                                                    sx: {
+                                                        backgroundColor: '#E7F1FF',
+                                                        color: '#164563',
+                                                        fontFamily: 'DM Sans, sans-serif',
+                                                        fontSize: '14px',
+                                                        fontWeight: 500,
+                                                        padding: '4px 12px',
+                                                        borderRadius: '8px',
+                                                        boxShadow: 'none',
+                                                    },
+                                                },
+                                            }}
                                         >
-                                            Delete
-                                            <DeleteOutlineIcon sx={{ fontSize: 16 }} />
-                                        </button>
+                                            <span>
+                                                <Checkbox
+                                                    className="history-select-all-checkbox"
+                                                    checked={allFilteredSelected}
+                                                    indeterminate={isPartiallySelected}
+                                                    onChange={handleToggleSelectAllFiltered}
+                                                    inputProps={{ 'aria-label': 'Select all conversations' }}
+                                                    sx={{
+                                                        color: '#155DFC',
+                                                        padding: '4px',
+                                                        '&.Mui-checked': { color: '#155DFC' },
+                                                        '&.MuiCheckbox-indeterminate': { color: '#155DFC' },
+                                                    }}
+                                                />
+                                            </span>
+                                        </Tooltip>
+                                        <Box className="history-select-toolbar-content">
+                                            <Typography className="history-meta-text">
+                                                {selectedCount} selected
+                                            </Typography>
+                                            <button
+                                                type="button"
+                                                className="history-delete-action"
+                                                onClick={handleDeleteSelected}
+                                                disabled={selectedCount === 0 || isDeleting}
+                                            >
+                                                Delete
+                                                <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+                                            </button>
+                                        </Box>
                                     </Box>
                                     <button
                                         type="button"
@@ -244,9 +281,13 @@ const History = () => {
                                 </>
                             ) : (
                                 <>
-                                    <Typography className="history-meta-text">
-                                        {filteredConversations.length} search history records with GLKB
-                                    </Typography>
+                                    <Box className="history-select-toolbar history-select-toolbar-empty">
+                                        <Box className="history-select-toolbar-content">
+                                            <Typography className="history-meta-text">
+                                                {filteredConversations.length} search history records with GLKB
+                                            </Typography>
+                                        </Box>
+                                    </Box>
                                     <button
                                         type="button"
                                         className="history-select-toggle"

@@ -2370,13 +2370,22 @@ function LLMAgent() {
                                                             minWidth: 0,
                                                             flex: 1,
                                                         }}>
-                                                            <Typography sx={{
-                                                                fontFamily: 'DM Sans, sans-serif',
-                                                                fontSize: '16px',
-                                                                fontWeight: 500,
-                                                                color: '#164563',
-                                                                textDecoration: 'underline',
-                                                            }}>
+                                                            <Typography
+                                                                component="button"
+                                                                type="button"
+                                                                onClick={() => navigate('/')}
+                                                                aria-label="Go to home"
+                                                                sx={{
+                                                                    fontFamily: 'DM Sans, sans-serif',
+                                                                    fontSize: '16px',
+                                                                    fontWeight: 500,
+                                                                    color: '#164563',
+                                                                    textDecoration: 'underline',
+                                                                    background: 'none',
+                                                                    border: 'none',
+                                                                    padding: 0,
+                                                                    cursor: 'pointer',
+                                                                }}>
                                                                 AI Chat
                                                             </Typography>
                                                             <Typography sx={{

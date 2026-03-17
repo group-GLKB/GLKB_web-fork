@@ -15,18 +15,27 @@
 }
 
 .history-content {
-    flex: 1;
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
+    flex: 1;
     min-height: 0;
     gap: 24px;
-    padding: 24px 80px 36px;
+    padding: 24px 0;
+}
+
+.history-top {
+    display: flex;
+    flex-direction: column;
 }
 
 .history-header {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    padding: 0 36px;
 }
 
 .history-title-row {
@@ -48,9 +57,13 @@
     min-height: 0;
     overflow-y: auto;
     overflow-x: visible;
-    width: calc(100% + 80px);
-    margin-right: -80px;
-    padding: 0 80px 0 0;
+    width: 100%;
+    padding: 0 0 0 14px;
+    box-sizing: border-box;
+}
+
+.history-list > .MuiTypography-root {
+    padding-left: 36px;
 }
 
 .history-search {
@@ -114,6 +127,8 @@
     justify-content: flex-start;
     gap: 12px;
     width: 100%;
+    padding: 0 36px 0 14px;
+    box-sizing: border-box;
 }
 
 .history-meta-text {
@@ -144,20 +159,44 @@
 }
 
 .history-select-toolbar {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    align-items: center;
+    min-height: 32px;
+}
+
+.history-select-toolbar-empty .history-select-toolbar-content {
+    grid-column: 2;
+}
+
+.history-select-all-checkbox {
+    grid-column: 1;
+    justify-self: center;
+    align-self: center;
+}
+
+.history-select-toolbar-content {
+    grid-column: 2;
     display: flex;
     align-items: center;
     gap: 4px;
+    min-width: 0;
 }
 
 .history-item-row {
     position: relative;
-    padding-left: 28px;
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    align-items: start;
+    width: 100%;
+    box-sizing: border-box;
+    padding-right: 36px;
 }
 
 .history-item-row::after {
     content: '';
     position: absolute;
-    left: 40px;
+    left: 48px;
     right: 12px;
     bottom: 0;
     border-bottom: 1px solid #D9D9D9;
@@ -168,10 +207,14 @@
 }
 
 .history-item-row-select-mode .history-row-checkbox {
-    position: absolute;
-    left: 0;
-    top: 12px;
-    z-index: 2;
+    grid-column: 1;
+    justify-self: center;
+    align-self: start;
+    margin-top: 12px;
+}
+
+.history-item {
+    grid-column: 2;
 }
 
 .history-delete-action {
@@ -206,13 +249,13 @@
     text-align: left;
     background: transparent;
     border: none;
-    padding: 16px 10px;
+    padding: 16px 0;
     border-radius: 10px;
     box-sizing: border-box;
     cursor: pointer;
     position: relative;
     display: block;
-    transition: background-color 0.2s ease, border-radius 0.2s ease, padding 0.2s ease;
+    transition: background-color 0.2s ease, border-radius 0.2s ease;
 }
 
 .history-item-content {
@@ -222,13 +265,12 @@
     gap: 6px;
     flex: 1;
     text-align: left;
-    margin-left: 2px;
+    margin-left: 0;
 }
 
 .history-item:hover {
     background-color: #E7F1FF;
     border-radius: 12px;
-    padding: 16px 14px;
 }
 
 .history-item:focus-visible {
