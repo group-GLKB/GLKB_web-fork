@@ -21,7 +21,6 @@ import {
 } from 'react-router-dom';
 
 import {
-  ArrowBack as ArrowBackIcon,
   ChatBubbleOutline as ChatBubbleOutlineIcon,
   Check as CheckIcon,
   Clear as ClearIcon,
@@ -128,14 +127,38 @@ function LLMAgent() {
         if (!refs || !Array.isArray(refs)) return [];
 
         return refs.map(ref => {
-            const [title, pubmed_url, citation_count, year, journal, authors] = ref;
+            if (Array.isArray(ref)) {
+                const [title, pubmed_url, citation_count, year, journal, authors] = ref;
+                const pmid = typeof pubmed_url === 'string'
+                    ? pubmed_url.split('/').filter(Boolean).pop()
+                    : '';
+                return {
+                    title: title,
+                    url: pubmed_url,
+                    citation_count: citation_count,
+                    year: year,
+                    journal: journal,
+                    authors: Array.isArray(authors) ? authors.join(', ') : 'Authors not available',
+                    pmid,
+                };
+            }
+
+            const title = ref?.title || '';
+            const pmid = ref?.pmid || '';
+            const url = ref?.url || (pmid ? `https://pubmed.ncbi.nlm.nih.gov/${pmid}/` : '');
+            const citationCount = ref?.n_citation ?? ref?.citation_count ?? 0;
+            const year = ref?.date ?? ref?.year ?? '';
+            const journal = ref?.journal || '';
+            const authors = Array.isArray(ref?.authors) ? ref.authors.join(', ') : 'Authors not available';
+
             return {
-                title: title,
-                url: pubmed_url,
-                citation_count: citation_count,
-                year: year,
-                journal: journal,
-                authors: Array.isArray(authors) ? authors.join(', ') : 'Authors not available'
+                title,
+                url,
+                citation_count: citationCount,
+                year,
+                journal,
+                authors,
+                pmid: pmid || (url ? url.split('/').filter(Boolean).pop() : ''),
             };
         });
     };
@@ -555,7 +578,7 @@ function LLMAgent() {
                                 ))
                             ) : (
                                 <div style={{ color: '#999', fontStyle: 'italic' }}>
-                                    (No steps captured - closure issue!)
+                                    Loading...
                                 </div>
                             )}
                         </Box>
@@ -587,12 +610,12 @@ function LLMAgent() {
 
     const handleExportReferences = () => {
         if (sortedReferences.length === 0) return;
-        
+
         const bibTexContent = sortedReferences.map((ref, index) => {
             const pubmedId = ref.url.split('/').filter(Boolean).pop();
             const cleanTitle = ref.title.replace(/[{}]/g, '');
             const cleanAuthors = ref.authors.replace(/,/g, ' and');
-            
+
             return `@article{pubmed${pubmedId},
   author = {${cleanAuthors}},
   title = {${cleanTitle}},
@@ -601,7 +624,7 @@ function LLMAgent() {
   note = {PubMed ID: ${pubmedId}}
 }`;
         }).join('\n\n');
-        
+
         const blob = new Blob([bibTexContent], { type: 'application/x-bibtex' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -614,7 +637,7 @@ function LLMAgent() {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        
+
         message.success('References exported as BibTeX');
     };
 
@@ -630,14 +653,14 @@ function LLMAgent() {
 
     const generateCitation = (format) => {
         if (!selectedCitation) return '';
-        
+
         const title = selectedCitation[0];
         const pubmedUrl = selectedCitation[1];
         const year = selectedCitation[3];
         const journal = selectedCitation[4];
         const authors = selectedCitation[5];
         const pubmedId = pubmedUrl.split('/').filter(Boolean).pop();
-        
+
         switch (format) {
             case 'MLA':
                 return `${authors}. "${title}." ${journal} ${year}. PubMed ID: ${pubmedId}.`;
@@ -736,9 +759,9 @@ function LLMAgent() {
                 <meta name="description" content="Discover insights from 33M+ genomic research articles. GLKB enables AI-powered search across genes, diseases, variants, and chemicals with high accuracy." />
                 <meta property="og:title" content="AI Chat - Genomic Literature Knowledge Base | AI-Powered Genomics Search" />
             </Helmet>
-            
-            <Dialog 
-                open={citeDialogOpen} 
+
+            <Dialog
+                open={citeDialogOpen}
                 onClose={handleCloseCiteDialog}
                 maxWidth="md"
                 fullWidth
@@ -749,9 +772,9 @@ function LLMAgent() {
                     }
                 }}
             >
-                <DialogTitle sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
+                <DialogTitle sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
                     fontFamily: 'Open Sans, sans-serif',
                     fontSize: '20px',
@@ -766,13 +789,13 @@ function LLMAgent() {
                     <Stack spacing={2}>
                         {['MLA', 'APA', 'Chicago', 'Harvard', 'Vancouver'].map((format) => (
                             <Box key={format}>
-                                <Box sx={{ 
-                                    display: 'flex', 
-                                    justifyContent: 'space-between', 
+                                <Box sx={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
                                     alignItems: 'center',
                                     mb: 1
                                 }}>
-                                    <Typography sx={{ 
+                                    <Typography sx={{
                                         fontFamily: 'Open Sans, sans-serif',
                                         fontWeight: '600',
                                         fontSize: '14px'
@@ -780,7 +803,7 @@ function LLMAgent() {
                                         {format}
                                     </Typography>
                                 </Box>
-                                <Box sx={{ 
+                                <Box sx={{
                                     backgroundColor: '#f5f5f5',
                                     padding: '12px',
                                     borderRadius: '8px',
@@ -791,15 +814,15 @@ function LLMAgent() {
                                         backgroundColor: '#ebebeb'
                                     }
                                 }}
-                                onClick={() => handleCopyCitation(format)}
+                                    onClick={() => handleCopyCitation(format)}
                                 >
                                     {generateCitation(format)}
                                 </Box>
                             </Box>
                         ))}
-                        
+
                         <Divider sx={{ my: 2 }} />
-                        
+
                         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
                             <MuiButton
                                 variant="outlined"
@@ -1057,7 +1080,7 @@ function LLMAgent() {
                                                                     style={{ minWidth: '140px', fontFamily: 'Open Sans, sans-serif' }}
                                                                     styles={{ popup: { root: { 'font-family': 'Open Sans, sans-serif' } } }}
                                                                 />
-                                                                <IconButton 
+                                                                <IconButton
                                                                     size="small"
                                                                     onClick={handleExportReferences}
                                                                     disabled={sortedReferences.length === 0}
@@ -1086,7 +1109,7 @@ function LLMAgent() {
                                                                         ref.journal,
                                                                         ref.authors
                                                                     ];
-                                                                    const pubmedId = ref.url.split('/').filter(Boolean).pop();
+                                                                    const pubmedId = ref.pmid || ref.url?.split('/').filter(Boolean).pop() || '';
                                                                     const isHighlighted = hoveredPubmedId === pubmedId;
                                                                     return (
                                                                         <div key={index} style={{ marginTop: '12px' }} data-pubmed-id={pubmedId}>
