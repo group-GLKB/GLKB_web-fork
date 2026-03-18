@@ -45,8 +45,7 @@ import Graph from '../Graph';
 import nodeStyleColors from '../Graph/nodeStyleColors.json';
 import Information from '../Information';
 import SearchBarKnowledge from './SearchBarKnowledge';
-import exampleQueries from './SearchBarKnowledge/example_query.json';
-import exampleTerms from './SearchBarKnowledge/temp.json';
+import exampleTerms from './SearchBarKnowledge/example.json';
 
 // const StyledButton = styled(Button)(({ theme }) => ({
 //     backgroundColor: '#99c7b1',
@@ -664,7 +663,6 @@ const ResultPage = () => {
     const [searchBarOpen, setSearchBarOpen] = useState(false);
     const exampleItems = useMemo(() => (
         ExampleOptions.map(([id, pillText, description], index) => {
-            const baseQuery = exampleQueries?.[index] || {};
             const typedTerms = Array.isArray(exampleTerms?.[index])
                 ? exampleTerms[index]
                 : [];
@@ -674,7 +672,6 @@ const ResultPage = () => {
                     rel: '',
                     target: [0, ''],
                 })),
-                params: baseQuery.params,
                 sources: typedTerms.map((term) => ([
                     Number(term.id),
                     term.name,
@@ -950,7 +947,7 @@ const ResultPage = () => {
                                                 title={ExploreTooltipContent}
                                                 placement="bottomLeft"
                                                 zIndex={3000}
-                                                classNames={{root:"explore-help-tooltip"}}
+                                                classNames={{ root: "explore-help-tooltip" }}
                                                 styles={{
                                                     root: { maxWidth: '380px' },
                                                     body: { fontSize: '16px', fontFamily: 'Open Sans, sans-serif' },

@@ -14,16 +14,12 @@
 .history-item-row::before {
     content: '';
     position: absolute;
-    left: calc(var(--history-row-gutter) - var(--history-hover-bleed) + var(--history-hover-radius));
-    right: calc(var(--history-row-gutter) - var(--history-hover-bleed) + var(--history-hover-radius));
+    left: calc(var(--history-row-gutter) - var(--history-hover-bleed));
+    right: calc(var(--history-row-gutter) - var(--history-hover-bleed));
     top: 0;
     border-top: 1px solid #D9D9D9;
     opacity: 1;
     transition: opacity 0.2s ease;
-}
-
-.history-item-row:first-child::before {
-    display: none;
 }
 
 .history-item-row:hover::before {
