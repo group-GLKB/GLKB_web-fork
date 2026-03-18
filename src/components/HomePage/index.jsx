@@ -9,6 +9,7 @@ import React, {
 
 import { Button as AntButton } from 'antd';
 import { Helmet } from 'react-helmet-async';
+import { useNavigate } from 'react-router-dom';
 import Joyride, {
   ACTIONS,
   EVENTS,
@@ -32,6 +33,7 @@ import {
 
 import exampleSchema from './exampleSchema.json';
 import LlmSearchBar from './LlmSearchBarHome';
+import { useAuth } from '../Auth/AuthContext';
 
 // const { Search } = Input;
 
@@ -42,6 +44,8 @@ const HomePage = () => {
     const [searchBarOpen, setSearchBarOpen] = useState(false);
     const [showExamples, setShowExamples] = useState(undefined);
     const [prefillQuery, setPrefillQuery] = useState('');
+    const { isAuthenticated, loading } = useAuth();
+    const navigate = useNavigate();
     const examplePanelRef = useRef(null);
     const iconMap = {
         lightbulb: <LightbulbOutlinedIcon />,
@@ -75,6 +79,19 @@ const HomePage = () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [showExamples]);
+
+    const handleAuthGate = (event) => {
+        if (loading) return true;
+        if (isAuthenticated) {
+            return false;
+        }
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        navigate('/login');
+        return true;
+    };
 
 
     // const handleSearch = async (v) => {
@@ -263,6 +280,9 @@ const HomePage = () => {
                                                             type="button"
                                                             className="homepage-examples-item"
                                                             onClick={() => {
+                                                                if (handleAuthGate()) {
+                                                                    return;
+                                                                }
                                                                 setPrefillQuery(example);
                                                                 setShowExamples(undefined);
                                                             }}
@@ -283,7 +303,10 @@ const HomePage = () => {
                                         <Box
                                             key={pill.id}
                                             className={`homepage-pill${showExamples === pill.id ? ' is-active' : ''}`}
-                                            onClick={() => {
+                                            onClick={(event) => {
+                                                if (handleAuthGate(event)) {
+                                                    return;
+                                                }
                                                 setShowExamples((current) => current === pill.id ? undefined : pill.id);
                                             }}
                                         >

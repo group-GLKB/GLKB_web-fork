@@ -13,11 +13,12 @@ import {
 } from 'react-router-dom';
 
 import {
-    BookmarkBorder as BookmarkBorderIcon,
-    DeleteOutline as DeleteOutlineIcon,
-    DriveFileRenameOutline as DriveFileRenameOutlineIcon,
+  Bookmark as BookmarkIcon,
+  BookmarkBorder as BookmarkBorderIcon,
+  DeleteOutline as DeleteOutlineIcon,
+  DriveFileRenameOutline as DriveFileRenameOutlineIcon,
   InfoOutlined as InfoOutlinedIcon,
-    MoreHoriz as MoreHorizIcon,
+  MoreHoriz as MoreHorizIcon,
   Person as PersonIcon,
 } from '@mui/icons-material';
 import {
@@ -61,11 +62,15 @@ import {
   fetchConversations,
   getActiveConversationId,
   getConversations,
-    removeConversation,
+  removeConversation,
   setActiveConversationId,
-    updateConversationTitle,
+  updateConversationTitle,
 } from '../../../utils/chatHistory';
-import { toggleConversationBookmark } from '../../../utils/conversationBookmarks';
+import {
+  fetchConversationBookmarks,
+  getConversationBookmarks,
+  toggleConversationBookmark,
+} from '../../../utils/conversationBookmarks';
 import { useAuth } from '../../Auth/AuthContext';
 
 const drawerWidth = 240;
@@ -134,6 +139,7 @@ function NavBarWhite({ showLogo = true }) {
     const [recentMenuConversation, setRecentMenuConversation] = useState(null);
     const [editingRecentId, setEditingRecentId] = useState(null);
     const [editingRecentTitle, setEditingRecentTitle] = useState('');
+    const [conversationBookmarks, setConversationBookmarks] = useState([]);
 
     useEffect(() => {
         if (isSmallScreen) {
@@ -213,6 +219,33 @@ function NavBarWhite({ showLogo = true }) {
         return () => window.removeEventListener('resize', updateCount);
     }, []);
 
+    useEffect(() => {
+        if (!isAuthenticated) {
+            setConversationBookmarks([]);
+            return undefined;
+        }
+
+        let isMounted = true;
+        const update = (event) => {
+            const next = event?.detail || getConversationBookmarks();
+            if (!isMounted) return;
+            setConversationBookmarks(next);
+        };
+
+        fetchConversationBookmarks()
+            .then((list) => {
+                if (!isMounted) return;
+                setConversationBookmarks(list);
+            })
+            .catch(() => update());
+
+        window.addEventListener('glkb-conversation-bookmarks-updated', update);
+        return () => {
+            isMounted = false;
+            window.removeEventListener('glkb-conversation-bookmarks-updated', update);
+        };
+    }, [isAuthenticated]);
+
     const topItems = useMemo(() => (
         [
             {
@@ -254,6 +287,13 @@ function NavBarWhite({ showLogo = true }) {
     const userDisplayName = user?.username || user?.email || 'Account';
     const isUserMenuOpen = Boolean(userMenuAnchorEl);
     const isRecentMenuOpen = Boolean(recentMenuAnchorEl);
+    const bookmarkedConversationIds = useMemo(
+        () => new Set(conversationBookmarks.map((item) => String(item?.id ?? item?.hid ?? ''))),
+        [conversationBookmarks]
+    );
+    const isRecentBookmarked = recentMenuConversation
+        ? bookmarkedConversationIds.has(String(recentMenuConversation?.id ?? recentMenuConversation?.hid ?? ''))
+        : false;
 
     const handleOpenUserMenu = (event) => {
         setUserMenuAnchorEl(event.currentTarget);
@@ -678,105 +718,105 @@ function NavBarWhite({ showLogo = true }) {
                                 (() => {
                                     const isEditingRecent = String(editingRecentId) === String(conversation.id);
                                     return (
-                                <Box
-                                    key={conversation.id}
-                                    sx={{
-                                        position: 'relative',
-                                        width: '100%',
-                                        minHeight: 32,
-                                        '&:hover .recent-entry-button, &:focus-within .recent-entry-button': {
-                                            paddingRight: '36px',
-                                        },
-                                        '&:hover .recent-more-button, &:focus-within .recent-more-button': {
-                                            opacity: 1,
-                                            pointerEvents: 'auto',
-                                        },
-                                    }}
-                                >
-                                    <Box
-                                        component={isEditingRecent ? 'input' : 'button'}
-                                        type={isEditingRecent ? 'text' : 'button'}
-                                        className="recent-entry-button"
-                                        value={isEditingRecent ? editingRecentTitle : undefined}
-                                        autoFocus={isEditingRecent}
-                                        onChange={isEditingRecent ? (event) => setEditingRecentTitle(event.target.value) : undefined}
-                                        onBlur={isEditingRecent ? commitInlineRecentRename : undefined}
-                                        onKeyDown={isEditingRecent ? (event) => {
-                                            if (event.key === 'Enter') {
-                                                event.preventDefault();
-                                                commitInlineRecentRename();
-                                            }
-                                            if (event.key === 'Escape') {
-                                                event.preventDefault();
-                                                cancelInlineRecentRename();
-                                            }
-                                        } : undefined}
-                                        onClick={() => {
-                                            if (isEditingRecent) return;
-                                            setActiveConversationId(conversation.id);
-                                            setActiveConversationIdState(conversation.id);
-                                            navigate('/chat', { state: { conversationId: conversation.id } });
-                                        }}
-                                        sx={{
-                                            width: '100%',
-                                            border: '1px solid',
-                                            borderColor: isActiveConversation(conversation) ? '#155DFC' : 'transparent',
-                                            backgroundColor: isActiveConversation(conversation) ? '#E7F1FF' : 'transparent',
-                                            padding: '6px 8px',
-                                            borderRadius: '8px',
-                                            fontFamily: 'DM Sans, sans-serif',
-                                            fontSize: '13px',
-                                            fontWeight: 500,
-                                            lineHeight: 1.4,
-                                            color: '#164563',
-                                            textAlign: 'left',
-                                            cursor: 'pointer',
-                                            whiteSpace: 'nowrap',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            transition: 'background-color 0.2s ease, border-color 0.2s ease, padding-right 0.16s ease',
-                                            '&:hover': {
-                                                backgroundColor: '#E7F1FF',
-                                            },
-                                            ...(isEditingRecent && {
-                                                cursor: 'text',
-                                                outline: 'none',
-                                                borderColor: '#155DFC',
-                                                boxShadow: '0 0 0 2px rgba(21, 93, 252, 0.12)',
-                                                '&:hover': {
-                                                    backgroundColor: isActiveConversation(conversation) ? '#E7F1FF' : '#ffffff',
+                                        <Box
+                                            key={conversation.id}
+                                            sx={{
+                                                position: 'relative',
+                                                width: '100%',
+                                                minHeight: 32,
+                                                '&:hover .recent-entry-button, &:focus-within .recent-entry-button': {
+                                                    paddingRight: '36px',
                                                 },
-                                            }),
-                                        }}
-                                    >
-                                        {isEditingRecent ? undefined : getConversationTitle(conversation)}
-                                    </Box>
-                                    <IconButton
-                                        size="small"
-                                        className="recent-more-button"
-                                        onClick={(event) => handleOpenRecentMenu(event, conversation)}
-                                        aria-label="Open conversation menu"
-                                        disabled={isEditingRecent}
-                                        sx={{
-                                            position: 'absolute',
-                                            right: 6,
-                                            top: '50%',
-                                            transform: 'translateY(-50%)',
-                                            width: 24,
-                                            height: 24,
-                                            borderRadius: '8px',
-                                            color: '#164563',
-                                            opacity: 0,
-                                            pointerEvents: 'none',
-                                            transition: 'opacity 0.16s ease, background-color 0.16s ease',
-                                            '&:hover': {
-                                                backgroundColor: 'rgba(1, 105, 176, 0.1)',
-                                            },
-                                        }}
-                                    >
-                                        <MoreHorizIcon sx={{ fontSize: 18 }} />
-                                    </IconButton>
-                                </Box>
+                                                '&:hover .recent-more-button, &:focus-within .recent-more-button': {
+                                                    opacity: 1,
+                                                    pointerEvents: 'auto',
+                                                },
+                                            }}
+                                        >
+                                            <Box
+                                                component={isEditingRecent ? 'input' : 'button'}
+                                                type={isEditingRecent ? 'text' : 'button'}
+                                                className="recent-entry-button"
+                                                value={isEditingRecent ? editingRecentTitle : undefined}
+                                                autoFocus={isEditingRecent}
+                                                onChange={isEditingRecent ? (event) => setEditingRecentTitle(event.target.value) : undefined}
+                                                onBlur={isEditingRecent ? commitInlineRecentRename : undefined}
+                                                onKeyDown={isEditingRecent ? (event) => {
+                                                    if (event.key === 'Enter') {
+                                                        event.preventDefault();
+                                                        commitInlineRecentRename();
+                                                    }
+                                                    if (event.key === 'Escape') {
+                                                        event.preventDefault();
+                                                        cancelInlineRecentRename();
+                                                    }
+                                                } : undefined}
+                                                onClick={() => {
+                                                    if (isEditingRecent) return;
+                                                    setActiveConversationId(conversation.id);
+                                                    setActiveConversationIdState(conversation.id);
+                                                    navigate('/chat', { state: { conversationId: conversation.id } });
+                                                }}
+                                                sx={{
+                                                    width: '100%',
+                                                    border: '1px solid',
+                                                    borderColor: isActiveConversation(conversation) ? '#155DFC' : 'transparent',
+                                                    backgroundColor: isActiveConversation(conversation) ? '#E7F1FF' : 'transparent',
+                                                    padding: '6px 8px',
+                                                    borderRadius: '8px',
+                                                    fontFamily: 'DM Sans, sans-serif',
+                                                    fontSize: '13px',
+                                                    fontWeight: 500,
+                                                    lineHeight: 1.4,
+                                                    color: '#164563',
+                                                    textAlign: 'left',
+                                                    cursor: 'pointer',
+                                                    whiteSpace: 'nowrap',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    transition: 'background-color 0.2s ease, border-color 0.2s ease, padding-right 0.16s ease',
+                                                    '&:hover': {
+                                                        backgroundColor: '#E7F1FF',
+                                                    },
+                                                    ...(isEditingRecent && {
+                                                        cursor: 'text',
+                                                        outline: 'none',
+                                                        borderColor: '#155DFC',
+                                                        boxShadow: '0 0 0 2px rgba(21, 93, 252, 0.12)',
+                                                        '&:hover': {
+                                                            backgroundColor: isActiveConversation(conversation) ? '#E7F1FF' : '#ffffff',
+                                                        },
+                                                    }),
+                                                }}
+                                            >
+                                                {isEditingRecent ? undefined : getConversationTitle(conversation)}
+                                            </Box>
+                                            <IconButton
+                                                size="small"
+                                                className="recent-more-button"
+                                                onClick={(event) => handleOpenRecentMenu(event, conversation)}
+                                                aria-label="Open conversation menu"
+                                                disabled={isEditingRecent}
+                                                sx={{
+                                                    position: 'absolute',
+                                                    right: 6,
+                                                    top: '50%',
+                                                    transform: 'translateY(-50%)',
+                                                    width: 24,
+                                                    height: 24,
+                                                    borderRadius: '8px',
+                                                    color: '#164563',
+                                                    opacity: 0,
+                                                    pointerEvents: 'none',
+                                                    transition: 'opacity 0.16s ease, background-color 0.16s ease',
+                                                    '&:hover': {
+                                                        backgroundColor: 'rgba(1, 105, 176, 0.1)',
+                                                    },
+                                                }}
+                                            >
+                                                <MoreHorizIcon sx={{ fontSize: 18 }} />
+                                            </IconButton>
+                                        </Box>
                                     );
                                 })()
                             ))}
@@ -836,9 +876,15 @@ function NavBarWhite({ showLogo = true }) {
                 </MenuItem>
                 <MenuItem onClick={handleBookmarkRecent}>
                     <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
-                        <BookmarkBorderIcon sx={{ fontSize: 18 }} />
+                        {isRecentBookmarked ? (
+                            <BookmarkIcon sx={{ fontSize: 18 }} />
+                        ) : (
+                            <BookmarkBorderIcon sx={{ fontSize: 18 }} />
+                        )}
                     </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>Bookmark</ListItemText>
+                    <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
+                        {isRecentBookmarked ? 'Remove bookmark' : 'Bookmark'}
+                    </ListItemText>
                 </MenuItem>
                 <Divider />
                 <MenuItem onClick={handleDeleteRecent} sx={{ color: '#B42318 !important' }}>
