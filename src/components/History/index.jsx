@@ -371,6 +371,11 @@ const History = () => {
     };
 
     const handleToggleConversationSelection = (conversationId) => {
+        if (!selectMode) {
+            setSelectMode(true);
+            setSelectedIds([conversationId]);
+            return;
+        }
         setSelectedIds((prev) => (
             prev.includes(conversationId)
                 ? prev.filter((id) => id !== conversationId)
@@ -633,6 +638,7 @@ const History = () => {
                                     timestamp={formatTimestamp(conversation.updatedAt || conversation.createdAt)}
                                     selectMode={selectMode}
                                     isSelected={selectedIdSet.has(conversation.id)}
+                                    showCheckboxOnHover
                                     isBookmarked={bookmarkedConversationIds.has(String(conversation.id))}
                                     onToggleSelect={handleToggleConversationSelection}
                                     onOpen={(item) => handleOpenConversation(item.id)}

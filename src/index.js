@@ -6,13 +6,14 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
 import {
-  BrowserRouter as Router,
-  Navigate,
-  Route,
-  Routes,
+    BrowserRouter as Router,
+    Navigate,
+    Route,
+    Routes,
 } from 'react-router-dom';
 
 import AboutPage from './components/AboutPage';
+import AccountPage from './components/AccountPage';
 import ApiPage from './components/ApiPage';
 // import SignupPage from './components/Auth/SignupPage';
 // import ProtectedRoute from './components/Auth/ProtectedRoute';
@@ -47,6 +48,7 @@ function AppWithRoutes() {
                     <Route path="/chat" element={<LLMAgent />} />
                     <Route path="/history" element={<History />} />
                     <Route path="/library" element={<Library />} />
+                    <Route path="/account" element={<AccountPage />} />
                     <Route path="/test-auth" element={<TestAuth />} />
 
                     {/* Authentication routes */}

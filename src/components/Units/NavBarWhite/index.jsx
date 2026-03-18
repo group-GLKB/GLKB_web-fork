@@ -1,80 +1,90 @@
 import './scoped.css';
 
 import React, {
-  useEffect,
-  useMemo,
-  useState,
+    useEffect,
+    useMemo,
+    useState,
 } from 'react';
 
 import {
-  Link,
-  useLocation,
-  useNavigate,
+    Link,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
 import {
-  Bookmark as BookmarkIcon,
-  BookmarkBorder as BookmarkBorderIcon,
-  DeleteOutline as DeleteOutlineIcon,
-  DriveFileRenameOutline as DriveFileRenameOutlineIcon,
-  InfoOutlined as InfoOutlinedIcon,
-  MoreHoriz as MoreHorizIcon,
-  Person as PersonIcon,
+    Bookmark as BookmarkIcon,
+    BookmarkBorder as BookmarkBorderIcon,
+    DeleteOutline as DeleteOutlineIcon,
+    DriveFileRenameOutline as DriveFileRenameOutlineIcon,
+    InfoOutlined as InfoOutlinedIcon,
+    MoreHoriz as MoreHorizIcon,
+    Person as PersonIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Divider,
-  Drawer as MuiDrawer,
-  IconButton,
-  List,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Tooltip,
-  Typography,
-  useMediaQuery,
+    Box,
+    Divider,
+    Drawer as MuiDrawer,
+    IconButton,
+    List,
+    ListItemButton,
+    ListItemIcon,
+    ListItemText,
+    Menu,
+    MenuItem,
+    Tooltip,
+    Typography,
+    useMediaQuery,
 } from '@mui/material';
 import {
-  styled,
-  useTheme,
+    styled,
+    useTheme,
 } from '@mui/material/styles';
 
 import logo from '../../../img/GLKB_logo_icon.png';
 import { ReactComponent as AddIcon } from '../../../img/navbar/add.svg';
 import { ReactComponent as BookIcon } from '../../../img/navbar/book_4.svg';
 import {
-  ReactComponent as CategorySearchIcon,
+    ReactComponent as CategorySearchIcon,
 } from '../../../img/navbar/category_search.svg';
 import {
-  ReactComponent as CodeBlocksIcon,
+    ReactComponent as CodeBlocksIcon,
 } from '../../../img/navbar/code_blocks.svg';
 import { ReactComponent as HistoryIcon } from '../../../img/navbar/history.svg';
 import logoWordmark from '../../../img/navbar/logo.jpg';
 import {
-  ReactComponent as SidebarLeftIcon,
+    ReactComponent as SidebarLeftIcon,
 } from '../../../img/navbar/sidebar.left.svg';
 import userAccountIcon from '../../../img/user/ic_outline-account-circle.svg';
 import userSettingsIcon from '../../../img/user/lsicon_setting-outline.svg';
 import userLogoutIcon from '../../../img/user/mynaui_logout.svg';
 import {
-  fetchConversations,
-  getActiveConversationId,
-  getConversations,
-  removeConversation,
-  setActiveConversationId,
-  updateConversationTitle,
+    fetchConversations,
+    getActiveConversationId,
+    getConversations,
+    removeConversation,
+    setActiveConversationId,
+    updateConversationTitle,
 } from '../../../utils/chatHistory';
 import {
-  fetchConversationBookmarks,
-  getConversationBookmarks,
-  toggleConversationBookmark,
+    fetchConversationBookmarks,
+    getConversationBookmarks,
+    toggleConversationBookmark,
 } from '../../../utils/conversationBookmarks';
 import { useAuth } from '../../Auth/AuthContext';
 
 const drawerWidth = 240;
 const collapsedWidth = 88;
+
+const getStoredAccountProfile = () => {
+    if (typeof window === 'undefined') {
+        return { name: '', avatar: '' };
+    }
+    return {
+        name: window.sessionStorage.getItem('account_display_name') || '',
+        avatar: window.sessionStorage.getItem('account_avatar') || '',
+    };
+};
 
 const openedMixin = (theme) => ({
     width: drawerWidth,
@@ -140,6 +150,7 @@ function NavBarWhite({ showLogo = true }) {
     const [editingRecentId, setEditingRecentId] = useState(null);
     const [editingRecentTitle, setEditingRecentTitle] = useState('');
     const [conversationBookmarks, setConversationBookmarks] = useState([]);
+    const [storedProfile, setStoredProfile] = useState(() => getStoredAccountProfile());
 
     useEffect(() => {
         if (isSmallScreen) {
@@ -246,6 +257,18 @@ function NavBarWhite({ showLogo = true }) {
         };
     }, [isAuthenticated]);
 
+    useEffect(() => {
+        const handleAccountUpdate = () => {
+            setStoredProfile(getStoredAccountProfile());
+        };
+
+        handleAccountUpdate();
+        window.addEventListener('glkb-account-updated', handleAccountUpdate);
+        return () => {
+            window.removeEventListener('glkb-account-updated', handleAccountUpdate);
+        };
+    }, []);
+
     const topItems = useMemo(() => (
         [
             {
@@ -284,7 +307,7 @@ function NavBarWhite({ showLogo = true }) {
         }
     ), []);
 
-    const userDisplayName = user?.username || user?.email || 'Account';
+    const userDisplayName = storedProfile.name || user?.username || user?.email || 'Account';
     const isUserMenuOpen = Boolean(userMenuAnchorEl);
     const isRecentMenuOpen = Boolean(recentMenuAnchorEl);
     const bookmarkedConversationIds = useMemo(
@@ -305,12 +328,12 @@ function NavBarWhite({ showLogo = true }) {
 
     const handleAccountClick = () => {
         handleCloseUserMenu();
-        console.log('Account clicked');
+        navigate('/account');
     };
 
     const handleSettingsClick = () => {
         handleCloseUserMenu();
-        console.log('Settings clicked');
+        navigate('/account');
     };
 
     const handleLogoutClick = async () => {
@@ -830,7 +853,21 @@ function NavBarWhite({ showLogo = true }) {
                         ) : (
                             renderNavItem({
                                 label: userDisplayName,
-                                icon: <PersonIcon sx={{ fontSize: 22 }} />,
+                                icon: storedProfile.avatar ? (
+                                    <Box
+                                        component="img"
+                                        src={storedProfile.avatar}
+                                        alt="Account avatar"
+                                        sx={{
+                                            width: '100%',
+                                            height: '100%',
+                                            borderRadius: '50%',
+                                            objectFit: 'cover',
+                                        }}
+                                    />
+                                ) : (
+                                    <PersonIcon sx={{ fontSize: 22 }} />
+                                ),
                                 onClick: handleOpenUserMenu,
                                 iconBoxSx: {
                                     backgroundColor: '#e9f1fe',
