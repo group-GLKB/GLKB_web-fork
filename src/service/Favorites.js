@@ -38,3 +38,51 @@ export const removeFavoriteReference = async (pmid) => {
     const response = await axios.delete(`${API_BASE}/reference/${pmid}`);
     return response.data;
 };
+
+export const listFavoriteFolders = async () => {
+    const response = await axios.get(`${API_BASE}/folder`);
+    return response.data;
+};
+
+export const getFavoriteFolder = async (fid) => {
+    const response = await axios.get(`${API_BASE}/folder/${fid}`);
+    return response.data;
+};
+
+export const createFavoriteFolder = async (name) => {
+    const response = await axios.post(`${API_BASE}/folder`, { name });
+    return response.data;
+};
+
+export const duplicateFavoriteFolder = async (fid) => {
+    const response = await axios.post(`${API_BASE}/folder/${fid}/duplicate`);
+    return response.data;
+};
+
+export const updateFavoriteFolder = async (fid, name) => {
+    const response = await axios.patch(`${API_BASE}/folder/${fid}`, { name });
+    return response.data;
+};
+
+export const removeFavoriteFolder = async (fid) => {
+    const response = await axios.delete(`${API_BASE}/folder/${fid}`);
+    return response.data;
+};
+
+export const updateFavoriteChatFolder = async (hid, folderId, action) => {
+    const response = await axios.patch(`${API_BASE}/chat/${hid}`,
+        {
+            folder_id: folderId,
+            action,
+        });
+    return response.data;
+};
+
+export const updateFavoriteReferenceFolder = async (pmid, folderId, action) => {
+    const response = await axios.patch(`${API_BASE}/reference/${pmid}`,
+        {
+            folder_id: folderId,
+            action,
+        });
+    return response.data;
+};
