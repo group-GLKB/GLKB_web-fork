@@ -44,6 +44,7 @@ const ConversationCard = ({
     timestamp,
     selectMode = false,
     isSelected = false,
+    showCheckboxOnHover = false,
     onToggleSelect,
     onOpen,
     onRename,
@@ -152,9 +153,11 @@ const ConversationCard = ({
         }
     };
 
+    const shouldRenderCheckbox = selectMode || showCheckboxOnHover;
+
     return (
         <Box className={`history-item-row${selectMode ? ' history-item-row-select-mode' : ''}`}>
-            {selectMode && (
+            {shouldRenderCheckbox && (
                 <Checkbox
                     className="history-row-checkbox"
                     checked={isSelected}

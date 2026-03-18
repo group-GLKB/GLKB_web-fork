@@ -30,11 +30,23 @@
     opacity: 0;
 }
 
-.history-item-row-select-mode .history-row-checkbox {
+.history-row-checkbox {
     grid-column: 1;
     justify-self: start;
-    align-self: start;
-    margin-top: 12px;
+    align-self: center;
+    margin-top: 0;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.16s ease;
+}
+
+.history-item-row:hover .history-row-checkbox,
+.history-item-row:focus-within .history-row-checkbox,
+.history-item-row-select-mode .history-row-checkbox {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 .history-item {
@@ -43,7 +55,7 @@
     text-align: left;
     background: transparent;
     border: none;
-    padding: 16px 0;
+    padding: 12px 0;
     border-radius: 10px;
     box-sizing: border-box;
     cursor: pointer;

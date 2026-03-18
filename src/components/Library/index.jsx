@@ -1,69 +1,72 @@
 import './scoped.css';
 
 import React, {
-  useEffect,
-  useMemo,
-  useState,
+    useEffect,
+    useMemo,
+    useState,
 } from 'react';
 
 import {
-  Navigate,
-  useLocation,
-  useNavigate,
+    Navigate,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
 import {
-  Bookmark as BookmarkIcon,
-  ChevronRight as ChevronRightIcon,
-  DeleteOutline as DeleteOutlineIcon,
-  DriveFileRenameOutline as DriveFileRenameOutlineIcon,
-  FileCopyOutlined as FileCopyOutlinedIcon,
-  FolderOutlined as FolderOutlinedIcon,
-  FormatQuoteOutlined as FormatQuoteOutlinedIcon,
-  MoreHoriz as MoreHorizIcon,
+    Bookmark as BookmarkIcon,
+    ChevronRight as ChevronRightIcon,
+    DeleteOutline as DeleteOutlineIcon,
+    DriveFileRenameOutline as DriveFileRenameOutlineIcon,
+    FileCopyOutlined as FileCopyOutlinedIcon,
+    FolderOutlined as FolderOutlinedIcon,
+    FormatQuoteOutlined as FormatQuoteOutlinedIcon,
+    MoreHoriz as MoreHorizIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Button as MuiButton,
-  Checkbox,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  TextField,
-  Typography,
+    Box,
+    Button as MuiButton,
+    Checkbox,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    IconButton,
+    ListItemIcon,
+    ListItemText,
+    Menu,
+    MenuItem,
+    Tab,
+    Tabs,
+    TextField,
+    Typography,
 } from '@mui/material';
 
+import { ReactComponent as FolderOpenIcon } from '../../img/folder_open.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import { ReactComponent as BookIcon } from '../../img/navbar/book_4.svg';
 import {
-  createFavoriteFolder,
-  duplicateFavoriteFolder,
-  getFavoriteFolder,
-  listFavoriteFolders,
-  removeFavoriteFolder,
-  updateFavoriteChatFolder,
-  updateFavoriteFolder,
-  updateFavoriteReferenceFolder,
+    createFavoriteFolder,
+    duplicateFavoriteFolder,
+    getFavoriteFolder,
+    listFavoriteFolders,
+    removeFavoriteFolder,
+    updateFavoriteChatFolder,
+    updateFavoriteFolder,
+    updateFavoriteReferenceFolder,
 } from '../../service/Favorites';
 import {
-  fetchBookmarks,
-  getBookmarks,
-  toggleBookmark,
+    fetchBookmarks,
+    getBookmarks,
+    toggleBookmark,
 } from '../../utils/bookmarks';
 import {
-  setActiveConversationId,
-  updateConversationTitle,
+    setActiveConversationId,
+    updateConversationTitle,
 } from '../../utils/chatHistory';
 import {
-  fetchConversationBookmarks,
-  getConversationBookmarks,
-  toggleConversationBookmark,
+    fetchConversationBookmarks,
+    getConversationBookmarks,
+    toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
 import { useAuth } from '../Auth/AuthContext';
 import CiteDialog from '../Units/CiteDialog';
@@ -164,6 +167,10 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
     const [menuAnchorEl, setMenuAnchorEl] = useState(null);
     const isMenuOpen = Boolean(menuAnchorEl);
     const authors = entry?.authors || '';
+    const pmid = entry?.pmid || '';
+    const journal = entry?.journal || '';
+    const year = entry?.year || '';
+    const hasMetaRow = Boolean(journal || year);
 
     const handleOpenMenu = (event) => {
         event.stopPropagation();
@@ -215,19 +222,25 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                     }
                 }}
             >
-                <Box className="history-item-content">
-                    <Box className="history-item-title-row">
-                        <Typography className="history-title" sx={{
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontWeight: 600,
-                            fontSize: '16px',
-                            color: '#164563',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                        }}>
-                            {entry?.title || 'Untitled reference'}
-                        </Typography>
+                <Box className="history-item-content" sx={{ gap: '4px' }}>
+                    <Box sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '12px',
+                        height: '21px',
+                    }}>
+                        {pmid ? (
+                            <Typography sx={{
+                                color: '#969696',
+                                fontSize: '14px',
+                                fontWeight: 700,
+                            }}>
+                                PubMed ID: {pmid}
+                            </Typography>
+                        ) : (
+                            <span />
+                        )}
                         <IconButton
                             size="small"
                             className="history-item-more"
@@ -243,13 +256,61 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                             <MoreHorizIcon sx={{ fontSize: 18 }} />
                         </IconButton>
                     </Box>
-                    <Typography className="history-subtitle">
-                        {getReferenceSubtitle(entry)}
+                    <Typography sx={{
+                        color: '#323232',
+                        fontWeight: 600,
+                        fontSize: '16px',
+                        display: 'block',
+                        wordBreak: 'break-word',
+                    }}>
+                        {entry?.title || 'Untitled reference'}
                     </Typography>
                     {authors && (
-                        <Typography className="history-timestamp">
+                        <Box sx={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: '6px',
+                            fontSize: '14px',
+                            fontWeight: 400,
+                            fontStyle: 'italic',
+                            color: '#969696',
+                        }}>
                             {authors}
-                        </Typography>
+                        </Box>
+                    )}
+                    {hasMetaRow && (
+                        <Box
+                            className="library-reference-meta"
+                            sx={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: '12px',
+                            }}
+                        >
+                            <Typography sx={{
+                                fontSize: '14px',
+                                fontWeight: 400,
+                                color: '#323232',
+                                wordBreak: 'break-word',
+                                flex: 1,
+                            }} title="Journal">
+                                {journal}
+                            </Typography>
+                            {year && (
+                                <Typography
+                                    className="library-reference-year"
+                                    sx={{
+                                        fontSize: '14px',
+                                        fontWeight: 400,
+                                        color: '#323232',
+                                        flexShrink: 0,
+                                    }}
+                                >
+                                    {year}
+                                </Typography>
+                            )}
+                        </Box>
                     )}
                 </Box>
             </div>
@@ -343,26 +404,33 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                 }
             }}
         >
+            <div className="library-folder-top">
+                <div className="library-folder-icon">
+                    <FolderOpenIcon className="library-folder-icon-image" />
+                </div>
+                <div className="library-folder-menu-slot">
+                    <IconButton
+                        size="small"
+                        className="library-folder-menu"
+                        onClick={handleOpenMenu}
+                        aria-label="Open folder menu"
+                        sx={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: '8px',
+                            color: '#164563',
+                        }}
+                    >
+                        <MoreHorizIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                </div>
+            </div>
             <div className="library-folder-title" title={folder?.name || ''}>
                 {folder?.name || 'Untitled folder'}
             </div>
             <div className="library-folder-meta">
                 {folder?.chat_count ?? 0} chats / {folder?.ref_count ?? 0} references
             </div>
-            <IconButton
-                size="small"
-                className="library-folder-menu"
-                onClick={handleOpenMenu}
-                aria-label="Open folder menu"
-                sx={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '8px',
-                    color: '#164563',
-                }}
-            >
-                <MoreHorizIcon sx={{ fontSize: 18 }} />
-            </IconButton>
             <Menu
                 anchorEl={menuAnchorEl}
                 open={isMenuOpen}
@@ -996,18 +1064,45 @@ const Library = () => {
                         }}>
                             Collect papers, explore connections, and organize your research journey.
                         </Typography>
-                        <div className="library-tabs">
+                        <Tabs
+                            className="library-tabs"
+                            value={isFolderView ? false : activeTab}
+                            onChange={(_, value) => handleTabClick(value)}
+                            variant="scrollable"
+                            allowScrollButtonsMobile
+                            TabIndicatorProps={{
+                                sx: {
+                                    backgroundColor: '#155DFC',
+                                    height: 2,
+                                },
+                            }}
+                            sx={{
+                                minHeight: 0,
+                                '& .MuiTabs-scroller': {
+                                    borderBottom: '1px solid #D9D9D9',
+                                },
+                                '& .MuiTabs-flexContainer': {
+                                    gap: '12px',
+                                },
+                                '& .MuiTab-root': {
+                                    textTransform: 'none',
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    color: '#164563',
+                                    minHeight: 32,
+                                    minWidth: 0,
+                                    padding: '12px 24px',
+                                },
+                                '& .MuiTab-root.Mui-selected': {
+                                    color: '#155DFC',
+                                },
+                            }}
+                        >
                             {tabs.map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    type="button"
-                                    className={`library-tab${!isFolderView && activeTab === tab.id ? ' library-tab--active' : ''}`}
-                                    onClick={() => handleTabClick(tab.id)}
-                                >
-                                    {tab.label}
-                                </button>
+                                <Tab key={tab.id} value={tab.id} label={tab.label} />
                             ))}
-                        </div>
+                        </Tabs>
                     </Box>
                     <Box className="library-scroll">
                         {isFolderView && (
