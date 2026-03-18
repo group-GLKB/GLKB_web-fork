@@ -9,12 +9,12 @@ import React, {
 
 import { Button as AntButton } from 'antd';
 import { Helmet } from 'react-helmet-async';
-import { useNavigate } from 'react-router-dom';
 import Joyride, {
   ACTIONS,
   EVENTS,
   STATUS,
 } from 'react-joyride';
+import { useNavigate } from 'react-router-dom';
 
 import {
   ArrowOutward as ArrowOutwardIcon,
@@ -31,9 +31,9 @@ import {
   Typography,
 } from '@mui/material';
 
+import { useAuth } from '../Auth/AuthContext';
 import exampleSchema from './exampleSchema.json';
 import LlmSearchBar from './LlmSearchBarHome';
-import { useAuth } from '../Auth/AuthContext';
 
 // const { Search } = Input;
 
@@ -234,6 +234,7 @@ const HomePage = () => {
                                         fontWeight: 700,
                                         fontSize: '36px',
                                         color: '#164563',
+                                        lineHeight: 1,
                                     }}
                                 >
                                     Ask. Analyze. Cite.

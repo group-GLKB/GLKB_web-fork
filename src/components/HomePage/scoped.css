@@ -66,7 +66,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 32px;
+    gap: 24px;
     padding: 9vh max(4vw, 24px) 6vh;
     text-align: center;
 }
@@ -74,7 +74,7 @@
 .homepage-hero-inner {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
     max-width: 760px;
 }
 
@@ -102,7 +102,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 24px;
     --example-item-gap: 12px;
 }
 
@@ -117,7 +117,7 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: 12px;
-    margin-top: 8px;
+    margin-top: 0;
     position: relative;
     z-index: 1;
 }

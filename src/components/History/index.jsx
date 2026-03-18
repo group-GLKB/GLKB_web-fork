@@ -499,7 +499,7 @@ const History = () => {
                                 </Typography>
                             </Box>
                             <Typography sx={{
-                                marginTop: '8px',
+                                marginTop: '8.5px',
                                 fontFamily: 'DM Sans, sans-serif',
                                 fontWeight: 500,
                                 fontSize: '14px',
@@ -571,7 +571,7 @@ const History = () => {
                                                     onChange={handleToggleSelectAllFiltered}
                                                     inputProps={{ 'aria-label': 'Select all conversations' }}
                                                     sx={{
-                                                        color: '#155DFC',
+                                                        color: '#D9D9D9',
                                                         padding: '4px',
                                                         '&.Mui-checked': { color: '#155DFC' },
                                                         '&.MuiCheckbox-indeterminate': { color: '#155DFC' },
