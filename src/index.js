@@ -4,6 +4,7 @@ import './utils/axiosConfig'; // Import axios interceptor configuration
 import React, { useEffect } from 'react';
 
 import { createRoot } from 'react-dom/client';
+import { HelmetProvider } from 'react-helmet-async';
 import {
   BrowserRouter as Router,
   Route,
@@ -16,6 +17,7 @@ import HomePage from './components/HomePage';
 import LLMAgent from './components/LLMAgent';
 import ResultPage from './components/ResultPage';
 import TestAuth from './components/TestAuth';
+import TestStatus from './components/TestStatus';
 // import LoginPage from './components/Auth/LoginPage';
 // import SignupPage from './components/Auth/SignupPage';
 // import ProtectedRoute from './components/Auth/ProtectedRoute';
@@ -24,8 +26,6 @@ import {
   initGA,
   trackPageView,
 } from './components/Units/analytics';
-
-import { HelmetProvider } from 'react-helmet-async';
 
 const initState = {
     searchType: ''
@@ -47,19 +47,20 @@ function AppWithAnalytics() {
 
     return (
         <HelmetProvider>
-        <Routes>
-            <Route path='/search' element={<ResultPage />} />
-            <Route path="/" element={<HomePage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/chat" element={<LLMAgent />} />
-            <Route path="/test-auth" element={<TestAuth />} />
-            
-            {/* Authentication routes - commented out for now */}
-            {/* <Route path="/login" element={<LoginPage />} /> */}
-            {/* <Route path="/signup" element={<SignupPage />} /> */}
-            
-            {/* Protected routes - commented out for now */}
-            {/* <Route path='/result' element={
+            <Routes>
+                <Route path='/search' element={<ResultPage />} />
+                <Route path="/" element={<HomePage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/chat" element={<LLMAgent />} />
+                <Route path="/test-auth" element={<TestAuth />} />
+                <Route path="/test" element={<TestStatus />} />
+
+                {/* Authentication routes - commented out for now */}
+                {/* <Route path="/login" element={<LoginPage />} /> */}
+                {/* <Route path="/signup" element={<SignupPage />} /> */}
+
+                {/* Protected routes - commented out for now */}
+                {/* <Route path='/result' element={
                 <ProtectedRoute>
                     <ResultPage />
                 </ProtectedRoute>
@@ -79,7 +80,7 @@ function AppWithAnalytics() {
                     <LLMAgent />
                 </ProtectedRoute>
             } /> */}
-        </Routes>
+            </Routes>
         </HelmetProvider>
     );
 }
