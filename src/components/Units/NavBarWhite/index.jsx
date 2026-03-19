@@ -43,6 +43,9 @@ import {
 
 import logo from '../../../img/GLKB_logo_icon.png';
 import { ReactComponent as AddIcon } from '../../../img/navbar/add.svg';
+import {
+    ReactComponent as UpgradeIcon,
+} from '../../../img/navbar/arrow_circle_up.svg';
 import { ReactComponent as BookIcon } from '../../../img/navbar/book_4.svg';
 import {
     ReactComponent as CategorySearchIcon,
@@ -56,7 +59,6 @@ import {
     ReactComponent as SidebarLeftIcon,
 } from '../../../img/navbar/sidebar.left.svg';
 import userAccountIcon from '../../../img/user/ic_outline-account-circle.svg';
-import userSettingsIcon from '../../../img/user/lsicon_setting-outline.svg';
 import userLogoutIcon from '../../../img/user/mynaui_logout.svg';
 import {
     fetchConversations,
@@ -331,9 +333,8 @@ function NavBarWhite({ showLogo = true }) {
         navigate('/account');
     };
 
-    const handleSettingsClick = () => {
+    const handleUpgradeClick = () => {
         handleCloseUserMenu();
-        navigate('/account');
     };
 
     const handleLogoutClick = async () => {
@@ -953,13 +954,14 @@ function NavBarWhite({ showLogo = true }) {
                         py: 1,
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 1,
+                        gap: 0,
+                        color: '#444444',
                     },
                 }}
                 PaperProps={{
                     sx: {
                         minWidth: 240,
-                        borderRadius: 2,
+                        borderRadius: '12px',
                         boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
                         '& .MuiMenuItem-root': {
                             color: '#444444',
@@ -973,13 +975,20 @@ function NavBarWhite({ showLogo = true }) {
                             fontWeight: 400,
                             fontSize: '14px',
                         },
+                        '& .MuiTypography-root': {
+                            color: '#444444',
+                        },
+                        '& .MuiListItemIcon-root': {
+                            color: '#777777',
+                        },
                     },
                 }}
             >
                 <MenuItem
                     sx={{
                         px: 2,
-                        py: 1,
+                        pt: 1,
+                        pb: 2,
                         cursor: 'default',
                         '&:hover': {
                             backgroundColor: 'transparent',
@@ -997,6 +1006,12 @@ function NavBarWhite({ showLogo = true }) {
                         {userDisplayName}
                     </Typography>
                 </MenuItem>
+                <MenuItem onClick={handleUpgradeClick} sx={{ px: 2, py: 1 }}>
+                    <ListItemIcon sx={{ minWidth: "16px !important", mr: 1 }}>
+                        <UpgradeIcon style={{ width: 16, height: 16 }} />
+                    </ListItemIcon>
+                    <ListItemText>Upgrade</ListItemText>
+                </MenuItem>
                 <MenuItem onClick={handleAccountClick} sx={{ px: 2, py: 1 }}>
                     <ListItemIcon sx={{ minWidth: "16px !important", mr: 1 }}>
                         <Box
@@ -1007,17 +1022,6 @@ function NavBarWhite({ showLogo = true }) {
                         />
                     </ListItemIcon>
                     <ListItemText>Account</ListItemText>
-                </MenuItem>
-                <MenuItem onClick={handleSettingsClick} sx={{ px: 2, py: 1 }}>
-                    <ListItemIcon sx={{ minWidth: "16px !important", mr: 1 }}>
-                        <Box
-                            component="img"
-                            src={userSettingsIcon}
-                            alt="Settings"
-                            sx={{ width: 16, height: 16, objectFit: 'contain' }}
-                        />
-                    </ListItemIcon>
-                    <ListItemText>Settings</ListItemText>
                 </MenuItem>
                 <Divider />
                 <MenuItem onClick={handleLogoutClick} sx={{ px: 2, py: 1 }}>

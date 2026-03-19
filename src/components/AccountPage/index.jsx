@@ -12,6 +12,7 @@ import {
     Close as CloseIcon,
     Person as PersonIcon,
 } from '@mui/icons-material';
+
 import { useAuth } from '../Auth/AuthContext';
 
 const getSessionValue = (key) => {
@@ -181,7 +182,7 @@ const AccountPage = () => {
                             </div>
                         </div>
 
-                        <h2 className="settings-title">Your Subscription</h2>
+                        <h2 className="settings-title">Subscription</h2>
                         <div className="settings-divider"></div>
 
                         <div className="flat-row">
