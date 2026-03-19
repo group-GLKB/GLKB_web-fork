@@ -370,8 +370,9 @@ const History = () => {
         });
     };
 
-    const handleToggleConversationSelection = (conversationId) => {
+    const handleToggleConversationSelection = (conversationId, forceSelectMode = false) => {
         if (!selectMode) {
+            if (!forceSelectMode) return;
             setSelectMode(true);
             setSelectedIds([conversationId]);
             return;

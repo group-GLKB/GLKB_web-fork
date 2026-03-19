@@ -182,6 +182,7 @@
     grid-column: 1;
     justify-self: start;
     align-self: center;
+    margin-left: -4px;
 }
 
 .history-select-toolbar-content {
