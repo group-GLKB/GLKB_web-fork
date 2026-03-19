@@ -166,7 +166,7 @@ const ConversationCard = ({
                     }}
                     onChange={() => {
                         if (onToggleSelect) {
-                            onToggleSelect(conversation?.id);
+                            onToggleSelect(conversation?.id, true);
                         }
                     }}
                     inputProps={{ 'aria-label': `Select ${resolvedTitle}` }}
