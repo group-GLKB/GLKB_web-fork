@@ -3,7 +3,7 @@ import axios from '../../utils/axiosConfig';
 
 const TestStatus = () => {
   const testSentry = async () => {
-    await axios.get('/api/v1/test-500');
+    await axios.get('https://glkb.dcmb.med.umich.edu/reorg-api/api/v1/test-500');
   };
 
   return (
