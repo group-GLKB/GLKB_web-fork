@@ -82,8 +82,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 0 48px;
+    justify-content: flex-start;
+    padding: 61px 48px 0;
     background: #FAFCFF;
     overflow: hidden;
 }
@@ -115,6 +115,10 @@
     padding: 22px 0;
     border-bottom: 1px solid #E8EAED;
     transition: background 0.1s;
+}
+
+.flat-row:first-child {
+    padding-top: 0;
 }
 
 .flat-row:last-child {
