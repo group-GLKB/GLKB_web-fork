@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
+
 import * as AuthService from '../../service/Auth';
 
 const AuthContext = createContext(null);
@@ -13,12 +19,12 @@ export const AuthProvider = ({ children }) => {
     const initAuth = () => {
       const token = AuthService.getToken();
       const currentUser = AuthService.getCurrentUser();
-      
+
       if (token && currentUser) {
         setUser(currentUser);
         setIsAuthenticated(true);
       }
-      
+
       setLoading(false);
     };
 
@@ -61,22 +67,34 @@ export const AuthProvider = ({ children }) => {
   // Verify code and login (new email auth)
   const verifyCode = async (email, code) => {
     const result = await AuthService.verifyCode(email, code);
-    
+
     if (result.success) {
       setUser(result.user);
       setIsAuthenticated(true);
     }
-    
+
+    return result;
+  };
+
+  // Google login (ID token)
+  const loginWithGoogle = async (credential) => {
+    const result = await AuthService.loginWithGoogle(credential);
+
+    if (result.success) {
+      setUser(result.user);
+      setIsAuthenticated(true);
+    }
+
     return result;
   };
 
   // Logout function
   const logout = async () => {
     const result = await AuthService.logout();
-    
+
     setUser(null);
     setIsAuthenticated(false);
-    
+
     return result;
   };
 
@@ -88,6 +106,7 @@ export const AuthProvider = ({ children }) => {
     signup,
     sendCode,
     verifyCode,
+    loginWithGoogle,
     logout
   };
 
@@ -101,10 +120,10 @@ export const AuthProvider = ({ children }) => {
 // Custom hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  
+
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-  
+
   return context;
 };
