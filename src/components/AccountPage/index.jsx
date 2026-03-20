@@ -1,15 +1,15 @@
 import './scoped.css';
 
 import React, {
-    useEffect,
-    useState,
+  useEffect,
+  useState,
 } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
 import {
-    Close as CloseIcon,
-    Person as PersonIcon,
+  Close as CloseIcon,
+  Person as PersonIcon,
 } from '@mui/icons-material';
 
 import { useAuth } from '../Auth/AuthContext';

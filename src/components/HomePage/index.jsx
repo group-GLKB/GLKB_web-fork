@@ -301,7 +301,7 @@ const HomePage = () => {
                                         )}
                                     </Box>
                                 </Box>
-                                <Box className="homepage-pills">
+                                <Box className={`homepage-pills${(searchBarOpen || showExamples) ? ' is-hidden' : ''}`}>
                                     {pills.map((pill) => (
                                         <Box
                                             key={pill.id}
