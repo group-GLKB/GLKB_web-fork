@@ -75,7 +75,7 @@ import {
 } from '../../../utils/conversationBookmarks';
 import { useAuth } from '../../Auth/AuthContext';
 
-const drawerWidth = 240;
+const drawerWidth = 280;
 const collapsedWidth = 88;
 
 const getStoredAccountProfile = () => {

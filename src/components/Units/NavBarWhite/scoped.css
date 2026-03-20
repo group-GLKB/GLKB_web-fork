@@ -1,5 +1,5 @@
 body[data-has-sidebar="true"] {
-    --sidebar-width: 240px;
+    --sidebar-width: 280px;
 }
 
 body[data-has-sidebar="true"] .app-layout-content {
