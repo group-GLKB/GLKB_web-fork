@@ -139,11 +139,11 @@ const ReferenceCard = ({
             style={{
                 cursor: 'pointer',
                 marginBottom: '2px',
-                borderRadius: showHighlight ? '8px' : '10px',
+                borderRadius: showHighlight ? '12px' : '10px',
                 backgroundColor: showHighlight ? '#E7F1FF' : (transparentBackground ? 'transparent' : '#fff'),
                 width: '100%',
-                transition: 'background-color 0.3s ease',
-                padding: showHighlight ? '4px' : '0px',
+                transition: 'background-color 0.2s ease, border-radius 0.2s ease',
+                padding: '0px',
                 fontFamily: 'DM Sans, sans-serif',
             }}
             className="custom-div-url"
