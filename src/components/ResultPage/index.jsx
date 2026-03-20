@@ -2,45 +2,47 @@ import 'antd/dist/reset.css';
 import './scoped.css';
 
 import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from 'react';
 
 import {
-  Button as AntButton,
-  Spin,
-  Tooltip,
+    Button as AntButton,
+    Spin,
+    Tooltip,
 } from 'antd';
 import { debounce } from 'lodash';
 import { Helmet } from 'react-helmet-async';
 import Joyride, { STATUS } from 'react-joyride';
 import {
-  useLocation,
-  useNavigate,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
 import { InfoCircleOutlined } from '@ant-design/icons';
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 //import mui button as muibutton
 import {
-  Box,
-  Button as MuiButton,
-  Popover,
-  Typography,
+    Box,
+    Button as MuiButton,
+    Popover,
+    Typography,
 } from '@mui/material';
 
 import {
-  ReactComponent as CategorySearchIcon,
+    ReactComponent as CategorySearchIcon,
 } from '../../img/navbar/category_search.svg';
 import downArrow from '../../img/result/down_arrow.svg';
 import {
-  ReactComponent as PageMenuIcon,
+    ReactComponent as PageMenuIcon,
 } from '../../img/result/page_menu_ios.svg';
 import NoResultImage from '../../img/result/placeholdericon.png';
 import { CypherService } from '../../service/Cypher';
+import { createGraphHistoryEntry } from '../../utils/graphHistory';
+import { useAuth } from '../Auth/AuthContext';
 import Graph from '../Graph';
 import nodeStyleColors from '../Graph/nodeStyleColors.json';
 import Information from '../Information';
@@ -140,6 +142,7 @@ const ResultPage = () => {
     // const alltags = urlParams.get('data');
     const location = useLocation();
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
     // console.log(location.state);
     const search_data = location.state?.search_data;
     const chipDataID = location.state?.chipDataID;
@@ -349,6 +352,72 @@ const ResultPage = () => {
     // Add new state for search content
     const [searchContent, setSearchContent] = useState(null);
 
+    const normalizeGraphSnapshot = useCallback((graphPayload) => {
+        if (!graphPayload?.nodes) return [];
+        return graphPayload.nodes
+            .map((node) => {
+                const data = node?.data || {};
+                const rawId = Array.isArray(data.id) ? data.id[0] : data.id;
+                const id = rawId || data.element_id || data.database_id;
+                if (!id) return null;
+                return {
+                    id: String(id),
+                    name: data.name || data.display || data.label || '',
+                    type: data.label || data.type || data.category || '',
+                };
+            })
+            .filter(Boolean);
+    }, []);
+
+    const extractSearchTerms = useCallback((searchData) => {
+        const sources = Array.isArray(searchData?.sources) ? searchData.sources : [];
+        if (sources.length > 0) {
+            return sources
+                .map((source) => {
+                    const name = cleanPillLabel(source?.[1] || '');
+                    if (!name) return null;
+                    return {
+                        id: source?.[0] ?? name,
+                        name,
+                        type: source?.[2] || 'default',
+                    };
+                })
+                .filter(Boolean);
+        }
+
+        const triplets = Array.isArray(searchData?.triplets) ? searchData.triplets : [];
+        const seen = new Set();
+        const terms = [];
+        triplets.forEach((triplet) => {
+            const label = cleanPillLabel(triplet?.source?.[1] || '');
+            if (!label || seen.has(label)) return;
+            seen.add(label);
+            terms.push({
+                id: triplet?.source?.[0] ?? label,
+                name: label,
+                type: triplet?.source?.[2] || 'default',
+            });
+        });
+        return terms;
+    }, []);
+
+    const saveGraphHistory = useCallback(async (graphPayload, endpointType, terms = []) => {
+        const hasToken = typeof window !== 'undefined'
+            && Boolean(window.localStorage.getItem('access_token'));
+        if (!isAuthenticated && !hasToken) return;
+        const graphSnapshot = normalizeGraphSnapshot(graphPayload);
+        try {
+            await createGraphHistoryEntry({
+                title: 'N/A',
+                endpointType,
+                graphSnapshot,
+                terms,
+            });
+        } catch (error) {
+            console.warn('Failed to save graph history:', error);
+        }
+    }, [isAuthenticated, normalizeGraphSnapshot]);
+
 
 
     useEffect(() => {
@@ -374,6 +443,7 @@ const ResultPage = () => {
             setData(response[0]);
             // setAllNodes(response[1]);
             setSearchFlag(true);
+            saveGraphHistory(response[0], 'triplet2graph', extractSearchTerms(searchData));
 
             // Track search_no_result event if no results found
             if (!response[0]?.nodes || response[0].nodes.length === 0) {
@@ -472,6 +542,7 @@ const ResultPage = () => {
         // setGraphForQuestions(response[0])
         // setCachedTermGraph(response);
         setSearchFlag(true);
+        saveGraphHistory(response[0], 'triplet2graph', extractSearchTerms(content));
     }
 
     useEffect(() => {
