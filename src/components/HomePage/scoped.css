@@ -115,11 +115,15 @@
 .homepage-pills {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content: space-between;
     gap: 12px;
     margin-top: 0;
     position: relative;
     z-index: 1;
+    width: 100%;
+    padding-left: calc(var(--home-gutter) + 1px);
+    padding-right: calc(var(--home-gutter) + 1px);
+    box-sizing: border-box;
 }
 
 .homepage-pills.is-hidden {
