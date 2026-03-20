@@ -1,23 +1,23 @@
 import React, {
-  useEffect,
-  useMemo,
-  useState,
+    useEffect,
+    useMemo,
+    useState,
 } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
 import {
-  Bookmark as BookmarkIcon,
-  BookmarkBorder as BookmarkBorderIcon,
-  ExpandMore as ExpandMoreIcon,
+    Bookmark as BookmarkIcon,
+    BookmarkBorder as BookmarkBorderIcon,
+    ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
 import { IconButton } from '@mui/material';
 
 import formatQuoteIcon from '../../../img/llm/format_quote.svg';
 import {
-  fetchBookmarks,
-  getBookmarks,
-  toggleBookmark,
+    fetchBookmarks,
+    getBookmarks,
+    toggleBookmark,
 } from '../../../utils/bookmarks';
 import { useAuth } from '../../Auth/AuthContext';
 

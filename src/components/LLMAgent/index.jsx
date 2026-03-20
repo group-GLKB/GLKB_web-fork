@@ -3,70 +3,70 @@ import './scoped.css';
 import './github-markdown-light.css';
 
 import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from 'react';
 
 import { message } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import ReactMarkdown from 'react-markdown';
 import {
-  useLocation,
-  useNavigate,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 
 import {
-  Bookmark as BookmarkIcon,
-  BookmarkBorder as BookmarkBorderIcon,
-  Check as CheckIcon,
-  ChevronRight as ChevronRightIcon,
-  Clear as ClearIcon,
-  EditNote as EditNoteIcon,
-  ExpandMore as ExpandMoreIcon,
-  FilePresent as FilePresentIcon,
-  StopCircle as StopCircleIcon,
+    Bookmark as BookmarkIcon,
+    BookmarkBorder as BookmarkBorderIcon,
+    Check as CheckIcon,
+    ChevronRight as ChevronRightIcon,
+    Clear as ClearIcon,
+    EditNote as EditNoteIcon,
+    ExpandMore as ExpandMoreIcon,
+    FilePresent as FilePresentIcon,
+    StopCircle as StopCircleIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Button as MuiButton,
-  CircularProgress,
-  Container,
-  Grid,
-  IconButton,
-  Stack,
-  TextField,
-  ToggleButton,
-  ToggleButtonGroup,
-  Typography,
+    Box,
+    Button as MuiButton,
+    CircularProgress,
+    Container,
+    Grid,
+    IconButton,
+    Stack,
+    TextField,
+    ToggleButton,
+    ToggleButtonGroup,
+    Typography,
 } from '@mui/material';
 
 import contentCopyIcon from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import {
-  ReactComponent as SidebarLeftIcon,
+    ReactComponent as SidebarLeftIcon,
 } from '../../img/navbar/sidebar.left.svg';
 import { LLMAgentService } from '../../service/LLMAgent';
 import {
-  createConversation,
-  fetchConversationDetail,
-  fetchConversations,
-  getActiveConversationId,
-  getConversations,
-  setActiveConversationId,
-  setConversations,
-  updateConversationMessages,
-  updateConversationTitle,
-  upsertConversation,
+    createConversation,
+    fetchConversationDetail,
+    fetchConversations,
+    getActiveConversationId,
+    getConversations,
+    setActiveConversationId,
+    setConversations,
+    updateConversationMessages,
+    updateConversationTitle,
+    upsertConversation,
 } from '../../utils/chatHistory';
 import {
-  fetchConversationBookmarks,
-  getConversationBookmarks,
-  toggleConversationBookmark,
+    fetchConversationBookmarks,
+    getConversationBookmarks,
+    toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
 import { useAuth } from '../Auth/AuthContext';
 import CiteDialog from '../Units/CiteDialog';
