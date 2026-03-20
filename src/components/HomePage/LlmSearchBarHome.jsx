@@ -216,19 +216,19 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                                 height: '48px',
                                                 width: '48px',
                                                 borderRadius: '50%',
-                                                backgroundColor: '#155DFC',
+                                                backgroundColor: '#E7F1FF',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
                                                 cursor: 'pointer',
                                                 transition: 'transform 120ms ease, box-shadow 160ms ease',
-                                                boxShadow: '0 6px 12px rgba(21, 93, 252, 0.28)',
+                                                boxShadow: '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',
                                                 '&:hover': {
                                                     transform: 'translateY(-1px)',
                                                 },
                                             }}
                                         >
-                                            <SearchIcon sx={{ color: '#ffffff', fontSize: '22px' }} />
+                                            <SearchIcon sx={{ color: '#155DFC', fontSize: '22px' }} />
                                         </Box>
                                     )}
                                 </Box>
