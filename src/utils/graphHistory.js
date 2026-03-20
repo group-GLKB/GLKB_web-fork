@@ -1,7 +1,8 @@
 import {
-    createGraphHistory,
-    deleteGraphHistory,
-    listGraphHistories,
+  createGraphHistory,
+  deleteGraphHistory,
+  getGraphHistoryDetail,
+  listGraphHistories,
 } from '../service/GraphHistory';
 
 const STORAGE_KEY = 'glkbGraphHistories';
@@ -32,6 +33,25 @@ const normalizeGraphSummaryList = (payload) => {
     return list.map(normalizeGraphSummary).filter(Boolean);
 };
 
+const extractTermsFromSnapshot = (snapshot) => {
+    if (!Array.isArray(snapshot)) return [];
+    const seen = new Set();
+    return snapshot
+        .map((node) => ({
+            id: node?.id ?? '',
+            name: node?.name || node?.label || '',
+            label: node?.label || node?.name || '',
+            type: node?.type || 'default',
+        }))
+        .filter((node) => node.name || node.label)
+        .filter((node) => {
+            const key = `${node.id}-${node.name}-${node.type}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+};
+
 export const getGraphHistories = () => {
     if (typeof window === 'undefined') return [];
     try {
@@ -56,17 +76,25 @@ export const fetchGraphHistories = async (options = {}) => {
     const data = await listGraphHistories(options);
     const normalized = normalizeGraphSummaryList(data);
     const cached = getGraphHistories();
-    if (cached.length === 0) {
-        return setGraphHistories(normalized);
-    }
     const cachedById = new Map(cached.map((item) => [item.id, item]));
+    const details = await Promise.allSettled(
+        normalized.map((item) => getGraphHistoryDetail(item.ghid ?? item.id))
+    );
+    const termsById = new Map();
+    details.forEach((result, index) => {
+        if (result.status !== 'fulfilled') return;
+        const ghid = normalized[index]?.id;
+        if (!ghid) return;
+        const snapshot = result.value?.graph_snapshot || result.value?.graphSnapshot || [];
+        termsById.set(String(ghid), extractTermsFromSnapshot(snapshot));
+    });
     const merged = normalized.map((item) => {
+        const terms = termsById.get(item.id);
+        if (terms?.length) {
+            return { ...item, terms };
+        }
         const cachedItem = cachedById.get(item.id);
-        if (!cachedItem?.terms?.length) return item;
-        return {
-            ...item,
-            terms: cachedItem.terms,
-        };
+        return cachedItem?.terms?.length ? { ...item, terms: cachedItem.terms } : item;
     });
     return setGraphHistories(merged);
 };

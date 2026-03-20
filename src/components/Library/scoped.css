@@ -309,6 +309,13 @@
     display: none;
 }
 
+.library-reference-list .history-item-row::before,
+.library-chat-list .history-item-row::before,
+.library-graph-list .history-item-row::before {
+    left: 0px;
+    right: 0px;
+}
+
 .library-reference-year {
     margin-right: 4px;
 }

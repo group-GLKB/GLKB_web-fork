@@ -230,22 +230,24 @@ const HomePage = () => {
                                 <Typography
                                     className="glkb-title"
                                     sx={{
-                                        fontFamily: 'DM Sans, sans-serif',
-                                        fontWeight: 700,
-                                        fontSize: '36px',
-                                        color: '#164563',
-                                        lineHeight: 1,
+                                        fontFamily: 'Open Sans, sans-serif',
+                                        fontWeight: 600,
+                                        fontSize: '40px',
+                                        lineHeight: 1.1,
                                     }}
                                 >
-                                    Ask. Analyze. Cite.
+                                    <span style={{ color: '#333333' }}>Ask.</span>{' '}
+                                    <span style={{ color: '#155DFC' }}>Analyze</span>
+                                    <span style={{ color: '#333333' }}>. Cite.</span>
                                 </Typography>
                                 <Typography
                                     className="glkb-subtitle"
                                     sx={{
                                         fontFamily: 'DM Sans, sans-serif',
-                                        fontWeight: 600,
-                                        fontSize: '16px',
-                                        color: '#646464',
+                                        fontWeight: 400,
+                                        fontSize: '18px',
+                                        color: '#333333',
+                                        lineHeight: '26.64px',
                                     }}
                                 >
                                     Weeks of research, done in minutes.

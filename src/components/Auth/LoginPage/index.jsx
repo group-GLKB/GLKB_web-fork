@@ -6,7 +6,6 @@ import React, {
   useState,
 } from 'react';
 
-import { FaApple } from 'react-icons/fa';
 import { FcGoogle } from 'react-icons/fc';
 import { useNavigate } from 'react-router-dom';
 
@@ -131,10 +130,6 @@ const LoginPage = () => {
       });
   };
 
-  const handleAppleLogin = () => {
-    // TODO: Implement Apple OAuth
-    console.log('Apple login clicked');
-  };
 
   const handleContinue = async (e) => {
     e.preventDefault();
@@ -181,11 +176,6 @@ const LoginPage = () => {
           >
             <span className="oauth-icon"><FcGoogle size={24} /></span>
             {oauthLoading ? 'Connecting...' : 'Continue with Google'}
-          </button>
-
-          <button type="button" className="oauth-button apple-button" onClick={handleAppleLogin}>
-            <span className="oauth-icon"><FaApple size={24} /></span>
-            Continue with Apple
           </button>
 
           <div className="divider">
