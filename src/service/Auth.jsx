@@ -35,14 +35,14 @@ export const login = async (username, password) => {
       username,
       password
     });
-    
+
     const { access_token, token_type, user } = response.data;
-    
+
     // Store token in localStorage (or you can use sessionStorage)
     localStorage.setItem('access_token', access_token);
     localStorage.setItem('token_type', token_type);
     localStorage.setItem('user', JSON.stringify(user));
-    
+
     return {
       success: true,
       token: access_token,
@@ -60,12 +60,12 @@ export const login = async (username, password) => {
 export const logout = async () => {
   try {
     await axios.post(`${API_BASE_URL}/logout`);
-    
+
     // Clear stored token and user data
     localStorage.removeItem('access_token');
     localStorage.removeItem('token_type');
     localStorage.removeItem('user');
-    
+
     return {
       success: true,
       message: 'Logged out successfully'
@@ -75,7 +75,7 @@ export const logout = async () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('token_type');
     localStorage.removeItem('user');
-    
+
     return {
       success: true,
       message: 'Logged out'
@@ -132,14 +132,14 @@ export const verifyCode = async (email, code) => {
       email,
       code
     });
-    
+
     const { access_token, token_type, user } = response.data;
-    
+
     // Store token in localStorage
     localStorage.setItem('access_token', access_token);
     localStorage.setItem('token_type', token_type);
     localStorage.setItem('user', JSON.stringify(user));
-    
+
     return {
       success: true,
       token: access_token,
@@ -149,6 +149,32 @@ export const verifyCode = async (email, code) => {
     return {
       success: false,
       message: error.response?.data?.detail || 'Verification failed. Please check your code.'
+    };
+  }
+};
+
+// Google OAuth login using ID token
+export const loginWithGoogle = async (credential) => {
+  try {
+    const response = await axios.post(`${EMAIL_AUTH_BASE_URL}/google`, {
+      credential
+    });
+
+    const { access_token, token_type, user } = response.data;
+
+    localStorage.setItem('access_token', access_token);
+    localStorage.setItem('token_type', token_type);
+    localStorage.setItem('user', JSON.stringify(user));
+
+    return {
+      success: true,
+      token: access_token,
+      user: user
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Google login failed. Please try again.'
     };
   }
 };

@@ -17,6 +17,21 @@ export const removeFavoriteChat = async (hid) => {
     return response.data;
 };
 
+export const listFavoriteGraphs = async () => {
+    const response = await axios.get(`${API_BASE}/graph`);
+    return response.data;
+};
+
+export const addFavoriteGraph = async (ghid) => {
+    const response = await axios.post(`${API_BASE}/graph`, { ghid });
+    return response.data;
+};
+
+export const removeFavoriteGraph = async (ghid) => {
+    const response = await axios.delete(`${API_BASE}/graph/${ghid}`);
+    return response.data;
+};
+
 export const listFavoriteReferences = async () => {
     const response = await axios.get(`${API_BASE}/reference`);
     return response.data;
@@ -71,6 +86,15 @@ export const removeFavoriteFolder = async (fid) => {
 
 export const updateFavoriteChatFolder = async (hid, folderId, action) => {
     const response = await axios.patch(`${API_BASE}/chat/${hid}`,
+        {
+            folder_id: folderId,
+            action,
+        });
+    return response.data;
+};
+
+export const updateFavoriteGraphFolder = async (ghid, folderId, action) => {
+    const response = await axios.patch(`${API_BASE}/graph/${ghid}`,
         {
             folder_id: folderId,
             action,

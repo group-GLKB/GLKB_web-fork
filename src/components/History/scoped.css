@@ -219,3 +219,35 @@
     color: #C8A7A4;
     cursor: not-allowed;
 }
+
+.history-graph-pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.history-graph-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    border-radius: 16px;
+    border: 1px solid #E7F1FF;
+    background-color: #ffffff;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #164563;
+    height: 32px;
+    box-sizing: border-box;
+}
+
+.history-graph-pill-label {
+    max-width: 240px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

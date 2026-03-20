@@ -1,53 +1,64 @@
 import './scoped.css';
 
 import React, {
-  useEffect,
-  useMemo,
-  useState,
+    useEffect,
+    useMemo,
+    useState,
 } from 'react';
 
 import {
-  Navigate,
-  useNavigate,
+    Navigate,
+    useNavigate,
 } from 'react-router-dom';
 
 import {
-  Bookmark as BookmarkIcon,
-  DeleteOutline as DeleteOutlineIcon,
-  FormatQuoteOutlined as FormatQuoteOutlinedIcon,
-  MoreHoriz as MoreHorizIcon,
+    Bookmark as BookmarkIcon,
+    DeleteOutline as DeleteOutlineIcon,
+    FormatQuoteOutlined as FormatQuoteOutlinedIcon,
+    MoreHoriz as MoreHorizIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Checkbox,
-  IconButton,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Tooltip,
-  Typography,
+    Box,
+    Checkbox,
+    IconButton,
+    ListItemIcon,
+    ListItemText,
+    Menu,
+    MenuItem,
+    Tooltip,
+    Typography,
 } from '@mui/material';
 
 import { ReactComponent as HistoryIcon } from '../../img/navbar/history.svg';
 import {
-  fetchBookmarks,
-  getBookmarks,
-  toggleBookmark,
+    fetchBookmarks,
+    getBookmarks,
+    toggleBookmark,
 } from '../../utils/bookmarks';
 import {
-  fetchConversations,
-  getConversations,
-  removeConversation,
-  setActiveConversationId,
-  updateConversationTitle,
+    fetchConversations,
+    getConversations,
+    removeConversation,
+    setActiveConversationId,
+    updateConversationTitle,
 } from '../../utils/chatHistory';
 import {
-  fetchConversationBookmarks,
-  getConversationBookmarks,
-  toggleConversationBookmark,
+    fetchConversationBookmarks,
+    getConversationBookmarks,
+    toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
+import {
+    fetchGraphBookmarks,
+    getGraphBookmarks,
+    toggleGraphBookmark,
+} from '../../utils/graphBookmarks';
+import {
+    fetchGraphHistories,
+    getGraphHistories,
+    removeGraphHistory,
+} from '../../utils/graphHistory';
 import { useAuth } from '../Auth/AuthContext';
+import nodeStyleColors from '../Graph/nodeStyleColors.json';
 import CiteDialog from '../Units/CiteDialog';
 import ConversationCard from '../Units/ConversationCard';
 
@@ -91,6 +102,51 @@ const getReferenceSubtitle = (entry) => {
     if (journal) return journal;
     if (year) return year;
     return entry?.authors || '';
+};
+
+const hexToRgb = (hex) => {
+    if (!hex) return { r: 0, g: 0, b: 0 };
+    const cleaned = hex.replace('#', '');
+    const normalized = cleaned.length === 3
+        ? cleaned.split('').map((char) => `${char}${char}`).join('')
+        : cleaned;
+    const value = parseInt(normalized, 16);
+    if (Number.isNaN(value)) return { r: 0, g: 0, b: 0 };
+    return {
+        r: (value >> 16) & 255,
+        g: (value >> 8) & 255,
+        b: value & 255,
+    };
+};
+
+const rgbToHex = (r, g, b) => {
+    const toHex = (value) => value.toString(16).padStart(2, '0');
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
+
+const mixHex = (baseHex, mixHexValue, amount) => {
+    const base = hexToRgb(baseHex);
+    const mix = hexToRgb(mixHexValue);
+    const ratio = Math.min(Math.max(amount, 0), 1);
+    const r = Math.round(base.r * (1 - ratio) + mix.r * ratio);
+    const g = Math.round(base.g * (1 - ratio) + mix.g * ratio);
+    const b = Math.round(base.b * (1 - ratio) + mix.b * ratio);
+    return rgbToHex(r, g, b);
+};
+
+const toRgba = (hex, alpha) => {
+    const { r, g, b } = hexToRgb(hex);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const getPillColors = (label) => {
+    const base = nodeStyleColors[label] || nodeStyleColors.default || '#E5E5E5';
+    return {
+        base,
+        background: mixHex(base, '#ffffff', 0.75),
+        text: mixHex(base, '#000000', 0.35),
+        shadow: toRgba(base, 0.3),
+    };
 };
 
 const HistoryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite }) => {
@@ -230,22 +286,63 @@ const History = () => {
     const navigate = useNavigate();
     const { isAuthenticated, loading } = useAuth();
     const [conversations, setConversations] = useState([]);
+    const [graphHistories, setGraphHistories] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState([]);
+    const [selectedGraphIds, setSelectedGraphIds] = useState([]);
     const [isDeleting, setIsDeleting] = useState(false);
     const [conversationBookmarks, setConversationBookmarks] = useState([]);
+    const [graphBookmarks, setGraphBookmarks] = useState([]);
     const [referenceBookmarks, setReferenceBookmarks] = useState([]);
     const [citeDialogOpen, setCiteDialogOpen] = useState(false);
     const [selectedCitation, setSelectedCitation] = useState(null);
 
-    const filteredConversations = conversations.filter((conversation) => {
+    const normalizedChatItems = useMemo(() => (
+        conversations.map((conversation) => ({
+            type: 'chat',
+            id: String(conversation.id),
+            conversation,
+            title: getConversationTitle(conversation),
+            subtitle: getConversationSubtitle(conversation),
+            timestamp: formatTimestamp(conversation.updatedAt || conversation.createdAt),
+            sortTime: conversation.updatedAt || conversation.createdAt || 0,
+        }))
+    ), [conversations]);
+
+    const normalizedGraphItems = useMemo(() => (
+        graphHistories.map((history) => ({
+            type: 'graph',
+            id: String(history.ghid ?? history.id),
+            graphHistory: history,
+            title: history.title || '',
+            subtitle: '',
+            timestamp: formatTimestamp(history.updatedAt || history.createdAt),
+            sortTime: history.updatedAt || history.createdAt || 0,
+            terms: Array.isArray(history.terms) ? history.terms : [],
+        }))
+    ), [graphHistories]);
+
+    const mergedHistoryItems = useMemo(() => (
+        [...normalizedChatItems, ...normalizedGraphItems]
+            .sort((a, b) => new Date(b.sortTime) - new Date(a.sortTime))
+    ), [normalizedChatItems, normalizedGraphItems]);
+
+    const filteredHistoryItems = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
-        if (!query) return true;
-        const title = getConversationTitle(conversation).toLowerCase();
-        const subtitle = getConversationSubtitle(conversation).toLowerCase();
-        return title.includes(query) || subtitle.includes(query);
-    });
+        if (!query) return mergedHistoryItems;
+        return mergedHistoryItems.filter((item) => {
+            if (item.type !== 'chat') return false;
+            const title = item.title.toLowerCase();
+            const subtitle = item.subtitle.toLowerCase();
+            return title.includes(query) || subtitle.includes(query);
+        });
+    }, [mergedHistoryItems, searchQuery]);
+
+    const filteredChatItems = useMemo(
+        () => filteredHistoryItems.filter((item) => item.type === 'chat'),
+        [filteredHistoryItems]
+    );
 
     const filteredReferences = referenceBookmarks.filter((entry) => {
         const query = searchQuery.trim().toLowerCase();
@@ -263,7 +360,7 @@ const History = () => {
         return haystack.includes(query);
     });
 
-    const filteredIds = filteredConversations.map((conversation) => conversation.id);
+    const filteredIds = filteredChatItems.map((item) => item.id);
     const selectedIdSet = new Set(selectedIds);
     const selectedFilteredCount = filteredIds.filter((id) => selectedIdSet.has(id)).length;
     const selectedCount = selectedIds.length;
@@ -273,7 +370,11 @@ const History = () => {
         () => new Set(conversationBookmarks.map((item) => String(item?.id ?? item?.hid ?? ''))),
         [conversationBookmarks]
     );
-    const filteredTotalCount = filteredConversations.length + (selectMode ? 0 : filteredReferences.length);
+    const bookmarkedGraphIds = useMemo(
+        () => new Set(graphBookmarks.map((item) => String(item?.id ?? item?.ghid ?? ''))),
+        [graphBookmarks]
+    );
+    const filteredTotalCount = filteredHistoryItems.length + (selectMode ? 0 : filteredReferences.length);
 
     useEffect(() => {
         if (loading || !isAuthenticated) {
@@ -303,6 +404,38 @@ const History = () => {
 
     useEffect(() => {
         if (loading || !isAuthenticated) {
+            setGraphHistories([]);
+            return undefined;
+        }
+
+        let isMounted = true;
+        const cached = getGraphHistories();
+        if (cached.length > 0) {
+            setGraphHistories(cached);
+        }
+
+        const handleUpdate = (event) => {
+            const next = event?.detail || getGraphHistories();
+            if (!isMounted) return;
+            setGraphHistories(next);
+        };
+
+        fetchGraphHistories()
+            .then((list) => {
+                if (!isMounted) return;
+                setGraphHistories(list);
+            })
+            .catch(() => handleUpdate());
+
+        window.addEventListener('glkb-graph-histories-updated', handleUpdate);
+        return () => {
+            isMounted = false;
+            window.removeEventListener('glkb-graph-histories-updated', handleUpdate);
+        };
+    }, [isAuthenticated, loading]);
+
+    useEffect(() => {
+        if (loading || !isAuthenticated) {
             setConversationBookmarks([]);
             return undefined;
         }
@@ -325,6 +458,33 @@ const History = () => {
         return () => {
             isMounted = false;
             window.removeEventListener('glkb-conversation-bookmarks-updated', update);
+        };
+    }, [isAuthenticated, loading]);
+
+    useEffect(() => {
+        if (loading || !isAuthenticated) {
+            setGraphBookmarks([]);
+            return undefined;
+        }
+
+        let isMounted = true;
+        const update = (event) => {
+            const next = event?.detail || getGraphBookmarks();
+            if (!isMounted) return;
+            setGraphBookmarks(next);
+        };
+
+        fetchGraphBookmarks()
+            .then((list) => {
+                if (!isMounted) return;
+                setGraphBookmarks(list);
+            })
+            .catch(() => update());
+
+        window.addEventListener('glkb-graph-bookmarks-updated', update);
+        return () => {
+            isMounted = false;
+            window.removeEventListener('glkb-graph-bookmarks-updated', update);
         };
     }, [isAuthenticated, loading]);
 
@@ -384,6 +544,15 @@ const History = () => {
         ));
     };
 
+    const handleToggleGraphSelection = (graphId) => {
+        if (!graphId) return;
+        setSelectedGraphIds((prev) => (
+            prev.includes(graphId)
+                ? prev.filter((id) => id !== graphId)
+                : [...prev, graphId]
+        ));
+    };
+
     const handleToggleSelectAllFiltered = () => {
         setSelectedIds((prev) => {
             const prevSet = new Set(prev);
@@ -433,6 +602,23 @@ const History = () => {
         }
     };
 
+    const handleBookmarkGraph = async (history) => {
+        if (!history) return;
+        const entry = {
+            id: String(history.ghid ?? history.id),
+            ghid: history.ghid ?? history.id,
+            title: history.title || '',
+            endpointType: history.endpointType || history.endpoint_type || '',
+            updatedAt: history.updatedAt || history.createdAt || new Date().toISOString(),
+        };
+        try {
+            const next = await toggleGraphBookmark(entry, history.terms || []);
+            setGraphBookmarks(next);
+        } catch (error) {
+            setGraphBookmarks(getGraphBookmarks());
+        }
+    };
+
     const handleDeleteConversation = async (conversation) => {
         if (!conversation?.id) return;
         const idToDelete = String(conversation.id);
@@ -443,6 +629,18 @@ const History = () => {
         }
         setConversations((prev) => prev.filter((item) => String(item.id) !== idToDelete));
         setSelectedIds((prev) => prev.filter((id) => String(id) !== idToDelete));
+    };
+
+    const handleDeleteGraphHistory = async (history) => {
+        const idToDelete = String(history?.ghid ?? history?.id ?? '');
+        if (!idToDelete) return;
+        try {
+            await removeGraphHistory(idToDelete);
+        } catch (error) {
+            // Ignore delete failures.
+        }
+        setGraphHistories((prev) => prev.filter((item) => String(item.id) !== idToDelete));
+        setSelectedGraphIds((prev) => prev.filter((id) => String(id) !== idToDelete));
     };
 
     const handleOpenReference = (entry) => {
@@ -473,6 +671,10 @@ const History = () => {
     useEffect(() => {
         setSelectedIds((prev) => prev.filter((id) => conversations.some((conversation) => conversation.id === id)));
     }, [conversations]);
+
+    useEffect(() => {
+        setSelectedGraphIds((prev) => prev.filter((id) => graphHistories.some((history) => String(history.id) === String(id))));
+    }, [graphHistories]);
 
     if (loading) {
         return null;
@@ -629,24 +831,64 @@ const History = () => {
                         </Box>
                     </Box>
                     <Box className="history-list">
-                        {filteredConversations.length > 0 ? (
-                            filteredConversations.map((conversation) => (
-                                <ConversationCard
-                                    key={conversation.id}
-                                    conversation={conversation}
-                                    title={getConversationTitle(conversation)}
-                                    subtitle={getConversationSubtitle(conversation)}
-                                    timestamp={formatTimestamp(conversation.updatedAt || conversation.createdAt)}
-                                    selectMode={selectMode}
-                                    isSelected={selectedIdSet.has(conversation.id)}
-                                    showCheckboxOnHover
-                                    isBookmarked={bookmarkedConversationIds.has(String(conversation.id))}
-                                    onToggleSelect={handleToggleConversationSelection}
-                                    onOpen={(item) => handleOpenConversation(item.id)}
-                                    onRename={handleRenameConversation}
-                                    onBookmark={handleBookmarkConversation}
-                                    onDelete={handleDeleteConversation}
-                                />
+                        {filteredHistoryItems.length > 0 ? (
+                            filteredHistoryItems.map((item) => (
+                                item.type === 'chat' ? (
+                                    <ConversationCard
+                                        key={`chat-${item.id}`}
+                                        conversation={item.conversation}
+                                        title={item.title}
+                                        subtitle={item.subtitle}
+                                        timestamp={item.timestamp}
+                                        selectMode={selectMode}
+                                        isSelected={selectedIdSet.has(item.id)}
+                                        showCheckboxOnHover
+                                        isBookmarked={bookmarkedConversationIds.has(item.id)}
+                                        onToggleSelect={handleToggleConversationSelection}
+                                        onOpen={(opened) => handleOpenConversation(opened.id)}
+                                        onRename={handleRenameConversation}
+                                        onBookmark={handleBookmarkConversation}
+                                        onDelete={handleDeleteConversation}
+                                    />
+                                ) : (
+                                    <ConversationCard
+                                        key={`graph-${item.id}`}
+                                        conversation={item.graphHistory}
+                                        titleContent={item.terms.length > 0 ? (
+                                            <Box className="history-graph-pill-row">
+                                                {item.terms.map((term, index) => {
+                                                    const label = term?.name || term?.label || '';
+                                                    if (!label) return null;
+                                                    const colors = getPillColors(term?.type || 'default');
+                                                    return (
+                                                        <Box
+                                                            key={`${item.id}-term-${index}`}
+                                                            className="history-graph-pill"
+                                                            sx={{
+                                                                borderColor: colors.base,
+                                                                backgroundColor: colors.background,
+                                                                color: colors.text,
+                                                                boxShadow: `0px 4px 6px ${colors.shadow}`,
+                                                            }}
+                                                        >
+                                                            <span className="history-graph-pill-label">{label}</span>
+                                                        </Box>
+                                                    );
+                                                })}
+                                            </Box>
+                                        ) : null}
+                                        title=""
+                                        subtitle={item.subtitle}
+                                        timestamp={item.timestamp}
+                                        selectMode={false}
+                                        isSelected={selectedGraphIds.includes(item.id)}
+                                        showCheckboxOnHover
+                                        onToggleSelect={handleToggleGraphSelection}
+                                        isBookmarked={bookmarkedGraphIds.has(item.id)}
+                                        onBookmark={handleBookmarkGraph}
+                                        onDelete={handleDeleteGraphHistory}
+                                    />
+                                )
                             ))
                         ) : (
                             <Typography sx={{
@@ -654,7 +896,7 @@ const History = () => {
                                 fontSize: '14px',
                                 color: '#646464',
                             }}>
-                                {searchQuery.trim() ? 'No matches found.' : 'No conversations yet.'}
+                                {searchQuery.trim() ? 'No matches found.' : 'No history yet.'}
                             </Typography>
                         )}
                         {!selectMode && filteredReferences.length > 0 && (

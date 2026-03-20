@@ -20,7 +20,123 @@
     flex-direction: column;
     min-height: 0;
     gap: 12px;
-    padding: 24px 80px 36px;
+    padding: 24px 48px 36px;
+}
+
+.library-folder-manager {
+    width: 240px;
+    min-width: 240px;
+    background-color: #ffffff;
+    border-right: 1px solid #E2E8F0;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-sizing: border-box;
+}
+
+.library-folder-manager-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.library-folder-manager-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.library-folder-manager-section-title {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    color: #7A7A7A;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.library-folder-manager-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.library-folder-manager-action {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    color: #164563;
+}
+
+.library-folder-manager-action.Mui-disabled {
+    color: #C4C4C4;
+}
+
+.library-folder-manager-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: calc(100vh - 260px);
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.library-folder-manager-item {
+    border: none;
+    background: transparent;
+    padding: 8px 10px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    color: #164563;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    width: 100%;
+}
+
+.library-folder-manager-item:hover {
+    background-color: #F2F6FF;
+}
+
+.library-folder-manager-item.is-active {
+    background-color: #E7F1FF;
+    color: #155DFC;
+    font-weight: 600;
+}
+
+.library-folder-manager-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+}
+
+.library-folder-manager-label {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.library-folder-manager-count {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    color: inherit;
+}
+
+.library-folder-manager-empty {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    color: #9A9A9A;
+    padding: 4px 10px;
 }
 
 .library-header {
@@ -174,19 +290,22 @@
 }
 
 .library-reference-list .history-item-row,
-.library-chat-list .history-item-row {
+.library-chat-list .history-item-row,
+.library-graph-list .history-item-row {
     grid-template-columns: minmax(0, 1fr);
     padding-right: 0;
     --history-row-gutter: 0px;
 }
 
 .library-reference-list .history-item,
-.library-chat-list .history-item {
+.library-chat-list .history-item,
+.library-graph-list .history-item {
     grid-column: 1;
 }
 
 .library-reference-list .history-item-row:first-child::before,
-.library-chat-list .history-item-row:first-child::before {
+.library-chat-list .history-item-row:first-child::before,
+.library-graph-list .history-item-row:first-child::before {
     display: none;
 }
 
@@ -300,11 +419,49 @@
     width: 100%;
 }
 
+.library-graph-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0px;
+    width: 100%;
+}
+
 .library-reference-list {
     display: flex;
     flex-direction: column;
     gap: 0px;
     width: 100%;
+}
+
+.library-graph-pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    align-items: center;
+    min-width: 0;
+}
+
+.library-graph-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    border-radius: 16px;
+    border: 1px solid #E7F1FF;
+    background-color: #ffffff;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #164563;
+    height: 32px;
+    box-sizing: border-box;
+}
+
+.library-graph-pill-label {
+    max-width: 240px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .library-chat-item {

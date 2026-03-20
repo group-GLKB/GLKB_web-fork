@@ -1,29 +1,29 @@
 import './scoped.css';
 
 import React, {
-  useEffect,
-  useMemo,
-  useState,
+    useEffect,
+    useMemo,
+    useState,
 } from 'react';
 
 import {
-  Bookmark as BookmarkIcon,
-  BookmarkBorder as BookmarkBorderIcon,
-  DeleteOutline as DeleteOutlineIcon,
-  DriveFileRenameOutline as DriveFileRenameOutlineIcon,
-  FolderOutlined as FolderOutlinedIcon,
-  MoreHoriz as MoreHorizIcon,
+    Bookmark as BookmarkIcon,
+    BookmarkBorder as BookmarkBorderIcon,
+    DeleteOutline as DeleteOutlineIcon,
+    DriveFileRenameOutline as DriveFileRenameOutlineIcon,
+    FolderOutlined as FolderOutlinedIcon,
+    MoreHoriz as MoreHorizIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Checkbox,
-  Divider,
-  IconButton,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Typography,
+    Box,
+    Checkbox,
+    Divider,
+    IconButton,
+    ListItemIcon,
+    ListItemText,
+    Menu,
+    MenuItem,
+    Typography,
 } from '@mui/material';
 
 const getDefaultTitle = (conversation) => (
@@ -40,6 +40,7 @@ const getDefaultSubtitle = (conversation) => {
 const ConversationCard = ({
     conversation,
     title,
+    titleContent,
     subtitle,
     timestamp,
     selectMode = false,
@@ -64,6 +65,9 @@ const ConversationCard = ({
         () => (subtitle !== undefined ? subtitle : getDefaultSubtitle(conversation)),
         [conversation, subtitle]
     );
+    const resolvedTitleLabel = typeof resolvedTitle === 'string'
+        ? resolvedTitle
+        : getDefaultTitle(conversation);
     const [menuAnchorEl, setMenuAnchorEl] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [editingTitle, setEditingTitle] = useState(resolvedTitle);
@@ -87,6 +91,9 @@ const ConversationCard = ({
     };
 
     const handleCloseMenu = () => {
+        if (menuAnchorEl?.blur) {
+            menuAnchorEl.blur();
+        }
         setMenuAnchorEl(null);
     };
 
@@ -169,7 +176,7 @@ const ConversationCard = ({
                             onToggleSelect(conversation?.id, true);
                         }
                     }}
-                    inputProps={{ 'aria-label': `Select ${resolvedTitle}` }}
+                    inputProps={{ 'aria-label': `Select ${resolvedTitleLabel}` }}
                     sx={{
                         color: '#D9D9D9',
                         padding: '4px',
@@ -213,17 +220,21 @@ const ConversationCard = ({
                                 aria-label="Edit conversation title"
                             />
                         ) : (
-                            <Typography className="history-title" sx={{
-                                fontFamily: 'DM Sans, sans-serif',
-                                fontWeight: 600,
-                                fontSize: '16px',
-                                color: '#164563',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                            }}>
-                                {resolvedTitle}
-                            </Typography>
+                            titleContent ? (
+                                titleContent
+                            ) : (
+                                <Typography className="history-title" sx={{
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontWeight: 600,
+                                    fontSize: '16px',
+                                    color: '#164563',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                }}>
+                                    {resolvedTitle}
+                                </Typography>
+                            )
                         )}
                         {hasMenu && (
                             <IconButton
@@ -272,6 +283,7 @@ const ConversationCard = ({
                     anchorEl={menuAnchorEl}
                     open={isMenuOpen}
                     onClose={handleCloseMenu}
+                    disableRestoreFocus
                     anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                     transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                     MenuListProps={{

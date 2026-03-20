@@ -18,6 +18,7 @@ import {
     DeleteOutline as DeleteOutlineIcon,
     DriveFileRenameOutline as DriveFileRenameOutlineIcon,
     FileCopyOutlined as FileCopyOutlinedIcon,
+    FilterListOutlined as FilterListOutlinedIcon,
     FolderOutlined as FolderOutlinedIcon,
     FormatQuoteOutlined as FormatQuoteOutlinedIcon,
     MoreHoriz as MoreHorizIcon,
@@ -52,6 +53,7 @@ import {
     removeFavoriteFolder,
     updateFavoriteChatFolder,
     updateFavoriteFolder,
+    updateFavoriteGraphFolder,
     updateFavoriteReferenceFolder,
 } from '../../service/Favorites';
 import {
@@ -68,15 +70,20 @@ import {
     getConversationBookmarks,
     toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
+import {
+    fetchGraphBookmarks,
+    getGraphBookmarks,
+    toggleGraphBookmark,
+} from '../../utils/graphBookmarks';
 import { useAuth } from '../Auth/AuthContext';
+import nodeStyleColors from '../Graph/nodeStyleColors.json';
 import CiteDialog from '../Units/CiteDialog';
 import ConversationCard from '../Units/ConversationCard';
 
 const ALL_TAB = 'all';
-const FOLDERS_TAB = 'folders';
 const REFERENCES_TAB = 'references';
 const CHATS_TAB = 'chats';
-const FOLDER_PREVIEW_LIMIT = 12;
+const GRAPHS_TAB = 'graphs';
 const ENTRY_PREVIEW_LIMIT = 5;
 const DEFAULT_FOLDER_NAME = 'New Folder';
 
@@ -108,6 +115,51 @@ const buildReferenceCitation = (entry) => ([
     entry?.journal || '',
     entry?.authors || '',
 ]);
+
+const hexToRgb = (hex) => {
+    if (!hex) return { r: 0, g: 0, b: 0 };
+    const cleaned = hex.replace('#', '');
+    const normalized = cleaned.length === 3
+        ? cleaned.split('').map((char) => `${char}${char}`).join('')
+        : cleaned;
+    const value = parseInt(normalized, 16);
+    if (Number.isNaN(value)) return { r: 0, g: 0, b: 0 };
+    return {
+        r: (value >> 16) & 255,
+        g: (value >> 8) & 255,
+        b: value & 255,
+    };
+};
+
+const rgbToHex = (r, g, b) => {
+    const toHex = (value) => value.toString(16).padStart(2, '0');
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
+
+const mixHex = (baseHex, mixHexValue, amount) => {
+    const base = hexToRgb(baseHex);
+    const mix = hexToRgb(mixHexValue);
+    const ratio = Math.min(Math.max(amount, 0), 1);
+    const r = Math.round(base.r * (1 - ratio) + mix.r * ratio);
+    const g = Math.round(base.g * (1 - ratio) + mix.g * ratio);
+    const b = Math.round(base.b * (1 - ratio) + mix.b * ratio);
+    return rgbToHex(r, g, b);
+};
+
+const toRgba = (hex, alpha) => {
+    const { r, g, b } = hexToRgb(hex);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const getPillColors = (label) => {
+    const base = nodeStyleColors[label] || nodeStyleColors.default || '#E5E5E5';
+    return {
+        base,
+        background: mixHex(base, '#ffffff', 0.75),
+        text: mixHex(base, '#000000', 0.35),
+        shadow: toRgba(base, 0.3),
+    };
+};
 
 const getUniqueFolderName = (existingFolders, baseName = DEFAULT_FOLDER_NAME) => {
     const names = new Set(
@@ -160,6 +212,21 @@ const normalizeFolderReference = (entry) => {
         source_hid: entry?.source_hid ?? ref?.source_hid ?? null,
         created_at: entry?.created_at || null,
         ref_json: ref,
+    };
+};
+
+const normalizeFolderGraph = (entry) => {
+    if (!entry) return null;
+    const ghid = entry?.ghid ?? entry?.id;
+    if (!ghid) return null;
+    return {
+        id: String(ghid),
+        ghid,
+        title: entry?.title || '',
+        endpointType: entry?.endpoint_type || entry?.endpointType || '',
+        createdAt: entry?.created_at || entry?.createdAt || null,
+        updatedAt: entry?.last_accessed_time || entry?.updatedAt || entry?.created_at || entry?.createdAt || null,
+        terms: Array.isArray(entry?.terms) ? entry.terms : [],
     };
 };
 
@@ -523,6 +590,7 @@ const Library = () => {
     const navigate = useNavigate();
     const [bookmarks, setBookmarks] = useState([]);
     const [conversationBookmarks, setConversationBookmarks] = useState([]);
+    const [graphBookmarks, setGraphBookmarks] = useState([]);
     const [folders, setFolders] = useState([]);
     const [folderDetail, setFolderDetail] = useState(null);
     const [folderDetailLoading, setFolderDetailLoading] = useState(false);
@@ -540,11 +608,16 @@ const Library = () => {
     const [folderPickerLoading, setFolderPickerLoading] = useState(false);
     const { isAuthenticated, loading } = useAuth();
 
-    const folderId = useMemo(() => {
+    const [selectedFolderId, setSelectedFolderId] = useState(() => {
         const params = new URLSearchParams(location.search);
         return params.get('folder');
+    });
+    const isFolderView = Boolean(selectedFolderId);
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        setSelectedFolderId(params.get('folder'));
     }, [location.search]);
-    const isFolderView = Boolean(folderId);
 
     useEffect(() => {
         if (loading || !isAuthenticated) {
@@ -597,6 +670,33 @@ const Library = () => {
 
     useEffect(() => {
         if (loading || !isAuthenticated) {
+            setGraphBookmarks([]);
+            return undefined;
+        }
+
+        let isMounted = true;
+        const update = (event) => {
+            const next = event?.detail || getGraphBookmarks();
+            if (!isMounted) return;
+            setGraphBookmarks(next);
+        };
+
+        fetchGraphBookmarks()
+            .then((list) => {
+                if (!isMounted) return;
+                setGraphBookmarks(list);
+            })
+            .catch(() => update());
+
+        window.addEventListener('glkb-graph-bookmarks-updated', update);
+        return () => {
+            isMounted = false;
+            window.removeEventListener('glkb-graph-bookmarks-updated', update);
+        };
+    }, [isAuthenticated, loading]);
+
+    useEffect(() => {
+        if (loading || !isAuthenticated) {
             setFolders([]);
             return undefined;
         }
@@ -619,7 +719,7 @@ const Library = () => {
     }, [isAuthenticated, loading]);
 
     useEffect(() => {
-        if (!folderId || loading || !isAuthenticated) {
+        if (!selectedFolderId || loading || !isAuthenticated) {
             setFolderDetail(null);
             setFolderDetailLoading(false);
             return undefined;
@@ -627,7 +727,7 @@ const Library = () => {
 
         let isMounted = true;
         setFolderDetailLoading(true);
-        getFavoriteFolder(folderId)
+        getFavoriteFolder(selectedFolderId)
             .then((data) => {
                 if (!isMounted) return;
                 setFolderDetail(data);
@@ -642,7 +742,7 @@ const Library = () => {
         return () => {
             isMounted = false;
         };
-    }, [folderId, isAuthenticated, loading]);
+    }, [selectedFolderId, isAuthenticated, loading]);
 
     const handleCiteClick = (citation) => {
         setSelectedCitation(citation);
@@ -673,6 +773,23 @@ const Library = () => {
             setConversationBookmarks(next);
         } catch (error) {
             setConversationBookmarks(getConversationBookmarks());
+        }
+    };
+
+    const handleBookmarkGraph = async (graph) => {
+        if (!graph) return;
+        const entry = {
+            id: String(graph.ghid ?? graph.id),
+            ghid: graph.ghid ?? graph.id,
+            title: graph.title || '',
+            endpointType: graph.endpointType || graph.endpoint_type || '',
+            updatedAt: graph.updatedAt || graph.createdAt || new Date().toISOString(),
+        };
+        try {
+            const next = await toggleGraphBookmark(entry, graph.terms || []);
+            setGraphBookmarks(next);
+        } catch (error) {
+            setGraphBookmarks(getGraphBookmarks());
         }
     };
 
@@ -769,6 +886,12 @@ const Library = () => {
                     const sessions = Array.isArray(detail?.sessions) ? detail.sessions : [];
                     const match = sessions.some((session) => String(session?.hid ?? session?.id ?? '') === String(item?.id));
                     membership[folder.fid] = match;
+                } else if (type === 'graph') {
+                    const graphs = Array.isArray(detail?.graphs)
+                        ? detail.graphs
+                        : (Array.isArray(detail?.graph_histories) ? detail.graph_histories : []);
+                    const match = graphs.some((graph) => String(graph?.ghid ?? graph?.id ?? '') === String(item?.ghid ?? item?.id ?? ''));
+                    membership[folder.fid] = match;
                 } else {
                     const references = Array.isArray(detail?.references) ? detail.references : [];
                     const match = references.some((ref) => String(ref?.pmid ?? ref?.id ?? '') === String(item?.pmid ?? item?.id ?? ''));
@@ -819,7 +942,9 @@ const Library = () => {
             await Promise.all(updates.map(({ fid, action }) => (
                 folderPickerType === 'chat'
                     ? updateFavoriteChatFolder(String(item?.id ?? ''), fid, action)
-                    : updateFavoriteReferenceFolder(String(item?.pmid ?? item?.id ?? ''), fid, action)
+                    : folderPickerType === 'graph'
+                        ? updateFavoriteGraphFolder(String(item?.ghid ?? item?.id ?? ''), fid, action)
+                        : updateFavoriteReferenceFolder(String(item?.pmid ?? item?.id ?? ''), fid, action)
             )));
             await refreshFolders();
         } catch (error) {
@@ -856,23 +981,26 @@ const Library = () => {
         openFolderPicker(entry, 'reference');
     };
 
+    const handleManageGraphFolders = (graph) => {
+        openFolderPicker(graph, 'graph');
+    };
+
     const handleTabClick = (tab) => {
-        if (isFolderView) {
-            navigate('/library');
-        }
         setActiveTab(tab);
     };
 
     const handleShowMore = (tab) => {
         setActiveTab(tab);
-        if (isFolderView) {
-            navigate('/library');
-        }
     };
 
-    const handleOpenFolder = (folder) => {
-        if (!folder?.fid) return;
-        navigate(`/library?folder=${folder.fid}`);
+    const handleSelectFolder = (folderId) => {
+        const nextId = folderId ? String(folderId) : null;
+        setSelectedFolderId(nextId);
+        if (nextId) {
+            navigate(`/library?folder=${nextId}`, { replace: true });
+        } else {
+            navigate('/library', { replace: true });
+        }
     };
 
     const folderChats = useMemo(() => {
@@ -887,27 +1015,54 @@ const Library = () => {
         return references.map(normalizeFolderReference).filter(Boolean);
     }, [folderDetail, isFolderView]);
 
+    const folderGraphs = useMemo(() => {
+        if (!isFolderView || !folderDetail) return [];
+        const graphs = Array.isArray(folderDetail?.graphs)
+            ? folderDetail.graphs
+            : (Array.isArray(folderDetail?.graph_histories) ? folderDetail.graph_histories : []);
+        return graphs
+            .map(normalizeFolderGraph)
+            .map((graph) => {
+                if (!graph) return null;
+                if (graph.terms?.length) return graph;
+                const cached = graphBookmarks.find((item) => String(item.id) === String(graph.id));
+                return cached?.terms?.length ? { ...graph, terms: cached.terms } : graph;
+            })
+            .filter(Boolean);
+    }, [folderDetail, graphBookmarks, isFolderView]);
+
     const shouldLimitPreviews = !isFolderView && activeTab === ALL_TAB;
-    const visibleFolders = !isFolderView && (activeTab === ALL_TAB || activeTab === FOLDERS_TAB)
-        ? (shouldLimitPreviews ? folders.slice(0, FOLDER_PREVIEW_LIMIT) : folders)
-        : [];
+    const showChatsSection = activeTab === ALL_TAB || activeTab === CHATS_TAB;
+    const showReferencesSection = activeTab === ALL_TAB || activeTab === REFERENCES_TAB;
+    const showGraphsSection = activeTab === ALL_TAB || activeTab === GRAPHS_TAB;
     const visibleChats = isFolderView
-        ? folderChats
-        : ((activeTab === ALL_TAB || activeTab === CHATS_TAB)
+        ? (showChatsSection ? folderChats : [])
+        : (showChatsSection
             ? (shouldLimitPreviews ? conversationBookmarks.slice(0, ENTRY_PREVIEW_LIMIT) : conversationBookmarks)
             : []);
     const visibleReferences = isFolderView
-        ? folderReferences
-        : ((activeTab === ALL_TAB || activeTab === REFERENCES_TAB)
+        ? (showReferencesSection ? folderReferences : [])
+        : (showReferencesSection
             ? (shouldLimitPreviews ? bookmarks.slice(0, ENTRY_PREVIEW_LIMIT) : bookmarks)
             : []);
-    const showMoreFolders = shouldLimitPreviews && folders.length > FOLDER_PREVIEW_LIMIT;
+    const visibleGraphs = isFolderView
+        ? (showGraphsSection ? folderGraphs : [])
+        : (showGraphsSection
+            ? (shouldLimitPreviews ? graphBookmarks.slice(0, ENTRY_PREVIEW_LIMIT) : graphBookmarks)
+            : []);
     const showMoreChats = shouldLimitPreviews && conversationBookmarks.length > ENTRY_PREVIEW_LIMIT;
     const showMoreReferences = shouldLimitPreviews && bookmarks.length > ENTRY_PREVIEW_LIMIT;
+    const showMoreGraphs = shouldLimitPreviews && graphBookmarks.length > ENTRY_PREVIEW_LIMIT;
+    const allItemsCount = conversationBookmarks.length + bookmarks.length + graphBookmarks.length;
+    const getFolderItemCount = (folder) => (
+        (folder?.chat_count ?? 0)
+        + (folder?.ref_count ?? 0)
+        + (folder?.graph_count ?? 0)
+    );
     const tabs = [
         { id: ALL_TAB, label: 'All' },
-        { id: FOLDERS_TAB, label: 'Folder' },
         { id: REFERENCES_TAB, label: 'Reference' },
+        { id: GRAPHS_TAB, label: 'Explore' },
         { id: CHATS_TAB, label: 'AI Chat' },
     ];
 
@@ -1029,6 +1184,62 @@ const Library = () => {
                 </DialogActions>
             </Dialog>
             <Box className="library-body">
+                <Box className="library-folder-manager">
+                    <button
+                        type="button"
+                        className={`library-folder-manager-item${!selectedFolderId ? ' is-active' : ''}`}
+                        onClick={() => handleSelectFolder(null)}
+                    >
+                        <span className="library-folder-manager-icon">
+                            <BookIcon style={{ width: 18, height: 18 }} />
+                        </span>
+                        <span className="library-folder-manager-label">All Items</span>
+                        <span className="library-folder-manager-count">{allItemsCount}</span>
+                    </button>
+                    <Box className="library-folder-manager-section">
+                        <div className="library-folder-manager-section-header">
+                            <span className="library-folder-manager-section-title">Folders</span>
+                            <div className="library-folder-manager-actions">
+                                <IconButton
+                                    size="small"
+                                    aria-label="Filter folders"
+                                    className="library-folder-manager-action"
+                                    disabled
+                                >
+                                    <FilterListOutlinedIcon sx={{ fontSize: 18 }} />
+                                </IconButton>
+                                <IconButton
+                                    size="small"
+                                    aria-label="Add folder"
+                                    className="library-folder-manager-action"
+                                    onClick={() => handleOpenFolderDialog()}
+                                >
+                                    <AddIcon style={{ width: 18, height: 18 }} />
+                                </IconButton>
+                            </div>
+                        </div>
+                        <div className="library-folder-manager-list">
+                            {folders.length > 0 ? (
+                                folders.map((folder) => (
+                                    <button
+                                        key={folder.fid}
+                                        type="button"
+                                        className={`library-folder-manager-item${String(selectedFolderId) === String(folder.fid) ? ' is-active' : ''}`}
+                                        onClick={() => handleSelectFolder(folder.fid)}
+                                    >
+                                        <span className="library-folder-manager-icon">
+                                            <FolderOpenIcon style={{ width: 18, height: 18 }} />
+                                        </span>
+                                        <span className="library-folder-manager-label">{folder?.name || 'Untitled folder'}</span>
+                                        <span className="library-folder-manager-count">{getFolderItemCount(folder)}</span>
+                                    </button>
+                                ))
+                            ) : (
+                                <div className="library-folder-manager-empty">No folders yet.</div>
+                            )}
+                        </div>
+                    </Box>
+                </Box>
                 <Box className="library-content">
                     <Box className="library-header">
                         <Box className="library-title-bar">
@@ -1042,15 +1253,6 @@ const Library = () => {
                                 }}>
                                     Library
                                 </Typography>
-                            </Box>
-                            <Box className="library-title-actions">
-                                <MuiButton
-                                    className="library-new-folder-button"
-                                    onClick={() => handleOpenFolderDialog()}
-                                >
-                                    <AddIcon style={{ width: '16px', height: '16px', color: '#155DFC' }} />
-                                    New Folder
-                                </MuiButton>
                             </Box>
                         </Box>
                         <Typography sx={{
@@ -1066,7 +1268,7 @@ const Library = () => {
                         </Typography>
                         <Tabs
                             className="library-tabs"
-                            value={isFolderView ? false : activeTab}
+                            value={activeTab}
                             onChange={(_, value) => handleTabClick(value)}
                             variant="scrollable"
                             allowScrollButtonsMobile
@@ -1105,50 +1307,8 @@ const Library = () => {
                         </Tabs>
                     </Box>
                     <Box className="library-scroll">
-                        {isFolderView && (
-                            <Typography className="library-folder-page-title">
-                                {folderDetail?.name ? `Folder: ${folderDetail.name}` : 'Folder'}
-                            </Typography>
-                        )}
-                        {!isFolderView && (activeTab === ALL_TAB || activeTab === FOLDERS_TAB) && (
-                            <Box className="library-section">
-                                <Typography className="library-section-title">
-                                    Folders
-                                </Typography>
-                                {visibleFolders.length > 0 ? (
-                                    <>
-                                        <Box className="library-folder-grid">
-                                            {visibleFolders.map((folder) => (
-                                                <LibraryFolderCard
-                                                    key={folder.fid}
-                                                    folder={folder}
-                                                    onDelete={handleDeleteFolder}
-                                                    onDuplicate={handleDuplicateFolder}
-                                                    onRename={handleOpenFolderDialog}
-                                                    onOpen={handleOpenFolder}
-                                                />
-                                            ))}
-                                        </Box>
-                                        {showMoreFolders && (
-                                            <button
-                                                type="button"
-                                                className="library-show-more"
-                                                onClick={() => handleShowMore(FOLDERS_TAB)}
-                                            >
-                                                Show More
-                                                <ChevronRightIcon className="library-show-more-arrow" aria-hidden="true" />
-                                            </button>
-                                        )}
-                                    </>
-                                ) : (
-                                    <Typography className="library-empty-text">
-                                        No folders yet. Create one to organize your bookmarks.
-                                    </Typography>
-                                )}
-                            </Box>
-                        )}
                         {!isFolderView || !folderDetailLoading ? (
-                            (isFolderView || activeTab === ALL_TAB || activeTab === CHATS_TAB) && (
+                            showChatsSection && (
                                 <Box className="library-section">
                                     <Typography className="library-section-title">
                                         Chats
@@ -1193,7 +1353,89 @@ const Library = () => {
                             )
                         ) : null}
                         {!isFolderView || !folderDetailLoading ? (
-                            (isFolderView || activeTab === ALL_TAB || activeTab === REFERENCES_TAB) && (
+                            showGraphsSection && (
+                                <Box className="library-section">
+                                    <Typography className="library-section-title">
+                                        Explore
+                                    </Typography>
+                                    {visibleGraphs.length > 0 ? (
+                                        <>
+                                            <Box className="library-graph-list">
+                                                {visibleGraphs.map((graph) => {
+                                                    const fallbackTitle = graph?.title && graph.title !== 'N/A'
+                                                        ? graph.title
+                                                        : 'Graph search';
+                                                    return (
+                                                        <ConversationCard
+                                                            key={graph.id}
+                                                            conversation={graph}
+                                                            titleContent={graph?.terms?.length ? (
+                                                                <Box className="library-graph-pill-row">
+                                                                    {graph.terms.map((term, index) => {
+                                                                        const label = term?.name || term?.label || '';
+                                                                        if (!label) return null;
+                                                                        const colors = getPillColors(term?.type || 'default');
+                                                                        return (
+                                                                            <Box
+                                                                                key={`${graph.id}-pill-${index}`}
+                                                                                className="library-graph-pill"
+                                                                                sx={{
+                                                                                    borderColor: colors.base,
+                                                                                    backgroundColor: colors.background,
+                                                                                    color: colors.text,
+                                                                                    boxShadow: `0px 4px 6px ${colors.shadow}`,
+                                                                                }}
+                                                                            >
+                                                                                <span className="library-graph-pill-label">{label}</span>
+                                                                            </Box>
+                                                                        );
+                                                                    })}
+                                                                </Box>
+                                                            ) : (
+                                                                <Typography className="history-title" sx={{
+                                                                    fontFamily: 'DM Sans, sans-serif',
+                                                                    fontWeight: 600,
+                                                                    fontSize: '16px',
+                                                                    color: '#164563',
+                                                                    whiteSpace: 'nowrap',
+                                                                    overflow: 'hidden',
+                                                                    textOverflow: 'ellipsis',
+                                                                }}>
+                                                                    {fallbackTitle}
+                                                                </Typography>
+                                                            )}
+                                                            subtitle=""
+                                                            onBookmark={handleBookmarkGraph}
+                                                            onManageFolders={handleManageGraphFolders}
+                                                            isBookmarked
+                                                            bookmarkLabel="Remove bookmark"
+                                                        />
+                                                    );
+                                                })}
+                                            </Box>
+                                            {showMoreGraphs && (
+                                                <button
+                                                    type="button"
+                                                    className="library-show-more"
+                                                    onClick={() => handleShowMore(GRAPHS_TAB)}
+                                                >
+                                                    Show More
+                                                    <ChevronRightIcon className="library-show-more-arrow" aria-hidden="true" />
+                                                </button>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <Typography className="library-empty-text">
+                                            {isFolderView
+                                                ? 'No graph searches in this folder yet.'
+                                                : 'No saved graph searches yet. Bookmark an Explore result to see it here.'}
+                                        </Typography>
+                                    )}
+                                </Box>
+                            )
+                        ) : null}
+                        {!isFolderView || !folderDetailLoading ? (
+                            showReferencesSection && (
                                 <Box className="library-section">
                                     <Typography className="library-section-title">
                                         References

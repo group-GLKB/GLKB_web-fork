@@ -56,7 +56,8 @@
     text-align: left;
     background: transparent;
     border: none;
-    padding: 16px 0;
+    margin: 0 -12px;
+    padding: 16px 12px;
     border-radius: 10px;
     box-sizing: border-box;
     cursor: pointer;
@@ -83,11 +84,10 @@
     width: 100%;
 }
 
-.history-item:hover {
+.history-item-row:hover .history-item,
+.history-item-row:focus-within .history-item {
     background-color: #E7F1FF;
     border-radius: 12px;
-    margin: 0 -12px;
-    padding: 16px 12px;
 }
 
 .history-title {
