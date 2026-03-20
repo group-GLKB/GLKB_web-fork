@@ -98,6 +98,17 @@ export const AuthProvider = ({ children }) => {
     return result;
   };
 
+  // Update username (email auth)
+  const updateUsername = async (newUsername) => {
+    const result = await AuthService.updateUsername(newUsername);
+
+    if (result.success && result.user) {
+      setUser(result.user);
+    }
+
+    return result;
+  };
+
   const value = {
     user,
     isAuthenticated,
@@ -107,6 +118,7 @@ export const AuthProvider = ({ children }) => {
     sendCode,
     verifyCode,
     loginWithGoogle,
+    updateUsername,
     logout
   };
 

@@ -2,7 +2,6 @@ import './scoped.css';
 
 import React, {
     useEffect,
-    useRef,
     useState,
 } from 'react';
 
@@ -26,15 +25,11 @@ const setSessionValue = (key, value) => {
 };
 
 const AccountPage = () => {
-    const { user, logout } = useAuth();
+    const { user, logout, updateUsername } = useAuth();
     const navigate = useNavigate();
-    const avatarInputRef = useRef(null);
     const [displayName, setDisplayName] = useState(() => getSessionValue('account_display_name'));
     const [email, setEmail] = useState(() => getSessionValue('account_email'));
-    const [avatarData, setAvatarData] = useState(() => getSessionValue('account_avatar'));
-    const [avatarDraft, setAvatarDraft] = useState('');
     const [nameDraft, setNameDraft] = useState('');
-    const [showAvatarModal, setShowAvatarModal] = useState(false);
     const [showNameModal, setShowNameModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showSignoutModal, setShowSignoutModal] = useState(false);
@@ -60,46 +55,25 @@ const AccountPage = () => {
         return () => window.clearTimeout(timeoutId);
     }, [toastMessage]);
 
-    const openAvatarModal = () => {
-        setAvatarDraft(avatarData);
-        setShowAvatarModal(true);
-    };
-
     const openNameModal = () => {
         setNameDraft(displayName);
         setShowNameModal(true);
     };
 
-    const handleAvatarFileChange = (event) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-            if (typeof reader.result === 'string') {
-                setAvatarDraft(reader.result);
-            }
-        };
-        reader.readAsDataURL(file);
-    };
-
-    const handleSaveAvatar = () => {
-        if (avatarDraft) {
-            setAvatarData(avatarDraft);
-            setSessionValue('account_avatar', avatarDraft);
-            setToastMessage('Avatar updated');
-            window.dispatchEvent(new Event('glkb-account-updated'));
-        }
-        setShowAvatarModal(false);
-    };
-
-    const handleSaveName = () => {
+    const handleSaveName = async () => {
         const trimmed = nameDraft.trim();
         if (!trimmed) return;
-        setDisplayName(trimmed);
-        setSessionValue('account_display_name', trimmed);
-        setToastMessage('Name updated');
-        window.dispatchEvent(new Event('glkb-account-updated'));
-        setShowNameModal(false);
+        const result = await updateUsername(trimmed);
+        if (result.success && result.user) {
+            const nextName = result.user.username || trimmed;
+            setDisplayName(nextName);
+            setSessionValue('account_display_name', nextName);
+            setToastMessage(result.message || 'Name updated');
+            window.dispatchEvent(new Event('glkb-account-updated'));
+            setShowNameModal(false);
+        } else {
+            setToastMessage(result.message || 'Failed to update name');
+        }
     };
 
     const handleSignOut = async () => {
@@ -149,20 +123,13 @@ const AccountPage = () => {
                         <div className="flat-row">
                             <div className="flat-row-main">
                                 <div className="card-avatar" aria-hidden="true">
-                                    {avatarData ? (
-                                        <img src={avatarData} alt="Account" className="card-avatar-image" />
-                                    ) : (
-                                        <PersonIcon className="card-avatar-icon" />
-                                    )}
+                                    <PersonIcon className="card-avatar-icon" />
                                 </div>
                                 <div>
                                     <div className="flat-name">{displayName}</div>
                                     <div className="flat-sub">{email}</div>
                                 </div>
                             </div>
-                            <button type="button" className="flat-btn" onClick={openAvatarModal}>
-                                Change avatar
-                            </button>
                         </div>
 
                         <div className="flat-row">
@@ -223,69 +190,6 @@ const AccountPage = () => {
                     </div>
                 </div>
             </div>
-
-            {showAvatarModal && (
-                <div
-                    className="modal-backdrop visible"
-                    onClick={(event) => handleBackdropClick(event, () => setShowAvatarModal(false))}
-                >
-                    <div className="modal">
-                        <div className="modal-title">Change Avatar</div>
-                        <div className="modal-desc">
-                            Upload a new profile photo. It will be visible across your account.
-                        </div>
-                        <div className="avatar-upload-area">
-                            <button
-                                type="button"
-                                className="avatar-preview"
-                                onClick={() => avatarInputRef.current?.click()}
-                            >
-                                {avatarDraft ? (
-                                    <img src={avatarDraft} alt="Avatar preview" />
-                                ) : (
-                                    <PersonIcon />
-                                )}
-                            </button>
-                            <div className="avatar-upload-info">
-                                <button
-                                    type="button"
-                                    className="flat-btn dark"
-                                    onClick={() => avatarInputRef.current?.click()}
-                                >
-                                    Upload avatar
-                                </button>
-                                <div className="avatar-hint">
-                                    Click the avatar or button to browse. JPG or PNG.
-                                </div>
-                            </div>
-                        </div>
-                        <input
-                            ref={avatarInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleAvatarFileChange}
-                            className="visually-hidden"
-                        />
-                        <div className="modal-actions">
-                            <button
-                                type="button"
-                                className="flat-btn"
-                                onClick={() => setShowAvatarModal(false)}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                className="flat-btn dark"
-                                onClick={handleSaveAvatar}
-                                disabled={!avatarDraft}
-                            >
-                                Save photo
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {showNameModal && (
                 <div

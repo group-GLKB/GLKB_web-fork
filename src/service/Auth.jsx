@@ -178,3 +178,28 @@ export const loginWithGoogle = async (credential) => {
     };
   }
 };
+
+// Update username (email auth)
+export const updateUsername = async (newUsername) => {
+  try {
+    const response = await axios.put(`${EMAIL_AUTH_BASE_URL}/username`, {
+      new_username: newUsername
+    });
+
+    const { user, message } = response.data;
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    }
+
+    return {
+      success: true,
+      message: message || 'Username updated successfully',
+      user: user
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Failed to update username. Please try again.'
+    };
+  }
+};
