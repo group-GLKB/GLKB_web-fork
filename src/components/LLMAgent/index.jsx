@@ -2696,7 +2696,7 @@ function LLMAgent() {
                                                                             const pubmedId = ref.url.split('/').filter(Boolean).pop();
                                                                             const isHighlighted = hoveredPubmedId === pubmedId;
                                                                             return (
-                                                                                <div key={index} style={{ marginTop: '12px' }} data-pubmed-id={pubmedId}>
+                                                                                <div key={index} data-pubmed-id={pubmedId}>
                                                                                     <ReferenceCard
                                                                                         url={url}
                                                                                         evidence={ref.evidence}
