@@ -206,29 +206,31 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         }}
                                     />}
                                     {/* Search Icon */}
-                                    <Box
-                                        role="button"
-                                        aria-label="Start chat"
-                                        className="search-button-big"
-                                        onClick={!llmQuery.trim() ? undefined : () => { navigateToLLMAgent(llmQuery.trim()); }}
-                                        sx={{
-                                            height: '48px',
-                                            width: '48px',
-                                            borderRadius: '50%',
-                                            backgroundColor: !llmQuery.trim() ? '#9fb6ff' : '#155DFC',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            cursor: !llmQuery.trim() ? 'not-allowed' : 'pointer',
-                                            transition: 'transform 120ms ease, box-shadow 160ms ease',
-                                            boxShadow: !llmQuery.trim() ? 'none' : '0 6px 12px rgba(21, 93, 252, 0.28)',
-                                            '&:hover': {
-                                                transform: !llmQuery.trim() ? 'none' : 'translateY(-1px)',
-                                            },
-                                        }}
-                                    >
-                                        <SearchIcon sx={{ color: '#ffffff', fontSize: '22px' }} />
-                                    </Box>
+                                    {llmQuery.trim() && (
+                                        <Box
+                                            role="button"
+                                            aria-label="Start chat"
+                                            className="search-button-big"
+                                            onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}
+                                            sx={{
+                                                height: '48px',
+                                                width: '48px',
+                                                borderRadius: '50%',
+                                                backgroundColor: '#155DFC',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                transition: 'transform 120ms ease, box-shadow 160ms ease',
+                                                boxShadow: '0 6px 12px rgba(21, 93, 252, 0.28)',
+                                                '&:hover': {
+                                                    transform: 'translateY(-1px)',
+                                                },
+                                            }}
+                                        >
+                                            <SearchIcon sx={{ color: '#ffffff', fontSize: '22px' }} />
+                                        </Box>
+                                    )}
                                 </Box>
                             ),
                         }}
