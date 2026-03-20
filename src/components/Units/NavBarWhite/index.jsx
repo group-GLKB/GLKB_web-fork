@@ -711,15 +711,15 @@ function NavBarWhite({ showLogo = true }) {
                         </Box>
                     )}
                 </Box>
-                <Divider sx={{ display: 'none' }} />
+                <Divider sx={{ display: 'none', borderColor: '#E2E8F0' }} />
                 <List sx={{ px: 1, py: 1 }}>
                     {topItems.map((item) => renderNavItem(item))}
                 </List>
-                <Divider sx={{ mx: 3.5 }} />
+                <Divider sx={{ mx: 3.5, borderColor: '#E2E8F0' }} />
                 <List sx={{ px: 1, py: 1 }}>
                     {middleItems.map((item) => renderNavItem(item))}
                 </List>
-                {/* <Divider sx={{ mx: 3.5 }} />
+                {/* <Divider sx={{ mx: 3.5, borderColor: '#E2E8F0' }} />
                 <List sx={{ px: 1, py: 1 }}>
                     {bottomItems.map((item) => renderNavItem(item))}
                 </List> */}
@@ -924,7 +924,7 @@ function NavBarWhite({ showLogo = true }) {
                         {isRecentBookmarked ? 'Remove bookmark' : 'Bookmark'}
                     </ListItemText>
                 </MenuItem>
-                <Divider />
+                <Divider sx={{ borderColor: '#E2E8F0' }} />
                 <MenuItem onClick={handleDeleteRecent} sx={{ color: '#B42318 !important' }}>
                     <ListItemIcon sx={{ minWidth: 26, color: '#B42318' }}>
                         <DeleteOutlineIcon sx={{ fontSize: 18 }} />
@@ -1023,7 +1023,7 @@ function NavBarWhite({ showLogo = true }) {
                     </ListItemIcon>
                     <ListItemText>Account</ListItemText>
                 </MenuItem>
-                <Divider />
+                <Divider sx={{ borderColor: '#E2E8F0' }} />
                 <MenuItem onClick={handleLogoutClick} sx={{ px: 2, py: 1 }}>
                     <ListItemIcon sx={{ minWidth: "16px !important", mr: 1 }}>
                         <Box

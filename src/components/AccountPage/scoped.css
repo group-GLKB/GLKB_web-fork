@@ -15,7 +15,7 @@
 .settings-nav {
     width: 280px;
     background: #ffffff;
-    border-right: 1px solid #E8EAED;
+    border-right: 1px solid #E2E8F0;
     padding: 28px 0;
     flex-shrink: 0;
 }
@@ -30,7 +30,7 @@
     font-size: 13px;
     font-weight: 500;
     transition: color 0.15s;
-    border-bottom: 1px solid #E8EAED;
+    border-bottom: 1px solid #E2E8F0;
     margin-bottom: 10px;
     letter-spacing: 0.1px;
     background: transparent;
