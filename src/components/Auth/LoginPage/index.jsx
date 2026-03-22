@@ -51,6 +51,7 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [googleReady, setGoogleReady] = useState(false);
   const [showGoogleFallback, setShowGoogleFallback] = useState(false);
+  const [autoTriggerFallback, setAutoTriggerFallback] = useState(false);
   const navigate = useNavigate();
   const { login, loginWithGoogle } = useAuth();
   const googleInitializedRef = useRef(false);
@@ -89,6 +90,7 @@ const LoginPage = () => {
 
     setOauthLoading(true);
     setShowGoogleFallback(false);
+    setAutoTriggerFallback(false);
 
     loadGoogleIdentityScript()
       .then(() => {
@@ -129,6 +131,7 @@ const LoginPage = () => {
           if (notification.isNotDisplayed() || notification.isSkippedMoment() || dismissed) {
             setOauthLoading(false);
             setShowGoogleFallback(true);
+            setAutoTriggerFallback(true);
           }
         });
       })
@@ -173,7 +176,14 @@ const LoginPage = () => {
       shape: 'pill',
       width: 320,
     });
-  }, [googleReady, showGoogleFallback, googleClientId, loginWithGoogle, navigate]);
+    if (autoTriggerFallback) {
+      const button = googleButtonRef.current.querySelector('div[role="button"]');
+      if (button) {
+        button.click();
+      }
+      setAutoTriggerFallback(false);
+    }
+  }, [googleReady, showGoogleFallback, googleClientId, loginWithGoogle, navigate, autoTriggerFallback]);
 
 
   const handleContinue = async (e) => {
@@ -213,18 +223,27 @@ const LoginPage = () => {
 
           <p className="login-subtitle">New to GLKB? An account will be <strong>automatically created</strong> for you upon your first sign-in.</p>
 
-          <button
-            type="button"
-            className="oauth-button google-button"
-            onClick={handleGoogleLogin}
-            disabled={oauthLoading}
-          >
-            <span className="oauth-icon"><FcGoogle size={24} /></span>
-            {oauthLoading ? 'Connecting...' : 'Continue with Google'}
-          </button>
-          {showGoogleFallback && (
-            <div className="google-fallback" ref={googleButtonRef} />
-          )}
+          <div className="google-login-slot">
+            {showGoogleFallback ? (
+              <>
+                <div className="google-fallback-warning">
+                  One Tap failed. Use the popup login below.
+                </div>
+                <div className="google-fallback-subtitle">Login in a pop-up window</div>
+                <div className="google-fallback" ref={googleButtonRef} />
+              </>
+            ) : (
+              <button
+                type="button"
+                className="oauth-button google-button"
+                onClick={handleGoogleLogin}
+                disabled={oauthLoading}
+              >
+                <span className="oauth-icon"><FcGoogle size={24} /></span>
+                {oauthLoading ? 'Connecting...' : 'Continue with Google'}
+              </button>
+            )}
+          </div>
 
           <div className="divider">
             <span>OR</span>
