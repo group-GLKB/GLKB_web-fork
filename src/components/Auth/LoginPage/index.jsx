@@ -49,19 +49,28 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [error, setError] = useState('');
+  const [googleReady, setGoogleReady] = useState(false);
+  const [showGoogleFallback, setShowGoogleFallback] = useState(false);
   const navigate = useNavigate();
   const { login, loginWithGoogle } = useAuth();
   const googleInitializedRef = useRef(false);
+  const googleButtonRef = useRef(null);
   const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
     let isMounted = true;
 
-    loadGoogleIdentityScript().catch(() => {
-      if (isMounted) {
-        setOauthLoading(false);
-      }
-    });
+    loadGoogleIdentityScript()
+      .then(() => {
+        if (isMounted) {
+          setGoogleReady(true);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setOauthLoading(false);
+        }
+      });
 
     return () => {
       isMounted = false;
@@ -79,6 +88,7 @@ const LoginPage = () => {
     }
 
     setOauthLoading(true);
+    setShowGoogleFallback(false);
 
     loadGoogleIdentityScript()
       .then(() => {
@@ -118,9 +128,7 @@ const LoginPage = () => {
             : false;
           if (notification.isNotDisplayed() || notification.isSkippedMoment() || dismissed) {
             setOauthLoading(false);
-            if (!dismissed) {
-              setError('Google login was cancelled or blocked.');
-            }
+            setShowGoogleFallback(true);
           }
         });
       })
@@ -129,6 +137,43 @@ const LoginPage = () => {
         setOauthLoading(false);
       });
   };
+
+  useEffect(() => {
+    if (!googleReady || !showGoogleFallback || !googleButtonRef.current || !googleClientId) {
+      return;
+    }
+
+    if (!googleInitializedRef.current && window.google?.accounts?.id) {
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: async (response) => {
+          if (!response?.credential) {
+            setError('Google login failed. Please try again.');
+            return;
+          }
+
+          const result = await loginWithGoogle(response.credential);
+
+          if (result.success) {
+            navigate('/');
+          } else {
+            setError(result.message);
+          }
+        }
+      });
+      googleInitializedRef.current = true;
+    }
+
+    googleButtonRef.current.innerHTML = '';
+    window.google.accounts.id.renderButton(googleButtonRef.current, {
+      theme: 'outline',
+      size: 'large',
+      type: 'standard',
+      text: 'continue_with',
+      shape: 'pill',
+      width: 320,
+    });
+  }, [googleReady, showGoogleFallback, googleClientId, loginWithGoogle, navigate]);
 
 
   const handleContinue = async (e) => {
@@ -177,6 +222,9 @@ const LoginPage = () => {
             <span className="oauth-icon"><FcGoogle size={24} /></span>
             {oauthLoading ? 'Connecting...' : 'Continue with Google'}
           </button>
+          {showGoogleFallback && (
+            <div className="google-fallback" ref={googleButtonRef} />
+          )}
 
           <div className="divider">
             <span>OR</span>

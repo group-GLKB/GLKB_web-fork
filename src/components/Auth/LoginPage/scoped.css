@@ -102,6 +102,12 @@
   font-size: 20px;
 }
 
+.google-fallback {
+  margin: 12px 0 4px;
+  display: flex;
+  justify-content: center;
+}
+
 .divider {
   display: flex;
   align-items: center;

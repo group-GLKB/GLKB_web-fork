@@ -124,6 +124,7 @@ const normalizeDetail = (detail) => ({
             references: normalizeReferences(message.references),
             timestamp: formatTimestamp(message.created_at),
             trajectory: message.trajectory || null,
+            invocationId: message.invocation_id ?? message.invocationId ?? null,
         }))
         : [],
 });
