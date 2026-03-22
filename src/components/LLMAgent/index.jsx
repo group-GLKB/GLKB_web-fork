@@ -3,70 +3,71 @@ import './scoped.css';
 import './github-markdown-light.css';
 
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 
 import { message } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import ReactMarkdown from 'react-markdown';
 import {
-    useLocation,
-    useNavigate,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 
 import {
-    Bookmark as BookmarkIcon,
-    BookmarkBorder as BookmarkBorderIcon,
-    Check as CheckIcon,
-    ChevronRight as ChevronRightIcon,
-    Clear as ClearIcon,
-    EditNote as EditNoteIcon,
-    ExpandMore as ExpandMoreIcon,
-    FilePresent as FilePresentIcon,
-    StopCircle as StopCircleIcon,
+  Bookmark as BookmarkIcon,
+  BookmarkBorder as BookmarkBorderIcon,
+  Check as CheckIcon,
+  ChevronRight as ChevronRightIcon,
+  Clear as ClearIcon,
+  EditNote as EditNoteIcon,
+  ExpandMore as ExpandMoreIcon,
+  FilePresent as FilePresentIcon,
+  Replay as ReplayIcon,
+  StopCircle as StopCircleIcon,
 } from '@mui/icons-material';
 import {
-    Box,
-    Button as MuiButton,
-    CircularProgress,
-    Container,
-    Grid,
-    IconButton,
-    Stack,
-    TextField,
-    ToggleButton,
-    ToggleButtonGroup,
-    Typography,
+  Box,
+  Button as MuiButton,
+  CircularProgress,
+  Container,
+  Grid,
+  IconButton,
+  Stack,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
 } from '@mui/material';
 
 import contentCopyIcon from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import {
-    ReactComponent as SidebarLeftIcon,
+  ReactComponent as SidebarLeftIcon,
 } from '../../img/navbar/sidebar.left.svg';
 import { LLMAgentService } from '../../service/LLMAgent';
 import {
-    createConversation,
-    fetchConversationDetail,
-    fetchConversations,
-    getActiveConversationId,
-    getConversations,
-    setActiveConversationId,
-    setConversations,
-    updateConversationMessages,
-    updateConversationTitle,
-    upsertConversation,
+  createConversation,
+  fetchConversationDetail,
+  fetchConversations,
+  getActiveConversationId,
+  getConversations,
+  setActiveConversationId,
+  setConversations,
+  updateConversationMessages,
+  updateConversationTitle,
+  upsertConversation,
 } from '../../utils/chatHistory';
 import {
-    fetchConversationBookmarks,
-    getConversationBookmarks,
-    toggleConversationBookmark,
+  fetchConversationBookmarks,
+  getConversationBookmarks,
+  toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
 import { useAuth } from '../Auth/AuthContext';
 import CiteDialog from '../Units/CiteDialog';
@@ -178,6 +179,7 @@ const areMessagesEqual = (left, right) => {
             thinkingSteps: leftMsg?.thinkingSteps,
             thoughtDurationMs: leftMsg?.thoughtDurationMs,
             trajectory: leftMsg?.trajectory,
+            invocationId: leftMsg?.invocationId,
         });
         const rightSignature = JSON.stringify({
             role: rightMsg?.role,
@@ -187,6 +189,7 @@ const areMessagesEqual = (left, right) => {
             thinkingSteps: rightMsg?.thinkingSteps,
             thoughtDurationMs: rightMsg?.thoughtDurationMs,
             trajectory: rightMsg?.trajectory,
+            invocationId: rightMsg?.invocationId,
         });
         if (leftSignature !== rightSignature) return false;
     }
@@ -482,14 +485,14 @@ const MessageCard = React.memo(function MessageCard({
     const isLastUserMessage = index === totalMessages - 1 && message.role === 'assistant';
     const isLoading = isProcessing && isLastUserMessage;
     const messageID = index;
-    const allowUserEdit = false;
+    const allowUserEdit = true;
     const [editContent, setEditContent] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [expandedGroups, setExpandedGroups] = useState({});
     const [thoughtsExpanded, setThoughtsExpanded] = useState(() => isLoading);
     const [animatedStepLabel, setAnimatedStepLabel] = useState('');
     const [stepLabelPhase, setStepLabelPhase] = useState('idle');
-    const allowResponseRefresh = false;
+    const allowResponseRefresh = true;
     const stepLabelTimersRef = useRef([]);
     const renderedStepLabelRef = useRef('');
     const thoughtDurationLabel = formatDuration(message.thoughtDurationMs);
@@ -780,6 +783,15 @@ const MessageCard = React.memo(function MessageCard({
                                         style={{ width: '16px', height: '16px', display: 'block' }}
                                     />
                                 </IconButton>
+                                {allowResponseRefresh && isLastUserMessage && !isLoading && (
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => refresh(null, index)}
+                                        title="Regenerate response"
+                                    >
+                                        <ReplayIcon fontSize="small" />
+                                    </IconButton>
+                                )}
                                 {!isLoading && <IconButton size="small" onClick={() => downloadConversation(messageID)} title="Download this Q&A">
                                     <DownloadIcon
                                         aria-label="Download"
@@ -1356,7 +1368,9 @@ function LLMAgent() {
         if (!inputText.trim() || isLoading) return;
 
         const shouldStartNewConversation = options.forceNewConversation || !activeConversationIdRef.current;
-        const baseHistory = shouldStartNewConversation ? [] : chatHistory;
+        const baseHistory = Array.isArray(options.baseHistory)
+            ? options.baseHistory
+            : (shouldStartNewConversation ? [] : chatHistory);
         const streamId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         activeStreamIdRef.current = streamId;
 
@@ -1535,6 +1549,24 @@ function LLMAgent() {
                                     setStoredSessionId(savedId, nextSessionId);
                                 }
                             }
+                            if (update.invocationId) {
+                                setChatHistory((prev) => {
+                                    const next = [...prev];
+                                    let assistantIndex = -1;
+                                    for (let i = next.length - 1; i >= 0; i -= 1) {
+                                        if (next[i]?.role === 'assistant') {
+                                            assistantIndex = i;
+                                            break;
+                                        }
+                                    }
+                                    if (assistantIndex < 0) return prev;
+                                    const userIndex = assistantIndex - 1;
+                                    if (userIndex < 0) return prev;
+                                    next[userIndex] = { ...next[userIndex], invocationId: update.invocationId };
+                                    next[assistantIndex] = { ...next[assistantIndex], invocationId: update.invocationId };
+                                    return next;
+                                });
+                            }
                         }
                         fetchConversations()
                             .then((list) => setConversationsState(list))
@@ -1598,9 +1630,24 @@ function LLMAgent() {
 
     const handleSaveEdit = async (e, index, content) => {
         if (content.trim() === '' || isLoading) return;
+        const historyId = activeConversationIdRef.current;
+        if (!historyId) return;
+        const invocationId = await ensureInvocationIdForIndex(index);
+        if (!invocationId) {
+            message.error('Unable to edit this message right now.');
+            return;
+        }
+
+        try {
+            await llmService.rewind(historyId, invocationId);
+        } catch (error) {
+            message.error('Unable to rewind conversation. Please try again.');
+            return;
+        }
         const editedHistory = chatHistory.slice(0, index);
         setChatHistory(editedHistory);
-        handleSubmit(e, content);
+        setShowReloadPrompt(false);
+        handleSubmit(e, content, null, { baseHistory: editedHistory });
     };
 
     const handleCopyMessage = (content) => {
@@ -1730,14 +1777,55 @@ function LLMAgent() {
         handleSubmit(null, query, null, { forceNewConversation: true });
     };
 
-    const handleRegenerateResponse = (e, index) => {
+    const getInvocationIdForTurn = (messages, targetIndex) => {
+        if (!Array.isArray(messages)) return null;
+        const direct = messages[targetIndex]?.invocationId;
+        if (direct) return direct;
+        const prev = messages[targetIndex - 1];
+        return prev?.invocationId || null;
+    };
+
+    const ensureInvocationIdForIndex = async (targetIndex) => {
+        const existing = getInvocationIdForTurn(chatHistory, targetIndex);
+        if (existing) return existing;
+        const historyId = activeConversationIdRef.current;
+        if (!historyId) return null;
+        try {
+            const detail = await fetchConversationDetail(historyId);
+            const refreshed = detail?.messages || [];
+            setChatHistory(refreshed);
+            return getInvocationIdForTurn(refreshed, targetIndex);
+        } catch (error) {
+            return null;
+        }
+    };
+
+    const handleRegenerateResponse = async (e, index) => {
         if (isLoading) return;
+        const historyId = activeConversationIdRef.current;
+        if (!historyId) return;
 
+        const assistantMessage = chatHistory[index];
+        if (!assistantMessage || assistantMessage.role !== 'assistant') return;
         const userMessage = chatHistory[index - 1];
-        const newChatHistory = chatHistory.slice(0, index - 1);
-        setChatHistory(newChatHistory);
+        if (!userMessage || userMessage.role !== 'user') return;
 
-        handleSubmit(e, userMessage.content, userMessage.timestamp);
+        const invocationId = await ensureInvocationIdForIndex(index);
+        if (!invocationId) {
+            message.error('Unable to regenerate this response right now.');
+            return;
+        }
+
+        try {
+            await llmService.rewind(historyId, invocationId);
+        } catch (error) {
+            message.error('Unable to rewind conversation. Please try again.');
+            return;
+        }
+        const trimmedHistory = chatHistory.slice(0, index - 1);
+        setChatHistory(trimmedHistory);
+        setShowReloadPrompt(false);
+        handleSubmit(e, userMessage.content, null, { baseHistory: trimmedHistory });
     };
 
     const handleReloadLatest = () => {
@@ -2066,6 +2154,15 @@ function LLMAgent() {
                                             style={{ width: '16px', height: '16px', display: 'block' }}
                                         />
                                     </IconButton>
+                                    {allowResponseRefresh && showReloadInMessage && (
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => refresh(null, index)}
+                                            title="Regenerate response"
+                                        >
+                                            <ReplayIcon fontSize="small" />
+                                        </IconButton>
+                                    )}
                                     {!isLoading && <IconButton size="small" onClick={() => downloadConversation(messageID)} title="Download this Q&A">
                                         <DownloadIcon
                                             aria-label="Download"

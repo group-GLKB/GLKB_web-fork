@@ -55,7 +55,8 @@ export class LLMAgentService {
                             await onUpdate({
                                 type: 'saved',
                                 historyId: data.history_id,
-                                sessionId: data.session_id || null
+                                sessionId: data.session_id || null,
+                                invocationId: data.invocation_id || null
                             });
                         } else if (data.step === 'Error') {
                             await onUpdate({
@@ -140,7 +141,8 @@ export class LLMAgentService {
                             onUpdate({
                                 type: 'saved',
                                 historyId: data.history_id,
-                                sessionId: data.session_id || null
+                                sessionId: data.session_id || null,
+                                invocationId: data.invocation_id || null
                             });
                         } else if (data.step === 'Error') {
                             onUpdate({
@@ -223,6 +225,15 @@ export class LLMAgentService {
             console.error('LLM Agent error:', error);
             throw error;
         }
+    }
+
+    async rewind(historyId, invocationId) {
+        const payload = {
+            history_id: historyId,
+            invocation_id: invocationId,
+        };
+        const response = await axios.post('/api/v1/new-llm-agent/rewind', payload);
+        return response.data;
     }
 
     // Add method to update messages when receiving assistant response
