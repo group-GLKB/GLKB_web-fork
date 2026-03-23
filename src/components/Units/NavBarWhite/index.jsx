@@ -77,6 +77,7 @@ import { useAuth } from '../../Auth/AuthContext';
 
 const drawerWidth = 280;
 const collapsedWidth = 88;
+const MAX_RECENT_COUNT = 50;
 
 const getStoredAccountProfile = () => {
     if (typeof window === 'undefined') {
@@ -146,7 +147,7 @@ function NavBarWhite({ showLogo = true }) {
     const [userMenuAnchorEl, setUserMenuAnchorEl] = useState(null);
     const [recentConversations, setRecentConversations] = useState([]);
     const [activeConversationId, setActiveConversationIdState] = useState(null);
-    const [maxRecentCount, setMaxRecentCount] = useState(2);
+    const [maxRecentCount] = useState(MAX_RECENT_COUNT);
     const [recentMenuAnchorEl, setRecentMenuAnchorEl] = useState(null);
     const [recentMenuConversation, setRecentMenuConversation] = useState(null);
     const [editingRecentId, setEditingRecentId] = useState(null);
@@ -219,18 +220,6 @@ function NavBarWhite({ showLogo = true }) {
             window.removeEventListener('glkb-conversations-updated', updateRecent);
         };
     }, [isAuthenticated]);
-
-    useEffect(() => {
-        const updateCount = () => {
-            const available = window.innerHeight - 560;
-            const estimated = Math.floor(available / 56);
-            setMaxRecentCount(Math.max(1, Math.min(6, estimated)));
-        };
-
-        updateCount();
-        window.addEventListener('resize', updateCount);
-        return () => window.removeEventListener('resize', updateCount);
-    }, []);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -716,137 +705,139 @@ function NavBarWhite({ showLogo = true }) {
                     {topItems.map((item) => renderNavItem(item))}
                 </List>
                 <Divider sx={{ mx: 3.5, borderColor: '#E2E8F0' }} />
-                <List sx={{ px: 1, py: 1 }}>
-                    {middleItems.map((item) => renderNavItem(item))}
-                </List>
-                {/* <Divider sx={{ mx: 3.5, borderColor: '#E2E8F0' }} />
-                <List sx={{ px: 1, py: 1 }}>
-                    {bottomItems.map((item) => renderNavItem(item))}
-                </List> */}
-                {open && (
-                    <Box className="sidebar-recent-section">
-                        <Typography
-                            className="sidebar-recent-title"
-                            sx={{
-                                fontFamily: 'DM Sans, sans-serif',
-                                fontWeight: 700,
-                                fontSize: '12px',
-                                color: '#969696',
-                                textTransform: 'none',
-                            }}
-                        >
-                            Recent
-                        </Typography>
-                        <Box className="sidebar-recent-list">
-                            {recentConversations.slice(0, maxRecentCount).map((conversation) => (
-                                (() => {
-                                    const isEditingRecent = String(editingRecentId) === String(conversation.id);
-                                    return (
-                                        <Box
-                                            key={conversation.id}
-                                            sx={{
-                                                position: 'relative',
-                                                width: '100%',
-                                                minHeight: 32,
-                                                '&:hover .recent-entry-button, &:focus-within .recent-entry-button': {
-                                                    paddingRight: '36px',
-                                                },
-                                                '&:hover .recent-more-button, &:focus-within .recent-more-button': {
-                                                    opacity: 1,
-                                                    pointerEvents: 'auto',
-                                                },
-                                            }}
-                                        >
+                <Box className="sidebar-scroll">
+                    <List sx={{ px: 1, py: 1 }}>
+                        {middleItems.map((item) => renderNavItem(item))}
+                    </List>
+                    {/* <Divider sx={{ mx: 3.5, borderColor: '#E2E8F0' }} />
+                    <List sx={{ px: 1, py: 1 }}>
+                        {bottomItems.map((item) => renderNavItem(item))}
+                    </List> */}
+                    {open && (
+                        <Box className="sidebar-recent-section">
+                            <Typography
+                                className="sidebar-recent-title"
+                                sx={{
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontWeight: 700,
+                                    fontSize: '12px',
+                                    color: '#969696',
+                                    textTransform: 'none',
+                                }}
+                            >
+                                Recent
+                            </Typography>
+                            <Box className="sidebar-recent-list">
+                                {recentConversations.slice(0, maxRecentCount).map((conversation) => (
+                                    (() => {
+                                        const isEditingRecent = String(editingRecentId) === String(conversation.id);
+                                        return (
                                             <Box
-                                                component={isEditingRecent ? 'input' : 'button'}
-                                                type={isEditingRecent ? 'text' : 'button'}
-                                                className="recent-entry-button"
-                                                value={isEditingRecent ? editingRecentTitle : undefined}
-                                                autoFocus={isEditingRecent}
-                                                onChange={isEditingRecent ? (event) => setEditingRecentTitle(event.target.value) : undefined}
-                                                onBlur={isEditingRecent ? commitInlineRecentRename : undefined}
-                                                onKeyDown={isEditingRecent ? (event) => {
-                                                    if (event.key === 'Enter') {
-                                                        event.preventDefault();
-                                                        commitInlineRecentRename();
-                                                    }
-                                                    if (event.key === 'Escape') {
-                                                        event.preventDefault();
-                                                        cancelInlineRecentRename();
-                                                    }
-                                                } : undefined}
-                                                onClick={() => {
-                                                    if (isEditingRecent) return;
-                                                    setActiveConversationId(conversation.id);
-                                                    setActiveConversationIdState(conversation.id);
-                                                    navigate('/chat', { state: { conversationId: conversation.id } });
-                                                }}
+                                                key={conversation.id}
                                                 sx={{
+                                                    position: 'relative',
                                                     width: '100%',
-                                                    border: '1px solid',
-                                                    borderColor: isActiveConversation(conversation) ? '#155DFC' : 'transparent',
-                                                    backgroundColor: isActiveConversation(conversation) ? '#E7F1FF' : 'transparent',
-                                                    padding: '6px 8px',
-                                                    borderRadius: '8px',
-                                                    fontFamily: 'DM Sans, sans-serif',
-                                                    fontSize: '13px',
-                                                    fontWeight: 500,
-                                                    lineHeight: 1.4,
-                                                    color: '#164563',
-                                                    textAlign: 'left',
-                                                    cursor: 'pointer',
-                                                    whiteSpace: 'nowrap',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                    transition: 'background-color 0.2s ease, border-color 0.2s ease, padding-right 0.16s ease',
-                                                    '&:hover': {
-                                                        backgroundColor: '#E7F1FF',
+                                                    minHeight: 32,
+                                                    '&:hover .recent-entry-button, &:focus-within .recent-entry-button': {
+                                                        paddingRight: '36px',
                                                     },
-                                                    ...(isEditingRecent && {
-                                                        cursor: 'text',
-                                                        outline: 'none',
-                                                        borderColor: '#155DFC',
-                                                        boxShadow: '0 0 0 2px rgba(21, 93, 252, 0.12)',
+                                                    '&:hover .recent-more-button, &:focus-within .recent-more-button': {
+                                                        opacity: 1,
+                                                        pointerEvents: 'auto',
+                                                    },
+                                                }}
+                                            >
+                                                <Box
+                                                    component={isEditingRecent ? 'input' : 'button'}
+                                                    type={isEditingRecent ? 'text' : 'button'}
+                                                    className="recent-entry-button"
+                                                    value={isEditingRecent ? editingRecentTitle : undefined}
+                                                    autoFocus={isEditingRecent}
+                                                    onChange={isEditingRecent ? (event) => setEditingRecentTitle(event.target.value) : undefined}
+                                                    onBlur={isEditingRecent ? commitInlineRecentRename : undefined}
+                                                    onKeyDown={isEditingRecent ? (event) => {
+                                                        if (event.key === 'Enter') {
+                                                            event.preventDefault();
+                                                            commitInlineRecentRename();
+                                                        }
+                                                        if (event.key === 'Escape') {
+                                                            event.preventDefault();
+                                                            cancelInlineRecentRename();
+                                                        }
+                                                    } : undefined}
+                                                    onClick={() => {
+                                                        if (isEditingRecent) return;
+                                                        setActiveConversationId(conversation.id);
+                                                        setActiveConversationIdState(conversation.id);
+                                                        navigate('/chat', { state: { conversationId: conversation.id } });
+                                                    }}
+                                                    sx={{
+                                                        width: '100%',
+                                                        border: '1px solid',
+                                                        borderColor: isActiveConversation(conversation) ? '#155DFC' : 'transparent',
+                                                        backgroundColor: isActiveConversation(conversation) ? '#E7F1FF' : 'transparent',
+                                                        padding: '6px 8px',
+                                                        borderRadius: '8px',
+                                                        fontFamily: 'DM Sans, sans-serif',
+                                                        fontSize: '13px',
+                                                        fontWeight: 500,
+                                                        lineHeight: 1.4,
+                                                        color: '#164563',
+                                                        textAlign: 'left',
+                                                        cursor: 'pointer',
+                                                        whiteSpace: 'nowrap',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                        transition: 'background-color 0.2s ease, border-color 0.2s ease, padding-right 0.16s ease',
                                                         '&:hover': {
-                                                            backgroundColor: isActiveConversation(conversation) ? '#E7F1FF' : '#ffffff',
+                                                            backgroundColor: '#E7F1FF',
                                                         },
-                                                    }),
-                                                }}
-                                            >
-                                                {isEditingRecent ? undefined : getConversationTitle(conversation)}
+                                                        ...(isEditingRecent && {
+                                                            cursor: 'text',
+                                                            outline: 'none',
+                                                            borderColor: '#155DFC',
+                                                            boxShadow: '0 0 0 2px rgba(21, 93, 252, 0.12)',
+                                                            '&:hover': {
+                                                                backgroundColor: isActiveConversation(conversation) ? '#E7F1FF' : '#ffffff',
+                                                            },
+                                                        }),
+                                                    }}
+                                                >
+                                                    {isEditingRecent ? undefined : getConversationTitle(conversation)}
+                                                </Box>
+                                                <IconButton
+                                                    size="small"
+                                                    className="recent-more-button"
+                                                    onClick={(event) => handleOpenRecentMenu(event, conversation)}
+                                                    aria-label="Open conversation menu"
+                                                    disabled={isEditingRecent}
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        right: 6,
+                                                        top: '50%',
+                                                        transform: 'translateY(-50%)',
+                                                        width: 24,
+                                                        height: 24,
+                                                        borderRadius: '8px',
+                                                        color: '#164563',
+                                                        opacity: 0,
+                                                        pointerEvents: 'none',
+                                                        transition: 'opacity 0.16s ease, background-color 0.16s ease',
+                                                        '&:hover': {
+                                                            backgroundColor: 'rgba(1, 105, 176, 0.1)',
+                                                        },
+                                                    }}
+                                                >
+                                                    <MoreHorizIcon sx={{ fontSize: 18 }} />
+                                                </IconButton>
                                             </Box>
-                                            <IconButton
-                                                size="small"
-                                                className="recent-more-button"
-                                                onClick={(event) => handleOpenRecentMenu(event, conversation)}
-                                                aria-label="Open conversation menu"
-                                                disabled={isEditingRecent}
-                                                sx={{
-                                                    position: 'absolute',
-                                                    right: 6,
-                                                    top: '50%',
-                                                    transform: 'translateY(-50%)',
-                                                    width: 24,
-                                                    height: 24,
-                                                    borderRadius: '8px',
-                                                    color: '#164563',
-                                                    opacity: 0,
-                                                    pointerEvents: 'none',
-                                                    transition: 'opacity 0.16s ease, background-color 0.16s ease',
-                                                    '&:hover': {
-                                                        backgroundColor: 'rgba(1, 105, 176, 0.1)',
-                                                    },
-                                                }}
-                                            >
-                                                <MoreHorizIcon sx={{ fontSize: 18 }} />
-                                            </IconButton>
-                                        </Box>
-                                    );
-                                })()
-                            ))}
+                                        );
+                                    })()
+                                ))}
+                            </Box>
                         </Box>
-                    </Box>
-                )}
+                    )}
+                </Box>
                 <Box sx={{ mt: 'auto', pb: 1 }}>
                     <List sx={{ px: 1, py: 1 }}>
                         {!isAuthenticated ? (

@@ -1,29 +1,29 @@
 import './scoped.css';
 
 import React, {
-    useEffect,
-    useMemo,
-    useState,
+  useEffect,
+  useMemo,
+  useState,
 } from 'react';
 
 import {
-    Bookmark as BookmarkIcon,
-    BookmarkBorder as BookmarkBorderIcon,
-    DeleteOutline as DeleteOutlineIcon,
-    DriveFileRenameOutline as DriveFileRenameOutlineIcon,
-    FolderOutlined as FolderOutlinedIcon,
-    MoreHoriz as MoreHorizIcon,
+  Bookmark as BookmarkIcon,
+  BookmarkBorder as BookmarkBorderIcon,
+  DeleteOutline as DeleteOutlineIcon,
+  DriveFileRenameOutline as DriveFileRenameOutlineIcon,
+  FolderOutlined as FolderOutlinedIcon,
+  MoreHoriz as MoreHorizIcon,
 } from '@mui/icons-material';
 import {
-    Box,
-    Checkbox,
-    Divider,
-    IconButton,
-    ListItemIcon,
-    ListItemText,
-    Menu,
-    MenuItem,
-    Typography,
+  Box,
+  Checkbox,
+  Divider,
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Typography,
 } from '@mui/material';
 
 const getDefaultTitle = (conversation) => (
@@ -43,6 +43,7 @@ const ConversationCard = ({
     titleContent,
     subtitle,
     timestamp,
+    footerContent,
     selectMode = false,
     isSelected = false,
     showCheckboxOnHover = false,
@@ -266,7 +267,9 @@ const ConversationCard = ({
                     }}>
                         {resolvedSubtitle}
                     </Typography>
-                    {timestamp !== undefined && timestamp !== null && (
+                    {footerContent !== undefined && footerContent !== null ? (
+                        footerContent
+                    ) : (timestamp !== undefined && timestamp !== null && (
                         <Typography sx={{
                             fontFamily: 'DM Sans, sans-serif',
                             fontWeight: 500,
@@ -275,7 +278,7 @@ const ConversationCard = ({
                         }}>
                             {timestamp}
                         </Typography>
-                    )}
+                    ))}
                 </Box>
             </div>
             {hasMenu && (

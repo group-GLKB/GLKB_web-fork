@@ -1,65 +1,50 @@
 import './scoped.css';
 
 import React, {
-    useEffect,
-    useMemo,
-    useState,
+  useEffect,
+  useMemo,
+  useState,
 } from 'react';
 
 import {
-    Navigate,
-    useNavigate,
+  Navigate,
+  useNavigate,
 } from 'react-router-dom';
 
+import { DeleteOutline as DeleteOutlineIcon } from '@mui/icons-material';
 import {
-    Bookmark as BookmarkIcon,
-    DeleteOutline as DeleteOutlineIcon,
-    FormatQuoteOutlined as FormatQuoteOutlinedIcon,
-    MoreHoriz as MoreHorizIcon,
-} from '@mui/icons-material';
-import {
-    Box,
-    Checkbox,
-    IconButton,
-    ListItemIcon,
-    ListItemText,
-    Menu,
-    MenuItem,
-    Tooltip,
-    Typography,
+  Box,
+  Checkbox,
+  Tooltip,
+  Typography,
 } from '@mui/material';
 
 import { ReactComponent as HistoryIcon } from '../../img/navbar/history.svg';
+import { ReactComponent as MetaIcon } from '../../img/library/Icon.svg';
 import {
-    fetchBookmarks,
-    getBookmarks,
-    toggleBookmark,
-} from '../../utils/bookmarks';
-import {
-    fetchConversations,
-    getConversations,
-    removeConversation,
-    setActiveConversationId,
-    updateConversationTitle,
+  fetchConversations,
+  getConversations,
+  removeConversation,
+  setActiveConversationId,
+  updateConversationTitle,
 } from '../../utils/chatHistory';
 import {
-    fetchConversationBookmarks,
-    getConversationBookmarks,
-    toggleConversationBookmark,
+  fetchConversationBookmarks,
+  getConversationBookmarks,
+  toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
 import {
-    fetchGraphBookmarks,
-    getGraphBookmarks,
-    toggleGraphBookmark,
+  fetchGraphBookmarks,
+  getGraphBookmarks,
+  toggleGraphBookmark,
 } from '../../utils/graphBookmarks';
 import {
-    fetchGraphHistories,
-    getGraphHistories,
-    removeGraphHistory,
+  fetchGraphHistories,
+  getGraphHistories,
+  removeGraphHistory,
 } from '../../utils/graphHistory';
 import { useAuth } from '../Auth/AuthContext';
 import nodeStyleColors from '../Graph/nodeStyleColors.json';
-import CiteDialog from '../Units/CiteDialog';
 import ConversationCard from '../Units/ConversationCard';
 
 const formatTimestamp = (value) => {
@@ -75,6 +60,43 @@ const formatTimestamp = (value) => {
     });
 };
 
+const parseTimestamp = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    if (typeof value === 'number') {
+        return value < 1e12 ? value * 1000 : value;
+    }
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (/^\d+$/.test(trimmed)) {
+            const numeric = Number(trimmed);
+            return numeric < 1e12 ? numeric * 1000 : numeric;
+        }
+    }
+    const parsed = new Date(value);
+    const time = parsed.getTime();
+    return Number.isNaN(time) ? null : time;
+};
+
+const formatRelativeTime = (value) => {
+    const timestamp = parseTimestamp(value);
+    if (!timestamp) return 'just now';
+    const diffMs = Date.now() - timestamp;
+    const seconds = Math.max(0, Math.floor(diffMs / 1000));
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days} day${days === 1 ? '' : 's'} ago`;
+    const weeks = Math.floor(days / 7);
+    if (weeks < 5) return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+    const months = Math.floor(days / 30);
+    if (months < 12) return `${months} month${months === 1 ? '' : 's'} ago`;
+    const years = Math.floor(days / 365);
+    return `${years} year${years === 1 ? '' : 's'} ago`;
+};
+
 const getConversationTitle = (conversation) => (
     conversation.leadingTitle || 'Untitled conversation'
 );
@@ -84,24 +106,6 @@ const getConversationSubtitle = (conversation) => {
         ? conversation.messageCount
         : 0;
     return `${count} ${count === 1 ? 'message' : 'messages'}`;
-};
-
-const buildReferenceCitation = (entry) => ([
-    entry?.title || '',
-    entry?.url || '',
-    entry?.citation_count ?? 0,
-    entry?.year ?? '',
-    entry?.journal || '',
-    entry?.authors || '',
-]);
-
-const getReferenceSubtitle = (entry) => {
-    const journal = entry?.journal || '';
-    const year = entry?.year || '';
-    if (journal && year) return `${journal} - ${year}`;
-    if (journal) return journal;
-    if (year) return year;
-    return entry?.authors || '';
 };
 
 const hexToRgb = (hex) => {
@@ -149,139 +153,6 @@ const getPillColors = (label) => {
     };
 };
 
-const HistoryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite }) => {
-    const [menuAnchorEl, setMenuAnchorEl] = useState(null);
-    const isMenuOpen = Boolean(menuAnchorEl);
-
-    const handleOpenMenu = (event) => {
-        event.stopPropagation();
-        setMenuAnchorEl(event.currentTarget);
-    };
-
-    const handleCloseMenu = () => {
-        setMenuAnchorEl(null);
-    };
-
-    const handleRemoveBookmark = () => {
-        handleCloseMenu();
-        if (onRemoveBookmark) {
-            onRemoveBookmark(entry);
-        }
-    };
-
-    const handleCite = () => {
-        handleCloseMenu();
-        if (onCite) {
-            onCite(entry);
-        }
-    };
-
-    return (
-        <Box className="history-item-row">
-            <div
-                role="button"
-                tabIndex={0}
-                className="history-item"
-                onClick={() => {
-                    if (onOpen) {
-                        onOpen(entry);
-                    }
-                }}
-                onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        if (onOpen) {
-                            onOpen(entry);
-                        }
-                    }
-                }}
-            >
-                <Box className="history-item-content">
-                    <Box className="history-item-title-row">
-                        <Typography className="history-title" sx={{
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontWeight: 600,
-                            fontSize: '16px',
-                            color: '#164563',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                        }}>
-                            {entry?.title || 'Untitled reference'}
-                        </Typography>
-                        <IconButton
-                            size="small"
-                            className="history-item-more"
-                            onClick={handleOpenMenu}
-                            aria-label="Open reference menu"
-                            sx={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: '8px',
-                                color: '#164563',
-                            }}
-                        >
-                            <MoreHorizIcon sx={{ fontSize: 18 }} />
-                        </IconButton>
-                    </Box>
-                    <Typography className="history-subtitle">
-                        {getReferenceSubtitle(entry)}
-                    </Typography>
-                    {entry?.created_at && (
-                        <Typography className="history-timestamp">
-                            {formatTimestamp(entry.created_at)}
-                        </Typography>
-                    )}
-                </Box>
-            </div>
-            <Menu
-                anchorEl={menuAnchorEl}
-                open={isMenuOpen}
-                onClose={handleCloseMenu}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                MenuListProps={{
-                    sx: {
-                        py: 0.5,
-                    },
-                }}
-                PaperProps={{
-                    sx: {
-                        minWidth: 176,
-                        borderRadius: 2,
-                        boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
-                        '& .MuiMenuItem-root': {
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontSize: '13px',
-                            fontWeight: 500,
-                            color: '#164563',
-                            py: 0.75,
-                            px: 1.25,
-                        },
-                    },
-                }}
-            >
-                <MenuItem onClick={handleRemoveBookmark}>
-                    <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
-                        <BookmarkIcon sx={{ fontSize: 18 }} />
-                    </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
-                        Remove bookmark
-                    </ListItemText>
-                </MenuItem>
-                <MenuItem onClick={handleCite}>
-                    <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
-                        <FormatQuoteOutlinedIcon sx={{ fontSize: 18 }} />
-                    </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
-                        Cite
-                    </ListItemText>
-                </MenuItem>
-            </Menu>
-        </Box>
-    );
-};
-
 const History = () => {
     const navigate = useNavigate();
     const { isAuthenticated, loading } = useAuth();
@@ -294,9 +165,6 @@ const History = () => {
     const [isDeleting, setIsDeleting] = useState(false);
     const [conversationBookmarks, setConversationBookmarks] = useState([]);
     const [graphBookmarks, setGraphBookmarks] = useState([]);
-    const [referenceBookmarks, setReferenceBookmarks] = useState([]);
-    const [citeDialogOpen, setCiteDialogOpen] = useState(false);
-    const [selectedCitation, setSelectedCitation] = useState(null);
 
     const normalizedChatItems = useMemo(() => (
         conversations.map((conversation) => ({
@@ -344,22 +212,6 @@ const History = () => {
         [filteredHistoryItems]
     );
 
-    const filteredReferences = referenceBookmarks.filter((entry) => {
-        const query = searchQuery.trim().toLowerCase();
-        if (!query) return true;
-        const haystack = [
-            entry?.title,
-            entry?.journal,
-            entry?.authors,
-            entry?.year,
-            entry?.url,
-        ]
-            .filter(Boolean)
-            .join(' ')
-            .toLowerCase();
-        return haystack.includes(query);
-    });
-
     const filteredIds = filteredChatItems.map((item) => item.id);
     const selectedIdSet = new Set(selectedIds);
     const selectedFilteredCount = filteredIds.filter((id) => selectedIdSet.has(id)).length;
@@ -374,7 +226,7 @@ const History = () => {
         () => new Set(graphBookmarks.map((item) => String(item?.id ?? item?.ghid ?? ''))),
         [graphBookmarks]
     );
-    const filteredTotalCount = filteredHistoryItems.length + (selectMode ? 0 : filteredReferences.length);
+    const filteredTotalCount = filteredHistoryItems.length;
 
     useEffect(() => {
         if (loading || !isAuthenticated) {
@@ -485,33 +337,6 @@ const History = () => {
         return () => {
             isMounted = false;
             window.removeEventListener('glkb-graph-bookmarks-updated', update);
-        };
-    }, [isAuthenticated, loading]);
-
-    useEffect(() => {
-        if (loading || !isAuthenticated) {
-            setReferenceBookmarks([]);
-            return undefined;
-        }
-
-        let isMounted = true;
-        const update = (event) => {
-            const next = event?.detail || getBookmarks();
-            if (!isMounted) return;
-            setReferenceBookmarks(next);
-        };
-
-        fetchBookmarks()
-            .then((list) => {
-                if (!isMounted) return;
-                setReferenceBookmarks(list);
-            })
-            .catch(() => update());
-
-        window.addEventListener('glkb-bookmarks-updated', update);
-        return () => {
-            isMounted = false;
-            window.removeEventListener('glkb-bookmarks-updated', update);
         };
     }, [isAuthenticated, loading]);
 
@@ -643,31 +468,6 @@ const History = () => {
         setSelectedGraphIds((prev) => prev.filter((id) => String(id) !== idToDelete));
     };
 
-    const handleOpenReference = (entry) => {
-        if (!entry?.url) return;
-        window.open(entry.url, '_blank');
-    };
-
-    const handleRemoveReferenceBookmark = async (entry) => {
-        if (!entry) return;
-        try {
-            const next = await toggleBookmark(entry, { sourceHid: entry.source_hid });
-            setReferenceBookmarks(next);
-        } catch (error) {
-            setReferenceBookmarks(getBookmarks());
-        }
-    };
-
-    const handleCiteReference = (entry) => {
-        setSelectedCitation(buildReferenceCitation(entry));
-        setCiteDialogOpen(true);
-    };
-
-    const handleCloseCiteDialog = () => {
-        setCiteDialogOpen(false);
-        setSelectedCitation(null);
-    };
-
     useEffect(() => {
         setSelectedIds((prev) => prev.filter((id) => conversations.some((conversation) => conversation.id === id)));
     }, [conversations]);
@@ -686,11 +486,6 @@ const History = () => {
 
     return (
         <div className="history-page">
-            <CiteDialog
-                open={citeDialogOpen}
-                onClose={handleCloseCiteDialog}
-                citation={selectedCitation}
-            />
             <Box className="history-body">
                 <Box className="history-content">
                     <Box className="history-top">
@@ -839,6 +634,14 @@ const History = () => {
                                         conversation={item.conversation}
                                         title={item.title}
                                         subtitle={item.subtitle}
+                                        footerContent={(
+                                            <div className="history-card-meta">
+                                                <MetaIcon className="history-card-meta-icon" />
+                                                <span>{formatRelativeTime(item.conversation?.updatedAt || item.conversation?.createdAt)}</span>
+                                                <span className="history-card-meta-sep">|</span>
+                                                <span>Chat</span>
+                                            </div>
+                                        )}
                                         timestamp={item.timestamp}
                                         selectMode={selectMode}
                                         isSelected={selectedIdSet.has(item.id)}
@@ -879,6 +682,14 @@ const History = () => {
                                         ) : null}
                                         title=""
                                         subtitle={item.subtitle}
+                                        footerContent={(
+                                            <div className="history-card-meta">
+                                                <MetaIcon className="history-card-meta-icon" />
+                                                <span>{formatRelativeTime(item.graphHistory?.createdAt || item.graphHistory?.updatedAt)}</span>
+                                                <span className="history-card-meta-sep">|</span>
+                                                <span>Map</span>
+                                            </div>
+                                        )}
                                         timestamp={item.timestamp}
                                         selectMode={false}
                                         isSelected={selectedGraphIds.includes(item.id)}
@@ -898,22 +709,6 @@ const History = () => {
                             }}>
                                 {searchQuery.trim() ? 'No matches found.' : 'No history yet.'}
                             </Typography>
-                        )}
-                        {!selectMode && filteredReferences.length > 0 && (
-                            <>
-                                <Typography className="history-section-title">
-                                    Saved References
-                                </Typography>
-                                {filteredReferences.map((entry) => (
-                                    <HistoryReferenceCard
-                                        key={entry.id}
-                                        entry={entry}
-                                        onOpen={handleOpenReference}
-                                        onRemoveBookmark={handleRemoveReferenceBookmark}
-                                        onCite={handleCiteReference}
-                                    />
-                                ))}
-                            </>
                         )}
                     </Box>
                 </Box>

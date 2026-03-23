@@ -53,6 +53,13 @@ body[data-has-sidebar="true"] .app-layout-content {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    padding-right: 4px;
+}
+
+.sidebar-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 8px;
 }
 
 .sidebar-recent-item-row {
