@@ -1,79 +1,86 @@
 import './scoped.css';
 
 import React, {
-    useEffect,
-    useMemo,
-    useState,
+  useEffect,
+  useMemo,
+  useState,
 } from 'react';
 
 import {
-    Navigate,
-    useLocation,
-    useNavigate,
+  Navigate,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import {
-    Bookmark as BookmarkIcon,
-    ChevronRight as ChevronRightIcon,
-    DeleteOutline as DeleteOutlineIcon,
-    DriveFileRenameOutline as DriveFileRenameOutlineIcon,
-    FileCopyOutlined as FileCopyOutlinedIcon,
-    FilterListOutlined as FilterListOutlinedIcon,
-    FolderOutlined as FolderOutlinedIcon,
-    FormatQuoteOutlined as FormatQuoteOutlinedIcon,
-    MoreHoriz as MoreHorizIcon,
+  Bookmark as BookmarkIcon,
+  ChevronRight as ChevronRightIcon,
+  DeleteOutline as DeleteOutlineIcon,
+  DriveFileRenameOutline as DriveFileRenameOutlineIcon,
+  FileCopyOutlined as FileCopyOutlinedIcon,
+  FilterListOutlined as FilterListOutlinedIcon,
+  FolderOutlined as FolderOutlinedIcon,
+  FormatQuoteOutlined as FormatQuoteOutlinedIcon,
+  MoreHoriz as MoreHorizIcon,
 } from '@mui/icons-material';
 import {
-    Box,
-    Button as MuiButton,
-    Checkbox,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    IconButton,
-    ListItemIcon,
-    ListItemText,
-    Menu,
-    MenuItem,
-    Tab,
-    Tabs,
-    TextField,
-    Typography,
+  Box,
+  Button as MuiButton,
+  Checkbox,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+    FormControl,
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+    Select,
+  Tab,
+  Tabs,
+  TextField,
+  Typography,
 } from '@mui/material';
 
 import { ReactComponent as FolderOpenIcon } from '../../img/folder_open.svg';
+import { ReactComponent as MetaIcon } from '../../img/library/Icon.svg';
+import {
+  ReactComponent as ChatIcon,
+} from '../../img/library/Message square.svg';
+import { ReactComponent as ShareIcon } from '../../img/library/Share.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import { ReactComponent as BookIcon } from '../../img/navbar/book_4.svg';
 import {
-    createFavoriteFolder,
-    duplicateFavoriteFolder,
-    getFavoriteFolder,
-    listFavoriteFolders,
-    removeFavoriteFolder,
-    updateFavoriteChatFolder,
-    updateFavoriteFolder,
-    updateFavoriteGraphFolder,
-    updateFavoriteReferenceFolder,
+  createFavoriteFolder,
+  duplicateFavoriteFolder,
+  getFavoriteFolder,
+  listFavoriteFolders,
+  removeFavoriteFolder,
+  updateFavoriteChatFolder,
+  updateFavoriteFolder,
+  updateFavoriteGraphFolder,
+  updateFavoriteReferenceFolder,
 } from '../../service/Favorites';
 import {
-    fetchBookmarks,
-    getBookmarks,
-    toggleBookmark,
+  fetchBookmarks,
+  getBookmarks,
+  toggleBookmark,
 } from '../../utils/bookmarks';
 import {
-    setActiveConversationId,
-    updateConversationTitle,
+  setActiveConversationId,
+  updateConversationTitle,
 } from '../../utils/chatHistory';
 import {
-    fetchConversationBookmarks,
-    getConversationBookmarks,
-    toggleConversationBookmark,
+  fetchConversationBookmarks,
+  getConversationBookmarks,
+  toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
 import {
-    fetchGraphBookmarks,
-    getGraphBookmarks,
-    toggleGraphBookmark,
+  fetchGraphBookmarks,
+  getGraphBookmarks,
+  toggleGraphBookmark,
 } from '../../utils/graphBookmarks';
 import { useAuth } from '../Auth/AuthContext';
 import nodeStyleColors from '../Graph/nodeStyleColors.json';
@@ -84,6 +91,9 @@ const ALL_TAB = 'all';
 const REFERENCES_TAB = 'references';
 const CHATS_TAB = 'chats';
 const GRAPHS_TAB = 'graphs';
+const SORT_AZ = 'az';
+const SORT_ZA = 'za';
+const SORT_DATE = 'date';
 const ENTRY_PREVIEW_LIMIT = 5;
 const DEFAULT_FOLDER_NAME = 'New Folder';
 
@@ -159,6 +169,124 @@ const getPillColors = (label) => {
         text: mixHex(base, '#000000', 0.35),
         shadow: toRgba(base, 0.3),
     };
+};
+
+const parseTimestamp = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    if (typeof value === 'number') {
+        return value < 1e12 ? value * 1000 : value;
+    }
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (/^\d+$/.test(trimmed)) {
+            const numeric = Number(trimmed);
+            return numeric < 1e12 ? numeric * 1000 : numeric;
+        }
+    }
+    const parsed = new Date(value);
+    const time = parsed.getTime();
+    return Number.isNaN(time) ? null : time;
+};
+
+const normalizeSortValue = (value) => (
+    (value || '').toString().trim().toLowerCase()
+);
+
+const getChatSortLabel = (conversation) => (
+    getConversationTitle(conversation)
+);
+
+const getReferenceSortLabel = (entry) => (
+    entry?.title || ''
+);
+
+const getGraphSortLabel = (graph) => {
+    const firstTerm = Array.isArray(graph?.terms) ? graph.terms[0] : null;
+    if (typeof firstTerm === 'string') return firstTerm;
+    return firstTerm?.name || firstTerm?.label || firstTerm?.term || graph?.title || '';
+};
+
+const getSortDate = (value) => {
+    const timestamp = parseTimestamp(value);
+    return timestamp ?? 0;
+};
+
+const sortEntries = (list, type, option) => {
+    const items = Array.isArray(list) ? [...list] : [];
+    if (option === SORT_DATE) {
+        return items.sort((a, b) => {
+            const aDate = type === 'chat'
+                ? getSortDate(a?.createdAt || a?.created_at || a?.updatedAt || a?.updated_at)
+                : type === 'reference'
+                    ? getSortDate(a?.created_at || a?.createdAt)
+                    : getSortDate(a?.createdAt || a?.created_at || a?.updatedAt || a?.updated_at);
+            const bDate = type === 'chat'
+                ? getSortDate(b?.createdAt || b?.created_at || b?.updatedAt || b?.updated_at)
+                : type === 'reference'
+                    ? getSortDate(b?.created_at || b?.createdAt)
+                    : getSortDate(b?.createdAt || b?.created_at || b?.updatedAt || b?.updated_at);
+            return bDate - aDate;
+        });
+    }
+
+    const getLabel = (item) => {
+        if (type === 'chat') return getChatSortLabel(item);
+        if (type === 'reference') return getReferenceSortLabel(item);
+        return getGraphSortLabel(item);
+    };
+
+    return items.sort((a, b) => {
+        const aLabel = normalizeSortValue(getLabel(a));
+        const bLabel = normalizeSortValue(getLabel(b));
+        const result = aLabel.localeCompare(bLabel, undefined, { sensitivity: 'base' });
+        return option === SORT_ZA ? -result : result;
+    });
+};
+
+const formatRelativeTime = (value) => {
+    const timestamp = parseTimestamp(value);
+    if (!timestamp) return 'just now';
+    const diffMs = Date.now() - timestamp;
+    const seconds = Math.max(0, Math.floor(diffMs / 1000));
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days} day${days === 1 ? '' : 's'} ago`;
+    const weeks = Math.floor(days / 7);
+    if (weeks < 5) return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+    const months = Math.floor(days / 30);
+    if (months < 12) return `${months} month${months === 1 ? '' : 's'} ago`;
+    const years = Math.floor(days / 365);
+    return `${years} year${years === 1 ? '' : 's'} ago`;
+};
+
+const toggleLibraryEntryBorders = (row, prevRow, active) => {
+    if (!row) return;
+    const method = active ? 'add' : 'remove';
+    row.classList[method]('library-hide-border');
+    if (prevRow) {
+        prevRow.classList[method]('library-hide-border');
+    }
+};
+
+const handleLibraryRowHover = (event, active) => {
+    const row = event.currentTarget;
+    let prevRow = row?.previousElementSibling || null;
+    if (prevRow && !prevRow.classList.contains('history-item-row')) {
+        prevRow = null;
+    }
+    toggleLibraryEntryBorders(row, prevRow, active);
+};
+
+const handleLibraryWrapperHover = (event, active) => {
+    const wrapper = event.currentTarget;
+    const row = wrapper.querySelector('.history-item-row');
+    const prevWrapper = wrapper.previousElementSibling;
+    const prevRow = prevWrapper ? prevWrapper.querySelector('.history-item-row') : null;
+    toggleLibraryEntryBorders(row, prevRow, active);
 };
 
 const getUniqueFolderName = (existingFolders, baseName = DEFAULT_FOLDER_NAME) => {
@@ -270,7 +398,11 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
     };
 
     return (
-        <Box className="history-item-row">
+        <Box
+            className="history-item-row"
+            onMouseEnter={(event) => handleLibraryRowHover(event, true)}
+            onMouseLeave={(event) => handleLibraryRowHover(event, false)}
+        >
             <div
                 role="button"
                 tabIndex={0}
@@ -301,7 +433,7 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                             <Typography sx={{
                                 color: '#969696',
                                 fontSize: '14px',
-                                fontWeight: 700,
+                                fontWeight: 500,
                             }}>
                                 PubMed ID: {pmid}
                             </Typography>
@@ -335,14 +467,34 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                     {authors && (
                         <Box sx={{
                             display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: '6px',
-                            fontSize: '14px',
-                            fontWeight: 400,
-                            fontStyle: 'italic',
-                            color: '#969696',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            gap: '12px',
                         }}>
-                            {authors}
+                            <Box sx={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: '6px',
+                                fontSize: '14px',
+                                fontWeight: 400,
+                                fontStyle: 'italic',
+                                color: '#969696',
+                                lineHeight: '16px',
+                                flex: 1,
+                            }}>
+                                {authors}
+                            </Box>
+                            {entry?.citation_count !== undefined && entry?.citation_count !== null && (
+                                <Typography sx={{
+                                    fontSize: '14px',
+                                    fontWeight: 400,
+                                    color: '#646464',
+                                    lineHeight: '16px',
+                                    flexShrink: 0,
+                                }}>
+                                    Citations: {entry.citation_count}
+                                </Typography>
+                            )}
                         </Box>
                     )}
                     {hasMetaRow && (
@@ -360,6 +512,7 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                                 fontWeight: 400,
                                 color: '#323232',
                                 wordBreak: 'break-word',
+                                lineHeight: '16px',
                                 flex: 1,
                             }} title="Journal">
                                 {journal}
@@ -371,6 +524,7 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                                         fontSize: '14px',
                                         fontWeight: 400,
                                         color: '#323232',
+                                        lineHeight: '16px',
                                         flexShrink: 0,
                                     }}
                                 >
@@ -607,6 +761,8 @@ const Library = () => {
     const [folderPickerInitial, setFolderPickerInitial] = useState({});
     const [folderPickerLoading, setFolderPickerLoading] = useState(false);
     const { isAuthenticated, loading } = useAuth();
+    const [sortOption, setSortOption] = useState(SORT_DATE);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const [selectedFolderId, setSelectedFolderId] = useState(() => {
         const params = new URLSearchParams(location.search);
@@ -1035,24 +1191,73 @@ const Library = () => {
     const showChatsSection = activeTab === ALL_TAB || activeTab === CHATS_TAB;
     const showReferencesSection = activeTab === ALL_TAB || activeTab === REFERENCES_TAB;
     const showGraphsSection = activeTab === ALL_TAB || activeTab === GRAPHS_TAB;
-    const visibleChats = isFolderView
-        ? (showChatsSection ? folderChats : [])
-        : (showChatsSection
-            ? (shouldLimitPreviews ? conversationBookmarks.slice(0, ENTRY_PREVIEW_LIMIT) : conversationBookmarks)
-            : []);
-    const visibleReferences = isFolderView
-        ? (showReferencesSection ? folderReferences : [])
-        : (showReferencesSection
-            ? (shouldLimitPreviews ? bookmarks.slice(0, ENTRY_PREVIEW_LIMIT) : bookmarks)
-            : []);
-    const visibleGraphs = isFolderView
-        ? (showGraphsSection ? folderGraphs : [])
-        : (showGraphsSection
-            ? (shouldLimitPreviews ? graphBookmarks.slice(0, ENTRY_PREVIEW_LIMIT) : graphBookmarks)
-            : []);
-    const showMoreChats = shouldLimitPreviews && conversationBookmarks.length > ENTRY_PREVIEW_LIMIT;
-    const showMoreReferences = shouldLimitPreviews && bookmarks.length > ENTRY_PREVIEW_LIMIT;
-    const showMoreGraphs = shouldLimitPreviews && graphBookmarks.length > ENTRY_PREVIEW_LIMIT;
+    const trimmedQuery = searchQuery.trim().toLowerCase();
+    const isSearching = Boolean(trimmedQuery);
+    const baseChats = isFolderView ? folderChats : conversationBookmarks;
+    const baseReferences = isFolderView ? folderReferences : bookmarks;
+    const baseGraphs = isFolderView ? folderGraphs : graphBookmarks;
+    const filteredChats = trimmedQuery
+        ? baseChats.filter((conversation) => (
+            normalizeSortValue(getConversationTitle(conversation)).includes(trimmedQuery)
+        ))
+        : baseChats;
+    const filteredReferences = trimmedQuery
+        ? baseReferences.filter((entry) => {
+            const fields = [
+                entry?.title,
+                entry?.authors,
+                entry?.journal,
+                entry?.year,
+                entry?.pmid,
+                entry?.citation_count,
+            ]
+                .filter((value) => value !== undefined && value !== null)
+                .map((value) => normalizeSortValue(value));
+            return fields.join(' ').includes(trimmedQuery);
+        })
+        : baseReferences;
+    const filteredGraphs = trimmedQuery
+        ? baseGraphs.filter((graph) => {
+            const terms = Array.isArray(graph?.terms) ? graph.terms : [];
+            const termText = terms.map((term) => {
+                if (typeof term === 'string') return term;
+                return term?.name || term?.label || term?.term || '';
+            }).join(' ');
+            return normalizeSortValue(termText).includes(trimmedQuery);
+        })
+        : baseGraphs;
+    const visibleChats = showChatsSection
+        ? (shouldLimitPreviews && !isSearching
+            ? filteredChats.slice(0, ENTRY_PREVIEW_LIMIT)
+            : filteredChats)
+        : [];
+    const visibleReferences = showReferencesSection
+        ? (shouldLimitPreviews && !isSearching
+            ? filteredReferences.slice(0, ENTRY_PREVIEW_LIMIT)
+            : filteredReferences)
+        : [];
+    const visibleGraphs = showGraphsSection
+        ? (shouldLimitPreviews && !isSearching
+            ? filteredGraphs.slice(0, ENTRY_PREVIEW_LIMIT)
+            : filteredGraphs)
+        : [];
+    const canRenderList = !isFolderView || !folderDetailLoading;
+    const sortedChats = useMemo(
+          () => sortEntries(filteredChats, 'chat', sortOption),
+          [filteredChats, sortOption]
+    );
+    const sortedReferences = useMemo(
+          () => sortEntries(filteredReferences, 'reference', sortOption),
+          [filteredReferences, sortOption]
+    );
+    const sortedGraphs = useMemo(
+          () => sortEntries(filteredGraphs, 'graph', sortOption),
+          [filteredGraphs, sortOption]
+    );
+        const hasSearchResults = filteredChats.length + filteredReferences.length + filteredGraphs.length > 0;
+    const showMoreChats = shouldLimitPreviews && !isSearching && filteredChats.length > ENTRY_PREVIEW_LIMIT;
+    const showMoreReferences = shouldLimitPreviews && !isSearching && filteredReferences.length > ENTRY_PREVIEW_LIMIT;
+    const showMoreGraphs = shouldLimitPreviews && !isSearching && filteredGraphs.length > ENTRY_PREVIEW_LIMIT;
     const allItemsCount = conversationBookmarks.length + bookmarks.length + graphBookmarks.length;
     const getFolderItemCount = (folder) => (
         (folder?.chat_count ?? 0)
@@ -1062,8 +1267,8 @@ const Library = () => {
     const tabs = [
         { id: ALL_TAB, label: 'All' },
         { id: REFERENCES_TAB, label: 'Reference' },
-        { id: GRAPHS_TAB, label: 'Explore' },
         { id: CHATS_TAB, label: 'AI Chat' },
+        { id: GRAPHS_TAB, label: 'Explore' },
     ];
 
     if (loading) {
@@ -1266,175 +1471,104 @@ const Library = () => {
                         }}>
                             Collect papers, explore connections, and organize your research journey.
                         </Typography>
-                        <Tabs
-                            className="library-tabs"
-                            value={activeTab}
-                            onChange={(_, value) => handleTabClick(value)}
-                            variant="scrollable"
-                            allowScrollButtonsMobile
-                            TabIndicatorProps={{
-                                sx: {
-                                    backgroundColor: '#155DFC',
-                                    height: 2,
-                                },
-                            }}
-                            sx={{
-                                minHeight: 0,
-                                '& .MuiTabs-scroller': {
-                                    borderBottom: '1px solid #D9D9D9',
-                                },
-                                '& .MuiTabs-flexContainer': {
-                                    gap: '12px',
-                                },
-                                '& .MuiTab-root': {
-                                    textTransform: 'none',
-                                    fontFamily: 'DM Sans, sans-serif',
-                                    fontSize: '13px',
-                                    fontWeight: 600,
-                                    color: '#164563',
-                                    minHeight: 32,
-                                    minWidth: 0,
-                                    padding: '12px 24px',
-                                },
-                                '& .MuiTab-root.Mui-selected': {
-                                    color: '#155DFC',
-                                },
-                            }}
-                        >
-                            {tabs.map((tab) => (
-                                <Tab key={tab.id} value={tab.id} label={tab.label} />
-                            ))}
-                        </Tabs>
+                        <div className="library-search">
+                            <input
+                                className="library-search-input"
+                                type="text"
+                                id="library-search"
+                                name="librarySearch"
+                                value={searchQuery}
+                                onChange={(event) => setSearchQuery(event.target.value)}
+                                placeholder="Search library"
+                                aria-label="Search library"
+                            />
+                            {searchQuery.trim() && (
+                                <button
+                                    type="button"
+                                    className="library-search-clear"
+                                    onClick={() => setSearchQuery('')}
+                                    aria-label="Clear search"
+                                >
+                                    Clear
+                                </button>
+                            )}
+                        </div>
+                        <Box className="library-tabs-row">
+                            <Tabs
+                                className="library-tabs"
+                                value={activeTab}
+                                onChange={(_, value) => handleTabClick(value)}
+                                variant="scrollable"
+                                allowScrollButtonsMobile
+                                TabIndicatorProps={{
+                                    sx: {
+                                        backgroundColor: '#155DFC',
+                                        height: 2,
+                                    },
+                                }}
+                                sx={{
+                                    minHeight: 0,
+                                    '& .MuiTabs-flexContainer': {
+                                        gap: '12px',
+                                    },
+                                    '& .MuiTab-root': {
+                                        textTransform: 'none',
+                                        fontFamily: 'DM Sans, sans-serif',
+                                        fontSize: '13px',
+                                        fontWeight: 600,
+                                        color: '#164563',
+                                        minHeight: 32,
+                                        minWidth: 0,
+                                        padding: '12px 24px',
+                                    },
+                                    '& .MuiTab-root.Mui-selected': {
+                                        color: '#155DFC',
+                                    },
+                                }}
+                            >
+                                {tabs.map((tab) => (
+                                    <Tab key={tab.id} value={tab.id} label={tab.label} />
+                                ))}
+                            </Tabs>
+                            <Box className="library-sort">
+                                <span className="library-sort-label">Sort:</span>
+                                <FormControl size="small">
+                                <Select
+                                    value={sortOption}
+                                    onChange={(event) => setSortOption(event.target.value)}
+                                    displayEmpty
+                                    sx={{
+                                        fontFamily: 'DM Sans, sans-serif',
+                                        fontSize: '12px',
+                                        fontWeight: 600,
+                                        color: '#164563',
+                                        minWidth: 110,
+                                        height: 28,
+                                        backgroundColor: '#E7F1FF',
+                                        borderRadius: '16px',
+                                        '& .MuiSelect-select': {
+                                            padding: '4px 8px',
+                                        },
+                                        '& fieldset': {
+                                            border: 'none',
+                                        },
+                                    }}
+                                >
+                                    <MenuItem value={SORT_AZ}>A-Z</MenuItem>
+                                    <MenuItem value={SORT_ZA}>Z-A</MenuItem>
+                                    <MenuItem value={SORT_DATE}>Date Added</MenuItem>
+                                </Select>
+                                </FormControl>
+                            </Box>
+                        </Box>
                     </Box>
                     <Box className="library-scroll">
-                        {!isFolderView || !folderDetailLoading ? (
-                            showChatsSection && (
-                                <Box className="library-section">
-                                    <Typography className="library-section-title">
-                                        Chats
-                                    </Typography>
-                                    {visibleChats.length > 0 ? (
-                                        <>
-                                            <Box className="library-chat-list">
-                                                {visibleChats.map((conversation) => (
-                                                    <ConversationCard
-                                                        key={conversation.id}
-                                                        conversation={conversation}
-                                                        title={getConversationTitle(conversation)}
-                                                        subtitle={getConversationSubtitle(conversation)}
-                                                        onOpen={(item) => handleOpenConversation(item.id)}
-                                                        onRename={handleRenameConversation}
-                                                        onBookmark={handleBookmarkConversation}
-                                                        onManageFolders={handleManageChatFolders}
-                                                        isBookmarked
-                                                        bookmarkLabel="Remove bookmark"
-                                                    />
-                                                ))}
-                                            </Box>
-                                            {showMoreChats && (
-                                                <button
-                                                    type="button"
-                                                    className="library-show-more"
-                                                    onClick={() => handleShowMore(CHATS_TAB)}
-                                                >
-                                                    Show More
-                                                    <ChevronRightIcon className="library-show-more-arrow" aria-hidden="true" />
-                                                </button>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <Typography className="library-empty-text">
-                                            {isFolderView
-                                                ? 'No chats in this folder yet.'
-                                                : 'No saved chats yet. Bookmark a chat to see it here.'}
-                                        </Typography>
-                                    )}
-                                </Box>
-                            )
+                        {isSearching && !hasSearchResults && canRenderList ? (
+                            <Typography className="library-empty-text">
+                                No matches found.
+                            </Typography>
                         ) : null}
-                        {!isFolderView || !folderDetailLoading ? (
-                            showGraphsSection && (
-                                <Box className="library-section">
-                                    <Typography className="library-section-title">
-                                        Explore
-                                    </Typography>
-                                    {visibleGraphs.length > 0 ? (
-                                        <>
-                                            <Box className="library-graph-list">
-                                                {visibleGraphs.map((graph) => {
-                                                    const fallbackTitle = graph?.title && graph.title !== 'N/A'
-                                                        ? graph.title
-                                                        : 'Graph search';
-                                                    return (
-                                                        <ConversationCard
-                                                            key={graph.id}
-                                                            conversation={graph}
-                                                            titleContent={graph?.terms?.length ? (
-                                                                <Box className="library-graph-pill-row">
-                                                                    {graph.terms.map((term, index) => {
-                                                                        const label = term?.name || term?.label || '';
-                                                                        if (!label) return null;
-                                                                        const colors = getPillColors(term?.type || 'default');
-                                                                        return (
-                                                                            <Box
-                                                                                key={`${graph.id}-pill-${index}`}
-                                                                                className="library-graph-pill"
-                                                                                sx={{
-                                                                                    borderColor: colors.base,
-                                                                                    backgroundColor: colors.background,
-                                                                                    color: colors.text,
-                                                                                    boxShadow: `0px 4px 6px ${colors.shadow}`,
-                                                                                }}
-                                                                            >
-                                                                                <span className="library-graph-pill-label">{label}</span>
-                                                                            </Box>
-                                                                        );
-                                                                    })}
-                                                                </Box>
-                                                            ) : (
-                                                                <Typography className="history-title" sx={{
-                                                                    fontFamily: 'DM Sans, sans-serif',
-                                                                    fontWeight: 600,
-                                                                    fontSize: '16px',
-                                                                    color: '#164563',
-                                                                    whiteSpace: 'nowrap',
-                                                                    overflow: 'hidden',
-                                                                    textOverflow: 'ellipsis',
-                                                                }}>
-                                                                    {fallbackTitle}
-                                                                </Typography>
-                                                            )}
-                                                            subtitle=""
-                                                            onBookmark={handleBookmarkGraph}
-                                                            onManageFolders={handleManageGraphFolders}
-                                                            isBookmarked
-                                                            bookmarkLabel="Remove bookmark"
-                                                        />
-                                                    );
-                                                })}
-                                            </Box>
-                                            {showMoreGraphs && (
-                                                <button
-                                                    type="button"
-                                                    className="library-show-more"
-                                                    onClick={() => handleShowMore(GRAPHS_TAB)}
-                                                >
-                                                    Show More
-                                                    <ChevronRightIcon className="library-show-more-arrow" aria-hidden="true" />
-                                                </button>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <Typography className="library-empty-text">
-                                            {isFolderView
-                                                ? 'No graph searches in this folder yet.'
-                                                : 'No saved graph searches yet. Bookmark an Explore result to see it here.'}
-                                        </Typography>
-                                    )}
-                                </Box>
-                            )
-                        ) : null}
-                        {!isFolderView || !folderDetailLoading ? (
+                        {!isSearching && canRenderList ? (
                             showReferencesSection && (
                                 <Box className="library-section">
                                     <Typography className="library-section-title">
@@ -1443,7 +1577,7 @@ const Library = () => {
                                     <Box className="library-reference-list">
                                         {visibleReferences.length > 0 ? (
                                             <>
-                                                {visibleReferences.map((entry) => (
+                                                {sortedReferences.map((entry) => (
                                                     <LibraryReferenceCard
                                                         key={entry.id}
                                                         entry={entry}
@@ -1474,6 +1608,319 @@ const Library = () => {
                                     </Box>
                                 </Box>
                             )
+                        ) : null}
+                        {!isSearching && canRenderList ? (
+                            showChatsSection && (
+                                <Box className="library-section">
+                                    <Typography className="library-section-title">
+                                        Chats
+                                    </Typography>
+                                    {visibleChats.length > 0 ? (
+                                        <>
+                                            <Box className="library-chat-list">
+                                                {sortedChats.map((conversation) => (
+                                                    <div
+                                                        key={conversation.id}
+                                                        className="library-card-with-icon"
+                                                        onMouseEnter={(event) => handleLibraryWrapperHover(event, true)}
+                                                        onMouseLeave={(event) => handleLibraryWrapperHover(event, false)}
+                                                    >
+                                                        <span className="library-card-icon library-card-icon--chat" aria-hidden="true">
+                                                            <ChatIcon />
+                                                        </span>
+                                                        <ConversationCard
+                                                            conversation={conversation}
+                                                            title={getConversationTitle(conversation)}
+                                                            subtitle={getConversationSubtitle(conversation)}
+                                                            footerContent={(
+                                                                <div className="library-card-meta">
+                                                                    <MetaIcon className="library-card-meta-icon" />
+                                                                    <span>{formatRelativeTime(conversation?.updatedAt || conversation?.createdAt)}</span>
+                                                                    <span className="library-card-meta-sep">|</span>
+                                                                    <span>Chat</span>
+                                                                </div>
+                                                            )}
+                                                            onOpen={(item) => handleOpenConversation(item.id)}
+                                                            onRename={handleRenameConversation}
+                                                            onBookmark={handleBookmarkConversation}
+                                                            onManageFolders={handleManageChatFolders}
+                                                            isBookmarked
+                                                            bookmarkLabel="Remove bookmark"
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </Box>
+                                            {showMoreChats && (
+                                                <button
+                                                    type="button"
+                                                    className="library-show-more"
+                                                    onClick={() => handleShowMore(CHATS_TAB)}
+                                                >
+                                                    Show More
+                                                    <ChevronRightIcon className="library-show-more-arrow" aria-hidden="true" />
+                                                </button>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <Typography className="library-empty-text">
+                                            {isFolderView
+                                                ? 'No chats in this folder yet.'
+                                                : 'No saved chats yet. Bookmark a chat to see it here.'}
+                                        </Typography>
+                                    )}
+                                </Box>
+                            )
+                        ) : null}
+                        {!isSearching && canRenderList ? (
+                            showGraphsSection && (
+                                <Box className="library-section">
+                                    <Typography className="library-section-title">
+                                        Explore
+                                    </Typography>
+                                    {visibleGraphs.length > 0 ? (
+                                        <>
+                                            <Box className="library-graph-list">
+                                                {sortedGraphs.map((graph) => {
+                                                    const fallbackTitle = graph?.title && graph.title !== 'N/A'
+                                                        ? graph.title
+                                                        : 'Graph search';
+                                                    return (
+                                                        <div
+                                                            key={graph.id}
+                                                            className="library-card-with-icon"
+                                                            onMouseEnter={(event) => handleLibraryWrapperHover(event, true)}
+                                                            onMouseLeave={(event) => handleLibraryWrapperHover(event, false)}
+                                                        >
+                                                            <span className="library-card-icon library-card-icon--graph" aria-hidden="true">
+                                                                <ShareIcon />
+                                                            </span>
+                                                            <ConversationCard
+                                                                conversation={graph}
+                                                                titleContent={(
+                                                                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                                        {graph?.terms?.length ? (
+                                                                            <Box className="library-graph-pill-row">
+                                                                                {graph.terms.map((term, index) => {
+                                                                                    const label = typeof term === 'string'
+                                                                                        ? term
+                                                                                        : (term?.name || term?.label || term?.term || '');
+                                                                                    if (!label) return null;
+                                                                                    const colors = getPillColors(term?.type || 'default');
+                                                                                    return (
+                                                                                        <Box
+                                                                                            key={`${graph.id}-pill-${index}`}
+                                                                                            className="library-graph-pill"
+                                                                                            sx={{
+                                                                                                borderColor: colors.base,
+                                                                                                backgroundColor: colors.background,
+                                                                                                color: colors.text,
+                                                                                                boxShadow: `0px 4px 6px ${colors.shadow}`,
+                                                                                            }}
+                                                                                        >
+                                                                                            <span className="library-graph-pill-label">{label}</span>
+                                                                                        </Box>
+                                                                                    );
+                                                                                })}
+                                                                            </Box>
+                                                                        ) : (
+                                                                            <Typography className="history-title" sx={{
+                                                                                fontFamily: 'DM Sans, sans-serif',
+                                                                                fontWeight: 600,
+                                                                                fontSize: '16px',
+                                                                                color: '#164563',
+                                                                                whiteSpace: 'nowrap',
+                                                                                overflow: 'hidden',
+                                                                                textOverflow: 'ellipsis',
+                                                                            }}>
+                                                                                {fallbackTitle}
+                                                                            </Typography>
+                                                                        )}
+                                                                    </Box>
+                                                                )}
+                                                                subtitle=""
+                                                                footerContent={(
+                                                                    <div className="library-card-meta">
+                                                                        <MetaIcon className="library-card-meta-icon" />
+                                                                        <span>{formatRelativeTime(graph?.createdAt || graph?.updatedAt)}</span>
+                                                                        <span className="library-card-meta-sep">|</span>
+                                                                        <span>Map</span>
+                                                                    </div>
+                                                                )}
+                                                                onBookmark={handleBookmarkGraph}
+                                                                onManageFolders={handleManageGraphFolders}
+                                                                isBookmarked
+                                                                bookmarkLabel="Remove bookmark"
+                                                            />
+                                                        </div>
+                                                    );
+                                                })}
+                                            </Box>
+                                            {showMoreGraphs && (
+                                                <button
+                                                    type="button"
+                                                    className="library-show-more"
+                                                    onClick={() => handleShowMore(GRAPHS_TAB)}
+                                                >
+                                                    Show More
+                                                    <ChevronRightIcon className="library-show-more-arrow" aria-hidden="true" />
+                                                </button>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <Typography className="library-empty-text">
+                                            {isFolderView
+                                                ? 'No graph searches in this folder yet.'
+                                                : 'No saved graph searches yet. Bookmark an Explore result to see it here.'}
+                                        </Typography>
+                                    )}
+                                </Box>
+                            )
+                        ) : null}
+                        {isSearching && canRenderList ? (
+                            <>
+                                {showReferencesSection && visibleReferences.length > 0 && (
+                                    <Box className="library-section">
+                                        <Typography className="library-section-title">
+                                            References
+                                        </Typography>
+                                        <Box className="library-reference-list">
+                                            {sortedReferences.map((entry) => (
+                                                <LibraryReferenceCard
+                                                    key={entry.id}
+                                                    entry={entry}
+                                                    onOpen={handleOpenReference}
+                                                    onRemoveBookmark={handleRemoveReferenceBookmark}
+                                                    onCite={handleCiteReference}
+                                                    onManageFolders={handleManageReferenceFolders}
+                                                />
+                                            ))}
+                                        </Box>
+                                    </Box>
+                                )}
+                                {showChatsSection && visibleChats.length > 0 && (
+                                    <Box className="library-section">
+                                        <Typography className="library-section-title">
+                                            Chats
+                                        </Typography>
+                                        <Box className="library-chat-list">
+                                            {sortedChats.map((conversation) => (
+                                                <div
+                                                    key={conversation.id}
+                                                    className="library-card-with-icon"
+                                                    onMouseEnter={(event) => handleLibraryWrapperHover(event, true)}
+                                                    onMouseLeave={(event) => handleLibraryWrapperHover(event, false)}
+                                                >
+                                                    <span className="library-card-icon library-card-icon--chat" aria-hidden="true">
+                                                        <ChatIcon />
+                                                    </span>
+                                                    <ConversationCard
+                                                        conversation={conversation}
+                                                        title={getConversationTitle(conversation)}
+                                                        subtitle={getConversationSubtitle(conversation)}
+                                                        footerContent={(
+                                                            <div className="library-card-meta">
+                                                                <MetaIcon className="library-card-meta-icon" />
+                                                                <span>{formatRelativeTime(conversation?.updatedAt || conversation?.createdAt)}</span>
+                                                                <span className="library-card-meta-sep">|</span>
+                                                                <span>Chat</span>
+                                                            </div>
+                                                        )}
+                                                        onOpen={(item) => handleOpenConversation(item.id)}
+                                                        onRename={handleRenameConversation}
+                                                        onBookmark={handleBookmarkConversation}
+                                                        onManageFolders={handleManageChatFolders}
+                                                        isBookmarked
+                                                        bookmarkLabel="Remove bookmark"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </Box>
+                                    </Box>
+                                )}
+                                {showGraphsSection && visibleGraphs.length > 0 && (
+                                    <Box className="library-section">
+                                        <Typography className="library-section-title">
+                                            Explore
+                                        </Typography>
+                                        <Box className="library-graph-list">
+                                            {sortedGraphs.map((graph) => {
+                                                const fallbackTitle = graph?.title && graph.title !== 'N/A'
+                                                    ? graph.title
+                                                    : 'Graph search';
+                                                return (
+                                                    <div
+                                                        key={graph.id}
+                                                        className="library-card-with-icon"
+                                                        onMouseEnter={(event) => handleLibraryWrapperHover(event, true)}
+                                                        onMouseLeave={(event) => handleLibraryWrapperHover(event, false)}
+                                                    >
+                                                        <span className="library-card-icon library-card-icon--graph" aria-hidden="true">
+                                                            <ShareIcon />
+                                                        </span>
+                                                        <ConversationCard
+                                                            conversation={graph}
+                                                            titleContent={(
+                                                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                                    {graph?.terms?.length ? (
+                                                                        <Box className="library-graph-pill-row">
+                                                                            {graph.terms.map((term, index) => {
+                                                                                const label = typeof term === 'string'
+                                                                                    ? term
+                                                                                    : (term?.name || term?.label || term?.term || '');
+                                                                                if (!label) return null;
+                                                                                const colors = getPillColors(term?.type || 'default');
+                                                                                return (
+                                                                                    <Box
+                                                                                        key={`${graph.id}-pill-${index}`}
+                                                                                        className="library-graph-pill"
+                                                                                        sx={{
+                                                                                            borderColor: colors.base,
+                                                                                            backgroundColor: colors.background,
+                                                                                            color: colors.text,
+                                                                                            boxShadow: `0px 4px 6px ${colors.shadow}`,
+                                                                                        }}
+                                                                                    >
+                                                                                        <span className="library-graph-pill-label">{label}</span>
+                                                                                    </Box>
+                                                                                );
+                                                                            })}
+                                                                        </Box>
+                                                                    ) : (
+                                                                        <Typography className="history-title" sx={{
+                                                                            fontFamily: 'DM Sans, sans-serif',
+                                                                            fontWeight: 600,
+                                                                            fontSize: '16px',
+                                                                            color: '#164563',
+                                                                            whiteSpace: 'nowrap',
+                                                                            overflow: 'hidden',
+                                                                            textOverflow: 'ellipsis',
+                                                                        }}>
+                                                                            {fallbackTitle}
+                                                                        </Typography>
+                                                                    )}
+                                                                </Box>
+                                                            )}
+                                                            subtitle=""
+                                                            footerContent={(
+                                                                <div className="library-card-meta">
+                                                                    <MetaIcon className="library-card-meta-icon" />
+                                                                    <span>{formatRelativeTime(graph?.createdAt || graph?.updatedAt)}</span>
+                                                                    <span className="library-card-meta-sep">|</span>
+                                                                    <span>Map</span>
+                                                                </div>
+                                                            )}
+                                                            onBookmark={handleBookmarkGraph}
+                                                            onManageFolders={handleManageGraphFolders}
+                                                            isBookmarked
+                                                            bookmarkLabel="Remove bookmark"
+                                                        />
+                                                    </div>
+                                                );
+                                            })}
+                                        </Box>
+                                    </Box>
+                                )}
+                            </>
                         ) : null}
                         {isFolderView && folderDetailLoading && (
                             <Typography className="library-empty-text">

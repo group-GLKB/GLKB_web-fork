@@ -1,8 +1,9 @@
 import {
-    addFavoriteGraph,
-    listFavoriteGraphs,
-    removeFavoriteGraph,
+  addFavoriteGraph,
+  listFavoriteGraphs,
+  removeFavoriteGraph,
 } from '../service/Favorites';
+import { getGraphHistoryDetail } from '../service/GraphHistory';
 
 const STORAGE_KEY = 'glkbGraphBookmarks';
 
@@ -26,6 +27,25 @@ const normalizeGraphList = (payload) => {
         ? payload.graphs
         : (Array.isArray(payload) ? payload : []);
     return list.map(normalizeGraph).filter(Boolean);
+};
+
+const extractTermsFromSnapshot = (snapshot) => {
+    if (!Array.isArray(snapshot)) return [];
+    const seen = new Set();
+    return snapshot
+        .map((node) => ({
+            id: node?.id ?? '',
+            name: node?.name || node?.label || '',
+            label: node?.label || node?.name || '',
+            type: node?.type || 'default',
+        }))
+        .filter((node) => node.name || node.label)
+        .filter((node) => {
+            const key = `${node.id}-${node.name}-${node.type}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
 };
 
 export const getGraphBookmarks = () => {
@@ -52,17 +72,25 @@ export const fetchGraphBookmarks = async () => {
     const data = await listFavoriteGraphs();
     const normalized = normalizeGraphList(data);
     const cached = getGraphBookmarks();
-    if (cached.length === 0) {
-        return setGraphBookmarks(normalized);
-    }
     const cachedById = new Map(cached.map((item) => [item.id, item]));
+    const details = await Promise.allSettled(
+        normalized.map((item) => getGraphHistoryDetail(item.ghid ?? item.id))
+    );
+    const termsById = new Map();
+    details.forEach((result, index) => {
+        if (result.status !== 'fulfilled') return;
+        const ghid = normalized[index]?.id;
+        if (!ghid) return;
+        const snapshot = result.value?.graph_snapshot || result.value?.graphSnapshot || [];
+        termsById.set(String(ghid), extractTermsFromSnapshot(snapshot));
+    });
     const merged = normalized.map((item) => {
+        const terms = termsById.get(item.id);
+        if (terms?.length) {
+            return { ...item, terms };
+        }
         const cachedItem = cachedById.get(item.id);
-        if (!cachedItem?.terms?.length) return item;
-        return {
-            ...item,
-            terms: cachedItem.terms,
-        };
+        return cachedItem?.terms?.length ? { ...item, terms: cachedItem.terms } : item;
     });
     return setGraphBookmarks(merged);
 };

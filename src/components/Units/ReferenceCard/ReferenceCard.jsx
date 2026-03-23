@@ -1,23 +1,23 @@
 import React, {
-    useEffect,
-    useMemo,
-    useState,
+  useEffect,
+  useMemo,
+  useState,
 } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
 import {
-    Bookmark as BookmarkIcon,
-    BookmarkBorder as BookmarkBorderIcon,
-    ExpandMore as ExpandMoreIcon,
+  Bookmark as BookmarkIcon,
+  BookmarkBorder as BookmarkBorderIcon,
+  ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
 import { IconButton } from '@mui/material';
 
 import formatQuoteIcon from '../../../img/llm/format_quote.svg';
 import {
-    fetchBookmarks,
-    getBookmarks,
-    toggleBookmark,
+  fetchBookmarks,
+  getBookmarks,
+  toggleBookmark,
 } from '../../../utils/bookmarks';
 import { useAuth } from '../../Auth/AuthContext';
 
@@ -230,6 +230,20 @@ const ReferenceCard = ({
                 }}>
                     {renderAuthors()}
                 </div>
+                {showCitations && !hasEvidence && (
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-end',
+                        fontSize: '14px',
+                        fontWeight: 400,
+                        color: '#323232',
+                        lineHeight: '16px',
+                        flexShrink: 0,
+                    }}>
+                        <span>Citations: {url[2]}</span>
+                    </div>
+                )}
             </div>
 
             <div style={{
@@ -247,7 +261,7 @@ const ReferenceCard = ({
                 }} title="Journal">
                     {url[4]}
                 </div>
-                {showCitations && (
+                {!hasEvidence && (
                     <div style={{
                         display: 'flex',
                         flexDirection: 'column',
@@ -255,27 +269,40 @@ const ReferenceCard = ({
                         fontSize: '14px',
                         fontWeight: 400,
                         color: '#323232',
-                        lineHeight: 1.4,
+                        lineHeight: '16px',
+                        flexShrink: 0,
+                    }}>
+                        <span>{url[3]}</span>
+                    </div>
+                )}
+                {showCitations && hasEvidence && (
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-end',
+                        fontSize: '14px',
+                        fontWeight: 400,
+                        color: '#323232',
+                        lineHeight: '16px',
                         flexShrink: 0,
                     }}>
                         <span>Citations: {url[2]}</span>
                     </div>
                 )}
             </div>
-
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: '12px',
-                marginTop: '4px',
-            }}>
+            {hasEvidence && (
                 <div style={{
                     display: 'flex',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
-                    minHeight: '20px',
+                    gap: '12px',
+                    marginTop: '4px',
                 }}>
-                    {hasEvidence && (
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        minHeight: '20px',
+                    }}>
                         <button
                             type="button"
                             onClick={(event) => {
@@ -290,7 +317,7 @@ const ReferenceCard = ({
                                 alignItems: 'center',
                                 gap: '4px',
                                 fontFamily: 'DM Sans, sans-serif',
-                                fontSize: '12px',
+                                fontSize: '14px',
                                 fontWeight: 600,
                                 color: '#2c5cf3',
                                 cursor: 'pointer',
@@ -307,21 +334,21 @@ const ReferenceCard = ({
                                 }}
                             />
                         </button>
-                    )}
+                    </div>
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-end',
+                        fontSize: '14px',
+                        fontWeight: 400,
+                        color: '#323232',
+                        lineHeight: 1.4,
+                        flexShrink: 0,
+                    }}>
+                        <span>{url[3]}</span>
+                    </div>
                 </div>
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'flex-end',
-                    fontSize: '14px',
-                    fontWeight: 400,
-                    color: '#323232',
-                    lineHeight: 1.4,
-                    flexShrink: 0,
-                }}>
-                    <span>{url[3]}</span>
-                </div>
-            </div>
+            )}
             {hasEvidence && isEvidenceOpen && (
                 <div style={{
                     marginTop: '8px',

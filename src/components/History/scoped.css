@@ -251,3 +251,23 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+.history-card-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #969696;
+}
+
+.history-card-meta-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.history-card-meta-sep {
+    margin: 0 2px;
+}
