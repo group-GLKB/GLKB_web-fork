@@ -1,15 +1,16 @@
 import React from 'react';
 
 import {
-    Outlet,
-    useLocation,
+  Outlet,
+  useLocation,
 } from 'react-router-dom';
 
 import NavBarWhite from '../Units/NavBarWhite';
 
 const AppLayout = () => {
     const location = useLocation();
-    const hideSidebar = location.pathname.startsWith('/account');
+    const hideSidebar = location.pathname.startsWith('/account')
+        || location.pathname.startsWith('/about');
 
     return (
         <>
