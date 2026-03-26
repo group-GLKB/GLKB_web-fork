@@ -2,42 +2,42 @@ import 'antd/dist/reset.css';
 import './scoped.css';
 
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 
 import {
-    Button as AntButton,
-    Spin,
-    Tooltip,
+  Button as AntButton,
+  Spin,
+  Tooltip,
 } from 'antd';
 import { debounce } from 'lodash';
 import { Helmet } from 'react-helmet-async';
 import Joyride, { STATUS } from 'react-joyride';
 import {
-    useLocation,
-    useNavigate,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import { InfoCircleOutlined } from '@ant-design/icons';
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 //import mui button as muibutton
 import {
-    Box,
-    Button as MuiButton,
-    Popover,
-    Typography,
+  Box,
+  Button as MuiButton,
+  Popover,
+  Typography,
 } from '@mui/material';
 
 import {
-    ReactComponent as CategorySearchIcon,
+  ReactComponent as CategorySearchIcon,
 } from '../../img/navbar/category_search.svg';
 import downArrow from '../../img/result/down_arrow.svg';
 import {
-    ReactComponent as PageMenuIcon,
+  ReactComponent as PageMenuIcon,
 } from '../../img/result/page_menu_ios.svg';
 import NoResultImage from '../../img/result/placeholdericon.png';
 import { CypherService } from '../../service/Cypher';
@@ -142,7 +142,7 @@ const ResultPage = () => {
     // const alltags = urlParams.get('data');
     const location = useLocation();
     const navigate = useNavigate();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, loading } = useAuth();
     // console.log(location.state);
     const search_data = location.state?.search_data;
     const chipDataID = location.state?.chipDataID;
@@ -174,6 +174,12 @@ const ResultPage = () => {
     }
 
     const searchBarKnowledgeRef = useRef(null);
+
+    useEffect(() => {
+        if (!loading && !isAuthenticated) {
+            navigate('/');
+        }
+    }, [isAuthenticated, loading, navigate]);
 
 
     /* ====== range activation functions ====== */

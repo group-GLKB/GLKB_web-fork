@@ -4,7 +4,7 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: #F8FAFC;
+    background-color: #FAFCFF;
     overflow: hidden;
 }
 
@@ -232,7 +232,6 @@
     justify-content: space-between;
     gap: 16px;
     border-bottom: 1px solid #D9D9D9;
-    padding-bottom: 2px;
 }
 
 .library-sort {

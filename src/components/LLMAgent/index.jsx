@@ -1663,6 +1663,7 @@ function LLMAgent() {
 
     const handleClear = () => {
         startNewConversation();
+        navigate('/');
     };
 
     const handleToggleConversationBookmark = async () => {
