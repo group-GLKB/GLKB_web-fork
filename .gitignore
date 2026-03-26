@@ -43,4 +43,10 @@ packages/react-devtools-shell/dist
 packages/react-devtools-timeline/dist
 
 .venv/
-temp/
+temp/.env
+e2e/.auth/
+
+# Playwright
+.env
+playwright-report/
+test-results/
