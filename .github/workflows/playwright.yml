@@ -1,0 +1,54 @@
+name: Playwright Tests
+on:
+  schedule:
+    - cron: '0 * * * *'  # Every hour
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: https://dev.glkb.org
+      TEST_TOKEN: ${{ secrets.PLAYWRIGHT_TEST_TOKEN }}
+      AMPLIFY_USERNAME: ${{ secrets.AMPLIFY_USERNAME }}
+      AMPLIFY_PASSWORD: ${{ secrets.AMPLIFY_PASSWORD }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+    - name: Install dependencies
+      run: npm ci
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps chromium
+    - name: Run Playwright tests
+      run: npx playwright test
+    - uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() }}
+      with:
+        name: playwright-report
+        path: playwright-report/
+        retention-days: 30
+    - name: Send failure email
+      if: failure()
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 465
+        username: ${{ secrets.MAIL_USERNAME }}
+        password: ${{ secrets.MAIL_PASSWORD }}
+        subject: "[GLKB] Playwright test failure - ${{ github.run_id }}"
+        to: glkb-alerts@googlegroups.com
+        from: GLKB Monitoring
+        body: |
+          One or more Playwright E2E tests failed.
+
+          Time: ${{ github.event.head_commit.timestamp || 'Scheduled run' }}
+          Run ID: ${{ github.run_id }}
+          Logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          Check the logs link above for details on which test failed and at which step.
