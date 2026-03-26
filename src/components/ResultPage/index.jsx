@@ -142,7 +142,7 @@ const ResultPage = () => {
     // const alltags = urlParams.get('data');
     const location = useLocation();
     const navigate = useNavigate();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, loading } = useAuth();
     // console.log(location.state);
     const search_data = location.state?.search_data;
     const chipDataID = location.state?.chipDataID;
@@ -174,6 +174,12 @@ const ResultPage = () => {
     }
 
     const searchBarKnowledgeRef = useRef(null);
+
+    useEffect(() => {
+        if (!loading && !isAuthenticated) {
+            navigate('/');
+        }
+    }, [isAuthenticated, loading, navigate]);
 
 
     /* ====== range activation functions ====== */
