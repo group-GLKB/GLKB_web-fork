@@ -12,7 +12,7 @@ jobs:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     env:
-      BASE_URL: https://glkb.org
+      BASE_URL: https://dev.glkb.org
       TEST_TOKEN: ${{ secrets.PLAYWRIGHT_TEST_TOKEN }}
       AMPLIFY_USERNAME: ${{ secrets.AMPLIFY_USERNAME }}
       AMPLIFY_PASSWORD: ${{ secrets.AMPLIFY_PASSWORD }}
