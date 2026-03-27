@@ -53,7 +53,12 @@ const LoginPage = () => {
   const [showGoogleFallback, setShowGoogleFallback] = useState(false);
   const [autoTriggerFallback, setAutoTriggerFallback] = useState(false);
   const navigate = useNavigate();
-  const { login, loginWithGoogle } = useAuth();
+  const {
+    login,
+    loginWithGoogle,
+    isAuthenticated,
+    loading: authLoading,
+  } = useAuth();
   const googleInitializedRef = useRef(false);
   const googleButtonRef = useRef(null);
   const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.REACT_APP_GOOGLE_CLIENT_ID;
@@ -77,6 +82,12 @@ const LoginPage = () => {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate('/', { replace: true });
+    }
+  }, [authLoading, isAuthenticated, navigate]);
 
   const handleGoogleLogin = () => {
     if (oauthLoading) return;

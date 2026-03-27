@@ -226,6 +226,37 @@ all {
     position: relative;
 }
 
+.graph-bookmark-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 30;
+    width: 36px;
+    min-width: 36px !important;
+    height: 36px;
+    border-radius: 10px !important;
+    border: 1px solid #155DFC !important;
+    background: #E7F1FF !important;
+    color: #155DFC !important;
+    padding: 0 !important;
+    box-shadow: 0 1px 3px rgba(21, 93, 252, 0.18) !important;
+}
+
+.graph-bookmark-button .MuiSvgIcon-root {
+    font-size: 20px;
+}
+
+.graph-bookmark-button:hover {
+    background: #EEF6FF !important;
+}
+
+.graph-bookmark-button.Mui-disabled {
+    color: #A0A8B5 !important;
+    border-color: #D6DCE6 !important;
+    background: #F4F6FA !important;
+    box-shadow: none !important;
+}
+
 .graph-container {
     width: 100%;
     height: 100%;

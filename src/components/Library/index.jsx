@@ -358,6 +358,59 @@ const normalizeFolderGraph = (entry) => {
     };
 };
 
+const normalizeGraphTermEntry = (term) => {
+    if (!term) return null;
+    if (typeof term === 'string') {
+        const label = term.trim();
+        if (!label) return null;
+        return {
+            id: 0,
+            label,
+            type: 'default',
+        };
+    }
+
+    const label = (term?.name || term?.label || term?.term || '').trim();
+    if (!label) return null;
+    const rawId = term?.id ?? term?.database_id ?? term?.databaseId ?? 0;
+    const parsedId = Number(rawId);
+
+    return {
+        id: Number.isFinite(parsedId) ? parsedId : 0,
+        label,
+        type: term?.type || term?.label_type || 'default',
+    };
+};
+
+const buildGraphSearchPayload = (graph) => {
+    const normalizedTerms = (Array.isArray(graph?.terms) ? graph.terms : [])
+        .map(normalizeGraphTermEntry)
+        .filter(Boolean);
+
+    if (!normalizedTerms.length) return null;
+
+    return {
+        triplets: normalizedTerms.map((term) => ({
+            source: [term.id, term.label],
+            rel: 'any relationships',
+            target: [0, ''],
+        })),
+        params: {
+            max_articles: 5,
+            max_terms: 30,
+            max_rels: 30,
+            more_terms: 'False',
+            more_rels: 'False',
+            merge: 'True',
+        },
+        sources: normalizedTerms.map((term) => [
+            term.id,
+            term.label,
+            term.type,
+        ]),
+    };
+};
+
 const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManageFolders }) => {
     const [menuAnchorEl, setMenuAnchorEl] = useState(null);
     const isMenuOpen = Boolean(menuAnchorEl);
@@ -914,6 +967,12 @@ const Library = () => {
         if (!conversationId) return;
         setActiveConversationId(String(conversationId));
         navigate('/chat', { state: { conversationId: String(conversationId) } });
+    };
+
+    const handleOpenGraph = (graph) => {
+        const searchData = buildGraphSearchPayload(graph);
+        if (!searchData) return;
+        navigate('/search', { state: { search_data: searchData } });
     };
 
     const handleBookmarkConversation = async (conversation) => {
@@ -1752,6 +1811,7 @@ const Library = () => {
                                                                     </div>
                                                                 )}
                                                                 onBookmark={handleBookmarkGraph}
+                                                                onOpen={handleOpenGraph}
                                                                 onManageFolders={handleManageGraphFolders}
                                                                 isBookmarked
                                                                 bookmarkLabel="Remove bookmark"
@@ -1915,6 +1975,7 @@ const Library = () => {
                                                                 </div>
                                                             )}
                                                             onBookmark={handleBookmarkGraph}
+                                                            onOpen={handleOpenGraph}
                                                             onManageFolders={handleManageGraphFolders}
                                                             isBookmarked
                                                             bookmarkLabel="Remove bookmark"
