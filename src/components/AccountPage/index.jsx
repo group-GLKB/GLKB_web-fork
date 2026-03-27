@@ -12,6 +12,7 @@ import {
   Person as PersonIcon,
 } from '@mui/icons-material';
 
+import { getMyTier } from '../../service/Tier';
 import { useAuth } from '../Auth/AuthContext';
 
 const getSessionValue = (key) => {
@@ -24,6 +25,33 @@ const setSessionValue = (key, value) => {
     window.sessionStorage.setItem(key, value);
 };
 
+const parseNaiveUtcDate = (value) => {
+    if (!value || typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const hasTimezone = /[zZ]|[+-]\d{2}:?\d{2}$/.test(trimmed);
+    const parsed = new Date(hasTimezone ? trimmed : `${trimmed}Z`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const formatResetTime = (value) => {
+    const parsed = parseNaiveUtcDate(value);
+    if (!parsed) return '--';
+    return parsed.toLocaleString('en-US', {
+        weekday: 'short',
+        month: 'long',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+    });
+};
+
+const formatTierLabel = (tier) => {
+    if (!tier) return 'Free';
+    return `${tier}`.charAt(0).toUpperCase() + `${tier}`.slice(1);
+};
+
 const AccountPage = () => {
     const { user, logout, updateUsername } = useAuth();
     const navigate = useNavigate();
@@ -34,6 +62,8 @@ const AccountPage = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showSignoutModal, setShowSignoutModal] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
+    const [tierInfo, setTierInfo] = useState(null);
+    const [tierLoading, setTierLoading] = useState(true);
 
     useEffect(() => {
         if (!displayName) {
@@ -54,6 +84,34 @@ const AccountPage = () => {
         }, 2200);
         return () => window.clearTimeout(timeoutId);
     }, [toastMessage]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        getMyTier()
+            .then((result) => {
+                if (!isMounted) return;
+                if (result.success) {
+                    setTierInfo(result.data || null);
+                } else {
+                    setTierInfo(null);
+                }
+            })
+            .finally(() => {
+                if (!isMounted) return;
+                setTierLoading(false);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    const quotaLimit = Math.max(0, Number(tierInfo?.quota_limit) || 0);
+    const quotaUsed = Math.min(quotaLimit, Math.max(0, Number(tierInfo?.quota_used) || 0));
+    const quotaRemaining = Math.max(0, Number(tierInfo?.quota_remaining) || (quotaLimit - quotaUsed));
+    const usagePercent = quotaLimit > 0 ? Math.min(100, (quotaUsed / quotaLimit) * 100) : 0;
+    const usageResetText = formatResetTime(tierInfo?.end_time || tierInfo?.period_start);
 
     const openNameModal = () => {
         setNameDraft(displayName);
@@ -156,13 +214,48 @@ const AccountPage = () => {
                             <div className="flat-field">
                                 <div className="flat-label-row">
                                     <div className="flat-label">Your Subscription</div>
-                                    <span className="plan-badge">Free</span>
+                                    <span className="plan-badge">{formatTierLabel(tierInfo?.tier)}</span>
                                 </div>
                                 <div className="flat-value">
                                     Upgrade to Pro for unlimited access to GLKB's full research capabilities.
                                 </div>
                             </div>
                             <button type="button" className="flat-btn dark">Upgrade plan</button>
+                        </div>
+
+                        <div className="flat-row">
+                            <div className="flat-field">
+                                <div className="subscription-inline-meta">
+                                    <span className="flat-label subscription-inline-label">Usage Resets</span>
+                                    <span className="flat-value subscription-inline-value">{tierLoading ? 'Loading...' : usageResetText}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flat-row">
+                            <div className="flat-field">
+                                <div className="subscription-inline-meta">
+                                    <span className="flat-label subscription-inline-label">Queries per month</span>
+                                    <span className="flat-value subscription-inline-value">
+                                    {tierLoading ? '--/--' : `${quotaUsed}/${quotaLimit}`}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flat-row subscription-progress-row">
+                            <div className="flat-field">
+                                <div className="subscription-progress" role="progressbar" aria-valuemin={0} aria-valuemax={quotaLimit || 100} aria-valuenow={quotaUsed}>
+                                    <div
+                                        className="subscription-progress-fill"
+                                        style={{ width: `${usagePercent}%` }}
+                                    />
+                                </div>
+                                <div className="subscription-progress-footer">
+                                    <span>{tierLoading ? '-- used' : `${quotaUsed} used`}</span>
+                                    <span>{tierLoading ? '-- remaining' : `${quotaRemaining} remaining`}</span>
+                                </div>
+                            </div>
                         </div>
 
                         <h2 className="settings-title">System</h2>
