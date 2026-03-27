@@ -341,8 +341,8 @@
 }
 
 .about-why-image {
-    width: 702px;
-    height: 576px;
+    width: 900px;
+    height: auto;
     margin: 0 0 0 auto;
     align-self: start;
     object-fit: contain;
@@ -502,6 +502,15 @@
     align-items: center;
 }
 
+.about-accuracy-image {
+    width: 900px;
+    height: auto;
+    margin: 0 0 0 auto;
+    align-self: start;
+    object-fit: contain;
+    display: block;
+}
+
 .about-accuracy-value {
     font-size: 120px;
     font-weight: 700;
@@ -510,7 +519,7 @@
 
 .about-accuracy-label {
     font-family: 'Crimson Pro', 'Times New Roman', serif;
-    font-size: 24px;
+    font-size: 32px;
     font-weight: 700;
     line-height: 36px;
 }
