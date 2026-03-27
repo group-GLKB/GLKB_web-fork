@@ -31,13 +31,13 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-    FormControl,
+  FormControl,
   IconButton,
   ListItemIcon,
   ListItemText,
   Menu,
   MenuItem,
-    Select,
+  Select,
   Tab,
   Tabs,
   TextField,
@@ -1243,22 +1243,27 @@ const Library = () => {
         : [];
     const canRenderList = !isFolderView || !folderDetailLoading;
     const sortedChats = useMemo(
-          () => sortEntries(filteredChats, 'chat', sortOption),
-          [filteredChats, sortOption]
+        () => sortEntries(filteredChats, 'chat', sortOption),
+        [filteredChats, sortOption]
     );
     const sortedReferences = useMemo(
-          () => sortEntries(filteredReferences, 'reference', sortOption),
-          [filteredReferences, sortOption]
+        () => sortEntries(filteredReferences, 'reference', sortOption),
+        [filteredReferences, sortOption]
     );
     const sortedGraphs = useMemo(
-          () => sortEntries(filteredGraphs, 'graph', sortOption),
-          [filteredGraphs, sortOption]
+        () => sortEntries(filteredGraphs, 'graph', sortOption),
+        [filteredGraphs, sortOption]
     );
-        const hasSearchResults = filteredChats.length + filteredReferences.length + filteredGraphs.length > 0;
+    const hasSearchResults = filteredChats.length + filteredReferences.length + filteredGraphs.length > 0;
     const showMoreChats = shouldLimitPreviews && !isSearching && filteredChats.length > ENTRY_PREVIEW_LIMIT;
     const showMoreReferences = shouldLimitPreviews && !isSearching && filteredReferences.length > ENTRY_PREVIEW_LIMIT;
     const showMoreGraphs = shouldLimitPreviews && !isSearching && filteredGraphs.length > ENTRY_PREVIEW_LIMIT;
     const allItemsCount = conversationBookmarks.length + bookmarks.length + graphBookmarks.length;
+    const selectedFolderName = isFolderView
+        ? (folderDetail?.name
+            || folders.find((folder) => String(folder.fid) === String(selectedFolderId))?.name
+            || 'Folder')
+        : null;
     const getFolderItemCount = (folder) => (
         (folder?.chat_count ?? 0)
         + (folder?.ref_count ?? 0)
@@ -1456,7 +1461,7 @@ const Library = () => {
                                     fontSize: '32px',
                                     color: '#164563',
                                 }}>
-                                    Library
+                                    {selectedFolderName || 'Library'}
                                 </Typography>
                             </Box>
                         </Box>
@@ -1533,31 +1538,31 @@ const Library = () => {
                             <Box className="library-sort">
                                 <span className="library-sort-label">Sort:</span>
                                 <FormControl size="small">
-                                <Select
-                                    value={sortOption}
-                                    onChange={(event) => setSortOption(event.target.value)}
-                                    displayEmpty
-                                    sx={{
-                                        fontFamily: 'DM Sans, sans-serif',
-                                        fontSize: '12px',
-                                        fontWeight: 600,
-                                        color: '#164563',
-                                        minWidth: 110,
-                                        height: 28,
-                                        backgroundColor: '#E7F1FF',
-                                        borderRadius: '16px',
-                                        '& .MuiSelect-select': {
-                                            padding: '4px 8px',
-                                        },
-                                        '& fieldset': {
-                                            border: 'none',
-                                        },
-                                    }}
-                                >
-                                    <MenuItem value={SORT_AZ}>A-Z</MenuItem>
-                                    <MenuItem value={SORT_ZA}>Z-A</MenuItem>
-                                    <MenuItem value={SORT_DATE}>Date Added</MenuItem>
-                                </Select>
+                                    <Select
+                                        value={sortOption}
+                                        onChange={(event) => setSortOption(event.target.value)}
+                                        displayEmpty
+                                        sx={{
+                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontSize: '12px',
+                                            fontWeight: 600,
+                                            color: '#164563',
+                                            minWidth: 110,
+                                            height: 28,
+                                            backgroundColor: '#E7F1FF',
+                                            borderRadius: '16px',
+                                            '& .MuiSelect-select': {
+                                                padding: '4px 8px',
+                                            },
+                                            '& fieldset': {
+                                                border: 'none',
+                                            },
+                                        }}
+                                    >
+                                        <MenuItem value={SORT_AZ}>A-Z</MenuItem>
+                                        <MenuItem value={SORT_ZA}>Z-A</MenuItem>
+                                        <MenuItem value={SORT_DATE}>Date Added</MenuItem>
+                                    </Select>
                                 </FormControl>
                             </Box>
                         </Box>
