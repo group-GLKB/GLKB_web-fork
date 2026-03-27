@@ -12,7 +12,10 @@ import {
   Person as PersonIcon,
 } from '@mui/icons-material';
 
-import { getMyTier } from '../../service/Tier';
+import {
+  getMyTier,
+  upgradeToAdmin,
+} from '../../service/Tier';
 import { useAuth } from '../Auth/AuthContext';
 
 const getSessionValue = (key) => {
@@ -64,6 +67,11 @@ const AccountPage = () => {
     const [toastMessage, setToastMessage] = useState('');
     const [tierInfo, setTierInfo] = useState(null);
     const [tierLoading, setTierLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('account');
+    const [adminPasscode, setAdminPasscode] = useState('');
+    const [adminActionLoading, setAdminActionLoading] = useState(false);
+    const [adminActionMessage, setAdminActionMessage] = useState('');
+    const [adminActionError, setAdminActionError] = useState('');
 
     useEffect(() => {
         if (!displayName) {
@@ -112,6 +120,12 @@ const AccountPage = () => {
     const quotaRemaining = Math.max(0, Number(tierInfo?.quota_remaining) || (quotaLimit - quotaUsed));
     const usagePercent = quotaLimit > 0 ? Math.min(100, (quotaUsed / quotaLimit) * 100) : 0;
     const usageResetText = formatResetTime(tierInfo?.end_time || tierInfo?.period_start);
+    const normalizedTier = `${tierInfo?.tier || 'free'}`.toLowerCase();
+    const isFreeTier = normalizedTier === 'free';
+    const isUpgradeDisabled = normalizedTier === 'pro' || normalizedTier === 'admin';
+    const queryUsageText = normalizedTier === 'admin'
+        ? 'INF/INF'
+        : (tierLoading ? '--/--' : `${quotaUsed}/${quotaLimit}`);
 
     const openNameModal = () => {
         setNameDraft(displayName);
@@ -146,6 +160,36 @@ const AccountPage = () => {
         }
     };
 
+    const refreshTierInfo = async () => {
+        const result = await getMyTier();
+        if (result.success) {
+            setTierInfo(result.data || null);
+        }
+    };
+
+    const handleUpgradeToAdmin = async () => {
+        const passcode = adminPasscode.trim();
+        if (!passcode) {
+            setAdminActionError('Enter admin password first.');
+            setAdminActionMessage('');
+            return;
+        }
+
+        setAdminActionLoading(true);
+        setAdminActionError('');
+        setAdminActionMessage('');
+
+        const result = await upgradeToAdmin(passcode);
+        if (result.success) {
+            setAdminActionMessage(result.message || 'Upgraded to admin tier.');
+            await refreshTierInfo();
+        } else {
+            setAdminActionError(result.message || 'Failed to upgrade to admin tier.');
+        }
+
+        setAdminActionLoading(false);
+    };
+
     return (
         <div className="account-page">
             <div className="settings-wrapper">
@@ -160,126 +204,178 @@ const AccountPage = () => {
                         </svg>
                         Home
                     </button>
-                    <div className="settings-nav-item active">
+                    <button
+                        type="button"
+                        className={`settings-nav-item${activeTab === 'account' ? ' active' : ''}`}
+                        onClick={() => setActiveTab('account')}
+                    >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                             <circle cx="12" cy="7" r="4"></circle>
                         </svg>
                         Account
-                    </div>
-                    <div className="settings-nav-item">
+                    </button>
+                    <button
+                        type="button"
+                        className={`settings-nav-item${activeTab === 'testing' ? ' active' : ''}`}
+                        onClick={() => setActiveTab('testing')}
+                    >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <circle cx="12" cy="12" r="3"></circle>
                             <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"></path>
                         </svg>
-                        Privacy Notice
-                    </div>
+                        Testing Functions
+                    </button>
                 </nav>
 
                 <div className="settings-content">
                     <div className="settings-inner">
-                        <div className="flat-row">
-                            <div className="flat-row-main">
-                                <div className="card-avatar" aria-hidden="true">
-                                    <PersonIcon className="card-avatar-icon" />
+                        {activeTab === 'account' ? (
+                            <>
+                                <div className="flat-row">
+                                    <div className="flat-row-main">
+                                        <div className="card-avatar" aria-hidden="true">
+                                            <PersonIcon className="card-avatar-icon" />
+                                        </div>
+                                        <div>
+                                            <div className="flat-name">{displayName}</div>
+                                            <div className="flat-sub">{email}</div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <div className="flat-name">{displayName}</div>
-                                    <div className="flat-sub">{email}</div>
+
+                                <div className="flat-row">
+                                    <div className="flat-field">
+                                        <div className="flat-label">Display Name</div>
+                                        <div className="flat-value">{displayName}</div>
+                                    </div>
+                                    <button type="button" className="flat-btn" onClick={openNameModal}>
+                                        Change name
+                                    </button>
                                 </div>
-                            </div>
-                        </div>
 
-                        <div className="flat-row">
-                            <div className="flat-field">
-                                <div className="flat-label">Display Name</div>
-                                <div className="flat-value">{displayName}</div>
-                            </div>
-                            <button type="button" className="flat-btn" onClick={openNameModal}>
-                                Change name
-                            </button>
-                        </div>
-
-                        <div className="flat-row">
-                            <div className="flat-field">
-                                <div className="flat-label">Email</div>
-                                <div className="flat-value">{email}</div>
-                            </div>
-                        </div>
-
-                        <h2 className="settings-title">Subscription</h2>
-                        <div className="settings-divider"></div>
-
-                        <div className="flat-row">
-                            <div className="flat-field">
-                                <div className="flat-label-row">
-                                    <div className="flat-label">Your Subscription</div>
-                                    <span className="plan-badge">{formatTierLabel(tierInfo?.tier)}</span>
+                                <div className="flat-row">
+                                    <div className="flat-field">
+                                        <div className="flat-label">Email</div>
+                                        <div className="flat-value">{email}</div>
+                                    </div>
                                 </div>
-                                <div className="flat-value">
-                                    Upgrade to Pro for unlimited access to GLKB's full research capabilities.
+
+                                <h2 className="settings-title">Subscription</h2>
+                                <div className="settings-divider"></div>
+
+                                <div className="flat-row">
+                                    <div className="flat-field">
+                                        <div className="flat-label-row">
+                                            <div className="flat-label">Your Subscription</div>
+                                            <span className="plan-badge">{formatTierLabel(tierInfo?.tier)}</span>
+                                        </div>
+                                        {isFreeTier ? (
+                                            <div className="flat-value">
+                                                Upgrade to Pro for unlimited access to GLKB's full research capabilities.
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="flat-btn dark"
+                                        disabled={isUpgradeDisabled}
+                                        onClick={() => {
+                                            if (isUpgradeDisabled) return;
+                                            navigate('/about#pricing');
+                                        }}
+                                    >
+                                        Upgrade plan
+                                    </button>
                                 </div>
-                            </div>
-                            <button type="button" className="flat-btn dark">Upgrade plan</button>
-                        </div>
 
-                        <div className="flat-row">
-                            <div className="flat-field">
-                                <div className="subscription-inline-meta">
-                                    <span className="flat-label subscription-inline-label">Usage Resets</span>
-                                    <span className="flat-value subscription-inline-value">{tierLoading ? 'Loading...' : usageResetText}</span>
+                                <div className="flat-row">
+                                    <div className="flat-field">
+                                        <div className="subscription-inline-meta">
+                                            <span className="flat-label subscription-inline-label">Usage Resets</span>
+                                            <span className="flat-value subscription-inline-value">{tierLoading ? 'Loading...' : usageResetText}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
 
-                        <div className="flat-row">
-                            <div className="flat-field">
-                                <div className="subscription-inline-meta">
-                                    <span className="flat-label subscription-inline-label">Queries per month</span>
-                                    <span className="flat-value subscription-inline-value">
-                                    {tierLoading ? '--/--' : `${quotaUsed}/${quotaLimit}`}
-                                    </span>
+                                <div className="flat-row flat-row-no-border">
+                                    <div className="flat-field">
+                                        <div className="subscription-inline-meta">
+                                            <span className="flat-label subscription-inline-label">Queries per month</span>
+                                            <span className="flat-value subscription-inline-value">
+                                                {queryUsageText}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
 
-                        <div className="flat-row subscription-progress-row">
-                            <div className="flat-field">
-                                <div className="subscription-progress" role="progressbar" aria-valuemin={0} aria-valuemax={quotaLimit || 100} aria-valuenow={quotaUsed}>
-                                    <div
-                                        className="subscription-progress-fill"
-                                        style={{ width: `${usagePercent}%` }}
-                                    />
+                                <div className="flat-row subscription-progress-row">
+                                    <div className="flat-field">
+                                        <div className="subscription-progress" role="progressbar" aria-valuemin={0} aria-valuemax={quotaLimit || 100} aria-valuenow={quotaUsed}>
+                                            <div
+                                                className="subscription-progress-fill"
+                                                style={{ width: `${usagePercent}%` }}
+                                            />
+                                        </div>
+                                        <div className="subscription-progress-footer">
+                                            <span>{tierLoading ? '-- used' : `${quotaUsed} used`}</span>
+                                            <span>{tierLoading ? '-- remaining' : `${quotaRemaining} remaining`}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="subscription-progress-footer">
-                                    <span>{tierLoading ? '-- used' : `${quotaUsed} used`}</span>
-                                    <span>{tierLoading ? '-- remaining' : `${quotaRemaining} remaining`}</span>
+
+                                <h2 className="settings-title">System</h2>
+                                <div className="settings-divider"></div>
+
+                                <div className="flat-row">
+                                    <div className="flat-field">
+                                        <div className="flat-label">Sign Out</div>
+                                        <div className="flat-value">You are signed in as {displayName}</div>
+                                    </div>
+                                    <button type="button" className="flat-btn" onClick={() => setShowSignoutModal(true)}>
+                                        Sign out
+                                    </button>
                                 </div>
-                            </div>
-                        </div>
 
-                        <h2 className="settings-title">System</h2>
-                        <div className="settings-divider"></div>
+                                <div className="flat-row">
+                                    <div className="flat-field">
+                                        <div className="flat-label">Delete Account</div>
+                                        <div className="flat-sub">Permanently delete your account and data</div>
+                                    </div>
+                                    <button type="button" className="flat-btn" onClick={() => setShowDeleteModal(true)}>
+                                        Learn more
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <h2 className="settings-title settings-title-first">Testing Functions</h2>
+                                <div className="settings-divider"></div>
 
-                        <div className="flat-row">
-                            <div className="flat-field">
-                                <div className="flat-label">Sign Out</div>
-                                <div className="flat-value">You are signed in as {displayName}</div>
-                            </div>
-                            <button type="button" className="flat-btn" onClick={() => setShowSignoutModal(true)}>
-                                Sign out
-                            </button>
-                        </div>
-
-                        <div className="flat-row">
-                            <div className="flat-field">
-                                <div className="flat-label">Delete Account</div>
-                                <div className="flat-sub">Permanently delete your account and data</div>
-                            </div>
-                            <button type="button" className="flat-btn" onClick={() => setShowDeleteModal(true)}>
-                                Learn more
-                            </button>
-                        </div>
+                                <div className="flat-row">
+                                    <div className="flat-field">
+                                        <div className="flat-label">Admin Password</div>
+                                        <input
+                                            className="settings-inline-input"
+                                            type="password"
+                                            value={adminPasscode}
+                                            onChange={(event) => setAdminPasscode(event.target.value)}
+                                            placeholder="Enter admin password"
+                                        />
+                                        {adminActionMessage ? <div className="flat-sub settings-inline-success">{adminActionMessage}</div> : null}
+                                        {adminActionError ? <div className="flat-sub settings-inline-error">{adminActionError}</div> : null}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="flat-btn dark"
+                                        onClick={handleUpgradeToAdmin}
+                                        disabled={adminActionLoading}
+                                    >
+                                        {adminActionLoading ? 'Upgrading...' : 'Upgrade to Admin'}
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

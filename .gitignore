@@ -48,5 +48,7 @@ e2e/.auth/
 
 # Playwright
 .env
+.env.local
+.env.*.local
 playwright-report/
 test-results/

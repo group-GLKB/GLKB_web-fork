@@ -39,6 +39,60 @@
     color: #7a8794;
 }
 
+.debug-divider {
+    height: 1px;
+    background: #e6ebf2;
+    margin: 4px 0;
+}
+
+.debug-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #41576d;
+}
+
+.debug-input {
+    width: 100%;
+    border: 1px solid #d7e1ed;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    color: #1f2d3d;
+    outline: none;
+}
+
+.debug-input:focus {
+    border-color: #155dfc;
+    box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.12);
+}
+
+.debug-button {
+    border: none;
+    border-radius: 10px;
+    background: #155dfc;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 10px 14px;
+    cursor: pointer;
+    width: fit-content;
+}
+
+.debug-button:disabled {
+    background: #9bb8f7;
+    cursor: not-allowed;
+}
+
+.debug-success {
+    font-size: 13px;
+    color: #16794c;
+}
+
+.debug-error {
+    font-size: 13px;
+    color: #c0392b;
+}
+
 .loading-step-label {
     display: inline-block;
     font-size: 18px;
