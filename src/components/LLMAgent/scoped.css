@@ -1182,3 +1182,27 @@
 .message-wrapper.assistant .message {
     background-color: transparent;
 }
+
+.llm-reference-button.MuiButtonBase-root {
+    border: 1px solid #155DFC;
+    box-shadow: none;
+    color: #155DFC;
+    background-color: #f7f8fa;
+    border-radius: 4px;
+    height: 40px;
+    padding: 0 10px;
+    margin-bottom: 2px;
+    font-family: 'Open Sans', sans-serif;
+    text-transform: none;
+}
+
+.llm-reference-button.MuiButtonBase-root .MuiButton-startIcon,
+.llm-reference-button.MuiButtonBase-root .MuiSvgIcon-root {
+    color: #155DFC;
+}
+
+.llm-reference-button.MuiButtonBase-root:hover {
+    color: #155DFC;
+    border-color: #155DFC;
+    background-color: #e1e2e4;
+}

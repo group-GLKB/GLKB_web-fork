@@ -7,6 +7,16 @@ import { Helmet } from 'react-helmet-async';
 import DoneIcon from '@mui/icons-material/Done';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 
+import featureImage1
+  from '../../img/about/features/GLKB About_Feature 1_illus.png';
+import featureImage2
+  from '../../img/about/features/GLKB About_Feature 2_illus.png';
+import featureImage3
+  from '../../img/about/features/GLKB About_Feature 3_illus.png';
+import featureImage4
+  from '../../img/about/features/GLKB About_Feature 4_illus.png';
+import featureImage5
+  from '../../img/about/features/GLKB About_Feature 5_illus.png';
 import heroLogo27 from '../../img/about/frame1/image 27.png';
 import heroLogo29 from '../../img/about/frame1/image 29.png';
 import heroLogo30 from '../../img/about/frame1/image 30.png';
@@ -17,23 +27,18 @@ import teamLogo from '../../img/about/frame11/logo 1.png';
 import enterpriseIcon
   from '../../img/about/frame13/tdesign_institution-checked.svg';
 import ctaBackground from '../../img/about/frame15/image 23.png';
-import aboutLogo from '../../img/about/image 26.png';
 import homeImage from '../../img/about/home.png';
-import featureImage1 from '../../img/about/features/GLKB About_Feature 1_illus.png';
-import featureImage2 from '../../img/about/features/GLKB About_Feature 2_illus.png';
-import featureImage3 from '../../img/about/features/GLKB About_Feature 3_illus.png';
-import featureImage4 from '../../img/about/features/GLKB About_Feature 4_illus.png';
-import featureImage5 from '../../img/about/features/GLKB About_Feature 5_illus.png';
-import usecaseValidate from '../../img/about/usecase/validate.svg';
-import usecaseNavigate from '../../img/about/usecase/navigate.svg';
-import usecaseCross from '../../img/about/usecase/cross.svg';
-import usecaseGaps from '../../img/about/usecase/gaps.svg';
-import usecaseBottleneck from '../../img/about/usecase/bottleneck.svg';
+import aboutLogo from '../../img/about/image 26.png';
 import usecaseIconBook from '../../img/about/usecase/book_5.svg';
-import usecaseIconPsych from '../../img/about/usecase/psychology.svg';
+import usecaseBottleneck from '../../img/about/usecase/bottleneck.svg';
+import usecaseCross from '../../img/about/usecase/cross.svg';
+import usecaseIconZap from '../../img/about/usecase/fi_zap.svg';
+import usecaseGaps from '../../img/about/usecase/gaps.svg';
 import usecaseIconGene from '../../img/about/usecase/genetics.svg';
 import usecaseIconMenu from '../../img/about/usecase/menu_book.svg';
-import usecaseIconZap from '../../img/about/usecase/fi_zap.svg';
+import usecaseNavigate from '../../img/about/usecase/navigate.svg';
+import usecaseIconPsych from '../../img/about/usecase/psychology.svg';
+import usecaseValidate from '../../img/about/usecase/validate.svg';
 import workflowAsk
   from '../../img/about/workflow/step1_ask_question_transparent.svg';
 import workflowRetrieve

@@ -19,8 +19,8 @@ import {
   Typography,
 } from '@mui/material';
 
-import { ReactComponent as HistoryIcon } from '../../img/navbar/history.svg';
 import { ReactComponent as MetaIcon } from '../../img/library/Icon.svg';
+import { ReactComponent as HistoryIcon } from '../../img/navbar/history.svg';
 import {
   fetchConversations,
   getConversations,

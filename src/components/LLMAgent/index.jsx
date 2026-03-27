@@ -27,8 +27,7 @@ import {
   Clear as ClearIcon,
   EditNote as EditNoteIcon,
   ExpandMore as ExpandMoreIcon,
-  FilePresent as FilePresentIcon,
-  Replay as ReplayIcon,
+  Link as LinkIcon,
   StopCircle as StopCircleIcon,
 } from '@mui/icons-material';
 import {
@@ -47,6 +46,7 @@ import {
 
 import contentCopyIcon from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
+import replayIcon from '../../img/llm/replay.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import {
   ReactComponent as SidebarLeftIcon,
@@ -485,6 +485,8 @@ const MessageCard = React.memo(function MessageCard({
     const isLastUserMessage = index === totalMessages - 1 && message.role === 'assistant';
     const isLoading = isProcessing && isLastUserMessage;
     const messageID = index;
+    const isSelected = index === selectedMessageIndex;
+    const hasReferences = Array.isArray(message.references) && message.references.length > 0;
     const allowUserEdit = true;
     const [editContent, setEditContent] = useState('');
     const [isEditing, setIsEditing] = useState(false);
@@ -780,7 +782,7 @@ const MessageCard = React.memo(function MessageCard({
                                     <img
                                         src={contentCopyIcon}
                                         alt="Copy"
-                                        style={{ width: '16px', height: '16px', display: 'block' }}
+                                        style={{ width: '16px', height: '16px', display: 'block', objectFit: 'contain' }}
                                     />
                                 </IconButton>
                                 {allowResponseRefresh && isLastUserMessage && !isLoading && (
@@ -789,7 +791,11 @@ const MessageCard = React.memo(function MessageCard({
                                         onClick={() => refresh(null, index)}
                                         title="Regenerate response"
                                     >
-                                        <ReplayIcon fontSize="small" />
+                                        <img
+                                            src={replayIcon}
+                                            alt="Refresh"
+                                            style={{ width: '16px', height: '16px', display: 'block', objectFit: 'contain' }}
+                                        />
                                     </IconButton>
                                 )}
                                 {!isLoading && <IconButton size="small" onClick={() => downloadConversation(messageID)} title="Download this Q&A">
@@ -806,26 +812,49 @@ const MessageCard = React.memo(function MessageCard({
                             </Stack>
                             <MuiButton
                                 variant='contained'
-                                startIcon={<FilePresentIcon />}
+                                startIcon={<LinkIcon />}
                                 size="small"
                                 onClick={() => goref(messageID)}
-                                disabled={isLoading}
+                                disabled={isLoading || !hasReferences}
                                 sx={{
                                     px: "10px",
                                     fontFamily: 'Open Sans, sans-serif',
-                                    height: "40px",
-                                    borderRadius: "4px",
-                                    border: "none", bgcolor: "#f7f8fa", color: "#19213d",
-                                    "&:hover": {
-                                        bgcolor: "#e1e2e4",
-                                        color: "#09112d",
-                                        boxShadow: index == selectedMessageIndex ? "0 0 0 1px #19213d" : "none",
+                                        fontWeight: isSelected ? 600 : 500,
+                                    height: "34px",
+                                    borderRadius: "16px",
+                                    border: isSelected ? "1px solid #155DFC" : "none",
+                                    bgcolor: isSelected ? "#f7f8fa" : "#E7F1FF",
+                                    color: "#155DFC",
+                                    boxShadow: isSelected ? "0 1px 2px rgba(21, 93, 252, 0.12)" : "none",
+                                    "& .MuiButton-startIcon": {
+                                        color: "#155DFC",
                                     },
-                                    boxShadow: index == selectedMessageIndex ? "0 0 0 1px #19213d" : "none",
+                                    "& .MuiSvgIcon-root": {
+                                        color: "#155DFC",
+                                    },
+                                    "&:hover": {
+                                        bgcolor: isSelected ? "#EEF1F6" : "#EEF6FF",
+                                        color: "#155DFC",
+                                        borderColor: "#155DFC",
+                                        boxShadow: isSelected ? "0 1px 2px rgba(21, 93, 252, 0.16)" : "none",
+                                    },
+                                    "&.Mui-disabled": {
+                                        color: "#A0A8B5",
+                                        backgroundColor: "#EFF3F8",
+                                        border: "none",
+                                        boxShadow: "none",
+                                        fontWeight: 500,
+                                    },
+                                    "&.Mui-disabled .MuiButton-startIcon": {
+                                        color: "#A0A8B5",
+                                    },
+                                    "&.Mui-disabled .MuiSvgIcon-root": {
+                                        color: "#A0A8B5",
+                                    },
                                     mb: "2px"
                                 }}
                             >
-                                {index == selectedMessageIndex ? <b>References</b> : <>References</>}
+                                References
                             </MuiButton>
 
                         </Box>}
@@ -860,7 +889,7 @@ const MessageCard = React.memo(function MessageCard({
                                 <img
                                     src={contentCopyIcon}
                                     alt="Copy"
-                                    style={{ width: '16px', height: '16px', display: 'block' }}
+                                    style={{ width: '16px', height: '16px', display: 'block', objectFit: 'contain' }}
                                 />
                             </IconButton>
                             {allowUserEdit && (
@@ -1843,419 +1872,6 @@ function LLMAgent() {
         if (abortControllerRef.current) abortControllerRef.current.abort();
     }, []);
 
-    const MessageCardInner = ({
-        index,
-        message,
-        refresh,
-        copy,
-        save,
-        goref,
-        downloadConversation,
-        showReloadPrompt,
-        onReloadLatest,
-    }) => {
-        const isAssistant = message.role === "assistant";
-        const isLastUserMessage = index === chatHistory.length - 1 && message.role === 'assistant';
-        const isLoading = isProcessing && isLastUserMessage;
-        const messageID = index;
-        const allowUserEdit = false;
-        const [editContent, setEditContent] = useState('');
-        const [isEditing, setIsEditing] = useState(false);
-        const [expandedGroups, setExpandedGroups] = useState({});
-        const [thoughtsExpanded, setThoughtsExpanded] = useState(() => isLoading);
-        const [animatedStepLabel, setAnimatedStepLabel] = useState('');
-        const [stepLabelPhase, setStepLabelPhase] = useState('idle');
-        const stepLabelTimersRef = useRef([]);
-        const renderedStepLabelRef = useRef('');
-        const thoughtDurationLabel = formatDuration(message.thoughtDurationMs);
-        const groupedThoughts = useMemo(
-            () => groupThinkingSteps(message.thinkingSteps),
-            [message.thinkingSteps]
-        );
-        const trajectoryGroups = useMemo(
-            () => trajectoryToGroups(message.trajectory),
-            [message.trajectory]
-        );
-        const activeStreamingGroups = isLoading ? streamingGroups : [];
-        const staticGroups = !isLoading && trajectoryGroups.length
-            ? trajectoryGroups
-            : groupedThoughts;
-        const displayGroups = isLoading ? activeStreamingGroups : staticGroups;
-        const hasDisplayGroups = displayGroups.length > 0;
-        const isTrajectoryDisplay = !isLoading && trajectoryGroups.length > 0;
-        const loadingCurrentIndex = isLoading ? displayGroups.length - 1 : -1;
-        const currentStepLabel = useMemo(() => {
-            if (!isLoading) return '';
-            if (!activeStreamingGroups.length) return 'Thinking';
-            return getStepLabel(activeStreamingGroups[activeStreamingGroups.length - 1].name);
-        }, [isLoading, activeStreamingGroups]);
-        const loadingStepLabel = useMemo(() => {
-            if (!isLoading) return '';
-            if (!currentStepLabel) return 'Thinking...';
-            return currentStepLabel.endsWith('...') ? currentStepLabel : `${currentStepLabel}...`;
-        }, [isLoading, currentStepLabel]);
-        const thoughtHeaderText = isLoading
-            ? (animatedStepLabel || loadingStepLabel)
-            : (thoughtDurationLabel ? `Thought for ${thoughtDurationLabel}` : 'Thought summary');
-        const showThoughtHeader = isAssistant
-            && (isLoading || thoughtDurationLabel || hasDisplayGroups);
-        const showReloadInMessage = showReloadPrompt && isLastUserMessage && isAssistant && !isLoading;
-        const canToggleThoughts = !isLoading && hasDisplayGroups;
-
-        const toggleGroup = useCallback((index) => {
-            setExpandedGroups((prev) => ({
-                ...prev,
-                [index]: !prev[index],
-            }));
-        }, []);
-
-        useEffect(() => {
-            if (isLoading) {
-                setThoughtsExpanded(true);
-                return;
-            }
-            setThoughtsExpanded(false);
-        }, [isLoading]);
-
-        useEffect(() => {
-            const clearTimers = () => {
-                stepLabelTimersRef.current.forEach((timerId) => clearTimeout(timerId));
-                stepLabelTimersRef.current = [];
-            };
-
-            clearTimers();
-
-            if (!isLoading || !loadingStepLabel) {
-                renderedStepLabelRef.current = '';
-                setAnimatedStepLabel('');
-                setStepLabelPhase('idle');
-                return undefined;
-            }
-
-            const currentLabel = renderedStepLabelRef.current;
-            if (!currentLabel) {
-                renderedStepLabelRef.current = loadingStepLabel;
-                setAnimatedStepLabel(loadingStepLabel);
-                setStepLabelPhase('idle');
-                return undefined;
-            }
-
-            if (currentLabel === loadingStepLabel) {
-                return undefined;
-            }
-
-            const OUT_MS = 140;
-            const BUFFER_MS = 80;
-            const IN_MS = 180;
-            const SWAP_MS = 16;
-
-            setStepLabelPhase('out');
-            const outTimer = setTimeout(() => {
-                renderedStepLabelRef.current = loadingStepLabel;
-                setAnimatedStepLabel(loadingStepLabel);
-                setStepLabelPhase('swap');
-                const swapTimer = setTimeout(() => {
-                    setStepLabelPhase('in');
-                    const inTimer = setTimeout(() => {
-                        setStepLabelPhase('idle');
-                    }, IN_MS);
-                    stepLabelTimersRef.current.push(inTimer);
-                }, SWAP_MS);
-                stepLabelTimersRef.current.push(swapTimer);
-            }, OUT_MS + BUFFER_MS);
-            stepLabelTimersRef.current.push(outTimer);
-
-            return clearTimers;
-        }, [isLoading, loadingStepLabel]);
-
-        return (
-            <div
-                className="message-card"
-                data-message-index={index}
-                data-message-role={message.role}
-            >
-                <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: "5px", justifyContent: "flex-end" }}>
-                    <Box
-                        sx={{
-                            bgcolor: isAssistant ? "transparent" : "#ffffff", // Different background colors
-                            boxShadow: isAssistant ? "none" : "0 4px 16px 0 rgba(0, 0, 0, 0.05)",
-                            maxWidth: isAssistant ? "100%" : "80%", // Adjust max width for assistant messages
-                            width: isAssistant ? "100%" : "auto",
-                            display: "flex",
-                            alignItems: "flex-start",
-                            px: isAssistant ? "0px" : "24px",
-                            pt: isAssistant ? "12px" : "0px",
-                            pb: isAssistant ? "24px" : "12px",
-                            // border: isAssistant ? "1px solid" : "none",
-                            borderColor: "divider",
-                            borderRadius: "24px",
-                            flex: 1, // Occupy maximum width
-                        }}
-                    >
-                        <Box sx={{ flex: 1 }}>
-                            {showThoughtHeader && (
-                                <Box sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    mt: '8px',
-                                    mb: '8px',
-                                }}>
-                                    <Box
-                                        role={canToggleThoughts ? 'button' : undefined}
-                                        tabIndex={canToggleThoughts ? 0 : -1}
-                                        onClick={canToggleThoughts ? () => setThoughtsExpanded((prev) => !prev) : undefined}
-                                        onKeyDown={(event) => {
-                                            if (!canToggleThoughts) return;
-                                            if (event.key === 'Enter' || event.key === ' ') {
-                                                event.preventDefault();
-                                                setThoughtsExpanded((prev) => !prev);
-                                            }
-                                        }}
-                                        aria-label={
-                                            canToggleThoughts
-                                                ? (thoughtsExpanded ? 'Collapse thoughts' : 'Expand thoughts')
-                                                : undefined
-                                        }
-                                        sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '6px',
-                                            padding: '4px 8px',
-                                            borderRadius: '18px',
-                                            cursor: canToggleThoughts ? 'pointer' : 'default',
-                                            '&:hover': canToggleThoughts ? { backgroundColor: 'rgba(0, 0, 0, 0.04)' } : undefined,
-                                        }}
-                                    >
-                                        <Box
-                                            component="span"
-                                            className={isLoading
-                                                ? `loading-step-label${stepLabelPhase !== 'idle' ? ` loading-step-label--${stepLabelPhase}` : ''}`
-                                                : undefined}
-                                            sx={{
-                                                fontFamily: 'DM Sans, sans-serif',
-                                                fontSize: '16px',
-                                                fontWeight: isLoading ? 400 : 600,
-                                                color: isLoading ? 'transparent' : '#5B5B5B',
-                                                WebkitTextFillColor: isLoading ? 'transparent' : undefined,
-                                            }}
-                                        >
-                                            {thoughtHeaderText}
-                                        </Box>
-                                        {canToggleThoughts && (
-                                            <ExpandMoreIcon
-                                                sx={{
-                                                    fontSize: '16px',
-                                                    color: '#646464',
-                                                    transform: thoughtsExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                                                    transition: 'transform 0.2s ease',
-                                                }}
-                                            />
-                                        )}
-                                    </Box>
-                                </Box>
-                            )}
-
-                            {isAssistant && !isLoading && thoughtsExpanded && hasDisplayGroups && (
-                                <Box sx={{
-                                    mt: '6px',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '0px',
-                                    borderLeft: isTrajectoryDisplay ? 'none' : '2px solid #E6E6E6',
-                                    pl: isTrajectoryDisplay ? '0px' : '12px',
-                                }}>
-                                    {displayGroups.map((group, groupIndex) => (
-                                        <ThoughtGroup
-                                            key={`${group.name}-${groupIndex}`}
-                                            group={group}
-                                            groupIndex={groupIndex}
-                                            expanded={isLoading ? groupIndex === loadingCurrentIndex : !!expandedGroups[groupIndex]}
-                                            onToggle={toggleGroup}
-                                            disableAnimation={isLoading}
-                                            disableToggle={isLoading}
-                                            showBorder={!isTrajectoryDisplay}
-                                        />
-                                    ))}
-                                </Box>
-                            )}
-
-                            <Box mt={1}>
-                                {showReloadInMessage ? (
-                                    <Box
-                                        sx={{
-                                            backgroundColor: '#F4F4F4',
-                                            borderRadius: '8px',
-                                            padding: '6px 8px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            gap: '8px',
-                                        }}
-                                    >
-                                        <Typography
-                                            sx={{
-                                                fontFamily: 'DM Sans, sans-serif',
-                                                fontSize: '12px',
-                                                fontWeight: 500,
-                                                color: '#646464',
-                                            }}
-                                        >
-                                            Response interrupted. Reload latest message.
-                                        </Typography>
-                                        <MuiButton
-                                            variant="outlined"
-                                            size="small"
-                                            onClick={onReloadLatest}
-                                            sx={{
-                                                textTransform: 'none',
-                                                fontFamily: 'DM Sans, sans-serif',
-                                                fontWeight: 600,
-                                                fontSize: '12px',
-                                                minHeight: '28px',
-                                                padding: '2px 8px',
-                                                borderRadius: '8px',
-                                                borderColor: '#D0D0D0',
-                                                color: '#646464',
-                                                '&:hover': {
-                                                    borderColor: '#B8B8B8',
-                                                    backgroundColor: '#EDEDED',
-                                                },
-                                            }}
-                                        >
-                                            Reload
-                                        </MuiButton>
-                                    </Box>
-                                ) : isLoading ? null :
-                                    isEditing ?
-                                        <TextField
-                                            hiddenLabel
-                                            multiline
-                                            id="filled-hidden-label-small"
-                                            value={editContent}
-                                            variant="filled"
-                                            size="small"
-                                            sx={{ flex: 1, width: "100%" }}
-                                            onChange={(e) => setEditContent(e.target.value)}
-                                        /> : (
-                                            <div className="markdown-body" style={{ fontFamily: 'Open Sans, sans-serif' }}>
-                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                                    {message.content}
-                                                </ReactMarkdown>
-                                            </div>
-                                        )}
-                            </Box>
-
-                            {/* Buttons below message */}
-                            {isAssistant && <Box sx={{ justifyContent: "space-between", direction: "row", display: "flex", alignItems: "center", mt: "5px" }}>
-                                <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
-                                    <IconButton size="small" onClick={() => copy(message.content)}>
-                                        <img
-                                            src={contentCopyIcon}
-                                            alt="Copy"
-                                            style={{ width: '16px', height: '16px', display: 'block' }}
-                                        />
-                                    </IconButton>
-                                    {allowResponseRefresh && showReloadInMessage && (
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => refresh(null, index)}
-                                            title="Regenerate response"
-                                        >
-                                            <ReplayIcon fontSize="small" />
-                                        </IconButton>
-                                    )}
-                                    {!isLoading && <IconButton size="small" onClick={() => downloadConversation(messageID)} title="Download this Q&A">
-                                        <DownloadIcon
-                                            aria-label="Download"
-                                            style={{ width: '16px', height: '16px', display: 'block', color: '#646464' }}
-                                        />
-                                    </IconButton>}
-                                    {isLoading && <IconButton size="small" onClick={() => { if (abortControllerRef.current) abortControllerRef.current.abort(); }}>
-                                        <StopCircleIcon fontSize="small" />
-                                    </IconButton>
-                                    }
-                                </Stack>
-                                <MuiButton
-                                    variant='contained'
-                                    startIcon={<FilePresentIcon />}
-                                    size="small"
-                                    onClick={() => goref(messageID)}
-                                    disabled={isLoading}
-                                    sx={{
-                                        px: "10px",
-                                        fontFamily: 'Open Sans, sans-serif',
-                                        height: "40px",
-                                        borderRadius: "4px",
-                                        border: "none", bgcolor: "#f7f8fa", color: "#19213d",
-                                        "&:hover": {
-                                            bgcolor: "#e1e2e4",
-                                            color: "#09112d",
-                                            boxShadow: index == selectedMessageIndex ? "0 0 0 1px #19213d" : "none",
-                                        },
-                                        boxShadow: index == selectedMessageIndex ? "0 0 0 1px #19213d" : "none",
-                                        mb: "2px"
-                                    }}
-                                >
-                                    {index == selectedMessageIndex ? <b>References</b> : <>References</>}
-                                </MuiButton>
-
-                            </Box>}
-
-                        </Box>
-
-                    </Box>
-
-                </Container>
-                {!isAssistant && <Box sx={{ justifyContent: "flex-end", direction: "row", display: "flex", alignItems: "center" }}>
-                    <Stack direction="row" spacing={1} sx={{ pb: "8px", pr: "24px" }}>
-                        {
-                            isEditing ? <>
-                                <IconButton size="small" onClick={() => {
-                                    setIsEditing(false);
-                                    setEditContent('');
-                                }}>
-                                    <ClearIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton size="small" onClick={(e) => {
-                                    if (editContent.trim() === '') {
-                                        return;
-                                    }
-                                    save(e, messageID, editContent);
-                                    setIsEditing(false);
-                                    setEditContent('');
-                                }}>
-                                    <CheckIcon fontSize="small" />
-                                </IconButton>
-                            </> : <div className="user-message-actions">
-                                <IconButton size="small" onClick={() => copy(message.content)}>
-                                    <img
-                                        src={contentCopyIcon}
-                                        alt="Copy"
-                                        style={{ width: '16px', height: '16px', display: 'block' }}
-                                    />
-                                </IconButton>
-                                {allowUserEdit && (
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => {
-                                            if (!allowUserEdit || isAssistant) return;
-
-                                            setIsEditing(true);
-                                            setEditContent(message.content);
-                                        }}
-                                    >
-                                        <EditNoteIcon fontSize="small" />
-                                    </IconButton>
-                                )}
-                            </div>
-                        }
-
-                    </Stack>
-                </Box>}
-            </div>
-        );
-    };
-
     const renderMessages = () => {
         return (<Box sx={{ p: 2 }}>{chatHistory.map((message, index) => (
             <MessageCard
@@ -2659,8 +2275,8 @@ function LLMAgent() {
 
                                                     {/* <div className="chat-header">
                                                     <form onSubmit={handleSubmit} className="input-form">
-                                                        <input
-                                                            type="text"
+                                                        <MuiButton
+                                                            variant='outlined'
                                                             value={userInput}
                                                             onChange={(e) => setUserInput(e.target.value)}
                                                             placeholder="Ask a question about the biomedical literature..."
@@ -2670,13 +2286,21 @@ function LLMAgent() {
                                                         <button
                                                             type="submit"
                                                             className="send-button"
-                                                            disabled={isLoading || !userInput.trim()}
+                                                                border: "1px solid #155DFC",
+                                                                bgcolor: "#f7f8fa",
+                                                                color: "#155DFC",
+                                                                "& .MuiButton-startIcon": {
+                                                                    color: "#155DFC",
+                                                                },
+                                                                "& .MuiSvgIcon-root": {
+                                                                    color: "#155DFC",
+                                                                },
                                                         >
                                                             Send
-                                                        </button>
-                                                        <Button
+                                                                    color: "#155DFC",
+                                                                    boxShadow: index == selectedMessageIndex ? "0 0 0 1px #155DFC" : "none",
                                                             icon={<DeleteOutlined />}
-                                                            onClick={handleClear}
+                                                                boxShadow: index == selectedMessageIndex ? "0 0 0 1px #155DFC" : "none",
                                                             className="clear-button"
                                                             disabled={isLoading}
                                                         >
