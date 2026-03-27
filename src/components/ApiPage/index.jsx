@@ -40,6 +40,7 @@ import {
 const API_DOCS_TAB = 'api-docs';
 const API_KEYS_TAB = 'api-keys';
 const API_USAGE_TAB = 'api-usage';
+const SHOW_API_USAGE_TAB = false;
 
 const tabs = [
     { id: API_DOCS_TAB, label: 'API Docs' },
@@ -122,10 +123,15 @@ const ApiPage = () => {
         return { total, active };
     }, [keys]);
 
+    const visibleTabs = useMemo(
+        () => tabs.filter((tab) => SHOW_API_USAGE_TAB || tab.id !== API_USAGE_TAB),
+        []
+    );
+
     const activeTabLabel = useMemo(() => {
-        const matched = tabs.find((tab) => tab.id === activeTab);
+        const matched = visibleTabs.find((tab) => tab.id === activeTab);
         return matched ? matched.label : '';
-    }, [activeTab]);
+    }, [activeTab, visibleTabs]);
 
     const loadKeys = async () => {
         setLoadingKeys(true);
@@ -294,7 +300,7 @@ const ApiPage = () => {
                                     },
                                 }}
                             >
-                                {tabs.map((tab) => (
+                                {visibleTabs.map((tab) => (
                                     <Tab key={tab.id} value={tab.id} label={tab.label} />
                                 ))}
                             </Tabs>
@@ -433,7 +439,7 @@ const ApiPage = () => {
                             </div>
                         </>
                     )}
-                    {activeTab === API_USAGE_TAB && (
+                    {SHOW_API_USAGE_TAB && activeTab === API_USAGE_TAB && (
                         <div className="api-usage-placeholder">
                             Usage metrics will appear here once tracking is enabled.
                         </div>

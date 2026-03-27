@@ -227,7 +227,7 @@ all {
 }
 
 .graph-bookmark-button {
-    position: absolute;
+    position: absolute !important;
     top: 8px;
     right: 8px;
     z-index: 30;

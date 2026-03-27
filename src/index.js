@@ -6,10 +6,10 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
 import {
-    BrowserRouter as Router,
-    Navigate,
-    Route,
-    Routes,
+  BrowserRouter as Router,
+  Navigate,
+  Route,
+  Routes,
 } from 'react-router-dom';
 
 import AboutPage from './components/AboutPage';
@@ -35,11 +35,10 @@ const initState = {
 
 // Create a wrapper component
 function AppWithRoutes() {
-    const isDev = process.env.NODE_ENV !== 'production';
     return (
         <HelmetProvider>
             <Routes>
-                {isDev && <Route path="/debug" element={<DebugPage />} />}
+                <Route path="/debug" element={<DebugPage />} />
                 <Route element={<AppLayout />}>
                     <Route path='/search' element={<ResultPage />} />
                     <Route path="/" element={<HomePage />} />
