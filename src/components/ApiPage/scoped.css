@@ -554,6 +554,14 @@
     opacity: 0.6;
 }
 
+.api-keys-dialog-button.is-danger,
+.api-keys-dialog-button.is-danger:hover,
+.api-keys-dialog-button.is-danger.MuiButton-root:hover {
+    color: #ffffff !important;
+    background: #9F1239 !important;
+    border-color: #9F1239 !important;
+}
+
 .api-keys-created {
     display: flex;
     flex-direction: column;

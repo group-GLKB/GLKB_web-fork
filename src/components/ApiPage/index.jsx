@@ -31,6 +31,7 @@ import {
 } from '../../img/navbar/code_blocks.svg';
 import {
   createApiKey,
+  deleteApiKey,
   listApiKeys,
   updateApiKeyName,
   updateApiKeyStatus,
@@ -110,6 +111,9 @@ const ApiPage = () => {
     const [editError, setEditError] = useState('');
     const [editLoading, setEditLoading] = useState(false);
     const [editTarget, setEditTarget] = useState(null);
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState(null);
     const [statusUpdatingId, setStatusUpdatingId] = useState(null);
 
     const keyCounts = useMemo(() => {
@@ -179,8 +183,30 @@ const ApiPage = () => {
         }
     };
 
-    const handleDelete = () => {
-        setKeysError('Delete endpoint is not available yet.');
+    const handleDelete = (entry) => {
+        setDeleteTarget(entry);
+        setDeleteOpen(true);
+    };
+
+    const handleDeleteSubmit = async () => {
+        if (!deleteTarget) return;
+        setDeleteLoading(true);
+        try {
+            await deleteApiKey(deleteTarget.id);
+            setDeleteOpen(false);
+            setDeleteTarget(null);
+            await loadKeys();
+        } catch (error) {
+            setKeysError(error.response?.data?.detail || 'Unable to delete API key.');
+        } finally {
+            setDeleteLoading(false);
+        }
+    };
+
+    const handleDeleteClose = () => {
+        if (deleteLoading) return;
+        setDeleteOpen(false);
+        setDeleteTarget(null);
     };
 
     const handleEdit = (entry) => {
@@ -384,7 +410,11 @@ const ApiPage = () => {
                                                 >
                                                     {entry.status === 1 ? 'Disable' : 'Enable'}
                                                 </button>
-                                                <button type="button" className="api-keys-action is-danger" onClick={handleDelete}>
+                                                <button
+                                                    type="button"
+                                                    className="api-keys-action is-danger"
+                                                    onClick={() => handleDelete(entry)}
+                                                >
                                                     Delete
                                                 </button>
                                             </span>
@@ -503,6 +533,62 @@ const ApiPage = () => {
                             )}
                         </DialogActions>
                     </Dialog>
+
+                    <Dialog
+                        open={deleteOpen}
+                        onClose={handleDeleteClose}
+                        className="api-keys-dialog-root"
+                        maxWidth={false}
+                    >
+                        <DialogTitle className="api-keys-dialog-title">
+                            <div className="api-keys-dialog-header">
+                                <span>Delete API Key</span>
+                                <button
+                                    type="button"
+                                    className="api-keys-dialog-close"
+                                    onClick={handleDeleteClose}
+                                    aria-label="Close"
+                                    disabled={deleteLoading}
+                                >
+                                    <CloseIcon fontSize="small" />
+                                </button>
+                            </div>
+                        </DialogTitle>
+                        <DialogContent className="api-keys-dialog">
+                            <Typography
+                                sx={{
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontSize: '14px',
+                                    lineHeight: 1.6,
+                                    color: '#164563',
+                                }}
+                            >
+                                Are you sure you want to delete
+                                {' '}
+                                <strong>{deleteTarget?.name || 'this API key'}</strong>
+                                ? This action cannot be undone.
+                            </Typography>
+                        </DialogContent>
+                        <DialogActions className="api-keys-dialog-actions">
+                            <Button
+                                onClick={handleDeleteClose}
+                                className="api-keys-dialog-button"
+                                variant="outlined"
+                                disabled={deleteLoading}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleDeleteSubmit}
+                                disabled={deleteLoading}
+                                className="api-keys-dialog-button is-primary is-danger"
+                                variant="contained"
+                            >
+                                Delete
+                            </Button>
+                        </DialogActions>
+                    </Dialog>
+
                     <Dialog
                         open={editOpen}
                         onClose={() => setEditOpen(false)}

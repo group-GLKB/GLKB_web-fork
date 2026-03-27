@@ -27,3 +27,8 @@ export const updateApiKeyName = async (apiId, name) => {
     });
     return response.data;
 };
+
+export const deleteApiKey = async (apiId) => {
+    const response = await axios.post(`${API_BASE}/delete`, { api_id: apiId });
+    return response.data;
+}
