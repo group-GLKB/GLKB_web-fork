@@ -819,7 +819,7 @@ const MessageCard = React.memo(function MessageCard({
                                 sx={{
                                     px: "10px",
                                     fontFamily: 'Open Sans, sans-serif',
-                                        fontWeight: isSelected ? 600 : 500,
+                                    fontWeight: isSelected ? 600 : 500,
                                     height: "34px",
                                     borderRadius: "16px",
                                     border: isSelected ? "1px solid #155DFC" : "none",

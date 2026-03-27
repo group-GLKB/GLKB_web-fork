@@ -29,6 +29,7 @@ import enterpriseIcon
 import ctaBackground from '../../img/about/frame15/image 23.png';
 import homeImage from '../../img/about/home.png';
 import aboutLogo from '../../img/about/image 26.png';
+import accuracyTable from '../../img/about/table.png';
 import usecaseIconBook from '../../img/about/usecase/book_5.svg';
 import usecaseBottleneck from '../../img/about/usecase/bottleneck.svg';
 import usecaseCross from '../../img/about/usecase/cross.svg';
@@ -309,10 +310,13 @@ const AboutPage = () => {
                             <div className="about-accuracy-left">
                                 <div className="about-accuracy-label">Average Accuracy Improvement</div>
                                 <div className="about-accuracy-value">+ 24.8%</div>
-                                <div className="about-accuracy-caption">Evaluated on PubMedQA-HC (1,500 curated queries)</div>
+                                <div className="about-accuracy-caption">
+                                    Evaluated on PubMedQA-HC<br />
+                                    (1,500 curated queries)
+                                </div>
                             </div>
                             <div className="about-accuracy-right">
-                                <div className="about-placeholder about-placeholder--table">Table placeholder</div>
+                                <img className="about-accuracy-image" src={accuracyTable} alt="Accuracy Table" />
                             </div>
                         </div>
                     </div>
