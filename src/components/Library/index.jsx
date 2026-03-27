@@ -1469,7 +1469,7 @@ const Library = () => {
                             textAlign: 'left',
                             width: '100%',
                         }}>
-                            Collect papers, explore connections, and organize your research journey.
+                            Your personal research workspace.
                         </Typography>
                         <div className="library-search">
                             <input

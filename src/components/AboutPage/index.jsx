@@ -18,6 +18,30 @@ import enterpriseIcon
   from '../../img/about/frame13/tdesign_institution-checked.svg';
 import ctaBackground from '../../img/about/frame15/image 23.png';
 import aboutLogo from '../../img/about/image 26.png';
+import homeImage from '../../img/about/home.png';
+import featureImage1 from '../../img/about/features/GLKB About_Feature 1_illus.png';
+import featureImage2 from '../../img/about/features/GLKB About_Feature 2_illus.png';
+import featureImage3 from '../../img/about/features/GLKB About_Feature 3_illus.png';
+import featureImage4 from '../../img/about/features/GLKB About_Feature 4_illus.png';
+import featureImage5 from '../../img/about/features/GLKB About_Feature 5_illus.png';
+import usecaseValidate from '../../img/about/usecase/validate.svg';
+import usecaseNavigate from '../../img/about/usecase/navigate.svg';
+import usecaseCross from '../../img/about/usecase/cross.svg';
+import usecaseGaps from '../../img/about/usecase/gaps.svg';
+import usecaseBottleneck from '../../img/about/usecase/bottleneck.svg';
+import usecaseIconBook from '../../img/about/usecase/book_5.svg';
+import usecaseIconPsych from '../../img/about/usecase/psychology.svg';
+import usecaseIconGene from '../../img/about/usecase/genetics.svg';
+import usecaseIconMenu from '../../img/about/usecase/menu_book.svg';
+import usecaseIconZap from '../../img/about/usecase/fi_zap.svg';
+import workflowAsk
+  from '../../img/about/workflow/step1_ask_question_transparent.svg';
+import workflowRetrieve
+  from '../../img/about/workflow/step2_retrieve_rank_transparent.svg';
+import workflowSynthesize
+  from '../../img/about/workflow/step3_synthesize_transparent.svg';
+import workflowVerify
+  from '../../img/about/workflow/step4_verify_explore_transparent.svg';
 
 const AboutPage = () => {
     const [isYearly, setIsYearly] = useState(false);
@@ -45,7 +69,7 @@ const AboutPage = () => {
                 <section className="about-page-section about-hero" id="top">
                     <div className="about-frame about-hero-frame">
                         <div className="about-hero-left">
-                            <h1>Weeks of research, done in minutes.</h1>
+                            <h1>Weeks of research,<br />done in minutes.</h1>
                             <p>
                                 GLKB is an AI-powered research engine that synthesizes biomedical literature into structured,
                                 evidence-backed answers grounded in real publications, not just predictions.
@@ -57,7 +81,7 @@ const AboutPage = () => {
                         </div>
                         <div className="about-hero-right">
                             <div className="about-hero-collage">
-                                <div className="about-placeholder about-placeholder--hero-main">Image placeholder</div>
+                                <img className="about-hero-image" src={homeImage} alt="GLKB home" />
                             </div>
                         </div>
                         <div className="about-hero-footer">
@@ -85,7 +109,7 @@ const AboutPage = () => {
                             </p>
                         </div>
                         <div className="about-feature-media">
-                            <div className="about-placeholder about-placeholder--feature">Image placeholder</div>
+                            <img className="about-placeholder--feature" src={featureImage1} alt="Generate answers" />
                         </div>
                     </div>
                 </section>
@@ -100,7 +124,7 @@ const AboutPage = () => {
                             </p>
                         </div>
                         <div className="about-feature-media">
-                            <div className="about-placeholder about-placeholder--feature">Image placeholder</div>
+                            <img className="about-placeholder--feature" src={featureImage2} alt="Verify sources" />
                         </div>
                     </div>
                 </section>
@@ -115,7 +139,7 @@ const AboutPage = () => {
                             </p>
                         </div>
                         <div className="about-feature-media">
-                            <div className="about-placeholder about-placeholder--feature">Image placeholder</div>
+                            <img className="about-placeholder--feature" src={featureImage3} alt="Show original sentences" />
                         </div>
                     </div>
                 </section>
@@ -130,7 +154,7 @@ const AboutPage = () => {
                             </p>
                         </div>
                         <div className="about-feature-media">
-                            <div className="about-placeholder about-placeholder--feature">Image placeholder</div>
+                            <img className="about-placeholder--feature" src={featureImage4} alt="Save and organize" />
                         </div>
                     </div>
                 </section>
@@ -145,7 +169,7 @@ const AboutPage = () => {
                             </p>
                         </div>
                         <div className="about-feature-media">
-                            <div className="about-placeholder about-placeholder--feature">Image placeholder</div>
+                            <img className="about-placeholder--feature" src={featureImage5} alt="Explore biomedical relationships" />
                         </div>
                     </div>
                 </section>
@@ -172,34 +196,52 @@ const AboutPage = () => {
                                     </ul>
                                 </div>
                             </div>
-                            <div className="about-placeholder about-placeholder--why">Image placeholder</div>
+                            <img className="about-why-image" src={homeImage} alt="Why GLKB" />
                         </div>
                     </div>
                 </section>
 
                 <section className="about-page-section about-work" id="workflow">
                     <div className="about-frame about-work-frame">
-                        <h2>How GLKB Works</h2>
-                        <div className="about-card-grid">
-                            <div className="about-card">
-                                <h3>1</h3>
-                                <h4>Ask a Question</h4>
-                                <p>Input a biomedical query in natural language.</p>
+                        <h2 className="about-work-title">How GLKB Works</h2>
+                        <div className="about-work-steps">
+                            <div className="about-work-card">
+                                <div className="about-work-card-header">
+                                    <div className="about-work-step">1</div>
+                                    <div className="about-work-name">Ask</div>
+                                </div>
+                                <img className="about-work-image" src={workflowAsk} alt="Ask" />
+                                <p className="about-work-description">Input a biomedical query in natural language.</p>
                             </div>
-                            <div className="about-card">
-                                <h3>2</h3>
-                                <h4>Retrieve & Rank Evidence</h4>
-                                <p>GLKB identifies the most relevant literature across large-scale datasets.</p>
+                            <div className="about-work-card">
+                                <div className="about-work-card-header">
+                                    <div className="about-work-step">2</div>
+                                    <div className="about-work-name">Retrieve</div>
+                                </div>
+                                <img className="about-work-image" src={workflowRetrieve} alt="Retrieve" />
+                                <p className="about-work-description">
+                                    GLKB identifies the most relevant literature across large-scale datasets.
+                                </p>
                             </div>
-                            <div className="about-card">
-                                <h3>3</h3>
-                                <h4>Synthesize Insights</h4>
-                                <p>AI models aggregate findings into a structured, concise answer.</p>
+                            <div className="about-work-card">
+                                <div className="about-work-card-header">
+                                    <div className="about-work-step">3</div>
+                                    <div className="about-work-name">Synthesize</div>
+                                </div>
+                                <img className="about-work-image" src={workflowSynthesize} alt="Synthesize" />
+                                <p className="about-work-description">
+                                    AI models aggregate findings into a structured, concise answer.
+                                </p>
                             </div>
-                            <div className="about-card">
-                                <h3>4</h3>
-                                <h4>Verify & Explore</h4>
-                                <p>Users can trace every claim back to source papers and explore relationships via knowledge graph.</p>
+                            <div className="about-work-card">
+                                <div className="about-work-card-header">
+                                    <div className="about-work-step">4</div>
+                                    <div className="about-work-name">Verify & Cite</div>
+                                </div>
+                                <img className="about-work-image" src={workflowVerify} alt="Verify and cite" />
+                                <p className="about-work-description">
+                                    Users can trace every claim back to source papers and explore relationships via knowledge graph.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -207,23 +249,49 @@ const AboutPage = () => {
 
                 <section className="about-page-section about-use" id="use-cases">
                     <div className="about-frame about-use-frame">
-                        <h2>Use Cases</h2>
-                        <div className="about-card-grid">
-                            <div className="about-card">
-                                <h4>Academic Research</h4>
-                                <p>Accelerate literature review and hypothesis formation.</p>
-                            </div>
-                            <div className="about-card">
-                                <h4>Clinical Insights</h4>
-                                <p>Quickly understand evidence across studies for disease and treatment questions.</p>
-                            </div>
-                            <div className="about-card">
-                                <h4>Gene Discovery</h4>
-                                <p>Explore gene–drug–pathway relationships at scale.</p>
-                            </div>
-                            <div className="about-card">
-                                <h4>Education</h4>
-                                <p>Support learning with structured, explainable biomedical knowledge.</p>
+                        <h2 className="about-use-title">Use Cases</h2>
+                        <div className="about-use-wrap">
+                            <div className="about-use-grid">
+                                <div className="about-use-card about-use-card--wide about-use-card--validate">
+                                    <img className="about-use-image about-use-image--validate" src={usecaseValidate} alt="Validate hypothesis" />
+                                    <div className="about-use-content">
+                                        <img className="about-use-icon" src={usecaseIconBook} alt="" aria-hidden="true" />
+                                        <h3>Validate Your<br />Hypothesis Instantly</h3>
+                                        <p>Assess whether your idea is novel and invest your effort where it counts.</p>
+                                    </div>
+                                </div>
+                                <div className="about-use-card about-use-card--wide about-use-card--navigate">
+                                    <img className="about-use-image about-use-image--navigate" src={usecaseNavigate} alt="Navigate complex biomedical landscapes" />
+                                    <div className="about-use-content">
+                                        <img className="about-use-icon" src={usecaseIconPsych} alt="" aria-hidden="true" />
+                                        <h3>Navigate Complex<br />Biomedical Landscapes</h3>
+                                        <p>Rigorously scope niche research areas, surfacing evidence across studies.</p>
+                                    </div>
+                                </div>
+                                <div className="about-use-card about-use-card--tall about-use-card--cross">
+                                    <img className="about-use-image about-use-image--cross" src={usecaseCross} alt="Connect the dots across disciplines" />
+                                    <div className="about-use-content">
+                                        <img className="about-use-icon" src={usecaseIconGene} alt="" aria-hidden="true" />
+                                        <h3>Connect the Dots<br />Across Disciplines</h3>
+                                        <p>Uncover hidden links between pathways, treatments, and fields.</p>
+                                    </div>
+                                </div>
+                                <div className="about-use-card about-use-card--wide about-use-card--gaps">
+                                    <img className="about-use-image about-use-image--gaps" src={usecaseGaps} alt="Spot gaps in the literature" />
+                                    <div className="about-use-content">
+                                        <img className="about-use-icon" src={usecaseIconMenu} alt="" aria-hidden="true" />
+                                        <h3>Spot Gaps<br />in the Literature</h3>
+                                        <p>Pinpoint unanswered questions, understudied genes, and emerging trends.</p>
+                                    </div>
+                                </div>
+                                <div className="about-use-card about-use-card--wide about-use-card--bottleneck">
+                                    <img className="about-use-image about-use-image--bottleneck" src={usecaseBottleneck} alt="Break through research bottlenecks" />
+                                    <div className="about-use-content">
+                                        <img className="about-use-icon" src={usecaseIconZap} alt="" aria-hidden="true" />
+                                        <h3>Break through<br />Research Bottlenecks</h3>
+                                        <p>Rapidly turn hours of literature review into structured, explainable insights.</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -234,8 +302,8 @@ const AboutPage = () => {
                         <h2>GLKB significantly improves LLM accuracy</h2>
                         <div className="about-accuracy-grid">
                             <div className="about-accuracy-left">
-                                <div className="about-accuracy-value">+ 24.8%</div>
                                 <div className="about-accuracy-label">Average Accuracy Improvement</div>
+                                <div className="about-accuracy-value">+ 24.8%</div>
                                 <div className="about-accuracy-caption">Evaluated on PubMedQA-HC (1,500 curated queries)</div>
                             </div>
                             <div className="about-accuracy-right">
