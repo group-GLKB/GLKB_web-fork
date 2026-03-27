@@ -509,7 +509,7 @@ const History = () => {
                                 color: '#646464',
                                 textAlign: 'left',
                             }}>
-                                Search for archived reference, chat, etc.
+                                Search your past activity.
                             </Typography>
                             <div className="history-search">
                                 <input

@@ -8,6 +8,11 @@
     font-family: 'Inter', sans-serif;
 }
 
+.about-page h1,
+.about-page h2 {
+    font-family: 'Crimson Pro', 'Times New Roman', serif;
+}
+
 .about-nav {
     position: fixed;
     top: 0;
@@ -95,7 +100,7 @@
 
 .about-hero-frame {
     display: grid;
-    grid-template-columns: 1.05fr 1fr;
+    grid-template-columns: 0.9fr 1.15fr;
     align-items: center;
 }
 
@@ -145,6 +150,13 @@
     width: min(853px, 100%);
     height: 620px;
     overflow: hidden;
+}
+
+.about-hero-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
 }
 
 .about-placeholder {
@@ -233,8 +245,12 @@
 }
 
 .about-feature-frame {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 600px minmax(0, 1fr);
     align-items: center;
+}
+
+.about-feature-text {
+    max-width: 600px;
 }
 
 .about-feature--reverse .about-feature-frame {
@@ -266,14 +282,13 @@
 }
 
 .about-placeholder--feature {
-    width: min(886px, 100%);
+    width: min(1000px, 100%);
     height: auto;
-    aspect-ratio: 886 / 727;
 }
 
 .about-why-frame {
     grid-template-columns: 1fr;
-    gap: 32px;
+    gap: 37px;
     text-align: center;
 }
 
@@ -298,6 +313,7 @@
 }
 
 .about-why-text h3 {
+    font-family: 'Crimson Pro', 'Times New Roman', serif;
     font-size: 32px;
     font-weight: 600;
     margin-bottom: 16px;
@@ -324,6 +340,15 @@
     align-self: start;
 }
 
+.about-why-image {
+    width: 702px;
+    height: 576px;
+    margin: 0 0 0 auto;
+    align-self: start;
+    object-fit: contain;
+    display: block;
+}
+
 .about-work-frame,
 .about-use-frame,
 .about-pricing-frame,
@@ -342,6 +367,93 @@
     font-size: 36px;
     font-weight: 700;
     margin: 0 0 16px;
+}
+
+.about-work-title {
+    font-family: 'Crimson Pro', 'Times New Roman', serif;
+    font-size: 36px;
+    font-weight: 600;
+    color: #323232;
+    margin: 0 0 40px;
+}
+
+.about-work-steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 40px;
+    width: min(1512px, 100%);
+    margin: 0 auto;
+}
+
+.about-work-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: left;
+    border: 1px solid #BFE6FF;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-height: 411px;
+    box-sizing: border-box;
+}
+
+.about-work-card-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.about-work-step {
+    width: 36px;
+    height: 36px;
+    border-radius: 40px;
+    background: #0169AE;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Sans', 'Inter', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.about-work-name {
+    font-family: 'Crimson Pro', 'Times New Roman', serif;
+    font-size: 32px;
+    font-weight: 600;
+    color: #323232;
+}
+
+.about-work-image {
+    width: 100%;
+    height: 177px;
+    object-fit: contain;
+}
+
+.about-work-description {
+    font-family: 'DM Sans', 'Inter', sans-serif;
+    font-size: 20px;
+    font-weight: 400;
+    line-height: 28px;
+    color: #323232;
+    margin: 0;
+}
+
+@media (max-width: 1400px) {
+    .about-work-steps {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .about-work-steps {
+        grid-template-columns: 1fr;
+    }
+
+    .about-work-title {
+        margin-bottom: 24px;
+    }
 }
 
 .about-card-grid {
@@ -397,6 +509,7 @@
 }
 
 .about-accuracy-label {
+    font-family: 'Crimson Pro', 'Times New Roman', serif;
     font-size: 24px;
     font-weight: 700;
     line-height: 36px;
@@ -441,7 +554,7 @@
 }
 
 .about-pricing-subtitle {
-    font-family: 'DM Sans', 'Inter', sans-serif;
+    font-family: 'Crimson Pro', 'Times New Roman', serif;
     font-size: 20px;
     font-weight: 400;
     color: #323232;
@@ -854,5 +967,172 @@
 
     .about-hero-collage {
         height: 420px;
+    }
+}
+
+.about-use-title {
+    font-family: 'Crimson Pro', 'Times New Roman', serif;
+    font-size: 36px;
+    font-weight: 600;
+    color: #323232;
+    margin: 0 0 40px;
+}
+
+.about-use-wrap {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    --use-scale: min(1, calc(100% / 1552));
+}
+
+.about-use-grid {
+    width: 1552px;
+    height: 663px;
+    position: relative;
+    transform: scale(var(--use-scale));
+    transform-origin: top center;
+}
+
+.about-use-card {
+    position: absolute;
+    border-radius: 20px;
+    background: #ffffff;
+    padding: 24px;
+    height: 307px;
+    width: 560px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    text-align: left;
+    overflow: visible;
+}
+
+.about-use-card--wide {
+    height: 307px;
+    width: 560px;
+}
+
+.about-use-card--tall {
+    height: 471px;
+    width: 356px;
+}
+
+.about-use-card--validate {
+    left: 0;
+    top: 0;
+}
+
+.about-use-card--navigate {
+    left: 0;
+    top: 356px;
+}
+
+.about-use-card--cross {
+    left: 598px;
+    top: 192px;
+}
+
+.about-use-card--gaps {
+    left: 992px;
+    top: 0;
+}
+
+.about-use-card--bottleneck {
+    left: 992px;
+    top: 356px;
+}
+
+.about-use-image {
+    position: absolute;
+    width: 312px;
+    height: 252px;
+    object-fit: contain;
+    top: -60px;
+    right: -20px;
+    filter: drop-shadow(10px 10px 30px rgba(125, 159, 181, 0.2));
+}
+
+.about-use-image--navigate {
+    height: 226px;
+}
+
+.about-use-image--cross {
+    width: 360px;
+    height: 419px;
+    top: -180px;
+    left: calc(50% + 10px);
+    right: auto;
+    transform: translateX(-50%);
+}
+
+.about-use-image--gaps {
+    height: 275px;
+}
+
+.about-use-image--bottleneck {
+    height: 294px;
+}
+
+.about-use-content {
+    margin-top: auto;
+    align-self: flex-start;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.about-use-icon {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    margin-bottom: 12px;
+}
+
+.about-use-content h3 {
+    font-family: 'Crimson Pro', 'Times New Roman', serif;
+    font-size: 32px;
+    font-weight: 600;
+    color: #323232;
+    margin: 0 0 12px;
+    line-height: 36px;
+}
+
+.about-use-content p {
+    font-family: 'DM Sans', 'Inter', sans-serif;
+    font-size: 20px;
+    font-weight: 400;
+    color: #323232;
+    margin: 0;
+    line-height: 28px;
+}
+
+@media (max-width: 1200px) {
+    .about-use-grid {
+        width: 100%;
+        height: auto;
+        transform: none;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .about-use-card--validate,
+    .about-use-card--navigate,
+    .about-use-card--cross,
+    .about-use-card--gaps,
+    .about-use-card--bottleneck {
+        position: relative;
+        left: auto;
+        top: auto;
+        width: 100%;
+        height: auto;
+    }
+
+    .about-use-image--cross {
+        top: -60px;
+        left: auto;
+        right: -20px;
+        transform: none;
     }
 }

@@ -43,7 +43,7 @@ packages/react-devtools-shell/dist
 packages/react-devtools-timeline/dist
 
 .venv/
-temp/.env
+temp/
 e2e/.auth/
 
 # Playwright
