@@ -324,6 +324,7 @@ function NavBarWhite({ showLogo = true }) {
 
     const handleUpgradeClick = () => {
         handleCloseUserMenu();
+        navigate('/about#pricing');
     };
 
     const handleLogoutClick = async () => {

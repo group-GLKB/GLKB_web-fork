@@ -24,6 +24,8 @@ import {
 
 import { InfoCircleOutlined } from '@ant-design/icons';
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
+import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
+import BookmarkIcon from '@mui/icons-material/Bookmark';
 //import mui button as muibutton
 import {
     Box,
@@ -42,6 +44,11 @@ import {
 import NoResultImage from '../../img/result/placeholdericon.png';
 import { CypherService } from '../../service/Cypher';
 import { createGraphHistoryEntry } from '../../utils/graphHistory';
+import {
+    fetchGraphBookmarks,
+    getGraphBookmarks,
+    toggleGraphBookmark,
+} from '../../utils/graphBookmarks';
 import { useAuth } from '../Auth/AuthContext';
 import Graph from '../Graph';
 import nodeStyleColors from '../Graph/nodeStyleColors.json';
@@ -227,6 +234,9 @@ const ResultPage = () => {
     const [examplesOpen, setExamplesOpen] = useState(false);
     const [pendingExample, setPendingExample] = useState(null);
     const [examplesAnchorPosition, setExamplesAnchorPosition] = useState(null);
+    const [currentGraphHistory, setCurrentGraphHistory] = useState(null);
+    const [graphBookmarks, setGraphBookmarksState] = useState(() => getGraphBookmarks());
+    const [bookmarkLoading, setBookmarkLoading] = useState(false);
 
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const containerRef = useRef(null);
@@ -413,16 +423,93 @@ const ResultPage = () => {
         if (!isAuthenticated && !hasToken) return;
         const graphSnapshot = normalizeGraphSnapshot(graphPayload);
         try {
-            await createGraphHistoryEntry({
+            const savedEntry = await createGraphHistoryEntry({
                 title: 'N/A',
                 endpointType,
                 graphSnapshot,
                 terms,
             });
+            setCurrentGraphHistory(savedEntry || null);
         } catch (error) {
             console.warn('Failed to save graph history:', error);
         }
     }, [isAuthenticated, normalizeGraphSnapshot]);
+
+    useEffect(() => {
+        if (!isAuthenticated) {
+            setGraphBookmarksState([]);
+            return;
+        }
+        let isMounted = true;
+        fetchGraphBookmarks()
+            .then((list) => {
+                if (!isMounted) return;
+                setGraphBookmarksState(Array.isArray(list) ? list : []);
+            })
+            .catch(() => {
+                if (!isMounted) return;
+                setGraphBookmarksState(getGraphBookmarks());
+            });
+
+        const update = (event) => {
+            const next = event?.detail || getGraphBookmarks();
+            setGraphBookmarksState(Array.isArray(next) ? next : []);
+        };
+        window.addEventListener('glkb-graph-bookmarks-updated', update);
+        return () => {
+            isMounted = false;
+            window.removeEventListener('glkb-graph-bookmarks-updated', update);
+        };
+    }, [isAuthenticated]);
+
+    const bookmarkedGraphIds = useMemo(
+        () => new Set(graphBookmarks.map((item) => String(item.id))),
+        [graphBookmarks]
+    );
+
+    const currentGraphTerms = useMemo(
+        () => extractSearchTerms(searchContent),
+        [extractSearchTerms, searchContent]
+    );
+
+    const isCurrentGraphBookmarked = Boolean(
+        currentGraphHistory?.id && bookmarkedGraphIds.has(String(currentGraphHistory.id))
+    );
+
+    const handleBookmarkCurrentGraph = useCallback(async () => {
+        if (bookmarkLoading || !isAuthenticated) return;
+        if (!graphShownData?.nodes?.length) return;
+
+        setBookmarkLoading(true);
+        try {
+            let targetEntry = currentGraphHistory;
+            if (!targetEntry?.id) {
+                const graphSnapshot = normalizeGraphSnapshot(graphShownData);
+                targetEntry = await createGraphHistoryEntry({
+                    title: 'N/A',
+                    endpointType: 'triplet2graph',
+                    graphSnapshot,
+                    terms: currentGraphTerms,
+                });
+                setCurrentGraphHistory(targetEntry || null);
+            }
+            if (!targetEntry?.id) return;
+
+            const next = await toggleGraphBookmark(targetEntry, currentGraphTerms);
+            setGraphBookmarksState(Array.isArray(next) ? next : []);
+        } catch (error) {
+            console.warn('Failed to toggle graph bookmark:', error);
+        } finally {
+            setBookmarkLoading(false);
+        }
+    }, [
+        bookmarkLoading,
+        isAuthenticated,
+        graphShownData,
+        currentGraphHistory,
+        normalizeGraphSnapshot,
+        currentGraphTerms,
+    ]);
 
 
 
@@ -1215,6 +1302,15 @@ const ResultPage = () => {
                                                                         height: '100%',
                                                                         overflow: 'hidden'
                                                                     }}>
+                                                                        <MuiButton
+                                                                            className="graph-bookmark-button"
+                                                                            type="button"
+                                                                            onClick={handleBookmarkCurrentGraph}
+                                                                            disabled={bookmarkLoading || !isAuthenticated}
+                                                                            aria-label={isCurrentGraphBookmarked ? 'Remove bookmark' : 'Bookmark graph'}
+                                                                        >
+                                                                            {isCurrentGraphBookmarked ? <BookmarkIcon /> : <BookmarkBorderIcon />}
+                                                                        </MuiButton>
                                                                         <Graph
                                                                             data={graphShownData}
                                                                             selectedID={selectedID}

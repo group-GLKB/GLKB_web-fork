@@ -153,6 +153,59 @@ const getPillColors = (label) => {
     };
 };
 
+const normalizeGraphTermEntry = (term) => {
+    if (!term) return null;
+    if (typeof term === 'string') {
+        const label = term.trim();
+        if (!label) return null;
+        return {
+            id: 0,
+            label,
+            type: 'default',
+        };
+    }
+
+    const label = (term?.name || term?.label || term?.term || '').trim();
+    if (!label) return null;
+    const rawId = term?.id ?? term?.database_id ?? term?.databaseId ?? 0;
+    const parsedId = Number(rawId);
+
+    return {
+        id: Number.isFinite(parsedId) ? parsedId : 0,
+        label,
+        type: term?.type || term?.label_type || 'default',
+    };
+};
+
+const buildGraphSearchPayload = (history) => {
+    const normalizedTerms = (Array.isArray(history?.terms) ? history.terms : [])
+        .map(normalizeGraphTermEntry)
+        .filter(Boolean);
+
+    if (!normalizedTerms.length) return null;
+
+    return {
+        triplets: normalizedTerms.map((term) => ({
+            source: [term.id, term.label],
+            rel: 'any relationships',
+            target: [0, ''],
+        })),
+        params: {
+            max_articles: 5,
+            max_terms: 30,
+            max_rels: 30,
+            more_terms: 'False',
+            more_rels: 'False',
+            merge: 'True',
+        },
+        sources: normalizedTerms.map((term) => [
+            term.id,
+            term.label,
+            term.type,
+        ]),
+    };
+};
+
 const History = () => {
     const navigate = useNavigate();
     const { isAuthenticated, loading } = useAuth();
@@ -344,6 +397,12 @@ const History = () => {
         if (selectMode) return;
         setActiveConversationId(conversationId);
         navigate('/chat', { state: { conversationId } });
+    };
+
+    const handleOpenGraph = (history) => {
+        const searchData = buildGraphSearchPayload(history);
+        if (!searchData) return;
+        navigate('/search', { state: { search_data: searchData } });
     };
 
     const handleToggleSelectMode = () => {
@@ -695,6 +754,7 @@ const History = () => {
                                         isSelected={selectedGraphIds.includes(item.id)}
                                         showCheckboxOnHover
                                         onToggleSelect={handleToggleGraphSelection}
+                                        onOpen={handleOpenGraph}
                                         isBookmarked={bookmarkedGraphIds.has(item.id)}
                                         onBookmark={handleBookmarkGraph}
                                         onDelete={handleDeleteGraphHistory}

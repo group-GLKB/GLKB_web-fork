@@ -1,8 +1,15 @@
 import './scoped.css';
 
-import React, { useState } from 'react';
+import React, {
+    useEffect,
+    useState,
+} from 'react';
 
 import { Helmet } from 'react-helmet-async';
+import {
+    useLocation,
+    useNavigate,
+} from 'react-router-dom';
 
 import DoneIcon from '@mui/icons-material/Done';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -51,6 +58,39 @@ import workflowVerify
 
 const AboutPage = () => {
     const [isYearly, setIsYearly] = useState(false);
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    const handleGoToLogin = () => {
+        navigate('/login');
+    };
+
+    const handleGoToPricing = () => {
+        const section = document.getElementById('pricing');
+        if (section) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+        }
+        navigate('/about#pricing');
+    };
+
+    useEffect(() => {
+        if (!location.hash) return;
+        const targetId = location.hash.replace('#', '').trim();
+        if (!targetId) return;
+
+        // Delay until layout settles so scrolling lands on the right section.
+        const timer = window.setTimeout(() => {
+            const section = document.getElementById(targetId);
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 0);
+
+        return () => {
+            window.clearTimeout(timer);
+        };
+    }, [location.hash]);
 
     return (
         <>
@@ -67,8 +107,14 @@ const AboutPage = () => {
                         </div>
                     </div>
                     <div className="about-nav-actions">
-                        <button className="about-nav-text" type="button">Pricing</button>
-                        <button className="about-nav-cta" type="button">Get Started</button>
+                        <button
+                            className="about-nav-text"
+                            type="button"
+                            onClick={handleGoToPricing}
+                        >
+                            Pricing
+                        </button>
+                        <button className="about-nav-cta" type="button" onClick={handleGoToLogin}>Get Started</button>
                     </div>
                 </header>
 
@@ -365,7 +411,7 @@ const AboutPage = () => {
                                         <span className="about-pricing-price-unit">month</span>
                                     </span>
                                 </div>
-                                <button className="about-pricing-button" type="button">
+                                <button className="about-pricing-button" type="button" onClick={handleGoToLogin}>
                                     Sign up
                                 </button>
                                 <div className="about-pricing-list">
@@ -393,7 +439,7 @@ const AboutPage = () => {
                                         <span className="about-pricing-price-unit">month</span>
                                     </span>
                                 </div>
-                                <button className="about-pricing-button about-pricing-button--primary" type="button">
+                                <button className="about-pricing-button about-pricing-button--primary" type="button" onClick={handleGoToLogin}>
                                     Try for Free
                                 </button>
                                 <div className="about-pricing-list">
