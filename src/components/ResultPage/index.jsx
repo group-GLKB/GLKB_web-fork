@@ -1076,7 +1076,22 @@ const ResultPage = () => {
                     <Box className="main-grid" sx={{ width: '100%', height: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', marginLeft: 0, marginRight: 0 }}>
                         <Box className="main-content" sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                             <Box className="result-content result-split" sx={{ paddingTop: 0, display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', gap: 0 }}>
-                                <Box className="result-left" sx={{ display: 'flex', flexDirection: 'column', flex: 6, minHeight: 0, gap: '24px', padding: '24px 80px 36px' }}>
+                                <Box
+                                    className="result-left"
+                                    sx={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        flex: 6,
+                                        minHeight: 0,
+                                        gap: '24px',
+                                        padding: {
+                                            xs: '16px 20px 24px',
+                                            md: '20px 28px 28px',
+                                            lg: '24px 48px 32px',
+                                            xl: '24px 80px 36px',
+                                        },
+                                    }}
+                                >
                                     <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             <CategorySearchIcon style={{ width: 36, height: 36, color: '#164563' }} />
