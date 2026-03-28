@@ -7,14 +7,16 @@ all {
 }
 
 #root {
-    overflow-x: auto !important;
+    overflow-x: hidden !important;
     overflow-y: auto !important;
 }
 
 /* Layout */
 .result-container {
     background: #FAFCFF;
-    min-width: 1200px;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
     min-height: 100vh;
     height: 100vh;
     display: flex;
@@ -46,7 +48,7 @@ all {
 
 /* Header styles */
 .heading-container {
-    width: 100vw;
+    width: 100%;
     height: 10vh;
 }
 
@@ -66,7 +68,7 @@ all {
 
 .line {
     height: 1px;
-    width: 97vw;
+    width: calc(100% - 3vw);
     margin: 0 1.5vw;
     background-color: #C7C7C7;
     border: none;
@@ -484,7 +486,9 @@ all {
 .main-grid {
     margin-left: var(--result-gutter);
     margin-right: var(--result-gutter);
-    width: 100%;
+    width: auto;
+    min-width: 0;
+    box-sizing: border-box;
     flex: 1;
     min-height: 0;
     height: 100%;
