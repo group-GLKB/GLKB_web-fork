@@ -1,6 +1,6 @@
 import React, {
-  useEffect,
-  useState,
+    useEffect,
+    useState,
 } from 'react';
 
 import { useNavigate } from 'react-router-dom';
@@ -9,11 +9,11 @@ import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import {
-  Autocomplete,
-  Box,
-  Paper,
-  Popper,
-  TextField,
+    Autocomplete,
+    Box,
+    Paper,
+    Popper,
+    TextField,
 } from '@mui/material';
 
 import { useAuth } from '../Auth/AuthContext';
@@ -26,6 +26,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const inputTimeoutRef = React.useRef(null);
     const hasTrackedInputRef = React.useRef(false);
     const lastPrefillRef = React.useRef(undefined);
+    const isQueryLimitReached = Boolean(props.isQueryLimitReached);
     useEffect(() => {
         // console.log(props);
         props.setOpen(isOpen);
@@ -111,12 +112,15 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             <Autocomplete
                 freeSolo
                 fullWidth
+                disabled={isQueryLimitReached}
                 options={props.autocompleteOptions || []}
                 filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
                 onChange={(event, newValue) => {
+                    if (isQueryLimitReached) return;
                     setLlmQuery(newValue || '');
                 }}
                 onInputChange={(event, newInputValue) => {
+                    if (isQueryLimitReached) return;
                     setLlmQuery(newInputValue || '');
                 }}
                 openOnFocus
@@ -136,6 +140,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 }}
                 inputValue={llmQuery}
                 onOpen={(event) => {
+                    if (isQueryLimitReached) {
+                        return;
+                    }
                     if (handleAuthGate(event)) {
                         return;
                     }
@@ -150,6 +157,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         multiline
                         minRows={4}
                         maxRows={4}
+                        disabled={isQueryLimitReached}
                         sx={{
                             height: '130px',
                             width: '100%',
@@ -192,7 +200,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     gap: 1,
                                 }}>
                                     {/* Clear Icon */}
-                                    {llmQuery !== "" && <CloseIcon
+                                    {llmQuery !== "" && !isQueryLimitReached && <CloseIcon
                                         onMouseDown={(event) => {
                                             event.preventDefault();
                                         }}
@@ -206,7 +214,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         }}
                                     />}
                                     {/* Search Icon */}
-                                    {llmQuery.trim() && (
+                                    {llmQuery.trim() && !isQueryLimitReached && (
                                         <Box
                                             role="button"
                                             aria-label="Start chat"
@@ -260,6 +268,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     </Box>
                 )}
                 onKeyDown={(e) => {
+                    if (isQueryLimitReached) {
+                        e.preventDefault();
+                        return;
+                    }
                     if (e.key === 'Enter' && llmQuery !== "") {
                         e.preventDefault();
                         navigateToLLMAgent(llmQuery.trim());

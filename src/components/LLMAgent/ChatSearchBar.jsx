@@ -7,7 +7,13 @@ import {
     TextField,
 } from '@mui/material';
 
-const ChatSearchBar = ({ userInput, setUserInput, isLoading, onSubmit }) => (
+const ChatSearchBar = ({
+    userInput,
+    setUserInput,
+    isLoading,
+    isQueryLimitReached = false,
+    onSubmit,
+}) => (
     <div className="chat-header">
         <Box sx={{
             width: '100%',
@@ -26,7 +32,7 @@ const ChatSearchBar = ({ userInput, setUserInput, isLoading, onSubmit }) => (
                 size="small"
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
-                disabled={isLoading}
+                disabled={isLoading || isQueryLimitReached}
                 variant="outlined"
                 placeholder="Ask a question about the biomedical literature..."
                 sx={{
@@ -62,7 +68,7 @@ const ChatSearchBar = ({ userInput, setUserInput, isLoading, onSubmit }) => (
                                 gap: 1,
                             }}
                         >
-                            {userInput !== '' && (
+                            {userInput !== '' && !isQueryLimitReached && (
                                 <CloseIcon
                                     onMouseDown={(event) => {
                                         event.preventDefault();
@@ -80,20 +86,20 @@ const ChatSearchBar = ({ userInput, setUserInput, isLoading, onSubmit }) => (
                             <Box
                                 role="button"
                                 aria-label="Send"
-                                onClick={!userInput.trim() || isLoading ? undefined : () => onSubmit()}
+                                onClick={!userInput.trim() || isLoading || isQueryLimitReached ? undefined : () => onSubmit()}
                                 sx={{
                                     height: '44px',
                                     width: '44px',
                                     borderRadius: '50%',
-                                    backgroundColor: !userInput.trim() || isLoading ? '#9fb6ff' : '#155DFC',
+                                    backgroundColor: !userInput.trim() || isLoading || isQueryLimitReached ? '#9fb6ff' : '#155DFC',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    cursor: !userInput.trim() || isLoading ? 'not-allowed' : 'pointer',
+                                    cursor: !userInput.trim() || isLoading || isQueryLimitReached ? 'not-allowed' : 'pointer',
                                     transition: 'transform 120ms ease, box-shadow 160ms ease',
-                                    boxShadow: !userInput.trim() || isLoading ? 'none' : '0 6px 12px rgba(21, 93, 252, 0.28)',
+                                    boxShadow: !userInput.trim() || isLoading || isQueryLimitReached ? 'none' : '0 6px 12px rgba(21, 93, 252, 0.28)',
                                     '&:hover': {
-                                        transform: !userInput.trim() || isLoading ? 'none' : 'translateY(-1px)',
+                                        transform: !userInput.trim() || isLoading || isQueryLimitReached ? 'none' : 'translateY(-1px)',
                                     },
                                 }}
                             >
@@ -103,7 +109,7 @@ const ChatSearchBar = ({ userInput, setUserInput, isLoading, onSubmit }) => (
                     ),
                 }}
                 onKeyDown={(e) => {
-                    if (e.key === 'Enter' && userInput !== '' && !isLoading) {
+                    if (e.key === 'Enter' && userInput !== '' && !isLoading && !isQueryLimitReached) {
                         e.preventDefault();
                         onSubmit();
                     }

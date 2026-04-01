@@ -398,6 +398,42 @@
     max-width: 100%;
 }
 
+.llm-limit-warning {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 68px 0;
+    padding: 10px 14px;
+    border-radius: 10px 10px 0 0;
+    border: none;
+    background: #E7F1FF;
+}
+
+.llm-limit-warning-text {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #164563;
+}
+
+.llm-limit-warning-button {
+    border: 1px solid #155DFC;
+    background: #ffffff;
+    color: #155DFC;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.llm-limit-warning-button:hover {
+    background: #F3F8FF;
+}
+
 .clear-button {
     border: 1px solid #e0e0e0;
     white-space: nowrap;

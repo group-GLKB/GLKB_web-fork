@@ -17,6 +17,25 @@ export const getMyTier = async () => {
     }
 };
 
+export const isFreePlanLimitReached = (tierInfo) => {
+    const normalizedTier = `${tierInfo?.tier || 'free'}`.toLowerCase();
+    if (normalizedTier !== 'free') return false;
+
+    const quotaRemaining = Number(tierInfo?.quota_remaining);
+    const quotaUsed = Number(tierInfo?.quota_used);
+    const quotaLimit = Number(tierInfo?.quota_limit);
+
+    if (Number.isFinite(quotaRemaining)) {
+        return quotaRemaining <= 0;
+    }
+
+    if (Number.isFinite(quotaUsed) && Number.isFinite(quotaLimit) && quotaLimit > 0) {
+        return quotaUsed >= quotaLimit;
+    }
+
+    return false;
+};
+
 export const upgradeToAdmin = async (passcode) => {
     try {
         const response = await axios.post(`${TIER_BASE_URL}/upgrade-to-admin`, {
