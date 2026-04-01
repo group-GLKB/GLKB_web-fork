@@ -2,40 +2,45 @@ import 'antd/dist/reset.css';
 import './scoped.css';
 
 import React, {
-  useEffect,
-  useRef,
-  useState,
+    useEffect,
+    useRef,
+    useState,
 } from 'react';
 
 import { Button as AntButton } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import Joyride, {
-  ACTIONS,
-  EVENTS,
-  STATUS,
+    ACTIONS,
+    EVENTS,
+    STATUS,
 } from 'react-joyride';
 import { useNavigate } from 'react-router-dom';
 
 import {
-  ArrowOutward as ArrowOutwardIcon,
-  Close as CloseIcon,
-  DescriptionOutlined as DescriptionOutlinedIcon,
-  Layers as LayersIcon,
-  LightbulbOutlined as LightbulbOutlinedIcon,
-  TrendingUp as TrendingUpIcon,
+    ArrowOutward as ArrowOutwardIcon,
+    Close as CloseIcon,
+    DescriptionOutlined as DescriptionOutlinedIcon,
+    Layers as LayersIcon,
+    LightbulbOutlined as LightbulbOutlinedIcon,
+    TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  IconButton,
-  Paper,
-  Typography,
+    Box,
+    IconButton,
+    Paper,
+    Typography,
 } from '@mui/material';
 
+import {
+    getMyTier,
+    isFreePlanLimitReached,
+} from '../../service/Tier';
 import { useAuth } from '../Auth/AuthContext';
 import exampleSchema from './exampleSchema.json';
 import LlmSearchBar from './LlmSearchBarHome';
 
 // const { Search } = Input;
+const DEBUG_FORCE_LIMIT_WARNING = false;
 
 
 const HomePage = () => {
@@ -44,6 +49,7 @@ const HomePage = () => {
     const [searchBarOpen, setSearchBarOpen] = useState(false);
     const [showExamples, setShowExamples] = useState(undefined);
     const [prefillQuery, setPrefillQuery] = useState('');
+    const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
     const { isAuthenticated, loading } = useAuth();
     const navigate = useNavigate();
     const examplePanelRef = useRef(null);
@@ -58,6 +64,8 @@ const HomePage = () => {
         icon: iconMap[pill.icon] || <LightbulbOutlinedIcon />,
     }));
     const activePill = pills.find((pill) => pill.id === showExamples);
+    const isHomeLimitReachedEffective = isQueryLimitReached || DEBUG_FORCE_LIMIT_WARNING;
+    const showHomeLimitWarning = isAuthenticated && isHomeLimitReachedEffective;
 
     // const [focused, setFocused] = useState(false);
     // const theme = useTheme();
@@ -79,6 +87,32 @@ const HomePage = () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [showExamples]);
+
+    useEffect(() => {
+        let active = true;
+
+        const loadTier = async () => {
+            if (loading || !isAuthenticated) {
+                if (active) setIsQueryLimitReached(false);
+                return;
+            }
+
+            const result = await getMyTier();
+            if (!active || !result.success) return;
+            setIsQueryLimitReached(isFreePlanLimitReached(result.data));
+        };
+
+        loadTier();
+        return () => {
+            active = false;
+        };
+    }, [isAuthenticated, loading]);
+
+    useEffect(() => {
+        if (showHomeLimitWarning) {
+            setShowExamples(undefined);
+        }
+    }, [showHomeLimitWarning]);
 
     const handleAuthGate = (event) => {
         if (loading) return true;
@@ -256,10 +290,25 @@ const HomePage = () => {
                             <Box className="homepage-hero-search">
                                 <Box className="search-bar">
                                     <Box className="homepage-search-stack">
+                                        {showHomeLimitWarning && (
+                                            <Box className="homepage-limit-warning">
+                                                <span className="homepage-limit-warning-text">
+                                                    You've reached your free plan limit (10 queries). Upgrade for unlimited access.
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    className="homepage-limit-warning-button"
+                                                    onClick={() => navigate('/about#pricing')}
+                                                >
+                                                    Update
+                                                </button>
+                                            </Box>
+                                        )}
                                         <LlmSearchBar
                                             setOpen={setSearchBarOpen}
                                             prefillQuery={prefillQuery}
                                             autocompleteOptions={exampleSchema.autocomplete || []}
+                                            isQueryLimitReached={showHomeLimitWarning}
                                         />
                                         {activePill && (
                                             <Paper className="homepage-examples-panel" ref={examplePanelRef}>
@@ -301,12 +350,17 @@ const HomePage = () => {
                                         )}
                                     </Box>
                                 </Box>
-                                <Box className={`homepage-pills${(searchBarOpen || showExamples) ? ' is-hidden' : ''}`}>
+                                <Box className={`homepage-pills${(searchBarOpen || showExamples) ? ' is-hidden' : ''}${showHomeLimitWarning ? ' has-limit-warning' : ''}`}>
                                     {pills.map((pill) => (
                                         <Box
                                             key={pill.id}
-                                            className={`homepage-pill${showExamples === pill.id ? ' is-active' : ''}`}
+                                            className={`homepage-pill${showExamples === pill.id ? ' is-active' : ''}${showHomeLimitWarning ? ' is-disabled' : ''}`}
                                             onClick={(event) => {
+                                                if (showHomeLimitWarning) {
+                                                    event.preventDefault();
+                                                    event.stopPropagation();
+                                                    return;
+                                                }
                                                 if (handleAuthGate(event)) {
                                                     return;
                                                 }

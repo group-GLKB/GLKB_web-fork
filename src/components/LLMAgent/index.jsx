@@ -3,45 +3,45 @@ import './scoped.css';
 import './github-markdown-light.css';
 
 import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from 'react';
 
 import { message } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import ReactMarkdown from 'react-markdown';
 import {
-  useLocation,
-  useNavigate,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 
 import {
-  Bookmark as BookmarkIcon,
-  BookmarkBorder as BookmarkBorderIcon,
-  Check as CheckIcon,
-  ChevronRight as ChevronRightIcon,
-  Clear as ClearIcon,
-  EditNote as EditNoteIcon,
-  ExpandMore as ExpandMoreIcon,
-  Link as LinkIcon,
-  StopCircle as StopCircleIcon,
+    Bookmark as BookmarkIcon,
+    BookmarkBorder as BookmarkBorderIcon,
+    Check as CheckIcon,
+    ChevronRight as ChevronRightIcon,
+    Clear as ClearIcon,
+    EditNote as EditNoteIcon,
+    ExpandMore as ExpandMoreIcon,
+    Link as LinkIcon,
+    StopCircle as StopCircleIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Button as MuiButton,
-  CircularProgress,
-  Container,
-  Grid,
-  IconButton,
-  Stack,
-  TextField,
-  ToggleButton,
-  ToggleButtonGroup,
-  Typography,
+    Box,
+    Button as MuiButton,
+    CircularProgress,
+    Container,
+    Grid,
+    IconButton,
+    Stack,
+    TextField,
+    ToggleButton,
+    ToggleButtonGroup,
+    Typography,
 } from '@mui/material';
 
 import contentCopyIcon from '../../img/llm/content_copy.svg';
@@ -49,25 +49,29 @@ import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import replayIcon from '../../img/llm/replay.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import {
-  ReactComponent as SidebarLeftIcon,
+    ReactComponent as SidebarLeftIcon,
 } from '../../img/navbar/sidebar.left.svg';
 import { LLMAgentService } from '../../service/LLMAgent';
 import {
-  createConversation,
-  fetchConversationDetail,
-  fetchConversations,
-  getActiveConversationId,
-  getConversations,
-  setActiveConversationId,
-  setConversations,
-  updateConversationMessages,
-  updateConversationTitle,
-  upsertConversation,
+    getMyTier,
+    isFreePlanLimitReached,
+} from '../../service/Tier';
+import {
+    createConversation,
+    fetchConversationDetail,
+    fetchConversations,
+    getActiveConversationId,
+    getConversations,
+    setActiveConversationId,
+    setConversations,
+    updateConversationMessages,
+    updateConversationTitle,
+    upsertConversation,
 } from '../../utils/chatHistory';
 import {
-  fetchConversationBookmarks,
-  getConversationBookmarks,
-  toggleConversationBookmark,
+    fetchConversationBookmarks,
+    getConversationBookmarks,
+    toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
 import { useAuth } from '../Auth/AuthContext';
 import CiteDialog from '../Units/CiteDialog';
@@ -162,6 +166,7 @@ const DEFAULT_LEFT_PERCENT = 66;
 const FALLBACK_MIN_LEFT_PERCENT = 45;
 const FALLBACK_MAX_LEFT_PERCENT = 80;
 const FALLBACK_COLLAPSE_THRESHOLD = 84;
+const DEBUG_FORCE_LIMIT_WARNING = false;
 
 const areMessagesEqual = (left, right) => {
     if (left === right) return true;
@@ -937,6 +942,7 @@ function LLMAgent() {
     );
     const [isEditingChatTitle, setIsEditingChatTitle] = useState(false);
     const [chatTitleDraft, setChatTitleDraft] = useState('');
+    const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
     const messagesEndRef = useRef(null);
     const abortControllerRef = useRef(null);
     const thinkingStepsRef = useRef([]);
@@ -952,7 +958,19 @@ function LLMAgent() {
     const navigate = useNavigate();
     const { isAuthenticated, loading: authLoading } = useAuth();
 
+    const refreshTierStatus = useCallback(async () => {
+        if (authLoading || !isAuthenticated) {
+            setIsQueryLimitReached(false);
+            return;
+        }
+        const result = await getMyTier();
+        if (!result.success) return;
+        setIsQueryLimitReached(isFreePlanLimitReached(result.data));
+    }, [authLoading, isAuthenticated]);
+
     const llmService = useMemo(() => new LLMAgentService(), []);
+    const isLimitReachedEffective = isQueryLimitReached || DEBUG_FORCE_LIMIT_WARNING;
+    const showLimitWarning = isLimitReachedEffective;
     const activeConversation = useMemo(() => {
         const currentId = activeConversationIdRef.current || activeConversationId;
         if (!currentId) return null;
@@ -1000,6 +1018,10 @@ function LLMAgent() {
             window.removeEventListener('glkb-conversation-bookmarks-updated', update);
         };
     }, [authLoading, isAuthenticated]);
+
+    useEffect(() => {
+        refreshTierStatus();
+    }, [refreshTierStatus]);
 
     useEffect(() => {
         let isMounted = true;
@@ -1394,7 +1416,7 @@ function LLMAgent() {
     const handleSubmit = async (e, input = null, t = null, options = {}) => {
         const inputText = input || userInput;
         e && e.preventDefault();
-        if (!inputText.trim() || isLoading) return;
+        if (!inputText.trim() || isLoading || isLimitReachedEffective) return;
 
         const shouldStartNewConversation = options.forceNewConversation || !activeConversationIdRef.current;
         const baseHistory = Array.isArray(options.baseHistory)
@@ -1627,6 +1649,9 @@ function LLMAgent() {
             });
         } catch (error) {
             console.error('Error in chat:', error);
+            if (error?.response?.status === 429) {
+                setIsQueryLimitReached(true);
+            }
             if (activeStreamIdRef.current === streamId) {
                 setChatHistory(prev => {
                     const newHistory = [...prev];
@@ -1643,6 +1668,7 @@ function LLMAgent() {
                 });
             }
         } finally {
+            refreshTierStatus();
             if (activeStreamIdRef.current === streamId) {
                 setIsLoading(false);
                 setIsProcessing(false);
@@ -2308,10 +2334,25 @@ function LLMAgent() {
                                                         </Button>
                                                     </form>
                                                 </div> */}
+                                                    {showLimitWarning && (
+                                                        <div className="llm-limit-warning">
+                                                            <span className="llm-limit-warning-text">
+                                                                You've reached your free plan limit (10 queries). Upgrade for unlimited access.
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                className="llm-limit-warning-button"
+                                                                onClick={() => navigate('/about#pricing')}
+                                                            >
+                                                                Update
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                     <ChatSearchBar
                                                         userInput={userInput}
                                                         setUserInput={setUserInput}
                                                         isLoading={isLoading}
+                                                        isQueryLimitReached={isLimitReachedEffective}
                                                         onSubmit={handleSubmit}
                                                     />
                                                 </div>
