@@ -1,7 +1,7 @@
 import React, {
-    useEffect,
-    useRef,
-    useState,
+  useEffect,
+  useRef,
+  useState,
 } from 'react';
 
 import {

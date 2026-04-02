@@ -100,8 +100,8 @@ const LoginPage = () => {
     }
 
     setOauthLoading(true);
-  setShowGoogleFallback(true);
-  setAutoTriggerFallback(true);
+    setShowGoogleFallback(true);
+    setAutoTriggerFallback(true);
 
     loadGoogleIdentityScript()
       .then(() => {
