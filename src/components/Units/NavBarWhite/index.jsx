@@ -78,6 +78,7 @@ import { useAuth } from '../../Auth/AuthContext';
 const drawerWidth = 280;
 const collapsedWidth = 88;
 const MAX_RECENT_COUNT = 50;
+const DEBUG_HIDE_EXPLORE = true;
 
 const getStoredAccountProfile = () => {
     if (typeof window === 'undefined') {
@@ -277,7 +278,7 @@ function NavBarWhite({ showLogo = true }) {
             { label: 'API', to: '/api-page', icon: <CodeBlocksIcon style={{ width: 22, height: 22 }} /> },
             { label: 'Library', to: '/library', icon: <BookIcon className="sidebar-book-icon" style={{ width: 22, height: 22 }} /> },
             { label: 'History', to: '/history', icon: <HistoryIcon className="sidebar-history-icon" style={{ width: 22, height: 22 }} /> },
-        ]
+        ].filter((item) => !(DEBUG_HIDE_EXPLORE && item.label === 'Explore'))
     ), []);
 
     const bottomItems = useMemo(() => (
