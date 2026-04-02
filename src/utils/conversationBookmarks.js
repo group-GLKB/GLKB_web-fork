@@ -3,8 +3,10 @@ import {
   listFavoriteChats,
   removeFavoriteChat,
 } from '../service/Favorites';
+import { getMyTier } from '../service/Tier';
 
 const STORAGE_KEY = 'glkbConversationBookmarks';
+const FREE_BOOKMARK_BLOCKED_EVENT = 'glkb-free-bookmark-blocked';
 
 const normalizeSession = (session) => {
     if (!session) return null;
@@ -59,6 +61,18 @@ export const toggleConversationBookmark = async (entry) => {
     const bookmarks = getConversationBookmarks();
     const hid = String(entry.hid ?? entry.id ?? '').trim();
     if (!hid) return bookmarks;
+
+    const tierResult = await getMyTier();
+    if (tierResult?.success) {
+        const normalizedTier = `${tierResult?.data?.tier || 'free'}`.toLowerCase();
+        if (normalizedTier === 'free') {
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent(FREE_BOOKMARK_BLOCKED_EVENT));
+            }
+            return bookmarks;
+        }
+    }
+
     const index = bookmarks.findIndex((item) => String(item.id) === hid || String(item.hid) === hid);
     let next = [];
 
