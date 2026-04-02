@@ -5,7 +5,10 @@ import React, {
   useState,
 } from 'react';
 
-import { useNavigate } from 'react-router-dom';
+import {
+    useLocation,
+    useNavigate,
+} from 'react-router-dom';
 
 import {
   Close as CloseIcon,
@@ -14,7 +17,7 @@ import {
 
 import {
   getMyTier,
-  upgradeToAdmin,
+    upgradeToPro,
 } from '../../service/Tier';
 import { useAuth } from '../Auth/AuthContext';
 
@@ -57,6 +60,7 @@ const formatTierLabel = (tier) => {
 
 const AccountPage = () => {
     const { user, logout, updateUsername } = useAuth();
+    const location = useLocation();
     const navigate = useNavigate();
     const [displayName, setDisplayName] = useState(() => getSessionValue('account_display_name'));
     const [email, setEmail] = useState(() => getSessionValue('account_email'));
@@ -67,11 +71,13 @@ const AccountPage = () => {
     const [toastMessage, setToastMessage] = useState('');
     const [tierInfo, setTierInfo] = useState(null);
     const [tierLoading, setTierLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('account');
-    const [adminPasscode, setAdminPasscode] = useState('');
-    const [adminActionLoading, setAdminActionLoading] = useState(false);
-    const [adminActionMessage, setAdminActionMessage] = useState('');
-    const [adminActionError, setAdminActionError] = useState('');
+    const [activeTab, setActiveTab] = useState(
+        () => (location.state?.tab === 'testing' ? 'testing' : 'account')
+    );
+    const [proPasscode, setProPasscode] = useState('');
+    const [proActionLoading, setProActionLoading] = useState(false);
+    const [proActionMessage, setProActionMessage] = useState('');
+    const [proActionError, setProActionError] = useState('');
 
     useEffect(() => {
         if (!displayName) {
@@ -167,27 +173,27 @@ const AccountPage = () => {
         }
     };
 
-    const handleUpgradeToAdmin = async () => {
-        const passcode = adminPasscode.trim();
+    const handleUpgradeToPro = async () => {
+        const passcode = proPasscode.trim();
         if (!passcode) {
-            setAdminActionError('Enter admin password first.');
-            setAdminActionMessage('');
+            setProActionError('Enter pro password first.');
+            setProActionMessage('');
             return;
         }
 
-        setAdminActionLoading(true);
-        setAdminActionError('');
-        setAdminActionMessage('');
+        setProActionLoading(true);
+        setProActionError('');
+        setProActionMessage('');
 
-        const result = await upgradeToAdmin(passcode);
+        const result = await upgradeToPro(passcode);
         if (result.success) {
-            setAdminActionMessage(result.message || 'Upgraded to admin tier.');
+            setProActionMessage(result.message || 'Upgraded to pro tier.');
             await refreshTierInfo();
         } else {
-            setAdminActionError(result.message || 'Failed to upgrade to admin tier.');
+            setProActionError(result.message || 'Failed to upgrade to pro tier.');
         }
 
-        setAdminActionLoading(false);
+        setProActionLoading(false);
     };
 
     return (
@@ -224,7 +230,7 @@ const AccountPage = () => {
                             <circle cx="12" cy="12" r="3"></circle>
                             <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"></path>
                         </svg>
-                        Testing Functions
+                        Upgrade with Code
                     </button>
                 </nav>
 
@@ -349,29 +355,29 @@ const AccountPage = () => {
                             </>
                         ) : (
                             <>
-                                <h2 className="settings-title settings-title-first">Testing Functions</h2>
+                                <h2 className="settings-title settings-title-first">Upgrade with Code</h2>
                                 <div className="settings-divider"></div>
 
                                 <div className="flat-row">
                                     <div className="flat-field">
-                                        <div className="flat-label">Admin Password</div>
+                                        <div className="flat-label">Pro Password</div>
                                         <input
                                             className="settings-inline-input"
                                             type="password"
-                                            value={adminPasscode}
-                                            onChange={(event) => setAdminPasscode(event.target.value)}
-                                            placeholder="Enter admin password"
+                                            value={proPasscode}
+                                            onChange={(event) => setProPasscode(event.target.value)}
+                                            placeholder="Enter pro password"
                                         />
-                                        {adminActionMessage ? <div className="flat-sub settings-inline-success">{adminActionMessage}</div> : null}
-                                        {adminActionError ? <div className="flat-sub settings-inline-error">{adminActionError}</div> : null}
+                                        {proActionMessage ? <div className="flat-sub settings-inline-success">{proActionMessage}</div> : null}
+                                        {proActionError ? <div className="flat-sub settings-inline-error">{proActionError}</div> : null}
                                     </div>
                                     <button
                                         type="button"
                                         className="flat-btn dark"
-                                        onClick={handleUpgradeToAdmin}
-                                        disabled={adminActionLoading}
+                                        onClick={handleUpgradeToPro}
+                                        disabled={proActionLoading}
                                     >
-                                        {adminActionLoading ? 'Upgrading...' : 'Upgrade to Admin'}
+                                        {proActionLoading ? 'Upgrading...' : 'Upgrade to Pro'}
                                     </button>
                                 </div>
                             </>
