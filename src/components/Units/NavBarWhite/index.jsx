@@ -323,6 +323,11 @@ function NavBarWhite({ showLogo = true }) {
         navigate('/account');
     };
 
+    const handleUpgradeWithCodeClick = () => {
+        handleCloseUserMenu();
+        navigate('/account', { state: { tab: 'testing' } });
+    };
+
     const handleUpgradeClick = () => {
         handleCloseUserMenu();
         navigate('/about#pricing');
@@ -998,6 +1003,15 @@ function NavBarWhite({ showLogo = true }) {
                     >
                         {userDisplayName}
                     </Typography>
+                </MenuItem>
+                <MenuItem onClick={handleUpgradeWithCodeClick} sx={{ px: 2, py: 1 }}>
+                    <ListItemIcon sx={{ minWidth: "16px !important", mr: 1 }}>
+                        <Box component="svg" viewBox="0 0 24 24" fill="none" sx={{ width: 16, height: 16 }}>
+                            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14" stroke="currentColor" strokeWidth="2" />
+                        </Box>
+                    </ListItemIcon>
+                    <ListItemText>Upgrade with Code</ListItemText>
                 </MenuItem>
                 <MenuItem onClick={handleUpgradeClick} sx={{ px: 2, py: 1 }}>
                     <ListItemIcon sx={{ minWidth: "16px !important", mr: 1 }}>
