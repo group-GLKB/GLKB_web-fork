@@ -1550,8 +1550,8 @@ const Library = () => {
                                 name="librarySearch"
                                 value={searchQuery}
                                 onChange={(event) => setSearchQuery(event.target.value)}
-                                placeholder="Search library"
-                                aria-label="Search library"
+                                placeholder={isFolderView ? 'Search this folder' : 'Search library'}
+                                aria-label={isFolderView ? 'Search this folder' : 'Search library'}
                             />
                             {searchQuery.trim() && (
                                 <button

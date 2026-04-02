@@ -6,8 +6,8 @@ import React, {
 } from 'react';
 
 import {
-    useLocation,
-    useNavigate,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import {
@@ -17,7 +17,7 @@ import {
 
 import {
   getMyTier,
-    upgradeToPro,
+  upgradeToPro,
 } from '../../service/Tier';
 import { useAuth } from '../Auth/AuthContext';
 

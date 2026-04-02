@@ -612,7 +612,7 @@
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
-.about-pricing-toggle.is-yearly .about-pricing-toggle-pill {
+.about-pricing-toggle.is-monthly .about-pricing-toggle-pill {
     transform: translateX(109px);
 }
 

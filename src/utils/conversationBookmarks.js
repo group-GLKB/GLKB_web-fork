@@ -3,8 +3,10 @@ import {
   listFavoriteChats,
   removeFavoriteChat,
 } from '../service/Favorites';
+import { getMyTier } from '../service/Tier';
 
 const STORAGE_KEY = 'glkbConversationBookmarks';
+const FREE_BOOKMARK_BLOCKED_EVENT = 'glkb-free-bookmark-blocked';
 
 const normalizeSession = (session) => {
     if (!session) return null;
@@ -60,13 +62,38 @@ export const toggleConversationBookmark = async (entry) => {
     const hid = String(entry.hid ?? entry.id ?? '').trim();
     if (!hid) return bookmarks;
     const index = bookmarks.findIndex((item) => String(item.id) === hid || String(item.hid) === hid);
+
+    const tierResult = await getMyTier();
+    if (tierResult?.success && index < 0) {
+        const bookmarkAllowed = tierResult?.data?.bookmark_allowed;
+        const normalizedTier = `${tierResult?.data?.tier || 'free'}`.toLowerCase();
+        if (bookmarkAllowed === false || normalizedTier === 'free') {
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent(FREE_BOOKMARK_BLOCKED_EVENT));
+            }
+            return bookmarks;
+        }
+    }
+
     let next = [];
 
     if (index >= 0) {
         await removeFavoriteChat(hid);
         next = bookmarks.filter((item) => String(item.id) !== hid && String(item.hid) !== hid);
     } else {
-        await addFavoriteChat(Number(hid));
+        try {
+            await addFavoriteChat(Number(hid));
+        } catch (error) {
+            const status = error?.response?.status;
+            const detail = `${error?.response?.data?.detail || ''}`.toLowerCase();
+            if (status === 403 || detail.includes('free') || detail.includes('bookmark')) {
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent(FREE_BOOKMARK_BLOCKED_EVENT));
+                }
+                return bookmarks;
+            }
+            throw error;
+        }
         const normalized = normalizeSession({
             hid: Number(hid),
             leading_title: entry.title || entry.leadingTitle || 'New Chat',
