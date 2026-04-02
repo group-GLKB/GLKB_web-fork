@@ -100,8 +100,8 @@ const LoginPage = () => {
     }
 
     setOauthLoading(true);
-    setShowGoogleFallback(false);
-    setAutoTriggerFallback(false);
+  setShowGoogleFallback(true);
+  setAutoTriggerFallback(true);
 
     loadGoogleIdentityScript()
       .then(() => {
@@ -134,17 +134,6 @@ const LoginPage = () => {
           });
           googleInitializedRef.current = true;
         }
-
-        window.google.accounts.id.prompt((notification) => {
-          const dismissed = typeof notification.isDismissedMoment === 'function'
-            ? notification.isDismissedMoment()
-            : false;
-          if (notification.isNotDisplayed() || notification.isSkippedMoment() || dismissed) {
-            setOauthLoading(false);
-            setShowGoogleFallback(true);
-            setAutoTriggerFallback(true);
-          }
-        });
       })
       .catch(() => {
         setError('Google login failed to load.');
@@ -238,7 +227,7 @@ const LoginPage = () => {
             {showGoogleFallback ? (
               <>
                 <div className="google-fallback-warning">
-                  One Tap failed. Use the popup login below.
+                  Google sign-in is currently using popup mode.
                 </div>
                 <div className="google-fallback-subtitle">Login in a pop-up window</div>
                 <div className="google-fallback" ref={googleButtonRef} />
