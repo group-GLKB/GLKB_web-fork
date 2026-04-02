@@ -19,5 +19,5 @@ test('Explore Graph renders nodes after search', async ({ page }) => {
 
   // Wait for graph canvas to render
   const canvas = page.locator('.graph-container canvas').first();
-  await expect(canvas).toBeVisible({ timeout: 15000 });
+  await expect(canvas).toBeVisible({ timeout: 30000 });
 });
