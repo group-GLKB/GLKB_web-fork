@@ -96,6 +96,7 @@ const SORT_ZA = 'za';
 const SORT_DATE = 'date';
 const ENTRY_PREVIEW_LIMIT = 5;
 const DEFAULT_FOLDER_NAME = 'New Folder';
+const DEBUG_HIDE_EXPLORE = true;
 
 const getConversationTitle = (conversation) => (
     conversation?.leadingTitle || conversation?.title || 'New Chat'
@@ -824,6 +825,12 @@ const Library = () => {
     const isFolderView = Boolean(selectedFolderId);
 
     useEffect(() => {
+        if (DEBUG_HIDE_EXPLORE && activeTab === GRAPHS_TAB) {
+            setActiveTab(ALL_TAB);
+        }
+    }, [activeTab]);
+
+    useEffect(() => {
         const params = new URLSearchParams(location.search);
         setSelectedFolderId(params.get('folder'));
     }, [location.search]);
@@ -1249,7 +1256,7 @@ const Library = () => {
     const shouldLimitPreviews = !isFolderView && activeTab === ALL_TAB;
     const showChatsSection = activeTab === ALL_TAB || activeTab === CHATS_TAB;
     const showReferencesSection = activeTab === ALL_TAB || activeTab === REFERENCES_TAB;
-    const showGraphsSection = activeTab === ALL_TAB || activeTab === GRAPHS_TAB;
+    const showGraphsSection = !DEBUG_HIDE_EXPLORE && (activeTab === ALL_TAB || activeTab === GRAPHS_TAB);
     const trimmedQuery = searchQuery.trim().toLowerCase();
     const isSearching = Boolean(trimmedQuery);
     const baseChats = isFolderView ? folderChats : conversationBookmarks;
@@ -1333,7 +1340,7 @@ const Library = () => {
         { id: REFERENCES_TAB, label: 'Reference' },
         { id: CHATS_TAB, label: 'AI Chat' },
         { id: GRAPHS_TAB, label: 'Explore' },
-    ];
+    ].filter((tab) => !(DEBUG_HIDE_EXPLORE && tab.id === GRAPHS_TAB));
 
     if (loading) {
         return null;
