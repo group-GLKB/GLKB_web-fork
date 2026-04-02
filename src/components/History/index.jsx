@@ -47,6 +47,8 @@ import { useAuth } from '../Auth/AuthContext';
 import nodeStyleColors from '../Graph/nodeStyleColors.json';
 import ConversationCard from '../Units/ConversationCard';
 
+const DEBUG_HIDE_EXPLORE = true;
+
 const formatTimestamp = (value) => {
     if (!value) return '';
     const date = new Date(value);
@@ -232,16 +234,18 @@ const History = () => {
     ), [conversations]);
 
     const normalizedGraphItems = useMemo(() => (
-        graphHistories.map((history) => ({
-            type: 'graph',
-            id: String(history.ghid ?? history.id),
-            graphHistory: history,
-            title: history.title || '',
-            subtitle: '',
-            timestamp: formatTimestamp(history.updatedAt || history.createdAt),
-            sortTime: history.updatedAt || history.createdAt || 0,
-            terms: Array.isArray(history.terms) ? history.terms : [],
-        }))
+        DEBUG_HIDE_EXPLORE
+            ? []
+            : graphHistories.map((history) => ({
+                type: 'graph',
+                id: String(history.ghid ?? history.id),
+                graphHistory: history,
+                title: history.title || '',
+                subtitle: '',
+                timestamp: formatTimestamp(history.updatedAt || history.createdAt),
+                sortTime: history.updatedAt || history.createdAt || 0,
+                terms: Array.isArray(history.terms) ? history.terms : [],
+            }))
     ), [graphHistories]);
 
     const mergedHistoryItems = useMemo(() => (
@@ -308,7 +312,7 @@ const History = () => {
     }, [isAuthenticated, loading]);
 
     useEffect(() => {
-        if (loading || !isAuthenticated) {
+        if (loading || !isAuthenticated || DEBUG_HIDE_EXPLORE) {
             setGraphHistories([]);
             return undefined;
         }
@@ -367,7 +371,7 @@ const History = () => {
     }, [isAuthenticated, loading]);
 
     useEffect(() => {
-        if (loading || !isAuthenticated) {
+        if (loading || !isAuthenticated || DEBUG_HIDE_EXPLORE) {
             setGraphBookmarks([]);
             return undefined;
         }

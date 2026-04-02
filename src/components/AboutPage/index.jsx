@@ -407,8 +407,9 @@ const AboutPage = () => {
                                 <div className="about-pricing-price">
                                     <span className="about-pricing-price-value">$0</span>
                                     <span className="about-pricing-price-suffix">
-                                        <span className="about-pricing-price-slash">/</span>
-                                        <span className="about-pricing-price-unit">month</span>
+                                        <span className="about-pricing-price-slash">
+                                            {isYearly ? '/ month, billed annually' : '/ month'}
+                                        </span>
                                     </span>
                                 </div>
                                 <button className="about-pricing-button" type="button" onClick={handleGoToLogin}>
@@ -435,8 +436,9 @@ const AboutPage = () => {
                                 <div className="about-pricing-price">
                                     <span className="about-pricing-price-value">$15</span>
                                     <span className="about-pricing-price-suffix">
-                                        <span className="about-pricing-price-slash">/</span>
-                                        <span className="about-pricing-price-unit">month</span>
+                                        <span className="about-pricing-price-slash">
+                                            {isYearly ? '/ month, billed annually' : '/ month'}
+                                        </span>
                                     </span>
                                 </div>
                                 <button className="about-pricing-button about-pricing-button--primary" type="button" onClick={handleGoToLogin}>
@@ -464,8 +466,9 @@ const AboutPage = () => {
                                 <div className="about-pricing-price">
                                     <span className="about-pricing-price-value">$45</span>
                                     <span className="about-pricing-price-suffix">
-                                        <span className="about-pricing-price-slash">/</span>
-                                        <span className="about-pricing-price-unit">month</span>
+                                        <span className="about-pricing-price-slash">
+                                            {isYearly ? '/ month, billed annually' : '/ month'}
+                                        </span>
                                     </span>
                                 </div>
                                 <button className="about-pricing-button" type="button">
