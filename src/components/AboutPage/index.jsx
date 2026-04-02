@@ -57,7 +57,7 @@ import workflowVerify
   from '../../img/about/workflow/step4_verify_explore_transparent.svg';
 
 const AboutPage = () => {
-    const [isYearly, setIsYearly] = useState(false);
+    const [isYearly, setIsYearly] = useState(true);
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -393,8 +393,8 @@ const AboutPage = () => {
                                 onClick={() => setIsYearly((prev) => !prev)}
                             >
                                 <span className="about-pricing-toggle-pill" />
-                                <span className={`about-pricing-toggle-label ${!isYearly ? 'is-active' : ''}`}>Pay monthly</span>
                                 <span className={`about-pricing-toggle-label ${isYearly ? 'is-active' : ''}`}>Pay yearly</span>
+                                <span className={`about-pricing-toggle-label ${!isYearly ? 'is-active' : ''}`}>Pay monthly</span>
                             </button>
                             <span className="about-pricing-toggle-note">Save up to 20% with yearly!</span>
                         </div>
