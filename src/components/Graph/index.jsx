@@ -15,6 +15,8 @@ import fcose from 'cytoscape-fcose';
 import { debounce } from 'lodash';
 import CytoscapeComponent from 'react-cytoscapejs';
 
+import nodeStyleColors from './nodeStyleColors.json';
+
 Cytoscape.use(fcose);
 Cytoscape.use(cola);
 
@@ -273,18 +275,7 @@ const Graph = forwardRef(function Graph(props, ref) {
     ];
 
     const nodeStyles = id.map(nodeId => {
-      let labelColor = '';
-      switch (nodeId[5]) {
-        case 'AnatomicalEntity': labelColor = '#88E9C0'; break;
-        case 'ChemicalEntity': labelColor = '#FFC0C0'; break;
-        case 'DiseaseOrPhenotypicFeature': labelColor = '#F6C858'; break; //changed
-        case 'Gene': labelColor = '#ADCFF2'; break; //changed
-        case 'BiologicalProcessOrActivity': labelColor = '#EDC0FF'; break;
-        case 'MeshTerm': labelColor = '#FFB77D'; break; //changed
-        case 'SequenceVariant': labelColor = '#DBF4B1'; break;
-        case 'Article': labelColor = '#E5E5E5'; break; //
-      }
-
+      const labelColor = nodeStyleColors[nodeId[5]] || nodeStyleColors.default;
       const size = nodeId[2] >= 60 ? 40 : nodeId[2] >= 30 ? 30 : 20;
       // const borderWidth = nodeId[4] === "true" ? '1px' : 0;
       // const borderColor = nodeId[4] === "true" ? 'red' : 'transparent';
@@ -344,7 +335,9 @@ const Graph = forwardRef(function Graph(props, ref) {
 
   // Memoize the click handlers
   const handleNodeClick = useCallback((node) => {
-    props.handleSelect(node.data());
+    const nodeData = node.data();
+    console.log('[GraphDebug] Node clicked:', nodeData);
+    props.handleSelect(nodeData);
     if (!props.informationOpen) {
       props.expandInformation();
     }
@@ -352,7 +345,9 @@ const Graph = forwardRef(function Graph(props, ref) {
 
   // Add debouncing to prevent multiple rapid clicks
   const handleEdgeClick = useCallback(debounce((edge) => {
-    props.handleSelect(edge.data());
+    const edgeData = edge.data();
+    console.log('[GraphDebug] Edge clicked:', edgeData);
+    props.handleSelect(edgeData);
     if (!props.informationOpen) {
       props.expandInformation();
     }
@@ -361,6 +356,7 @@ const Graph = forwardRef(function Graph(props, ref) {
   // Modify the cyInitCallback to use the debounced handler
   const cyInitCallback = useCallback((cy) => {
     myCyRef.current = cy;
+    console.log('[GraphDebug] cyInitCallback: attaching Cytoscape listeners');
 
     const handleClick = (e) => {
       const sel = e.target;
@@ -391,10 +387,13 @@ const Graph = forwardRef(function Graph(props, ref) {
     cy.removeAllListeners();
 
     cy.on('click', handleClick);
+    cy.on('tap', handleClick);
     cy.on('mouseover', 'node', e => e.target.addClass('hover'));
     cy.on('mouseout', 'node', e => e.target.removeClass('hover'));
     cy.on('click', 'node', e => handleNodeClick(e.target));
+    cy.on('tap', 'node', e => handleNodeClick(e.target));
     cy.on('click', 'edge', e => handleEdgeClick(e.target));
+    cy.on('tap', 'edge', e => handleEdgeClick(e.target));
 
     return () => {
       cy.removeAllListeners();

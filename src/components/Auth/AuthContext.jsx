@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
+
 import * as AuthService from '../../service/Auth';
 
 const AuthContext = createContext(null);
@@ -13,12 +19,12 @@ export const AuthProvider = ({ children }) => {
     const initAuth = () => {
       const token = AuthService.getToken();
       const currentUser = AuthService.getCurrentUser();
-      
+
       if (token && currentUser) {
         setUser(currentUser);
         setIsAuthenticated(true);
       }
-      
+
       setLoading(false);
     };
 
@@ -26,30 +32,80 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Login function
-  const login = async (username, password) => {
-    const result = await AuthService.login(username, password);
-    
+  // - Email-only mode: login(email) => send verification code
+  // - Legacy mode: login(username, password) => password login
+  const login = async (identifier, password) => {
+    // Email login/signup in one flow
+    if (!password) {
+      const result = await AuthService.sendVerificationCode(identifier);
+      return result;
+    }
+
+    // Legacy username/password login
+    const result = await AuthService.login(identifier, password);
+
     if (result.success) {
       setUser(result.user);
       setIsAuthenticated(true);
     }
-    
+
     return result;
   };
 
-  // Signup function
+  // Signup function (legacy)
   const signup = async (username, email, password) => {
     const result = await AuthService.signup(username, email, password);
+    return result;
+  };
+
+  // Send verification code (new email auth)
+  const sendCode = async (email) => {
+    const result = await AuthService.sendVerificationCode(email);
+    return result;
+  };
+
+  // Verify code and login (new email auth)
+  const verifyCode = async (email, code) => {
+    const result = await AuthService.verifyCode(email, code);
+
+    if (result.success) {
+      setUser(result.user);
+      setIsAuthenticated(true);
+    }
+
+    return result;
+  };
+
+  // Google login (ID token)
+  const loginWithGoogle = async (credential) => {
+    const result = await AuthService.loginWithGoogle(credential);
+
+    if (result.success) {
+      setUser(result.user);
+      setIsAuthenticated(true);
+    }
+
     return result;
   };
 
   // Logout function
   const logout = async () => {
     const result = await AuthService.logout();
-    
+
     setUser(null);
     setIsAuthenticated(false);
-    
+
+    return result;
+  };
+
+  // Update username (email auth)
+  const updateUsername = async (newUsername) => {
+    const result = await AuthService.updateUsername(newUsername);
+
+    if (result.success && result.user) {
+      setUser(result.user);
+    }
+
     return result;
   };
 
@@ -59,6 +115,10 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     signup,
+    sendCode,
+    verifyCode,
+    loginWithGoogle,
+    updateUsername,
     logout
   };
 
@@ -72,10 +132,10 @@ export const AuthProvider = ({ children }) => {
 // Custom hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  
+
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-  
+
   return context;
 };

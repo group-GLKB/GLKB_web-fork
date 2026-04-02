@@ -1,26 +1,32 @@
 import './scoped.css';
 
 import React, {
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 
 import {
-    Card,
-    Collapse,
-    Descriptions,
-    Empty,
-    List,
-    Select,
-    Spin,
-    Typography,
+  Card,
+  Collapse,
+  Descriptions,
+  Empty,
+  List,
+  Spin,
+  Typography,
 } from 'antd';
 
-import downArrow from '../../img/down_arrow.svg';
-import rightArrow from '../../img/right_arrow.svg';
+import {
+  ToggleButton,
+  ToggleButtonGroup,
+} from '@mui/material';
+
+import downArrow from '../../img/result/down_arrow.svg';
+import rightArrow from '../../img/result/right_arrow.svg';
 import { DetailService } from '../../service/Detail';
+import CiteDialog from '../Units/CiteDialog';
+import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 
 const { Panel } = Collapse;
 const { Text } = Typography;
@@ -34,6 +40,8 @@ const Information = ({ width, ...props }) => {
     const [activeKey, setActiveKey] = useState(['0']);
     const [isLoading, setIsLoading] = useState(false);
     const [sentenceVisibility, setSentenceVisibility] = useState({});
+    const [citeDialogOpen, setCiteDialogOpen] = useState(false);
+    const [selectedCitation, setSelectedCitation] = useState(null);
 
     const merge = true;
 
@@ -47,6 +55,16 @@ const Information = ({ width, ...props }) => {
         window.open(link, '_blank');
     };
 
+    const handleCiteClick = (citation) => {
+        setSelectedCitation(citation);
+        setCiteDialogOpen(true);
+    };
+
+    const handleCloseCiteDialog = () => {
+        setCiteDialogOpen(false);
+        setSelectedCitation(null);
+    };
+
     const toggleSentences = (index) => {
         setSentenceVisibility(prev => ({
             ...prev,
@@ -55,15 +73,18 @@ const Information = ({ width, ...props }) => {
     };
 
     useEffect(() => {
+        console.log('[GraphDebug] Information received detailId:', props.detailId);
         setNodeDetail({});
         setEdgeDetail({});
         setNodeDetails({});
         // console.log("detail changed");
         async function searchInfoNode(content) {
+            console.log('[GraphDebug] Information.searchInfoNode request payload:', content);
             setIsLoading(true);
             let detailServ = new DetailService()
             try {
                 const response = await detailServ.Nid2Detail(content)
+                console.log('[GraphDebug] Information.searchInfoNode response:', response?.data);
                 setNodeDetail(response.data)
                 setEdgeDetail({})
             } finally {
@@ -71,12 +92,20 @@ const Information = ({ width, ...props }) => {
             }
         }
         async function searchMergeInfoNode(content) {
+            console.log('[GraphDebug] Information.searchMergeInfoNode request payload:', content);
             setIsLoading(true);
             let detailServ = new DetailService()
             try {
                 const response = await detailServ.MergeNid2Detail(content)
                 // console.log(response)
-                setNodeDetails(response.data);
+                console.log('[GraphDebug] Information.searchMergeInfoNode response:', response?.data);
+                const payload = response?.data;
+                // Backward compatible: old API returned [nodes, articles], new API may return { nodes, articles, error }.
+                const normalizedNodeDetails = Array.isArray(payload)
+                    ? payload
+                    : [payload?.nodes || [], payload?.articles || []];
+                console.log('[GraphDebug] Information.searchMergeInfoNode normalized payload:', normalizedNodeDetails);
+                setNodeDetails(normalizedNodeDetails);
                 // console.log(nodeDetails)
                 setEdgeDetail({});
             } finally {
@@ -84,12 +113,14 @@ const Information = ({ width, ...props }) => {
             }
         }
         async function searchInfoEdge(content) {
+            console.log('[GraphDebug] Information.searchInfoEdge request payload:', content);
             setIsLoading(true);
             // console.log(content)
             let detailServ = new DetailService()
             try {
                 const response = await detailServ.MergeEid2Detail(content)
                 // console.log(response.data)
+                console.log('[GraphDebug] Information.searchInfoEdge response:', response?.data);
                 setEdgeDetail(response.data)
                 setNodeDetails({})
             } finally {
@@ -168,141 +199,116 @@ const Information = ({ width, ...props }) => {
         return authorString;
     };
 
-    const nodeForMap = (url) => {
-        const authors = url[5] || [];
-        const getLastName = (fullName) => {
-            const parts = fullName.trim().split(' ');
-            return parts[parts.length - 1];
-        };
+    const normalizeArticleRecord = (article) => {
+        if (Array.isArray(article)) {
+            const pmidFromUrl = typeof article[1] === 'string'
+                ? article[1].split('/').filter(Boolean).pop()
+                : '';
+            const safeUrl = typeof article[1] === 'string'
+                ? article[1]
+                : (pmidFromUrl ? `https://www.ncbi.nlm.nih.gov/pubmed/${pmidFromUrl}` : '');
+            const safeAuthors = Array.isArray(article[5])
+                ? article[5].join(', ')
+                : (article[5] ? String(article[5]) : '');
+            return [
+                article[0] || '',
+                String(safeUrl || ''),
+                article[2] ?? 0,
+                article[3] ?? '',
+                article[4] || '',
+                safeAuthors,
+            ];
+        }
 
-        const renderAuthors = () => {
-            if (authors.length === 0) return null;
-            if (authors.length === 1) {
-                return renderAuthorBubbles([authors[0]]);
-            }
-            if (authors.length === 2) {
-                return renderAuthorBubbles(authors);
-            }
-            return renderAuthorBubbles([
-                authors[0],
-                '...',
-                authors[authors.length - 1]
-            ]);
-        };
-        const renderAuthorBubbles = (list) => (
-            list.map((author, idx) => (
-                <span
-                    key={idx}
-                >
-                    {author}{idx < list.length - 1 ? ',' : ''}
-                </span>
-            ))
-        );
+        if (article && typeof article === 'object') {
+            const pmid = article.pmid || article.pubmed_id || article.pubmedId || '';
+            const safeUrl = article.url || article.pubmed_url || article.link ||
+                (pmid ? `https://www.ncbi.nlm.nih.gov/pubmed/${pmid}` : '');
+            const safeAuthors = Array.isArray(article.authors)
+                ? article.authors.join(', ')
+                : (article.authors ? String(article.authors) : '');
+            return [
+                article.title || article.name || article.display || '',
+                String(safeUrl || ''),
+                article.n_citation ?? article.citations ?? article.cited_by ?? 0,
+                article.year ?? article.date ?? article.pub_year ?? '',
+                article.journal || article.venue || '',
+                safeAuthors,
+            ];
+        }
+
+        return null;
+    };
+
+    const nodeForMap = (article) => {
+        const normalized = normalizeArticleRecord(article);
+        if (!normalized) return null;
+
         return (
-            <div
-                onClick={(event) => handleClick(event, url[1])}
-                className="custom-div-url"
-                style={{
-                    cursor: 'pointer',
-                    marginBottom: '2px',
-                    borderRadius: '10px',
-                    padding: 0,
-                    backgroundColor: '#fff',
-                    width: '100%',
-                }}
-            >
-                {/* Section 1: PubMed ID and Citations */}
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <div style={{ color: '#018DFF', fontSize: '14px' }}>
-                        PubMed ID: {url[1].split('/').filter(Boolean).pop()}
-                    </div>
-                    <div style={{ fontSize: '14px' }}>
-                        Citations: {url[2]}
-                    </div>
-                </div>
-
-                {/* Section 2: Title and Year */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr auto',
-                    alignItems: 'start',
-                }}>
-                    <a
-                        href={url[1]}
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            handleClick(event, url[1]);
-                        }}
-                        style={{
-                            color: 'black',
-                            textDecoration: 'none',
-                            fontWeight: '600',
-                            fontSize: '14px',
-                            paddingRight: '8px',
-                            wordBreak: 'break-word'
-                        }}
-                    >
-                        {url[0]}
-                    </a>
-                    <div style={{
-                        fontSize: '14px',
-                        whiteSpace: 'nowrap',
-                        textAlign: 'right',
-                        marginLeft: '8px',
-                    }}>
-                        {url[3]}
-                    </div>
-                </div>
-
-                {/* Section 3: Authors */}
-                <div style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '6px',
-                    fontSize: '14px'
-                }}>
-                    {renderAuthors()}
-                </div>
-
-                {/* Section 4: Journal Name */}
-                <div style={{
-                    fontSize: '14px',
-                    wordBreak: 'break-word',
-                    color: 'grey',
-                }} title="Journal">
-                    {url[4]}
-                </div>
+            <div style={{ marginTop: '12px' }}>
+                <ReferenceCard url={normalized} handleClick={handleClick} onCiteClick={handleCiteClick} />
+                <div className="reference-separator" />
             </div>
-
-
-        )
-    }
+        );
+    };
 
 
     const [sortBy, setSortBy] = useState('year'); // 'year' or 'citations'
+    const referencesTitleStyle = {
+        fontFamily: 'DM Sans, sans-serif',
+        fontWeight: 600,
+        fontSize: '16px',
+        color: '#164563',
+        margin: 0,
+    };
+    const referencesDividerStyle = {
+        height: '2px',
+        backgroundColor: '#D9D9D9',
+        margin: '8px 0 12px',
+    };
+    const sortToggleSx = {
+        border: '1px solid #E7F1FF',
+        borderRadius: '14px',
+        padding: '1px',
+        overflow: 'hidden',
+        '& .MuiToggleButton-root': {
+            textTransform: 'none',
+            fontFamily: 'DM Sans, sans-serif',
+            fontSize: '12px',
+            fontWeight: 700,
+            color: '#164563',
+            border: 'none',
+            padding: '0 8px',
+            height: '26px',
+            minHeight: '26px',
+            borderRadius: '13px',
+        },
+        '& .MuiToggleButton-root.Mui-selected': {
+            backgroundColor: '#E7F1FF',
+            color: '#164563',
+        },
+        '& .MuiToggleButton-root.Mui-selected:hover': {
+            backgroundColor: '#E0EDFF',
+        },
+    };
 
     const sortedRawNodes = useMemo(() => {
         if (!nodeDetails[1]) return [];
-        return [...nodeDetails[1]].sort((a, b) => {
+        const normalized = nodeDetails[1]
+            .map(normalizeArticleRecord)
+            .filter(Boolean);
+        return normalized.sort((a, b) => {
             if (sortBy === 'year') return parseInt(b[3]) - parseInt(a[3]);
             if (sortBy === 'citations') return parseInt(b[2]) - parseInt(a[2]);
             return 0;
         });
     }, [nodeDetails, sortBy]);
 
-    const urls = sortedRawNodes.map(nodeForMap);
+    const urls = sortedRawNodes.map(nodeForMap).filter(Boolean);
 
     const sortedUrls = useMemo(() => {
-
-        return [...urls].sort((a, b) => {
-            if (sortBy === 'year') {
-                return parseInt(b[3]) - parseInt(a[3]); // Newest first
-            } else if (sortBy === 'citations') {
-                return parseInt(b[2]) - parseInt(a[2]); // Most cited first
-            }
-            return 0;
-        });
-    }, [urls, sortBy]);
+        return urls;
+    }, [urls]);
 
 
     const sortedEdges = useMemo(() => {
@@ -310,8 +316,9 @@ const Information = ({ width, ...props }) => {
 
         return Object.entries(edgeDetail).map(([label, urlsWrapper]) => {
             const urls = urlsWrapper?.[1] || [];
+            const normalized = urls.map(normalizeArticleRecord).filter(Boolean);
 
-            const sortedUrls = [...urls].sort((a, b) => {
+            const sortedUrls = [...normalized].sort((a, b) => {
                 if (sortBy === 'year') {
                     return parseInt(b[3]) - parseInt(a[3]);
                 } else if (sortBy === 'citations') {
@@ -326,7 +333,7 @@ const Information = ({ width, ...props }) => {
 
     const edgeItems = useMemo(() => {
         return sortedEdges.flatMap((edge) => {
-            return edge?.[1]?.[1]?.map(nodeForMap) || [];
+            return edge?.[1]?.[1]?.map(nodeForMap).filter(Boolean) || [];
         });
     }, [sortedEdges]);
     // if (Object.keys(nodeDetails).length !== 0) {
@@ -428,6 +435,9 @@ const Information = ({ width, ...props }) => {
     const renderNodeDetails = (node) => {
         // Check if this is an article node (has 'title' property)
         if ('title' in node) {
+            const safeAuthors = Array.isArray(node.authors)
+                ? node.authors.join('; ')
+                : (node.authors || 'N/A');
             return (
                 <Descriptions column={1} size="small" className="custom-descriptions" style={{ borderRadius: '30px' }}>
                     <Descriptions.Item label="Title">{node.title}</Descriptions.Item>
@@ -442,7 +452,7 @@ const Information = ({ width, ...props }) => {
                         </a>
                     </Descriptions.Item>
                     <Descriptions.Item label="Authors">
-                        {node.authors.join('; ')}
+                        {safeAuthors}
                     </Descriptions.Item>
                     <Descriptions.Item label="Journal">{node.journal}</Descriptions.Item>
                     <Descriptions.Item label="Year">{node.date}</Descriptions.Item>
@@ -455,16 +465,26 @@ const Information = ({ width, ...props }) => {
         }
 
         // Regular node rendering
+        const safeType = Array.isArray(node.type)
+            ? node.type.join('; ')
+            : (typeof node.type === 'string' ? node.type : 'N/A');
+        const safeAliases = Array.isArray(node.aliases)
+            ? node.aliases
+            : (node.aliases ? [String(node.aliases)] : []);
+        const safeDescription = typeof node.description === 'string'
+            ? node.description
+            : '';
+
         return (
             <Descriptions column={1} size="small" className="custom-descriptions" style={{ borderRadius: '30px' }}>
                 <Descriptions.Item label="Entity ID">{node.element_id}</Descriptions.Item>
-                <Descriptions.Item label="Type">{node.type.join('; ')}</Descriptions.Item>
-                {node.description && node.description.trim() !== "" && (
-                    <Descriptions.Item label="Description">{node.description}</Descriptions.Item>
+                <Descriptions.Item label="Type">{safeType}</Descriptions.Item>
+                {safeDescription.trim() !== "" && (
+                    <Descriptions.Item label="Description">{safeDescription}</Descriptions.Item>
                 )}
-                {node.aliases && node.aliases.length > 0 && (
+                {safeAliases.length > 0 && (
                     <Descriptions.Item label="Aliases">
-                        {node.aliases.join('; ')}
+                        {safeAliases.join('; ')}
                     </Descriptions.Item>
                 )}
             </Descriptions>
@@ -527,24 +547,26 @@ const Information = ({ width, ...props }) => {
                 paddingRight: '0px',
             }
         }}>
+            <CiteDialog
+                open={citeDialogOpen}
+                onClose={handleCloseCiteDialog}
+                citation={selectedCitation}
+            />
             <Card
                 title={getPanelTitle()}
                 className="information-content"
 
                 styles={{
                     header: {
-                        color: 'black',
+                        color: '#164563',
                         fontSize: '24px',
                         lineHeight: '1.5',
-                        fontWeight: '600',
-                        fontFamily: 'Open Sans, sans-serif',
+                        fontWeight: '700',
+                        fontFamily: 'DM Sans, sans-serif',
                         borderTopLeftRadius: '10px',
                         borderTopRightRadius: '10px',
-                        paddingTop: '35px',
-                        //paddingLeft: "2.5vw",
-                        // marginLeft:"2.6vw",
-                        // paddingBottom: '20px',
-                        minHeight: '90px',
+                        paddingTop: '24px',
+                        paddingBottom: '16px',
                         border: 'none',
                         background: 'transparent',
                         wordWrap: 'break-word !important',
@@ -574,7 +596,7 @@ const Information = ({ width, ...props }) => {
                 ) : (
                     <div style={{ position: 'relative', height: '100%' }}>
                         <div className="transcriptGradientTop"></div>
-                        <div style={{ paddingLeft: '2vw', paddingRight: '2vw', paddingTop: '0px', paddingBottom: '20px', overflowY: 'auto', maxHeight: '100%' }}>
+                        <div style={{ paddingLeft: '24px', paddingRight: '24px', paddingTop: '0px', paddingBottom: '20px', overflowY: 'auto', maxHeight: '100%' }}>
 
                             {/* Article Node Details - Direct Display */}
                             {Object.keys(nodeDetails).length !== 0 && nodeDetails[0] && nodeDetails[0][0] && 'title' in nodeDetails[0][0] && (
@@ -582,29 +604,29 @@ const Information = ({ width, ...props }) => {
                                     {renderNodeDetails(nodeDetails[0][0])}
                                     {/* Related Articles for Article Node */}
                                     {urls.length > 0 && (
-                                        <div style={{ paddingLeft: '12px' }}>
+                                        <div>
+                                            <div style={referencesDividerStyle} />
                                             <div style={{
                                                 display: 'flex',
                                                 justifyContent: 'space-between',
                                                 alignItems: 'center',
                                                 marginBottom: '10px'
                                             }}>
-                                                <h4 style={{
-                                                    color: '#8c8c8c',
-                                                    margin: 0,
-                                                    fontWeight: 'normal',
-                                                    fontSize: '14px',
-                                                }}>Related Articles</h4>
-                                                <Select
+                                                <h4 style={referencesTitleStyle}>References</h4>
+                                                <ToggleButtonGroup
                                                     size="small"
-                                                    defaultValue="year"
-                                                    onChange={value => setSortBy(value)}
-                                                    style={{ minWidth: '140px' }}
-                                                    options={[
-                                                        { value: 'year', label: 'Sort by Year' },
-                                                        { value: 'citations', label: 'Sort by Citations' },
-                                                    ]}
-                                                />
+                                                    exclusive
+                                                    value={sortBy}
+                                                    onChange={(event, value) => {
+                                                        if (value !== null) {
+                                                            setSortBy(value);
+                                                        }
+                                                    }}
+                                                    sx={sortToggleSx}
+                                                >
+                                                    <ToggleButton value="citations">Citation</ToggleButton>
+                                                    <ToggleButton value="year">Year</ToggleButton>
+                                                </ToggleButtonGroup>
                                             </div>
                                             <List
                                                 size="small"
@@ -629,28 +651,28 @@ const Information = ({ width, ...props }) => {
                                             {/* Add Related Articles section for nodes */}
                                             {urls.length > 0 && (
                                                 <div style={{}}>
+                                                    <div style={referencesDividerStyle} />
                                                     <div style={{
                                                         display: 'flex',
                                                         justifyContent: 'space-between',
                                                         alignItems: 'center',
                                                         marginBottom: '10px'
                                                     }}>
-                                                        <h4 style={{
-                                                            color: '#8c8c8c',
-                                                            margin: 0,
-                                                            fontWeight: 'normal',
-                                                            fontSize: '14px',
-                                                        }}>Related Articles</h4>
-                                                        <Select
+                                                        <h4 style={referencesTitleStyle}>References</h4>
+                                                        <ToggleButtonGroup
                                                             size="small"
+                                                            exclusive
                                                             value={sortBy}
-                                                            onChange={value => setSortBy(value)}
-                                                            style={{ minWidth: '140px' }}
-                                                            options={[
-                                                                { value: 'year', label: 'Sort by Year' },
-                                                                { value: 'citations', label: 'Sort by Citations' }
-                                                            ]}
-                                                        />
+                                                            onChange={(event, value) => {
+                                                                if (value !== null) {
+                                                                    setSortBy(value);
+                                                                }
+                                                            }}
+                                                            sx={sortToggleSx}
+                                                        >
+                                                            <ToggleButton value="citations">Citation</ToggleButton>
+                                                            <ToggleButton value="year">Year</ToggleButton>
+                                                        </ToggleButtonGroup>
                                                     </div>
                                                     <List
                                                         size="small"
@@ -741,6 +763,7 @@ const Information = ({ width, ...props }) => {
                                             {/* Related Articles */}
                                             {edge[1] && edge[1].length > 0 && (
                                                 <div>
+                                                    <div style={referencesDividerStyle} />
                                                     <div style={{
                                                         display: 'flex',
                                                         justifyContent: 'space-between',
@@ -748,22 +771,21 @@ const Information = ({ width, ...props }) => {
                                                         marginBottom: '10px',
                                                         marginTop: '8px'
                                                     }}>
-                                                        <h4 style={{
-                                                            color: '#8c8c8c',
-                                                            margin: 0,
-                                                            fontWeight: 'normal',
-                                                            fontSize: '14px',
-                                                        }}>Related Articles</h4>
-                                                        <Select
+                                                        <h4 style={referencesTitleStyle}>References</h4>
+                                                        <ToggleButtonGroup
                                                             size="small"
+                                                            exclusive
                                                             value={sortBy}
-                                                            onChange={value => setSortBy(value)}
-                                                            style={{ minWidth: '140px' }}
-                                                            options={[
-                                                                { value: 'year', label: 'Sort by Year' },
-                                                                { value: 'citations', label: 'Sort by Citations' }
-                                                            ]}
-                                                        />
+                                                            onChange={(event, value) => {
+                                                                if (value !== null) {
+                                                                    setSortBy(value);
+                                                                }
+                                                            }}
+                                                            sx={sortToggleSx}
+                                                        >
+                                                            <ToggleButton value="citations">Citation</ToggleButton>
+                                                            <ToggleButton value="year">Year</ToggleButton>
+                                                        </ToggleButtonGroup>
                                                     </div>
                                                     <List
                                                         size="small"

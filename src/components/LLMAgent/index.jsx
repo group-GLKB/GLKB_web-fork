@@ -3,71 +3,1164 @@ import './scoped.css';
 import './github-markdown-light.css';
 
 import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from 'react';
 
-import {
-  message,
-  Select,
-} from 'antd';
+import { message } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import ReactMarkdown from 'react-markdown';
 import {
-  useLocation,
-  useNavigate,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
+import remarkGfm from 'remark-gfm';
 
 import {
-  ChatBubbleOutline as ChatBubbleOutlineIcon,
-  Check as CheckIcon,
-  Clear as ClearIcon,
-  Close as CloseIcon,
-  ContentCopy as ContentCopyIcon,
-  Download as DownloadIcon,
-  EditNote as EditNoteIcon,
-  FilePresent as FilePresentIcon,
-  RateReview as RateReviewIcon,
-  Refresh as RefreshIcon,
-  StopCircle as StopCircleIcon,
+    Bookmark as BookmarkIcon,
+    BookmarkBorder as BookmarkBorderIcon,
+    Check as CheckIcon,
+    ChevronRight as ChevronRightIcon,
+    Clear as ClearIcon,
+    EditNote as EditNoteIcon,
+    ExpandMore as ExpandMoreIcon,
+    Link as LinkIcon,
+    StopCircle as StopCircleIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Button as MuiButton,
-  CircularProgress,
-  Container,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  Grid,
-  IconButton,
-  Stack,
-  TextField,
-  Typography,
+    Box,
+    Button as MuiButton,
+    CircularProgress,
+    Container,
+    Grid,
+    IconButton,
+    Stack,
+    TextField,
+    ToggleButton,
+    ToggleButtonGroup,
+    Typography,
 } from '@mui/material';
 
-import systemIcon from '../../img/LLM_logo.jpg';
+import contentCopyIcon from '../../img/llm/content_copy.svg';
+import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
+import replayIcon from '../../img/llm/replay.svg';
+import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
+import {
+    ReactComponent as SidebarLeftIcon,
+} from '../../img/navbar/sidebar.left.svg';
 import { LLMAgentService } from '../../service/LLMAgent';
-import NavBarWhite from '../Units/NavBarWhite';
+import {
+    getMyTier,
+    isFreePlanLimitReached,
+} from '../../service/Tier';
+import {
+    createConversation,
+    fetchConversationDetail,
+    fetchConversations,
+    getActiveConversationId,
+    getConversations,
+    setActiveConversationId,
+    setConversations,
+    updateConversationMessages,
+    updateConversationTitle,
+    upsertConversation,
+} from '../../utils/chatHistory';
+import {
+    fetchConversationBookmarks,
+    getConversationBookmarks,
+    toggleConversationBookmark,
+} from '../../utils/conversationBookmarks';
+import { useAuth } from '../Auth/AuthContext';
+import CiteDialog from '../Units/CiteDialog';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
-import SearchButton from '../Units/SearchButton/SearchButton';
+import ChatSearchBar from './ChatSearchBar';
+import stepLabels from './step.json';
+
+const formatDuration = (durationMs) => {
+    if (durationMs === null || durationMs === undefined) return '';
+    const totalSeconds = Math.max(0, Math.round(durationMs / 1000));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+    }
+    if (minutes > 0) {
+        return `${minutes}m ${seconds}s`;
+    }
+    return `${seconds}s`;
+};
+
+const logDev = (...args) => {
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(...args);
+    }
+};
+
+const getStoredChatHistory = () => {
+    if (typeof window === 'undefined') return [];
+    const conversations = getConversations();
+    const activeId = getActiveConversationId();
+    const active = conversations.find((item) => item.id === activeId);
+    return active?.messages || [];
+};
+
+const getStoredProcessingFlag = () => {
+    if (typeof window === 'undefined') return false;
+    return sessionStorage.getItem('llmWasProcessing') === 'true';
+};
+
+const getStoredIncompleteFlag = () => {
+    if (typeof window === 'undefined') return false;
+    try {
+        const parsed = getStoredChatHistory();
+        if (!Array.isArray(parsed) || parsed.length === 0) return false;
+        const lastMessage = parsed[parsed.length - 1];
+        return lastMessage?.role === 'assistant' && !lastMessage?.content;
+    } catch (error) {
+        return false;
+    }
+};
+
+const SESSION_ID_KEY = 'llmSessionIds';
+
+const getSessionIdMap = () => {
+    if (typeof window === 'undefined') return {};
+    try {
+        const raw = sessionStorage.getItem(SESSION_ID_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (error) {
+        return {};
+    }
+};
+
+const getStoredSessionId = (historyId) => {
+    if (!historyId || typeof window === 'undefined') return null;
+    const map = getSessionIdMap();
+    return map[String(historyId)] || null;
+};
+
+const setStoredSessionId = (historyId, sessionId) => {
+    if (!historyId || typeof window === 'undefined') return;
+    const map = getSessionIdMap();
+    if (sessionId) {
+        map[String(historyId)] = sessionId;
+    } else {
+        delete map[String(historyId)];
+    }
+    sessionStorage.setItem(SESSION_ID_KEY, JSON.stringify(map));
+};
+
+const STEP_LABELS = stepLabels || {};
+
+const LEFT_MIN_PX = 360;
+const RIGHT_MIN_PX = 360;
+const DIVIDER_PX = 8;
+const DEFAULT_LEFT_PERCENT = 66;
+const FALLBACK_MIN_LEFT_PERCENT = 45;
+const FALLBACK_MAX_LEFT_PERCENT = 80;
+const FALLBACK_COLLAPSE_THRESHOLD = 84;
+const DEBUG_FORCE_LIMIT_WARNING = false;
+
+const areMessagesEqual = (left, right) => {
+    if (left === right) return true;
+    if (!Array.isArray(left) || !Array.isArray(right)) return false;
+    if (left.length !== right.length) return false;
+
+    for (let i = 0; i < left.length; i += 1) {
+        const leftMsg = left[i];
+        const rightMsg = right[i];
+        const leftSignature = JSON.stringify({
+            role: leftMsg?.role,
+            content: leftMsg?.content,
+            timestamp: leftMsg?.timestamp,
+            references: leftMsg?.references,
+            thinkingSteps: leftMsg?.thinkingSteps,
+            thoughtDurationMs: leftMsg?.thoughtDurationMs,
+            trajectory: leftMsg?.trajectory,
+            invocationId: leftMsg?.invocationId,
+        });
+        const rightSignature = JSON.stringify({
+            role: rightMsg?.role,
+            content: rightMsg?.content,
+            timestamp: rightMsg?.timestamp,
+            references: rightMsg?.references,
+            thinkingSteps: rightMsg?.thinkingSteps,
+            thoughtDurationMs: rightMsg?.thoughtDurationMs,
+            trajectory: rightMsg?.trajectory,
+            invocationId: rightMsg?.invocationId,
+        });
+        if (leftSignature !== rightSignature) return false;
+    }
+
+    return true;
+};
+
+const getStepLabel = (stepName) => STEP_LABELS[stepName] || stepName;
+
+const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
+    const isTrajectoryLine = line && typeof line === 'object' && !Array.isArray(line);
+
+    if (isTrajectoryLine) {
+        const tool = line.tool || '';
+        const summary = line.summary || '';
+        const result = line.result || '';
+        return (
+            <Box
+                sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                }}
+                data-line-key={lineKey}
+            >
+                {(tool || summary) && (
+                    <Typography
+                        sx={{
+                            fontFamily: 'DM Sans, sans-serif',
+                            fontSize: '16px',
+                            fontWeight: 400,
+                            color: '#5B5B5B',
+                            whiteSpace: 'pre-wrap',
+                            lineHeight: 1.5,
+                        }}
+                    >
+                        {tool && (
+                            <Box
+                                component="span"
+                                sx={{
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontSize: '16px',
+                                    fontWeight: 800,
+                                    textTransform: 'uppercase',
+                                    color: '#7A7A7A',
+                                    marginRight: '6px',
+                                }}
+                            >
+                                {tool}
+                            </Box>
+                        )}
+                        {summary}
+                    </Typography>
+                )}
+                {result && (
+                    <Typography
+                        sx={{
+                            fontFamily: 'DM Sans, sans-serif',
+                            fontSize: '16px',
+                            fontWeight: 400,
+                            color: '#5B5B5B',
+                            whiteSpace: 'pre-wrap',
+                            lineHeight: 1.5,
+                        }}
+                    >
+                        {result}
+                    </Typography>
+                )}
+            </Box>
+        );
+    }
+
+    return (
+        <Typography
+            sx={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '12px',
+                fontWeight: 400,
+                color: '#969696',
+                whiteSpace: 'pre-wrap',
+            }}
+            data-line-key={lineKey}
+        >
+            {line}
+        </Typography>
+    );
+});
+
+const ThoughtGroup = React.memo(
+    function ThoughtGroup({
+        group,
+        groupIndex,
+        expanded,
+        onToggle,
+        disableAnimation = false,
+        disableToggle = false,
+        showBorder = true,
+    }) {
+        const hasLines = group.lines.length > 0;
+        const canToggle = hasLines && !disableToggle;
+        return (
+            <Box>
+                <Box
+                    role={canToggle ? 'button' : undefined}
+                    tabIndex={canToggle ? 0 : -1}
+                    onClick={canToggle ? () => onToggle(groupIndex) : undefined}
+                    onKeyDown={(event) => {
+                        if (!canToggle) return;
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            onToggle(groupIndex);
+                        }
+                    }}
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        cursor: canToggle ? 'pointer' : 'default',
+                        '&:hover': canToggle ? { backgroundColor: 'rgba(0, 0, 0, 0.04)' } : undefined,
+                        '&:hover .thought-step-arrow': canToggle ? { opacity: 1 } : undefined,
+                    }}
+                >
+                    <Typography sx={{
+                        fontFamily: 'DM Sans, sans-serif',
+                        fontSize: '16px',
+                        fontWeight: 400,
+                        color: '#5B5B5B',
+                    }}>
+                        {getStepLabel(group.name)}
+                    </Typography>
+                    {canToggle && (
+                        <ExpandMoreIcon
+                            className="thought-step-arrow"
+                            sx={{
+                                fontSize: '18px',
+                                color: '#8A8A8A',
+                                opacity: 0,
+                                transition: 'opacity 0.2s ease, transform 0.2s ease',
+                                transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                            }}
+                        />
+                    )}
+                </Box>
+                {expanded && hasLines && (
+                    <Box sx={{
+                        mt: '6px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
+                        borderLeft: showBorder ? '2px solid #D9D9D9' : 'none',
+                        pl: showBorder ? '10px' : '0px',
+                        ml: showBorder ? 2 : '0px',
+                    }}>
+                        {group.lines.map((line, lineIndex) => (
+                            <ThoughtLine
+                                key={`${group.name}-${lineIndex}`}
+                                line={line}
+                                lineKey={`${group.name}-${lineIndex}`}
+                            />
+                        ))}
+                    </Box>
+                )}
+            </Box>
+        );
+    },
+    (prev, next) => (
+        prev.group === next.group
+        && prev.expanded === next.expanded
+        && prev.disableToggle === next.disableToggle
+    )
+);
+
+const parseThinkingEntry = (entry) => {
+    const stepFromEntry = typeof entry?.step === 'string' ? entry.step.trim() : '';
+    const raw = entry?.content ?? '';
+    const trimmed = raw.trim();
+    if (!trimmed) {
+        return { stepName: stepFromEntry || 'Step', line: raw };
+    }
+
+    let action = '';
+    let rest = trimmed;
+    const match = trimmed.match(/^\s*\[([^\]]+)\]\s*([\s\S]*)$/);
+    if (match) {
+        action = match[1].trim();
+        rest = match[2].trim();
+    }
+
+    let stepName = rest;
+    let detail = '';
+    if (rest.includes('|')) {
+        const parts = rest.split('|');
+        stepName = parts.shift().trim();
+        detail = parts.join('|').trim();
+    }
+
+    if (!stepName) {
+        stepName = action || 'Step';
+    }
+
+    if (stepFromEntry && STEP_LABELS[stepFromEntry]) {
+        stepName = stepFromEntry;
+    } else if (STEP_LABELS[stepName]) {
+        stepName = stepName;
+    } else if (stepFromEntry) {
+        stepName = stepFromEntry;
+    }
+
+    return { stepName, line: raw };
+};
+
+const groupThinkingSteps = (steps) => {
+    if (!Array.isArray(steps)) return [];
+    const groups = [];
+
+    steps.forEach((entry) => {
+        const { stepName, line } = parseThinkingEntry(entry);
+        if (groups.length === 0 || groups[groups.length - 1].name !== stepName) {
+            groups.push({ name: stepName, lines: line ? [line] : [] });
+        } else if (line) {
+            groups[groups.length - 1].lines.push(line);
+        }
+    });
+
+    return groups;
+};
+
+const normalizeTrajectory = (trajectory) => {
+    if (!trajectory) return [];
+    if (Array.isArray(trajectory)) return trajectory;
+    if (typeof trajectory === 'string') {
+        try {
+            const parsed = JSON.parse(trajectory);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            return [];
+        }
+    }
+    return [];
+};
+
+const trajectoryToGroups = (trajectory) => {
+    const normalized = normalizeTrajectory(trajectory);
+    if (!normalized.length) return [];
+
+    return normalized
+        .map((entry, index) => {
+            const phase = typeof entry?.phase === 'string' ? entry.phase.trim() : '';
+            const name = phase || `Phase ${index + 1}`;
+            const actions = Array.isArray(entry?.actions) ? entry.actions : [];
+            const lines = [];
+
+            actions.forEach((action) => {
+                if (!action) return;
+                const tool = typeof action.tool === 'string' ? action.tool.trim() : '';
+                const summary = typeof action.summary === 'string' ? action.summary.trim() : '';
+                const result = typeof action.result === 'string' ? action.result.trim() : '';
+
+                if (tool || summary) {
+                    lines.push({
+                        tool,
+                        summary: summary || 'Action',
+                        result: result ? `Result: ${result}` : '',
+                    });
+                }
+            });
+
+            return { name, lines };
+        })
+        .filter((group) => group.name || group.lines.length > 0);
+};
+
+const MessageCard = React.memo(function MessageCard({
+    index,
+    message,
+    totalMessages,
+    isProcessing,
+    streamingGroups,
+    streamingStepName,
+    selectedMessageIndex,
+    showReloadPrompt,
+    onReloadLatest,
+    onStop,
+    refresh,
+    copy,
+    save,
+    goref,
+    downloadConversation,
+}) {
+    const isAssistant = message.role === "assistant";
+    const isLastUserMessage = index === totalMessages - 1 && message.role === 'assistant';
+    const isLoading = isProcessing && isLastUserMessage;
+    const messageID = index;
+    const isSelected = index === selectedMessageIndex;
+    const hasReferences = Array.isArray(message.references) && message.references.length > 0;
+    const allowUserEdit = true;
+    const [editContent, setEditContent] = useState('');
+    const [isEditing, setIsEditing] = useState(false);
+    const [expandedGroups, setExpandedGroups] = useState({});
+    const [thoughtsExpanded, setThoughtsExpanded] = useState(() => isLoading);
+    const [animatedStepLabel, setAnimatedStepLabel] = useState('');
+    const [stepLabelPhase, setStepLabelPhase] = useState('idle');
+    const allowResponseRefresh = true;
+    const stepLabelTimersRef = useRef([]);
+    const renderedStepLabelRef = useRef('');
+    const thoughtDurationLabel = formatDuration(message.thoughtDurationMs);
+    const groupedThoughts = useMemo(
+        () => groupThinkingSteps(message.thinkingSteps),
+        [message.thinkingSteps]
+    );
+    const trajectoryGroups = useMemo(
+        () => trajectoryToGroups(message.trajectory),
+        [message.trajectory]
+    );
+    const activeStreamingGroups = isLoading ? streamingGroups : [];
+    const staticGroups = !isLoading && trajectoryGroups.length
+        ? trajectoryGroups
+        : groupedThoughts;
+    const displayGroups = isLoading ? activeStreamingGroups : staticGroups;
+    const hasDisplayGroups = displayGroups.length > 0;
+    const isTrajectoryDisplay = !isLoading && trajectoryGroups.length > 0;
+    const loadingCurrentIndex = isLoading ? displayGroups.length - 1 : -1;
+    const currentStepLabel = useMemo(() => {
+        if (!isLoading) return '';
+        if (streamingStepName) return getStepLabel(streamingStepName);
+        if (!activeStreamingGroups.length) return 'Thinking';
+        return getStepLabel(activeStreamingGroups[activeStreamingGroups.length - 1].name);
+    }, [isLoading, streamingStepName, activeStreamingGroups]);
+    const loadingStepLabel = useMemo(() => {
+        if (!isLoading) return '';
+        if (!currentStepLabel) return 'Thinking...';
+        return currentStepLabel.endsWith('...') ? currentStepLabel : `${currentStepLabel}...`;
+    }, [isLoading, currentStepLabel]);
+    const thoughtHeaderText = isLoading
+        ? (animatedStepLabel || loadingStepLabel)
+        : (thoughtDurationLabel ? `Thought for ${thoughtDurationLabel}` : 'Thought summary');
+    const showThoughtHeader = isAssistant
+        && (isLoading || thoughtDurationLabel || hasDisplayGroups);
+    const showReloadInMessage = showReloadPrompt && isLastUserMessage && isAssistant && !isLoading;
+    const canToggleThoughts = !isLoading && hasDisplayGroups;
+
+    const toggleGroup = useCallback((nextIndex) => {
+        setExpandedGroups((prev) => ({
+            ...prev,
+            [nextIndex]: !prev[nextIndex],
+        }));
+    }, []);
+
+    useEffect(() => {
+        if (isLoading) {
+            setThoughtsExpanded(true);
+            return;
+        }
+        setThoughtsExpanded(false);
+    }, [isLoading]);
+
+    useEffect(() => {
+        const clearTimers = () => {
+            stepLabelTimersRef.current.forEach((timerId) => clearTimeout(timerId));
+            stepLabelTimersRef.current = [];
+        };
+
+        clearTimers();
+
+        if (!isLoading || !loadingStepLabel) {
+            renderedStepLabelRef.current = '';
+            setAnimatedStepLabel('');
+            setStepLabelPhase('idle');
+            return undefined;
+        }
+
+        const currentLabel = renderedStepLabelRef.current;
+        if (!currentLabel) {
+            renderedStepLabelRef.current = loadingStepLabel;
+            setAnimatedStepLabel(loadingStepLabel);
+            setStepLabelPhase('idle');
+            return undefined;
+        }
+
+        if (currentLabel === loadingStepLabel) {
+            return undefined;
+        }
+
+        const OUT_MS = 140;
+        const BUFFER_MS = 80;
+        const IN_MS = 180;
+        const SWAP_MS = 16;
+
+        setStepLabelPhase('out');
+        const outTimer = setTimeout(() => {
+            renderedStepLabelRef.current = loadingStepLabel;
+            setAnimatedStepLabel(loadingStepLabel);
+            setStepLabelPhase('swap');
+            const swapTimer = setTimeout(() => {
+                setStepLabelPhase('in');
+                const inTimer = setTimeout(() => {
+                    setStepLabelPhase('idle');
+                }, IN_MS);
+                stepLabelTimersRef.current.push(inTimer);
+            }, SWAP_MS);
+            stepLabelTimersRef.current.push(swapTimer);
+        }, OUT_MS + BUFFER_MS);
+        stepLabelTimersRef.current.push(outTimer);
+
+        return clearTimers;
+    }, [isLoading, loadingStepLabel]);
+
+    return (
+        <div
+            className="message-card"
+            data-message-index={index}
+            data-message-role={message.role}
+        >
+            <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: "5px", justifyContent: "flex-end" }}>
+                <Box
+                    sx={{
+                        bgcolor: isAssistant ? "transparent" : "#ffffff", // Different background colors
+                        boxShadow: isAssistant ? "none" : "0 4px 16px 0 rgba(0, 0, 0, 0.05)",
+                        maxWidth: isAssistant ? "100%" : "80%", // Adjust max width for assistant messages
+                        width: isAssistant ? "100%" : "auto",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        px: isAssistant ? "0px" : "24px",
+                        pt: isAssistant ? "12px" : "0px",
+                        pb: isAssistant ? "24px" : "12px",
+                        // border: isAssistant ? "1px solid" : "none",
+                        borderColor: "divider",
+                        borderRadius: "24px",
+                        flex: 1, // Occupy maximum width
+                    }}
+                >
+                    <Box sx={{ flex: 1 }}>
+                        {showThoughtHeader && (
+                            <Box sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                mt: '8px',
+                                mb: '8px',
+                            }}>
+                                <Box
+                                    role={canToggleThoughts ? 'button' : undefined}
+                                    tabIndex={canToggleThoughts ? 0 : -1}
+                                    onClick={canToggleThoughts ? () => setThoughtsExpanded((prev) => !prev) : undefined}
+                                    onKeyDown={(event) => {
+                                        if (!canToggleThoughts) return;
+                                        if (event.key === 'Enter' || event.key === ' ') {
+                                            event.preventDefault();
+                                            setThoughtsExpanded((prev) => !prev);
+                                        }
+                                    }}
+                                    aria-label={
+                                        canToggleThoughts
+                                            ? (thoughtsExpanded ? 'Collapse thoughts' : 'Expand thoughts')
+                                            : undefined
+                                    }
+                                    sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        padding: '4px 0',
+                                        borderRadius: '18px',
+                                        cursor: canToggleThoughts ? 'pointer' : 'default',
+                                        '&:hover': canToggleThoughts ? { backgroundColor: 'rgba(0, 0, 0, 0.04)' } : undefined,
+                                    }}
+                                >
+                                    <Box
+                                        component="span"
+                                        className={isLoading
+                                            ? `loading-step-label${stepLabelPhase !== 'idle' ? ` loading-step-label--${stepLabelPhase}` : ''}`
+                                            : undefined}
+                                        sx={{
+                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontSize: '16px',
+                                            fontWeight: isLoading ? 400 : 600,
+                                            color: isLoading ? 'transparent' : '#5B5B5B',
+                                            WebkitTextFillColor: isLoading ? 'transparent' : undefined,
+                                        }}
+                                    >
+                                        {thoughtHeaderText}
+                                    </Box>
+                                    {canToggleThoughts && (
+                                        <ExpandMoreIcon
+                                            sx={{
+                                                fontSize: '16px',
+                                                color: '#646464',
+                                                transform: thoughtsExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                                transition: 'transform 0.2s ease',
+                                            }}
+                                        />
+                                    )}
+                                </Box>
+                            </Box>
+                        )}
+
+                        {isAssistant && !isLoading && thoughtsExpanded && hasDisplayGroups && (
+                            <Box sx={{
+                                mt: '6px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0px',
+                                borderLeft: '2px solid #E6E6E6',
+                                pl: '4px',
+                                ml: 1,
+                            }}>
+                                {displayGroups.map((group, groupIndex) => (
+                                    <ThoughtGroup
+                                        key={`${group.name}-${groupIndex}`}
+                                        group={group}
+                                        groupIndex={groupIndex}
+                                        expanded={isLoading ? groupIndex === loadingCurrentIndex : !!expandedGroups[groupIndex]}
+                                        onToggle={toggleGroup}
+                                        disableAnimation={isLoading}
+                                        disableToggle={isLoading}
+                                    />
+                                ))}
+                            </Box>
+                        )}
+
+                        <Box mt={1}>
+                            {showReloadInMessage ? (
+                                <Box
+                                    sx={{
+                                        backgroundColor: '#F4F4F4',
+                                        borderRadius: '8px',
+                                        padding: '6px 8px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: '8px',
+                                    }}
+                                >
+                                    <Typography
+                                        sx={{
+                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontSize: '12px',
+                                            fontWeight: 500,
+                                            color: '#646464',
+                                        }}
+                                    >
+                                        Response interrupted. Reload latest message.
+                                    </Typography>
+                                    <MuiButton
+                                        variant="outlined"
+                                        size="small"
+                                        onClick={onReloadLatest}
+                                        sx={{
+                                            textTransform: 'none',
+                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontWeight: 600,
+                                            fontSize: '12px',
+                                            minHeight: '28px',
+                                            padding: '2px 8px',
+                                            borderRadius: '8px',
+                                            borderColor: '#D0D0D0',
+                                            color: '#646464',
+                                            '&:hover': {
+                                                borderColor: '#B8B8B8',
+                                                backgroundColor: '#EDEDED',
+                                            },
+                                        }}
+                                    >
+                                        Reload
+                                    </MuiButton>
+                                </Box>
+                            ) : isLoading ? null :
+                                isEditing ?
+                                    <TextField
+                                        hiddenLabel
+                                        multiline
+                                        id="filled-hidden-label-small"
+                                        value={editContent}
+                                        variant="filled"
+                                        size="small"
+                                        sx={{ flex: 1, width: "100%" }}
+                                        onChange={(event) => setEditContent(event.target.value)}
+                                    /> : (
+                                        <div className="markdown-body" style={{ fontFamily: 'Open Sans, sans-serif' }}>
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                {message.content}
+                                            </ReactMarkdown>
+                                        </div>
+                                    )}
+                        </Box>
+
+                        {isAssistant && <Box sx={{ justifyContent: "space-between", direction: "row", display: "flex", alignItems: "center", mt: "5px" }}>
+                            <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
+                                <IconButton size="small" onClick={() => copy(message.content)}>
+                                    <img
+                                        src={contentCopyIcon}
+                                        alt="Copy"
+                                        style={{ width: '16px', height: '16px', display: 'block', objectFit: 'contain' }}
+                                    />
+                                </IconButton>
+                                {allowResponseRefresh && isLastUserMessage && !isLoading && (
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => refresh(null, index)}
+                                        title="Regenerate response"
+                                    >
+                                        <img
+                                            src={replayIcon}
+                                            alt="Refresh"
+                                            style={{ width: '16px', height: '16px', display: 'block', objectFit: 'contain' }}
+                                        />
+                                    </IconButton>
+                                )}
+                                {!isLoading && <IconButton size="small" onClick={() => downloadConversation(messageID)} title="Download this Q&A">
+                                    <DownloadIcon
+                                        aria-label="Download"
+                                        style={{ width: '16px', height: '16px', display: 'block', color: '#646464' }}
+                                    />
+                                </IconButton>}
+                                {isLoading && (
+                                    <IconButton size="small" onClick={onStop}>
+                                        <StopCircleIcon fontSize="small" />
+                                    </IconButton>
+                                )}
+                            </Stack>
+                            <MuiButton
+                                variant='contained'
+                                startIcon={<LinkIcon />}
+                                size="small"
+                                onClick={() => goref(messageID)}
+                                disabled={isLoading || !hasReferences}
+                                sx={{
+                                    px: "10px",
+                                    fontFamily: 'Open Sans, sans-serif',
+                                    fontWeight: isSelected ? 600 : 500,
+                                    height: "34px",
+                                    borderRadius: "16px",
+                                    border: isSelected ? "1px solid #155DFC" : "none",
+                                    bgcolor: isSelected ? "#f7f8fa" : "#E7F1FF",
+                                    color: "#155DFC",
+                                    boxShadow: isSelected ? "0 1px 2px rgba(21, 93, 252, 0.12)" : "none",
+                                    "& .MuiButton-startIcon": {
+                                        color: "#155DFC",
+                                    },
+                                    "& .MuiSvgIcon-root": {
+                                        color: "#155DFC",
+                                    },
+                                    "&:hover": {
+                                        bgcolor: isSelected ? "#EEF1F6" : "#EEF6FF",
+                                        color: "#155DFC",
+                                        borderColor: "#155DFC",
+                                        boxShadow: isSelected ? "0 1px 2px rgba(21, 93, 252, 0.16)" : "none",
+                                    },
+                                    "&.Mui-disabled": {
+                                        color: "#A0A8B5",
+                                        backgroundColor: "#EFF3F8",
+                                        border: "none",
+                                        boxShadow: "none",
+                                        fontWeight: 500,
+                                    },
+                                    "&.Mui-disabled .MuiButton-startIcon": {
+                                        color: "#A0A8B5",
+                                    },
+                                    "&.Mui-disabled .MuiSvgIcon-root": {
+                                        color: "#A0A8B5",
+                                    },
+                                    mb: "2px"
+                                }}
+                            >
+                                References
+                            </MuiButton>
+
+                        </Box>}
+
+                    </Box>
+
+                </Box>
+
+            </Container>
+            {!isAssistant && <Box sx={{ justifyContent: "flex-end", direction: "row", display: "flex", alignItems: "center" }}>
+                <Stack direction="row" spacing={1} sx={{ pb: "8px", pr: "24px" }}>
+                    {
+                        isEditing ? <>
+                            <IconButton size="small" onClick={() => {
+                                setIsEditing(false);
+                                setEditContent('');
+                            }}>
+                                <ClearIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton size="small" onClick={(event) => {
+                                if (editContent.trim() === '') {
+                                    return;
+                                }
+                                save(event, messageID, editContent);
+                                setIsEditing(false);
+                                setEditContent('');
+                            }}>
+                                <CheckIcon fontSize="small" />
+                            </IconButton>
+                        </> : <div className="user-message-actions">
+                            <IconButton size="small" onClick={() => copy(message.content)}>
+                                <img
+                                    src={contentCopyIcon}
+                                    alt="Copy"
+                                    style={{ width: '16px', height: '16px', display: 'block', objectFit: 'contain' }}
+                                />
+                            </IconButton>
+                            {allowUserEdit && (
+                                <IconButton
+                                    size="small"
+                                    onClick={() => {
+                                        if (!allowUserEdit || isAssistant) return;
+
+                                        setIsEditing(true);
+                                        setEditContent(message.content);
+                                    }}
+                                >
+                                    <EditNoteIcon fontSize="small" />
+                                </IconButton>
+                            )}
+                        </div>
+                    }
+
+                </Stack>
+            </Box>}
+        </div>
+    );
+});
 
 function LLMAgent() {
     const location = useLocation();
     const [userInput, setUserInput] = useState('');
-    const [chatHistory, setChatHistory] = useState([]);
+    const [chatHistory, setChatHistory] = useState(getStoredChatHistory);
     const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [streamingSteps, setStreamingSteps] = useState([]);
+    const [streamingGroups, setStreamingGroups] = useState([]);
+    const [streamingStepName, setStreamingStepName] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
+    const [leftPaneWidth, setLeftPaneWidth] = useState(66);
+    const [isDraggingSplit, setIsDraggingSplit] = useState(false);
+    const [dragIndicatorY, setDragIndicatorY] = useState(0);
+    const [isReferencesCollapsed, setIsReferencesCollapsed] = useState(false);
+    const [conversationsState, setConversationsState] = useState(() => getConversations());
+    const [activeConversationId, setActiveConversationIdState] = useState(() => getActiveConversationId());
+    const [isConversationLoading, setIsConversationLoading] = useState(false);
+    const [loadingConversationId, setLoadingConversationId] = useState(null);
+    const [conversationBookmarks, setConversationBookmarksState] = useState(() => getConversationBookmarks());
+    const [showReloadPrompt, setShowReloadPrompt] = useState(
+        () => getStoredProcessingFlag() || getStoredIncompleteFlag()
+    );
+    const [isEditingChatTitle, setIsEditingChatTitle] = useState(false);
+    const [chatTitleDraft, setChatTitleDraft] = useState('');
+    const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
     const messagesEndRef = useRef(null);
     const abortControllerRef = useRef(null);
+    const thinkingStepsRef = useRef([]);
+    const prevSelectedMessageIndexRef = useRef(null);
+    const lastAutoSelectedRef = useRef(null);
+    const sessionIdRef = useRef(null);
+    const hasConsumedInitialQueryRef = useRef(false);
+    const activeConversationIdRef = useRef(getActiveConversationId());
+    const loadingConversationIdRef = useRef(null);
+    const activeStreamIdRef = useRef(null);
+    const splitContainerRef = useRef(null);
+    const isDraggingSplitRef = useRef(false);
     const navigate = useNavigate();
+    const { isAuthenticated, loading: authLoading } = useAuth();
+
+    const refreshTierStatus = useCallback(async () => {
+        if (authLoading || !isAuthenticated) {
+            setIsQueryLimitReached(false);
+            return;
+        }
+        const result = await getMyTier();
+        if (!result.success) return;
+        setIsQueryLimitReached(isFreePlanLimitReached(result.data));
+    }, [authLoading, isAuthenticated]);
 
     const llmService = useMemo(() => new LLMAgentService(), []);
+    const isLimitReachedEffective = isQueryLimitReached || DEBUG_FORCE_LIMIT_WARNING;
+    const showLimitWarning = isLimitReachedEffective;
+    const activeConversation = useMemo(() => {
+        const currentId = activeConversationIdRef.current || activeConversationId;
+        if (!currentId) return null;
+        return conversationsState.find((item) => String(item.id) === String(currentId)) || null;
+    }, [activeConversationId, conversationsState]);
+    const chatTitle = useMemo(() => {
+        if (activeConversation?.leadingTitle) return activeConversation.leadingTitle;
+        const firstUser = chatHistory.find((msg) => msg.role === 'user');
+        if (firstUser?.content) return firstUser.content;
+        return 'New Chat';
+    }, [activeConversation, chatHistory]);
+    const isConversationBookmarked = useMemo(() => {
+        const currentId = activeConversationIdRef.current || activeConversationId;
+        if (!currentId) return false;
+        return conversationBookmarks.some((item) => String(item.id) === String(currentId));
+    }, [activeConversationId, conversationBookmarks]);
+
+    useEffect(() => {
+        activeConversationIdRef.current = activeConversationId;
+    }, [activeConversationId]);
+
+    useEffect(() => {
+        if (authLoading || !isAuthenticated) {
+            setConversationBookmarksState([]);
+            return undefined;
+        }
+
+        let isMounted = true;
+        const update = (event) => {
+            const next = event?.detail || getConversationBookmarks();
+            if (!isMounted) return;
+            setConversationBookmarksState(next);
+        };
+
+        fetchConversationBookmarks()
+            .then((list) => {
+                if (!isMounted) return;
+                setConversationBookmarksState(list);
+            })
+            .catch(() => update());
+
+        window.addEventListener('glkb-conversation-bookmarks-updated', update);
+        return () => {
+            isMounted = false;
+            window.removeEventListener('glkb-conversation-bookmarks-updated', update);
+        };
+    }, [authLoading, isAuthenticated]);
+
+    useEffect(() => {
+        refreshTierStatus();
+    }, [refreshTierStatus]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const initializeConversations = async () => {
+            const cached = getConversations();
+            let nextActiveId = getActiveConversationId();
+            const hasInitialQuery = Boolean(location.state?.initialQuery);
+            const hasConversationId = Boolean(location.state?.conversationId);
+            const shouldSkipRestore = hasInitialQuery || hasConversationId;
+
+            if (cached.length > 0) {
+                setConversationsState(cached);
+            }
+
+            try {
+                const list = await fetchConversations();
+                if (!isMounted) return;
+                setConversationsState(list);
+
+                if (!shouldSkipRestore && !nextActiveId && list.length > 0) {
+                    nextActiveId = list[0].id;
+                    setActiveConversationId(nextActiveId);
+                }
+            } catch (error) {
+                logDev('[LLM] Failed to load conversations', error);
+            }
+
+            if (shouldSkipRestore) {
+                return;
+            }
+
+            if (nextActiveId) {
+                const targetId = String(nextActiveId);
+                loadingConversationIdRef.current = targetId;
+                setLoadingConversationId(targetId);
+                setIsConversationLoading(true);
+                try {
+                    const detail = await fetchConversationDetail(nextActiveId);
+                    if (!isMounted) return;
+                    sessionIdRef.current = getStoredSessionId(nextActiveId);
+                    setChatHistory(detail?.messages || []);
+                    setActiveConversationIdState(String(nextActiveId));
+                    activeConversationIdRef.current = String(nextActiveId);
+                } catch (error) {
+                    logDev('[LLM] Failed to load conversation detail', error);
+                } finally {
+                    if (isMounted && loadingConversationIdRef.current === targetId) {
+                        setIsConversationLoading(false);
+                        setLoadingConversationId(null);
+                    }
+                }
+            } else {
+                setActiveConversationIdState(null);
+                activeConversationIdRef.current = null;
+                setIsConversationLoading(false);
+                setLoadingConversationId(null);
+            }
+        };
+
+        initializeConversations();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    const cancelStreaming = useCallback((options = {}) => {
+        const { abort = true } = options;
+        if (abort && abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = null;
+        activeStreamIdRef.current = null;
+        setIsLoading(false);
+        setIsProcessing(false);
+        setStreamingGroups([]);
+        setStreamingStepName('');
+        thinkingStepsRef.current = [];
+    }, []);
+
+    useEffect(() => {
+        const conversationId = location.state?.conversationId;
+        if (!conversationId) return;
+        let isMounted = true;
+
+        const loadConversation = async () => {
+            cancelStreaming({ abort: false });
+            const targetId = String(conversationId);
+            loadingConversationIdRef.current = targetId;
+            setLoadingConversationId(targetId);
+            setIsConversationLoading(true);
+            try {
+                const detail = await fetchConversationDetail(conversationId);
+                if (!isMounted) return;
+                const nextId = String(detail?.id || conversationId);
+                setConversationsState(getConversations());
+                setActiveConversationId(nextId);
+                setActiveConversationIdState(nextId);
+                activeConversationIdRef.current = nextId;
+                sessionIdRef.current = getStoredSessionId(nextId);
+                lastAutoSelectedRef.current = null;
+                setHoveredPubmedId(null);
+                setChatHistory(detail?.messages || []);
+                setSelectedMessageIndex(null);
+                setShowReloadPrompt(false);
+                llmService.clearHistory();
+            } catch (error) {
+                logDev('[LLM] Failed to load selected conversation', error);
+            } finally {
+                if (isMounted && loadingConversationIdRef.current === targetId) {
+                    setIsConversationLoading(false);
+                    setLoadingConversationId(null);
+                }
+            }
+        };
+
+        loadConversation();
+        return () => {
+            isMounted = false;
+        };
+    }, [location.state, cancelStreaming, llmService]);
+
+    const startNewConversation = useCallback(() => {
+        cancelStreaming();
+        setChatHistory([]);
+        setSelectedMessageIndex(null);
+        lastAutoSelectedRef.current = null;
+        setHoveredPubmedId(null);
+        sessionIdRef.current = null;
+        setStreamingStepName('');
+        setShowReloadPrompt(false);
+        setIsConversationLoading(false);
+        setLoadingConversationId(null);
+        loadingConversationIdRef.current = null;
+        setActiveConversationIdState(null);
+        activeConversationIdRef.current = null;
+        setActiveConversationId(null);
+        llmService.clearHistory();
+    }, [cancelStreaming, llmService]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -80,14 +1173,146 @@ function LLMAgent() {
 
     useEffect(() => {
         scrollToBottom();
-    }, [chatHistory, streamingSteps]);
+    }, [chatHistory, streamingGroups]);
 
     useEffect(() => {
-        if (location.state && location.state.initialQuery && chatHistory.length === 0) {
+        if (typeof window === 'undefined') return;
+        sessionStorage.setItem('llmChatHistory', JSON.stringify(chatHistory));
+    }, [chatHistory]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        sessionStorage.setItem('llmWasProcessing', isProcessing ? 'true' : 'false');
+    }, [isProcessing]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const handlePageShow = (event) => {
+            if (event.persisted && isProcessing) {
+                setShowReloadPrompt(true);
+            }
+        };
+        window.addEventListener('pageshow', handlePageShow);
+        return () => window.removeEventListener('pageshow', handlePageShow);
+    }, [isProcessing]);
+
+    useEffect(() => {
+        if (location.state && location.state.initialQuery && !hasConsumedInitialQueryRef.current) {
+            hasConsumedInitialQueryRef.current = true;
             const query = location.state.initialQuery;
-            handleExampleClick(query);
+            if (!isLoading) {
+                startNewConversation();
+                handleSubmit(null, query, null, { forceNewConversation: true });
+            }
         }
-    }, [location.state]);
+    }, [location.state, isLoading, startNewConversation]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (!activeConversationIdRef.current) return;
+        const currentList = getConversations();
+        const active = currentList.find((item) => item.id === activeConversationIdRef.current);
+        const storedMessages = active?.messages || [];
+        if (areMessagesEqual(storedMessages, chatHistory)) return;
+        const nextList = updateConversationMessages(
+            currentList,
+            activeConversationIdRef.current,
+            chatHistory
+        );
+        setConversationsState(nextList);
+        setConversations(nextList);
+    }, [chatHistory]);
+
+    const collapseReferences = useCallback((widthToStore) => {
+        if (isReferencesCollapsed) return;
+        const nextWidth = Number.isFinite(widthToStore) ? widthToStore : leftPaneWidth;
+        setLeftPaneWidth(100);
+        setIsReferencesCollapsed(true);
+    }, [isReferencesCollapsed, leftPaneWidth]);
+
+    const expandReferences = useCallback(() => {
+        let nextWidth = DEFAULT_LEFT_PERCENT;
+
+        if (splitContainerRef.current) {
+            const rect = splitContainerRef.current.getBoundingClientRect();
+            const availableWidth = Math.max(1, rect.width - DIVIDER_PX);
+            const minLeftPercent = Math.min(100, (LEFT_MIN_PX / availableWidth) * 100);
+            const maxLeftPercent = Math.max(0, 100 - (RIGHT_MIN_PX / availableWidth) * 100);
+            const safeMin = Math.min(minLeftPercent, maxLeftPercent);
+            const safeMax = Math.max(minLeftPercent, maxLeftPercent);
+            nextWidth = Math.min(safeMax, Math.max(safeMin, nextWidth));
+        } else {
+            nextWidth = Math.min(FALLBACK_MAX_LEFT_PERCENT, Math.max(FALLBACK_MIN_LEFT_PERCENT, nextWidth));
+        }
+
+        setLeftPaneWidth(nextWidth);
+        setIsReferencesCollapsed(false);
+    }, []);
+
+    const updateSplitWidth = useCallback((clientX) => {
+        if (!splitContainerRef.current) return;
+        if (isReferencesCollapsed) return;
+        const rect = splitContainerRef.current.getBoundingClientRect();
+        const availableWidth = Math.max(1, rect.width - DIVIDER_PX);
+        const offset = clientX - rect.left;
+        const nextWidth = (offset / rect.width) * 100;
+        const minLeftPercent = Math.min(100, (LEFT_MIN_PX / availableWidth) * 100);
+        const maxLeftPercent = Math.max(0, 100 - (RIGHT_MIN_PX / availableWidth) * 100);
+        const safeMin = Math.min(minLeftPercent, maxLeftPercent);
+        const safeMax = Math.max(minLeftPercent, maxLeftPercent);
+        const collapseThreshold = Math.min(FALLBACK_COLLAPSE_THRESHOLD, safeMax + 2);
+
+        if (nextWidth >= collapseThreshold) {
+            const clamped = Math.min(safeMax, Math.max(safeMin, nextWidth));
+            collapseReferences(clamped);
+            return;
+        }
+        const clamped = Math.min(safeMax, Math.max(safeMin, nextWidth));
+        setLeftPaneWidth(clamped);
+    }, [collapseReferences, isReferencesCollapsed]);
+
+    const updateSplitIndicator = useCallback((clientY) => {
+        if (!splitContainerRef.current) return;
+        const rect = splitContainerRef.current.getBoundingClientRect();
+        const offset = clientY - rect.top;
+        const clamped = Math.min(rect.height, Math.max(0, offset));
+        setDragIndicatorY(clamped);
+    }, []);
+
+    const handleSplitMouseDown = (event) => {
+        if (isReferencesCollapsed) return;
+        event.preventDefault();
+        isDraggingSplitRef.current = true;
+        setIsDraggingSplit(true);
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        updateSplitWidth(event.clientX);
+        updateSplitIndicator(event.clientY);
+    };
+
+    useEffect(() => {
+        const handleMouseMove = (event) => {
+            if (!isDraggingSplitRef.current) return;
+            updateSplitWidth(event.clientX);
+            updateSplitIndicator(event.clientY);
+        };
+
+        const handleMouseUp = () => {
+            if (!isDraggingSplitRef.current) return;
+            isDraggingSplitRef.current = false;
+            setIsDraggingSplit(false);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [updateSplitWidth, updateSplitIndicator]);
+
 
     useEffect(() => {
         const container = document.querySelector('.chat-container');
@@ -108,11 +1333,39 @@ function LLMAgent() {
             }
         };
 
+        const handleReferenceClick = (e) => {
+            const link = e.target.closest('a[href*="pubmed.ncbi.nlm.nih.gov"]');
+            if (!link || !link.href) return;
+            e.preventDefault();
+            const pubmedId = link.href.split('/').filter(Boolean).pop();
+            if (!pubmedId) return;
+            const messageCard = link.closest('.message-card');
+            const messageIndex = messageCard ? Number(messageCard.dataset.messageIndex) : null;
+            const messageRole = messageCard?.dataset?.messageRole;
+            if (Number.isFinite(messageIndex) && messageRole === 'assistant') {
+                handleMessageClick(messageIndex);
+            } else if (isReferencesCollapsed) {
+                expandReferences();
+            }
+            setHoveredPubmedId(pubmedId);
+        };
+
+        const handleMouseLeave = () => {
+            setHoveredPubmedId(null);
+        };
+
         container.addEventListener('mouseover', handleMouseOver);
         container.addEventListener('mouseout', handleMouseOut);
+        container.addEventListener('click', handleReferenceClick);
+        container.addEventListener('mouseleave', handleMouseLeave);
 
         const links = container.querySelectorAll('a');
         links.forEach(link => {
+            if (link.href && link.href.includes('pubmed.ncbi.nlm.nih.gov')) {
+                link.removeAttribute('target');
+                link.removeAttribute('rel');
+                return;
+            }
             link.setAttribute('target', '_blank');
             link.setAttribute('rel', 'noopener noreferrer');
         });
@@ -120,37 +1373,34 @@ function LLMAgent() {
         return () => {
             container.removeEventListener('mouseover', handleMouseOver);
             container.removeEventListener('mouseout', handleMouseOut);
+            container.removeEventListener('click', handleReferenceClick);
+            container.removeEventListener('mouseleave', handleMouseLeave);
         };
-    }, [chatHistory]);
+    }, [chatHistory, expandReferences, isReferencesCollapsed]);
 
     const parseReferences = (refs) => {
         if (!refs || !Array.isArray(refs)) return [];
 
-        return refs.map(ref => {
+        return refs.map((ref) => {
             if (Array.isArray(ref)) {
-                const [title, pubmed_url, citation_count, year, journal, authors] = ref;
-                const pmid = typeof pubmed_url === 'string'
-                    ? pubmed_url.split('/').filter(Boolean).pop()
-                    : '';
+                const [title, pubmedUrl, citationCount, year, journal, authors] = ref;
                 return {
-                    title: title,
-                    url: pubmed_url,
-                    citation_count: citation_count,
-                    year: year,
-                    journal: journal,
+                    title,
+                    url: pubmedUrl,
+                    citation_count: citationCount,
+                    year,
+                    journal,
                     authors: Array.isArray(authors) ? authors.join(', ') : 'Authors not available',
-                    pmid,
+                    evidence: [],
                 };
             }
-
             const title = ref?.title || '';
-            const pmid = ref?.pmid || '';
-            const url = ref?.url || (pmid ? `https://pubmed.ncbi.nlm.nih.gov/${pmid}/` : '');
+            const url = ref?.url || '';
             const citationCount = ref?.n_citation ?? ref?.citation_count ?? 0;
             const year = ref?.date ?? ref?.year ?? '';
             const journal = ref?.journal || '';
             const authors = Array.isArray(ref?.authors) ? ref.authors.join(', ') : 'Authors not available';
-
+            const evidence = Array.isArray(ref?.evidence) ? ref.evidence : [];
             return {
                 title,
                 url,
@@ -158,17 +1408,27 @@ function LLMAgent() {
                 year,
                 journal,
                 authors,
-                pmid: pmid || (url ? url.split('/').filter(Boolean).pop() : ''),
+                evidence,
             };
         });
     };
 
-    const handleSubmit = async (e, input = null, t = null) => {
+    const handleSubmit = async (e, input = null, t = null, options = {}) => {
         const inputText = input || userInput;
         e && e.preventDefault();
-        if (!inputText.trim() || isLoading) return;
+        if (!inputText.trim() || isLoading || isLimitReachedEffective) return;
+
+        const shouldStartNewConversation = options.forceNewConversation || !activeConversationIdRef.current;
+        const baseHistory = Array.isArray(options.baseHistory)
+            ? options.baseHistory
+            : (shouldStartNewConversation ? [] : chatHistory);
+        const streamId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        activeStreamIdRef.current = streamId;
+
+        setShowReloadPrompt(false);
 
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const requestStartedAt = Date.now();
 
         // Create new user message
         const newMessage = {
@@ -178,32 +1438,47 @@ function LLMAgent() {
             timestamp: t || timestamp
         };
 
+        let historyId = activeConversationIdRef.current;
+        if (shouldStartNewConversation) {
+            try {
+                const leadingTitle = inputText.trim().slice(0, 200) || null;
+                const conversation = await createConversation(leadingTitle);
+                const nextList = upsertConversation(getConversations(), conversation);
+                setConversationsState(nextList);
+                setConversations(nextList);
+                historyId = conversation?.id || null;
+                setActiveConversationIdState(historyId);
+                activeConversationIdRef.current = historyId;
+                if (historyId) {
+                    setActiveConversationId(historyId);
+                }
+            } catch (error) {
+                logDev('[LLM] Failed to create conversation', error);
+            }
+        }
+        sessionIdRef.current = getStoredSessionId(historyId) || sessionIdRef.current;
+
         // Update chat history with user message
-        setChatHistory(prev => [...prev, newMessage]);
+        setChatHistory([...baseHistory, newMessage]);
         setUserInput('');
         setIsLoading(true);
         setIsProcessing(true);
-        setStreamingSteps([]);
+        setStreamingGroups([]);
+        setStreamingStepName('');
+        thinkingStepsRef.current = [];
 
         try {
-            // Convert chat history to format expected by backend
-            const conversationHistory = chatHistory.map(msg => ({
-                role: msg.role,
-                content: msg.content
-            }));
-
-            // Add current message to history
-            conversationHistory.push({
-                role: newMessage.role,
-                content: newMessage.content
-            });
+            logDev('[LLM] submit', { input: inputText });
 
             // Append a blank message
             setChatHistory(prev => [...prev, {
                 role: 'assistant',
                 content: '',
                 references: [],
-                timestamp: timestamp
+                timestamp: timestamp,
+                thinkingSteps: [],
+                thoughtDurationMs: null,
+                trajectory: null,
             }]);
 
             if (abortControllerRef.current) {
@@ -212,49 +1487,94 @@ function LLMAgent() {
             const abortController = new AbortController();
             abortControllerRef.current = abortController;
             await llmService.chat(inputText, abortControllerRef.current, (update) => {
+                const isActiveStream = activeStreamIdRef.current === streamId;
+                if (!isActiveStream && update.type !== 'saved') {
+                    return;
+                }
+                logDev('[LLM] update', update);
                 switch (update.type) {
                     case 'step':
-                        if (update.step === 'Error') {
-                            setIsProcessing(false);
-                            setChatHistory(prev => {
-                                const newHistory = [...prev];
-                                const assistantMessage = {
-                                    role: 'assistant',
-                                    content: update.content,
-                                    references: [],
-                                    timestamp: timestamp
-                                };
-                                newHistory[newHistory.length - 1] = assistantMessage;
+                        if (!isActiveStream) return;
+                        {
+                            const rawContent = update.content ?? '';
+                            const hasContent = Boolean(rawContent.trim());
+                            if (update.step === 'Error') {
+                                setIsProcessing(false);
+                                setStreamingStepName('');
+                                setChatHistory(prev => {
+                                    const newHistory = [...prev];
+                                    const assistantMessage = {
+                                        role: 'assistant',
+                                        content: update.content,
+                                        references: [],
+                                        timestamp: timestamp,
+                                        thinkingSteps: thinkingStepsRef.current,
+                                        thoughtDurationMs: Date.now() - requestStartedAt
+                                    };
+                                    newHistory[newHistory.length - 1] = assistantMessage;
 
-                                // Update the LLMAgentService's internal message history
-                                llmService.updateMessages(update.answer);
+                                    // Update the LLMAgentService's internal message history
+                                    llmService.updateMessages(update.answer);
 
-                                return newHistory;
-                            });
-                            setSelectedMessageIndex(chatHistory.length + 1);
-                            break;
-                        }
-                        setStreamingSteps(prev => {
-                            const newSteps = [...prev];
-                            const cleanContent = update.content.replace(/\u001b\[\d+m/g, '').trim();
-                            if (cleanContent) {
-                                newSteps.push({
-                                    step: update.step,
-                                    content: cleanContent
+                                    return newHistory;
+                                });
+                                setSelectedMessageIndex(chatHistory.length + 1);
+                                break;
+                            }
+                            if (hasContent) {
+                                const newEntry = { step: update.step, content: rawContent };
+                                thinkingStepsRef.current = [...thinkingStepsRef.current, newEntry];
+                                const parsedEntry = parseThinkingEntry(newEntry);
+                                if (parsedEntry.stepName) {
+                                    setStreamingStepName(parsedEntry.stepName);
+                                }
+
+                                setStreamingGroups((prev) => {
+                                    if (!parsedEntry.line.trim()) {
+                                        return prev;
+                                    }
+
+                                    const lastGroup = prev[prev.length - 1];
+                                    if (!lastGroup || lastGroup.name !== parsedEntry.stepName) {
+                                        return [
+                                            ...prev,
+                                            {
+                                                name: parsedEntry.stepName,
+                                                lines: parsedEntry.line ? [parsedEntry.line] : []
+                                            }
+                                        ];
+                                    }
+
+                                    if (!parsedEntry.line) {
+                                        return prev;
+                                    }
+
+                                    const updatedLast = {
+                                        ...lastGroup,
+                                        lines: [...lastGroup.lines, parsedEntry.line]
+                                    };
+                                    return [...prev.slice(0, -1), updatedLast];
                                 });
                             }
-                            return newSteps;
-                        });
+                        }
                         break;
                     case 'final':
+                        if (!isActiveStream) return;
+                        if (update.sessionId) {
+                            sessionIdRef.current = update.sessionId;
+                        }
                         setIsProcessing(false);
+                        setStreamingStepName('');
                         setChatHistory(prev => {
                             const newHistory = [...prev];
                             const assistantMessage = {
                                 role: 'assistant',
                                 content: update.answer,
                                 references: parseReferences(update.references),
-                                timestamp: timestamp
+                                timestamp: timestamp,
+                                thinkingSteps: thinkingStepsRef.current,
+                                thoughtDurationMs: Date.now() - requestStartedAt,
+                                trajectory: update.trajectory || null,
                             };
                             newHistory[newHistory.length - 1] = assistantMessage;
 
@@ -265,38 +1585,95 @@ function LLMAgent() {
                         });
                         setSelectedMessageIndex(chatHistory.length + 1);
                         break;
+                    case 'saved': {
+                        if (isActiveStream) {
+                            const savedId = update.historyId ? String(update.historyId) : null;
+                            if (savedId && savedId !== activeConversationIdRef.current) {
+                                setActiveConversationId(savedId);
+                                setActiveConversationIdState(savedId);
+                                activeConversationIdRef.current = savedId;
+                            }
+                            if (savedId) {
+                                const nextSessionId = update.sessionId || sessionIdRef.current;
+                                if (nextSessionId) {
+                                    sessionIdRef.current = nextSessionId;
+                                    setStoredSessionId(savedId, nextSessionId);
+                                }
+                            }
+                            if (update.invocationId) {
+                                setChatHistory((prev) => {
+                                    const next = [...prev];
+                                    let assistantIndex = -1;
+                                    for (let i = next.length - 1; i >= 0; i -= 1) {
+                                        if (next[i]?.role === 'assistant') {
+                                            assistantIndex = i;
+                                            break;
+                                        }
+                                    }
+                                    if (assistantIndex < 0) return prev;
+                                    const userIndex = assistantIndex - 1;
+                                    if (userIndex < 0) return prev;
+                                    next[userIndex] = { ...next[userIndex], invocationId: update.invocationId };
+                                    next[assistantIndex] = { ...next[assistantIndex], invocationId: update.invocationId };
+                                    return next;
+                                });
+                            }
+                        }
+                        fetchConversations()
+                            .then((list) => setConversationsState(list))
+                            .catch((error) => logDev('[LLM] Failed to refresh conversations', error));
+                        break;
+                    }
                     case 'error': // unsure if this is used
+                        if (!isActiveStream) return;
                         setIsProcessing(false);
+                        setStreamingStepName('');
                         setChatHistory(prev => {
                             const newHistory = [...prev];
                             const errorMessage = {
                                 role: 'assistant',
                                 content: `Error: ${update.error}`,
                                 references: [],
-                                timestamp: timestamp
+                                timestamp: timestamp,
+                                thinkingSteps: thinkingStepsRef.current,
+                                thoughtDurationMs: Date.now() - requestStartedAt
                             };
                             newHistory[newHistory.length - 1] = errorMessage;
                             return newHistory;
                         });
                         break;
                 }
-            }, conversationHistory); // Pass the conversation history to chat method
+            }, {
+                historyId,
+                sessionId: sessionIdRef.current
+            });
         } catch (error) {
             console.error('Error in chat:', error);
-            setChatHistory(prev => {
-                const newHistory = [...prev];
-                const errorMessage = {
-                    role: 'assistant',
-                    content: 'Sorry, I encountered an error while processing your request. Please try again.',
-                    references: [],
-                    timestamp: timestamp
-                };
-                newHistory[newHistory.length - 1] = errorMessage;
-                return newHistory;
-            });
+            if (error?.response?.status === 429) {
+                setIsQueryLimitReached(true);
+            }
+            if (activeStreamIdRef.current === streamId) {
+                setChatHistory(prev => {
+                    const newHistory = [...prev];
+                    const errorMessage = {
+                        role: 'assistant',
+                        content: 'Sorry, I encountered an error while processing your request. Please try again.',
+                        references: [],
+                        timestamp: timestamp,
+                        thinkingSteps: thinkingStepsRef.current,
+                        thoughtDurationMs: Date.now() - requestStartedAt
+                    };
+                    newHistory[newHistory.length - 1] = errorMessage;
+                    return newHistory;
+                });
+            }
         } finally {
-            setIsLoading(false);
-            setIsProcessing(false);
+            refreshTierStatus();
+            if (activeStreamIdRef.current === streamId) {
+                setIsLoading(false);
+                setIsProcessing(false);
+                activeStreamIdRef.current = null;
+            }
         }
     };
 
@@ -308,9 +1685,24 @@ function LLMAgent() {
 
     const handleSaveEdit = async (e, index, content) => {
         if (content.trim() === '' || isLoading) return;
+        const historyId = activeConversationIdRef.current;
+        if (!historyId) return;
+        const invocationId = await ensureInvocationIdForIndex(index);
+        if (!invocationId) {
+            message.error('Unable to edit this message right now.');
+            return;
+        }
+
+        try {
+            await llmService.rewind(historyId, invocationId);
+        } catch (error) {
+            message.error('Unable to rewind conversation. Please try again.');
+            return;
+        }
         const editedHistory = chatHistory.slice(0, index);
         setChatHistory(editedHistory);
-        handleSubmit(e, content);
+        setShowReloadPrompt(false);
+        handleSubmit(e, content, null, { baseHistory: editedHistory });
     };
 
     const handleCopyMessage = (content) => {
@@ -325,17 +1717,103 @@ function LLMAgent() {
     };
 
     const handleClear = () => {
-        setChatHistory([]);
-        setSelectedMessageIndex(null);
-        setStreamingSteps([]);
-        llmService.clearHistory();
+        startNewConversation();
+        navigate('/');
+    };
+
+    const handleToggleConversationBookmark = async () => {
+        if (authLoading) return;
+        if (!isAuthenticated) {
+            navigate('/login');
+            return;
+        }
+        const currentId = activeConversationIdRef.current || activeConversationId;
+        if (!currentId) return;
+        const entry = {
+            id: String(currentId),
+            title: chatTitle,
+            updatedAt: activeConversation?.updatedAt || new Date().toISOString(),
+            messageCount: activeConversation?.messageCount ?? chatHistory.length,
+        };
+        try {
+            const next = await toggleConversationBookmark(entry);
+            setConversationBookmarksState(next);
+        } catch (error) {
+            setConversationBookmarksState(getConversationBookmarks());
+        }
+    };
+
+    const handleEditChatTitle = () => {
+        if (authLoading) return;
+        if (!isAuthenticated) {
+            navigate('/login');
+            return;
+        }
+        const currentId = activeConversationIdRef.current || activeConversationId;
+        if (!currentId) return;
+        setChatTitleDraft(chatTitle || '');
+        setIsEditingChatTitle(true);
+    };
+
+    const handleCancelChatTitleEdit = () => {
+        setIsEditingChatTitle(false);
+        setChatTitleDraft('');
+    };
+
+    const handleConfirmChatTitleEdit = async () => {
+        if (authLoading) return;
+        if (!isAuthenticated) {
+            navigate('/login');
+            return;
+        }
+        const currentId = activeConversationIdRef.current || activeConversationId;
+        if (!currentId) return;
+        const currentTitle = chatTitle || '';
+        const trimmed = chatTitleDraft.trim();
+        if (!trimmed || trimmed === currentTitle) {
+            handleCancelChatTitleEdit();
+            return;
+        }
+        try {
+            await updateConversationTitle(currentId, trimmed);
+            setConversationsState(getConversations());
+            handleCancelChatTitleEdit();
+        } catch (error) {
+            message.error('Unable to update chat title');
+        }
     };
 
     const handleMessageClick = (index) => {
         if (chatHistory[index].role === 'assistant') {
+            if (isReferencesCollapsed) {
+                expandReferences();
+            }
+            prevSelectedMessageIndexRef.current = null;
             setSelectedMessageIndex(index);
         }
     };
+
+    useEffect(() => {
+        if (!chatHistory.length) {
+            lastAutoSelectedRef.current = null;
+            setSelectedMessageIndex(null);
+            return;
+        }
+        if (isProcessing) return;
+
+        let lastAssistantIndex = -1;
+        for (let i = chatHistory.length - 1; i >= 0; i -= 1) {
+            if (chatHistory[i]?.role === 'assistant') {
+                lastAssistantIndex = i;
+                break;
+            }
+        }
+        if (lastAssistantIndex < 0) return;
+        if (lastAutoSelectedRef.current === lastAssistantIndex) return;
+
+        lastAutoSelectedRef.current = lastAssistantIndex;
+        setSelectedMessageIndex(lastAssistantIndex);
+    }, [chatHistory, isProcessing]);
 
     // useEffect(() => {
     //     if (!isLoading && !isProcessing && chatHistory.length > 0) {
@@ -351,209 +1829,74 @@ function LLMAgent() {
 
     const handleExampleClick = async (query) => {
         if (isLoading) return;
-
-        setChatHistory(_ => []);
-        handleSubmit(null, query);
+        startNewConversation();
+        handleSubmit(null, query, null, { forceNewConversation: true });
     };
 
-    const handleRegenerateResponse = (e, index) => {
+    const getInvocationIdForTurn = (messages, targetIndex) => {
+        if (!Array.isArray(messages)) return null;
+        const direct = messages[targetIndex]?.invocationId;
+        if (direct) return direct;
+        const prev = messages[targetIndex - 1];
+        return prev?.invocationId || null;
+    };
+
+    const ensureInvocationIdForIndex = async (targetIndex) => {
+        const existing = getInvocationIdForTurn(chatHistory, targetIndex);
+        if (existing) return existing;
+        const historyId = activeConversationIdRef.current;
+        if (!historyId) return null;
+        try {
+            const detail = await fetchConversationDetail(historyId);
+            const refreshed = detail?.messages || [];
+            setChatHistory(refreshed);
+            return getInvocationIdForTurn(refreshed, targetIndex);
+        } catch (error) {
+            return null;
+        }
+    };
+
+    const handleRegenerateResponse = async (e, index) => {
         if (isLoading) return;
+        const historyId = activeConversationIdRef.current;
+        if (!historyId) return;
 
+        const assistantMessage = chatHistory[index];
+        if (!assistantMessage || assistantMessage.role !== 'assistant') return;
         const userMessage = chatHistory[index - 1];
-        const newChatHistory = chatHistory.slice(0, index - 1);
-        setChatHistory(newChatHistory);
+        if (!userMessage || userMessage.role !== 'user') return;
 
-        handleSubmit(e, userMessage.content, userMessage.timestamp);
+        const invocationId = await ensureInvocationIdForIndex(index);
+        if (!invocationId) {
+            message.error('Unable to regenerate this response right now.');
+            return;
+        }
+
+        try {
+            await llmService.rewind(historyId, invocationId);
+        } catch (error) {
+            message.error('Unable to rewind conversation. Please try again.');
+            return;
+        }
+        const trimmedHistory = chatHistory.slice(0, index - 1);
+        setChatHistory(trimmedHistory);
+        setShowReloadPrompt(false);
+        handleSubmit(e, userMessage.content, null, { baseHistory: trimmedHistory });
     };
 
-    const MessageCard = ({ index, message, refresh, copy, save, goref, GetSteps, downloadConversation }) => {
-        const isAssistant = message.role === "assistant";
-        const isLastUserMessage = index === chatHistory.length - 1 && message.role === 'assistant';
-        const isLoading = isProcessing && isLastUserMessage;
-        const messageID = index;
-        const timestamp = message.timestamp || "";
-        const [editContent, setEditContent] = useState('');
-        const [isEditing, setIsEditing] = useState(false);
-
-        return (
-            <div className="message-card">
-                <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: "5px", justifyContent: "flex-end" }}>
-                    {!isAssistant && (
-                        <Box sx={{ flex: "0 0 auto", width: "80px", textAlign: "right" }}>
-                            <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText", fontFamily: 'Open Sans, sans-serif' }}>{timestamp}</Typography>
-                        </Box>
-                    )}
-                    <Box
-                        sx={{
-                            bgcolor: isAssistant ? "white" : "#EDF5FE", // Different background colors
-                            maxWidth: isAssistant ? "100%" : "80%", // Adjust max width for assistant messages
-                            display: "flex",
-                            alignItems: "flex-start",
-                            px: isAssistant ? "0px" : "24px",
-                            pt: isAssistant ? "12px" : "0px",
-                            pb: isAssistant ? "24px" : "12px",
-                            // border: isAssistant ? "1px solid" : "none",
-                            borderColor: "divider",
-                            borderRadius: "24px",
-                            flex: 1, // Occupy maximum width
-                        }}
-                    >
-                        {isAssistant && (
-                            <Box
-                                sx={{
-                                    m: 2,
-                                    ml: 0,
-                                    width: 32,
-                                    height: 32,
-                                    borderRadius: 16,
-                                    borderStyle: "solid",
-                                    borderColor: "#0169B040",
-                                    borderWidth: "2px",
-                                    justifyContent: "center",
-                                    alignItems: "center",
-                                    display: "flex",
-                                    overflow: "hidden",
-                                    transform: "translateY(-9px)",
-                                }}
-                            >
-                                <img src={systemIcon} alt="Assistant" width="60" height="60" style={{ borderRadius: "50%" }} />
-                            </Box>
-                        )}
-                        <Box sx={{ flex: 1 }}>
-                            {isAssistant && (
-                                <Typography variant="body2" color="textSecondary" sx={{
-                                    fontFamily: "Open Sans, sans-serif", fontSize: "14px", display: "flex", color: "#19213d", alignItems: "center",
-                                    pt: "12px", pb: "12px", fontWeight: 500
-                                }}>
-                                    GLKB AI
-                                    <Box
-                                        component="span"
-                                        sx={{
-                                            mx: 1,
-                                            width: "1px",
-                                            height: "1em",
-                                            bgcolor: "text.secondary",
-                                        }}
-                                    />
-                                    <Typography variant="caption" sx={{ fontSize: "10", color: "GrayText", fontFamily: 'Open Sans, sans-serif' }}>{timestamp}</Typography>
-                                </Typography>
-                            )}
-
-                            <Box mt={1}>
-                                {isLoading ? (<>
-                                    <GetSteps />
-                                    <Box display="flex" justifyContent="center" py={2}>
-                                        <CircularProgress size={24} />
-                                    </Box>
-                                </>
-                                ) :
-                                    isEditing ?
-                                        <TextField
-                                            hiddenLabel
-                                            multiline
-                                            id="filled-hidden-label-small"
-                                            value={editContent}
-                                            variant="filled"
-                                            size="small"
-                                            sx={{ flex: 1, width: "100%" }}
-                                            onChange={(e) => setEditContent(e.target.value)}
-                                        /> : (
-                                            <div className="markdown-body" style={{ fontFamily: 'Open Sans, sans-serif' }}>
-                                                <ReactMarkdown>
-                                                    {message.content}
-                                                </ReactMarkdown>
-                                            </div>
-                                        )}
-                            </Box>
-
-                            {/* Buttons below message */}
-                            {isAssistant && <Box sx={{ justifyContent: "space-between", direction: "row", display: "flex", alignItems: "center", mt: "5px" }}>
-                                <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
-                                    <IconButton size="small" onClick={(e) => refresh(e, messageID)}>
-                                        <RefreshIcon fontSize="small" />
-                                    </IconButton>
-                                    <IconButton size="small" onClick={() => copy(message.content)}>
-                                        <ContentCopyIcon fontSize="small" />
-                                    </IconButton>
-                                    {!isLoading && <IconButton size="small" onClick={() => downloadConversation(messageID)} title="Download this Q&A">
-                                        <DownloadIcon fontSize="small" />
-                                    </IconButton>}
-                                    {isLoading && <IconButton size="small" onClick={() => { if (abortControllerRef.current) abortControllerRef.current.abort(); }}>
-                                        <StopCircleIcon fontSize="small" />
-                                    </IconButton>
-                                    }
-                                </Stack>
-                                <MuiButton
-                                    variant='contained'
-                                    startIcon={<FilePresentIcon />}
-                                    size="small"
-                                    onClick={() => goref(messageID)}
-                                    disabled={isLoading}
-                                    sx={{
-                                        px: "10px",
-                                        fontFamily: 'Open Sans, sans-serif',
-                                        height: "40px",
-                                        borderRadius: "4px",
-                                        border: "none", bgcolor: "#f7f8fa", color: "#19213d",
-                                        "&:hover": {
-                                            bgcolor: "#e1e2e4",
-                                            color: "#09112d",
-                                            boxShadow: index == selectedMessageIndex ? "0 0 0 1px #19213d" : "none",
-                                        },
-                                        boxShadow: index == selectedMessageIndex ? "0 0 0 1px #19213d" : "none",
-                                        mb: "2px"
-                                    }}
-                                >
-                                    {index == selectedMessageIndex ? <b>References</b> : <>References</>}
-                                </MuiButton>
-
-                            </Box>}
-
-                        </Box>
-
-                    </Box>
-
-                </Container>
-                {!isAssistant && <Box sx={{ justifyContent: "flex-end", direction: "row", display: "flex", alignItems: "center" }}>
-                    <Stack direction="row" spacing={1} sx={{ pb: "8px", pr: "24px" }}>
-                        {
-                            isEditing ? <>
-                                <IconButton size="small" onClick={() => {
-                                    setIsEditing(false);
-                                    setEditContent('');
-                                }}>
-                                    <ClearIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton size="small" onClick={(e) => {
-                                    if (editContent.trim() === '') {
-                                        return;
-                                    }
-                                    save(e, messageID, editContent);
-                                    setIsEditing(false);
-                                    setEditContent('');
-                                }}>
-                                    <CheckIcon fontSize="small" />
-                                </IconButton>
-                            </> : <div className="user-message-actions">
-                                <IconButton size="small" onClick={() => copy(message.content)}>
-                                    <ContentCopyIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton size="small" onClick={() => {
-                                    if (isAssistant) return;
-
-                                    setIsEditing(true);
-                                    setEditContent(message.content);
-                                }}>
-                                    <EditNoteIcon fontSize="small" />
-                                </IconButton>
-                            </div>
-                        }
-
-                    </Stack>
-                </Box>}
-            </div>
-        );
+    const handleReloadLatest = () => {
+        if (isLoading) return;
+        const lastIndex = chatHistory.length - 1;
+        if (lastIndex < 1) return;
+        const lastMessage = chatHistory[lastIndex];
+        if (!lastMessage || lastMessage.role !== 'assistant') return;
+        setShowReloadPrompt(false);
+        handleRegenerateResponse(null, lastIndex);
     };
+
+    const handleStopStreaming = useCallback(() => {
+        if (abortControllerRef.current) abortControllerRef.current.abort();
+    }, []);
 
     const renderMessages = () => {
         return (<Box sx={{ p: 2 }}>{chatHistory.map((message, index) => (
@@ -561,29 +1904,19 @@ function LLMAgent() {
                 key={index}
                 index={index}
                 message={message}
+                totalMessages={chatHistory.length}
+                isProcessing={isProcessing}
+                streamingGroups={streamingGroups}
+                streamingStepName={streamingStepName}
+                selectedMessageIndex={selectedMessageIndex}
                 refresh={handleRegenerateResponse}
                 copy={handleCopyMessage}
                 save={handleSaveEdit}
                 goref={handleMessageClick}
                 downloadConversation={handleDownloadConversation}
-                GetSteps={() => {
-                    return (
-                        <Box sx={{ mt: 2 }}>
-                            {streamingSteps.length > 0 ? (
-                                streamingSteps.map((step, stepIndex) => (
-                                    <div key={stepIndex} className="step-item">
-                                        <strong>{step.step}: </strong>
-                                        <span>{step.content}</span>
-                                    </div>
-                                ))
-                            ) : (
-                                <div style={{ color: '#999', fontStyle: 'italic' }}>
-                                    Loading...
-                                </div>
-                            )}
-                        </Box>
-                    );
-                }}
+                showReloadPrompt={showReloadPrompt}
+                onReloadLatest={handleReloadLatest}
+                onStop={handleStopStreaming}
             />
         ))}</Box>);
     };
@@ -593,10 +1926,23 @@ function LLMAgent() {
     const [selectedCitation, setSelectedCitation] = useState(null);
     const [hoveredPubmedId, setHoveredPubmedId] = useState(null);
     const referencesListRef = useRef(null);
+    const isNewChatDisabled = isLoading || chatHistory.length === 0;
+    const newChatColor = isNewChatDisabled ? '#B0B0B0' : '#155DFC';
 
     const references = selectedMessageIndex !== null
         ? chatHistory[selectedMessageIndex]?.references || []
         : [];
+
+    useEffect(() => {
+        if (!hoveredPubmedId) return;
+        const isStillVisible = references.some((ref) => {
+            const pubmedId = ref.url?.split('/')?.filter(Boolean)?.pop();
+            return pubmedId === hoveredPubmedId;
+        });
+        if (!isStillVisible) {
+            setHoveredPubmedId(null);
+        }
+    }, [hoveredPubmedId, references]);
 
     const sortedReferences = useMemo(() => {
         const sorted = [...references];
@@ -607,6 +1953,7 @@ function LLMAgent() {
         }
         return sorted;
     }, [references, sortOption]);
+    const isExportDisabled = sortedReferences.length === 0;
 
     const handleExportReferences = () => {
         if (sortedReferences.length === 0) return;
@@ -649,48 +1996,6 @@ function LLMAgent() {
     const handleCloseCiteDialog = () => {
         setCiteDialogOpen(false);
         setSelectedCitation(null);
-    };
-
-    const generateCitation = (format) => {
-        if (!selectedCitation) return '';
-
-        const title = selectedCitation[0];
-        const pubmedUrl = selectedCitation[1];
-        const year = selectedCitation[3];
-        const journal = selectedCitation[4];
-        const authors = selectedCitation[5];
-        const pubmedId = pubmedUrl.split('/').filter(Boolean).pop();
-
-        switch (format) {
-            case 'MLA':
-                return `${authors}. "${title}." ${journal} ${year}. PubMed ID: ${pubmedId}.`;
-            case 'APA':
-                return `${authors} (${year}). ${title}. ${journal}. PubMed ID: ${pubmedId}.`;
-            case 'Chicago':
-                return `${authors}. "${title}." ${journal} (${year}). PubMed ID: ${pubmedId}.`;
-            case 'Harvard':
-                return `${authors} (${year}). ${title}. ${journal}. PubMed ID: ${pubmedId}.`;
-            case 'Vancouver':
-                return `${authors}. ${title}. ${journal}. ${year}. PubMed ID: ${pubmedId}.`;
-            case 'BibTeX':
-                return `@article{${pubmedId},\n  author = {${authors}},\n  title = {${title}},\n  journal = {${journal}},\n  year = {${year}},\n  note = {PubMed ID: ${pubmedId}}\n}`;
-            case 'EndNote':
-                return `%0 Journal Article\n%A ${authors}\n%T ${title}\n%J ${journal}\n%D ${year}\n%M ${pubmedId}`;
-            default:
-                return '';
-        }
-    };
-
-    const handleCopyCitation = (format) => {
-        const citation = generateCitation(format);
-        navigator.clipboard.writeText(citation)
-            .then(() => {
-                message.success(`${format} citation copied to clipboard`);
-            })
-            .catch(err => {
-                console.error('Failed to copy citation: ', err);
-                message.error('Copy failed');
-            });
     };
 
     useEffect(() => {
@@ -760,106 +2065,16 @@ function LLMAgent() {
                 <meta property="og:title" content="AI Chat - Genomic Literature Knowledge Base | AI-Powered Genomics Search" />
             </Helmet>
 
-            <Dialog
+            <CiteDialog
                 open={citeDialogOpen}
                 onClose={handleCloseCiteDialog}
-                maxWidth="md"
-                fullWidth
-                PaperProps={{
-                    sx: {
-                        borderRadius: '12px',
-                        padding: '8px'
-                    }
-                }}
-            >
-                <DialogTitle sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    fontFamily: 'Open Sans, sans-serif',
-                    fontSize: '20px',
-                    fontWeight: '600'
-                }}>
-                    Cite
-                    <IconButton onClick={handleCloseCiteDialog} size="small">
-                        <CloseIcon />
-                    </IconButton>
-                </DialogTitle>
-                <DialogContent>
-                    <Stack spacing={2}>
-                        {['MLA', 'APA', 'Chicago', 'Harvard', 'Vancouver'].map((format) => (
-                            <Box key={format}>
-                                <Box sx={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    mb: 1
-                                }}>
-                                    <Typography sx={{
-                                        fontFamily: 'Open Sans, sans-serif',
-                                        fontWeight: '600',
-                                        fontSize: '14px'
-                                    }}>
-                                        {format}
-                                    </Typography>
-                                </Box>
-                                <Box sx={{
-                                    backgroundColor: '#f5f5f5',
-                                    padding: '12px',
-                                    borderRadius: '8px',
-                                    fontFamily: 'Open Sans, sans-serif',
-                                    fontSize: '14px',
-                                    cursor: 'pointer',
-                                    '&:hover': {
-                                        backgroundColor: '#ebebeb'
-                                    }
-                                }}
-                                    onClick={() => handleCopyCitation(format)}
-                                >
-                                    {generateCitation(format)}
-                                </Box>
-                            </Box>
-                        ))}
+                citation={selectedCitation}
+            />
 
-                        <Divider sx={{ my: 2 }} />
-
-                        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-                            <MuiButton
-                                variant="outlined"
-                                onClick={() => handleCopyCitation('BibTeX')}
-                                sx={{
-                                    fontFamily: 'Open Sans, sans-serif',
-                                    textTransform: 'none',
-                                    borderRadius: '8px',
-                                    padding: '8px 24px'
-                                }}
-                            >
-                                BibTeX
-                            </MuiButton>
-                            <MuiButton
-                                variant="outlined"
-                                onClick={() => handleCopyCitation('EndNote')}
-                                sx={{
-                                    fontFamily: 'Open Sans, sans-serif',
-                                    textTransform: 'none',
-                                    borderRadius: '8px',
-                                    padding: '8px 24px'
-                                }}
-                            >
-                                EndNote
-                            </MuiButton>
-                        </Box>
-                    </Stack>
-                </DialogContent>
-            </Dialog>
-
-            <div className="result-container">
-                <div className="navbar-wrapper">
-                    <NavBarWhite />
-                </div>
-                <Grid className="main-grid" container sx={{ marginTop: '64px', width: "unset" }} >
-                    <Grid item xs={12} className="subgrid">
-                        <div className="main-content">
+            <div className="llm-page">
+                <Grid className="llm-grid" container sx={{ width: "100%" }}>
+                    <Grid item xs={12} className="llm-subgrid">
+                        <div className="llm-main-content">
                             {/* <MuiButton variant="text" sx={{
                                 color: '#333333',
                                 fontFamily: 'Open Sans, sans-serif',
@@ -872,85 +2087,222 @@ function LLMAgent() {
                                 onClick={() => navigate('/')}>
                                 <ArrowBackIcon />Back
                             </MuiButton> */}
-                            <div className='result-content'>
+                            <div className='llm-content'>
                                 <div className="llm-agent-container">
                                     <div className="chat-and-references">
-                                        <Grid container spacing={'48px'}>
-                                            <Grid item xs={7} height={"100%"}>
+                                        <Box ref={splitContainerRef} className="llm-split" sx={{ display: 'flex', minHeight: 0, height: '100%' }}>
+                                            <Box className="llm-column" sx={{ flex: `0 0 ${leftPaneWidth}%`, minWidth: `${LEFT_MIN_PX}px` }}>
                                                 <div className="chat-container">
                                                     <Box className="llm-header" sx={{
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'space-between',
                                                         padding: '16px',
-                                                        height: '55px',
+                                                        height: '70px',
                                                         borderBottom: '1px solid #E6E6E6',
                                                         marginBottom: '1px',
                                                     }}>
-                                                        <Typography sx={{
-                                                            fontFamily: 'Open Sans, sans-serif',
-                                                            fontSize: '18px',
-                                                            fontWeight: '500',
+                                                        <Box sx={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '8px',
                                                             paddingLeft: '16px',
+                                                            minWidth: 0,
+                                                            flex: 1,
                                                         }}>
-                                                            AI Chat
-                                                        </Typography>
-                                                        <MuiButton onClick={handleClear} disabled={isLoading || chatHistory.length === 0} sx={{
-                                                            width: 92,
-                                                            height: 26,
-                                                            borderRadius: "4px",
-                                                            borderWidth: "1px",
-                                                            padding: "4px",
-                                                            gap: "4px",
-                                                            border: "1px solid #E2E8F0",
-                                                            fontSize: '11px',
-                                                            color: isLoading ? '#e0e0e0' : '#64748B',
-                                                            fontFamily: 'Open Sans, sans-serif',
+                                                            <Typography
+                                                                component="button"
+                                                                type="button"
+                                                                onClick={() => navigate('/')}
+                                                                aria-label="Go to home"
+                                                                sx={{
+                                                                    fontFamily: 'DM Sans, sans-serif',
+                                                                    fontSize: '16px',
+                                                                    fontWeight: 500,
+                                                                    color: '#164563',
+                                                                    textDecoration: 'underline',
+                                                                    background: 'none',
+                                                                    border: 'none',
+                                                                    padding: 0,
+                                                                    cursor: 'pointer',
+                                                                }}>
+                                                                AI Chat
+                                                            </Typography>
+                                                            <Typography sx={{
+                                                                fontFamily: 'DM Sans, sans-serif',
+                                                                fontSize: '16px',
+                                                                fontWeight: 500,
+                                                                color: '#8A8A8A',
+                                                            }}>
+                                                                &gt;
+                                                            </Typography>
+                                                            {isEditingChatTitle ? (
+                                                                <TextField
+                                                                    value={chatTitleDraft}
+                                                                    onChange={(event) => setChatTitleDraft(event.target.value)}
+                                                                    size="small"
+                                                                    autoFocus
+                                                                    onKeyDown={(event) => {
+                                                                        if (event.key === 'Enter') {
+                                                                            event.preventDefault();
+                                                                            handleConfirmChatTitleEdit();
+                                                                        }
+                                                                        if (event.key === 'Escape') {
+                                                                            event.preventDefault();
+                                                                            handleCancelChatTitleEdit();
+                                                                        }
+                                                                    }}
+                                                                    sx={{
+                                                                        maxWidth: '280px',
+                                                                        '& .MuiInputBase-root': {
+                                                                            fontFamily: 'DM Sans, sans-serif',
+                                                                            fontSize: '14px',
+                                                                            fontWeight: 500,
+                                                                            color: '#164563',
+                                                                        },
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                <Typography sx={{
+                                                                    fontFamily: 'DM Sans, sans-serif',
+                                                                    fontSize: '16px',
+                                                                    fontWeight: 600,
+                                                                    color: '#164563',
+                                                                    overflow: 'hidden',
+                                                                    textOverflow: 'ellipsis',
+                                                                    whiteSpace: 'nowrap',
+                                                                    maxWidth: '280px',
+                                                                }}>
+                                                                    {chatTitle}
+                                                                </Typography>
+                                                            )}
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={isEditingChatTitle ? handleConfirmChatTitleEdit : handleEditChatTitle}
+                                                                disabled={
+                                                                    authLoading
+                                                                    || !isAuthenticated
+                                                                    || (!activeConversationIdRef.current && !activeConversationId)
+                                                                }
+                                                                sx={{
+                                                                    padding: '4px',
+                                                                    color: isEditingChatTitle ? '#2c5cf3' : '#8A8A8A',
+                                                                    '&:hover': {
+                                                                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                                                    },
+                                                                }}
+                                                                title={isEditingChatTitle ? 'Save chat title' : 'Edit chat title'}
+                                                            >
+                                                                {isEditingChatTitle ? (
+                                                                    <CheckIcon sx={{ fontSize: 18 }} />
+                                                                ) : (
+                                                                    <EditNoteIcon sx={{ fontSize: 18 }} />
+                                                                )}
+                                                            </IconButton>
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={handleToggleConversationBookmark}
+                                                                disabled={
+                                                                    authLoading
+                                                                    || !isAuthenticated
+                                                                    || (!activeConversationIdRef.current && !activeConversationId)
+                                                                }
+                                                                sx={{
+                                                                    padding: '4px',
+                                                                    color: isConversationBookmarked ? '#2c5cf3' : '#8A8A8A',
+                                                                    '&:hover': {
+                                                                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                                                    },
+                                                                }}
+                                                                title={isConversationBookmarked ? 'Remove bookmark' : 'Bookmark this chat'}
+                                                            >
+                                                                {isConversationBookmarked ? (
+                                                                    <BookmarkIcon sx={{ fontSize: 18 }} />
+                                                                ) : (
+                                                                    <BookmarkBorderIcon sx={{ fontSize: 18 }} />
+                                                                )}
+                                                            </IconButton>
+                                                        </Box>
+                                                        <MuiButton onClick={handleClear} disabled={isNewChatDisabled} sx={{
+                                                            borderRadius: '16px',
+                                                            border: `1px solid ${newChatColor}`,
+                                                            backgroundColor: '#ffffff',
+                                                            color: newChatColor,
+                                                            fontFamily: 'DM Sans, sans-serif',
+                                                            fontSize: '14px',
+                                                            fontWeight: 700,
+                                                            padding: '8px',
+                                                            gap: '6px',
+                                                            textTransform: 'none',
+                                                            opacity: 1,
+                                                            '&.Mui-disabled': {
+                                                                color: newChatColor,
+                                                                border: `1px solid ${newChatColor}`,
+                                                                opacity: 1,
+                                                            },
+                                                            '&:hover': {
+                                                                backgroundColor: '#ffffff',
+                                                            },
                                                         }}>
-                                                            <RateReviewIcon sx={{ fontSize: '15px' }} /> New Chat
+                                                            <AddIcon style={{ width: '16px', height: '16px', color: newChatColor }} />
+                                                            New Chat
                                                         </MuiButton>
                                                     </Box>
                                                     {/* Add example queries section */}
-                                                    {chatHistory.length === 0 && (<div className='empty-components-container'>
-                                                        <div className="empty-page-title" style={{ paddingTop: '1rem' }}>
-                                                            <div style={{ gap: '1rem', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
-                                                                <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '32px', fontWeight: '700', color: "#0169B0" }}>
-                                                                    Explore Biomedical Literature
+                                                    {!isConversationLoading && chatHistory.length === 0 && (
+                                                        <div className='empty-components-container'>
+                                                            <div className="empty-page-title" style={{ paddingTop: '1rem' }}>
+                                                                <div style={{ gap: '1rem', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
+                                                                    <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '32px', fontWeight: '700', color: "#0169B0" }}>
+                                                                        Explore Biomedical Literature
+                                                                    </Typography>
+                                                                    <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '18px', fontWeight: '500', color: "#718096" }}>
+                                                                        AI-powered Genomic Literature Knowledge Base
+                                                                    </Typography>
+                                                                </div>
+                                                            </div>
+                                                            <div className="example-queries-header">
+                                                                <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '16px', fontWeight: '400', color: "#888888", width: '100%', textAlign: 'left' }}>
+                                                                    Try these example queries:
                                                                 </Typography>
-                                                                <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '18px', fontWeight: '500', color: "#718096" }}>
-                                                                    AI-powered Genomic Literature Knowledge Base
-                                                                </Typography>
+                                                                <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '10px', minHeight: '80px' }}>
+                                                                    {
+                                                                        ["What is the role of BRCA1 in breast cancer?",
+                                                                            "How many articles about Alzheimer's disease are published in 2020?",
+                                                                            "What pathways does TP53 participate in?"
+                                                                        ].map((query, index) => (
+                                                                            <div className="example-query" key={index} onClick={() => handleExampleClick(query)}>
+                                                                                {query}
+                                                                            </div>
+                                                                        ))
+                                                                    }
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                        <div className="example-queries-header">
-                                                            <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '16px', fontWeight: '400', color: "#888888", width: '100%', textAlign: 'left' }}>
-                                                                Try these example queries:
-                                                            </Typography>
-                                                            <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '10px', minHeight: '80px' }}>
-                                                                {
-                                                                    ["What is the role of BRCA1 in breast cancer?",
-                                                                        "How many articles about Alzheimer's disease are published in 2020?",
-                                                                        "What pathways does TP53 participate in?"
-                                                                    ].map((query, index) => (
-                                                                        <div className="example-query" key={index} onClick={() => handleExampleClick(query)}>
-                                                                            {query}
-                                                                        </div>
-                                                                    ))
-                                                                }
-                                                            </div>
-                                                        </div>
-                                                    </div>
                                                     )}
 
                                                     <div className="messages-container">
-                                                        {renderMessages()}
+                                                        {!isConversationLoading && renderMessages()}
                                                         <div ref={messagesEndRef} />
                                                     </div>
+                                                    {isConversationLoading && loadingConversationId && (
+                                                        <div className="chat-loading-overlay">
+                                                            <CircularProgress size={28} sx={{ color: '#164563' }} />
+                                                            <Typography sx={{
+                                                                fontFamily: 'Open Sans, sans-serif',
+                                                                fontSize: '14px',
+                                                                fontWeight: 400,
+                                                                color: '#646464',
+                                                            }}>
+                                                                Loading chat history... This may take ~20 seconds
+                                                            </Typography>
+                                                        </div>
+                                                    )}
 
                                                     {/* <div className="chat-header">
                                                     <form onSubmit={handleSubmit} className="input-form">
-                                                        <input
-                                                            type="text"
+                                                        <MuiButton
+                                                            variant='outlined'
                                                             value={userInput}
                                                             onChange={(e) => setUserInput(e.target.value)}
                                                             placeholder="Ask a question about the biomedical literature..."
@@ -960,13 +2312,21 @@ function LLMAgent() {
                                                         <button
                                                             type="submit"
                                                             className="send-button"
-                                                            disabled={isLoading || !userInput.trim()}
+                                                                border: "1px solid #155DFC",
+                                                                bgcolor: "#f7f8fa",
+                                                                color: "#155DFC",
+                                                                "& .MuiButton-startIcon": {
+                                                                    color: "#155DFC",
+                                                                },
+                                                                "& .MuiSvgIcon-root": {
+                                                                    color: "#155DFC",
+                                                                },
                                                         >
                                                             Send
-                                                        </button>
-                                                        <Button
+                                                                    color: "#155DFC",
+                                                                    boxShadow: index == selectedMessageIndex ? "0 0 0 1px #155DFC" : "none",
                                                             icon={<DeleteOutlined />}
-                                                            onClick={handleClear}
+                                                                boxShadow: index == selectedMessageIndex ? "0 0 0 1px #155DFC" : "none",
                                                             className="clear-button"
                                                             disabled={isLoading}
                                                         >
@@ -974,158 +2334,165 @@ function LLMAgent() {
                                                         </Button>
                                                     </form>
                                                 </div> */}
-                                                    <div className="chat-header">
-                                                        <TextField
-                                                            className="input-form"
-                                                            size="small"
-                                                            value={userInput}
-                                                            onChange={(e) => setUserInput(e.target.value)}
-                                                            disabled={isLoading}
-                                                            variant="outlined"
-                                                            placeholder="Ask a question about the biomedical literature..."
-                                                            sx={{
-                                                                backgroundColor: '#F4F9FE',
-                                                                borderRadius: '30px',
-                                                                minHeight: '60px', // Increase the height of the input box
-                                                                '& .MuiInputBase-root': {
-                                                                    height: '60px',
-                                                                    borderRadius: '30px',
-                                                                    alignItems: 'center', // Center the text vertically
-                                                                    fontFamily: 'Open Sans, sans-serif',
-                                                                    '& fieldset': {
-                                                                        border: 'none'
-                                                                    },
-                                                                    boxShadow: '0px 2px 3px -1px #00000026',
-                                                                },
-                                                                '& .MuiInputBase-input': {
-                                                                    paddingLeft: '4px',
-                                                                },
-                                                                '& .MuiOutlinedInput-notchedOutline': {
-                                                                    borderColor: 'grey', // Optional: Customize border color
-                                                                },
-                                                                "& .MuiOutlinedInput-root": {
-                                                                    paddingLeft: "0px!important",
-                                                                    paddingRight: "70px!important",
-                                                                },
-                                                            }}
-                                                            InputProps={{
-                                                                startAdornment: (
-                                                                    <ChatBubbleOutlineIcon sx={{ color: '#a1a1a1', marginLeft: '25px', marginRight: '5px', fontSize: '20px' }} />
-                                                                ),
-                                                                endAdornment: (
-                                                                    <Box
-                                                                        sx={{
-                                                                            display: 'flex',
-                                                                            alignItems: 'center',
-                                                                            gap: 1,
-                                                                            justifyContent: 'center',
-                                                                            position: 'absolute',
-                                                                            right: 0,
-                                                                            height: '100%', // Ensure alignment with TextField height
-                                                                        }}
-                                                                    >
-                                                                        {/* Clear Icon */}
-                                                                        {userInput !== "" && <CloseIcon
-                                                                            className="close-button"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                setUserInput('');
-                                                                            }}
-                                                                            sx={{
-                                                                                color: 'grey.500',
-                                                                                cursor: 'pointer',
-                                                                                fontSize: '20px', // Adjust size as needed 
-                                                                            }}
-                                                                        />}
-                                                                        {/* Search Icon */}
-                                                                        <SearchButton
-                                                                            alterColor={1}
-                                                                            onClick={() => {
-                                                                                handleSubmit();
-                                                                            }}
-                                                                            disabled={isLoading || !userInput.trim()}
-                                                                        />
-                                                                    </Box>
-                                                                ),
-                                                            }}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter' && userInput !== "" && !isLoading) {
-                                                                    e.preventDefault();
-                                                                    handleSubmit();
-                                                                }
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </Grid>
-                                            <Grid item xs={5} height={"100%"}>
-                                                <div style={{ height: '100%', width: '100%' }}>
-                                                    <div className="references-container">
-                                                        <div style={{
-                                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                            height: '55px',
-                                                            borderBottom: '1px solid #E6E6E6',
-                                                            marginBottom: '1px',
-                                                        }}>
-                                                            <h3 style={{ fontFamily: 'Open Sans, sans-serif', fontWeight: '500', fontSize: '18px', marginBottom: '0', paddingLeft: '32px' }}>References</h3>
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                <Select
-                                                                    size="small"
-                                                                    value={sortOption}
-                                                                    onChange={value => setSortOption(value)}
-                                                                    options={[
-                                                                        { value: 'Year', label: 'Sort by Year' },
-                                                                        { value: 'Citations', label: 'Sort by Citations' }
-                                                                    ]}
-                                                                    style={{ minWidth: '140px', fontFamily: 'Open Sans, sans-serif' }}
-                                                                    styles={{ popup: { root: { 'font-family': 'Open Sans, sans-serif' } } }}
-                                                                />
-                                                                <IconButton
-                                                                    size="small"
-                                                                    onClick={handleExportReferences}
-                                                                    disabled={sortedReferences.length === 0}
-                                                                    sx={{
-                                                                        padding: '6px',
-                                                                        marginRight: '16px',
-                                                                        '&:hover': {
-                                                                            backgroundColor: '#f0f0f0',
-                                                                        }
-                                                                    }}
-                                                                    title="Export all references"
-                                                                >
-                                                                    <DownloadIcon sx={{ fontSize: '20px', color: sortedReferences.length === 0 ? '#ccc' : '#666' }} />
-                                                                </IconButton>
-                                                            </div>
+                                                    {showLimitWarning && (
+                                                        <div className="llm-limit-warning">
+                                                            <span className="llm-limit-warning-text">
+                                                                You've reached your free plan limit (10 queries). Upgrade for unlimited access.
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                className="llm-limit-warning-button"
+                                                                onClick={() => navigate('/about#pricing')}
+                                                            >
+                                                                Update
+                                                            </button>
                                                         </div>
-
-                                                        {sortedReferences.length > 0 ? (
-                                                            <div ref={referencesListRef} className="references-list" style={{ maxHeight: 'calc(100% - 56px)', overflowY: 'auto', paddingLeft: '2rem', paddingRight: '2rem' }}>
-                                                                {sortedReferences.map((ref, index) => {
-                                                                    const url = [
-                                                                        ref.title,
-                                                                        ref.url,
-                                                                        ref.citation_count,
-                                                                        ref.year,
-                                                                        ref.journal,
-                                                                        ref.authors
-                                                                    ];
-                                                                    const pubmedId = ref.pmid || ref.url?.split('/').filter(Boolean).pop() || '';
-                                                                    const isHighlighted = hoveredPubmedId === pubmedId;
-                                                                    return (
-                                                                        <div key={index} style={{ marginTop: '12px' }} data-pubmed-id={pubmedId}>
-                                                                            <ReferenceCard url={url} handleClick={handleClick} onCiteClick={handleCiteClick} isHighlighted={isHighlighted} />
-                                                                            <hr style={{ border: 'none', height: '1px', backgroundColor: 'rgba(5, 5, 5, 0.06)', marginTop: '12px' }} />
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        ) : (
-                                                            <p style={{ padding: '16px 32px' }}>No references available for this response.</p>
+                                                    )}
+                                                    <ChatSearchBar
+                                                        userInput={userInput}
+                                                        setUserInput={setUserInput}
+                                                        isLoading={isLoading}
+                                                        isQueryLimitReached={isLimitReachedEffective}
+                                                        onSubmit={handleSubmit}
+                                                    />
+                                                </div>
+                                            </Box>
+                                            {!isReferencesCollapsed && (
+                                                <>
+                                                    <div className="llm-split-divider" onMouseDown={handleSplitMouseDown}>
+                                                        {isDraggingSplit && (
+                                                            <div
+                                                                className="llm-split-drag-indicator"
+                                                                style={{ top: `${dragIndicatorY}px` }}
+                                                            />
                                                         )}
                                                     </div>
-                                                </div>
-                                            </Grid>
-                                        </Grid>
+                                                    <Box className="llm-column" sx={{ flex: 1, minWidth: `${RIGHT_MIN_PX}px` }}>
+                                                        <div style={{ height: '100%', width: '100%' }}>
+                                                            <div className="references-container">
+                                                                <div style={{
+                                                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                                    height: '70px',
+                                                                    borderBottom: '1px solid #E6E6E6',
+                                                                    marginBottom: '1px',
+                                                                }}>
+                                                                    <h3 style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: '16px', color: '#164563', marginBottom: '0', paddingLeft: '32px' }}>References</h3>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                        <ToggleButtonGroup
+                                                                            size="small"
+                                                                            exclusive
+                                                                            value={sortOption}
+                                                                            onChange={(event, value) => {
+                                                                                if (value !== null) {
+                                                                                    setSortOption(value);
+                                                                                }
+                                                                            }}
+                                                                            sx={{
+                                                                                border: '1px solid #E7F1FF',
+                                                                                borderRadius: '14px',
+                                                                                padding: '1px',
+                                                                                overflow: 'hidden',
+                                                                                '& .MuiToggleButton-root': {
+                                                                                    textTransform: 'none',
+                                                                                    fontFamily: 'DM Sans, sans-serif',
+                                                                                    fontSize: '12px',
+                                                                                    fontWeight: 700,
+                                                                                    color: '#164563',
+                                                                                    border: 'none',
+                                                                                    padding: '0 8px',
+                                                                                    height: '26px',
+                                                                                    minHeight: '26px',
+                                                                                    borderRadius: '13px',
+                                                                                },
+                                                                                '& .MuiToggleButton-root.Mui-selected': {
+                                                                                    backgroundColor: '#E7F1FF',
+                                                                                    color: '#164563',
+                                                                                },
+                                                                                '& .MuiToggleButton-root.Mui-selected:hover': {
+                                                                                    backgroundColor: '#E0EDFF',
+                                                                                },
+                                                                            }}
+                                                                        >
+                                                                            <ToggleButton value="Citations">Citation</ToggleButton>
+                                                                            <ToggleButton value="Year">Year</ToggleButton>
+                                                                        </ToggleButtonGroup>
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            className="references-action-button"
+                                                                            onClick={handleExportReferences}
+                                                                            disabled={isExportDisabled}
+                                                                            title="Export all references"
+                                                                        >
+                                                                            <DownloadIcon
+                                                                                aria-label="Download references"
+                                                                                style={{
+                                                                                    width: '20px',
+                                                                                    height: '20px',
+                                                                                    display: 'block',
+                                                                                    color: isExportDisabled ? '#B0B0B0' : '#164563',
+                                                                                }}
+                                                                            />
+                                                                        </IconButton>
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            className="references-action-button"
+                                                                            onClick={collapseReferences}
+                                                                            sx={{ marginRight: '8px' }}
+                                                                            title="Collapse references"
+                                                                        >
+                                                                            <ChevronRightIcon sx={{ color: '#164563' }} />
+                                                                        </IconButton>
+                                                                    </div>
+                                                                </div>
+
+                                                                {sortedReferences.length > 0 ? (
+                                                                    <div ref={referencesListRef} className="references-list" style={{ maxHeight: 'calc(100% - 70px)', overflowY: 'auto', paddingLeft: '2rem', paddingRight: '2rem' }}>
+                                                                        {sortedReferences.map((ref, index) => {
+                                                                            const url = [
+                                                                                ref.title,
+                                                                                ref.url,
+                                                                                ref.citation_count,
+                                                                                ref.year,
+                                                                                ref.journal,
+                                                                                ref.authors
+                                                                            ];
+                                                                            const pubmedId = ref.url.split('/').filter(Boolean).pop();
+                                                                            const isHighlighted = hoveredPubmedId === pubmedId;
+                                                                            return (
+                                                                                <div key={index} data-pubmed-id={pubmedId}>
+                                                                                    <ReferenceCard
+                                                                                        url={url}
+                                                                                        evidence={ref.evidence}
+                                                                                        sourceHid={activeConversationIdRef.current || activeConversationId}
+                                                                                        handleClick={handleClick}
+                                                                                        onCiteClick={handleCiteClick}
+                                                                                        isHighlighted={isHighlighted}
+                                                                                    />
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                ) : (
+                                                                    <p style={{ padding: '16px 32px' }}>No references available for this response.</p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </Box>
+                                                </>
+                                            )}
+                                        </Box>
+                                        {isReferencesCollapsed && (
+                                            <IconButton
+                                                className="references-collapse-button"
+                                                onClick={expandReferences}
+                                                aria-label="Open references"
+                                            >
+                                                <SidebarLeftIcon
+                                                    className="references-collapse-icon"
+                                                />
+                                                <span className="references-collapse-label">REFERENCES</span>
+                                            </IconButton>
+                                        )}
 
 
                                     </div>

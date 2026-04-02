@@ -4,12 +4,13 @@ import axios from 'axios'
 export class DetailService {
     constructor() {}
     async Nid2Detail(nid) {
-        console.log('node to detail')
+        console.log('[GraphDebug] DetailService.Nid2Detail called with nid:', nid)
         let res = []
         await axios
-            .get('https://glkb.dcmb.med.umich.edu/api/frontend/frontend_node_detail/' + nid)
+            .get('/api/frontend/frontend_node_detail/' + nid)
             // .get('/frontend/frontend_node_detail/' + nid)
             .then(function (response) {
+                console.log(response)
                 res = response
             })
             .catch(function (error) {
@@ -19,13 +20,15 @@ export class DetailService {
         return res
     }
     async Eid2Detail(Source, Target) {
-        console.log('edge to detail')
+        console.log('[GraphDebug] DetailService.Eid2Detail called with source/target:', Source, Target)
         let res = []
         await axios
-            .get('https://glkb.dcmb.med.umich.edu/api/frontend/frontend_rel_detail_mult/' + Source + '/' + Target)
+            .get('/api/v1/search/rel-detail-mult' + Source + '/' + Target)
             // .get('/frontend/frontend_rel_detail_mult/' + Source + '/' + Target)
             .then(function (response) {
+                console.log(response)
                 res = response
+               
             })
             .catch(function (error) {
                 console.log('error', error)
@@ -34,11 +37,12 @@ export class DetailService {
     }
 
     async MergeNid2Detail(nid) {
-        console.log('merge node to detail')
+        console.log('[GraphDebug] DetailService.MergeNid2Detail called with nid list:', nid)
         const queryString = nid.map(id => `nid=${id}`).join('&');
+        console.log('[GraphDebug] DetailService.MergeNid2Detail query:', queryString)
         let res = []
         await axios
-            .get('https://glkb.dcmb.med.umich.edu/api/frontend/frontend_multi_node_detail?' + queryString)
+            .get('/api/v1/search/multi-node-detail?' + queryString)
             // .get('/frontend/frontend_multi_node_detail?' + queryString)
             .then(function (response) {
                 res = response
@@ -47,16 +51,19 @@ export class DetailService {
                 console.log('error', error)
             })
         console.log(res)
-        console.log(res.data[0].some(entity => 'database_id' in entity))
+        if (res?.data?.[0] && Array.isArray(res.data[0])) {
+            console.log(res.data[0].some(entity => 'database_id' in entity))
+        }
         return res
     }
 
     async MergeEid2Detail(eid) {
-        console.log('merge edge to detail')
+        console.log('[GraphDebug] DetailService.MergeEid2Detail called with eid list:', eid)
         const queryString = eid.map(id => `eid=${id}`).join('&');
+        console.log('[GraphDebug] DetailService.MergeEid2Detail query:', queryString)
         let res = []
         await axios
-            .get('https://glkb.dcmb.med.umich.edu/api/frontend/frontend_rel_detail_mult?' + queryString)
+            .get('/api/v1/search/rel-detail-mult?' + queryString)
             // .get('/frontend/frontend_rel_detail_mult?' + queryString)
             .then(function (response) {
                 res = response

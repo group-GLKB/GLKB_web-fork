@@ -47,15 +47,29 @@ export class LLMAgentService {
                                 type: 'final',
                                 answer: data.response,
                                 references: data.references || [],
-                                messages: data.messages || []
+                                messages: data.messages || [],
+                                sessionId: data.session_id || null,
+                                trajectory: data.trajectory || null
+                            });
+                        } else if (data.step === 'Saved') {
+                            await onUpdate({
+                                type: 'saved',
+                                historyId: data.history_id,
+                                sessionId: data.session_id || null,
+                                invocationId: data.invocation_id || null
+                            });
+                        } else if (data.step === 'Error') {
+                            await onUpdate({
+                                type: 'error',
+                                error: data.error || data.detail || 'Unknown error'
                             });
                         }
                         // Forward all other steps to the UI
-                        else if (data.step && data.content) {
+                        else if (data.step) {
                             onUpdate({
                                 type: 'step',
                                 step: data.step,
-                                content: data.content
+                                content: data.message || data.content || ''
                             });
                         }
                     } catch (e) {
@@ -81,13 +95,17 @@ export class LLMAgentService {
         }
     }
 
-    async chat(question, abortController, onUpdate) {
+    async chat(question, abortController, onUpdate, options = {}) {
         try {
-            // Add user message to history
-            this.messages.push({
-                role: 'user',
-                content: question
-            });
+            if (Array.isArray(options.messagesOverride)) {
+                this.messages = [...options.messagesOverride];
+            } else {
+                // Add user message to history
+                this.messages.push({
+                    role: 'user',
+                    content: question
+                });
+            }
             // console.log('Added user message to history. Current messages:', this.messages);
 
             // console.log('Sending request to server with messages:', {
@@ -95,26 +113,90 @@ export class LLMAgentService {
             //     messages: this.messages
             // });
 
-            const response = await fetch('https://glkb.dcmb.med.umich.edu/api/frontend/llm_agent', {
-                // const response = await fetch('/frontend/llm_agent', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    question,
-                    messages: this.messages
-                }),
-                signal: abortController.signal
-            });
+            let buffer = '';
+            let processedLength = 0;
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            const processSSEChunk = (chunk) => {
+                buffer += chunk;
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (!line.trim() || !line.startsWith('data: ')) continue;
+
+                    try {
+                        const jsonStr = line.substring(6);
+                        const data = JSON.parse(jsonStr);
+
+                        if (data.step === 'Complete') {
+                            onUpdate({
+                                type: 'final',
+                                answer: data.response,
+                                references: data.references || [],
+                                messages: data.messages || [],
+                                sessionId: data.session_id || null,
+                                trajectory: data.trajectory || null
+                            });
+                        } else if (data.step === 'Saved') {
+                            onUpdate({
+                                type: 'saved',
+                                historyId: data.history_id,
+                                sessionId: data.session_id || null,
+                                invocationId: data.invocation_id || null
+                            });
+                        } else if (data.step === 'Error') {
+                            onUpdate({
+                                type: 'error',
+                                error: data.error || data.detail || 'Unknown error'
+                            });
+                        } else if (data.step) {
+                            onUpdate({
+                                type: 'step',
+                                step: data.step,
+                                content: data.message || data.content || ''
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Error parsing stream chunk:', e, 'Line:', line);
+                    }
+                }
+            };
+
+            const historyId = Number.isFinite(Number(options.historyId))
+                ? Number(options.historyId)
+                : null;
+            const sessionId = options.sessionId || null;
+            const payload = {
+                question,
+                history_id: historyId,
+            };
+            if (sessionId) {
+                payload.session_id = sessionId;
+            }
+            if (Number.isFinite(Number(options.maxArticles))) {
+                payload.max_articles = Number(options.maxArticles);
             }
 
-            await this.processStream(response, abortController, onUpdate);
+            await axios.post('/api/v1/new-llm-agent/stream', payload, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'text/event-stream',
+                },
+                responseType: 'text',
+                signal: abortController.signal,
+                onDownloadProgress: (progressEvent) => {
+                    const xhr = progressEvent.event?.target || progressEvent.target;
+                    const responseText = xhr?.responseText;
+                    if (!responseText) return;
+
+                    const chunk = responseText.slice(processedLength);
+                    if (!chunk) return;
+                    processedLength = responseText.length;
+                    processSSEChunk(chunk);
+                }
+            });
         } catch (error) {
-            if (error.name === 'AbortError') {
+            if (error.name === 'AbortError' || error.code === 'ERR_CANCELED') {
                 return;
             }
             console.error('Chat error:', error);
@@ -129,15 +211,13 @@ export class LLMAgentService {
     async getAnswer(question) {
         // console.log('Getting answer from LLM agent');
         try {
-            const response = await axios.get('https://glkb.dcmb.med.umich.edu/api/frontend/llm_agent', {
-                // const response = await axios.get('/frontend/llm_agent', {
-                params: {
-                    question: question
-                }
+            const response = await axios.post('/api/v1/new-llm-agent/chat', {
+                question,
+                messages: this.messages
             });
 
             return {
-                answer: response.data.response,
+                answer: response.data.answer,
                 references: response.data.references || [],
                 messages: response.data.messages || []
             };
@@ -145,6 +225,15 @@ export class LLMAgentService {
             console.error('LLM Agent error:', error);
             throw error;
         }
+    }
+
+    async rewind(historyId, invocationId) {
+        const payload = {
+            history_id: historyId,
+            invocation_id: invocationId,
+        };
+        const response = await axios.post('/api/v1/new-llm-agent/rewind', payload);
+        return response.data;
     }
 
     // Add method to update messages when receiving assistant response

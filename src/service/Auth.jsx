@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const API_BASE_URL = '/api/v1/auth';
+const EMAIL_AUTH_BASE_URL = '/api/v1/email-auth';
 
 /**
  * Auth Service
@@ -34,14 +35,14 @@ export const login = async (username, password) => {
       username,
       password
     });
-    
+
     const { access_token, token_type, user } = response.data;
-    
+
     // Store token in localStorage (or you can use sessionStorage)
     localStorage.setItem('access_token', access_token);
     localStorage.setItem('token_type', token_type);
     localStorage.setItem('user', JSON.stringify(user));
-    
+
     return {
       success: true,
       token: access_token,
@@ -59,12 +60,12 @@ export const login = async (username, password) => {
 export const logout = async () => {
   try {
     await axios.post(`${API_BASE_URL}/logout`);
-    
+
     // Clear stored token and user data
     localStorage.removeItem('access_token');
     localStorage.removeItem('token_type');
     localStorage.removeItem('user');
-    
+
     return {
       success: true,
       message: 'Logged out successfully'
@@ -74,7 +75,7 @@ export const logout = async () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('token_type');
     localStorage.removeItem('user');
-    
+
     return {
       success: true,
       message: 'Logged out'
@@ -100,4 +101,105 @@ export const getToken = () => {
 // Check if user is authenticated
 export const isAuthenticated = () => {
   return !!getToken();
+};
+
+// ============ Email Verification Auth ============
+
+// Send verification code to email (auto-registers new users)
+export const sendVerificationCode = async (email) => {
+  try {
+    const response = await axios.post(`${EMAIL_AUTH_BASE_URL}/send-code`, {
+      email
+    });
+    return {
+      success: true,
+      message: response.data.message,
+      isNewUser: response.data.is_new_user,
+      expiresIn: response.data.expires_in
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Failed to send verification code. Please try again.'
+    };
+  }
+};
+
+// Verify code and get JWT token
+export const verifyCode = async (email, code) => {
+  try {
+    const response = await axios.post(`${EMAIL_AUTH_BASE_URL}/verify`, {
+      email,
+      code
+    });
+
+    const { access_token, token_type, user } = response.data;
+
+    // Store token in localStorage
+    localStorage.setItem('access_token', access_token);
+    localStorage.setItem('token_type', token_type);
+    localStorage.setItem('user', JSON.stringify(user));
+
+    return {
+      success: true,
+      token: access_token,
+      user: user
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Verification failed. Please check your code.'
+    };
+  }
+};
+
+// Google OAuth login using ID token
+export const loginWithGoogle = async (credential) => {
+  try {
+    const response = await axios.post(`${EMAIL_AUTH_BASE_URL}/google`, {
+      credential
+    });
+
+    const { access_token, token_type, user } = response.data;
+
+    localStorage.setItem('access_token', access_token);
+    localStorage.setItem('token_type', token_type);
+    localStorage.setItem('user', JSON.stringify(user));
+
+    return {
+      success: true,
+      token: access_token,
+      user: user
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Google login failed. Please try again.'
+    };
+  }
+};
+
+// Update username (email auth)
+export const updateUsername = async (newUsername) => {
+  try {
+    const response = await axios.put(`${EMAIL_AUTH_BASE_URL}/username`, {
+      new_username: newUsername
+    });
+
+    const { user, message } = response.data;
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    }
+
+    return {
+      success: true,
+      message: message || 'Username updated successfully',
+      user: user
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.response?.data?.detail || 'Failed to update username. Please try again.'
+    };
+  }
 };

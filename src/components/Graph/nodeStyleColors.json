@@ -1,0 +1,11 @@
+{
+    "AnatomicalEntity": "#88E9C0",
+    "ChemicalEntity": "#FFC0C0",
+    "DiseaseOrPhenotypicFeature": "#F6C858",
+    "Gene": "#ADCFF2",
+    "BiologicalProcessOrActivity": "#EDC0FF",
+    "MeshTerm": "#FFB77D",
+    "SequenceVariant": "#DBF4B1",
+    "Article": "#E5E5E5",
+    "default": "#E5E5E5"
+}

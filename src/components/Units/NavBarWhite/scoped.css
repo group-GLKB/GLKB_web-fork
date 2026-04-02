@@ -1,194 +1,129 @@
-.navigation-bar {
+body[data-has-sidebar="true"] {
+    --sidebar-width: 280px;
+}
+
+body[data-has-sidebar="true"] .app-layout-content {
+    padding-left: var(--sidebar-width);
+    transition: padding-left 0.2s ease;
+    box-sizing: border-box;
+    min-height: 100vh;
+}
+
+.MuiDrawer-paper {
+    background-color: #ffffff;
+}
+
+.sidebar-logo-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+}
+
+.sidebar-book-icon {
+    color: inherit;
+}
+
+.sidebar-book-icon path {
+    fill: currentColor;
+}
+
+.sidebar-history-icon {
+    color: inherit;
+}
+
+.sidebar-history-icon path {
+    fill: currentColor;
+}
+
+.sidebar-recent-section {
+    padding: 8px 16px 0;
+}
+
+.sidebar-recent-title {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    color: #969696;
+    margin-bottom: 8px;
+    padding-left: 8px;
+}
+
+.sidebar-recent-list {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 1rem;
-    font-size: clamp(12px, 1.6vh, 30px);
-    /*background-color: #fff; !* Change this as per your color scheme *!*/
-    /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); Optional: for a slight shadow under the nav bar */
-
-    background-color: #FFFFFF;
-    /* Changed from #FFFFFF to #4a7298 */
-    height: 100px;
-    padding-top: 0px;
-    padding-left: max(4%, 40px);
-    padding-right: max(4%, 40px);
+    flex-direction: column;
+    gap: 6px;
+    padding-right: 4px;
 }
 
-@media (min-width: 1200px) {
-    .navigation-bar {
-        padding-left: 6%;
-        padding-right: 6%;
-    }
+.sidebar-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 8px;
 }
 
-.left-section .logo img {
-    height: 90px;
-    width: auto;
-    margin-right: 1rem;
-}
-
-.navigation-bar .logo a {
-    font-size: 30px;
-    color: #ffffff;
-    /* Changed from #3D739C to white for better contrast */
-    margin-left: 10px;
-    align-items: center;
-    text-decoration: none;
-    width: 120px;
-}
-
-.navigation-bar .nav-links {
-    align-items: center;
-    display: flex;
-}
-
-button:hover {
-    cursor: pointer;
-}
-
-.navigation-bar .nav-link.active {
-    background-color: transparent;
-    border: none;
-    /* Add underline to active links */
-    margin-left: 20px;
-    color: #079BD4;
-    /* Keep the color for active links */
-    font-weight: 800;
-    /* Make the font heavier */
-    margin-right: 1rem;
-    /* Move the text slightly to the left */
-    margin-top: 1rem;
-}
-
-.navigation-bar .nav-link.active-main {
-    background-color: transparent;
-    border: none;
-    /* Add underline to active links */
-    margin-left: 20px;
-    color: #079BD4;
-    /* Keep the color for active links */
-    font-weight: 800;
-    /* Make the font heavier */
-    margin-right: 1rem;
-    /* Move the text slightly to the left */
-    margin-top: 1rem;
-}
-
-.navigation-bar .nav-link.nonactive,
-.MuiTooltip-tooltip .nav-link.nonactive {
-    background-color: transparent;
-    border: none;
-    margin-left: 20px;
-    font-size: clamp(12px, 1.6vh, 30px);
-    font-family: "Inter", sans-serif;
-    color: #050505;
-    text-decoration: none;
-    /* Changed from #3D739C to #ffffff for better contrast */
-    font-weight: 500;
-    /* Change this as per your color scheme */
-    /* Additional styles for the links can go here */
-    margin-right: 1rem;
-    /* Move the text slightly to the left */
-    margin-top: 1rem;
-    /* Move the text slightly down */
-}
-
-.navigation-bar .nav-link.contact {
-    display: inline-block;
-    background-color: #079BD4;
-    border: none;
-    color: white;
-    padding: 6px 13px;
-    text-align: center;
-    vertical-align: middle;
-    font-weight: 600;
-    border-radius: 5px;
-}
-
-.navigation-bar .nav-link.contact-main {
-    display: inline-block;
-    background-color: #079BD4;
-    border: none;
-    color: white;
-    padding: 6px 13px;
-    text-align: center;
-    vertical-align: middle;
-    font-weight: 600;
-    border-radius: 5px;
-}
-
-.navigation-bar .nav-links a {
-    font-family: 'Inter', sans-serif;
-    background-color: transparent;
-    text-decoration: none;
-    font-weight: bold;
-    margin-left: 20px;
-    /* Changed from #3D739C to #ffffff for better contrast */
-    /* Change this as per your color scheme */
-    /* Additional styles for the links can go here */
-    margin-right: 1rem;
-    /* Move the text slightly to the left */
-    margin-top: 1rem;
-    /* Move the text slightly down */
-}
-
-.navigation-bar .nav-links a:last-of-type {
-    margin-right: 0;
-}
-
-.navigation-bar .nav-link.active::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: -6px;
-    /* Push the underline lower */
-    width: 120%;
-    /* Longer than the text */
-    height: 3px;
-    /* Thickness */
-    background-color: #079BD4;
-    border-radius: 2px;
-    /* Optional rounded corners */
-}
-
-.navigation-bar .nav-link.active-main::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: -6px;
-    /* Push the underline lower */
-    width: 120%;
-    /* Longer than the text */
-    height: 3px;
-    /* Thickness */
-    background-color: #079BD4;
-    border-radius: 2px;
-    /* Optional rounded corners */
-}
-
-.navigation-bar .nav-link.nonactive:hover,
-.MuiTooltip-tooltip .nav-link.nonactive:hover {
-    color: #5988c2;
-    /* Changed from #555 to a light gray for hover effect */
-}
-
-.beta-link {
+.sidebar-recent-item-row {
     position: relative;
-    padding-right: 12px;
+    width: 100%;
+    min-height: 32px;
 }
 
-.beta-tag {
+.sidebar-recent-item {
+    border: 1px solid transparent;
+    background: transparent;
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: #164563;
+    text-align: left;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    width: 100%;
+    padding-right: 8px;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.sidebar-recent-item-row:hover .sidebar-recent-item,
+.sidebar-recent-item-row:focus-within .sidebar-recent-item {
+    padding-right: 36px;
+}
+
+.sidebar-recent-item:hover {
+    background-color: #E7F1FF;
+}
+
+.sidebar-recent-item.active {
+    border-color: #155DFC;
+    background-color: #E7F1FF;
+}
+
+.sidebar-recent-more {
     position: absolute;
-    top: -8px;
-    right: -12px;
-    background-color: #ffd700;
-    color: #000;
-    font-size: 10px;
-    padding: 2px 4px;
-    border-radius: 4px;
-    font-weight: bold;
-    line-height: 1;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    color: #164563;
+    z-index: 1;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.16s ease, background-color 0.16s ease;
+}
+
+.sidebar-recent-item-row:hover .sidebar-recent-more,
+.sidebar-recent-item-row:focus-within .sidebar-recent-more {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.sidebar-recent-more:hover {
+    background-color: rgba(1, 105, 176, 0.1);
 }

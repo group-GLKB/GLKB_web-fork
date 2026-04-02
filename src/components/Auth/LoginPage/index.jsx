@@ -1,28 +1,212 @@
-import React, { useState } from 'react';
-import { Form, Input, Button, Card, Alert, Typography, Space } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../AuthContext';
 import './scoped.css';
 
-const { Title, Text } = Typography;
+import React, {
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+
+import { FcGoogle } from 'react-icons/fc';
+import { useNavigate } from 'react-router-dom';
+
+import { useAuth } from '../AuthContext';
+
+const GOOGLE_SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
+let googleScriptPromise;
+
+const loadGoogleIdentityScript = () => {
+  if (googleScriptPromise) {
+    return googleScriptPromise;
+  }
+
+  googleScriptPromise = new Promise((resolve, reject) => {
+    if (window.google?.accounts?.id) {
+      resolve();
+      return;
+    }
+
+    const existingScript = document.querySelector(`script[src="${GOOGLE_SCRIPT_SRC}"]`);
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve());
+      existingScript.addEventListener('error', () => reject(new Error('Google script failed to load.')));
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = GOOGLE_SCRIPT_SRC;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Google script failed to load.'));
+    document.head.appendChild(script);
+  });
+
+  return googleScriptPromise;
+};
 
 const LoginPage = () => {
-  const [form] = Form.useForm();
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
   const [error, setError] = useState('');
+  const [googleReady, setGoogleReady] = useState(false);
+  const [showGoogleFallback, setShowGoogleFallback] = useState(false);
+  const [autoTriggerFallback, setAutoTriggerFallback] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const {
+    login,
+    loginWithGoogle,
+    isAuthenticated,
+    loading: authLoading,
+  } = useAuth();
+  const googleInitializedRef = useRef(false);
+  const googleButtonRef = useRef(null);
+  const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
-  const onFinish = async (values) => {
+  useEffect(() => {
+    let isMounted = true;
+
+    loadGoogleIdentityScript()
+      .then(() => {
+        if (isMounted) {
+          setGoogleReady(true);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setOauthLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate('/', { replace: true });
+    }
+  }, [authLoading, isAuthenticated, navigate]);
+
+  const handleGoogleLogin = () => {
+    if (oauthLoading) return;
+
+    setError('');
+
+    if (!googleClientId) {
+      setError('Google login is not configured.');
+      return;
+    }
+
+    setOauthLoading(true);
+    setShowGoogleFallback(false);
+    setAutoTriggerFallback(false);
+
+    loadGoogleIdentityScript()
+      .then(() => {
+        if (!window.google?.accounts?.id) {
+          setError('Google login failed to initialize.');
+          setOauthLoading(false);
+          return;
+        }
+
+        if (!googleInitializedRef.current) {
+          window.google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: async (response) => {
+              if (!response?.credential) {
+                setError('Google login failed. Please try again.');
+                setOauthLoading(false);
+                return;
+              }
+
+              const result = await loginWithGoogle(response.credential);
+
+              if (result.success) {
+                navigate('/');
+              } else {
+                setError(result.message);
+              }
+
+              setOauthLoading(false);
+            }
+          });
+          googleInitializedRef.current = true;
+        }
+
+        window.google.accounts.id.prompt((notification) => {
+          const dismissed = typeof notification.isDismissedMoment === 'function'
+            ? notification.isDismissedMoment()
+            : false;
+          if (notification.isNotDisplayed() || notification.isSkippedMoment() || dismissed) {
+            setOauthLoading(false);
+            setShowGoogleFallback(true);
+            setAutoTriggerFallback(true);
+          }
+        });
+      })
+      .catch(() => {
+        setError('Google login failed to load.');
+        setOauthLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    if (!googleReady || !showGoogleFallback || !googleButtonRef.current || !googleClientId) {
+      return;
+    }
+
+    if (!googleInitializedRef.current && window.google?.accounts?.id) {
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: async (response) => {
+          if (!response?.credential) {
+            setError('Google login failed. Please try again.');
+            return;
+          }
+
+          const result = await loginWithGoogle(response.credential);
+
+          if (result.success) {
+            navigate('/');
+          } else {
+            setError(result.message);
+          }
+        }
+      });
+      googleInitializedRef.current = true;
+    }
+
+    googleButtonRef.current.innerHTML = '';
+    window.google.accounts.id.renderButton(googleButtonRef.current, {
+      theme: 'outline',
+      size: 'large',
+      type: 'standard',
+      text: 'continue_with',
+      shape: 'pill',
+      width: 320,
+    });
+    if (autoTriggerFallback) {
+      const button = googleButtonRef.current.querySelector('div[role="button"]');
+      if (button) {
+        button.click();
+      }
+      setAutoTriggerFallback(false);
+    }
+  }, [googleReady, showGoogleFallback, googleClientId, loginWithGoogle, navigate, autoTriggerFallback]);
+
+
+  const handleContinue = async (e) => {
+    e.preventDefault();
     setLoading(true);
     setError('');
 
-    const result = await login(values.username, values.password);
+    const result = await login(email);
 
     if (result.success) {
-      // Redirect to home page or previous page
-      navigate('/');
+      // Navigate to verification page with email
+      navigate('/verify-code', { state: { email } });
     } else {
       setError(result.message);
     }
@@ -30,78 +214,83 @@ const LoginPage = () => {
     setLoading(false);
   };
 
+  const handleClose = () => {
+    navigate('/');
+  };
+
   return (
-    <div className="login-container">
-      <Card className="login-card">
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          <div className="login-header">
-            <Title level={2}>GLKB Login</Title>
-            <Text type="secondary">Welcome back! Please login to your account.</Text>
+    <>
+      <div className="login-page-container">
+        <div className="login-modal">
+          <button
+            type="button"
+            className="login-close"
+            aria-label="Close login"
+            onClick={handleClose}
+          >
+            &times;
+          </button>
+          <h2 className="login-title">Sign in below to unlock the full potential of GLKB</h2>
+
+          <p className="login-subtitle">New to GLKB? An account will be <strong>automatically created</strong> for you upon your first sign-in.</p>
+
+          <div className="google-login-slot">
+            {showGoogleFallback ? (
+              <>
+                <div className="google-fallback-warning">
+                  One Tap failed. Use the popup login below.
+                </div>
+                <div className="google-fallback-subtitle">Login in a pop-up window</div>
+                <div className="google-fallback" ref={googleButtonRef} />
+              </>
+            ) : (
+              <button
+                type="button"
+                className="oauth-button google-button"
+                onClick={handleGoogleLogin}
+                disabled={oauthLoading}
+              >
+                <span className="oauth-icon"><FcGoogle size={24} /></span>
+                {oauthLoading ? 'Connecting...' : 'Continue with Google'}
+              </button>
+            )}
           </div>
 
-          {error && (
-            <Alert
-              message="Login Failed"
-              description={error}
-              type="error"
-              showIcon
-              closable
-              onClose={() => setError('')}
+          <div className="divider">
+            <span>OR</span>
+          </div>
+
+          <form onSubmit={handleContinue}>
+            <input
+              type="email"
+              className="login-input"
+              placeholder="sarah@yahoo.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
             />
-          )}
 
-          <Form
-            form={form}
-            name="login"
-            onFinish={onFinish}
-            autoComplete="off"
-            layout="vertical"
-            size="large"
-          >
-            <Form.Item
-              name="username"
-              rules={[
-                { required: true, message: 'Please input your username!' }
-              ]}
+            {error && <div className="error-message">{error}</div>}
+
+            <button
+              type="submit"
+              className="continue-button"
+              disabled={loading || !email.trim()}
             >
-              <Input
-                prefix={<UserOutlined />}
-                placeholder="Username"
-              />
-            </Form.Item>
+              {loading ? 'Sending...' : 'Continue'}
+            </button>
+          </form>
 
-            <Form.Item
-              name="password"
-              rules={[
-                { required: true, message: 'Please input your password!' }
-              ]}
-            >
-              <Input.Password
-                prefix={<LockOutlined />}
-                placeholder="Password"
-              />
-            </Form.Item>
+          {/* <div className="sso-text">
+            Single sign-on (SSO)
+          </div> */}
 
-            <Form.Item>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={loading}
-                block
-              >
-                Login
-              </Button>
-            </Form.Item>
-
-            <div className="login-footer">
-              <Text type="secondary">
-                Don't have an account? <Link to="/signup">Sign up</Link>
-              </Text>
-            </div>
-          </Form>
-        </Space>
-      </Card>
-    </div>
+          <div className="privacy-text">
+            By clicking continuing, you agree to our <a href="/privacy-policy">privacy policy</a>.
+          </div>
+        </div>
+      </div>
+    </>
   );
 };
 

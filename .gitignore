@@ -25,6 +25,8 @@ chrome-user-data
 *.swo
 yarn.zip
 nohup.out
+yarn.lock
+.yarn/
 test-auth-server.js
 
 packages/react-devtools-core/dist
@@ -39,3 +41,14 @@ packages/react-devtools-extensions/.tempUserDataDir
 packages/react-devtools-inline/dist
 packages/react-devtools-shell/dist
 packages/react-devtools-timeline/dist
+
+.venv/
+temp/
+e2e/.auth/
+
+# Playwright
+.env
+.env.local
+.env.*.local
+playwright-report/
+test-results/

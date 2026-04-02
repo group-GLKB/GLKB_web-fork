@@ -1,0 +1,286 @@
+import React, {
+    useEffect,
+    useState,
+} from 'react';
+
+import { useNavigate } from 'react-router-dom';
+
+import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
+import CloseIcon from '@mui/icons-material/Close';
+import SearchIcon from '@mui/icons-material/Search';
+import {
+    Autocomplete,
+    Box,
+    Paper,
+    Popper,
+    TextField,
+} from '@mui/material';
+
+import { useAuth } from '../Auth/AuthContext';
+
+const LlmSearchBar = React.forwardRef((props, ref) => {
+    const [llmQuery, setLlmQuery] = useState('');
+    const [isOpen, setIsOpen] = useState(false);
+    const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
+    const inputTimeoutRef = React.useRef(null);
+    const hasTrackedInputRef = React.useRef(false);
+    const lastPrefillRef = React.useRef(undefined);
+    const isQueryLimitReached = Boolean(props.isQueryLimitReached);
+    useEffect(() => {
+        // console.log(props);
+        props.setOpen(isOpen);
+    }, [isOpen, props]);
+
+    useEffect(() => {
+        if (typeof props.prefillQuery !== 'string') {
+            return;
+        }
+
+        if (props.prefillQuery !== lastPrefillRef.current) {
+            lastPrefillRef.current = props.prefillQuery;
+            setLlmQuery(props.prefillQuery);
+        }
+    }, [props.prefillQuery]);
+
+    const handleAuthGate = (event) => {
+        if (isAuthenticated) {
+            return false;
+        }
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        navigate('/login');
+        return true;
+    };
+
+    const CustomPopper = (props) => (
+        <Popper
+            {...props}
+            placement="bottom-start"
+            disablePortal={true}
+            modifiers={[
+                {
+                    name: 'flip',
+                    enabled: false, // prevent flipping to top
+                },
+                {
+                    name: 'preventOverflow',
+                    enabled: false,
+                },
+                {
+                    name: 'offset',
+                    options: { offset: [0, 16] },
+                },
+            ]}
+        />
+    );
+    const navigateToLLMAgent = (query = '') => {
+        // Clear input timeout to prevent search_input event after submission
+        if (inputTimeoutRef.current) {
+            clearTimeout(inputTimeoutRef.current);
+            hasTrackedInputRef.current = true;
+        }
+        if (!isAuthenticated) {
+            navigate('/login');
+            return;
+        }
+        if (query) {
+            navigate('/chat', { state: { initialQuery: query } });
+        } else {
+            navigate('/chat');
+        }
+    };
+    return (
+        <Box
+            className="llm-searchbar"
+            onMouseDown={handleAuthGate}
+            onTouchStart={handleAuthGate}
+            sx={{
+                width: '100%',
+                display: 'flex',
+                gap: 2,
+                margin: '0 auto',
+                backgroundColor: '#ffffff',
+                borderRadius: '16px',
+                borderWidth: '1px',
+                borderStyle: 'solid',
+                borderColor: '#E7F1FF',
+                boxShadow: '0px 6px 18px rgba(22, 69, 99, 0.08)',
+            }}>
+            <Autocomplete
+                freeSolo
+                fullWidth
+                disabled={isQueryLimitReached}
+                options={props.autocompleteOptions || []}
+                filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
+                onChange={(event, newValue) => {
+                    if (isQueryLimitReached) return;
+                    setLlmQuery(newValue || '');
+                }}
+                onInputChange={(event, newInputValue) => {
+                    if (isQueryLimitReached) return;
+                    setLlmQuery(newInputValue || '');
+                }}
+                openOnFocus
+                groupBy={() => 'Example Queries'}
+                getOptionLabel={(option) => option}
+                ListboxProps={{
+                    className: 'homepage-autocomplete-listbox',
+                    style: {
+                        maxHeight: 320,
+                        overflowY: 'auto',
+                        padding: 0,
+                        margin: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 12,
+                    },
+                }}
+                inputValue={llmQuery}
+                onOpen={(event) => {
+                    if (isQueryLimitReached) {
+                        return;
+                    }
+                    if (handleAuthGate(event)) {
+                        return;
+                    }
+                    setIsOpen(true);
+                }}
+                onClose={() => setIsOpen(false)}
+                PopperComponent={CustomPopper}
+                renderInput={(params) => (
+                    <TextField
+                        {...params}
+                        placeholder="Ask a question about the biomedical literature..."
+                        multiline
+                        minRows={4}
+                        maxRows={4}
+                        disabled={isQueryLimitReached}
+                        sx={{
+                            height: '130px',
+                            width: '100%',
+                            '& .MuiInputBase-root': {
+                                borderRadius: '16px',
+                                height: '130px',
+                                alignItems: 'flex-start',
+                                paddingLeft: '20px',
+                                paddingRight: '100px !important',
+                                paddingTop: '10px',
+                                paddingBottom: '10px',
+                                fontFamily: 'Open Sans, sans-serif',
+                                fontSize: '18px',
+                                color: '#164563',
+                                '& fieldset': {
+                                    border: 'none',
+                                },
+                            },
+                            '& .MuiInputBase-input': {
+                                lineHeight: '26px',
+                                maxHeight: '100px',
+                            },
+                            '& .MuiInputBase-input::placeholder': {
+                                color: '#969696',
+                                opacity: 1,
+                            },
+                            '& .MuiOutlinedInput-notchedOutline': {
+                                borderColor: 'grey', // Optional: Customize border color
+                            },
+                        }}
+                        fullWidth
+                        InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                                <Box display="flex" alignItems="center" sx={{
+                                    position: 'absolute',
+                                    right: 12,
+                                    bottom: 13,
+                                    top: 'auto',
+                                    gap: 1,
+                                }}>
+                                    {/* Clear Icon */}
+                                    {llmQuery !== "" && !isQueryLimitReached && <CloseIcon
+                                        onMouseDown={(event) => {
+                                            event.preventDefault();
+                                        }}
+                                        onClick={() => {
+                                            setLlmQuery(''); // Clear the input field
+                                        }}
+                                        sx={{
+                                            color: 'grey.500',
+                                            cursor: 'pointer',
+                                            fontSize: '20px',
+                                        }}
+                                    />}
+                                    {/* Search Icon */}
+                                    {llmQuery.trim() && !isQueryLimitReached && (
+                                        <Box
+                                            role="button"
+                                            aria-label="Start chat"
+                                            className="search-button-big"
+                                            onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}
+                                            sx={{
+                                                height: '48px',
+                                                width: '48px',
+                                                borderRadius: '50%',
+                                                backgroundColor: '#E7F1FF',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                transition: 'transform 120ms ease, box-shadow 160ms ease',
+                                                boxShadow: '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',
+                                                '&:hover': {
+                                                    transform: 'translateY(-1px)',
+                                                },
+                                            }}
+                                        >
+                                            <SearchIcon sx={{ color: '#155DFC', fontSize: '22px' }} />
+                                        </Box>
+                                    )}
+                                </Box>
+                            ),
+                        }}
+
+                    />
+                )}
+                PaperComponent={({ children }) => (
+                    <Paper className="homepage-autocomplete-panel">
+                        {children}
+                    </Paper>
+                )}
+                renderOption={(props, option) => (
+                    <Box
+                        component="li"
+                        {...props}
+                        className="homepage-autocomplete-option"
+                        sx={{
+                            whiteSpace: 'normal',
+                            alignItems: 'flex-start',
+                            lineHeight: 1.4,
+                        }}
+                    >
+                        {option}
+                        <span className="homepage-examples-arrow">
+                            <ArrowOutwardIcon fontSize="small" />
+                        </span>
+                    </Box>
+                )}
+                onKeyDown={(e) => {
+                    if (isQueryLimitReached) {
+                        e.preventDefault();
+                        return;
+                    }
+                    if (e.key === 'Enter' && llmQuery !== "") {
+                        e.preventDefault();
+                        navigateToLLMAgent(llmQuery.trim());
+                    }
+                }}
+            />
+
+        </Box>
+    );
+});
+
+export default LlmSearchBar;

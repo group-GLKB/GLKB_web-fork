@@ -6,6 +6,12 @@ const Sentry = window.Sentry;
  * Automatically includes JWT token in all API requests
  */
 
+// Configure base URL for deployed environments
+// In local dev, setupProxy.js handles the proxying
+if (process.env.NODE_ENV === 'production') {
+  axios.defaults.baseURL = 'https://glkb.dcmb.med.umich.edu/reorg-api';
+}
+
 // Request interceptor to add JWT token to headers
 axios.interceptors.request.use(
   (config) => {

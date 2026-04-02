@@ -1,0 +1,53 @@
+{
+    "autocomplete": [
+        "What biological functions are associated with the TP53 gene?",
+        "How has the number of publications on Alzheimer's disease changed over the past 10 years?",
+        "What recent studies investigate the role of the gut microbiome in autoimmune diseases?"
+    ],
+    "pills": [
+        {
+            "id": "insights",
+            "label": "Entity Insights",
+            "panelTitle": "Entity Insights",
+            "icon": "lightbulb",
+            "examples": [
+                "What biological functions are associated with the TP53 gene?",
+                "Which genes are most strongly associated with Alzheimer's disease in the literature?",
+                "What pathways involve the mTOR signaling pathway and what processes does it regulate?"
+            ]
+        },
+        {
+            "id": "disease",
+            "label": "Research Trend",
+            "panelTitle": "Research Trend",
+            "icon": "chart",
+            "examples": [
+                "How has the number of publications on Alzheimer's disease changed over the past 10 years?",
+                "Which genes have seen the largest increase in publications related to Type 1 Diabetes since 2020?",
+                "What are the most rapidly growing research topics in CRISPR-based gene editing?"
+            ]
+        },
+        {
+            "id": "literature",
+            "label": "Mechanisms & Relationships",
+            "panelTitle": "Mechanisms and Relationships",
+            "icon": "book",
+            "examples": [
+                "Which transcription factors regulate INS gene expression in pancreatic beta cells?",
+                "What molecular pathways link IL6 signaling to inflammatory responses?",
+                "Which proteins interact with ACE2 during viral infection?"
+            ]
+        },
+        {
+            "id": "usecases",
+            "label": "Literature Discovery",
+            "panelTitle": "Literature Discovery",
+            "icon": "knowledge",
+            "examples": [
+                "What recent studies investigate the role of the gut microbiome in autoimmune diseases?",
+                "Which genes have recently been implicated in beta-cell dysfunction in Type 1 Diabetes?",
+                "Are there studies linking viral infections to the onset of autoimmune diabetes?"
+            ]
+        }
+    ]
+}

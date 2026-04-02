@@ -1,0 +1,133 @@
+.debug-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    background: linear-gradient(180deg, #f6f8fb 0%, #eef2f7 100%);
+    font-family: 'DM Sans', sans-serif;
+}
+
+.debug-card {
+    width: min(720px, 92vw);
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 24px 28px;
+    box-shadow: 0 16px 40px rgba(18, 38, 63, 0.12);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.debug-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #164563;
+}
+
+.debug-step-row {
+    display: inline-flex;
+    align-items: center;
+    min-height: 56px;
+    padding: 16px 20px;
+    background: #f4f6fa;
+    border-radius: 12px;
+}
+
+.debug-meta {
+    font-size: 12px;
+    color: #7a8794;
+}
+
+.debug-divider {
+    height: 1px;
+    background: #e6ebf2;
+    margin: 4px 0;
+}
+
+.debug-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #41576d;
+}
+
+.debug-input {
+    width: 100%;
+    border: 1px solid #d7e1ed;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    color: #1f2d3d;
+    outline: none;
+}
+
+.debug-input:focus {
+    border-color: #155dfc;
+    box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.12);
+}
+
+.debug-button {
+    border: none;
+    border-radius: 10px;
+    background: #155dfc;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 10px 14px;
+    cursor: pointer;
+    width: fit-content;
+}
+
+.debug-button:disabled {
+    background: #9bb8f7;
+    cursor: not-allowed;
+}
+
+.debug-success {
+    font-size: 13px;
+    color: #16794c;
+}
+
+.debug-error {
+    font-size: 13px;
+    color: #c0392b;
+}
+
+.loading-step-label {
+    display: inline-block;
+    font-size: 18px;
+    font-weight: 400;
+    color: #5b5b5b;
+}
+
+.loading-step-label--out {
+    animation: llm-step-label-out 140ms ease forwards;
+}
+
+.loading-step-label--in {
+    animation: llm-step-label-in 180ms ease forwards;
+}
+
+@keyframes llm-step-label-out {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+}
+
+@keyframes llm-step-label-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
