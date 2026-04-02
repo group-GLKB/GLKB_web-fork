@@ -53,3 +53,21 @@ export const upgradeToAdmin = async (passcode) => {
         };
     }
 };
+
+export const upgradeToPro = async (passcode) => {
+    try {
+        const response = await axios.post(`${TIER_BASE_URL}/upgrade-to-pro`, {
+            passcode,
+        });
+        return {
+            success: true,
+            data: response.data,
+            message: 'Upgraded to pro tier successfully.',
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: error.response?.data?.detail || 'Failed to upgrade to pro tier.',
+        };
+    }
+};

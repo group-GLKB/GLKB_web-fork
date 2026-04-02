@@ -434,7 +434,7 @@ const AboutPage = () => {
                                     <p>Search, organize, and analyze literature with AI</p>
                                 </div>
                                 <div className="about-pricing-price">
-                                    <span className="about-pricing-price-value">$15</span>
+                                    <span className="about-pricing-price-value">${isYearly ? '15' : '18.7'}</span>
                                     <span className="about-pricing-price-suffix">
                                         <span className="about-pricing-price-slash">
                                             {isYearly ? '/ month, billed annually' : '/ month'}
@@ -464,7 +464,7 @@ const AboutPage = () => {
                                     <p>Maximize your research productivity</p>
                                 </div>
                                 <div className="about-pricing-price">
-                                    <span className="about-pricing-price-value">$45</span>
+                                    <span className="about-pricing-price-value">${isYearly ? '45' : '56.2'}</span>
                                     <span className="about-pricing-price-suffix">
                                         <span className="about-pricing-price-slash">
                                             {isYearly ? '/ month, billed annually' : '/ month'}
