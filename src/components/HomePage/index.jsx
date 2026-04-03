@@ -314,7 +314,7 @@ const HomePage = () => {
                                             <Paper className="homepage-examples-panel" ref={examplePanelRef}>
                                                 <Box className="homepage-examples-header">
                                                     <Typography className="homepage-examples-title">
-                                                        {activePill.panelTitle || `${activePill.label} Examples`}
+                                                        {activePill.label}
                                                     </Typography>
                                                     <IconButton
                                                         aria-label="Close examples"
