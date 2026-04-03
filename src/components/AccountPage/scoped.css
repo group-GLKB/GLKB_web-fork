@@ -137,6 +137,10 @@
     border-bottom: none;
 }
 
+.settings-upgrade-row {
+    align-items: flex-end;
+}
+
 .flat-row-main {
     display: flex;
     align-items: center;

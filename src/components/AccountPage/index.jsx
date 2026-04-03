@@ -358,7 +358,7 @@ const AccountPage = () => {
                                 <h2 className="settings-title settings-title-first">Upgrade with Code</h2>
                                 <div className="settings-divider"></div>
 
-                                <div className="flat-row">
+                                <div className="flat-row settings-upgrade-row">
                                     <div className="flat-field">
                                         <div className="flat-label">Pro Password</div>
                                         <input

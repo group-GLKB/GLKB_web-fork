@@ -217,6 +217,24 @@
     align-items: center;
 }
 
+@media (min-width: 2000px) {
+    .homepage-hero-search {
+        max-width: 1030px;
+    }
+
+    .homepage-pills {
+        flex-wrap: nowrap;
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+        gap: 16px;
+    }
+
+    .homepage-pill {
+        flex: 0 1 auto;
+    }
+}
+
 .homepage-examples-panel {
     position: absolute;
     left: 0;
