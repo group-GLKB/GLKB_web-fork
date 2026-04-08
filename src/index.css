@@ -14,7 +14,7 @@ body,
 /* Global scrollbar background override */
 * {
     scrollbar-width: auto;
-    scrollbar-color: #8B8B8B transparent;
+    scrollbar-color: #EDEDED transparent;
 }
 
 *::-webkit-scrollbar {
@@ -23,6 +23,10 @@ body,
 
 *::-webkit-scrollbar-track {
     background: transparent !important;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: #EDEDED;
 }
 
 *::-webkit-scrollbar-thumb:hover {
