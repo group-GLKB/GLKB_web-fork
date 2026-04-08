@@ -152,6 +152,12 @@
     overflow: hidden;
 }
 
+.about-hero-right {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+}
+
 .about-hero-image {
     width: 100%;
     height: 100%;
@@ -253,12 +259,22 @@
     max-width: 600px;
 }
 
+.about-feature-media {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+}
+
 .about-feature--reverse .about-feature-frame {
     direction: rtl;
 }
 
 .about-feature--reverse .about-feature-frame>* {
     direction: ltr;
+}
+
+.about-feature--reverse .about-feature-media {
+    justify-content: flex-start;
 }
 
 .about-feature-text h2 {
@@ -976,6 +992,10 @@
 
     .about-hero-collage {
         height: 420px;
+    }
+
+    .about-hero-right {
+        justify-content: center;
     }
 }
 

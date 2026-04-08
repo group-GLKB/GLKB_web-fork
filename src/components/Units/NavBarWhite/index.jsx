@@ -852,7 +852,7 @@ function NavBarWhite({ showLogo = true }) {
                         </Box>
                     )}
                 </Box>
-                <Box sx={{ mt: 'auto', pb: 1 }}>
+                <Box sx={{ mt: 'auto', pb: 0 }}>
                     <List sx={{ px: 1, py: 1 }}>
                         {!isAuthenticated ? (
                             renderNavItem(loginItem)

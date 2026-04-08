@@ -10,3 +10,25 @@ body,
     height: 100%;
     margin: 0;
 }
+
+/* Global scrollbar background override */
+* {
+    scrollbar-width: auto;
+    scrollbar-color: #8B8B8B transparent;
+}
+
+*::-webkit-scrollbar {
+    background: transparent !important;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: #636363;
+}
+
+*::-webkit-scrollbar-corner {
+    background: transparent !important;
+}
