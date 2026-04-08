@@ -1,77 +1,77 @@
 import './scoped.css';
 
 import React, {
-  useEffect,
-  useMemo,
-  useState,
+    useEffect,
+    useMemo,
+    useState,
 } from 'react';
 
 import {
-  Link,
-  useLocation,
-  useNavigate,
+    Link,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
 import {
-  Bookmark as BookmarkIcon,
-  BookmarkBorder as BookmarkBorderIcon,
-  DeleteOutline as DeleteOutlineIcon,
-  DriveFileRenameOutline as DriveFileRenameOutlineIcon,
-  InfoOutlined as InfoOutlinedIcon,
-  MoreHoriz as MoreHorizIcon,
-  Person as PersonIcon,
+    Bookmark as BookmarkIcon,
+    BookmarkBorder as BookmarkBorderIcon,
+    DeleteOutline as DeleteOutlineIcon,
+    DriveFileRenameOutline as DriveFileRenameOutlineIcon,
+    InfoOutlined as InfoOutlinedIcon,
+    MoreHoriz as MoreHorizIcon,
+    Person as PersonIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Divider,
-  Drawer as MuiDrawer,
-  IconButton,
-  List,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Tooltip,
-  Typography,
-  useMediaQuery,
+    Box,
+    Divider,
+    Drawer as MuiDrawer,
+    IconButton,
+    List,
+    ListItemButton,
+    ListItemIcon,
+    ListItemText,
+    Menu,
+    MenuItem,
+    Tooltip,
+    Typography,
+    useMediaQuery,
 } from '@mui/material';
 import {
-  styled,
-  useTheme,
+    styled,
+    useTheme,
 } from '@mui/material/styles';
 
 import logo from '../../../img/GLKB_logo_icon.png';
 import { ReactComponent as AddIcon } from '../../../img/navbar/add.svg';
 import {
-  ReactComponent as UpgradeIcon,
+    ReactComponent as UpgradeIcon,
 } from '../../../img/navbar/arrow_circle_up.svg';
 import { ReactComponent as BookIcon } from '../../../img/navbar/book_4.svg';
 import {
-  ReactComponent as CategorySearchIcon,
+    ReactComponent as CategorySearchIcon,
 } from '../../../img/navbar/category_search.svg';
 import {
-  ReactComponent as CodeBlocksIcon,
+    ReactComponent as CodeBlocksIcon,
 } from '../../../img/navbar/code_blocks.svg';
 import { ReactComponent as HistoryIcon } from '../../../img/navbar/history.svg';
 import logoWordmark from '../../../img/navbar/logo.jpg';
 import {
-  ReactComponent as SidebarLeftIcon,
+    ReactComponent as SidebarLeftIcon,
 } from '../../../img/navbar/sidebar.left.svg';
 import userAccountIcon from '../../../img/user/ic_outline-account-circle.svg';
 import userLogoutIcon from '../../../img/user/mynaui_logout.svg';
 import {
-  fetchConversations,
-  getActiveConversationId,
-  getConversations,
-  removeConversation,
-  setActiveConversationId,
-  updateConversationTitle,
+    fetchConversations,
+    getActiveConversationId,
+    getConversations,
+    removeConversation,
+    setActiveConversationId,
+    updateConversationTitle,
 } from '../../../utils/chatHistory';
 import {
-  fetchConversationBookmarks,
-  getConversationBookmarks,
-  toggleConversationBookmark,
+    fetchConversationBookmarks,
+    getConversationBookmarks,
+    toggleConversationBookmark,
 } from '../../../utils/conversationBookmarks';
 import { useAuth } from '../../Auth/AuthContext';
 
@@ -167,6 +167,13 @@ function NavBarWhite({ showLogo = true }) {
             setOpen(storedOpen === 'true');
         }
     }, [isSmallScreen]);
+
+    useEffect(() => {
+        if (!location.pathname.startsWith('/library')) {
+            return;
+        }
+        setOpen(false);
+    }, [location.pathname]);
 
     useEffect(() => {
         if (typeof window === 'undefined' || isSmallScreen) {
