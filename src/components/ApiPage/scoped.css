@@ -642,15 +642,17 @@
 .api-keys-created-key-row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 0;
+    padding: 0;
     border-radius: 12px;
-    border: 1px solid #969696;
+    border: 1px solid #155DFC;
     background: #ffffff;
+    overflow: hidden;
 }
 
 .api-keys-created-key {
     flex: 1;
+    padding: 12px 16px;
     font-family: 'DM Sans', sans-serif;
     font-size: 16px;
     font-weight: 400;
@@ -670,9 +672,11 @@
 .api-keys-copy-button {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    align-self: stretch;
     gap: 8px;
     padding: 8px 16px;
-    border-radius: 12px;
+    border-radius: 0 11px 11px 0;
     border: none;
     background: #155DFC;
     color: #ffffff;

@@ -3,10 +3,12 @@ import './scoped.css';
 import React, {
   useEffect,
   useMemo,
+    useRef,
   useState,
 } from 'react';
 
 import {
+    Check as CheckIcon,
   Close as CloseIcon,
   ContentCopyOutlined as ContentCopyOutlinedIcon,
   Edit as EditIcon,
@@ -116,6 +118,8 @@ const ApiPage = () => {
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [statusUpdatingId, setStatusUpdatingId] = useState(null);
+    const [isCopySuccess, setIsCopySuccess] = useState(false);
+    const copySuccessTimerRef = useRef(null);
 
     const keyCounts = useMemo(() => {
         const total = keys.length;
@@ -246,10 +250,32 @@ const ApiPage = () => {
     const handleCopy = async (value) => {
         try {
             await navigator.clipboard.writeText(value);
+            setIsCopySuccess(true);
+            if (copySuccessTimerRef.current) {
+                window.clearTimeout(copySuccessTimerRef.current);
+            }
+            copySuccessTimerRef.current = window.setTimeout(() => {
+                setIsCopySuccess(false);
+                copySuccessTimerRef.current = null;
+            }, 1400);
         } catch (error) {
+            setIsCopySuccess(false);
             setKeysError('Copy failed. Please copy the key manually.');
         }
     };
+
+    useEffect(() => {
+        if (createOpen && createdKey) return;
+        setIsCopySuccess(false);
+        if (!copySuccessTimerRef.current) return;
+        window.clearTimeout(copySuccessTimerRef.current);
+        copySuccessTimerRef.current = null;
+    }, [createOpen, createdKey]);
+
+    useEffect(() => () => {
+        if (!copySuccessTimerRef.current) return;
+        window.clearTimeout(copySuccessTimerRef.current);
+    }, []);
 
     return (
         <div className="api-page">
@@ -497,8 +523,17 @@ const ApiPage = () => {
                                             className="api-keys-copy-button"
                                             onClick={() => handleCopy(createdKey.value)}
                                         >
-                                            <ContentCopyOutlinedIcon fontSize="small" />
-                                            Copy
+                                            {isCopySuccess ? (
+                                                <>
+                                                    <CheckIcon fontSize="small" />
+                                                    Copied!
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <ContentCopyOutlinedIcon fontSize="small" />
+                                                    Copy
+                                                </>
+                                            )}
                                         </button>
                                     </div>
                                     <div className="api-keys-created-permissions">

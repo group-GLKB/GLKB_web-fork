@@ -1,23 +1,23 @@
 import './scoped.css';
 
 import React, {
-  useEffect,
-  useState,
+    useEffect,
+    useState,
 } from 'react';
 
 import {
-  useLocation,
-  useNavigate,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
 import {
-  Close as CloseIcon,
-  Person as PersonIcon,
+    Close as CloseIcon,
+    Person as PersonIcon,
 } from '@mui/icons-material';
 
 import {
-  getMyTier,
-  upgradeToPro,
+    getMyTier,
+    upgradeToPro,
 } from '../../service/Tier';
 import { useAuth } from '../Auth/AuthContext';
 
