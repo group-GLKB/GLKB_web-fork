@@ -55,9 +55,11 @@ import workflowSynthesize
   from '../../img/about/workflow/step3_synthesize_transparent.svg';
 import workflowVerify
   from '../../img/about/workflow/step4_verify_explore_transparent.svg';
+import faqData from './faqData.json';
 
 const AboutPage = () => {
     const [isYearly, setIsYearly] = useState(true);
+        const [expandedFaqId, setExpandedFaqId] = useState(null);
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -518,13 +520,30 @@ const AboutPage = () => {
                     <div className="about-frame about-faq-frame">
                         <h2>FAQ</h2>
                         <div className="about-faq-list">
-                            <div className="about-faq-item"><span>Is GLKB replacing PubMed?</span><span>+</span></div>
-                            <div className="about-faq-item"><span>How reliable are the answers?</span><span>+</span></div>
-                            <div className="about-faq-item"><span>How is GLKB different from PubMed or Google Scholar?</span><span>+</span></div>
-                            <div className="about-faq-item"><span>What kind of questions can I ask?</span><span>+</span></div>
-                            <div className="about-faq-item"><span>Where does GLKB get its data?</span><span>+</span></div>
-                            <div className="about-faq-item"><span>Is GLKB intended for clinical decision-making?</span><span>+</span></div>
-                            <div className="about-faq-item"><span>Can I use GLKB for academic publications?</span><span>+</span></div>
+                            {faqData.map((item) => {
+                                const isExpanded = expandedFaqId === item.id;
+                                return (
+                                    <div key={item.id} className={`about-faq-item${isExpanded ? ' is-expanded' : ''}`}>
+                                        <button
+                                            type="button"
+                                            className="about-faq-question"
+                                            onClick={() => setExpandedFaqId(isExpanded ? null : item.id)}
+                                            aria-expanded={isExpanded}
+                                            aria-controls={`faq-answer-${item.id}`}
+                                        >
+                                            <span>{item.question}</span>
+                                            <span className="about-faq-toggle" aria-hidden="true">+</span>
+                                        </button>
+                                        <div
+                                            id={`faq-answer-${item.id}`}
+                                            className="about-faq-answer-wrap"
+                                            aria-hidden={!isExpanded}
+                                        >
+                                            <div className="about-faq-answer">{item.answer}</div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </section>
