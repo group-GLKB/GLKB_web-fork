@@ -657,8 +657,8 @@
 .about-pricing-cards {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 21px;
-    width: min(1663px, 100%);
+    gap: 17px;
+    width: min(1330px, 100%);
     margin: 48px auto 0;
 }
 
@@ -666,13 +666,13 @@
     --pricing-border: #bfe6ff;
     background: #ffffff;
     border: 2px solid var(--pricing-border);
-    border-radius: 24px;
-    padding: 40px;
+    border-radius: 19px;
+    padding: 32px;
     text-align: left;
-    min-height: 640px;
+    min-height: 512px;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 19px;
     position: relative;
     box-sizing: border-box;
     cursor: default;
@@ -695,17 +695,17 @@
 
 .about-pricing-badge {
     position: absolute;
-    top: -14px;
+    top: -11px;
     left: 50%;
     transform: translateX(-50%);
     background: var(--pricing-border);
     color: #ffffff;
     font-family: 'DM Sans', 'Inter', sans-serif;
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 700;
-    letter-spacing: 1.2px;
+    letter-spacing: 1px;
     text-transform: uppercase;
-    padding: 4px 16px;
+    padding: 3px 13px;
     border-radius: 999px;
 }
 
@@ -725,25 +725,25 @@
 .about-pricing-card-header p {
     margin: 12px 0 0;
     font-family: 'DM Sans', 'Inter', sans-serif;
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 400;
     color: #646464;
 }
 
 .about-pricing-card-header {
-    min-height: 104px;
+    min-height: 83px;
 }
 
 .about-pricing-price {
     display: flex;
     align-items: baseline;
     gap: 4px;
-    min-height: 72px;
+    min-height: 58px;
 }
 
 .about-pricing-price-value {
     font-family: 'DM Sans', 'Inter', sans-serif;
-    font-size: 40px;
+    font-size: 32px;
     font-weight: 700;
     color: #323232;
 }
@@ -757,31 +757,31 @@
 
 .about-pricing-price-unit {
     font-family: 'DM Sans', 'Inter', sans-serif;
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 400;
     color: #646464;
-    line-height: 24px;
+    line-height: 19px;
 }
 
 .about-pricing-price-slash {
     font-family: 'DM Sans', 'Inter', sans-serif;
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 400;
     color: #646464;
-    line-height: 24px;
+    line-height: 19px;
 }
 
 .about-pricing-button {
-    height: 48px;
+    height: 38px;
     border-radius: 999px;
     border: none;
     background: #e6f3fe;
     color: #0169ae;
     font-family: 'DM Sans', 'Inter', sans-serif;
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 700;
     cursor: pointer;
-    margin: 8px 0;
+    margin: 6px 0;
 }
 
 .about-pricing-button:hover {
@@ -807,35 +807,35 @@
 }
 
 .about-pricing-list {
-    margin-top: 8px;
+    margin-top: 6px;
 }
 
 .about-pricing-list-title {
     font-family: 'DM Sans', 'Inter', sans-serif;
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 500;
     color: #323232;
-    padding-bottom: 8px;
+    padding-bottom: 6px;
     border-bottom: 1px solid #cdcdcd;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .about-pricing-list ul {
     list-style: none;
-    padding: 24px 0 0;
+    padding: 19px 0 0;
     margin: 0;
     display: grid;
-    gap: 16px;
+    gap: 13px;
 }
 
 .about-pricing-list li {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     font-family: 'DM Sans', 'Inter', sans-serif;
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 400;
     color: #646464;
 }
@@ -843,17 +843,17 @@
 
 .about-pricing-icon-trending,
 .about-pricing-icon-done {
-    width: 20px;
-    height: 20px;
-    font-size: 20px;
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
     color: #155dfc;
     flex-shrink: 0;
 }
 
 .about-pricing-icon {
-    width: 72px;
-    height: 72px;
-    min-height: 72px;
+    width: 58px;
+    height: 58px;
+    min-height: 58px;
     display: block;
     align-self: center;
 }
@@ -890,16 +890,25 @@
 }
 
 .about-faq-toggle {
-    font-size: 22px;
-    font-weight: 300;
-    line-height: 1;
-    color: #0d0d0d;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    color: currentColor;
     min-width: 24px;
-    text-align: center;
     flex-shrink: 0;
     user-select: none;
-    transform: rotate(0deg);
+    transform-origin: center center;
+    transform: rotate(0deg) scale(1);
     transition: transform 0.22s ease;
+    will-change: transform;
+}
+
+.about-faq-toggle-icon {
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 22px !important;
 }
 
 .about-faq-answer-wrap {
@@ -930,7 +939,7 @@
 }
 
 .about-faq-item.is-expanded .about-faq-toggle {
-    transform: rotate(45deg);
+    transform: rotate(45deg) scale(1.25);
 }
 
 .about-faq {
