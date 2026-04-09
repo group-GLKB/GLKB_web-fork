@@ -34,10 +34,7 @@ jobs:
       env:
         MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
         MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-        NOTIFY_OPS_EMAIL: ${{ secrets.NOTIFY_OPS_EMAIL }}
-        NOTIFY_BACKEND_EMAIL: ${{ secrets.NOTIFY_BACKEND_EMAIL }}
-        NOTIFY_FRONTEND_EMAIL: ${{ secrets.NOTIFY_FRONTEND_EMAIL }}
-        NOTIFY_AGENT_EMAIL: ${{ secrets.NOTIFY_AGENT_EMAIL }}
+        NOTIFY_ALERT_EMAIL: ${{ secrets.NOTIFY_ALERT_EMAIL }}
         GITHUB_RUN_ID: ${{ github.run_id }}
         GITHUB_REPOSITORY: ${{ github.repository }}
       run: node e2e/scripts/notify.js
