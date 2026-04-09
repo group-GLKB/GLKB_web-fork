@@ -23,6 +23,12 @@ const SEVERITY_COLORS = {
   warning:  { bg: '#fefbd8', text: '#b7950b' },
 };
 
+const SEVERITY_LABEL = {
+  critical: 'L2 – CRITICAL',
+  error:    'L3 – ERROR',
+  warning:  'L4 – WARNING',
+};
+
 const TEAM_LABEL = {
   ops:      'OPS',
   backend:  'BACKEND',
@@ -72,7 +78,7 @@ function classifyFailure(testFile, errorMessage) {
 }
 
 function buildSubject(recipient, severity, failures, runId) {
-  const tag = `[${TEAM_LABEL[recipient] || recipient.toUpperCase()}][${severity.toUpperCase()}]`;
+  const tag = `[${TEAM_LABEL[recipient] || recipient.toUpperCase()}][${SEVERITY_LABEL[severity] || severity.toUpperCase()}]`;
 
   if (recipient === 'ops') {
     const hasAuth = failures.some((f) => f.type === 'auth');
