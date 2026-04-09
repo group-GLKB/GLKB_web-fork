@@ -899,10 +899,6 @@
     min-width: 24px;
     flex-shrink: 0;
     user-select: none;
-    transform-origin: center center;
-    transform: rotate(0deg) scale(1);
-    transition: transform 0.22s ease;
-    will-change: transform;
 }
 
 .about-faq-toggle-icon {
@@ -936,10 +932,6 @@
     opacity: 1;
     transform: translateY(0);
     padding: 0 0 22px;
-}
-
-.about-faq-item.is-expanded .about-faq-toggle {
-    transform: rotate(45deg) scale(1.25);
 }
 
 .about-faq {
