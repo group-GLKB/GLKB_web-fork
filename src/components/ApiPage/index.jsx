@@ -1,48 +1,48 @@
 import './scoped.css';
 
 import React, {
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 
 import {
-    Check as CheckIcon,
-    Close as CloseIcon,
-    ContentCopyOutlined as ContentCopyOutlinedIcon,
-    Edit as EditIcon,
-    Security as SecurityIcon,
+  Check as CheckIcon,
+  Close as CloseIcon,
+  ContentCopyOutlined as ContentCopyOutlinedIcon,
+  Edit as EditIcon,
+  Security as SecurityIcon,
 } from '@mui/icons-material';
 import {
-    Box,
-    Button,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
-    Tab,
-    Tabs,
-    TextField,
-    Typography,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Tab,
+  Tabs,
+  TextField,
+  Typography,
 } from '@mui/material';
 
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import {
-    ReactComponent as CodeBlocksIcon,
+  ReactComponent as CodeBlocksIcon,
 } from '../../img/navbar/code_blocks.svg';
 import {
-    createApiKey,
-    deleteApiKey,
-    listApiKeys,
-    updateApiKeyName,
-    updateApiKeyStatus,
+  createApiKey,
+  deleteApiKey,
+  listApiKeys,
+  updateApiKeyName,
+  updateApiKeyStatus,
 } from '../../service/ApiKeys';
 
 const API_DOCS_TAB = 'api-docs';
 const API_KEYS_TAB = 'api-keys';
 const API_USAGE_TAB = 'api-usage';
-const SHOW_API_USAGE_TAB = false;
+const SHOW_API_USAGE_TAB = true;
 
 const tabs = [
     { id: API_DOCS_TAB, label: 'API Docs' },
@@ -91,6 +91,13 @@ const formatRelativeTime = (value) => {
     return formatDateYmd(value);
 };
 
+const formatUsageInteger = (value) => Number(value || 0).toLocaleString('en-US');
+
+const formatUsageCost = (value) => Number(value || 0).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+});
+
 const normalizeKey = (entry) => ({
     ...entry,
     value: maskKeyValue(entry.value),
@@ -127,6 +134,16 @@ const ApiPage = () => {
         return { total, active };
     }, [keys]);
 
+    const usageRows = useMemo(() => (
+        keys.map((entry) => ({
+            ...entry,
+            requests: 1000,
+            token: 100000,
+            apiCost: 100,
+            queryCount: 10000,
+        }))
+    ), [keys]);
+
     const visibleTabs = useMemo(
         () => tabs.filter((tab) => SHOW_API_USAGE_TAB || tab.id !== API_USAGE_TAB),
         []
@@ -152,7 +169,7 @@ const ApiPage = () => {
     };
 
     useEffect(() => {
-        if (activeTab === API_KEYS_TAB) {
+        if (activeTab === API_KEYS_TAB || activeTab === API_USAGE_TAB) {
             loadKeys();
         }
     }, [activeTab]);
@@ -466,9 +483,77 @@ const ApiPage = () => {
                         </>
                     )}
                     {SHOW_API_USAGE_TAB && activeTab === API_USAGE_TAB && (
-                        <div className="api-usage-placeholder">
-                            Usage metrics will appear here once tracking is enabled.
-                        </div>
+                        <>
+                            <Box className="api-keys-toolbar">
+                                <div className="api-keys-count">
+                                    <span>{keyCounts.total} keys</span>
+                                    <span className="api-keys-dot" />
+                                    <span>{keyCounts.active} active</span>
+                                </div>
+                                <div className="api-usage-balance">
+                                    <span className="api-usage-balance-label">BALANCE:</span>
+                                    <span className="api-usage-balance-value">$999.00</span>
+                                </div>
+                            </Box>
+                            {keysError && (
+                                <div className="api-keys-error" role="alert">
+                                    <span>{keysError}</span>
+                                    <button
+                                        type="button"
+                                        className="api-keys-error-close"
+                                        onClick={() => setKeysError('')}
+                                        aria-label="Dismiss"
+                                    >
+                                        <CloseIcon fontSize="small" />
+                                    </button>
+                                </div>
+                            )}
+                            <div className="api-keys-table-wrap">
+                                <div className="api-keys-table api-usage-table">
+                                    <div className="api-keys-table-row api-keys-table-header api-usage-table-row">
+                                        <span className="api-keys-col api-keys-col--name">Name</span>
+                                        <span className="api-keys-col api-keys-col--key">Key</span>
+                                        <span className="api-keys-col api-keys-col--status">Status</span>
+                                        <span className="api-keys-col">Requests</span>
+                                        <span className="api-keys-col">Token</span>
+                                        <span className="api-keys-col">API Cost</span>
+                                        <span className="api-keys-col">Query Count</span>
+                                    </div>
+                                    {loadingKeys && (
+                                        <div className="api-keys-table-row api-keys-table-empty">
+                                            Loading usage...
+                                        </div>
+                                    )}
+                                    {!loadingKeys && usageRows.length === 0 && (
+                                        <div className="api-keys-table-row api-keys-table-empty">
+                                            No usage records yet.
+                                        </div>
+                                    )}
+                                    {!loadingKeys && usageRows.map((entry) => {
+                                        const isInactive = entry.status !== 1;
+                                        return (
+                                            <div className="api-keys-table-row api-usage-table-row" key={`usage-${entry.id}`}>
+                                                <span className="api-keys-col api-keys-col--name">{entry.name}</span>
+                                                <span className="api-keys-col api-keys-col--key">
+                                                    <span className={`api-keys-key-pill ${entry.status === 1 ? 'is-active' : 'is-inactive'}`}>
+                                                        {entry.value}
+                                                    </span>
+                                                </span>
+                                                <span className="api-keys-col api-keys-col--status">
+                                                    <span className={`api-keys-status ${entry.status === 1 ? 'is-active' : ''}`}>
+                                                        {entry.statusLabel}
+                                                    </span>
+                                                </span>
+                                                <span className={`api-usage-metric${isInactive ? ' is-inactive' : ''}`}>{formatUsageInteger(entry.requests)}</span>
+                                                <span className={`api-usage-metric${isInactive ? ' is-inactive' : ''}`}>{formatUsageInteger(entry.token)}</span>
+                                                <span className={`api-usage-metric${isInactive ? ' is-inactive' : ''}`}>${formatUsageCost(entry.apiCost)}</span>
+                                                <span className={`api-usage-metric${isInactive ? ' is-inactive' : ''}`}>{formatUsageInteger(entry.queryCount)}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </>
                     )}
                     <Dialog
                         open={createOpen}

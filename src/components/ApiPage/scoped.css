@@ -184,6 +184,26 @@
     fill: currentColor;
 }
 
+.api-usage-balance {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.api-usage-balance-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #646464;
+}
+
+.api-usage-balance-value {
+    font-family: 'Menlo', 'SFMono-Regular', 'Consolas', 'Liberation Mono', monospace;
+    font-size: 24px;
+    font-weight: 400;
+    color: #155DFC;
+}
+
 .api-keys-table-wrap {
     width: 100%;
     max-width: 100%;
@@ -234,6 +254,12 @@
         padding: 14px 16px;
     }
 
+    .api-usage-table-row {
+        grid-template-columns: 120px minmax(180px, 1fr) 110px 110px 110px 110px 110px;
+        gap: 16px;
+        padding: 14px 16px;
+    }
+
     .api-keys-notice {
         font-size: 14px;
         padding: 14px 16px;
@@ -257,6 +283,10 @@
     font-family: 'DM Sans', sans-serif;
     font-size: 14px;
     color: #323232;
+}
+
+.api-usage-table-row {
+    grid-template-columns: 140px minmax(200px, 1fr) 120px 120px 120px 120px 120px;
 }
 
 .api-keys-table-row.api-keys-table-empty {
@@ -343,6 +373,17 @@
 
 .api-keys-status.is-active::before {
     background: #199E6F;
+}
+
+.api-usage-metric {
+    font-family: 'Menlo', 'SFMono-Regular', 'Consolas', 'Liberation Mono', monospace;
+    font-size: 14px;
+    font-weight: 400;
+    color: #646464;
+}
+
+.api-usage-metric.is-inactive {
+    color: #D1D5DB;
 }
 
 .api-keys-col--actions {

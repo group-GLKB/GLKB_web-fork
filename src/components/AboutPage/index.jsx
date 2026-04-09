@@ -1,30 +1,31 @@
 import './scoped.css';
 
 import React, {
-    useEffect,
-    useState,
+  useEffect,
+  useState,
 } from 'react';
 
 import { Helmet } from 'react-helmet-async';
 import {
-    useLocation,
-    useNavigate,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import AddIcon from '@mui/icons-material/Add';
 import DoneIcon from '@mui/icons-material/Done';
+import RemoveIcon from '@mui/icons-material/Remove';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 
 import featureImage1
-    from '../../img/about/features/GLKB About_Feature 1_illus.png';
+  from '../../img/about/features/GLKB About_Feature 1_illus.png';
 import featureImage2
-    from '../../img/about/features/GLKB About_Feature 2_illus.png';
+  from '../../img/about/features/GLKB About_Feature 2_illus.png';
 import featureImage3
-    from '../../img/about/features/GLKB About_Feature 3_illus.png';
+  from '../../img/about/features/GLKB About_Feature 3_illus.png';
 import featureImage4
-    from '../../img/about/features/GLKB About_Feature 4_illus.png';
+  from '../../img/about/features/GLKB About_Feature 4_illus.png';
 import featureImage5
-    from '../../img/about/features/GLKB About_Feature 5_illus.png';
+  from '../../img/about/features/GLKB About_Feature 5_illus.png';
 import heroLogo27 from '../../img/about/frame1/image 27.png';
 import heroLogo29 from '../../img/about/frame1/image 29.png';
 import heroLogo30 from '../../img/about/frame1/image 30.png';
@@ -33,7 +34,7 @@ import heroLogo32 from '../../img/about/frame1/image 32.png';
 import heroLogo1 from '../../img/about/frame1/logo 1.png';
 import teamLogo from '../../img/about/frame11/logo 1.png';
 import enterpriseIcon
-    from '../../img/about/frame13/tdesign_institution-checked.svg';
+  from '../../img/about/frame13/tdesign_institution-checked.svg';
 import ctaBackground from '../../img/about/frame15/image 23.png';
 import homeImage from '../../img/about/home.png';
 import aboutLogo from '../../img/about/image 26.png';
@@ -49,13 +50,13 @@ import usecaseNavigate from '../../img/about/usecase/navigate.svg';
 import usecaseIconPsych from '../../img/about/usecase/psychology.svg';
 import usecaseValidate from '../../img/about/usecase/validate.svg';
 import workflowAsk
-    from '../../img/about/workflow/step1_ask_question_transparent.svg';
+  from '../../img/about/workflow/step1_ask_question_transparent.svg';
 import workflowRetrieve
-    from '../../img/about/workflow/step2_retrieve_rank_transparent.svg';
+  from '../../img/about/workflow/step2_retrieve_rank_transparent.svg';
 import workflowSynthesize
-    from '../../img/about/workflow/step3_synthesize_transparent.svg';
+  from '../../img/about/workflow/step3_synthesize_transparent.svg';
 import workflowVerify
-    from '../../img/about/workflow/step4_verify_explore_transparent.svg';
+  from '../../img/about/workflow/step4_verify_explore_transparent.svg';
 import faqData from './faqData.json';
 
 const AboutPage = () => {
@@ -534,7 +535,9 @@ const AboutPage = () => {
                                         >
                                             <span>{item.question}</span>
                                             <span className="about-faq-toggle" aria-hidden="true">
-                                                <AddIcon className="about-faq-toggle-icon" />
+                                                {isExpanded
+                                                    ? <RemoveIcon className="about-faq-toggle-icon" />
+                                                    : <AddIcon className="about-faq-toggle-icon" />}
                                             </span>
                                         </button>
                                         <div
