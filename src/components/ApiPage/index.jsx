@@ -42,6 +42,7 @@ import {
 const API_DOCS_TAB = 'api-docs';
 const API_KEYS_TAB = 'api-keys';
 const API_USAGE_TAB = 'api-usage';
+const SHOW_API_KEYS_TAB = false;
 const SHOW_API_USAGE_TAB = false;
 
 const tabs = [
@@ -107,7 +108,7 @@ const normalizeKey = (entry) => ({
 });
 
 const ApiPage = () => {
-    const [activeTab, setActiveTab] = useState(API_KEYS_TAB);
+    const [activeTab, setActiveTab] = useState(API_DOCS_TAB);
     const [keys, setKeys] = useState([]);
     const [loadingKeys, setLoadingKeys] = useState(false);
     const [keysError, setKeysError] = useState('');
@@ -145,7 +146,11 @@ const ApiPage = () => {
     ), [keys]);
 
     const visibleTabs = useMemo(
-        () => tabs.filter((tab) => SHOW_API_USAGE_TAB || tab.id !== API_USAGE_TAB),
+        () => tabs.filter((tab) => {
+            if (!SHOW_API_KEYS_TAB && tab.id === API_KEYS_TAB) return false;
+            if (!SHOW_API_USAGE_TAB && tab.id === API_USAGE_TAB) return false;
+            return true;
+        }),
         []
     );
 
