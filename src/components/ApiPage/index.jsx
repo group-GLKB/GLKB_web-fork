@@ -42,7 +42,7 @@ import {
 const API_DOCS_TAB = 'api-docs';
 const API_KEYS_TAB = 'api-keys';
 const API_USAGE_TAB = 'api-usage';
-const SHOW_API_USAGE_TAB = true;
+const SHOW_API_USAGE_TAB = false;
 
 const tabs = [
     { id: API_DOCS_TAB, label: 'API Docs' },
