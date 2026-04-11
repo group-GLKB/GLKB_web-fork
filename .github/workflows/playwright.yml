@@ -22,29 +22,19 @@ jobs:
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps chromium
     - name: Run Playwright tests
-      run: npx playwright test
+      run: PLAYWRIGHT_JSON_OUTPUT_NAME=playwright-results.json npx playwright test --reporter=json,html
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
         name: playwright-report
         path: playwright-report/
         retention-days: 30
-    - name: Send failure email
+    - name: Send classified failure notifications
       if: failure()
-      uses: dawidd6/action-send-mail@v3
-      with:
-        server_address: smtp.gmail.com
-        server_port: 465
-        username: ${{ secrets.MAIL_USERNAME }}
-        password: ${{ secrets.MAIL_PASSWORD }}
-        subject: "[GLKB] Playwright test failure - ${{ github.run_id }}"
-        to: glkb-alerts@googlegroups.com
-        from: GLKB Monitoring
-        body: |
-          One or more Playwright E2E tests failed.
-
-          Time: ${{ github.event.head_commit.timestamp || 'Scheduled run' }}
-          Run ID: ${{ github.run_id }}
-          Logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-          Check the logs link above for details on which test failed and at which step.
+      env:
+        MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+        MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+        NOTIFY_ALERT_EMAIL: ${{ secrets.NOTIFY_ALERT_EMAIL }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+      run: node e2e/scripts/notify.js

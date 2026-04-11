@@ -3,10 +3,12 @@ import './scoped.css';
 import React, {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
 import {
+  Check as CheckIcon,
   Close as CloseIcon,
   ContentCopyOutlined as ContentCopyOutlinedIcon,
   Edit as EditIcon,
@@ -89,6 +91,13 @@ const formatRelativeTime = (value) => {
     return formatDateYmd(value);
 };
 
+const formatUsageInteger = (value) => Number(value || 0).toLocaleString('en-US');
+
+const formatUsageCost = (value) => Number(value || 0).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+});
+
 const normalizeKey = (entry) => ({
     ...entry,
     value: maskKeyValue(entry.value),
@@ -116,12 +125,24 @@ const ApiPage = () => {
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [statusUpdatingId, setStatusUpdatingId] = useState(null);
+    const [isCopySuccess, setIsCopySuccess] = useState(false);
+    const copySuccessTimerRef = useRef(null);
 
     const keyCounts = useMemo(() => {
         const total = keys.length;
         const active = keys.filter((entry) => entry.status === 1).length;
         return { total, active };
     }, [keys]);
+
+    const usageRows = useMemo(() => (
+        keys.map((entry) => ({
+            ...entry,
+            requests: 1000,
+            token: 100000,
+            apiCost: 100,
+            queryCount: 10000,
+        }))
+    ), [keys]);
 
     const visibleTabs = useMemo(
         () => tabs.filter((tab) => SHOW_API_USAGE_TAB || tab.id !== API_USAGE_TAB),
@@ -148,7 +169,7 @@ const ApiPage = () => {
     };
 
     useEffect(() => {
-        if (activeTab === API_KEYS_TAB) {
+        if (activeTab === API_KEYS_TAB || activeTab === API_USAGE_TAB) {
             loadKeys();
         }
     }, [activeTab]);
@@ -246,10 +267,32 @@ const ApiPage = () => {
     const handleCopy = async (value) => {
         try {
             await navigator.clipboard.writeText(value);
+            setIsCopySuccess(true);
+            if (copySuccessTimerRef.current) {
+                window.clearTimeout(copySuccessTimerRef.current);
+            }
+            copySuccessTimerRef.current = window.setTimeout(() => {
+                setIsCopySuccess(false);
+                copySuccessTimerRef.current = null;
+            }, 1400);
         } catch (error) {
+            setIsCopySuccess(false);
             setKeysError('Copy failed. Please copy the key manually.');
         }
     };
+
+    useEffect(() => {
+        if (createOpen && createdKey) return;
+        setIsCopySuccess(false);
+        if (!copySuccessTimerRef.current) return;
+        window.clearTimeout(copySuccessTimerRef.current);
+        copySuccessTimerRef.current = null;
+    }, [createOpen, createdKey]);
+
+    useEffect(() => () => {
+        if (!copySuccessTimerRef.current) return;
+        window.clearTimeout(copySuccessTimerRef.current);
+    }, []);
 
     return (
         <div className="api-page">
@@ -440,9 +483,77 @@ const ApiPage = () => {
                         </>
                     )}
                     {SHOW_API_USAGE_TAB && activeTab === API_USAGE_TAB && (
-                        <div className="api-usage-placeholder">
-                            Usage metrics will appear here once tracking is enabled.
-                        </div>
+                        <>
+                            <Box className="api-keys-toolbar">
+                                <div className="api-keys-count">
+                                    <span>{keyCounts.total} keys</span>
+                                    <span className="api-keys-dot" />
+                                    <span>{keyCounts.active} active</span>
+                                </div>
+                                <div className="api-usage-balance">
+                                    <span className="api-usage-balance-label">BALANCE:</span>
+                                    <span className="api-usage-balance-value">$999.00</span>
+                                </div>
+                            </Box>
+                            {keysError && (
+                                <div className="api-keys-error" role="alert">
+                                    <span>{keysError}</span>
+                                    <button
+                                        type="button"
+                                        className="api-keys-error-close"
+                                        onClick={() => setKeysError('')}
+                                        aria-label="Dismiss"
+                                    >
+                                        <CloseIcon fontSize="small" />
+                                    </button>
+                                </div>
+                            )}
+                            <div className="api-keys-table-wrap">
+                                <div className="api-keys-table api-usage-table">
+                                    <div className="api-keys-table-row api-keys-table-header api-usage-table-row">
+                                        <span className="api-keys-col api-keys-col--name">Name</span>
+                                        <span className="api-keys-col api-keys-col--key">Key</span>
+                                        <span className="api-keys-col api-keys-col--status">Status</span>
+                                        <span className="api-keys-col">Requests</span>
+                                        <span className="api-keys-col">Token</span>
+                                        <span className="api-keys-col">API Cost</span>
+                                        <span className="api-keys-col">Query Count</span>
+                                    </div>
+                                    {loadingKeys && (
+                                        <div className="api-keys-table-row api-keys-table-empty">
+                                            Loading usage...
+                                        </div>
+                                    )}
+                                    {!loadingKeys && usageRows.length === 0 && (
+                                        <div className="api-keys-table-row api-keys-table-empty">
+                                            No usage records yet.
+                                        </div>
+                                    )}
+                                    {!loadingKeys && usageRows.map((entry) => {
+                                        const isInactive = entry.status !== 1;
+                                        return (
+                                            <div className="api-keys-table-row api-usage-table-row" key={`usage-${entry.id}`}>
+                                                <span className="api-keys-col api-keys-col--name">{entry.name}</span>
+                                                <span className="api-keys-col api-keys-col--key">
+                                                    <span className={`api-keys-key-pill ${entry.status === 1 ? 'is-active' : 'is-inactive'}`}>
+                                                        {entry.value}
+                                                    </span>
+                                                </span>
+                                                <span className="api-keys-col api-keys-col--status">
+                                                    <span className={`api-keys-status ${entry.status === 1 ? 'is-active' : ''}`}>
+                                                        {entry.statusLabel}
+                                                    </span>
+                                                </span>
+                                                <span className={`api-usage-metric${isInactive ? ' is-inactive' : ''}`}>{formatUsageInteger(entry.requests)}</span>
+                                                <span className={`api-usage-metric${isInactive ? ' is-inactive' : ''}`}>{formatUsageInteger(entry.token)}</span>
+                                                <span className={`api-usage-metric${isInactive ? ' is-inactive' : ''}`}>${formatUsageCost(entry.apiCost)}</span>
+                                                <span className={`api-usage-metric${isInactive ? ' is-inactive' : ''}`}>{formatUsageInteger(entry.queryCount)}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </>
                     )}
                     <Dialog
                         open={createOpen}
@@ -497,8 +608,17 @@ const ApiPage = () => {
                                             className="api-keys-copy-button"
                                             onClick={() => handleCopy(createdKey.value)}
                                         >
-                                            <ContentCopyOutlinedIcon fontSize="small" />
-                                            Copy
+                                            {isCopySuccess ? (
+                                                <>
+                                                    <CheckIcon fontSize="small" />
+                                                    Copied!
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <ContentCopyOutlinedIcon fontSize="small" />
+                                                    Copy
+                                                </>
+                                            )}
                                         </button>
                                     </div>
                                     <div className="api-keys-created-permissions">

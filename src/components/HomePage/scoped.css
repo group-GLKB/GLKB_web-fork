@@ -151,8 +151,8 @@
 
 .homepage-pills {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
     gap: 12px;
     margin-top: 0;
     position: relative;
@@ -171,7 +171,9 @@
 .homepage-pill {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
+    flex: 0 0 auto;
     padding: 8px 16px;
     border-radius: 16px !important;
     background-color: #ffffff;
@@ -215,6 +217,20 @@
 .homepage-pill-label {
     display: inline-flex;
     align-items: center;
+    white-space: nowrap;
+}
+
+@media (max-width: 1412px) and (min-width: 901px) {
+    .homepage-pills {
+        padding-left: 20px;
+        padding-right: 20px;
+        gap: 10px;
+    }
+
+    .homepage-pill {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
 }
 
 @media (min-width: 2000px) {
@@ -231,7 +247,7 @@
     }
 
     .homepage-pill {
-        flex: 0 1 auto;
+        flex: 0 0 auto;
     }
 }
 
