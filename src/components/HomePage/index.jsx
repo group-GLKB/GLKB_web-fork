@@ -194,8 +194,8 @@ const HomePage = () => {
                 placement: 'bottom',
             },
             {
-                target: '.search-button-big',
-                content: 'Click here to launch the chat with your question.',
+                target: '.homepage-pills',
+                content: 'Start with a sample question to see how GLKB works. \nYou can also type your own question anytime.',
                 placement: 'bottom',
             }
         ];
