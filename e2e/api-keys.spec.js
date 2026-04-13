@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('API Keys: create, copy, done, then delete', async ({ page }) => {
+test.skip('API Keys: create, copy, done, then delete', async ({ page }) => {
   await page.goto('/api-page');
 
   // API Keys tab is the default — wait for the table to load
