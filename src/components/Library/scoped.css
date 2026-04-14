@@ -240,6 +240,23 @@
     gap: 8px;
 }
 
+.library-sort-download {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid #D7E3EA;
+    background-color: #ffffff;
+    color: #64748B;
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, transform 120ms ease;
+}
+
+.library-sort-download:hover {
+    background-color: #EEF6FF;
+    color: #155DFC;
+    border-color: #BFD6FF;
+    transform: translateY(-1px);
+}
+
 .library-sort-label {
     font-family: 'DM Sans', sans-serif;
     font-size: 12px;
