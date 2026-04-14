@@ -49,6 +49,7 @@ import { ReactComponent as MetaIcon } from '../../img/library/Icon.svg';
 import {
   ReactComponent as ChatIcon,
 } from '../../img/library/Message square.svg';
+import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import { ReactComponent as ShareIcon } from '../../img/library/Share.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import { ReactComponent as BookIcon } from '../../img/navbar/book_4.svg';
@@ -1316,6 +1317,13 @@ const Library = () => {
         () => sortEntries(filteredReferences, 'reference', sortOption),
         [filteredReferences, sortOption]
     );
+    const displayedReferences = useMemo(() => {
+        if (!showReferencesSection) return [];
+        if (shouldLimitPreviews && !isSearching) {
+            return sortedReferences.slice(0, ENTRY_PREVIEW_LIMIT);
+        }
+        return sortedReferences;
+    }, [showReferencesSection, shouldLimitPreviews, isSearching, sortedReferences]);
     const sortedGraphs = useMemo(
         () => sortEntries(filteredGraphs, 'graph', sortOption),
         [filteredGraphs, sortOption]
@@ -1341,6 +1349,36 @@ const Library = () => {
         { id: CHATS_TAB, label: 'AI Chat' },
         { id: GRAPHS_TAB, label: 'Explore' },
     ].filter((tab) => !(DEBUG_HIDE_EXPLORE && tab.id === GRAPHS_TAB));
+
+    const isReferenceExportDisabled = displayedReferences.length === 0;
+
+    const handleExportReferences = () => {
+        if (displayedReferences.length === 0) return;
+
+        const bibTexContent = displayedReferences.map((ref, index) => {
+            const pubmedIdFromUrl = (ref?.url || '').split('/').filter(Boolean).pop();
+            const pubmedId = ref?.pmid || pubmedIdFromUrl || `ref${index + 1}`;
+            const title = `${ref?.title || ''}`.replace(/[{}]/g, '');
+            const journal = `${ref?.journal || ''}`.replace(/[{}]/g, '');
+            const year = `${ref?.year || ''}`.replace(/[{}]/g, '');
+            const authors = `${ref?.authors || ''}`.replace(/,/g, ' and').replace(/[{}]/g, '');
+
+            return `@article{pubmed${pubmedId},\n  author = {${authors}},\n  title = {${title}},\n  journal = {${journal}},\n  year = {${year}},\n  note = {PubMed ID: ${pubmedId}}\n}`;
+        }).join('\n\n');
+
+        const blob = new Blob([bibTexContent], { type: 'application/x-bibtex' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const now = new Date();
+        const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const time = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`;
+        a.download = `library_references_${date}_${time}.bib`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    };
 
     if (loading) {
         return null;
@@ -1630,6 +1668,22 @@ const Library = () => {
                                         <MenuItem value={SORT_DATE}>Date Added</MenuItem>
                                     </Select>
                                 </FormControl>
+                                <IconButton
+                                    size="small"
+                                    onClick={handleExportReferences}
+                                    disabled={isReferenceExportDisabled}
+                                    title="Download references (.bib)"
+                                    className="library-sort-download"
+                                >
+                                    <DownloadIcon
+                                        aria-label="Download references"
+                                        style={{
+                                            width: 20,
+                                            height: 20,
+                                            color: isReferenceExportDisabled ? '#B0B0B0' : '#164563',
+                                        }}
+                                    />
+                                </IconButton>
                             </Box>
                         </Box>
                     </Box>
@@ -1648,7 +1702,7 @@ const Library = () => {
                                     <Box className="library-reference-list">
                                         {visibleReferences.length > 0 ? (
                                             <>
-                                                {sortedReferences.map((entry) => (
+                                                {displayedReferences.map((entry) => (
                                                     <LibraryReferenceCard
                                                         key={entry.id}
                                                         entry={entry}
