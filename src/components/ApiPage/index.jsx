@@ -1,42 +1,42 @@
 import './scoped.css';
 
 import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from 'react';
 
 import {
-  Check as CheckIcon,
-  Close as CloseIcon,
-  ContentCopyOutlined as ContentCopyOutlinedIcon,
-  Edit as EditIcon,
-  Security as SecurityIcon,
+    Check as CheckIcon,
+    Close as CloseIcon,
+    ContentCopyOutlined as ContentCopyOutlinedIcon,
+    Edit as EditIcon,
+    Security as SecurityIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Tab,
-  Tabs,
-  TextField,
-  Typography,
+    Box,
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    Tab,
+    Tabs,
+    TextField,
+    Typography,
 } from '@mui/material';
 
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import {
-  ReactComponent as CodeBlocksIcon,
+    ReactComponent as CodeBlocksIcon,
 } from '../../img/navbar/code_blocks.svg';
 import {
-  createApiKey,
-  deleteApiKey,
-  listApiKeys,
-  updateApiKeyName,
-  updateApiKeyStatus,
+    createApiKey,
+    deleteApiKey,
+    listApiKeys,
+    updateApiKeyName,
+    updateApiKeyStatus,
 } from '../../service/ApiKeys';
 
 const API_DOCS_TAB = 'api-docs';

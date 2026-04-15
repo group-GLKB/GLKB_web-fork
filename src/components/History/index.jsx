@@ -1,47 +1,47 @@
 import './scoped.css';
 
 import React, {
-  useEffect,
-  useMemo,
-  useState,
+    useEffect,
+    useMemo,
+    useState,
 } from 'react';
 
 import {
-  Navigate,
-  useNavigate,
+    Navigate,
+    useNavigate,
 } from 'react-router-dom';
 
 import { DeleteOutline as DeleteOutlineIcon } from '@mui/icons-material';
 import {
-  Box,
-  Checkbox,
-  Tooltip,
-  Typography,
+    Box,
+    Checkbox,
+    Tooltip,
+    Typography,
 } from '@mui/material';
 
 import { ReactComponent as MetaIcon } from '../../img/library/Icon.svg';
 import { ReactComponent as HistoryIcon } from '../../img/navbar/history.svg';
 import {
-  fetchConversations,
-  getConversations,
-  removeConversation,
-  setActiveConversationId,
-  updateConversationTitle,
+    fetchConversations,
+    getConversations,
+    removeConversation,
+    setActiveConversationId,
+    updateConversationTitle,
 } from '../../utils/chatHistory';
 import {
-  fetchConversationBookmarks,
-  getConversationBookmarks,
-  toggleConversationBookmark,
+    fetchConversationBookmarks,
+    getConversationBookmarks,
+    toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
 import {
-  fetchGraphBookmarks,
-  getGraphBookmarks,
-  toggleGraphBookmark,
+    fetchGraphBookmarks,
+    getGraphBookmarks,
+    toggleGraphBookmark,
 } from '../../utils/graphBookmarks';
 import {
-  fetchGraphHistories,
-  getGraphHistories,
-  removeGraphHistory,
+    fetchGraphHistories,
+    getGraphHistories,
+    removeGraphHistory,
 } from '../../utils/graphHistory';
 import { useAuth } from '../Auth/AuthContext';
 import nodeStyleColors from '../Graph/nodeStyleColors.json';
