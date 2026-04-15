@@ -212,7 +212,7 @@ const HomePage = () => {
     return (
         <>
             <Helmet>
-                <title>GLKB | AI-Powered Genomics Search</title>
+                <title>Home | GLKB</title>
                 <meta name="description" content="Discover insights from 33M+ genomic research articles. GLKB enables AI-powered search across genes, diseases, variants, and chemicals with high accuracy." />
                 <meta property="og:title" content="Home Page - Genomic Literature Knowledge Base" />
             </Helmet>
