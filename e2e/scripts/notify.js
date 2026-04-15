@@ -3,8 +3,13 @@ import nodemailer from 'nodemailer';
 
 const RESULTS_FILE = 'playwright-results.json';
 
-// Unified alert address — Gmail filters route by subject tags
-const ALERT_EMAIL = process.env.NOTIFY_ALERT_EMAIL;
+// Per-group recipient addresses
+const GROUP_EMAILS = {
+  ops:      process.env.NOTIFY_OPS_EMAIL,
+  backend:  process.env.NOTIFY_BACKEND_EMAIL,
+  frontend: process.env.NOTIFY_FRONTEND_EMAIL,
+  agent:    process.env.NOTIFY_AGENT_EMAIL,
+};
 
 // Known backend endpoints per test file
 const BACKEND_ENDPOINTS = {
@@ -242,7 +247,7 @@ async function main() {
     const subject = buildSubject(recipient, severity, failures, runId);
     const text = buildEmailText(failures, runId, repo);
     const html = buildEmailHtml(recipient, severity, failures, runId, repo);
-    return sendEmail(ALERT_EMAIL, subject, text, html);
+    return sendEmail(GROUP_EMAILS[recipient], subject, text, html);
   });
 
   await Promise.all(promises);
