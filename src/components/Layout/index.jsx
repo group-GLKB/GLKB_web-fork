@@ -1,5 +1,6 @@
 import React, {
   useEffect,
+    useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -14,6 +15,20 @@ import NavBarWhite from '../Units/NavBarWhite';
 
 const FREE_BOOKMARK_BLOCKED_EVENT = 'glkb-free-bookmark-blocked';
 
+const getPageTitleByPath = (pathname) => {
+    if (pathname === '/') return 'Home | GLKB';
+    if (pathname.startsWith('/chat')) return 'AI Chat | GLKB';
+    if (pathname.startsWith('/api-page')) return 'API | GLKB';
+    if (pathname.startsWith('/account')) return 'Settings | GLKB';
+    if (pathname.startsWith('/about')) return 'About | GLKB';
+    if (pathname.startsWith('/search')) return 'Search | GLKB';
+    if (pathname.startsWith('/history')) return 'History | GLKB';
+    if (pathname.startsWith('/library')) return 'Library | GLKB';
+    if (pathname.startsWith('/login')) return 'Login | GLKB';
+    if (pathname.startsWith('/verify-code')) return 'Verify Code | GLKB';
+    return 'GLKB';
+};
+
 const AppLayout = () => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -21,6 +36,10 @@ const AppLayout = () => {
     const hideTimerRef = useRef(null);
     const hideSidebar = location.pathname.startsWith('/account')
         || location.pathname.startsWith('/about');
+
+    useLayoutEffect(() => {
+        document.title = getPageTitleByPath(location.pathname);
+    }, [location.pathname]);
 
     useEffect(() => {
         const clearHideTimer = () => {

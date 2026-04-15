@@ -1,87 +1,87 @@
 import './scoped.css';
 
 import React, {
-  useEffect,
-  useMemo,
-  useState,
+    useEffect,
+    useMemo,
+    useState,
 } from 'react';
 
 import {
-  Navigate,
-  useLocation,
-  useNavigate,
+    Navigate,
+    useLocation,
+    useNavigate,
 } from 'react-router-dom';
 
 import {
-  Bookmark as BookmarkIcon,
-  ChevronRight as ChevronRightIcon,
-  DeleteOutline as DeleteOutlineIcon,
-  DriveFileRenameOutline as DriveFileRenameOutlineIcon,
-  FileCopyOutlined as FileCopyOutlinedIcon,
-  FilterListOutlined as FilterListOutlinedIcon,
-  FolderOutlined as FolderOutlinedIcon,
-  FormatQuoteOutlined as FormatQuoteOutlinedIcon,
-  MoreHoriz as MoreHorizIcon,
+    Bookmark as BookmarkIcon,
+    ChevronRight as ChevronRightIcon,
+    DeleteOutline as DeleteOutlineIcon,
+    DriveFileRenameOutline as DriveFileRenameOutlineIcon,
+    FileCopyOutlined as FileCopyOutlinedIcon,
+    FilterListOutlined as FilterListOutlinedIcon,
+    FolderOutlined as FolderOutlinedIcon,
+    FormatQuoteOutlined as FormatQuoteOutlinedIcon,
+    MoreHoriz as MoreHorizIcon,
 } from '@mui/icons-material';
 import {
-  Box,
-  Button as MuiButton,
-  Checkbox,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  IconButton,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Select,
-  Tab,
-  Tabs,
-  TextField,
-  Typography,
+    Box,
+    Button as MuiButton,
+    Checkbox,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    FormControl,
+    IconButton,
+    ListItemIcon,
+    ListItemText,
+    Menu,
+    MenuItem,
+    Select,
+    Tab,
+    Tabs,
+    TextField,
+    Typography,
 } from '@mui/material';
 
 import { ReactComponent as FolderOpenIcon } from '../../img/folder_open.svg';
 import { ReactComponent as MetaIcon } from '../../img/library/Icon.svg';
 import {
-  ReactComponent as ChatIcon,
+    ReactComponent as ChatIcon,
 } from '../../img/library/Message square.svg';
-import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import { ReactComponent as ShareIcon } from '../../img/library/Share.svg';
+import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import { ReactComponent as BookIcon } from '../../img/navbar/book_4.svg';
 import {
-  createFavoriteFolder,
-  duplicateFavoriteFolder,
-  getFavoriteFolder,
-  listFavoriteFolders,
-  removeFavoriteFolder,
-  updateFavoriteChatFolder,
-  updateFavoriteFolder,
-  updateFavoriteGraphFolder,
-  updateFavoriteReferenceFolder,
+    createFavoriteFolder,
+    duplicateFavoriteFolder,
+    getFavoriteFolder,
+    listFavoriteFolders,
+    removeFavoriteFolder,
+    updateFavoriteChatFolder,
+    updateFavoriteFolder,
+    updateFavoriteGraphFolder,
+    updateFavoriteReferenceFolder,
 } from '../../service/Favorites';
 import {
-  fetchBookmarks,
-  getBookmarks,
-  toggleBookmark,
+    fetchBookmarks,
+    getBookmarks,
+    toggleBookmark,
 } from '../../utils/bookmarks';
 import {
-  setActiveConversationId,
-  updateConversationTitle,
+    setActiveConversationId,
+    updateConversationTitle,
 } from '../../utils/chatHistory';
 import {
-  fetchConversationBookmarks,
-  getConversationBookmarks,
-  toggleConversationBookmark,
+    fetchConversationBookmarks,
+    getConversationBookmarks,
+    toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
 import {
-  fetchGraphBookmarks,
-  getGraphBookmarks,
-  toggleGraphBookmark,
+    fetchGraphBookmarks,
+    getGraphBookmarks,
+    toggleGraphBookmark,
 } from '../../utils/graphBookmarks';
 import { useAuth } from '../Auth/AuthContext';
 import nodeStyleColors from '../Graph/nodeStyleColors.json';
