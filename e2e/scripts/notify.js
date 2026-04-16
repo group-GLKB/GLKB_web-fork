@@ -3,6 +3,9 @@ import nodemailer from 'nodemailer';
 
 const RESULTS_FILE = 'playwright-results.json';
 
+// Always CC'd on every notification
+const ALERT_EMAIL = process.env.NOTIFY_ALERT_EMAIL;
+
 // Per-group recipient addresses
 const GROUP_EMAILS = {
   ops:      process.env.NOTIFY_OPS_EMAIL,
@@ -247,7 +250,9 @@ async function main() {
     const subject = buildSubject(recipient, severity, failures, runId);
     const text = buildEmailText(failures, runId, repo);
     const html = buildEmailHtml(recipient, severity, failures, runId, repo);
-    return sendEmail(GROUP_EMAILS[recipient], subject, text, html);
+    const groupEmail = GROUP_EMAILS[recipient];
+    const to = [groupEmail, ALERT_EMAIL].filter(Boolean).join(', ');
+    return sendEmail(to, subject, text, html);
   });
 
   await Promise.all(promises);
