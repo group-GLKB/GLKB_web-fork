@@ -41,4 +41,6 @@ jobs:
         NOTIFY_AGENT_EMAIL: ${{ secrets.NOTIFY_AGENT_EMAIL }}
         GITHUB_RUN_ID: ${{ github.run_id }}
         GITHUB_REPOSITORY: ${{ github.repository }}
+        INGEST_URL: ${{ secrets.INGEST_URL }}
+        INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
       run: node e2e/scripts/notify.js
