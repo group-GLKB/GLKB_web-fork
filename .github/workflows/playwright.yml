@@ -34,6 +34,7 @@ jobs:
       env:
         MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
         MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+        NOTIFY_ALERT_EMAIL: ${{ secrets.NOTIFY_ALERT_EMAIL }}
         NOTIFY_OPS_EMAIL: ${{ secrets.NOTIFY_OPS_EMAIL }}
         NOTIFY_BACKEND_EMAIL: ${{ secrets.NOTIFY_BACKEND_EMAIL }}
         NOTIFY_FRONTEND_EMAIL: ${{ secrets.NOTIFY_FRONTEND_EMAIL }}
