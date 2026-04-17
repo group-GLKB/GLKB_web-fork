@@ -230,7 +230,7 @@ async function main() {
     const file = suite.title.split('/').pop();
     for (const spec of suite.specs || []) {
       const lastResult = spec.tests?.[0]?.results?.at(-1);
-      if (!lastResult || lastResult.status === 'passed') continue;
+      if (!lastResult || lastResult.status === 'passed' || lastResult.status === 'skipped') continue;
 
       const errorMessage = lastResult.error?.message || '';
       const { type, severity, recipients } = classifyFailure(file, errorMessage);
