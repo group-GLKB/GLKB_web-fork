@@ -2,38 +2,38 @@ import 'antd/dist/reset.css';
 import './scoped.css';
 
 import React, {
-    useEffect,
-    useRef,
-    useState,
+  useEffect,
+  useRef,
+  useState,
 } from 'react';
 
 import { Button as AntButton } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import Joyride, {
-    ACTIONS,
-    EVENTS,
-    STATUS,
+  ACTIONS,
+  EVENTS,
+  STATUS,
 } from 'react-joyride';
 import { useNavigate } from 'react-router-dom';
 
 import {
-    ArrowOutward as ArrowOutwardIcon,
-    Close as CloseIcon,
-    DescriptionOutlined as DescriptionOutlinedIcon,
-    Layers as LayersIcon,
-    LightbulbOutlined as LightbulbOutlinedIcon,
-    TrendingUp as TrendingUpIcon,
+  ArrowOutward as ArrowOutwardIcon,
+  Close as CloseIcon,
+  DescriptionOutlined as DescriptionOutlinedIcon,
+  Layers as LayersIcon,
+  LightbulbOutlined as LightbulbOutlinedIcon,
+  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import {
-    Box,
-    IconButton,
-    Paper,
-    Typography,
+  Box,
+  IconButton,
+  Paper,
+  Typography,
 } from '@mui/material';
 
 import {
-    getMyTier,
-    isFreePlanLimitReached,
+  getMyTier,
+  isFreePlanLimitReached,
 } from '../../service/Tier';
 import { useAuth } from '../Auth/AuthContext';
 import exampleSchema from './exampleSchema.json';

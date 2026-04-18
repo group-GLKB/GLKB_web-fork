@@ -3,8 +3,8 @@ import React from 'react';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import {
-    Box,
-    TextField,
+  Box,
+  TextField,
 } from '@mui/material';
 
 const ChatSearchBar = ({
@@ -13,6 +13,7 @@ const ChatSearchBar = ({
     isLoading,
     isQueryLimitReached = false,
     onSubmit,
+    onStop,
 }) => (
     <div className="chat-header">
         <Box sx={{
@@ -85,25 +86,46 @@ const ChatSearchBar = ({
                             )}
                             <Box
                                 role="button"
-                                aria-label="Send"
-                                onClick={!userInput.trim() || isLoading || isQueryLimitReached ? undefined : () => onSubmit()}
+                                aria-label={isLoading ? 'Stop' : 'Send'}
+                                onClick={isLoading
+                                    ? onStop
+                                    : (!userInput.trim() || isQueryLimitReached ? undefined : () => onSubmit())}
                                 sx={{
                                     height: '44px',
                                     width: '44px',
                                     borderRadius: '50%',
-                                    backgroundColor: !userInput.trim() || isLoading || isQueryLimitReached ? '#9fb6ff' : '#155DFC',
+                                    backgroundColor: isLoading
+                                        ? '#E7F1FF'
+                                        : (!userInput.trim() || isQueryLimitReached ? '#9fb6ff' : '#155DFC'),
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    cursor: !userInput.trim() || isLoading || isQueryLimitReached ? 'not-allowed' : 'pointer',
+                                    cursor: isLoading
+                                        ? 'pointer'
+                                        : (!userInput.trim() || isQueryLimitReached ? 'not-allowed' : 'pointer'),
                                     transition: 'transform 120ms ease, box-shadow 160ms ease',
-                                    boxShadow: !userInput.trim() || isLoading || isQueryLimitReached ? 'none' : '0 6px 12px rgba(21, 93, 252, 0.28)',
+                                    boxShadow: isLoading
+                                        ? 'none'
+                                        : (!userInput.trim() || isQueryLimitReached ? 'none' : '0 6px 12px rgba(21, 93, 252, 0.28)'),
                                     '&:hover': {
-                                        transform: !userInput.trim() || isLoading || isQueryLimitReached ? 'none' : 'translateY(-1px)',
+                                        transform: isLoading
+                                            ? 'none'
+                                            : (!userInput.trim() || isQueryLimitReached ? 'none' : 'translateY(-1px)'),
                                     },
                                 }}
                             >
-                                <SearchIcon sx={{ color: '#ffffff', fontSize: '20px' }} />
+                                {isLoading ? (
+                                    <Box
+                                        sx={{
+                                            width: '12px',
+                                            height: '12px',
+                                            borderRadius: '4px',
+                                            backgroundColor: '#155DFC',
+                                        }}
+                                    />
+                                ) : (
+                                    <SearchIcon sx={{ color: '#ffffff', fontSize: '20px' }} />
+                                )}
                             </Box>
                         </Box>
                     ),

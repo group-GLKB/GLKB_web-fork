@@ -104,6 +104,7 @@
     align-items: center;
     gap: 24px;
     --example-item-gap: 12px;
+    container-type: inline-size;
 }
 
 .homepage-search-stack {
@@ -152,14 +153,14 @@
 .homepage-pills {
     display: flex;
     flex-wrap: nowrap;
-    justify-content: flex-start;
+    justify-content: space-between;
     gap: 12px;
     margin-top: 0;
     position: relative;
     z-index: 1;
     width: 100%;
-    padding-left: calc(var(--home-gutter) + 1px);
-    padding-right: calc(var(--home-gutter) + 1px);
+    padding-left: var(--home-gutter);
+    padding-right: var(--home-gutter);
     box-sizing: border-box;
 }
 
@@ -220,10 +221,24 @@
     white-space: nowrap;
 }
 
+@container (max-width: 860px) {
+    .homepage-pills {
+        flex-direction: column;
+        flex-wrap: nowrap;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 10px;
+    }
+
+    .homepage-pill {
+        width: auto;
+        max-width: 100%;
+        justify-content: flex-start;
+    }
+}
+
 @media (max-width: 1412px) and (min-width: 901px) {
     .homepage-pills {
-        padding-left: 20px;
-        padding-right: 20px;
         gap: 10px;
     }
 
@@ -240,9 +255,7 @@
 
     .homepage-pills {
         flex-wrap: nowrap;
-        justify-content: center;
-        padding-left: 0;
-        padding-right: 0;
+        justify-content: space-between;
         gap: 16px;
     }
 
