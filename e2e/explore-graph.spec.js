@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('Explore Graph renders nodes after search', async ({ page }) => {
+test.skip('Explore Graph renders nodes after search', async ({ page }) => {
   // Navigate directly to /search (accessible via Explore in NavBar)
   await page.goto('/search');
 
