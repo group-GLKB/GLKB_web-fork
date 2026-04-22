@@ -36,21 +36,29 @@ const ChatSearchBar = ({
                 disabled={isLoading || isQueryLimitReached}
                 variant="outlined"
                 placeholder="Ask a question about the biomedical literature..."
+                multiline
+                minRows={1}
+                maxRows={4}
                 sx={{
-                    height: '64px',
                     width: '100%',
                     '& .MuiInputBase-root': {
                         borderRadius: '16px',
-                        height: '64px',
-                        alignItems: 'center',
+                        minHeight: '64px',
+                        height: 'auto',
+                        alignItems: 'flex-start',
                         paddingLeft: '20px',
                         paddingRight: '90px !important',
+                        paddingTop: '12px',
+                        paddingBottom: '12px',
                         fontFamily: 'Open Sans, sans-serif',
                         fontSize: '18px',
                         color: '#164563',
                         '& fieldset': {
                             border: 'none',
                         },
+                    },
+                    '& .MuiInputBase-input': {
+                        lineHeight: '24px',
                     },
                     '& .MuiInputBase-input::placeholder': {
                         color: '#969696',
@@ -131,7 +139,7 @@ const ChatSearchBar = ({
                     ),
                 }}
                 onKeyDown={(e) => {
-                    if (e.key === 'Enter' && userInput !== '' && !isLoading && !isQueryLimitReached) {
+                    if (e.key === 'Enter' && !e.shiftKey && userInput.trim() !== '' && !isLoading && !isQueryLimitReached) {
                         e.preventDefault();
                         onSubmit();
                     }
