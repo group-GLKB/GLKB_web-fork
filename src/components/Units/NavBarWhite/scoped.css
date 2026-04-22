@@ -9,6 +9,21 @@ body[data-has-sidebar="true"] .app-layout-content {
     min-height: 100vh;
 }
 
+body[data-sidebar-overlay="true"] .app-layout-content {
+    box-shadow: inset 0 0 0 9999px rgba(15, 23, 42, 0.12);
+    transition: box-shadow 0.2s ease;
+}
+
+.sidebar-mobile-rail {
+    pointer-events: auto;
+}
+
+@media (max-width: 532px) {
+    body[data-has-sidebar="true"] {
+        --sidebar-width: 0px;
+    }
+}
+
 .MuiDrawer-paper {
     background-color: #ffffff;
 }

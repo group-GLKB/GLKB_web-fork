@@ -1206,6 +1206,11 @@
     color: #164563;
 }
 
+.markdown-body p,
+.markdown-body li {
+    white-space: pre-wrap;
+}
+
 .message-wrapper.user .message,
 .message-wrapper.user .message:hover {
     background-color: #ffffff !important;

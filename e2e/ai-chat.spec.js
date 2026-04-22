@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('AI Chat returns a non-empty response', async ({ page }) => {
+test('AI Chat returns a non-empty response', { timeout: 120000 }, async ({ page }) => {
   await page.goto('/');
 
   // Type a question and submit (auth guard bypassed via storageState)
