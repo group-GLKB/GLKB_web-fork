@@ -1,82 +1,85 @@
 import './scoped.css';
 
 import React, {
-    useEffect,
-    useMemo,
-    useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 
 import {
-    Link,
-    useLocation,
-    useNavigate,
+  Link,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 
 import {
-    Bookmark as BookmarkIcon,
-    BookmarkBorder as BookmarkBorderIcon,
-    DeleteOutline as DeleteOutlineIcon,
-    DriveFileRenameOutline as DriveFileRenameOutlineIcon,
-    InfoOutlined as InfoOutlinedIcon,
-    MoreHoriz as MoreHorizIcon,
-    Person as PersonIcon,
+  Bookmark as BookmarkIcon,
+  BookmarkBorder as BookmarkBorderIcon,
+  DeleteOutline as DeleteOutlineIcon,
+  DriveFileRenameOutline as DriveFileRenameOutlineIcon,
+  InfoOutlined as InfoOutlinedIcon,
+  Menu as MenuIcon,
+  MoreHoriz as MoreHorizIcon,
+  Person as PersonIcon,
 } from '@mui/icons-material';
 import {
-    Box,
-    Divider,
-    Drawer as MuiDrawer,
-    IconButton,
-    List,
-    ListItemButton,
-    ListItemIcon,
-    ListItemText,
-    Menu,
-    MenuItem,
-    Tooltip,
-    Typography,
-    useMediaQuery,
+  Box,
+  Divider,
+  Drawer as MuiDrawer,
+  IconButton,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Tooltip,
+  Typography,
+  useMediaQuery,
 } from '@mui/material';
 import {
-    styled,
-    useTheme,
+  styled,
+  useTheme,
 } from '@mui/material/styles';
 
 import logo from '../../../img/GLKB_logo_icon.png';
 import { ReactComponent as AddIcon } from '../../../img/navbar/add.svg';
 import {
-    ReactComponent as UpgradeIcon,
+  ReactComponent as UpgradeIcon,
 } from '../../../img/navbar/arrow_circle_up.svg';
 import { ReactComponent as BookIcon } from '../../../img/navbar/book_4.svg';
 import {
-    ReactComponent as CategorySearchIcon,
+  ReactComponent as CategorySearchIcon,
 } from '../../../img/navbar/category_search.svg';
 import {
-    ReactComponent as CodeBlocksIcon,
+  ReactComponent as CodeBlocksIcon,
 } from '../../../img/navbar/code_blocks.svg';
 import { ReactComponent as HistoryIcon } from '../../../img/navbar/history.svg';
 import logoWordmark from '../../../img/navbar/logo.jpg';
 import {
-    ReactComponent as SidebarLeftIcon,
+  ReactComponent as SidebarLeftIcon,
 } from '../../../img/navbar/sidebar.left.svg';
 import userAccountIcon from '../../../img/user/ic_outline-account-circle.svg';
 import userLogoutIcon from '../../../img/user/mynaui_logout.svg';
 import {
-    fetchConversations,
-    getActiveConversationId,
-    getConversations,
-    removeConversation,
-    setActiveConversationId,
-    updateConversationTitle,
+  fetchConversations,
+  getActiveConversationId,
+  getConversations,
+  removeConversation,
+  setActiveConversationId,
+  updateConversationTitle,
 } from '../../../utils/chatHistory';
 import {
-    fetchConversationBookmarks,
-    getConversationBookmarks,
-    toggleConversationBookmark,
+  fetchConversationBookmarks,
+  getConversationBookmarks,
+  toggleConversationBookmark,
 } from '../../../utils/conversationBookmarks';
 import { useAuth } from '../../Auth/AuthContext';
 
 const drawerWidth = 280;
 const collapsedWidth = 88;
+const compactRailWidth = 52;
 const MAX_RECENT_COUNT = 50;
 const DEBUG_HIDE_EXPLORE = true;
 
@@ -112,7 +115,7 @@ const closedMixin = (theme) => ({
     backgroundColor: '#ffffff',
 });
 
-const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' })(
+const PermanentDrawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' })(
     ({ theme, open }) => ({
         width: drawerWidth,
         flexShrink: 0,
@@ -135,6 +138,8 @@ function NavBarWhite({ showLogo = true }) {
     const navigate = useNavigate();
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
+    const isCompactSidebar = useMediaQuery('(max-width:532px)');
+    const previousPathRef = useRef(location.pathname);
     const [open, setOpen] = useState(() => {
         if (typeof window === 'undefined') {
             return true;
@@ -169,6 +174,19 @@ function NavBarWhite({ showLogo = true }) {
     }, [isSmallScreen]);
 
     useEffect(() => {
+        if (!isCompactSidebar) {
+            previousPathRef.current = location.pathname;
+            return;
+        }
+
+        if (previousPathRef.current !== location.pathname && open) {
+            setOpen(false);
+        }
+
+        previousPathRef.current = location.pathname;
+    }, [location.pathname, isCompactSidebar, open]);
+
+    useEffect(() => {
         if (!location.pathname.startsWith('/library')) {
             return;
         }
@@ -186,13 +204,30 @@ function NavBarWhite({ showLogo = true }) {
     useEffect(() => {
         const body = document.body;
         body.setAttribute('data-has-sidebar', 'true');
-        body.style.setProperty('--sidebar-width', open ? `${drawerWidth}px` : `${collapsedWidth}px`);
+        const sidebarWidth = isCompactSidebar
+            ? '0px'
+            : (open ? `${drawerWidth}px` : `${collapsedWidth}px`);
+        body.style.setProperty('--sidebar-width', sidebarWidth);
+
+        if (isCompactSidebar) {
+            body.setAttribute('data-sidebar-compact', 'true');
+        } else {
+            body.removeAttribute('data-sidebar-compact');
+        }
+
+        if (isCompactSidebar && open) {
+            body.setAttribute('data-sidebar-overlay', 'true');
+        } else {
+            body.removeAttribute('data-sidebar-overlay');
+        }
 
         return () => {
             body.removeAttribute('data-has-sidebar');
+            body.removeAttribute('data-sidebar-compact');
+            body.removeAttribute('data-sidebar-overlay');
             body.style.removeProperty('--sidebar-width');
         };
-    }, [open]);
+    }, [open, isCompactSidebar]);
 
     useEffect(() => {
         let isMounted = true;
@@ -316,6 +351,7 @@ function NavBarWhite({ showLogo = true }) {
     const isRecentBookmarked = recentMenuConversation
         ? bookmarkedConversationIds.has(String(recentMenuConversation?.id ?? recentMenuConversation?.hid ?? ''))
         : false;
+    const isHomeRoute = location.pathname === '/';
 
     const handleOpenUserMenu = (event) => {
         setUserMenuAnchorEl(event.currentTarget);
@@ -558,9 +594,8 @@ function NavBarWhite({ showLogo = true }) {
         );
     };
 
-    return (
-        <Drawer variant="permanent" open={open}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    const drawerContent = (
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                 <Box
                     sx={{
                         display: 'flex',
@@ -883,7 +918,86 @@ function NavBarWhite({ showLogo = true }) {
                         )}
                     </List>
                 </Box>
-            </Box>
+        </Box>
+    );
+
+    return (
+        <>
+            {isCompactSidebar && !open && (
+                <Box
+                    className="sidebar-mobile-rail"
+                    sx={{
+                        position: 'fixed',
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        zIndex: (theme) => theme.zIndex.drawer + 1,
+                        width: `${compactRailWidth}px`,
+                        minWidth: `${compactRailWidth}px`,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'flex-start',
+                        pt: 1,
+                        backgroundColor: 'transparent',
+                        borderRight: 'none',
+                    }}
+                >
+                    <Tooltip title="Open sidebar" {...tooltipProps}>
+                        <IconButton
+                            aria-label="Expand sidebar"
+                            onClick={() => setOpen(true)}
+                            size="small"
+                            sx={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: '12px',
+                                backgroundColor: isHomeRoute ? 'transparent' : '#EDEDED',
+                                color: '#646464',
+                                '&:hover': {
+                                    backgroundColor: isHomeRoute ? 'transparent' : '#E3E3E3',
+                                },
+                            }}
+                        >
+                            <MenuIcon sx={{ fontSize: 22 }} />
+                        </IconButton>
+                    </Tooltip>
+                </Box>
+            )}
+
+            {isCompactSidebar ? (
+                <MuiDrawer
+                    variant="temporary"
+                    open={open}
+                    onClose={() => setOpen(false)}
+                    ModalProps={{
+                        keepMounted: true,
+                    }}
+                    BackdropProps={{
+                        sx: {
+                            backgroundColor: 'rgba(17, 24, 39, 0.18)',
+                        },
+                    }}
+                    PaperProps={{
+                        sx: {
+                            width: `${drawerWidth}px`,
+                            borderTopRightRadius: '16px',
+                            borderBottomRightRadius: '16px',
+                            boxShadow: '0 10px 28px rgba(22, 69, 99, 0.22)',
+                            borderRight: 'none',
+                            overflow: 'hidden',
+                        },
+                    }}
+                >
+                    {drawerContent}
+                </MuiDrawer>
+            ) : (
+                <PermanentDrawer
+                    variant="permanent"
+                    open={open}
+                >
+                    {drawerContent}
+                </PermanentDrawer>
+            )}
             <Menu
                 anchorEl={recentMenuAnchorEl}
                 open={isRecentMenuOpen}
@@ -1050,7 +1164,7 @@ function NavBarWhite({ showLogo = true }) {
                     <ListItemText>Log out</ListItemText>
                 </MenuItem>
             </Menu>
-        </Drawer>
+        </>
     );
 }
 

@@ -3,45 +3,44 @@ import './scoped.css';
 import './github-markdown-light.css';
 
 import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 
 import { message } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import ReactMarkdown from 'react-markdown';
 import {
-    useLocation,
-    useNavigate,
+  useLocation,
+  useNavigate,
 } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 
 import {
-    Bookmark as BookmarkIcon,
-    BookmarkBorder as BookmarkBorderIcon,
-    Check as CheckIcon,
-    ChevronRight as ChevronRightIcon,
-    Clear as ClearIcon,
-    EditNote as EditNoteIcon,
-    ExpandMore as ExpandMoreIcon,
-    Link as LinkIcon,
-    StopCircle as StopCircleIcon,
+  Bookmark as BookmarkIcon,
+  BookmarkBorder as BookmarkBorderIcon,
+  Check as CheckIcon,
+  ChevronRight as ChevronRightIcon,
+  Clear as ClearIcon,
+  EditNote as EditNoteIcon,
+  ExpandMore as ExpandMoreIcon,
+  Link as LinkIcon,
 } from '@mui/icons-material';
 import {
-    Box,
-    Button as MuiButton,
-    CircularProgress,
-    Container,
-    Grid,
-    IconButton,
-    Stack,
-    TextField,
-    ToggleButton,
-    ToggleButtonGroup,
-    Typography,
+  Box,
+  Button as MuiButton,
+  CircularProgress,
+  Container,
+  Grid,
+  IconButton,
+  Stack,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
 } from '@mui/material';
 
 import contentCopyIcon from '../../img/llm/content_copy.svg';
@@ -49,29 +48,29 @@ import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import replayIcon from '../../img/llm/replay.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import {
-    ReactComponent as SidebarLeftIcon,
+  ReactComponent as SidebarLeftIcon,
 } from '../../img/navbar/sidebar.left.svg';
 import { LLMAgentService } from '../../service/LLMAgent';
 import {
-    getMyTier,
-    isFreePlanLimitReached,
+  getMyTier,
+  isFreePlanLimitReached,
 } from '../../service/Tier';
 import {
-    createConversation,
-    fetchConversationDetail,
-    fetchConversations,
-    getActiveConversationId,
-    getConversations,
-    setActiveConversationId,
-    setConversations,
-    updateConversationMessages,
-    updateConversationTitle,
-    upsertConversation,
+  createConversation,
+  fetchConversationDetail,
+  fetchConversations,
+  getActiveConversationId,
+  getConversations,
+  setActiveConversationId,
+  setConversations,
+  updateConversationMessages,
+  updateConversationTitle,
+  upsertConversation,
 } from '../../utils/chatHistory';
 import {
-    fetchConversationBookmarks,
-    getConversationBookmarks,
-    toggleConversationBookmark,
+  fetchConversationBookmarks,
+  getConversationBookmarks,
+  toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
 import { useAuth } from '../Auth/AuthContext';
 import CiteDialog from '../Units/CiteDialog';
@@ -783,13 +782,15 @@ const MessageCard = React.memo(function MessageCard({
 
                         {isAssistant && <Box sx={{ justifyContent: "space-between", direction: "row", display: "flex", alignItems: "center", mt: "5px" }}>
                             <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
-                                <IconButton size="small" onClick={() => copy(message.content)}>
-                                    <img
-                                        src={contentCopyIcon}
-                                        alt="Copy"
-                                        style={{ width: '16px', height: '16px', display: 'block', objectFit: 'contain' }}
-                                    />
-                                </IconButton>
+                                {!isLoading && (
+                                    <IconButton size="small" onClick={() => copy(message.content)}>
+                                        <img
+                                            src={contentCopyIcon}
+                                            alt="Copy"
+                                            style={{ width: '16px', height: '16px', display: 'block', objectFit: 'contain' }}
+                                        />
+                                    </IconButton>
+                                )}
                                 {allowResponseRefresh && isLastUserMessage && !isLoading && (
                                     <IconButton
                                         size="small"
@@ -809,11 +810,6 @@ const MessageCard = React.memo(function MessageCard({
                                         style={{ width: '16px', height: '16px', display: 'block', color: '#646464' }}
                                     />
                                 </IconButton>}
-                                {isLoading && (
-                                    <IconButton size="small" onClick={onStop}>
-                                        <StopCircleIcon fontSize="small" />
-                                    </IconButton>
-                                )}
                             </Stack>
                             <MuiButton
                                 variant='contained'
@@ -2354,6 +2350,7 @@ function LLMAgent() {
                                                         isLoading={isLoading}
                                                         isQueryLimitReached={isLimitReachedEffective}
                                                         onSubmit={handleSubmit}
+                                                        onStop={handleStopStreaming}
                                                     />
                                                 </div>
                                             </Box>

@@ -272,7 +272,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         e.preventDefault();
                         return;
                     }
-                    if (e.key === 'Enter' && llmQuery !== "") {
+                    if (e.key === 'Enter' && !e.shiftKey && llmQuery.trim() !== "") {
                         e.preventDefault();
                         navigateToLLMAgent(llmQuery.trim());
                     }
