@@ -4,6 +4,7 @@ import './github-markdown-light.css';
 
 import React, {
   useCallback,
+    useContext,
   useEffect,
   useMemo,
   useRef,
@@ -14,6 +15,7 @@ import { message } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import ReactMarkdown from 'react-markdown';
 import {
+    UNSAFE_NavigationContext,
   useLocation,
   useNavigate,
 } from 'react-router-dom';
@@ -34,6 +36,10 @@ import {
   Button as MuiButton,
   CircularProgress,
   Container,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
   Grid,
   IconButton,
   Stack,
@@ -936,6 +942,7 @@ function LLMAgent() {
     const [showReloadPrompt, setShowReloadPrompt] = useState(
         () => getStoredProcessingFlag() || getStoredIncompleteFlag()
     );
+    const [showLeaveConfirmDialog, setShowLeaveConfirmDialog] = useState(false);
     const [isEditingChatTitle, setIsEditingChatTitle] = useState(false);
     const [chatTitleDraft, setChatTitleDraft] = useState('');
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
@@ -951,8 +958,103 @@ function LLMAgent() {
     const activeStreamIdRef = useRef(null);
     const splitContainerRef = useRef(null);
     const isDraggingSplitRef = useRef(false);
+    const navigationBypassRef = useRef(false);
+    const originalNavigatorMethodsRef = useRef({ push: null, replace: null });
     const navigate = useNavigate();
+    const { navigator } = useContext(UNSAFE_NavigationContext);
     const { isAuthenticated, loading: authLoading } = useAuth();
+    const [pendingNavigation, setPendingNavigation] = useState(null);
+
+    useEffect(() => {
+        if (!navigator) return undefined;
+
+        if (!originalNavigatorMethodsRef.current.push && typeof navigator.push === 'function') {
+            originalNavigatorMethodsRef.current.push = navigator.push.bind(navigator);
+        }
+        if (!originalNavigatorMethodsRef.current.replace && typeof navigator.replace === 'function') {
+            originalNavigatorMethodsRef.current.replace = navigator.replace.bind(navigator);
+        }
+
+        if (!isLoading) {
+            if (originalNavigatorMethodsRef.current.push) {
+                navigator.push = originalNavigatorMethodsRef.current.push;
+            }
+            if (originalNavigatorMethodsRef.current.replace) {
+                navigator.replace = originalNavigatorMethodsRef.current.replace;
+            }
+            return undefined;
+        }
+
+        const guardedPush = (...args) => {
+            if (navigationBypassRef.current && originalNavigatorMethodsRef.current.push) {
+                originalNavigatorMethodsRef.current.push(...args);
+                return;
+            }
+            setPendingNavigation({ method: 'push', args });
+            setShowLeaveConfirmDialog(true);
+        };
+
+        const guardedReplace = (...args) => {
+            if (navigationBypassRef.current && originalNavigatorMethodsRef.current.replace) {
+                originalNavigatorMethodsRef.current.replace(...args);
+                return;
+            }
+            setPendingNavigation({ method: 'replace', args });
+            setShowLeaveConfirmDialog(true);
+        };
+
+        navigator.push = guardedPush;
+        navigator.replace = guardedReplace;
+
+        return () => {
+            if (originalNavigatorMethodsRef.current.push) {
+                navigator.push = originalNavigatorMethodsRef.current.push;
+            }
+            if (originalNavigatorMethodsRef.current.replace) {
+                navigator.replace = originalNavigatorMethodsRef.current.replace;
+            }
+        };
+    }, [isLoading, navigator]);
+
+    useEffect(() => {
+        if (isLoading) return;
+        setShowLeaveConfirmDialog(false);
+        setPendingNavigation(null);
+    }, [isLoading]);
+
+    useEffect(() => {
+        if (!isLoading) return undefined;
+
+        const handleBeforeUnload = (event) => {
+            event.preventDefault();
+            event.returnValue = '';
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [isLoading]);
+
+    const handleLeaveDialogCancel = () => {
+        setShowLeaveConfirmDialog(false);
+        setPendingNavigation(null);
+    };
+
+    const handleLeaveDialogConfirm = () => {
+        setShowLeaveConfirmDialog(false);
+        if (pendingNavigation) {
+            const method = pendingNavigation.method;
+            const args = pendingNavigation.args || [];
+            const fn = originalNavigatorMethodsRef.current[method];
+            if (typeof fn === 'function') {
+                navigationBypassRef.current = true;
+                fn(...args);
+                navigationBypassRef.current = false;
+            }
+        }
+        setPendingNavigation(null);
+    };
 
     const refreshTierStatus = useCallback(async () => {
         if (authLoading || !isAuthenticated) {
@@ -2066,6 +2168,74 @@ function LLMAgent() {
                 onClose={handleCloseCiteDialog}
                 citation={selectedCitation}
             />
+
+            <Dialog
+                open={showLeaveConfirmDialog}
+                onClose={handleLeaveDialogCancel}
+                className="api-keys-dialog-root"
+                fullWidth
+                maxWidth="xs"
+            >
+                <DialogTitle
+                    sx={{
+                        fontFamily: 'DM Sans, sans-serif',
+                        fontSize: '20px',
+                        fontWeight: 700,
+                        color: '#164563',
+                        paddingBottom: '8px',
+                    }}
+                >
+                    Leave this page?
+                </DialogTitle>
+                <DialogContent
+                    sx={{
+                        fontFamily: 'DM Sans, sans-serif',
+                        fontSize: '14px',
+                        color: '#5B5B5B',
+                        lineHeight: 1.5,
+                        paddingTop: '4px !important',
+                    }}
+                >
+                    Leaving this page will interrupt the current LLM response loading.
+                </DialogContent>
+                <DialogActions sx={{ padding: '16px 24px 24px' }}>
+                    <MuiButton
+                        onClick={handleLeaveDialogCancel}
+                        sx={{
+                            borderRadius: '12px',
+                            border: '1px solid #D6DDE8',
+                            color: '#164563',
+                            textTransform: 'none',
+                            fontFamily: 'DM Sans, sans-serif',
+                            fontWeight: 700,
+                            fontSize: '14px',
+                            padding: '8px 16px',
+                        }}
+                    >
+                        Stay
+                    </MuiButton>
+                    <MuiButton
+                        onClick={handleLeaveDialogConfirm}
+                        sx={{
+                            borderRadius: '12px',
+                            border: '1px solid #DC2626',
+                            backgroundColor: '#DC2626',
+                            color: '#ffffff',
+                            textTransform: 'none',
+                            fontFamily: 'DM Sans, sans-serif',
+                            fontWeight: 700,
+                            fontSize: '14px',
+                            padding: '8px 16px',
+                            '&:hover': {
+                                backgroundColor: '#B91C1C',
+                                borderColor: '#B91C1C',
+                            },
+                        }}
+                    >
+                        Leave
+                    </MuiButton>
+                </DialogActions>
+            </Dialog>
 
             <div className="llm-page">
                 <Grid className="llm-grid" container sx={{ width: "100%" }}>
