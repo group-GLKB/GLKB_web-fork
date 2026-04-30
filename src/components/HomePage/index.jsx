@@ -381,7 +381,7 @@ const HomePage = () => {
                                     © 2025 GLKB – Genomic Literature Knowledge Base | glkb.org
                                 </p>
                                 <p style={{ fontFamily: 'Open Sans, sans-serif', textAlign: 'center', color: 'rgba(0, 0, 0, 0.8)', fontSize: '14px', margin: 0 }}>
-                                    Developed and maintained by the Jie Liu Lab, Department of Computational Medicine and Bioinformatics, University of Michigan.
+                                    Developed and maintained by the <a className="homepage-lab-link" href="https://jieliu6.github.io/" target="_blank" rel="noopener noreferrer">Jie Liu Lab</a>, Department of Computational Medicine and Bioinformatics, University of Michigan.
                                 </p>
                             </div>
                         </div>

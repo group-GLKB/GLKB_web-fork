@@ -697,7 +697,9 @@ function NavBarWhite({ showLogo = true }) {
                                 </IconButton>
                             </Tooltip>
                             <Box
-                                className="sidebar-logo-text"
+                                component={Link}
+                                to="/"
+                                className="sidebar-logo-text sidebar-logo-wordmark-link"
                                 sx={{
                                     display: 'flex',
                                     alignItems: 'center',
@@ -705,6 +707,8 @@ function NavBarWhite({ showLogo = true }) {
                                     width: open ? 'auto' : 0,
                                     overflow: 'hidden',
                                     marginLeft: '6px',
+                                    textDecoration: 'none',
+                                    color: 'inherit',
                                     transition: 'opacity 0.2s ease, width 0.2s ease',
                                 }}
                             >
