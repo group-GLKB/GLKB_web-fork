@@ -353,12 +353,16 @@
 .footer {
     align-items: center;
     padding: 0px;
-    color: #333;
+    color: #969696;
     font-size: 14px;
     width: 100%;
     text-align: center;
     margin-top: auto;
-    margin-bottom: 5px;
+    margin-bottom: 24px;
+}
+
+.footer p {
+    line-height: 150%;
 }
 
 
@@ -368,13 +372,14 @@
 }
 
 .homepage-lab-link {
-    color: #155DFC;
+    color: inherit;
+    font-weight: 600;
     text-decoration: underline;
     text-underline-offset: 2px;
 }
 
 .homepage-lab-link:hover {
-    color: #0F4BCF;
+    color: inherit;
 }
 
 .joyride-overlay {
