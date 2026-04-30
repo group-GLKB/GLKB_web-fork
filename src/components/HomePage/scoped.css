@@ -367,6 +367,16 @@
     margin-bottom: 10px;
 }
 
+.homepage-lab-link {
+    color: #155DFC;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.homepage-lab-link:hover {
+    color: #0F4BCF;
+}
+
 .joyride-overlay {
     position: fixed !important;
     /* 确保覆盖层固定在视口内 */
