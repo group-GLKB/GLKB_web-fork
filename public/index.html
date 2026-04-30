@@ -12,7 +12,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   <!-- End Google Tag Manager -->
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#000000" />
-  <meta name="description" content="The Genomic Literature Knowledge Base (GLKB) is a comprehensive and powerful resource that integrates 263 million biomedical terms and 14.6 million biomedical relationships.">
+  <meta name="description" content="GLKB is an AI-powered research engine that synthesizes biomedical literature into structured, evidence-backed answers grounded in real publications, not just predictions.">
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://use.typekit.net/ahl4qwq.css">
   <link rel="icon" href="/GLKB_logo_icon.ico">
@@ -28,10 +28,42 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      "url": "https://glkb.org/",
-      "name": "GLKB",
-      "alternateName": ["glkb", "Genomic Literature Knowledge Base", "GLKB Project", "GLKB Portal"]
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "name": "GLKB",
+          "url": "https://glkb.org/",
+          "description": "GLKB is an AI-powered research engine that synthesizes biomedical literature into structured, evidence-backed answers grounded in real publications, not just predictions.",
+          "alternateName": ["glkb", "Genomic Literature Knowledge Base", "GLKB Project", "GLKB Portal"]
+        },
+        {
+          "@type": "WebPage",
+          "name": "GLKB",
+          "url": "https://glkb.org/",
+          "description": "GLKB is an AI-powered research engine that synthesizes biomedical literature into structured, evidence-backed answers grounded in real publications, not just predictions.",
+          "isPartOf": {
+            "@id": "https://glkb.org/"
+          }
+        },
+        {
+          "@type": "WebPage",
+          "name": "About",
+          "url": "https://glkb.org/about",
+          "description": "Weeks of research, done in minutes. GLKB searches across 38M+ research articles...",
+          "isPartOf": {
+            "@id": "https://glkb.org/"
+          }
+        },
+        {
+          "@type": "WebPage",
+          "name": "Chat",
+          "url": "https://glkb.org/chat",
+          "description": "Ask, Analyze, Cite. Start a chat now with GLKB, your scientific research AI assistant.",
+          "isPartOf": {
+            "@id": "https://glkb.org/"
+          }
+        }
+      ]
     }
   </script>
 </head>
