@@ -13,11 +13,11 @@ module.exports = function (app) {
     app.use(
         '/api',
         createProxyMiddleware({
-            target: 'https://glkb.dcmb.med.umich.edu',
+            target: 'https://backend.glkb.org',
             changeOrigin: true,
             secure: false,
             pathRewrite: {
-                '^/api': '/reorg-api/api', // Rewrite /api to /reorg-api/api
+                '^/api': '/api', // Rewrite /api to /reorg-api/api
             },
         })
     );
@@ -26,7 +26,7 @@ module.exports = function (app) {
     app.use(
         '/api-docs',
         createProxyMiddleware({
-            target: 'https://glkb.dcmb.med.umich.edu',
+            target: 'https://backend.glkb.org',
             changeOrigin: true,
             secure: false,
             selfHandleResponse: true,
@@ -57,7 +57,7 @@ module.exports = function (app) {
     app.use(
         '/docs',
         createProxyMiddleware({
-            target: 'https://glkb.dcmb.med.umich.edu',
+            target: 'https://backend.glkb.org',
             changeOrigin: true,
             secure: false,
         })
