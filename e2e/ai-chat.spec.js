@@ -5,7 +5,7 @@ test('AI Chat returns a non-empty response', { timeout: 120000 }, async ({ page 
 
   // Type a question and submit (auth guard bypassed via storageState)
   const input = page.locator('.llm-searchbar textarea').first();
-  await input.fill('What is the role of BRCA1 in breast cancer?');
+  await input.fill('What molecular pathways link IL6 signaling to inflammatory responses?');
   await input.press('Enter');
 
   // Wait for navigation to /chat

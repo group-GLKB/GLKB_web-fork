@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "homepage": "http://glkb.dcmb.med.umich.edu",
-  "proxy": "https://glkb.dcmb.med.umich.edu",
+  "proxy": "http://GLKB-Backend-408804593.us-east-1.elb.amazonaws.com",
   "dependencies": {
     "@ant-design/icons": "^5.0.1",
     "@ant-design/pro-components": "^2.7.19",

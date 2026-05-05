@@ -2508,7 +2508,7 @@ function LLMAgent() {
                                                             <button
                                                                 type="button"
                                                                 className="llm-limit-warning-button"
-                                                                onClick={() => navigate('/about#pricing')}
+                                                                disabled
                                                             >
                                                                 Update
                                                             </button>

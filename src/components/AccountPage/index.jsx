@@ -285,10 +285,9 @@ const AccountPage = () => {
                                     <button
                                         type="button"
                                         className="flat-btn dark"
-                                        disabled={isUpgradeDisabled}
+                                        disabled
                                         onClick={() => {
-                                            if (isUpgradeDisabled) return;
-                                            navigate('/about#pricing');
+                                            return;
                                         }}
                                     >
                                         Upgrade plan

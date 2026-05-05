@@ -113,22 +113,20 @@ const AppLayout = () => {
                     </div>
                     <button
                         type="button"
-                        onClick={() => {
-                            setShowBookmarkWarning(false);
-                            navigate('/about#pricing');
-                        }}
+                        disabled
                         style={{
-                            border: '1px solid #155DFC',
-                            background: '#155DFC',
-                            color: '#ffffff',
+                            border: '1px solid #cbd5e1',
+                            background: '#e2e8f0',
+                            color: '#64748b',
                             borderRadius: 16,
                             padding: '8px 12px',
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: 14,
                             fontWeight: 700,
                             lineHeight: 1.35,
-                            cursor: 'pointer',
+                            cursor: 'not-allowed',
                             whiteSpace: 'nowrap',
+                            opacity: 1,
                         }}
                     >
                         Upgrade

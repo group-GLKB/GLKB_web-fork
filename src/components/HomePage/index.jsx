@@ -298,7 +298,7 @@ const HomePage = () => {
                                                 <button
                                                     type="button"
                                                     className="homepage-limit-warning-button"
-                                                    onClick={() => navigate('/about#pricing')}
+                                                    disabled
                                                 >
                                                     Update
                                                 </button>
