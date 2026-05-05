@@ -373,7 +373,6 @@ function NavBarWhite({ showLogo = true }) {
 
     const handleUpgradeClick = () => {
         handleCloseUserMenu();
-        navigate('/about#pricing');
     };
 
     const handleLogoutClick = async () => {
@@ -1140,7 +1139,7 @@ function NavBarWhite({ showLogo = true }) {
                     </ListItemIcon>
                     <ListItemText>Account</ListItemText>
                 </MenuItem>
-                <MenuItem onClick={handleUpgradeClick} sx={{ px: 2, py: 1 }}>
+                <MenuItem disabled onClick={handleUpgradeClick} sx={{ px: 2, py: 1 }}>
                     <ListItemIcon sx={{ minWidth: "16px !important", mr: 1 }}>
                         <UpgradeIcon style={{ width: 16, height: 16 }} />
                     </ListItemIcon>
