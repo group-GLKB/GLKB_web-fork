@@ -434,6 +434,13 @@
     background: #F3F8FF;
 }
 
+.llm-limit-warning-button:disabled {
+    border-color: #cbd5e1;
+    background: #f1f5f9;
+    color: #94a3b8;
+    cursor: not-allowed;
+}
+
 .clear-button {
     border: 1px solid #e0e0e0;
     white-space: nowrap;
