@@ -34,6 +34,7 @@ import {
 import {
   createApiKey,
   deleteApiKey,
+    getApiKeyUsage,
   listApiKeys,
   updateApiKeyName,
   updateApiKeyStatus,
@@ -44,7 +45,7 @@ const API_KEYS_TAB = 'api-keys';
 const API_USAGE_TAB = 'api-usage';
 const SHOW_API_DOCS_TAB = false;
 const SHOW_API_KEYS_TAB = true;
-const SHOW_API_USAGE_TAB = false;
+const SHOW_API_USAGE_TAB = true;
 
 const tabs = [
     { id: API_DOCS_TAB, label: 'API Docs' },
@@ -100,6 +101,8 @@ const formatUsageCost = (value) => Number(value || 0).toLocaleString('en-US', {
     maximumFractionDigits: 2,
 });
 
+const centsToDollars = (value) => Number(value || 0) / 100;
+
 const normalizeKey = (entry) => ({
     ...entry,
     value: maskKeyValue(entry.value),
@@ -112,7 +115,12 @@ const ApiPage = () => {
     const [activeTab, setActiveTab] = useState(API_KEYS_TAB);
     const [keys, setKeys] = useState([]);
     const [loadingKeys, setLoadingKeys] = useState(false);
+    const [loadingUsage, setLoadingUsage] = useState(false);
     const [keysError, setKeysError] = useState('');
+    const [usageSummary, setUsageSummary] = useState({
+        apiList: [],
+        balanceRemaining: 0,
+    });
     const [createOpen, setCreateOpen] = useState(false);
     const [createName, setCreateName] = useState('');
     const [createError, setCreateError] = useState('');
@@ -137,14 +145,20 @@ const ApiPage = () => {
     }, [keys]);
 
     const usageRows = useMemo(() => (
-        keys.map((entry) => ({
-            ...entry,
-            requests: 1000,
-            token: 100000,
-            apiCost: 100,
-            queryCount: 10000,
-        }))
-    ), [keys]);
+        usageSummary.apiList
+            .filter((entry) => Number(entry?.is_delete || 0) !== 1)
+            .map((entry) => ({
+            id: entry.id,
+            name: entry.name,
+            value: maskKeyValue(entry.value),
+            status: entry.status,
+            statusLabel: entry.status === 1 ? 'Active' : 'Inactive',
+            requests: entry.queries,
+            token: entry.token ?? entry.token_usage,
+            apiCost: centsToDollars(entry.api_costs),
+            queryCount: entry.query_count ?? entry.queries,
+            }))
+    ), [usageSummary.apiList]);
 
     const visibleTabs = useMemo(
         () => tabs.filter((tab) => {
@@ -175,9 +189,30 @@ const ApiPage = () => {
         }
     };
 
+    const loadUsage = async () => {
+        setLoadingUsage(true);
+        setKeysError('');
+        try {
+            const data = await getApiKeyUsage();
+            const apiList = Array.isArray(data?.api_list) ? data.api_list : [];
+            setUsageSummary({
+                apiList,
+                balanceRemaining: centsToDollars(data?.balance_remaining),
+            });
+        } catch (error) {
+            setKeysError(error.response?.data?.detail || 'Unable to load API usage.');
+            setUsageSummary({ apiList: [], balanceRemaining: 0 });
+        } finally {
+            setLoadingUsage(false);
+        }
+    };
+
     useEffect(() => {
         if (activeTab === API_KEYS_TAB || activeTab === API_USAGE_TAB) {
             loadKeys();
+        }
+        if (activeTab === API_USAGE_TAB) {
+            loadUsage();
         }
     }, [activeTab]);
 
@@ -499,7 +534,7 @@ const ApiPage = () => {
                                 </div>
                                 <div className="api-usage-balance">
                                     <span className="api-usage-balance-label">BALANCE:</span>
-                                    <span className="api-usage-balance-value">$999.00</span>
+                                    <span className="api-usage-balance-value">${formatUsageCost(usageSummary.balanceRemaining)}</span>
                                 </div>
                             </Box>
                             {keysError && (
@@ -526,17 +561,17 @@ const ApiPage = () => {
                                         <span className="api-keys-col">API Cost</span>
                                         <span className="api-keys-col">Query Count</span>
                                     </div>
-                                    {loadingKeys && (
+                                    {(loadingKeys || loadingUsage) && (
                                         <div className="api-keys-table-row api-keys-table-empty">
                                             Loading usage...
                                         </div>
                                     )}
-                                    {!loadingKeys && usageRows.length === 0 && (
+                                    {!loadingKeys && !loadingUsage && usageRows.length === 0 && (
                                         <div className="api-keys-table-row api-keys-table-empty">
                                             No usage records yet.
                                         </div>
                                     )}
-                                    {!loadingKeys && usageRows.map((entry) => {
+                                    {!loadingKeys && !loadingUsage && usageRows.map((entry) => {
                                         const isInactive = entry.status !== 1;
                                         return (
                                             <div className="api-keys-table-row api-usage-table-row" key={`usage-${entry.id}`}>
