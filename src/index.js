@@ -4,12 +4,16 @@ import './utils/axiosConfig'; // Import axios interceptor configuration
 import React from 'react';
 
 import { createRoot } from 'react-dom/client';
-import { HelmetProvider } from 'react-helmet-async';
+import {
+    Helmet,
+    HelmetProvider,
+} from 'react-helmet-async';
 import {
   BrowserRouter as Router,
   Navigate,
   Route,
   Routes,
+    useLocation,
 } from 'react-router-dom';
 
 import AboutPage from './components/AboutPage';
@@ -33,10 +37,35 @@ const initState = {
     searchType: ''
 }
 
+const INDEXABLE_PATHS = new Set(['/', '/about', '/chat']);
+
+const normalizePathname = (pathname) => {
+    const normalized = pathname.replace(/\/+$/, '');
+    return normalized || '/';
+};
+
+function RouteSeoControl() {
+    const location = useLocation();
+    const pathname = normalizePathname(location.pathname);
+    const isIndexable = INDEXABLE_PATHS.has(pathname);
+    const canonicalPath = pathname === '/' ? '' : pathname;
+
+    return (
+        <Helmet>
+            <meta
+                name="robots"
+                content={isIndexable ? 'index, follow' : 'noindex, nofollow'}
+            />
+            <link rel="canonical" href={`https://glkb.org${canonicalPath}`} />
+        </Helmet>
+    );
+}
+
 // Create a wrapper component
 function AppWithRoutes() {
     return (
         <HelmetProvider>
+            <RouteSeoControl />
             <Routes>
                 <Route path="/debug" element={<DebugPage />} />
                 <Route element={<AppLayout />}>
