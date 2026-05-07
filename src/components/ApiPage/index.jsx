@@ -410,7 +410,7 @@ const ApiPage = () => {
                                 <iframe
                                     className="api-frame"
                                     title="GLKB API Documentation"
-                                    src="https://backend.glkb.org/reorg-api/redoc"
+                                    src="https://glkb.dcmb.med.umich.edu/reorg-api/redoc"
                                     loading="lazy"
                                 />
                             </Box>
