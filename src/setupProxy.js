@@ -17,7 +17,7 @@ module.exports = function (app) {
             changeOrigin: true,
             secure: false,
             pathRewrite: {
-                '^/api': '/api', // Rewrite /api to /reorg-api/api
+                '^/api': '/reorg-api/api', // Rewrite /api to /reorg-api/api
             },
         })
     );
