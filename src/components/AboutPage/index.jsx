@@ -71,6 +71,10 @@ const AboutPage = () => {
         navigate('/login');
     };
 
+    const handleGoToHome = () => {
+        navigate('/');
+    };
+
     const handleGoToDataDump = () => {
         window.open('https://available-inventions.umich.edu/product/genomic-literature-knowledge-base', '_blank', 'noopener,noreferrer');
     };
@@ -96,9 +100,10 @@ const AboutPage = () => {
     return (
         <>
             <Helmet>
-                <title>About - Genomic Literature Knowledge Base</title>
-                <meta name="description" content="Discover insights from 33M+ genomic research articles. GLKB enables AI-powered search across genes, diseases, variants, and chemicals with high accuracy." />
+                <title>About | GLKB</title>
+                <meta name="description" content="Weeks of research, done in minutes. GLKB searches across 38M+ research articles..." />
                 <meta property="og:title" content="About - Genomic Literature Knowledge Base | AI-Powered Genomics Search" />
+                <meta property="og:description" content="Weeks of research, done in minutes. GLKB searches across 38M+ research articles..." />
             </Helmet>
             <div className="about-page">
                 <header className="about-nav">
@@ -128,7 +133,7 @@ const AboutPage = () => {
                                 evidence-backed answers grounded in real publications, not just predictions.
                             </p>
                             <div className="about-hero-actions">
-                                <button className="about-primary" type="button">Try GLKB</button>
+                                <button className="about-primary" type="button" onClick={handleGoToHome}>Try GLKB</button>
                                 <button className="about-secondary" type="button">View Demo</button>
                             </div>
                         </div>
@@ -558,7 +563,7 @@ const AboutPage = () => {
                         <img className="about-cta-bg" src={ctaBackground} alt="" aria-hidden="true" />
                         <h2>Get Started with GLKB Today</h2>
                         <div className="about-hero-actions">
-                            <button className="about-primary" type="button">Try GLKB</button>
+                            <button className="about-primary" type="button" onClick={handleGoToHome}>Try GLKB</button>
                             <button className="about-secondary" type="button">View Demo</button>
                         </div>
                         <div className="about-footer">
