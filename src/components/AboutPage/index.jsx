@@ -100,9 +100,10 @@ const AboutPage = () => {
     return (
         <>
             <Helmet>
-                <title>About - Genomic Literature Knowledge Base</title>
-                <meta name="description" content="Discover insights from 33M+ genomic research articles. GLKB enables AI-powered search across genes, diseases, variants, and chemicals with high accuracy." />
+                <title>About | GLKB</title>
+                <meta name="description" content="Weeks of research, done in minutes. GLKB searches across 38M+ research articles..." />
                 <meta property="og:title" content="About - Genomic Literature Knowledge Base | AI-Powered Genomics Search" />
+                <meta property="og:description" content="Weeks of research, done in minutes. GLKB searches across 38M+ research articles..." />
             </Helmet>
             <div className="about-page">
                 <header className="about-nav">
