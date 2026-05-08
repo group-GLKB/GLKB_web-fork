@@ -71,6 +71,10 @@ const AboutPage = () => {
         navigate('/login');
     };
 
+    const handleGoToHome = () => {
+        navigate('/');
+    };
+
     const handleGoToDataDump = () => {
         window.open('https://available-inventions.umich.edu/product/genomic-literature-knowledge-base', '_blank', 'noopener,noreferrer');
     };
@@ -128,7 +132,7 @@ const AboutPage = () => {
                                 evidence-backed answers grounded in real publications, not just predictions.
                             </p>
                             <div className="about-hero-actions">
-                                <button className="about-primary" type="button">Try GLKB</button>
+                                <button className="about-primary" type="button" onClick={handleGoToHome}>Try GLKB</button>
                                 <button className="about-secondary" type="button">View Demo</button>
                             </div>
                         </div>
@@ -558,7 +562,7 @@ const AboutPage = () => {
                         <img className="about-cta-bg" src={ctaBackground} alt="" aria-hidden="true" />
                         <h2>Get Started with GLKB Today</h2>
                         <div className="about-hero-actions">
-                            <button className="about-primary" type="button">Try GLKB</button>
+                            <button className="about-primary" type="button" onClick={handleGoToHome}>Try GLKB</button>
                             <button className="about-secondary" type="button">View Demo</button>
                         </div>
                         <div className="about-footer">
