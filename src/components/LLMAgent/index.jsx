@@ -2159,8 +2159,9 @@ function LLMAgent() {
         <>
             <Helmet>
                 <title>AI Chat - Genomic Literature Knowledge Base</title>
-                <meta name="description" content="Discover insights from 33M+ genomic research articles. GLKB enables AI-powered search across genes, diseases, variants, and chemicals with high accuracy." />
+                <meta name="description" content="Ask, Analyze, Cite. Start a chat now with GLKB, your scientific research AI assistant." />
                 <meta property="og:title" content="AI Chat - Genomic Literature Knowledge Base | AI-Powered Genomics Search" />
+                <meta property="og:description" content="Ask, Analyze, Cite. Start a chat now with GLKB, your scientific research AI assistant." />
             </Helmet>
 
             <CiteDialog

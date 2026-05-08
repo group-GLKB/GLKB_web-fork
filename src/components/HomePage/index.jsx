@@ -213,8 +213,9 @@ const HomePage = () => {
         <>
             <Helmet>
                 <title>Home | GLKB</title>
-                <meta name="description" content="Discover insights from 33M+ genomic research articles. GLKB enables AI-powered search across genes, diseases, variants, and chemicals with high accuracy." />
+                <meta name="description" content="GLKB is an AI-powered research engine that synthesizes biomedical literature into structured, evidence-backed answers grounded in real publications, not just predictions." />
                 <meta property="og:title" content="Home Page - Genomic Literature Knowledge Base" />
+                <meta property="og:description" content="GLKB is an AI-powered research engine that synthesizes biomedical literature into structured, evidence-backed answers grounded in real publications, not just predictions." />
             </Helmet>
             <div className="HomePageRoot">
                 <div className="HomePageContainer">
