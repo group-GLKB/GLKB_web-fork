@@ -1,3 +1,5 @@
+import './scoped.css';
+
 import React, {
   useEffect,
   useLayoutEffect,
@@ -6,7 +8,14 @@ import React, {
 } from 'react';
 
 import {
+    Menu as MenuIcon,
+} from '@mui/icons-material';
+
+import logoIcon from '../../img/GLKB_logo_icon.png';
+import logoWordmark from '../../img/navbar/logo.jpg';
+import {
   Outlet,
+    Link,
   useLocation,
   useNavigate,
 } from 'react-router-dom';
@@ -14,6 +23,10 @@ import {
 import NavBarWhite from '../Units/NavBarWhite';
 
 const FREE_BOOKMARK_BLOCKED_EVENT = 'glkb-free-bookmark-blocked';
+const SIDEBAR_OPEN_EVENT = 'glkb-open-sidebar';
+
+const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
+const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
 const getPageTitleByPath = (pathname) => {
     if (pathname === '/') return 'Home | GLKB';
@@ -33,13 +46,28 @@ const AppLayout = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [showBookmarkWarning, setShowBookmarkWarning] = useState(false);
+    const [isPhoneDevice, setIsPhoneDevice] = useState(false);
     const hideTimerRef = useRef(null);
-    const hideSidebar = location.pathname.startsWith('/account')
-        || location.pathname.startsWith('/about');
+    const isAboutPage = location.pathname.startsWith('/about');
+    const isAccountPage = location.pathname.startsWith('/account');
+    const hideSidebar = isAboutPage || (isAccountPage && !isPhoneDevice);
+    const showMobileHeader = isPhoneDevice && !isAboutPage;
 
     useLayoutEffect(() => {
         document.title = getPageTitleByPath(location.pathname);
     }, [location.pathname]);
+
+    useEffect(() => {
+        const evaluateIsPhone = () => {
+            setIsPhoneDevice(isPhoneUa() && isPhoneViewport());
+        };
+
+        evaluateIsPhone();
+        window.addEventListener('resize', evaluateIsPhone);
+        return () => {
+            window.removeEventListener('resize', evaluateIsPhone);
+        };
+    }, []);
 
     useEffect(() => {
         const clearHideTimer = () => {
@@ -67,6 +95,24 @@ const AppLayout = () => {
 
     return (
         <>
+            {showMobileHeader && (
+                <header className="app-mobile-header">
+                    <button
+                        type="button"
+                        className="app-mobile-header-context"
+                        aria-label="Open sidebar"
+                        onClick={() => window.dispatchEvent(new CustomEvent(SIDEBAR_OPEN_EVENT))}
+                    >
+                        <MenuIcon sx={{ fontSize: 22, color: '#646464' }} />
+                    </button>
+                    <Link to="/" className="app-mobile-header-logo-link" aria-label="GLKB Home">
+                        <img src={logoIcon} alt="GLKB logo" className="app-mobile-header-logo-icon" />
+                    </Link>
+                    <Link to="/" className="app-mobile-header-logo-link" aria-label="GLKB Home">
+                        <img src={logoWordmark} alt="GLKB" className="app-mobile-header-logo-wordmark" />
+                    </Link>
+                </header>
+            )}
             {showBookmarkWarning && (
                 <div
                     style={{
@@ -133,8 +179,8 @@ const AppLayout = () => {
                     </button>
                 </div>
             )}
-            {!hideSidebar && <NavBarWhite />}
-            <div className="app-layout-content">
+            {!hideSidebar && <NavBarWhite hideCompactRail={showMobileHeader} />}
+            <div className={`app-layout-content${showMobileHeader ? ' has-mobile-header' : ''}`}>
                 <Outlet />
             </div>
         </>
