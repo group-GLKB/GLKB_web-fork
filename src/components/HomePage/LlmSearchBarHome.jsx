@@ -33,6 +33,20 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     }, [isOpen, props]);
 
     useEffect(() => {
+        if (!props.setExamplesOpen) return;
+        const hasAutocompleteExamples = Array.isArray(props.autocompleteOptions)
+            && props.autocompleteOptions.length > 0;
+        const isExamplePanelExpanded = isOpen && hasAutocompleteExamples && llmQuery.trim() === '';
+        props.setExamplesOpen(isExamplePanelExpanded);
+    }, [isOpen, llmQuery, props]);
+
+    useEffect(() => () => {
+        if (props.setExamplesOpen) {
+            props.setExamplesOpen(false);
+        }
+    }, [props]);
+
+    useEffect(() => {
         if (typeof props.prefillQuery !== 'string') {
             return;
         }
