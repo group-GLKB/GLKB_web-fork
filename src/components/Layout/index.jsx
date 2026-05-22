@@ -8,23 +8,22 @@ import React, {
 } from 'react';
 
 import {
-    Menu as MenuIcon,
-} from '@mui/icons-material';
-
-import logoIcon from '../../img/GLKB_logo_icon.png';
-import logoWordmark from '../../img/navbar/logo.jpg';
-import {
+  Link,
   Outlet,
-    Link,
   useLocation,
   useNavigate,
 } from 'react-router-dom';
 
+import { Menu as MenuIcon } from '@mui/icons-material';
+
+import logoIcon from '../../img/GLKB_logo_icon.png';
+import logoWordmark from '../../img/navbar/logo.jpg';
 import NavBarWhite from '../Units/NavBarWhite';
 
 const FREE_BOOKMARK_BLOCKED_EVENT = 'glkb-free-bookmark-blocked';
 const SIDEBAR_OPEN_EVENT = 'glkb-open-sidebar';
 const MOBILE_HEADER_NEW_CHAT_EVENT = 'glkb-mobile-header-new-chat';
+const MOBILE_HEADER_VISIBILITY_EVENT = 'glkb-mobile-header-visibility';
 
 const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
@@ -48,12 +47,13 @@ const AppLayout = () => {
     const navigate = useNavigate();
     const [showBookmarkWarning, setShowBookmarkWarning] = useState(false);
     const [isPhoneDevice, setIsPhoneDevice] = useState(false);
+    const [isMobileHeaderHidden, setIsMobileHeaderHidden] = useState(false);
     const hideTimerRef = useRef(null);
     const isAboutPage = location.pathname.startsWith('/about');
     const isAccountPage = location.pathname.startsWith('/account');
     const isChatPage = location.pathname.startsWith('/chat');
     const hideSidebar = isAboutPage || (isAccountPage && !isPhoneDevice);
-    const showMobileHeader = isPhoneDevice && !isAboutPage;
+    const showMobileHeader = isPhoneDevice && !isAboutPage && !isMobileHeaderHidden;
 
     useLayoutEffect(() => {
         document.title = getPageTitleByPath(location.pathname);
@@ -94,6 +94,21 @@ const AppLayout = () => {
             window.removeEventListener(FREE_BOOKMARK_BLOCKED_EVENT, handleBlockedBookmark);
         };
     }, []);
+
+    useEffect(() => {
+        const handleMobileHeaderVisibility = (event) => {
+            setIsMobileHeaderHidden(Boolean(event?.detail?.hidden));
+        };
+
+        window.addEventListener(MOBILE_HEADER_VISIBILITY_EVENT, handleMobileHeaderVisibility);
+        return () => {
+            window.removeEventListener(MOBILE_HEADER_VISIBILITY_EVENT, handleMobileHeaderVisibility);
+        };
+    }, []);
+
+    useEffect(() => {
+        setIsMobileHeaderHidden(false);
+    }, [location.pathname]);
 
     return (
         <>
@@ -190,7 +205,7 @@ const AppLayout = () => {
                     </button>
                 </div>
             )}
-            {!hideSidebar && <NavBarWhite hideCompactRail={showMobileHeader} />}
+            {!hideSidebar && <NavBarWhite hideCompactRail={showMobileHeader || isMobileHeaderHidden} />}
             <div className={`app-layout-content${showMobileHeader ? ' has-mobile-header' : ''}`}>
                 <Outlet />
             </div>
