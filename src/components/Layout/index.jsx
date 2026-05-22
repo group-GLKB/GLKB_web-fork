@@ -24,6 +24,7 @@ import NavBarWhite from '../Units/NavBarWhite';
 
 const FREE_BOOKMARK_BLOCKED_EVENT = 'glkb-free-bookmark-blocked';
 const SIDEBAR_OPEN_EVENT = 'glkb-open-sidebar';
+const MOBILE_HEADER_NEW_CHAT_EVENT = 'glkb-mobile-header-new-chat';
 
 const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
@@ -50,6 +51,7 @@ const AppLayout = () => {
     const hideTimerRef = useRef(null);
     const isAboutPage = location.pathname.startsWith('/about');
     const isAccountPage = location.pathname.startsWith('/account');
+    const isChatPage = location.pathname.startsWith('/chat');
     const hideSidebar = isAboutPage || (isAccountPage && !isPhoneDevice);
     const showMobileHeader = isPhoneDevice && !isAboutPage;
 
@@ -111,6 +113,15 @@ const AppLayout = () => {
                     <Link to="/" className="app-mobile-header-logo-link" aria-label="GLKB Home">
                         <img src={logoWordmark} alt="GLKB" className="app-mobile-header-logo-wordmark" />
                     </Link>
+                    {isChatPage && (
+                        <button
+                            type="button"
+                            className="app-mobile-header-new-chat"
+                            onClick={() => window.dispatchEvent(new CustomEvent(MOBILE_HEADER_NEW_CHAT_EVENT))}
+                        >
+                            New Chat
+                        </button>
+                    )}
                 </header>
             )}
             {showBookmarkWarning && (
