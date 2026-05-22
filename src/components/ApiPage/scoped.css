@@ -26,6 +26,10 @@
     padding: 24px 80px 36px;
 }
 
+.app-layout-content.has-mobile-header .api-content {
+    padding: 16px 24px;
+}
+
 .api-header {
     display: flex;
     flex-direction: column;
@@ -219,6 +223,180 @@
 .api-keys-table {
     width: max-content;
     min-width: 100%;
+}
+
+.api-keys-mobile-list {
+    width: 100%;
+    border-top: 1px solid #EDEDED;
+    border-bottom: 1px solid #EDEDED;
+    background: #ffffff;
+}
+
+.api-keys-mobile-item {
+    border-bottom: 1px solid #EDEDED;
+}
+
+.api-keys-mobile-item:last-child {
+    border-bottom: none;
+}
+
+.api-keys-mobile-row {
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 14px 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 10px;
+    align-items: start;
+    cursor: pointer;
+    text-align: left;
+}
+
+.api-keys-mobile-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 6px;
+}
+
+.api-keys-mobile-name {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #164563;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.api-keys-mobile-key {
+    font-family: 'Menlo', 'SFMono-Regular', 'Consolas', 'Liberation Mono', monospace;
+    font-size: 12px;
+    font-weight: 400;
+    color: #646464;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.api-keys-mobile-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.api-keys-mobile-last-used {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: #646464;
+}
+
+.api-usage-mobile-requests {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #164563;
+}
+
+.api-usage-mobile-requests.is-inactive {
+    color: #9CA3AF;
+}
+
+.api-keys-mobile-chevron {
+    font-size: 18px !important;
+    color: #9CA3AF;
+    margin-top: 4px;
+}
+
+.api-keys-mobile-page-drawer {
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    overflow: hidden;
+    max-height: min(78vh, 700px);
+}
+
+.api-keys-mobile-page-drawer-body {
+    padding: 16px 16px 20px;
+    background: #ffffff;
+}
+
+.api-keys-mobile-page-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.api-keys-mobile-page-drawer-head-main {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.api-keys-mobile-page-drawer-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #164563;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.api-keys-mobile-detail-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+}
+
+.api-keys-mobile-label {
+    display: block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: #6B7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+}
+
+.api-keys-mobile-value {
+    display: block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: #164563;
+}
+
+.api-keys-mobile-value-key {
+    font-family: 'Menlo', 'SFMono-Regular', 'Consolas', 'Liberation Mono', monospace;
+    word-break: break-all;
+}
+
+.api-keys-mobile-actions {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.api-keys-mobile-actions .api-keys-action {
+    width: 100%;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.api-keys-mobile-empty {
+    padding: 16px 0;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: #646464;
 }
 
 @media (max-width: 1600px) {
