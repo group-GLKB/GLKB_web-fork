@@ -9,7 +9,7 @@ import React, {
 
 import {
   Check as CheckIcon,
-    ChevronRight as ChevronRightIcon,
+  ChevronRight as ChevronRightIcon,
   Close as CloseIcon,
   ContentCopyOutlined as ContentCopyOutlinedIcon,
   Edit as EditIcon,
@@ -18,11 +18,11 @@ import {
 import {
   Box,
   Button,
-    Drawer,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Drawer,
   Tab,
   Tabs,
   TextField,
@@ -36,7 +36,7 @@ import {
 import {
   createApiKey,
   deleteApiKey,
-    getApiKeyUsage,
+  getApiKeyUsage,
   listApiKeys,
   updateApiKeyName,
   updateApiKeyStatus,

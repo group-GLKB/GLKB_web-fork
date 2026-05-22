@@ -8,6 +8,11 @@
     overflow: hidden;
 }
 
+.app-layout-content.has-mobile-header .library-page {
+    min-height: 100%;
+    height: 100%;
+}
+
 .library-body {
     flex: 1;
     display: flex;
@@ -262,6 +267,127 @@
     font-size: 12px;
     font-weight: 500;
     color: #164563;
+}
+
+.library-folder-status-row {
+    margin-top: 12px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.library-folder-status-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #164563;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.library-folder-status-button {
+    border: 1px solid #D7E3EA;
+    background: #ffffff;
+    color: #164563;
+    border-radius: 16px;
+    padding: 6px 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.library-mobile-sort-row {
+    margin-top: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.library-mobile-folder-drawer-paper {
+    width: 100%;
+    max-height: min(78vh, 700px);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    overflow: hidden;
+}
+
+.library-mobile-folder-drawer {
+    height: 100%;
+    padding: 16px 12px;
+    background: #FAFCFF;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-sizing: border-box;
+}
+
+.library-mobile-folder-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.library-mobile-folder-drawer-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #164563;
+}
+
+.library-mobile-folder-drawer-header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.library-mobile-folder-drawer-close {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #646464;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.library-folder-manager-list-mobile {
+    max-height: none;
+    flex: 1;
+}
+
+.library-mobile-folder-new-button {
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid #155DFC;
+    background: #ffffff;
+    color: #155DFC;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 10px 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.library-mobile-folder-new-button:hover {
+    background: #F2F6FF;
 }
 
 .library-new-folder-button {
@@ -731,4 +857,24 @@
 
 .library-list>div:last-child::after {
     border-bottom: none;
+}
+
+@media (max-width: 767px) {
+    .library-content {
+        padding: 16px 24px;
+    }
+
+    .library-title-bar {
+        justify-content: flex-start;
+    }
+
+    .library-tabs-row {
+        margin-top: 0;
+        margin-bottom: 16px;
+        gap: 0;
+    }
+
+    .library-sort {
+        gap: 6px;
+    }
 }

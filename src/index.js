@@ -5,15 +5,15 @@ import React from 'react';
 
 import { createRoot } from 'react-dom/client';
 import {
-    Helmet,
-    HelmetProvider,
+  Helmet,
+  HelmetProvider,
 } from 'react-helmet-async';
 import {
   BrowserRouter as Router,
   Navigate,
   Route,
   Routes,
-    useLocation,
+  useLocation,
 } from 'react-router-dom';
 
 import AboutPage from './components/AboutPage';
