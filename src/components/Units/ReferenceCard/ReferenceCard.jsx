@@ -158,7 +158,7 @@ const ReferenceCard = ({
                         onClick={handleCiteClick}
                         sx={{
                             padding: '4px',
-                            color: '#323232',
+                            color: '#000000',
                             '&:hover': {
                                 backgroundColor: 'rgba(0, 0, 0, 0.04)',
                             },
@@ -176,7 +176,7 @@ const ReferenceCard = ({
                         onClick={handleBookmarkClick}
                         sx={{
                             padding: '4px',
-                            color: isBookmarked ? '#2c5cf3' : '#323232',
+                            color: isBookmarked ? '#2c5cf3' : '#000000',
                             '&:hover': {
                                 backgroundColor: 'rgba(0, 0, 0, 0.04)',
                             },
