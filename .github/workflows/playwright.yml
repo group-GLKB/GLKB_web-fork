@@ -2,6 +2,7 @@ name: Playwright Tests
 on:
   schedule:
     - cron: '0 * * * *'  # Every hour
+  workflow_dispatch:
 
 jobs:
   test:
