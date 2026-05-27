@@ -18,10 +18,6 @@ export default defineConfig({
     storageState: 'e2e/.auth/user.json',
     trace: 'on',
     screenshot: 'on',
-    httpCredentials: process.env.AMPLIFY_USERNAME ? {
-      username: process.env.AMPLIFY_USERNAME,
-      password: process.env.AMPLIFY_PASSWORD || '',
-    } : undefined,
   },
 
   projects: [
