@@ -5,15 +5,15 @@ import React from 'react';
 
 import { createRoot } from 'react-dom/client';
 import {
-    Helmet,
-    HelmetProvider,
+  Helmet,
+  HelmetProvider,
 } from 'react-helmet-async';
 import {
   BrowserRouter as Router,
   Navigate,
   Route,
   Routes,
-    useLocation,
+  useLocation,
 } from 'react-router-dom';
 
 import AboutPage from './components/AboutPage';
@@ -23,7 +23,6 @@ import ApiPage from './components/ApiPage';
 // import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './components/Auth/AuthContext';
 import LoginPage from './components/Auth/LoginPage';
-import MaintenancePage from './components/MaintenancePage';
 import VerifyCodePage from './components/Auth/VerifyCodePage';
 import DebugPage from './components/Debug';
 import History from './components/History';
@@ -31,6 +30,7 @@ import HomePage from './components/HomePage';
 import AppLayout from './components/Layout';
 import Library from './components/Library';
 import LLMAgent from './components/LLMAgent';
+import MaintenancePage from './components/MaintenancePage';
 import ResultPage from './components/ResultPage';
 import TestAuth from './components/TestAuth';
 
@@ -39,7 +39,7 @@ const initState = {
 }
 
 const INDEXABLE_PATHS = new Set(['/', '/about', '/chat']);
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 
 const normalizePathname = (pathname) => {
     const normalized = pathname.replace(/\/+$/, '');
