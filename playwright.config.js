@@ -16,7 +16,8 @@ export default defineConfig({
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:3000',
     storageState: 'e2e/.auth/user.json',
-    trace: 'on-first-retry',
+    trace: 'on',
+    screenshot: 'on',
     httpCredentials: process.env.AMPLIFY_USERNAME ? {
       username: process.env.AMPLIFY_USERNAME,
       password: process.env.AMPLIFY_PASSWORD || '',
