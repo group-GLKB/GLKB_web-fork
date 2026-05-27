@@ -23,6 +23,7 @@ import ApiPage from './components/ApiPage';
 // import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './components/Auth/AuthContext';
 import LoginPage from './components/Auth/LoginPage';
+import MaintenancePage from './components/MaintenancePage';
 import VerifyCodePage from './components/Auth/VerifyCodePage';
 import DebugPage from './components/Debug';
 import History from './components/History';
@@ -38,6 +39,7 @@ const initState = {
 }
 
 const INDEXABLE_PATHS = new Set(['/', '/about', '/chat']);
+const MAINTENANCE_MODE = true;
 
 const normalizePathname = (pathname) => {
     const normalized = pathname.replace(/\/+$/, '');
@@ -63,6 +65,18 @@ function RouteSeoControl() {
 
 // Create a wrapper component
 function AppWithRoutes() {
+    if (MAINTENANCE_MODE) {
+        return (
+            <HelmetProvider>
+                <Routes>
+                    <Route path="/about" element={<AboutPage />} />
+                    <Route path="/debug" element={<DebugPage />} />
+                    <Route path="*" element={<MaintenancePage />} />
+                </Routes>
+            </HelmetProvider>
+        );
+    }
+
     return (
         <HelmetProvider>
             <RouteSeoControl />
