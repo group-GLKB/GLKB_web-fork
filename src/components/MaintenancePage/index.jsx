@@ -5,6 +5,7 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 
 import HandymanOutlinedIcon from '@mui/icons-material/HandymanOutlined';
+import { Button } from '@mui/material';
 
 const MAINTENANCE_DAYS = 2;
 
@@ -28,9 +29,40 @@ const MaintenancePage = () => (
                 days, stay tuned!
             </p>
 
-            <a href="mailto:admin@glkb.org" className="maintenance-contact-button">
+            <Button
+                component="a"
+                href="mailto:admin@glkb.org"
+                className="maintenance-contact-button"
+                variant="contained"
+                disableElevation
+                sx={{
+                    background: '#155dfc',
+                    border: 'none',
+                    borderRadius: '12px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontFamily: 'DM Sans, sans-serif',
+                    fontSize: '16px',
+                    fontWeight: 500,
+                    marginTop: '48px',
+                    padding: '8px 16px',
+                    textTransform: 'none',
+                    minWidth: 0,
+                    lineHeight: 'normal',
+                    letterSpacing: 'normal',
+                    boxShadow: 'none',
+                    '&:hover': {
+                        background: '#155dfc',
+                        border: 'none',
+                        boxShadow: 'none',
+                    },
+                    '&.Mui-focusVisible': {
+                        boxShadow: 'none',
+                    },
+                }}
+            >
                 Contact us
-            </a>
+            </Button>
         </main>
 
         <footer className="maintenance-footer">

@@ -45,16 +45,18 @@
 }
 
 .maintenance-contact-button {
-    margin-top: 48px;
+    margin-top: 48px !important;
     border: none;
-    border-radius: 12px;
-    padding: 8px 16px;
+    border-radius: 12px !important;
+    padding: 8px 16px !important;
     font-family: 'DM Sans', sans-serif;
     font-size: 16px;
     font-weight: 500;
     cursor: pointer;
     background: #155DFC;
     color: #ffffff;
+    text-transform: none !important;
+    min-width: 0 !important;
 }
 
 .maintenance-footer {
