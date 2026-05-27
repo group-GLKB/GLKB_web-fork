@@ -28,9 +28,9 @@ const MaintenancePage = () => (
                 days, stay tuned!
             </p>
 
-            <button type="button" className="maintenance-contact-button">
+            <a href="mailto:admin@glkb.org" className="maintenance-contact-button">
                 Contact us
-            </button>
+            </a>
         </main>
 
         <footer className="maintenance-footer">
