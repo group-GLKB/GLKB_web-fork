@@ -14,6 +14,10 @@ import {
     Close as CloseIcon,
     Person as PersonIcon,
 } from '@mui/icons-material';
+import {
+    Tab,
+    Tabs,
+} from '@mui/material';
 
 import {
     getMyTier,
@@ -27,9 +31,11 @@ const getSessionValue = (key) => {
 };
 
 const setSessionValue = (key, value) => {
-    if (typeof window === 'undefined') return;
     window.sessionStorage.setItem(key, value);
 };
+
+const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
+const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
 const parseNaiveUtcDate = (value) => {
     if (!value || typeof value !== 'string') return null;
@@ -78,6 +84,19 @@ const AccountPage = () => {
     const [proActionLoading, setProActionLoading] = useState(false);
     const [proActionMessage, setProActionMessage] = useState('');
     const [proActionError, setProActionError] = useState('');
+    const [isPhoneDevice, setIsPhoneDevice] = useState(false);
+
+    useEffect(() => {
+        const evaluateIsPhone = () => {
+            setIsPhoneDevice(isPhoneUa() && isPhoneViewport());
+        };
+
+        evaluateIsPhone();
+        window.addEventListener('resize', evaluateIsPhone);
+        return () => {
+            window.removeEventListener('resize', evaluateIsPhone);
+        };
+    }, []);
 
     useEffect(() => {
         if (!displayName) {
@@ -199,7 +218,8 @@ const AccountPage = () => {
     return (
         <div className="account-page">
             <div className="settings-wrapper">
-                <nav className="settings-nav">
+                {!isPhoneDevice && (
+                    <nav className="settings-nav">
                     <button
                         type="button"
                         className="settings-nav-header"
@@ -232,9 +252,49 @@ const AccountPage = () => {
                         </svg>
                         Upgrade with Code
                     </button>
-                </nav>
+                    </nav>
+                )}
 
                 <div className="settings-content">
+                    {isPhoneDevice && (
+                        <div className="settings-mobile-tabs-row">
+                            <Tabs
+                                value={activeTab}
+                                onChange={(_, value) => setActiveTab(value)}
+                                variant="fullWidth"
+                                TabIndicatorProps={{
+                                    sx: {
+                                        backgroundColor: '#155DFC',
+                                        height: 2,
+                                    },
+                                }}
+                                sx={{
+                                    minHeight: 0,
+                                    '& .MuiTabs-flexContainer': {
+                                        gap: 0,
+                                    },
+                                    '& .MuiTab-root': {
+                                        textTransform: 'none',
+                                        fontFamily: 'DM Sans, sans-serif',
+                                        fontSize: '13px',
+                                        fontWeight: 600,
+                                        color: '#164563',
+                                        minHeight: 32,
+                                        minWidth: '50%',
+                                        maxWidth: 'none',
+                                        flex: 1,
+                                        padding: '12px 0',
+                                    },
+                                    '& .MuiTab-root.Mui-selected': {
+                                        color: '#155DFC',
+                                    },
+                                }}
+                            >
+                                <Tab value="account" label="Account" />
+                                <Tab value="testing" label="Upgrade with Code" />
+                            </Tabs>
+                        </div>
+                    )}
                     <div className="settings-inner">
                         {activeTab === 'account' ? (
                             <>
@@ -293,7 +353,6 @@ const AccountPage = () => {
                                         Upgrade plan
                                     </button>
                                 </div>
-
                                 <div className="flat-row">
                                     <div className="flat-field">
                                         <div className="subscription-inline-meta">
