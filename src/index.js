@@ -18,6 +18,7 @@ import {
 
 import AboutPage from './components/AboutPage';
 import AccountPage from './components/AccountPage';
+import ApiDocsPage from './components/ApiDocs';
 import ApiPage from './components/ApiPage';
 // import SignupPage from './components/Auth/SignupPage';
 // import ProtectedRoute from './components/Auth/ProtectedRoute';
@@ -68,6 +69,8 @@ function AppWithRoutes() {
             <RouteSeoControl />
             <Routes>
                 <Route path="/debug" element={<DebugPage />} />
+                <Route path="/api-docs" element={<ApiDocsPage />} />
+                <Route path="/api-docs/:slug" element={<ApiDocsPage />} />
                 <Route element={<AppLayout />}>
                     <Route path='/search' element={<ResultPage />} />
                     <Route path="/" element={<HomePage />} />
