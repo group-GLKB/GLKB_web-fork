@@ -1,7 +1,7 @@
 import React, {
   useEffect,
   useMemo,
-  useState,
+    useState,
 } from 'react';
 
 import { useNavigate } from 'react-router-dom';
@@ -31,12 +31,11 @@ const ReferenceCard = ({
     transparentBackground = false,
     showCitations = true,
 }) => {
-    const [isHovered, setIsHovered] = useState(false);
     const [isBookmarked, setIsBookmarked] = useState(false);
     const [isEvidenceOpen, setIsEvidenceOpen] = useState(false);
     const { isAuthenticated, loading } = useAuth();
     const navigate = useNavigate();
-    const showHighlight = isHighlighted || isHovered;
+    const showHighlight = isHighlighted;
 
     const pubmedId = useMemo(() => {
         const urlValue = url?.[1] || '';
@@ -134,13 +133,11 @@ const ReferenceCard = ({
     return (
         <div
             onClick={(event) => handleClick(event, url[1])}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
             style={{
                 cursor: 'pointer',
                 marginBottom: '2px',
                 borderRadius: showHighlight ? '12px' : '10px',
-                backgroundColor: showHighlight ? '#E7F1FF' : (transparentBackground ? 'transparent' : '#fff'),
+                backgroundColor: showHighlight ? '#E7F1FF' : 'transparent',
                 width: '100%',
                 transition: 'background-color 0.2s ease, border-radius 0.2s ease',
                 padding: '0px',

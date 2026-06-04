@@ -1409,6 +1409,11 @@ function LLMAgent() {
         window.open(link, '_blank');
     };
 
+    const handleReferenceEntryContainerClick = (event, link) => {
+        if (event.target.closest('.custom-div-url')) return;
+        handleClick(event, link);
+    };
+
     useEffect(() => {
         scrollToBottom();
     }, [chatHistory, streamingGroups]);
@@ -3072,7 +3077,12 @@ function LLMAgent() {
                                                                             const pubmedId = ref.url.split('/').filter(Boolean).pop();
                                                                             const isHighlighted = hoveredPubmedId === pubmedId;
                                                                             return (
-                                                                                <div key={index} data-pubmed-id={pubmedId}>
+                                                                                <div
+                                                                                    key={index}
+                                                                                    data-pubmed-id={pubmedId}
+                                                                                    className="reference-entry-wrapper"
+                                                                                    onClick={(event) => handleReferenceEntryContainerClick(event, url[1])}
+                                                                                >
                                                                                     <ReferenceCard
                                                                                         url={url}
                                                                                         evidence={ref.evidence}
@@ -3203,7 +3213,12 @@ function LLMAgent() {
                                                                 const pubmedId = ref.url.split('/').filter(Boolean).pop();
                                                                 const isHighlighted = hoveredPubmedId === pubmedId;
                                                                 return (
-                                                                    <div key={index} data-pubmed-id={pubmedId}>
+                                                                    <div
+                                                                        key={index}
+                                                                        data-pubmed-id={pubmedId}
+                                                                        className="reference-entry-wrapper"
+                                                                        onClick={(event) => handleReferenceEntryContainerClick(event, url[1])}
+                                                                    >
                                                                         <ReferenceCard
                                                                             url={url}
                                                                             evidence={ref.evidence}
