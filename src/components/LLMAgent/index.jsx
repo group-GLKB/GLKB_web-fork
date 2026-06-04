@@ -169,6 +169,8 @@ const setStoredSessionId = (historyId, sessionId) => {
 };
 
 const STEP_LABELS = stepLabels || {};
+const PUBMED_ESUMMARY_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi';
+const PLACEHOLDER_PMID_PREFIX = 'PMID ';
 
 const LEFT_MIN_PX = 360;
 const RIGHT_MIN_PX = 360;
@@ -217,6 +219,87 @@ const areMessagesEqual = (left, right) => {
 };
 
 const getStepLabel = (stepName) => STEP_LABELS[stepName] || stepName;
+
+const extractYearFromPubDate = (value) => {
+    if (!value || typeof value !== 'string') return '';
+    const match = value.match(/\b(19|20)\d{2}\b/);
+    return match ? match[0] : '';
+};
+
+const extractPmidFromReference = (ref) => {
+    if (!ref || typeof ref !== 'object') return null;
+    const direct = String(ref.pmid || '').trim();
+    if (/^\d+$/.test(direct)) return direct;
+
+    const url = String(ref.url || '').trim();
+    if (url) {
+        const urlMatch = url.match(/pubmed\.ncbi\.nlm\.nih\.gov\/(\d+)/i);
+        if (urlMatch?.[1]) return urlMatch[1];
+    }
+
+    const title = String(ref.title || '').trim();
+    const titleMatch = title.match(/^PMID\s+(\d+)$/i);
+    if (titleMatch?.[1]) return titleMatch[1];
+
+    return null;
+};
+
+const isPlaceholderPmidReference = (ref) => {
+    const pmid = extractPmidFromReference(ref);
+    if (!pmid) return false;
+    const title = String(ref.title || '').trim();
+    return title === `${PLACEHOLDER_PMID_PREFIX}${pmid}`;
+};
+
+const fetchPubmedSummaryMap = async (pmids) => {
+    if (!Array.isArray(pmids) || pmids.length === 0) return {};
+
+    const params = new URLSearchParams();
+    params.set('db', 'pubmed');
+    params.set('id', pmids.join(','));
+    params.set('retmode', 'json');
+
+    const response = await fetch(`${PUBMED_ESUMMARY_URL}?${params.toString()}`, {
+        method: 'GET',
+        credentials: 'omit',
+    });
+    if (!response.ok) {
+        throw new Error(`PubMed esummary request failed: ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const result = payload?.result;
+    if (!result || typeof result !== 'object') return {};
+
+    const map = {};
+    pmids.forEach((pmid) => {
+        const doc = result[pmid];
+        if (!doc || typeof doc !== 'object') return;
+
+        const title = typeof doc.title === 'string' ? doc.title.trim() : '';
+        const journal = typeof doc.fulljournalname === 'string'
+            ? doc.fulljournalname.trim()
+            : (typeof doc.source === 'string' ? doc.source.trim() : '');
+        const pubDate = typeof doc.pubdate === 'string' ? doc.pubdate : '';
+        const sortDate = typeof doc.sortpubdate === 'string' ? doc.sortpubdate : '';
+        const year = extractYearFromPubDate(pubDate) || extractYearFromPubDate(sortDate);
+        const authors = Array.isArray(doc.authors)
+            ? doc.authors
+                .map((item) => (typeof item?.name === 'string' ? item.name.trim() : ''))
+                .filter(Boolean)
+                .join(', ')
+            : '';
+
+        map[pmid] = {
+            title,
+            journal,
+            year,
+            authors,
+        };
+    });
+
+    return map;
+};
 
 const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
     const isTrajectoryLine = line && typeof line === 'object' && !Array.isArray(line);
@@ -829,7 +912,7 @@ const MessageCard = React.memo(function MessageCard({
                                 {!isLoading && (
                                     <IconButton
                                         size="small"
-                                        onClick={() => onOpenFeedback(messageID, message)}
+                                        onClick={onOpenFeedback}
                                         title="Share feedback"
                                     >
                                         <ThumbsUpDownOutlinedIcon sx={{ fontSize: 16, color: '#646464' }} />
@@ -965,8 +1048,6 @@ function LLMAgent() {
     );
     const [showLeaveConfirmDialog, setShowLeaveConfirmDialog] = useState(false);
     const [feedbackOpen, setFeedbackOpen] = useState(false);
-    const [feedbackTargetIndex, setFeedbackTargetIndex] = useState(null);
-    const [feedbackTargetMessageId, setFeedbackTargetMessageId] = useState(null);
     const [feedbackRating, setFeedbackRating] = useState(0);
     const [feedbackText, setFeedbackText] = useState('');
     const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
@@ -1555,12 +1636,14 @@ function LLMAgent() {
             }
             const title = ref?.title || '';
             const url = ref?.url || '';
+            const pmid = ref?.pmid || null;
             const citationCount = ref?.n_citation ?? ref?.citation_count ?? 0;
             const year = ref?.date ?? ref?.year ?? '';
             const journal = ref?.journal || '';
             const authors = Array.isArray(ref?.authors) ? ref.authors.join(', ') : 'Authors not available';
             const evidence = Array.isArray(ref?.evidence) ? ref.evidence : [];
             return {
+                pmid,
                 title,
                 url,
                 citation_count: citationCount,
@@ -2107,27 +2190,82 @@ function LLMAgent() {
     const references = selectedMessageIndex !== null
         ? chatHistory[selectedMessageIndex]?.references || []
         : [];
+    const [referenceSummaryMap, setReferenceSummaryMap] = useState({});
+    const referenceSummaryPendingRef = useRef(new Set());
+
+    useEffect(() => {
+        const candidates = Array.from(new Set(
+            references
+                .filter(isPlaceholderPmidReference)
+                .map((ref) => extractPmidFromReference(ref))
+                .filter((pmid) => pmid && !referenceSummaryMap[pmid] && !referenceSummaryPendingRef.current.has(pmid))
+        ));
+
+        if (candidates.length === 0) return;
+
+        candidates.forEach((pmid) => referenceSummaryPendingRef.current.add(pmid));
+
+        fetchPubmedSummaryMap(candidates)
+            .then((incomingMap) => {
+                if (!incomingMap || typeof incomingMap !== 'object') return;
+                setReferenceSummaryMap((prev) => ({
+                    ...prev,
+                    ...incomingMap,
+                }));
+            })
+            .catch((error) => {
+                logDev('[LLM] Failed to enrich placeholder references via esummary', error);
+            })
+            .finally(() => {
+                candidates.forEach((pmid) => referenceSummaryPendingRef.current.delete(pmid));
+            });
+    }, [references, referenceSummaryMap]);
+
+    const enrichedReferences = useMemo(
+        () => references.map((ref) => {
+            const pmid = extractPmidFromReference(ref);
+            if (!pmid || !isPlaceholderPmidReference(ref)) return ref;
+
+            const summary = referenceSummaryMap[pmid];
+            if (!summary) return ref;
+
+            return {
+                ...ref,
+                pmid,
+                title: summary.title || ref.title,
+                journal: summary.journal || ref.journal,
+                year: summary.year || ref.year,
+                authors: summary.authors || ref.authors,
+                citation_count: 'N/A',
+            };
+        }),
+        [references, referenceSummaryMap]
+    );
 
     useEffect(() => {
         if (!hoveredPubmedId) return;
-        const isStillVisible = references.some((ref) => {
-            const pubmedId = ref.url?.split('/')?.filter(Boolean)?.pop();
+        const isStillVisible = enrichedReferences.some((ref) => {
+            const pubmedId = extractPmidFromReference(ref);
             return pubmedId === hoveredPubmedId;
         });
         if (!isStillVisible) {
             setHoveredPubmedId(null);
         }
-    }, [hoveredPubmedId, references]);
+    }, [hoveredPubmedId, enrichedReferences]);
 
     const sortedReferences = useMemo(() => {
-        const sorted = [...references];
+        const sorted = [...enrichedReferences];
+        const getCitationSortValue = (value) => {
+            const num = Number(value);
+            return Number.isFinite(num) ? num : -1;
+        };
         if (sortOption === 'Citations') {
-            sorted.sort((a, b) => (b.citation_count || 0) - (a.citation_count || 0));
+            sorted.sort((a, b) => getCitationSortValue(b.citation_count) - getCitationSortValue(a.citation_count));
         } else {
             sorted.sort((a, b) => (b.year || 0) - (a.year || 0));
         }
         return sorted;
-    }, [references, sortOption]);
+    }, [enrichedReferences, sortOption]);
     const isExportDisabled = sortedReferences.length === 0;
 
     const handleExportReferences = () => {
@@ -2168,12 +2306,7 @@ function LLMAgent() {
         setCiteDialogOpen(true);
     };
 
-    const handleOpenFeedback = (messageIndex, messageData) => {
-        const rawMessageId = messageData?.mid
-            ?? messageData?.message_id
-            ?? null;
-        setFeedbackTargetIndex(messageIndex);
-        setFeedbackTargetMessageId(rawMessageId ? String(rawMessageId) : null);
+    const handleOpenFeedback = () => {
         setFeedbackRating(0);
         setFeedbackText('');
         setFeedbackOpen(true);
@@ -2181,8 +2314,6 @@ function LLMAgent() {
 
     const handleCloseFeedback = () => {
         setFeedbackOpen(false);
-        setFeedbackTargetIndex(null);
-        setFeedbackTargetMessageId(null);
         setFeedbackRating(0);
         setFeedbackText('');
         setFeedbackSubmitting(false);
@@ -2202,7 +2333,7 @@ function LLMAgent() {
 
         try {
             setFeedbackSubmitting(true);
-            const submittedSessionId = feedbackTargetMessageId || String(historyId);
+            const submittedSessionId = String(historyId);
             const response = await submitChatFeedback({
                 sessionId: submittedSessionId,
                 rating: feedbackRating,
@@ -2223,7 +2354,7 @@ function LLMAgent() {
             handleCloseFeedback();
         } catch (error) {
             const backendDetail = error.response?.data?.detail || error.response?.data?.message || error.message;
-            const submittedSessionId = feedbackTargetMessageId || String(historyId);
+            const submittedSessionId = String(historyId);
             const normalizedDetail = typeof backendDetail === 'string' ? backendDetail.trim() : '';
             const isRouteNotFound = error.response?.status === 404
                 && /^not\s+found$/i.test(normalizedDetail || '');
