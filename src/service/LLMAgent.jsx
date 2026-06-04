@@ -182,6 +182,7 @@ export class LLMAgentService {
                     'Content-Type': 'application/json',
                     'Accept': 'text/event-stream',
                 },
+                withCredentials: true,
                 responseType: 'text',
                 signal: abortController.signal,
                 onDownloadProgress: (progressEvent) => {
