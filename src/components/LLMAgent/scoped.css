@@ -615,6 +615,10 @@
     transition: background-color 0.2s ease, border-radius 0.2s ease;
 }
 
+.references-list .reference-entry-wrapper {
+    cursor: pointer;
+}
+
 .references-list>div::after {
     content: '';
     position: absolute;
