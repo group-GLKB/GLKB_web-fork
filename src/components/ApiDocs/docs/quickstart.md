@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-You will need a GLKB account. If you don't have one yet, sign up here.
+You will need a GLKB account. If you don't have one yet, [sign up here](/login).
 
 ## Get your API keys
 

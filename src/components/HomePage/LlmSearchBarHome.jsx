@@ -16,13 +16,10 @@ import {
   TextField,
 } from '@mui/material';
 
-import { useAuth } from '../Auth/AuthContext';
-
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const navigate = useNavigate();
-    const { isAuthenticated } = useAuth();
     const inputTimeoutRef = React.useRef(null);
     const hasTrackedInputRef = React.useRef(false);
     const lastPrefillRef = React.useRef(undefined);
@@ -57,18 +54,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         }
     }, [props.prefillQuery]);
 
-    const handleAuthGate = (event) => {
-        if (isAuthenticated) {
-            return false;
-        }
-        if (event) {
-            event.preventDefault();
-            event.stopPropagation();
-        }
-        navigate('/login');
-        return true;
-    };
-
     const CustomPopper = (props) => (
         <Popper
             {...props}
@@ -96,10 +81,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             clearTimeout(inputTimeoutRef.current);
             hasTrackedInputRef.current = true;
         }
-        if (!isAuthenticated) {
-            navigate('/login');
-            return;
-        }
         if (query) {
             navigate('/chat', { state: { initialQuery: query } });
         } else {
@@ -109,8 +90,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     return (
         <Box
             className="llm-searchbar"
-            onMouseDown={handleAuthGate}
-            onTouchStart={handleAuthGate}
             sx={{
                 width: '100%',
                 display: 'flex',
@@ -153,11 +132,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     },
                 }}
                 inputValue={llmQuery}
-                onOpen={(event) => {
+                onOpen={() => {
                     if (isQueryLimitReached) {
-                        return;
-                    }
-                    if (handleAuthGate(event)) {
                         return;
                     }
                     setIsOpen(true);

@@ -119,6 +119,7 @@ const normalizeDetail = (detail) => ({
     messageCount: Array.isArray(detail.messages) ? detail.messages.length : 0,
     messages: Array.isArray(detail.messages)
         ? detail.messages.map((message) => ({
+            id: message.id ?? message.mid ?? message.message_id ?? null,
             role: message.role,
             content: message.content ?? '',
             references: normalizeReferences(message.references),

@@ -1,11 +1,11 @@
 import React from 'react';
 
 import {
-    Biotech as BiotechIcon,
-    DataObject as DataObjectIcon,
-    OpenInFull as OpenInFullIcon,
-    Security as SecurityIcon,
-    Verified as VerifiedIcon,
+  Biotech as BiotechIcon,
+  DataObject as DataObjectIcon,
+  OpenInFull as OpenInFullIcon,
+  Security as SecurityIcon,
+  Verified as VerifiedIcon,
 } from '@mui/icons-material';
 
 const WHY_GLKB_ITEMS = [

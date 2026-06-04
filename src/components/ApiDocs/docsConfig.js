@@ -1,13 +1,15 @@
-import quickstartMd from './docs/quickstart.md';
-import howGlkbWorksMd from './docs/how-glkb-works.md';
-import theBatchPatternMd from './docs/the-batch-pattern.md';
-import promptTemplatesMd from './docs/prompt-templates.md';
-import geneListPrioritizationMd from './docs/gene-list-prioritization.md';
-import annotatingExperimentalResultsMd from './docs/annotating-experimental-results.md';
-import drugTargetInvestigationMd from './docs/drug-target-investigation.md';
-import variantAndGwasInterpretationMd from './docs/variant-and-gwas-interpretation.md';
+import annotatingExperimentalResultsMd
+  from './docs/annotating-experimental-results.md';
 import batchEndpointMd from './docs/batch-endpoint.md';
+import drugTargetInvestigationMd from './docs/drug-target-investigation.md';
+import geneListPrioritizationMd from './docs/gene-list-prioritization.md';
 import healthCheckMd from './docs/health-check.md';
+import howGlkbWorksMd from './docs/how-glkb-works.md';
+import promptTemplatesMd from './docs/prompt-templates.md';
+import quickstartMd from './docs/quickstart.md';
+import theBatchPatternMd from './docs/the-batch-pattern.md';
+import variantAndGwasInterpretationMd
+  from './docs/variant-and-gwas-interpretation.md';
 
 export const DOCS_CATEGORIES = [
     {
