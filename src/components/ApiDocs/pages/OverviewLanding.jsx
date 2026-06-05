@@ -1,33 +1,39 @@
-import React from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import {
-  Biotech as BiotechIcon,
-  DataObject as DataObjectIcon,
-  OpenInFull as OpenInFullIcon,
-  Security as SecurityIcon,
-  Verified as VerifiedIcon,
+  FormatAlignLeft as FormatAlignLeftIcon,
+  LibraryAddCheckOutlined as LibraryAddCheckOutlinedIcon,
+  VerifiedUserOutlined as VerifiedUserOutlinedIcon,
+  ZoomOutMap as ZoomOutMapIcon,
 } from '@mui/icons-material';
+
+import dnaIcon from '../../../img/apidoc/dna.svg';
+import relationIcon from '../../../img/apidoc/rel.svg';
 
 const WHY_GLKB_ITEMS = [
     {
         title: 'Scale',
         body: 'Process hundreds of genes, variants, or drug targets in parallel. 1,500 genes in ~30 minutes.',
-        icon: OpenInFullIcon,
+        icon: ZoomOutMapIcon,
     },
     {
         title: 'Reliability',
         body: 'Every claim linked to a PubMed ID. Gaps labeled "none found," never fabricated.',
-        icon: VerifiedIcon,
+        icon: VerifiedUserOutlinedIcon,
     },
     {
         title: 'Structured Output',
         body: 'Define a schema in your prompt. Unsupported fields are left empty, not guessed.',
-        icon: DataObjectIcon,
+        icon: FormatAlignLeftIcon,
     },
     {
         title: 'Reproducibility',
         body: 'Same Prompt + Same List -> Consistent, parseable output every time.',
-        icon: SecurityIcon,
+        icon: LibraryAddCheckOutlinedIcon,
     },
 ];
 
@@ -64,75 +70,146 @@ const WORKFLOW_ROWS = [
     },
 ];
 
-const OVERVIEW_CODE = `import requests, json, os
-
-for line in requests.post(
-    "https://api.glkb.dev/apps/glkb/users/me/batch",
-    headers={"Authorization": f"Bearer {os.environ['GLKB_API_KEY']}"},
-    json={"items": ["TP53", "KRAS", "BRCA1"],
-          "prompt_template": "Role of {item} in cancer? 2 PMIDs.",
-          "concurrency": 3},
-    stream=True,
-).iter_lines():
-    if line.startswith(b"data:"):
-        print(json.loads(line[5:]).get("response"))`;
+const NAV_ITEMS = [
+    { id: 'glkb-api', label: 'GLKB API' },
+    { id: 'beyond-manual-review', label: 'Beyond Manual Review' },
+    { id: 'why-glkb', label: 'Why GLKB' },
+    { id: 'what-you-can-build', label: 'What You Can Build' },
+    { id: 'knowledge-base', label: 'Knowledge Base' },
+];
 
 const OverviewLanding = ({ navigate }) => {
+    const [activeNavId, setActiveNavId] = useState(NAV_ITEMS[0]?.id || '');
+    const [indexMenuOpen, setIndexMenuOpen] = useState(false);
+    const overviewRootRef = useRef(null);
+    const indexMenuTimersRef = useRef({ open: null, close: null });
+
+    useEffect(() => {
+        if (NAV_ITEMS.length === 0) return;
+        setActiveNavId(NAV_ITEMS[0].id);
+    }, []);
+
+    useEffect(() => {
+        const root = overviewRootRef.current;
+        const scrollContainer = root?.closest('.api-docs-content-pane');
+        if (!scrollContainer || NAV_ITEMS.length === 0) return undefined;
+
+        const syncActiveItem = () => {
+            const containerTop = scrollContainer.getBoundingClientRect().top;
+            const threshold = 160;
+            let currentId = NAV_ITEMS[0].id;
+
+            NAV_ITEMS.forEach((item) => {
+                const element = document.getElementById(item.id);
+                if (!element) return;
+                const top = element.getBoundingClientRect().top - containerTop;
+                if (top <= threshold) {
+                    currentId = item.id;
+                }
+            });
+
+            setActiveNavId(currentId);
+        };
+
+        syncActiveItem();
+        scrollContainer.addEventListener('scroll', syncActiveItem);
+        return () => scrollContainer.removeEventListener('scroll', syncActiveItem);
+    }, []);
+
+    useEffect(() => () => {
+        if (indexMenuTimersRef.current.open) clearTimeout(indexMenuTimersRef.current.open);
+        if (indexMenuTimersRef.current.close) clearTimeout(indexMenuTimersRef.current.close);
+    }, []);
+
+    const openIndexMenuWithDelay = () => {
+        if (indexMenuTimersRef.current.close) {
+            clearTimeout(indexMenuTimersRef.current.close);
+            indexMenuTimersRef.current.close = null;
+        }
+        if (indexMenuOpen) return;
+        if (!indexMenuTimersRef.current.open) {
+            indexMenuTimersRef.current.open = setTimeout(() => {
+                setIndexMenuOpen(true);
+                indexMenuTimersRef.current.open = null;
+            }, 140);
+        }
+    };
+
+    const closeIndexMenuWithDelay = () => {
+        if (indexMenuTimersRef.current.open) {
+            clearTimeout(indexMenuTimersRef.current.open);
+            indexMenuTimersRef.current.open = null;
+        }
+        if (!indexMenuOpen) return;
+        if (!indexMenuTimersRef.current.close) {
+            indexMenuTimersRef.current.close = setTimeout(() => {
+                setIndexMenuOpen(false);
+                indexMenuTimersRef.current.close = null;
+            }, 260);
+        }
+    };
+
+    const activeNavIndex = Math.max(0, NAV_ITEMS.findIndex((item) => item.id === activeNavId));
+
+    const handleNavClick = (targetId) => {
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
     return (
-        <div className="api-docs-overview-wrap">
-            <div className="api-docs-overview-content">
+        <div ref={overviewRootRef} className="api-docs-overview-wrap">
+            <div className="api-docs-markdown-wrap">
+                <article className="api-docs-content api-docs-overview-content">
                 <section id="glkb-api" className="api-docs-overview-hero">
-                    <div className="api-docs-overview-copy">
-                        <h1>GLKB API</h1>
-                        <p>
-                            Run your first literature query in minutes. Send a list of genes, variants, or
-                            drug targets. Get back cited answers, grounded in 263M+ biomedical terms and
-                            live PubMed, streamed in real time.
-                        </p>
-                        <div className="api-docs-overview-actions">
-                            <button
-                                type="button"
-                                className="api-docs-pill-btn primary"
-                                onClick={() => navigate('/api-docs/quickstart')}
-                            >
-                                Get Started
-                            </button>
-                            <button
-                                type="button"
-                                className="api-docs-pill-btn muted"
-                                onClick={() => navigate('/account')}
-                            >
-                                Get API Key
-                            </button>
+                    <div className="api-docs-overview-hero-card">
+                        <div className="api-docs-overview-copy">
+                            <h1>GLKB API</h1>
+                            <p>
+                                A researcher investigating 1,500 candidate genes cannot read 15,000
+                                abstracts, but automating with a general LLM trades reliability for speed.
+                                GLKB addresses both: send a list of genes, variants, or drug targets and
+                                get back cited answers, grounded in 263M+ biomedical terms and live PubMed.
+                            </p>
+                            <div className="api-docs-overview-actions">
+                                <button
+                                    type="button"
+                                    className="api-docs-pill-btn primary"
+                                    onClick={() => navigate('/')}
+                                >
+                                    Get Started
+                                </button>
+                                <button
+                                    type="button"
+                                    className="api-docs-pill-btn muted"
+                                    onClick={() => navigate('/api-page')}
+                                >
+                                    Get API Key
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div className="api-docs-overview-code-card" aria-label="Python example">
-                        <div className="api-docs-overview-code-head">
-                            <span>Python</span>
-                            <button
-                                type="button"
-                                aria-label="Copy code"
-                                className="api-docs-copy-btn"
-                                onClick={() => navigator.clipboard?.writeText(OVERVIEW_CODE)}
-                            >
-                                <BiotechIcon sx={{ fontSize: 14 }} />
-                            </button>
-                        </div>
-                        <pre>
-                            <code>{OVERVIEW_CODE}</code>
-                        </pre>
+
+                    <div className="api-docs-overview-stats" aria-label="Knowledge graph stats">
+                        <article className="api-docs-overview-stat-card">
+                            <div className="api-docs-overview-stat-copy">
+                                <p>263M+</p>
+                                <h3>Biomedical Terms</h3>
+                            </div>
+                            <img src={dnaIcon} alt="Biomedical terms" className="api-docs-overview-stat-icon" />
+                        </article>
+
+                        <article className="api-docs-overview-stat-card">
+                            <div className="api-docs-overview-stat-copy">
+                                <p>14.6M+</p>
+                                <h3>Relationships</h3>
+                            </div>
+                            <img src={relationIcon} alt="Relationships" className="api-docs-overview-stat-icon" />
+                        </article>
                     </div>
                 </section>
 
-                <section id="beyond-manual-review" className="api-docs-overview-section">
-                    <h2>Beyond manual review</h2>
-                    <p>
-                        A researcher investigating 1,500 candidate genes cannot read 15,000 abstracts.
-                        Automating with a general LLM trades reliability for speed: outputs lack citations,
-                        hallucinate findings, and cannot be traced back to source evidence. The GLKB API
-                        addresses both problems at once.
-                    </p>
-                </section>
+                <div id="beyond-manual-review" className="api-docs-overview-anchor" aria-hidden="true" />
 
                 <section id="why-glkb" className="api-docs-overview-section">
                     <h2>Why GLKB</h2>
@@ -142,8 +219,11 @@ const OverviewLanding = ({ navigate }) => {
                             return (
                                 <article key={item.title} className="api-docs-overview-why-item">
                                     <h3>
-                                        <Icon sx={{ fontSize: 18 }} />
                                         <span>{item.title}</span>
+                                        <Icon
+                                            className="api-docs-overview-why-icon"
+                                            sx={{ fontSize: 20, color: '#155DFC' }}
+                                        />
                                     </h3>
                                     <p>{item.body}</p>
                                 </article>
@@ -178,14 +258,49 @@ const OverviewLanding = ({ navigate }) => {
                         hierarchies across 263 million biomedical terms and 14.6 million relationships.
                     </p>
                 </section>
+                <div className="api-docs-overview-end-space" aria-hidden="true" />
+                </article>
             </div>
 
-            <aside className="api-docs-overview-toc" aria-label="Page TOC">
-                <a href="#glkb-api" className="active" aria-label="GLKB API section" />
-                <a href="#beyond-manual-review" aria-label="Beyond manual review section" />
-                <a href="#why-glkb" aria-label="Why GLKB section" />
-                <a href="#what-you-can-build" aria-label="What you can build section" />
-                <a href="#knowledge-base" aria-label="Knowledge base section" />
+            <aside className="api-docs-index-rail" aria-label="Overview navigator">
+                <div
+                    className="api-docs-index-hover-wrap"
+                    onMouseEnter={openIndexMenuWithDelay}
+                    onMouseLeave={closeIndexMenuWithDelay}
+                >
+                    <nav className={`api-docs-index-menu${indexMenuOpen ? ' visible' : ''}`}>
+                        {NAV_ITEMS.map((item) => {
+                            const isActive = item.id === activeNavId;
+                            return (
+                                <button
+                                    key={item.id}
+                                    type="button"
+                                    className={`api-docs-index-menu-item${isActive ? ' active' : ''}`}
+                                    title={item.label}
+                                    aria-label={item.label}
+                                    onClick={() => handleNavClick(item.id)}
+                                >
+                                    <span className="api-docs-index-menu-item-label">{item.label}</span>
+                                </button>
+                            );
+                        })}
+                    </nav>
+
+                    <button
+                        type="button"
+                        className="api-docs-index-compact"
+                        aria-label={`Section ${activeNavIndex + 1} of ${NAV_ITEMS.length}`}
+                    >
+                        <div className="api-docs-index-compact-bars" aria-hidden="true">
+                            {NAV_ITEMS.map((item, idx) => (
+                                <span
+                                    key={item.id}
+                                    className={`api-docs-index-compact-bar${idx === activeNavIndex ? ' active' : ''}`}
+                                />
+                            ))}
+                        </div>
+                    </button>
+                </div>
             </aside>
         </div>
     );
