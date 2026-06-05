@@ -28,6 +28,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import {
@@ -45,7 +46,7 @@ import {
 const API_DOCS_TAB = 'api-docs';
 const API_KEYS_TAB = 'api-keys';
 const API_USAGE_TAB = 'api-usage';
-const SHOW_API_DOCS_TAB = false;
+const SHOW_API_DOCS_TAB = true;
 const SHOW_API_KEYS_TAB = true;
 const SHOW_API_USAGE_TAB = true;
 const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
@@ -58,7 +59,7 @@ const tabs = [
 ];
 
 const subtitleByTab = {
-    [API_DOCS_TAB]: 'Browse the GLKB API documentation without leaving the app.',
+    [API_DOCS_TAB]: 'Quickly jump to the full GLKB API documentation overview.',
     [API_KEYS_TAB]: 'Manage authentication keys for GLKB API access.',
     [API_USAGE_TAB]: 'Track your request volume and usage limits.',
 };
@@ -116,6 +117,7 @@ const normalizeKey = (entry) => ({
 });
 
 const ApiPage = () => {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState(API_KEYS_TAB);
     const [keys, setKeys] = useState([]);
     const [isPhoneDevice, setIsPhoneDevice] = useState(false);
@@ -447,19 +449,20 @@ const ApiPage = () => {
                         </Typography>
                     </Box>
                     {activeTab === API_DOCS_TAB && (
-                        <>
-                            <Box className="api-frame-wrap">
-                                <iframe
-                                    className="api-frame"
-                                    title="GLKB API Documentation"
-                                    src="https://backend.glkb.org/reorg-api/redoc"
-                                    loading="lazy"
-                                />
-                            </Box>
-                            <Typography className="api-note">
-                                If the docs do not load, your browser may block embedding for security reasons.
+                        <Box className="api-doc-tab-card">
+                            <Typography className="api-doc-tab-desc">
+                                Explore onboarding, core concepts, use cases, and API reference in the dedicated
+                                API Docs workspace.
                             </Typography>
-                        </>
+                            <Button
+                                type="button"
+                                variant="contained"
+                                onClick={() => navigate('/api-docs/overview')}
+                                className="api-doc-tab-btn"
+                            >
+                                Go To API Docs Overview
+                            </Button>
+                        </Box>
                     )}
                     {activeTab === API_KEYS_TAB && (
                         <>

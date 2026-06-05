@@ -103,6 +103,45 @@
     color: #8A8A8A;
 }
 
+.api-doc-tab-card {
+    width: 100%;
+    max-width: 760px;
+    border: 1px solid #EDEDED;
+    border-radius: 16px;
+    background: #FFFFFF;
+    box-shadow: 0 1px 10px rgba(0, 0, 0, 0.05);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.api-doc-tab-desc {
+    margin: 0;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    color: #646464;
+}
+
+.api-doc-tab-btn.MuiButton-root {
+    width: fit-content;
+    border-radius: 999px;
+    text-transform: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    background: #155DFC;
+    color: #FFFFFF;
+    box-shadow: none;
+    padding: 8px 16px;
+}
+
+.api-doc-tab-btn.MuiButton-root:hover {
+    background: #0F4ED9;
+    box-shadow: none;
+}
+
 .api-keys-toolbar {
     display: flex;
     align-items: center;
