@@ -223,6 +223,12 @@
     color: inherit;
 }
 
+.homepage-pill-icon .material-symbols-outlined {
+    font-size: 18px;
+    line-height: 1;
+    color: inherit;
+}
+
 .homepage-pill-label {
     display: inline-flex;
     align-items: center;

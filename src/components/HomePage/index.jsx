@@ -62,7 +62,7 @@ const HomePage = () => {
         lightbulb: <LightbulbOutlinedIcon />,
         chart: <TrendingUpIcon />,
         book: <DescriptionOutlinedIcon />,
-        knowledge: <LayersIcon />,
+        knowledge: <span className="material-symbols-outlined" aria-hidden="true">stacks</span>,
     };
     const pills = (exampleSchema.pills || []).map((pill) => ({
         ...pill,
