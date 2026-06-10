@@ -208,7 +208,7 @@ const OverviewLanding = ({ navigate }) => {
                                 <button
                                     type="button"
                                     className="api-docs-pill-btn primary"
-                                    onClick={() => navigate('/')}
+                                    onClick={() => navigate('/api-docs/quickstart')}
                                 >
                                     Get Started
                                 </button>

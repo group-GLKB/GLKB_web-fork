@@ -177,7 +177,8 @@
 
 .api-docs-search-result-snippet mark {
     background: #fff1a8;
-    color: #323232;
+    color: #1f2937;
+    color: color-mix(in srgb, currentColor 20%, #111827 80%);
     border-radius: 2px;
     padding: 0 1px;
 }
@@ -248,7 +249,8 @@
 
 .api-docs-search-mark {
     background: #fff1a8;
-    color: inherit;
+    color: #1f2937;
+    color: color-mix(in srgb, currentColor 20%, #111827 80%);
     border-radius: 2px;
     padding: 0 1px;
 }

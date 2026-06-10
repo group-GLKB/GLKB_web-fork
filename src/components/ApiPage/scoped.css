@@ -26,6 +26,10 @@
     padding: 24px 80px 36px;
 }
 
+.api-content.api-content-docs {
+    padding-bottom: 0;
+}
+
 .app-layout-content.has-mobile-header .api-content {
     padding: 16px 24px;
 }
@@ -140,6 +144,64 @@
 .api-doc-tab-btn.MuiButton-root:hover {
     background: #0F4ED9;
     box-shadow: none;
+}
+
+.api-doc-tab-panel {
+    width: 100%;
+    max-width: 100%;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    overflow: hidden;
+}
+
+.api-doc-tab-link-wrap {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.api-doc-tab-headline-btn.MuiButton-root {
+    text-transform: none;
+    border: none;
+    background: transparent;
+    margin: 50px 0;
+    padding: 10px 14px;
+    border-radius: 10px;
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    line-height: 1.2;
+    color: #164563;
+}
+
+.api-doc-tab-headline-btn.MuiButton-root:hover {
+    background: rgba(21, 93, 252, 0.08);
+}
+
+.api-doc-tab-headline-icon {
+    width: 22px;
+    height: 22px;
+    color: #155DFC;
+}
+
+.api-doc-tab-preview {
+    width: 100%;
+    max-width: 100%;
+    display: block;
+    object-fit: contain;
+    object-position: center bottom;
+    margin-bottom: 0;
 }
 
 .api-keys-toolbar {
