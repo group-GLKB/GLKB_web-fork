@@ -70,6 +70,39 @@ const WORKFLOW_ROWS = [
     },
 ];
 
+export const OVERVIEW_SEARCH_SECTIONS = [
+    {
+        anchorId: 'glkb-api',
+        heading: 'GLKB API',
+        text:
+            'A researcher investigating 1,500 candidate genes cannot read 15,000 abstracts, but automating with a general LLM trades reliability for speed. GLKB addresses both: send a list of genes, variants, or drug targets and get back cited answers, grounded in 263M+ biomedical terms and live PubMed.',
+    },
+    {
+        anchorId: 'beyond-manual-review',
+        heading: 'Beyond Manual Review',
+        text:
+            'Manual review does not scale for high-throughput gene lists. GLKB combines speed and reliability with citations and deterministic outputs.',
+    },
+    {
+        anchorId: 'why-glkb',
+        heading: 'Why GLKB',
+        text: WHY_GLKB_ITEMS.map((item) => `${item.title}: ${item.body}`).join(' '),
+    },
+    {
+        anchorId: 'what-you-can-build',
+        heading: 'What You Can Build',
+        text: WORKFLOW_ROWS
+            .map((row) => `${row.workflow}. What you send: ${row.input}. What you get back: ${row.output}.`)
+            .join(' '),
+    },
+    {
+        anchorId: 'knowledge-base',
+        heading: 'Knowledge Base',
+        text:
+            'The GLKB knowledge graph is built from the full PubMed corpus and encodes gene-disease associations, pathway memberships, co-occurrence statistics, and ontology hierarchies across 263 million biomedical terms and 14.6 million relationships.',
+    },
+];
+
 const NAV_ITEMS = [
     { id: 'glkb-api', label: 'GLKB API' },
     { id: 'beyond-manual-review', label: 'Beyond Manual Review' },

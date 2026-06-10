@@ -6,18 +6,23 @@ import React, {
 import { useNavigate } from 'react-router-dom';
 
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
-import CloseIcon from '@mui/icons-material/Close';
+import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 import SearchIcon from '@mui/icons-material/Search';
+import SortIcon from '@mui/icons-material/Sort';
 import {
   Autocomplete,
   Box,
+  MenuItem,
   Paper,
   Popper,
+  Select,
   TextField,
 } from '@mui/material';
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
+    const [sortBy, setSortBy] = useState('Default');
+    const [paperType, setPaperType] = useState('All');
     const [isOpen, setIsOpen] = useState(false);
     const navigate = useNavigate();
     const inputTimeoutRef = React.useRef(null);
@@ -87,6 +92,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             navigate('/chat');
         }
     };
+    const sortOptions = ['Default', 'Relevance', 'Latest', 'Oldest'];
+    const paperTypeOptions = ['All', 'Review', 'Clinical Trial', 'Meta-analysis'];
+
     return (
         <Box
             className="llm-searchbar"
@@ -141,99 +149,165 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 onClose={() => setIsOpen(false)}
                 PopperComponent={CustomPopper}
                 renderInput={(params) => (
-                    <TextField
-                        {...params}
-                        placeholder="Ask a question about the biomedical literature..."
-                        multiline
-                        minRows={4}
-                        maxRows={4}
-                        disabled={isQueryLimitReached}
-                        sx={{
-                            height: '130px',
-                            width: '100%',
-                            '& .MuiInputBase-root': {
-                                borderRadius: '16px',
+                    <Box sx={{ position: 'relative', width: '100%' }}>
+                        <TextField
+                            {...params}
+                            placeholder="Ask a question about the biomedical literature..."
+                            multiline
+                            minRows={4}
+                            maxRows={4}
+                            disabled={isQueryLimitReached}
+                            sx={{
                                 height: '130px',
-                                alignItems: 'flex-start',
-                                paddingLeft: '20px',
-                                paddingRight: '100px !important',
-                                paddingTop: '10px',
-                                paddingBottom: '10px',
-                                fontFamily: 'Open Sans, sans-serif',
-                                fontSize: '18px',
-                                color: '#164563',
-                                '& fieldset': {
-                                    border: 'none',
+                                width: '100%',
+                                '& .MuiInputBase-root': {
+                                    borderRadius: '16px',
+                                    height: '130px',
+                                    alignItems: 'flex-start',
+                                    paddingLeft: '20px',
+                                    paddingRight: '20px !important',
+                                    paddingTop: '0px',
+                                    paddingBottom: '58px',
+                                    fontFamily: 'Open Sans, sans-serif',
+                                    fontSize: '18px',
+                                    color: '#164563',
+                                    '& fieldset': {
+                                        border: 'none',
+                                    },
                                 },
-                            },
-                            '& .MuiInputBase-input': {
-                                lineHeight: '26px',
-                                maxHeight: '100px',
-                            },
-                            '& .MuiInputBase-input::placeholder': {
-                                color: '#969696',
-                                opacity: 1,
-                            },
-                            '& .MuiOutlinedInput-notchedOutline': {
-                                borderColor: 'grey', // Optional: Customize border color
-                            },
-                        }}
-                        fullWidth
-                        InputProps={{
-                            ...params.InputProps,
-                            endAdornment: (
-                                <Box display="flex" alignItems="center" sx={{
-                                    position: 'absolute',
-                                    right: 12,
-                                    bottom: 13,
-                                    top: 'auto',
-                                    gap: 1,
-                                }}>
-                                    {/* Clear Icon */}
-                                    {llmQuery !== "" && !isQueryLimitReached && <CloseIcon
-                                        onMouseDown={(event) => {
-                                            event.preventDefault();
-                                        }}
-                                        onClick={() => {
-                                            setLlmQuery(''); // Clear the input field
-                                        }}
-                                        sx={{
-                                            color: 'grey.500',
-                                            cursor: 'pointer',
-                                            fontSize: '20px',
-                                        }}
-                                    />}
-                                    {/* Search Icon */}
-                                    {llmQuery.trim() && !isQueryLimitReached && (
-                                        <Box
-                                            role="button"
-                                            aria-label="Start chat"
-                                            className="search-button-big"
-                                            onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}
-                                            sx={{
-                                                height: '48px',
-                                                width: '48px',
-                                                borderRadius: '50%',
-                                                backgroundColor: '#E7F1FF',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                cursor: 'pointer',
-                                                transition: 'transform 120ms ease, box-shadow 160ms ease',
-                                                boxShadow: '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',
-                                                '&:hover': {
-                                                    transform: 'translateY(-1px)',
-                                                },
-                                            }}
-                                        >
-                                            <SearchIcon sx={{ color: '#155DFC', fontSize: '22px' }} />
-                                        </Box>
-                                    )}
-                                </Box>
-                            ),
-                        }}
+                                '& .MuiInputBase-input': {
+                                    lineHeight: '26px',
+                                    height: '62px !important',
+                                    maxHeight: '62px !important',
+                                    overflowY: 'auto !important',
+                                },
+                                '& .MuiInputBase-input::placeholder': {
+                                    color: '#969696',
+                                    opacity: 1,
+                                },
+                                '& .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: 'grey',
+                                },
+                            }}
+                            fullWidth
+                            InputProps={{
+                                ...params.InputProps,
+                                endAdornment: null,
+                            }}
+                        />
 
-                    />
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                left: '20px',
+                                right: '12px',
+                                bottom: '13px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'flex-end',
+                                gap: 2,
+                                pointerEvents: 'none',
+                            }}
+                        >
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 2,
+                                    color: '#8A8A8A',
+                                    fontFamily: 'Open Sans, sans-serif',
+                                    fontSize: '18px',
+                                    lineHeight: '26px',
+                                    pointerEvents: 'auto',
+                                }}
+                            >
+                                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                                    <span style={{ color: '#8A8A8A' }}>Sort by:</span>
+                                    <Select
+                                        value={sortBy}
+                                        onChange={(event) => setSortBy(event.target.value)}
+                                        variant="standard"
+                                        disableUnderline
+                                        MenuProps={{ disableScrollLock: true }}
+                                        sx={{
+                                            minWidth: '0px',
+                                            color: '#111111',
+                                            fontFamily: 'Open Sans, sans-serif',
+                                            fontSize: '18px',
+                                            lineHeight: '26px',
+                                            '& .MuiSelect-select': {
+                                                padding: '0 !important',
+                                                minHeight: 'unset',
+                                            },
+                                            '& .MuiSelect-icon': {
+                                                display: 'none',
+                                            },
+                                        }}
+                                    >
+                                        {sortOptions.map((option) => (
+                                            <MenuItem key={option} value={option}>{option}</MenuItem>
+                                        ))}
+                                    </Select>
+                                    <SortIcon sx={{ color: '#8A8A8A', fontSize: '20px' }} />
+                                </Box>
+
+                                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                                    <span style={{ color: '#8A8A8A' }}>Paper type:</span>
+                                    <Select
+                                        value={paperType}
+                                        onChange={(event) => setPaperType(event.target.value)}
+                                        variant="standard"
+                                        disableUnderline
+                                        MenuProps={{ disableScrollLock: true }}
+                                        sx={{
+                                            minWidth: '0px',
+                                            color: '#111111',
+                                            fontFamily: 'Open Sans, sans-serif',
+                                            fontSize: '18px',
+                                            lineHeight: '26px',
+                                            '& .MuiSelect-select': {
+                                                padding: '0 !important',
+                                                minHeight: 'unset',
+                                            },
+                                            '& .MuiSelect-icon': {
+                                                display: 'none',
+                                            },
+                                        }}
+                                    >
+                                        {paperTypeOptions.map((option) => (
+                                            <MenuItem key={option} value={option}>{option}</MenuItem>
+                                        ))}
+                                    </Select>
+                                    <FilterAltOutlinedIcon sx={{ color: '#8A8A8A', fontSize: '20px' }} />
+                                </Box>
+                            </Box>
+
+                            <Box
+                                role="button"
+                                aria-label="Start chat"
+                                className="search-button-big"
+                                onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}
+                                sx={{
+                                    height: '48px',
+                                    width: '48px',
+                                    borderRadius: '50%',
+                                    backgroundColor: '#E7F1FF',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    transition: 'transform 120ms ease, box-shadow 160ms ease',
+                                    boxShadow: '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',
+                                    '&:hover': {
+                                        transform: 'translateY(-1px)',
+                                    },
+                                    pointerEvents: 'auto',
+                                }}
+                            >
+                                <SearchIcon sx={{ color: '#155DFC', fontSize: '22px' }} />
+                            </Box>
+                        </Box>
+                    </Box>
                 )}
                 PaperComponent={({ children }) => (
                     <Paper className="homepage-autocomplete-panel">

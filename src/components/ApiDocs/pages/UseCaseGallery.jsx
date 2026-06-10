@@ -6,7 +6,7 @@ import React, {
 
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
-const USE_CASE_SECTIONS = [
+export const USE_CASE_SECTIONS = [
     {
         id: 'genomics-genetics',
         title: 'Genomics & Genetics',

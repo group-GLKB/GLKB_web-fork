@@ -7,6 +7,8 @@ import React, {
   useState,
 } from 'react';
 
+import { useNavigate } from 'react-router-dom';
+
 import {
   Check as CheckIcon,
   ChevronRight as ChevronRightIcon,
@@ -28,7 +30,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
 
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import {
