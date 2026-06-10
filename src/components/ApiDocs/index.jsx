@@ -8,6 +8,7 @@ import React, {
   useState,
 } from 'react';
 
+import Mark from 'mark.js';
 import ReactMarkdown from 'react-markdown';
 import {
   Link,
@@ -28,8 +29,10 @@ import {
   DOCS_CATEGORIES,
   flattenDocsPages,
 } from './docsConfig';
-import OverviewLanding from './pages/OverviewLanding';
-import UseCaseGallery from './pages/UseCaseGallery';
+import OverviewLanding, {
+  OVERVIEW_SEARCH_SECTIONS,
+} from './pages/OverviewLanding';
+import UseCaseGallery, { USE_CASE_SECTIONS } from './pages/UseCaseGallery';
 
 const docsPages = flattenDocsPages(DOCS_CATEGORIES);
 const firstPageSlug = docsPages[0]?.slug || 'overview';
@@ -146,6 +149,38 @@ const normalizeHeadingLabel = (text) => text
     .replace(/`+/g, '')
     .trim();
 
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const stripMarkdownFormatting = (line) => line
+    .replace(/\[\[\[\/?glkb-info\]\]\]/gi, ' ')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/^[-*+]\s+/, '')
+    .replace(/^\d+\.\s+/, '')
+    .replace(/[*_~>#|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const buildSnippet = (text, start, keywordLength) => {
+    const radius = 56;
+    const snippetStart = Math.max(0, start - radius);
+    const snippetEnd = Math.min(text.length, start + keywordLength + radius);
+    const prefix = snippetStart > 0 ? '...' : '';
+    const suffix = snippetEnd < text.length ? '...' : '';
+    return `${prefix}${text.slice(snippetStart, snippetEnd).trim()}${suffix}`;
+};
+
+const renderHighlightedSnippet = (snippet, query) => {
+    if (!query) return snippet;
+    const parts = snippet.split(new RegExp(`(${escapeRegExp(query)})`, 'ig'));
+    return parts.map((part, index) => (
+        part.toLowerCase() === query.toLowerCase()
+            ? <mark key={`${part}-${index}`}>{part}</mark>
+            : <React.Fragment key={`${part}-${index}`}>{part}</React.Fragment>
+    ));
+};
+
 const CodeBlockRenderer = ({ className, children, ...props }) => {
     const [copied, setCopied] = useState(false);
     const childArray = React.Children.toArray(children);
@@ -207,7 +242,11 @@ const ApiDocsPage = () => {
     const navigate = useNavigate();
     const { slug } = useParams();
     const contentPaneRef = useRef(null);
+    const searchWrapRef = useRef(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [searchBlocks, setSearchBlocks] = useState([]);
+    const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
+    const [pendingSearchJump, setPendingSearchJump] = useState(null);
     const [markdownContent, setMarkdownContent] = useState('');
     const [activeHeadingId, setActiveHeadingId] = useState('');
     const [indexMenuOpen, setIndexMenuOpen] = useState(false);
@@ -223,21 +262,38 @@ const ApiDocsPage = () => {
     const isUseCaseGallery = activePage?.layout === 'use-case-gallery';
     const isMarkdownPage = !isOverviewLanding && !isUseCaseGallery;
 
-    const filteredCategories = useMemo(() => {
-        const keyword = searchTerm.trim().toLowerCase();
-        if (!keyword) return DOCS_CATEGORIES;
+    const filteredCategories = DOCS_CATEGORIES;
 
-        return DOCS_CATEGORIES
-            .map((category) => ({
-                ...category,
-                pages: category.pages.filter((page) => {
-                    const inTitle = page.title.toLowerCase().includes(keyword);
-                    const inDesc = (page.description || '').toLowerCase().includes(keyword);
-                    return inTitle || inDesc;
-                }),
-            }))
-            .filter((category) => category.pages.length > 0);
-    }, [searchTerm]);
+    const searchResults = useMemo(() => {
+        const query = searchTerm.trim();
+        if (query.length < 2) return [];
+
+        const queryLower = query.toLowerCase();
+        const results = [];
+
+        searchBlocks.forEach((block) => {
+            const lowerText = block.text.toLowerCase();
+            let startIndex = 0;
+            while (startIndex < lowerText.length) {
+                const foundAt = lowerText.indexOf(queryLower, startIndex);
+                if (foundAt === -1) break;
+
+                results.push({
+                    id: `${block.id}-${foundAt}`,
+                    slug: block.slug,
+                    pageTitle: block.pageTitle,
+                    heading: block.heading,
+                    anchorId: block.anchorId,
+                    snippet: buildSnippet(block.text, foundAt, query.length),
+                });
+
+                startIndex = foundAt + query.length;
+                if (results.length >= 60) break;
+            }
+        });
+
+        return results.slice(0, 40);
+    }, [searchBlocks, searchTerm]);
 
     const parsedMarkdownBlocks = useMemo(
         () => splitMarkdownInfoBlocks(markdownContent),
@@ -268,6 +324,145 @@ const ApiDocsPage = () => {
             },
         };
     }, [tocHeadings]);
+
+    useEffect(() => {
+        let isAlive = true;
+
+        const buildSearchIndex = async () => {
+            const blocks = [];
+
+            for (const page of docsPages) {
+                const baseId = `${page.slug}-top`;
+                const fallbackText = [page.title, page.description].filter(Boolean).join(' - ');
+
+                if (fallbackText) {
+                    blocks.push({
+                        id: baseId,
+                        slug: page.slug,
+                        pageTitle: page.title,
+                        heading: page.title,
+                        anchorId: '',
+                        text: fallbackText,
+                    });
+                }
+
+                if (page.layout === 'overview-landing') {
+                    OVERVIEW_SEARCH_SECTIONS.forEach((section, index) => {
+                        blocks.push({
+                            id: `${page.slug}-${section.anchorId || 'top'}-${index}`,
+                            slug: page.slug,
+                            pageTitle: page.title,
+                            heading: section.heading,
+                            anchorId: section.anchorId || '',
+                            text: stripMarkdownFormatting(section.text || ''),
+                        });
+                    });
+                    continue;
+                }
+
+                if (page.layout === 'use-case-gallery') {
+                    USE_CASE_SECTIONS.forEach((section, sectionIndex) => {
+                        const sectionText = stripMarkdownFormatting(section.title || '');
+                        if (sectionText) {
+                            blocks.push({
+                                id: `${page.slug}-${section.id}-heading-${sectionIndex}`,
+                                slug: page.slug,
+                                pageTitle: page.title,
+                                heading: section.title,
+                                anchorId: '',
+                                text: sectionText,
+                            });
+                        }
+
+                        section.entries.forEach((entry) => {
+                            const combined = stripMarkdownFormatting([
+                                entry.title,
+                                entry.audience,
+                                entry.description,
+                                entry.prompt,
+                            ].filter(Boolean).join(' '));
+                            if (!combined) return;
+
+                            blocks.push({
+                                id: `${page.slug}-use-case-${entry.id}`,
+                                slug: page.slug,
+                                pageTitle: page.title,
+                                heading: `${entry.id}. ${entry.title}`,
+                                anchorId: `use-case-${entry.id}`,
+                                text: combined,
+                            });
+                        });
+                    });
+                    continue;
+                }
+
+                let source = '';
+                if (page.markdownInline) {
+                    source = page.markdownInline;
+                } else if (page.markdown) {
+                    try {
+                        const response = await fetch(page.markdown);
+                        source = await response.text();
+                    } catch {
+                        source = '';
+                    }
+                }
+                if (!source) continue;
+
+                const lines = source.split('\n');
+                let inFence = false;
+                let currentHeading = page.title;
+                let currentAnchor = '';
+
+                lines.forEach((line, lineIndex) => {
+                    const trimmed = line.trim();
+                    const normalized = trimmed.toLowerCase();
+
+                    if (/^```/.test(trimmed)) {
+                        inFence = !inFence;
+                        return;
+                    }
+                    if (inFence || !trimmed) return;
+
+                    if (normalized.startsWith(INFO_BOX_OPEN.toLowerCase()) || normalized.startsWith(INFO_BOX_CLOSE.toLowerCase())) {
+                        return;
+                    }
+
+                    const headingMatch = /^(#{2,6})\s+(.+?)\s*$/.exec(trimmed);
+                    if (headingMatch) {
+                        currentHeading = headingMatch[2].trim();
+                        currentAnchor = slugifyHeading(currentHeading);
+                        return;
+                    }
+
+                    if (/^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?$/.test(trimmed)) {
+                        return;
+                    }
+
+                    const cleaned = stripMarkdownFormatting(trimmed);
+                    if (!cleaned || cleaned.length < 2) return;
+
+                    blocks.push({
+                        id: `${page.slug}-${currentAnchor || 'top'}-${lineIndex}`,
+                        slug: page.slug,
+                        pageTitle: page.title,
+                        heading: currentHeading,
+                        anchorId: currentAnchor,
+                        text: cleaned,
+                    });
+                });
+            }
+
+            if (isAlive) {
+                setSearchBlocks(blocks);
+            }
+        };
+
+        buildSearchIndex();
+        return () => {
+            isAlive = false;
+        };
+    }, []);
 
     useEffect(() => {
         if (!isMarkdownPage || tocHeadings.length === 0) {
@@ -310,6 +505,64 @@ const ApiDocsPage = () => {
         if (indexMenuTimersRef.current.open) clearTimeout(indexMenuTimersRef.current.open);
         if (indexMenuTimersRef.current.close) clearTimeout(indexMenuTimersRef.current.close);
     }, []);
+
+    useEffect(() => {
+        const handleOutsideClick = (event) => {
+            if (!searchWrapRef.current?.contains(event.target)) {
+                setSearchDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleOutsideClick);
+        return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }, []);
+
+    const highlightKeywordInContent = (keyword) => {
+        const container = contentPaneRef.current?.querySelector('.api-docs-content');
+        if (!container) return;
+        const marker = new Mark(container);
+
+        marker.unmark({
+            done: () => {
+                if (!keyword) return;
+                marker.mark(keyword, {
+                    separateWordSearch: false,
+                    className: 'api-docs-search-mark',
+                });
+            },
+        });
+    };
+
+    const scrollToAnchor = (anchorId) => {
+        if (anchorId) {
+            const target = document.getElementById(anchorId);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return;
+            }
+        }
+
+        if (contentPaneRef.current) {
+            contentPaneRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
+
+    const handleSearchResultClick = (result) => {
+        const keyword = searchTerm.trim();
+        setSearchDropdownOpen(false);
+        setPendingSearchJump({
+            slug: result.slug,
+            anchorId: result.anchorId,
+            keyword,
+        });
+
+        if (result.slug !== activeSlug) {
+            navigate(`/api-docs/${result.slug}`);
+        } else {
+            scrollToAnchor(result.anchorId);
+            highlightKeywordInContent(keyword);
+        }
+    };
 
     useEffect(() => {
         if (!isMarkdownPage || tocHeadings.length === 0) return;
@@ -382,6 +635,23 @@ const ApiDocsPage = () => {
         }
     }, [navigate, slug]);
 
+    useEffect(() => {
+        if (!pendingSearchJump || pendingSearchJump.slug !== activeSlug) return;
+
+        const timer = window.setTimeout(() => {
+            scrollToAnchor(pendingSearchJump.anchorId);
+            highlightKeywordInContent(pendingSearchJump.keyword);
+            setPendingSearchJump(null);
+        }, 80);
+
+        return () => window.clearTimeout(timer);
+    }, [activeSlug, markdownContent, pendingSearchJump]);
+
+    useEffect(() => {
+        if (searchTerm.trim()) return;
+        highlightKeywordInContent('');
+    }, [searchTerm]);
+
     return (
         <div className="api-docs-page-root">
             <header className="api-docs-header">
@@ -404,15 +674,38 @@ const ApiDocsPage = () => {
 
             <main className="api-docs-main">
                 <aside className="api-docs-sidebar">
-                    <div className="api-docs-search-wrap">
+                    <div ref={searchWrapRef} className="api-docs-search-wrap">
                         <input
                             type="search"
                             value={searchTerm}
                             onChange={(event) => setSearchTerm(event.target.value)}
+                            onFocus={() => setSearchDropdownOpen(true)}
                             placeholder="Search docs..."
                             aria-label="Search API docs"
                             className="api-docs-search-input"
                         />
+                        {searchDropdownOpen && searchTerm.trim().length >= 2 ? (
+                            <div className="api-docs-search-results" role="listbox" aria-label="Search results">
+                                {searchResults.length === 0 ? (
+                                    <p className="api-docs-search-empty">No content matches found.</p>
+                                ) : (
+                                    searchResults.map((result) => (
+                                        <button
+                                            key={result.id}
+                                            type="button"
+                                            className="api-docs-search-result-item"
+                                            onClick={() => handleSearchResultClick(result)}
+                                        >
+                                            <span className="api-docs-search-result-page">{result.pageTitle}</span>
+                                            <span className="api-docs-search-result-heading">{result.heading}</span>
+                                            <span className="api-docs-search-result-snippet">
+                                                {renderHighlightedSnippet(result.snippet, searchTerm.trim())}
+                                            </span>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        ) : null}
                     </div>
 
                     <div className="api-docs-sidebar-groups">

@@ -101,6 +101,7 @@
 }
 
 .api-docs-search-wrap {
+    position: relative;
     margin-bottom: 18px;
 }
 
@@ -118,6 +119,75 @@
 
 .api-docs-search-input:focus {
     border-color: #a8c8ff;
+}
+
+.api-docs-search-results {
+    position: absolute;
+    top: 46px;
+    left: 0;
+    right: 0;
+    z-index: 35;
+    max-height: 360px;
+    overflow-y: auto;
+    border: 1px solid #e7f1ff;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.api-docs-search-result-item {
+    border: 0;
+    background: transparent;
+    border-radius: 8px;
+    width: 100%;
+    text-align: left;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    cursor: pointer;
+}
+
+.api-docs-search-result-item:hover {
+    background: #f4f7ff;
+}
+
+.api-docs-search-result-page {
+    color: #323232;
+    font-size: 12px;
+    line-height: 1.3;
+    font-weight: 700;
+}
+
+.api-docs-search-result-heading {
+    color: #155dfc;
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+.api-docs-search-result-snippet {
+    color: #646464;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.api-docs-search-result-snippet mark {
+    background: #fff1a8;
+    color: #323232;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+.api-docs-search-empty {
+    margin: 0;
+    padding: 8px;
+    color: #969696;
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 .api-docs-sidebar-groups {
@@ -174,6 +244,13 @@
     font-size: 14px;
     color: #969696;
     padding: 8px;
+}
+
+.api-docs-search-mark {
+    background: #fff1a8;
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
 }
 
 .api-docs-content-pane {
