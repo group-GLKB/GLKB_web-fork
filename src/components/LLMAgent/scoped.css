@@ -933,6 +933,12 @@
 }
 
 @media (max-width: 700px) {
+    .chat-header {
+        padding-left: 24px;
+        padding-right: 24px;
+        padding-bottom: 24px;
+    }
+
     .example-query-list {
         flex-direction: column;
         gap: 12px;

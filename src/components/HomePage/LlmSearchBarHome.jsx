@@ -6,6 +6,7 @@ import React, {
 import { useNavigate } from 'react-router-dom';
 
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
+import CheckIcon from '@mui/icons-material/Check';
 import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 import SearchIcon from '@mui/icons-material/Search';
 import SortIcon from '@mui/icons-material/Sort';
@@ -22,7 +23,7 @@ import {
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
     const [sortBy, setSortBy] = useState('Default');
-    const [paperType, setPaperType] = useState('All');
+    const [paperType, setPaperType] = useState('All types');
     const [isOpen, setIsOpen] = useState(false);
     const navigate = useNavigate();
     const inputTimeoutRef = React.useRef(null);
@@ -92,8 +93,17 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             navigate('/chat');
         }
     };
-    const sortOptions = ['Default', 'Relevance', 'Latest', 'Oldest'];
-    const paperTypeOptions = ['All', 'Review', 'Clinical Trial', 'Meta-analysis'];
+    const sortOptions = ['Default', 'High impact first', 'Most recent first'];
+    const paperTypeOptions = ['All types', 'Reviews only', 'Exclude reviews'];
+    const selectMenuProps = {
+        disableScrollLock: true,
+        PaperProps: {
+            sx: {
+                borderRadius: '16px',
+                boxShadow: '0px 1px 10px rgba(0, 0, 0, 0.05)',
+            },
+        },
+    };
 
     return (
         <Box
@@ -103,6 +113,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 display: 'flex',
                 gap: 2,
                 margin: '0 auto',
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '16px',
                 backgroundColor: '#ffffff',
                 borderRadius: '16px',
                 borderWidth: '1px',
@@ -148,6 +160,12 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 }}
                 onClose={() => setIsOpen(false)}
                 PopperComponent={CustomPopper}
+                sx={{
+                    '& .MuiAutocomplete-groupLabel': {
+                        fontFamily: 'DM Sans, sans-serif',
+                        fontSize: '16px',
+                    },
+                }}
                 renderInput={(params) => (
                     <Box sx={{ position: 'relative', width: '100%' }}>
                         <TextField
@@ -168,8 +186,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     paddingRight: '20px !important',
                                     paddingTop: '0px',
                                     paddingBottom: '58px',
-                                    fontFamily: 'Open Sans, sans-serif',
-                                    fontSize: '18px',
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontSize: '16px',
                                     color: '#164563',
                                     '& fieldset': {
                                         border: 'none',
@@ -211,13 +229,13 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         >
                             <Box
                                 sx={{
-                                    display: 'flex',
+                                    display: { xs: 'none', sm: 'flex' },
                                     alignItems: 'center',
                                     gap: 2,
                                     color: '#8A8A8A',
-                                    fontFamily: 'Open Sans, sans-serif',
-                                    fontSize: '18px',
-                                    lineHeight: '26px',
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontSize: '16px',
+                                    lineHeight: '24px',
                                     pointerEvents: 'auto',
                                 }}
                             >
@@ -226,15 +244,16 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     <Select
                                         value={sortBy}
                                         onChange={(event) => setSortBy(event.target.value)}
+                                        renderValue={(value) => value}
                                         variant="standard"
                                         disableUnderline
-                                        MenuProps={{ disableScrollLock: true }}
+                                        MenuProps={selectMenuProps}
                                         sx={{
                                             minWidth: '0px',
                                             color: '#111111',
-                                            fontFamily: 'Open Sans, sans-serif',
-                                            fontSize: '18px',
-                                            lineHeight: '26px',
+                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontSize: '16px',
+                                            lineHeight: '24px',
                                             '& .MuiSelect-select': {
                                                 padding: '0 !important',
                                                 minHeight: 'unset',
@@ -245,7 +264,18 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         }}
                                     >
                                         {sortOptions.map((option) => (
-                                            <MenuItem key={option} value={option}>{option}</MenuItem>
+                                            <MenuItem key={option} value={option} sx={{ fontFamily: 'DM Sans, sans-serif', fontSize: '16px' }}>
+                                                <Box sx={{ display: 'inline-flex', alignItems: 'center', width: '18px', marginRight: '8px' }}>
+                                                    <CheckIcon
+                                                        sx={{
+                                                            fontSize: '16px',
+                                                            color: '#155DFC',
+                                                            visibility: option === sortBy ? 'visible' : 'hidden',
+                                                        }}
+                                                    />
+                                                </Box>
+                                                <span>{option}</span>
+                                            </MenuItem>
                                         ))}
                                     </Select>
                                     <SortIcon sx={{ color: '#8A8A8A', fontSize: '20px' }} />
@@ -256,15 +286,16 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     <Select
                                         value={paperType}
                                         onChange={(event) => setPaperType(event.target.value)}
+                                        renderValue={(value) => value}
                                         variant="standard"
                                         disableUnderline
-                                        MenuProps={{ disableScrollLock: true }}
+                                        MenuProps={selectMenuProps}
                                         sx={{
                                             minWidth: '0px',
                                             color: '#111111',
-                                            fontFamily: 'Open Sans, sans-serif',
-                                            fontSize: '18px',
-                                            lineHeight: '26px',
+                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontSize: '16px',
+                                            lineHeight: '24px',
                                             '& .MuiSelect-select': {
                                                 padding: '0 !important',
                                                 minHeight: 'unset',
@@ -275,7 +306,18 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         }}
                                     >
                                         {paperTypeOptions.map((option) => (
-                                            <MenuItem key={option} value={option}>{option}</MenuItem>
+                                            <MenuItem key={option} value={option} sx={{ fontFamily: 'DM Sans, sans-serif', fontSize: '16px' }}>
+                                                <Box sx={{ display: 'inline-flex', alignItems: 'center', width: '18px', marginRight: '8px' }}>
+                                                    <CheckIcon
+                                                        sx={{
+                                                            fontSize: '16px',
+                                                            color: '#155DFC',
+                                                            visibility: option === paperType ? 'visible' : 'hidden',
+                                                        }}
+                                                    />
+                                                </Box>
+                                                <span>{option}</span>
+                                            </MenuItem>
                                         ))}
                                     </Select>
                                     <FilterAltOutlinedIcon sx={{ color: '#8A8A8A', fontSize: '20px' }} />
@@ -288,8 +330,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 className="search-button-big"
                                 onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}
                                 sx={{
-                                    height: '48px',
-                                    width: '48px',
+                                    height: { xs: '36px', sm: '48px' },
+                                    width: { xs: '36px', sm: '48px' },
                                     borderRadius: '50%',
                                     backgroundColor: '#E7F1FF',
                                     display: 'flex',
@@ -304,7 +346,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     pointerEvents: 'auto',
                                 }}
                             >
-                                <SearchIcon sx={{ color: '#155DFC', fontSize: '22px' }} />
+                                <SearchIcon sx={{ color: '#155DFC', fontSize: { xs: '16px', sm: '22px' } }} />
                             </Box>
                         </Box>
                     </Box>
@@ -323,6 +365,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             whiteSpace: 'normal',
                             alignItems: 'flex-start',
                             lineHeight: 1.4,
+                            fontFamily: 'DM Sans, sans-serif',
+                            fontSize: '16px',
                         }}
                     >
                         {option}

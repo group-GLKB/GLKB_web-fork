@@ -15,6 +15,7 @@ import {
   Close as CloseIcon,
   ContentCopyOutlined as ContentCopyOutlinedIcon,
   Edit as EditIcon,
+    OpenInNew as OpenInNewIcon,
   Security as SecurityIcon,
 } from '@mui/icons-material';
 import {
@@ -35,6 +36,7 @@ import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import {
   ReactComponent as CodeBlocksIcon,
 } from '../../img/navbar/code_blocks.svg';
+import apiDocsPreviewImage from '../../img/apidoc/Google Chrome - Light.png';
 import {
   createApiKey,
   deleteApiKey,
@@ -54,9 +56,9 @@ const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
 const tabs = [
-    { id: API_DOCS_TAB, label: 'API Docs' },
     { id: API_KEYS_TAB, label: 'API Keys' },
     { id: API_USAGE_TAB, label: 'Usage' },
+    { id: API_DOCS_TAB, label: 'API Docs' },
 ];
 
 const subtitleByTab = {
@@ -382,7 +384,7 @@ const ApiPage = () => {
     return (
         <div className="api-page">
             <Box className="api-body">
-                <Box className="api-content">
+                <Box className={`api-content${activeTab === API_DOCS_TAB ? ' api-content-docs' : ''}`}>
                     <Box className="api-header">
                         <Box className="api-title-row">
                             <CodeBlocksIcon className="api-icon" style={{ width: 36, height: 36, color: '#164563' }} />
@@ -420,7 +422,7 @@ const ApiPage = () => {
                                         fontWeight: 600,
                                         color: '#164563',
                                         minHeight: 32,
-                                        minWidth: isPhoneDevice ? '50%' : 0,
+                                        minWidth: isPhoneDevice ? `${100 / Math.max(visibleTabs.length, 1)}%` : 0,
                                         maxWidth: isPhoneDevice ? 'none' : undefined,
                                         flex: isPhoneDevice ? 1 : undefined,
                                         padding: isPhoneDevice ? '12px 0' : '12px 24px',
@@ -435,34 +437,40 @@ const ApiPage = () => {
                                 ))}
                             </Tabs>
                         </Box>
-                        <Typography sx={{
-                            marginTop: '36px',
-                            marginBottom: '12px',
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontWeight: 700,
-                            fontSize: '24px',
-                            color: '#164563',
-                        }}>
-                            {activeTabLabel}
-                        </Typography>
-                        <Typography className="api-section-subtitle">
-                            {subtitleByTab[activeTab]}
-                        </Typography>
+                        {activeTab !== API_DOCS_TAB && (
+                            <>
+                                <Typography sx={{
+                                    marginTop: '36px',
+                                    marginBottom: '12px',
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontWeight: 700,
+                                    fontSize: '24px',
+                                    color: '#164563',
+                                }}>
+                                    {activeTabLabel}
+                                </Typography>
+                                <Typography className="api-section-subtitle">
+                                    {subtitleByTab[activeTab]}
+                                </Typography>
+                            </>
+                        )}
                     </Box>
                     {activeTab === API_DOCS_TAB && (
-                        <Box className="api-doc-tab-card">
-                            <Typography className="api-doc-tab-desc">
-                                Explore onboarding, core concepts, use cases, and API reference in the dedicated
-                                API Docs workspace.
-                            </Typography>
-                            <Button
-                                type="button"
-                                variant="contained"
-                                onClick={() => navigate('/api-docs/overview')}
-                                className="api-doc-tab-btn"
-                            >
-                                Go To API Docs Overview
-                            </Button>
+                        <Box className="api-doc-tab-panel">
+                            <Box className="api-doc-tab-link-wrap">
+                                <Button
+                                    onClick={() => navigate('/api-docs/overview')}
+                                    className="api-doc-tab-headline-btn"
+                                >
+                                    <span>View our API Docs</span>
+                                    <OpenInNewIcon className="api-doc-tab-headline-icon" aria-hidden="true" />
+                                </Button>
+                            </Box>
+                            <img
+                                src={apiDocsPreviewImage}
+                                alt="API docs preview"
+                                className="api-doc-tab-preview"
+                            />
                         </Box>
                     )}
                     {activeTab === API_KEYS_TAB && (
