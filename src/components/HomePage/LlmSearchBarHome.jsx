@@ -333,20 +333,27 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     height: { xs: '36px', sm: '48px' },
                                     width: { xs: '36px', sm: '48px' },
                                     borderRadius: '50%',
-                                    backgroundColor: '#E7F1FF',
+                                    backgroundColor: llmQuery.trim() && !isQueryLimitReached ? '#155DFC' : '#E7F1FF',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     cursor: 'pointer',
                                     transition: 'transform 120ms ease, box-shadow 160ms ease',
-                                    boxShadow: '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',
+                                    boxShadow: llmQuery.trim() && !isQueryLimitReached
+                                        ? '0 6px 12px rgba(21, 93, 252, 0.28)'
+                                        : '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',
                                     '&:hover': {
                                         transform: 'translateY(-1px)',
                                     },
                                     pointerEvents: 'auto',
                                 }}
                             >
-                                <SearchIcon sx={{ color: '#155DFC', fontSize: { xs: '16px', sm: '22px' } }} />
+                                <SearchIcon
+                                    sx={{
+                                        color: llmQuery.trim() && !isQueryLimitReached ? '#FFFFFF' : '#155DFC',
+                                        fontSize: { xs: '16px', sm: '22px' },
+                                    }}
+                                />
                             </Box>
                         </Box>
                     </Box>

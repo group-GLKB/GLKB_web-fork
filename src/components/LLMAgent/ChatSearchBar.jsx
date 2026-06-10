@@ -109,7 +109,7 @@ const ChatSearchBar = ({
                                     transform: isMobileViewport ? 'translateY(-4px)' : 'none',
                                     backgroundColor: isLoading
                                         ? '#E7F1FF'
-                                        : (!userInput.trim() || isQueryLimitReached ? '#9fb6ff' : '#155DFC'),
+                                        : (!userInput.trim() || isQueryLimitReached ? '#E7F1FF' : '#155DFC'),
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -139,7 +139,12 @@ const ChatSearchBar = ({
                                         }}
                                     />
                                 ) : (
-                                    <SearchIcon sx={{ color: '#ffffff', fontSize: { xs: '16px', sm: '20px' } }} />
+                                    <SearchIcon
+                                        sx={{
+                                            color: (!userInput.trim() || isQueryLimitReached) ? '#155DFC' : '#ffffff',
+                                            fontSize: { xs: '16px', sm: '20px' },
+                                        }}
+                                    />
                                 )}
                             </Box>
                         </Box>

@@ -34,6 +34,59 @@ import LLMAgent from './components/LLMAgent';
 import ResultPage from './components/ResultPage';
 import TestAuth from './components/TestAuth';
 
+const RESIZE_OBSERVER_NOISE = [
+    'ResizeObserver loop limit exceeded',
+    'ResizeObserver loop completed with undelivered notifications',
+];
+
+const isResizeObserverNoise = (message = '') => RESIZE_OBSERVER_NOISE.some((text) => message.includes(text));
+
+if (typeof window !== 'undefined') {
+    if (window.ResizeObserver) {
+        const NativeResizeObserver = window.ResizeObserver;
+        window.ResizeObserver = class ResizeObserver {
+            constructor(callback) {
+                this._observer = new NativeResizeObserver((entries, observer) => {
+                    window.requestAnimationFrame(() => callback(entries, observer));
+                });
+            }
+
+            observe(target, options) {
+                this._observer.observe(target, options);
+            }
+
+            unobserve(target) {
+                this._observer.unobserve(target);
+            }
+
+            disconnect() {
+                this._observer.disconnect();
+            }
+        };
+    }
+
+    window.addEventListener('error', (event) => {
+        if (isResizeObserverNoise(event?.message)) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+        }
+    }, true);
+
+    window.onerror = (message) => {
+        if (isResizeObserverNoise(String(message || ''))) {
+            return true;
+        }
+        return false;
+    };
+
+    window.addEventListener('unhandledrejection', (event) => {
+        const reasonMessage = String(event?.reason?.message || event?.reason || '');
+        if (isResizeObserverNoise(reasonMessage)) {
+            event.preventDefault();
+        }
+    }, true);
+}
+
 const initState = {
     searchType: ''
 }

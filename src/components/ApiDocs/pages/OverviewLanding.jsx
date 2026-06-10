@@ -5,14 +5,30 @@ import React, {
 } from 'react';
 
 import {
-  FormatAlignLeft as FormatAlignLeftIcon,
-  LibraryAddCheckOutlined as LibraryAddCheckOutlinedIcon,
+    ContentCopyRounded as ContentCopyRoundedIcon,
   VerifiedUserOutlined as VerifiedUserOutlinedIcon,
   ZoomOutMap as ZoomOutMapIcon,
 } from '@mui/icons-material';
 
 import dnaIcon from '../../../img/apidoc/dna.svg';
 import relationIcon from '../../../img/apidoc/rel.svg';
+
+const FormatImageBreakLeftSymbolIcon = ({ className, sx }) => (
+    <span
+        className={`material-symbols-outlined ${className || ''}`.trim()}
+        style={{
+            fontSize: sx?.fontSize ?? 20,
+            color: sx?.color ?? 'inherit',
+            lineHeight: 1,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+        }}
+        aria-hidden="true"
+    >
+        format_image_break_left
+    </span>
+);
 
 const WHY_GLKB_ITEMS = [
     {
@@ -28,12 +44,12 @@ const WHY_GLKB_ITEMS = [
     {
         title: 'Structured Output',
         body: 'Define a schema in your prompt. Unsupported fields are left empty, not guessed.',
-        icon: FormatAlignLeftIcon,
+        icon: FormatImageBreakLeftSymbolIcon,
     },
     {
         title: 'Reproducibility',
         body: 'Same Prompt + Same List -> Consistent, parseable output every time.',
-        icon: LibraryAddCheckOutlinedIcon,
+        icon: ContentCopyRoundedIcon,
     },
 ];
 
