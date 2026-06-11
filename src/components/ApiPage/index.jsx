@@ -15,7 +15,7 @@ import {
   Close as CloseIcon,
   ContentCopyOutlined as ContentCopyOutlinedIcon,
   Edit as EditIcon,
-    OpenInNew as OpenInNewIcon,
+  OpenInNew as OpenInNewIcon,
   Security as SecurityIcon,
 } from '@mui/icons-material';
 import {
@@ -32,11 +32,11 @@ import {
   Typography,
 } from '@mui/material';
 
+import apiDocsPreviewImage from '../../img/apidoc/Google Chrome - Light.png';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import {
   ReactComponent as CodeBlocksIcon,
 } from '../../img/navbar/code_blocks.svg';
-import apiDocsPreviewImage from '../../img/apidoc/Google Chrome - Light.png';
 import {
   createApiKey,
   deleteApiKey,

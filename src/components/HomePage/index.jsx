@@ -20,7 +20,6 @@ import {
   ArrowOutward as ArrowOutwardIcon,
   Close as CloseIcon,
   DescriptionOutlined as DescriptionOutlinedIcon,
-  Layers as LayersIcon,
   LightbulbOutlined as LightbulbOutlinedIcon,
   TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';

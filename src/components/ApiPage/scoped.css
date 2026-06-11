@@ -8,6 +8,11 @@
     overflow: hidden;
 }
 
+.app-layout-content.has-mobile-header .api-page {
+    min-height: 100%;
+    height: 100%;
+}
+
 .api-body {
     flex: 1;
     display: flex;
@@ -760,6 +765,16 @@
     padding: 40px;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
     overflow: visible;
+}
+
+@media (max-width: 767px) {
+    .api-doc-tab-panel {
+        justify-content: flex-start;
+    }
+
+    .api-doc-tab-link-wrap {
+        flex: none;
+    }
 }
 
 .api-keys-dialog-root .MuiDialogTitle-root {

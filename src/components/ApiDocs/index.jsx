@@ -18,6 +18,8 @@ import {
 import remarkGfm from 'remark-gfm';
 
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 import logoIcon from '../../img/GLKB_logo_icon.png';
@@ -38,6 +40,8 @@ const docsPages = flattenDocsPages(DOCS_CATEGORIES);
 const firstPageSlug = docsPages[0]?.slug || 'overview';
 const INFO_BOX_OPEN = '[[[glkb-info]]]';
 const INFO_BOX_CLOSE = '[[[/glkb-info]]]';
+const API_DOCS_RECENT_SEARCHES_KEY = 'glkb_api_docs_recent_searches';
+const MAX_RECENT_SEARCHES = 6;
 
 const slugifyHeading = (text) => text
     .toLowerCase()
@@ -243,9 +247,24 @@ const ApiDocsPage = () => {
     const { slug } = useParams();
     const contentPaneRef = useRef(null);
     const searchWrapRef = useRef(null);
+    const searchDialogRef = useRef(null);
+    const searchInputRef = useRef(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [sidebarSearchText, setSidebarSearchText] = useState('');
+    const [recentSearches, setRecentSearches] = useState(() => {
+        try {
+            const raw = window.localStorage.getItem(API_DOCS_RECENT_SEARCHES_KEY);
+            const parsed = raw ? JSON.parse(raw) : [];
+            return Array.isArray(parsed)
+                ? parsed.filter((item) => typeof item === 'string' && item.trim()).slice(0, MAX_RECENT_SEARCHES)
+                : [];
+        } catch {
+            return [];
+        }
+    });
     const [searchBlocks, setSearchBlocks] = useState([]);
     const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
+    const [searchOverlayOpen, setSearchOverlayOpen] = useState(false);
     const [pendingSearchJump, setPendingSearchJump] = useState(null);
     const [markdownContent, setMarkdownContent] = useState('');
     const [activeHeadingId, setActiveHeadingId] = useState('');
@@ -263,6 +282,23 @@ const ApiDocsPage = () => {
     const isMarkdownPage = !isOverviewLanding && !isUseCaseGallery;
 
     const filteredCategories = DOCS_CATEGORIES;
+    const categoryLabelBySlug = useMemo(() => {
+        const map = new Map();
+        DOCS_CATEGORIES.forEach((category) => {
+            category.pages.forEach((page) => {
+                map.set(page.slug, category.label);
+            });
+        });
+        return map;
+    }, []);
+
+    useEffect(() => {
+        try {
+            window.localStorage.setItem(API_DOCS_RECENT_SEARCHES_KEY, JSON.stringify(recentSearches));
+        } catch {
+            // Ignore quota/privacy mode write failures.
+        }
+    }, [recentSearches]);
 
     const searchResults = useMemo(() => {
         const query = searchTerm.trim();
@@ -507,15 +543,44 @@ const ApiDocsPage = () => {
     }, []);
 
     useEffect(() => {
+        if (!searchOverlayOpen) return;
+
         const handleOutsideClick = (event) => {
-            if (!searchWrapRef.current?.contains(event.target)) {
-                setSearchDropdownOpen(false);
+            if (!searchDialogRef.current?.contains(event.target)) {
+                closeSearchOverlay();
+            }
+        };
+
+        const handleEscape = (event) => {
+            if (event.key === 'Escape') {
+                closeSearchOverlay();
             }
         };
 
         document.addEventListener('mousedown', handleOutsideClick);
-        return () => document.removeEventListener('mousedown', handleOutsideClick);
-    }, []);
+        document.addEventListener('keydown', handleEscape);
+        return () => {
+            document.removeEventListener('mousedown', handleOutsideClick);
+            document.removeEventListener('keydown', handleEscape);
+        };
+    }, [searchOverlayOpen, searchTerm, searchResults.length]);
+
+    useEffect(() => {
+        if (!searchOverlayOpen) return undefined;
+        const frame = window.requestAnimationFrame(() => {
+            searchInputRef.current?.focus();
+        });
+        return () => window.cancelAnimationFrame(frame);
+    }, [searchOverlayOpen]);
+
+    useEffect(() => {
+        if (!searchOverlayOpen) return undefined;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
+    }, [searchOverlayOpen]);
 
     const highlightKeywordInContent = (keyword) => {
         const container = contentPaneRef.current?.querySelector('.api-docs-content');
@@ -549,6 +614,15 @@ const ApiDocsPage = () => {
 
     const handleSearchResultClick = (result) => {
         const keyword = searchTerm.trim();
+        if (keyword) {
+            setRecentSearches((prev) => {
+                const deduped = prev.filter((item) => item.toLowerCase() !== keyword.toLowerCase());
+                return [keyword, ...deduped].slice(0, MAX_RECENT_SEARCHES);
+            });
+        }
+        setSearchTerm('');
+        setSidebarSearchText('');
+        setSearchOverlayOpen(false);
         setSearchDropdownOpen(false);
         setPendingSearchJump({
             slug: result.slug,
@@ -652,6 +726,35 @@ const ApiDocsPage = () => {
         highlightKeywordInContent('');
     }, [searchTerm]);
 
+    const openSearchOverlay = () => {
+        setSearchOverlayOpen(true);
+        setSearchDropdownOpen(true);
+    };
+
+    const closeSearchOverlay = () => {
+        const keyword = searchTerm.trim();
+        setSidebarSearchText(keyword);
+        setSearchOverlayOpen(false);
+        setSearchDropdownOpen(false);
+    };
+
+    const clearSearchInput = () => {
+        setSearchTerm('');
+        setSidebarSearchText('');
+        setSearchDropdownOpen(true);
+        searchInputRef.current?.focus();
+    };
+
+    const handleRecentSearchClick = (term) => {
+        setSearchTerm(term);
+        setSearchDropdownOpen(true);
+        searchInputRef.current?.focus();
+    };
+
+    const showSearchResults = searchDropdownOpen && searchTerm.trim().length >= 2;
+    const showRecentSearches = searchDropdownOpen && searchTerm.trim().length < 2 && recentSearches.length > 0;
+    const showSearchPanel = showSearchResults || showRecentSearches;
+
     return (
         <div className="api-docs-page-root">
             <header className="api-docs-header">
@@ -675,37 +778,15 @@ const ApiDocsPage = () => {
             <main className="api-docs-main">
                 <aside className="api-docs-sidebar">
                     <div ref={searchWrapRef} className="api-docs-search-wrap">
-                        <input
-                            type="search"
-                            value={searchTerm}
-                            onChange={(event) => setSearchTerm(event.target.value)}
-                            onFocus={() => setSearchDropdownOpen(true)}
-                            placeholder="Search docs..."
-                            aria-label="Search API docs"
-                            className="api-docs-search-input"
-                        />
-                        {searchDropdownOpen && searchTerm.trim().length >= 2 ? (
-                            <div className="api-docs-search-results" role="listbox" aria-label="Search results">
-                                {searchResults.length === 0 ? (
-                                    <p className="api-docs-search-empty">No content matches found.</p>
-                                ) : (
-                                    searchResults.map((result) => (
-                                        <button
-                                            key={result.id}
-                                            type="button"
-                                            className="api-docs-search-result-item"
-                                            onClick={() => handleSearchResultClick(result)}
-                                        >
-                                            <span className="api-docs-search-result-page">{result.pageTitle}</span>
-                                            <span className="api-docs-search-result-heading">{result.heading}</span>
-                                            <span className="api-docs-search-result-snippet">
-                                                {renderHighlightedSnippet(result.snippet, searchTerm.trim())}
-                                            </span>
-                                        </button>
-                                    ))
-                                )}
-                            </div>
-                        ) : null}
+                        <button
+                            type="button"
+                            className="api-docs-search-trigger"
+                            aria-label="Open docs search"
+                            onClick={openSearchOverlay}
+                        >
+                            <SearchRoundedIcon className="api-docs-search-trigger-icon" aria-hidden="true" />
+                            <span className="api-docs-search-trigger-placeholder">{sidebarSearchText || 'Search anything...'}</span>
+                        </button>
                     </div>
 
                     <div className="api-docs-sidebar-groups">
@@ -841,6 +922,81 @@ const ApiDocsPage = () => {
                     )}
                 </section>
             </main>
+
+            {searchOverlayOpen ? (
+                <div className="api-docs-search-overlay" role="presentation">
+                    <div
+                        ref={searchDialogRef}
+                        className={`api-docs-search-dialog${showSearchPanel ? ' has-panel' : ''}`}
+                    >
+                        <div className="api-docs-search-input-shell">
+                            <SearchRoundedIcon className="api-docs-search-input-icon" aria-hidden="true" />
+                            <input
+                                ref={searchInputRef}
+                                type="search"
+                                value={searchTerm}
+                                onChange={(event) => setSearchTerm(event.target.value)}
+                                onFocus={() => setSearchDropdownOpen(true)}
+                                placeholder="Search anything..."
+                                aria-label="Search API docs"
+                                className="api-docs-search-input"
+                            />
+                            <button
+                                type="button"
+                                className="api-docs-search-close-btn"
+                                onClick={clearSearchInput}
+                                aria-label="Clear search input"
+                            >
+                                <CloseRoundedIcon fontSize="inherit" />
+                            </button>
+                        </div>
+
+                        {showSearchResults ? (
+                            <div className="api-docs-search-results" role="listbox" aria-label="Search results">
+                                {searchResults.length === 0 ? (
+                                    <p className="api-docs-search-empty">No content matches found.</p>
+                                ) : (
+                                    searchResults.map((result) => (
+                                        <button
+                                            key={result.id}
+                                            type="button"
+                                            className="api-docs-search-result-item"
+                                            onClick={() => handleSearchResultClick(result)}
+                                        >
+                                            <span className="api-docs-search-result-page">
+                                                <span>{categoryLabelBySlug.get(result.slug) || 'Docs'}</span>
+                                            </span>
+                                            <span className="api-docs-search-result-heading">{result.pageTitle}</span>
+                                            <span className="api-docs-search-result-snippet">
+                                                {renderHighlightedSnippet(result.snippet, searchTerm.trim())}
+                                            </span>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        ) : null}
+
+                        {showRecentSearches ? (
+                            <div className="api-docs-search-recent" role="listbox" aria-label="Recent searches">
+                                <p className="api-docs-search-recent-title">Recent searches</p>
+                                <div className="api-docs-search-recent-list">
+                                    {recentSearches.map((term) => (
+                                        <button
+                                            key={term}
+                                            type="button"
+                                            className="api-docs-search-recent-item"
+                                            onClick={() => handleRecentSearchClick(term)}
+                                        >
+                                            <SearchRoundedIcon className="api-docs-search-recent-icon" aria-hidden="true" />
+                                            <span>{term}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : null}
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 };
