@@ -8,7 +8,6 @@ import { useNavigate } from 'react-router-dom';
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import CheckIcon from '@mui/icons-material/Check';
 import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
-import SearchIcon from '@mui/icons-material/Search';
 import SortIcon from '@mui/icons-material/Sort';
 import {
   Autocomplete,
@@ -19,6 +18,8 @@ import {
   Select,
   TextField,
 } from '@mui/material';
+
+import { ReactComponent as UnionIcon } from '../../img/Union.svg';
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
@@ -231,7 +232,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 sx={{
                                     display: { xs: 'none', sm: 'flex' },
                                     alignItems: 'center',
-                                    gap: 2,
+                                    gap: 3,
                                     color: '#8A8A8A',
                                     fontFamily: 'DM Sans, sans-serif',
                                     fontSize: '16px',
@@ -239,7 +240,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     pointerEvents: 'auto',
                                 }}
                             >
-                                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
                                     <span style={{ color: '#8A8A8A' }}>Sort by:</span>
                                     <Select
                                         value={sortBy}
@@ -278,10 +279,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                             </MenuItem>
                                         ))}
                                     </Select>
-                                    <SortIcon sx={{ color: '#8A8A8A', fontSize: '20px' }} />
+                                    <SortIcon sx={{ color: '#8A8A8A', fontSize: '16px' }} />
                                 </Box>
 
-                                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
                                     <span style={{ color: '#8A8A8A' }}>Paper type:</span>
                                     <Select
                                         value={paperType}
@@ -320,7 +321,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                             </MenuItem>
                                         ))}
                                     </Select>
-                                    <FilterAltOutlinedIcon sx={{ color: '#8A8A8A', fontSize: '20px' }} />
+                                    <FilterAltOutlinedIcon sx={{ color: '#8A8A8A', fontSize: '16px' }} />
                                 </Box>
                             </Box>
 
@@ -348,10 +349,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     pointerEvents: 'auto',
                                 }}
                             >
-                                <SearchIcon
-                                    sx={{
+                                <UnionIcon
+                                    style={{
                                         color: llmQuery.trim() && !isQueryLimitReached ? '#FFFFFF' : '#155DFC',
-                                        fontSize: { xs: '16px', sm: '22px' },
+                                        width: '20px',
+                                        height: '20px',
                                     }}
                                 />
                             </Box>

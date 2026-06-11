@@ -1,12 +1,13 @@
 import React from 'react';
 
 import CloseIcon from '@mui/icons-material/Close';
-import SearchIcon from '@mui/icons-material/Search';
 import {
   Box,
   TextField,
-    useMediaQuery,
+  useMediaQuery,
 } from '@mui/material';
+
+import { ReactComponent as UnionIcon } from '../../img/Union.svg';
 
 const ChatSearchBar = ({
     userInput,
@@ -139,10 +140,11 @@ const ChatSearchBar = ({
                                         }}
                                     />
                                 ) : (
-                                    <SearchIcon
-                                        sx={{
+                                    <UnionIcon
+                                        style={{
                                             color: (!userInput.trim() || isQueryLimitReached) ? '#155DFC' : '#ffffff',
-                                            fontSize: { xs: '16px', sm: '20px' },
+                                            width: isMobileViewport ? '16px' : '20px',
+                                            height: isMobileViewport ? '16px' : '20px',
                                         }}
                                     />
                                 )}
