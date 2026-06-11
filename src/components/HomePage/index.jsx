@@ -325,6 +325,10 @@ const HomePage = () => {
                                         <LlmSearchBar
                                             setOpen={setSearchBarOpen}
                                             setExamplesOpen={setIsAutocompleteExamplesOpen}
+                                            onCollapseExampleLists={() => {
+                                                setShowExamples(undefined);
+                                                setIsAutocompleteExamplesOpen(false);
+                                            }}
                                             prefillQuery={prefillQuery}
                                             autocompleteOptions={exampleSchema.autocomplete || []}
                                             isQueryLimitReached={showHomeLimitWarning}
