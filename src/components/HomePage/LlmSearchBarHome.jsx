@@ -7,12 +7,16 @@ import { useNavigate } from 'react-router-dom';
 
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
 import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 import SortIcon from '@mui/icons-material/Sort';
 import {
   Autocomplete,
   Box,
+    Divider,
+    Drawer,
   MenuItem,
+    IconButton,
   Paper,
   Popper,
   Select,
@@ -26,6 +30,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const [sortBy, setSortBy] = useState('Default');
     const [paperType, setPaperType] = useState('All types');
     const [isOpen, setIsOpen] = useState(false);
+    const [mobileOptionsOpen, setMobileOptionsOpen] = useState(false);
     const navigate = useNavigate();
     const inputTimeoutRef = React.useRef(null);
     const hasTrackedInputRef = React.useRef(false);
@@ -96,6 +101,12 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     };
     const sortOptions = ['Default', 'High impact first', 'Most recent first'];
     const paperTypeOptions = ['All types', 'Reviews only', 'Exclude reviews'];
+    const defaultSortBy = 'Default';
+    const defaultPaperType = 'All types';
+    const mobileSelectedOptions = [];
+    if (paperType !== defaultPaperType) mobileSelectedOptions.push(paperType);
+    if (sortBy !== defaultSortBy) mobileSelectedOptions.push(sortBy);
+    const mobileChipLabel = mobileSelectedOptions.length > 0 ? mobileSelectedOptions.join(' + ') : 'Search Options';
     const selectMenuProps = {
         disableScrollLock: true,
         PaperProps: {
@@ -126,6 +137,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             <Autocomplete
                 freeSolo
                 fullWidth
+                open={!mobileOptionsOpen && isOpen}
                 disabled={isQueryLimitReached}
                 options={props.autocompleteOptions || []}
                 filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
@@ -223,11 +235,52 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 bottom: '13px',
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'flex-end',
+                                justifyContent: { xs: 'space-between', sm: 'flex-end' },
                                 gap: 2,
                                 pointerEvents: 'none',
                             }}
                         >
+                            <Box
+                                role="button"
+                                onMouseDown={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                }}
+                                onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    setIsOpen(false);
+                                    if (props.setExamplesOpen) {
+                                        props.setExamplesOpen(false);
+                                    }
+                                    if (props.onCollapseExampleLists) {
+                                        props.onCollapseExampleLists();
+                                    }
+                                    setMobileOptionsOpen(true);
+                                }}
+                                sx={{
+                                    display: { xs: 'inline-flex', sm: 'none' },
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '11px 16px',
+                                    borderRadius: '18px',
+                                    background: '#EEEEEE',
+                                    color: '#646464',
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontWeight: 400,
+                                    fontSize: '14px',
+                                    lineHeight: '14px',
+                                    maxWidth: 'calc(100% - 52px)',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    cursor: 'pointer',
+                                    pointerEvents: 'auto',
+                                }}
+                            >
+                                {mobileChipLabel}
+                            </Box>
+
                             <Box
                                 sx={{
                                     display: { xs: 'none', sm: 'flex' },
@@ -358,6 +411,101 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 />
                             </Box>
                         </Box>
+
+                        <Drawer
+                            anchor="bottom"
+                            open={mobileOptionsOpen}
+                            onClose={() => setMobileOptionsOpen(false)}
+                            PaperProps={{
+                                sx: {
+                                    borderTopLeftRadius: '24px',
+                                    borderTopRightRadius: '24px',
+                                    backgroundColor: '#FFFFFF',
+                                    px: 3,
+                                    pb: 3,
+                                    pt: 0,
+                                },
+                            }}
+                        >
+                            <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
+                                <Box sx={{ width: '44px', height: '4px', borderRadius: '4px', backgroundColor: '#D8D8D8' }} />
+                            </Box>
+
+                            <Box sx={{ display: 'flex', alignItems: 'center', py: 2, borderBottom: '1px solid #EDEDED' }}>
+                                <Box sx={{ flex: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: '16px', color: '#333333' }}>
+                                    Search Options
+                                </Box>
+                                <IconButton onClick={() => setMobileOptionsOpen(false)} size="small" sx={{ color: '#646464' }}>
+                                    <CloseIcon fontSize="small" />
+                                </IconButton>
+                            </Box>
+
+                            <Box sx={{ pt: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                <Box>
+                                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '16px', color: '#333333' }}>
+                                        Article Type
+                                    </Box>
+                                    <Box sx={{ background: '#F4F4F4', borderRadius: '24px', px: 3, py: 2 }}>
+                                        {paperTypeOptions.map((option, index) => (
+                                            <Box key={option}>
+                                                <Box
+                                                    role="button"
+                                                    onClick={() => setPaperType(option)}
+                                                    sx={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between',
+                                                        py: 0.5,
+                                                        fontFamily: 'DM Sans, sans-serif',
+                                                        fontWeight: 400,
+                                                        fontSize: '16px',
+                                                        lineHeight: 1.5,
+                                                        color: '#333333',
+                                                        cursor: 'pointer',
+                                                    }}
+                                                >
+                                                    <span>{option}</span>
+                                                    {option === paperType ? <CheckIcon sx={{ fontSize: '20px', color: '#155DFC' }} /> : null}
+                                                </Box>
+                                                {index < paperTypeOptions.length - 1 ? <Divider sx={{ my: 1 }} /> : null}
+                                            </Box>
+                                        ))}
+                                    </Box>
+                                </Box>
+
+                                <Box>
+                                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '16px', color: '#333333' }}>
+                                        Sort by
+                                    </Box>
+                                    <Box sx={{ background: '#F4F4F4', borderRadius: '24px', px: 3, py: 2 }}>
+                                        {sortOptions.map((option, index) => (
+                                            <Box key={option}>
+                                                <Box
+                                                    role="button"
+                                                    onClick={() => setSortBy(option)}
+                                                    sx={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between',
+                                                        py: 0.5,
+                                                        fontFamily: 'DM Sans, sans-serif',
+                                                        fontWeight: 400,
+                                                        fontSize: '16px',
+                                                        lineHeight: 1.5,
+                                                        color: '#333333',
+                                                        cursor: 'pointer',
+                                                    }}
+                                                >
+                                                    <span>{option}</span>
+                                                    {option === sortBy ? <CheckIcon sx={{ fontSize: '20px', color: '#155DFC' }} /> : null}
+                                                </Box>
+                                                {index < sortOptions.length - 1 ? <Divider sx={{ my: 1 }} /> : null}
+                                            </Box>
+                                        ))}
+                                    </Box>
+                                </Box>
+                            </Box>
+                        </Drawer>
                     </Box>
                 )}
                 PaperComponent={({ children }) => (
