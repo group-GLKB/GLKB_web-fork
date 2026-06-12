@@ -1063,6 +1063,7 @@ function LLMAgent() {
     const lastAutoSelectedRef = useRef(null);
     const sessionIdRef = useRef(null);
     const hasConsumedInitialQueryRef = useRef(false);
+    const initialSearchOptionsRef = useRef(null);
     const activeConversationIdRef = useRef(getActiveConversationId());
     const loadingConversationIdRef = useRef(null);
     const activeStreamIdRef = useRef(null);
@@ -1443,6 +1444,7 @@ function LLMAgent() {
         if (location.state && location.state.initialQuery && !hasConsumedInitialQueryRef.current) {
             hasConsumedInitialQueryRef.current = true;
             const query = location.state.initialQuery;
+            initialSearchOptionsRef.current = location.state.initialSearchOptions || null;
             if (!isLoading) {
                 startNewConversation();
                 handleSubmit(null, query, null, { forceNewConversation: true });
@@ -1733,6 +1735,9 @@ function LLMAgent() {
             }
             const abortController = new AbortController();
             abortControllerRef.current = abortController;
+            const requestSearchOptions = options.searchOptions || initialSearchOptionsRef.current || null;
+            initialSearchOptionsRef.current = null;
+
             await llmService.chat(inputText, abortControllerRef.current, (update) => {
                 const isActiveStream = activeStreamIdRef.current === streamId;
                 if (!isActiveStream && update.type !== 'saved') {
@@ -1894,7 +1899,9 @@ function LLMAgent() {
                 }
             }, {
                 historyId,
-                sessionId: sessionIdRef.current
+                sessionId: sessionIdRef.current,
+                filters: Array.isArray(requestSearchOptions?.filters) ? requestSearchOptions.filters : undefined,
+                rankingMode: typeof requestSearchOptions?.rankingMode === 'string' ? requestSearchOptions.rankingMode : undefined,
             });
         } catch (error) {
             console.error('Error in chat:', error);
