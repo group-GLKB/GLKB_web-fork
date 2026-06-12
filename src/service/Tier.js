@@ -17,6 +17,21 @@ export const getMyTier = async () => {
     }
 };
 
+export const getGuestTier = async () => {
+    try {
+        const response = await axios.get(`${TIER_BASE_URL}/guest-me`);
+        return {
+            success: true,
+            data: response.data,
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: error.response?.data?.detail || 'Failed to load guest quota usage.',
+        };
+    }
+};
+
 export const isFreePlanLimitReached = (tierInfo) => {
     const normalizedTier = `${tierInfo?.tier || 'free'}`.toLowerCase();
     if (normalizedTier !== 'free') return false;

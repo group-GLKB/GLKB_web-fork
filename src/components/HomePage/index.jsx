@@ -31,6 +31,7 @@ import {
 } from '@mui/material';
 
 import {
+    getGuestTier,
   getMyTier,
   isFreePlanLimitReached,
 } from '../../service/Tier';
@@ -53,6 +54,7 @@ const HomePage = () => {
     const [showExamples, setShowExamples] = useState(undefined);
     const [prefillQuery, setPrefillQuery] = useState('');
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
+    const [queryLimitTotal, setQueryLimitTotal] = useState(10);
     const [isPhoneDevice, setIsPhoneDevice] = useState(false);
     const { isAuthenticated, loading } = useAuth();
     const navigate = useNavigate();
@@ -69,7 +71,10 @@ const HomePage = () => {
     }));
     const activePill = pills.find((pill) => pill.id === showExamples);
     const isHomeLimitReachedEffective = isQueryLimitReached || DEBUG_FORCE_LIMIT_WARNING;
-    const showHomeLimitWarning = isAuthenticated && isHomeLimitReachedEffective;
+    const showHomeLimitWarning = isHomeLimitReachedEffective;
+    const displayedQueryLimit = Number.isFinite(Number(queryLimitTotal)) && Number(queryLimitTotal) > 0
+        ? Number(queryLimitTotal)
+        : 10;
 
     // const [focused, setFocused] = useState(false);
     // const theme = useTheme();
@@ -108,14 +113,18 @@ const HomePage = () => {
         let active = true;
 
         const loadTier = async () => {
-            if (loading || !isAuthenticated) {
-                if (active) setIsQueryLimitReached(false);
+            if (loading) {
+                if (active) {
+                    setIsQueryLimitReached(false);
+                    setQueryLimitTotal(10);
+                }
                 return;
             }
 
-            const result = await getMyTier();
+            const result = isAuthenticated ? await getMyTier() : await getGuestTier();
             if (!active || !result.success) return;
             setIsQueryLimitReached(isFreePlanLimitReached(result.data));
+            setQueryLimitTotal(Number(result.data?.quota_limit) || 10);
         };
 
         loadTier();
@@ -310,7 +319,7 @@ const HomePage = () => {
                                         {showHomeLimitWarning && (
                                             <Box className="homepage-limit-warning">
                                                 <span className="homepage-limit-warning-text">
-                                                    You've reached your free plan limit (10 queries). Upgrade for unlimited access.
+                                                    You've reached your query limit ({displayedQueryLimit} queries). Upgrade for unlimited access.
                                                 </span>
                                                 <button
                                                     type="button"
