@@ -64,6 +64,7 @@ import {
 import { submitChatFeedback } from '../../service/Feedback';
 import { LLMAgentService } from '../../service/LLMAgent';
 import {
+    getGuestTier,
   getMyTier,
   isFreePlanLimitReached,
 } from '../../service/Tier';
@@ -1056,6 +1057,7 @@ function LLMAgent() {
     const [isEditingChatTitle, setIsEditingChatTitle] = useState(false);
     const [chatTitleDraft, setChatTitleDraft] = useState('');
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
+    const [queryLimitTotal, setQueryLimitTotal] = useState(10);
     const messagesEndRef = useRef(null);
     const abortControllerRef = useRef(null);
     const thinkingStepsRef = useRef([]);
@@ -1187,18 +1189,23 @@ function LLMAgent() {
     };
 
     const refreshTierStatus = useCallback(async () => {
-        if (authLoading || !isAuthenticated) {
+        if (authLoading) {
             setIsQueryLimitReached(false);
+            setQueryLimitTotal(10);
             return;
         }
-        const result = await getMyTier();
+        const result = isAuthenticated ? await getMyTier() : await getGuestTier();
         if (!result.success) return;
         setIsQueryLimitReached(isFreePlanLimitReached(result.data));
+        setQueryLimitTotal(Number(result.data?.quota_limit) || 10);
     }, [authLoading, isAuthenticated]);
 
     const llmService = useMemo(() => new LLMAgentService(), []);
     const isLimitReachedEffective = isQueryLimitReached || DEBUG_FORCE_LIMIT_WARNING;
     const showLimitWarning = isLimitReachedEffective;
+    const displayedQueryLimit = Number.isFinite(Number(queryLimitTotal)) && Number(queryLimitTotal) > 0
+        ? Number(queryLimitTotal)
+        : 10;
     const activeConversation = useMemo(() => {
         const currentId = activeConversationIdRef.current || activeConversationId;
         if (!currentId) return null;
@@ -2961,7 +2968,7 @@ function LLMAgent() {
                                                     {showLimitWarning && (
                                                         <div className="llm-limit-warning">
                                                             <span className="llm-limit-warning-text">
-                                                                You've reached your free plan limit (10 queries). Upgrade for unlimited access.
+                                                                You've reached your query limit ({displayedQueryLimit} queries). Upgrade for unlimited access.
                                                             </span>
                                                             <button
                                                                 type="button"
