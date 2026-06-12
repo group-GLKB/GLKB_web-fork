@@ -5,7 +5,7 @@ import React, {
 } from 'react';
 
 import {
-    ContentCopyRounded as ContentCopyRoundedIcon,
+  ContentCopyRounded as ContentCopyRoundedIcon,
   VerifiedUserOutlined as VerifiedUserOutlinedIcon,
   ZoomOutMap as ZoomOutMapIcon,
 } from '@mui/icons-material';

@@ -87,16 +87,42 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             ]}
         />
     );
+
+    const buildSearchOptionsPayload = () => {
+        let rankingMode = 'default';
+        if (sortBy === 'High impact first') rankingMode = 'high_impact';
+        if (sortBy === 'Most recent first') rankingMode = 'recent';
+
+        let filters = [];
+        if (paperType === 'Reviews only') filters = ['review'];
+        if (paperType === 'Exclude reviews') filters = ['non_review'];
+
+        return {
+            filters,
+            rankingMode,
+        };
+    };
+
     const navigateToLLMAgent = (query = '') => {
         // Clear input timeout to prevent search_input event after submission
         if (inputTimeoutRef.current) {
             clearTimeout(inputTimeoutRef.current);
             hasTrackedInputRef.current = true;
         }
+        const searchOptions = buildSearchOptionsPayload();
         if (query) {
-            navigate('/chat', { state: { initialQuery: query } });
+            navigate('/chat', {
+                state: {
+                    initialQuery: query,
+                    initialSearchOptions: searchOptions,
+                },
+            });
         } else {
-            navigate('/chat');
+            navigate('/chat', {
+                state: {
+                    initialSearchOptions: searchOptions,
+                },
+            });
         }
     };
     const sortOptions = ['Default', 'High impact first', 'Most recent first'];
@@ -293,7 +319,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     pointerEvents: 'auto',
                                 }}
                             >
-                                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0 }}>
                                     <span style={{ color: '#8A8A8A' }}>Sort by:</span>
                                     <Select
                                         value={sortBy}
@@ -309,7 +335,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                             fontSize: '16px',
                                             lineHeight: '24px',
                                             '& .MuiSelect-select': {
-                                                padding: '0 !important',
+                                                borderRadius: '8px !important',
+                                                padding: '0 4px !important',
                                                 minHeight: 'unset',
                                             },
                                             '& .MuiSelect-icon': {
@@ -335,7 +362,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     <SortIcon sx={{ color: '#8A8A8A', fontSize: '16px' }} />
                                 </Box>
 
-                                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0 }}>
                                     <span style={{ color: '#8A8A8A' }}>Paper type:</span>
                                     <Select
                                         value={paperType}
@@ -351,7 +378,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                             fontSize: '16px',
                                             lineHeight: '24px',
                                             '& .MuiSelect-select': {
-                                                padding: '0 !important',
+                                                borderRadius: '8px !important',
+                                                padding: '0 4px !important',
                                                 minHeight: 'unset',
                                             },
                                             '& .MuiSelect-icon': {
