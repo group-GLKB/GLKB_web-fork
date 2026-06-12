@@ -415,7 +415,7 @@ const HomePage = () => {
                         // style={{ marginTop: '20px' }}
                         style={{
                             position: 'fixed',
-                            bottom: isPhoneDevice ? '100px' : '50px',
+                            bottom: isPhoneDevice ? '100px' : '24px',
                             right: '20px',
                             width: '56px',
                             height: '56px',
