@@ -176,12 +176,19 @@ export class LLMAgentService {
             if (Number.isFinite(Number(options.maxArticles))) {
                 payload.max_articles = Number(options.maxArticles);
             }
+            if (Array.isArray(options.filters) && options.filters.length > 0) {
+                payload.filters = options.filters;
+            }
+            if (typeof options.rankingMode === 'string' && options.rankingMode.trim()) {
+                payload.ranking_mode = options.rankingMode.trim();
+            }
 
             await axios.post('/api/v1/new-llm-agent/stream', payload, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'text/event-stream',
                 },
+                withCredentials: true,
                 responseType: 'text',
                 signal: abortController.signal,
                 onDownloadProgress: (progressEvent) => {

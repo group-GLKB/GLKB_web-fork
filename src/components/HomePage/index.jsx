@@ -20,7 +20,6 @@ import {
   ArrowOutward as ArrowOutwardIcon,
   Close as CloseIcon,
   DescriptionOutlined as DescriptionOutlinedIcon,
-  Layers as LayersIcon,
   LightbulbOutlined as LightbulbOutlinedIcon,
   TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
@@ -32,6 +31,7 @@ import {
 } from '@mui/material';
 
 import {
+  getGuestTier,
   getMyTier,
   isFreePlanLimitReached,
 } from '../../service/Tier';
@@ -42,14 +42,20 @@ import LlmSearchBar from './LlmSearchBarHome';
 // const { Search } = Input;
 const DEBUG_FORCE_LIMIT_WARNING = false;
 
+const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
+const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
+
 
 const HomePage = () => {
     // const [tags, setTags] = useState([]);
     const [runTour, setRunTour] = useState(false);
     const [searchBarOpen, setSearchBarOpen] = useState(false);
+    const [isAutocompleteExamplesOpen, setIsAutocompleteExamplesOpen] = useState(false);
     const [showExamples, setShowExamples] = useState(undefined);
     const [prefillQuery, setPrefillQuery] = useState('');
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
+    const [queryLimitTotal, setQueryLimitTotal] = useState(10);
+    const [isPhoneDevice, setIsPhoneDevice] = useState(false);
     const { isAuthenticated, loading } = useAuth();
     const navigate = useNavigate();
     const examplePanelRef = useRef(null);
@@ -57,7 +63,7 @@ const HomePage = () => {
         lightbulb: <LightbulbOutlinedIcon />,
         chart: <TrendingUpIcon />,
         book: <DescriptionOutlinedIcon />,
-        knowledge: <LayersIcon />,
+        knowledge: <span className="material-symbols-outlined" aria-hidden="true">stacks</span>,
     };
     const pills = (exampleSchema.pills || []).map((pill) => ({
         ...pill,
@@ -65,7 +71,10 @@ const HomePage = () => {
     }));
     const activePill = pills.find((pill) => pill.id === showExamples);
     const isHomeLimitReachedEffective = isQueryLimitReached || DEBUG_FORCE_LIMIT_WARNING;
-    const showHomeLimitWarning = isAuthenticated && isHomeLimitReachedEffective;
+    const showHomeLimitWarning = isHomeLimitReachedEffective;
+    const displayedQueryLimit = Number.isFinite(Number(queryLimitTotal)) && Number(queryLimitTotal) > 0
+        ? Number(queryLimitTotal)
+        : 10;
 
     // const [focused, setFocused] = useState(false);
     // const theme = useTheme();
@@ -89,17 +98,33 @@ const HomePage = () => {
     }, [showExamples]);
 
     useEffect(() => {
+        const evaluateIsPhone = () => {
+            setIsPhoneDevice(isPhoneUa() && isPhoneViewport());
+        };
+
+        evaluateIsPhone();
+        window.addEventListener('resize', evaluateIsPhone);
+        return () => {
+            window.removeEventListener('resize', evaluateIsPhone);
+        };
+    }, []);
+
+    useEffect(() => {
         let active = true;
 
         const loadTier = async () => {
-            if (loading || !isAuthenticated) {
-                if (active) setIsQueryLimitReached(false);
+            if (loading) {
+                if (active) {
+                    setIsQueryLimitReached(false);
+                    setQueryLimitTotal(10);
+                }
                 return;
             }
 
-            const result = await getMyTier();
+            const result = isAuthenticated ? await getMyTier() : await getGuestTier();
             if (!active || !result.success) return;
             setIsQueryLimitReached(isFreePlanLimitReached(result.data));
+            setQueryLimitTotal(Number(result.data?.quota_limit) || 10);
         };
 
         loadTier();
@@ -214,10 +239,13 @@ const HomePage = () => {
             <Helmet>
                 <title>Home | GLKB</title>
                 <meta name="description" content="GLKB is an AI-powered research engine that synthesizes biomedical literature into structured, evidence-backed answers grounded in real publications, not just predictions." />
-                <meta property="og:title" content="Home Page - Genomic Literature Knowledge Base" />
+                <meta name="title" content="GLKB - Genomic Literature Knowledge Base" />
+                <meta property="og:title" content="GLKB - Genomic Literature Knowledge Base" />
+                <meta property="og:site_name" content="GLKB - Genomic Literature Knowledge Base" />
+                <meta name="twitter:title" content="GLKB - Genomic Literature Knowledge Base" />
                 <meta property="og:description" content="GLKB is an AI-powered research engine that synthesizes biomedical literature into structured, evidence-backed answers grounded in real publications, not just predictions." />
             </Helmet>
-            <div className="HomePageRoot">
+            <div className={`HomePageRoot${isPhoneDevice ? ' is-phone-device' : ''}`}>
                 <div className="HomePageContainer">
                     <div className="HomePageInner" style={{
                         backgroundColor: '#FAFCFF',
@@ -267,7 +295,7 @@ const HomePage = () => {
                                     sx={{
                                         fontFamily: 'Open Sans, sans-serif',
                                         fontWeight: 600,
-                                        fontSize: '40px',
+                                        fontSize: isPhoneDevice ? '30px' : '40px',
                                         lineHeight: 1.1,
                                     }}
                                 >
@@ -294,7 +322,7 @@ const HomePage = () => {
                                         {showHomeLimitWarning && (
                                             <Box className="homepage-limit-warning">
                                                 <span className="homepage-limit-warning-text">
-                                                    You've reached your free plan limit (10 queries). Upgrade for unlimited access.
+                                                    You've reached your query limit ({displayedQueryLimit} queries). Upgrade for unlimited access.
                                                 </span>
                                                 <button
                                                     type="button"
@@ -307,6 +335,11 @@ const HomePage = () => {
                                         )}
                                         <LlmSearchBar
                                             setOpen={setSearchBarOpen}
+                                            setExamplesOpen={setIsAutocompleteExamplesOpen}
+                                            onCollapseExampleLists={() => {
+                                                setShowExamples(undefined);
+                                                setIsAutocompleteExamplesOpen(false);
+                                            }}
                                             prefillQuery={prefillQuery}
                                             autocompleteOptions={exampleSchema.autocomplete || []}
                                             isQueryLimitReached={showHomeLimitWarning}
@@ -351,7 +384,7 @@ const HomePage = () => {
                                         )}
                                     </Box>
                                 </Box>
-                                <Box className={`homepage-pills${(searchBarOpen || showExamples) ? ' is-hidden' : ''}${showHomeLimitWarning ? ' has-limit-warning' : ''}`}>
+                                <Box className={`homepage-pills${(showExamples || isAutocompleteExamplesOpen) ? ' is-hidden' : ''}${showHomeLimitWarning ? ' has-limit-warning' : ''}`}>
                                     {pills.map((pill) => (
                                         <Box
                                             key={pill.id}
@@ -378,10 +411,10 @@ const HomePage = () => {
 
                         <div className="footer">
                             <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
-                                <p style={{ fontFamily: 'Open Sans, sans-serif', textAlign: 'center', color: '#969696', fontSize: '14px', margin: 0 }}>
+                                <p style={{ fontFamily: 'Open Sans, sans-serif', textAlign: 'center', color: '#969696', fontSize: isPhoneDevice ? '12px' : '14px', margin: 0 }}>
                                     © 2025 GLKB – Genomic Literature Knowledge Base | glkb.org
                                 </p>
-                                <p style={{ fontFamily: 'Open Sans, sans-serif', textAlign: 'center', color: '#969696', fontSize: '14px', margin: 0 }}>
+                                <p style={{ fontFamily: 'Open Sans, sans-serif', textAlign: 'center', color: '#969696', fontSize: isPhoneDevice ? '12px' : '14px', margin: 0 }}>
                                     Developed and maintained by the <a className="homepage-lab-link" href="https://jieliu6.github.io/" target="_blank" rel="noopener noreferrer">Jie Liu Lab</a>, Department of Computational Medicine and Bioinformatics, University of Michigan.
                                 </p>
                             </div>
@@ -394,7 +427,7 @@ const HomePage = () => {
                         // style={{ marginTop: '20px' }}
                         style={{
                             position: 'fixed',
-                            bottom: '50px',
+                            bottom: isPhoneDevice ? '100px' : '24px',
                             right: '20px',
                             width: '56px',
                             height: '56px',

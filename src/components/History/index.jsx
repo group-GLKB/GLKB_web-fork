@@ -1,53 +1,56 @@
 import './scoped.css';
 
 import React, {
-    useEffect,
-    useMemo,
-    useState,
+  useEffect,
+  useMemo,
+  useState,
 } from 'react';
 
 import {
-    Navigate,
-    useNavigate,
+  Navigate,
+  useNavigate,
 } from 'react-router-dom';
 
 import { DeleteOutline as DeleteOutlineIcon } from '@mui/icons-material';
 import {
-    Box,
-    Checkbox,
-    Tooltip,
-    Typography,
+  Box,
+  Checkbox,
+  Tooltip,
+  Typography,
 } from '@mui/material';
 
 import { ReactComponent as MetaIcon } from '../../img/library/Icon.svg';
 import { ReactComponent as HistoryIcon } from '../../img/navbar/history.svg';
 import {
-    fetchConversations,
-    getConversations,
-    removeConversation,
-    setActiveConversationId,
-    updateConversationTitle,
+  fetchConversations,
+  getConversations,
+  removeConversation,
+  setActiveConversationId,
+  updateConversationTitle,
 } from '../../utils/chatHistory';
 import {
-    fetchConversationBookmarks,
-    getConversationBookmarks,
-    toggleConversationBookmark,
+  fetchConversationBookmarks,
+  getConversationBookmarks,
+  toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
 import {
-    fetchGraphBookmarks,
-    getGraphBookmarks,
-    toggleGraphBookmark,
+  fetchGraphBookmarks,
+  getGraphBookmarks,
+  toggleGraphBookmark,
 } from '../../utils/graphBookmarks';
 import {
-    fetchGraphHistories,
-    getGraphHistories,
-    removeGraphHistory,
+  fetchGraphHistories,
+  getGraphHistories,
+  removeGraphHistory,
 } from '../../utils/graphHistory';
 import { useAuth } from '../Auth/AuthContext';
 import nodeStyleColors from '../Graph/nodeStyleColors.json';
 import ConversationCard from '../Units/ConversationCard';
 
 const DEBUG_HIDE_EXPLORE = true;
+const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
+const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
+const MOBILE_HEADER_VISIBILITY_EVENT = 'glkb-mobile-header-visibility';
 
 const formatTimestamp = (value) => {
     if (!value) return '';
@@ -218,6 +221,7 @@ const History = () => {
     const [selectedIds, setSelectedIds] = useState([]);
     const [selectedGraphIds, setSelectedGraphIds] = useState([]);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isPhoneDevice, setIsPhoneDevice] = useState(false);
     const [conversationBookmarks, setConversationBookmarks] = useState([]);
     const [graphBookmarks, setGraphBookmarks] = useState([]);
 
@@ -284,6 +288,31 @@ const History = () => {
         [graphBookmarks]
     );
     const filteredTotalCount = filteredHistoryItems.length;
+    const isMobileSelectMode = isPhoneDevice && selectMode;
+
+    useEffect(() => {
+        const evaluateIsPhone = () => {
+            setIsPhoneDevice(isPhoneUa() && isPhoneViewport());
+        };
+
+        evaluateIsPhone();
+        window.addEventListener('resize', evaluateIsPhone);
+        return () => {
+            window.removeEventListener('resize', evaluateIsPhone);
+        };
+    }, []);
+
+    useEffect(() => {
+        window.dispatchEvent(new CustomEvent(MOBILE_HEADER_VISIBILITY_EVENT, {
+            detail: { hidden: isMobileSelectMode },
+        }));
+
+        return () => {
+            window.dispatchEvent(new CustomEvent(MOBILE_HEADER_VISIBILITY_EVENT, {
+                detail: { hidden: false },
+            }));
+        };
+    }, [isMobileSelectMode]);
 
     useEffect(() => {
         if (loading || !isAuthenticated) {
@@ -552,53 +581,129 @@ const History = () => {
             <Box className="history-body">
                 <Box className="history-content">
                     <Box className="history-top">
-                        <Box className="history-header">
-                            <Box className="history-title-row">
-                                <HistoryIcon className="history-icon" style={{ width: 36, height: 36, color: '#164563' }} />
-                                <Typography sx={{
-                                    fontFamily: 'DM Sans, sans-serif',
-                                    fontWeight: 600,
-                                    fontSize: '32px',
-                                    color: '#164563',
-                                }}>
-                                    History
+                        {isMobileSelectMode && (
+                            <Box className="history-mobile-select-header">
+                                <button
+                                    type="button"
+                                    className="history-select-toggle"
+                                    onClick={handleToggleSelectMode}
+                                >
+                                    Cancel
+                                </button>
+                                <Typography className="history-mobile-select-title">
+                                    {selectedCount} selected
                                 </Typography>
+                                <button
+                                    type="button"
+                                    className="history-delete-action"
+                                    onClick={handleDeleteSelected}
+                                    disabled={selectedCount === 0 || isDeleting}
+                                >
+                                    Delete
+                                </button>
                             </Box>
-                            <Typography sx={{
-                                marginTop: '8.5px',
-                                fontFamily: 'DM Sans, sans-serif',
-                                fontWeight: 500,
-                                fontSize: '14px',
-                                color: '#646464',
-                                textAlign: 'left',
-                            }}>
-                                Search your past activity.
-                            </Typography>
-                            <div className="history-search">
-                                <input
-                                    className="history-search-input"
-                                    type="text"
-                                    id="history-search"
-                                    name="historySearch"
-                                    value={searchQuery}
-                                    onChange={(event) => setSearchQuery(event.target.value)}
-                                    placeholder="Search conversations"
-                                    aria-label="Search conversations"
-                                />
-                                {searchQuery.trim() && (
-                                    <button
-                                        type="button"
-                                        className="history-search-clear"
-                                        onClick={() => setSearchQuery('')}
-                                        aria-label="Clear search"
-                                    >
-                                        Clear
-                                    </button>
-                                )}
-                            </div>
-                        </Box>
+                        )}
+                        {!isMobileSelectMode && (
+                            <Box className="history-header">
+                                <Box className="history-title-row">
+                                    <HistoryIcon className="history-icon" style={{ width: 36, height: 36, color: '#164563' }} />
+                                    <Typography sx={{
+                                        fontFamily: 'DM Sans, sans-serif',
+                                        fontWeight: 600,
+                                        fontSize: '32px',
+                                        color: '#164563',
+                                    }}>
+                                        History
+                                    </Typography>
+                                </Box>
+                                <Typography sx={{
+                                    marginTop: '8.5px',
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontWeight: 500,
+                                    fontSize: '14px',
+                                    color: '#646464',
+                                    textAlign: 'left',
+                                }}>
+                                    Search your past activity.
+                                </Typography>
+                                <div className="history-search">
+                                    <input
+                                        className="history-search-input"
+                                        type="text"
+                                        id="history-search"
+                                        name="historySearch"
+                                        value={searchQuery}
+                                        onChange={(event) => setSearchQuery(event.target.value)}
+                                        placeholder="Search conversations"
+                                        aria-label="Search conversations"
+                                    />
+                                    {searchQuery.trim() && (
+                                        <button
+                                            type="button"
+                                            className="history-search-clear"
+                                            onClick={() => setSearchQuery('')}
+                                            aria-label="Clear search"
+                                        >
+                                            Clear
+                                        </button>
+                                    )}
+                                </div>
+                            </Box>
+                        )}
                         <Box className="history-meta-row">
-                            {selectMode ? (
+                            {isMobileSelectMode ? (
+                                <Box className="history-select-toolbar history-select-toolbar-mobile-only">
+                                    <Tooltip
+                                        title={allFilteredSelected ? 'Deselect All' : 'Select All'}
+                                        placement="bottom"
+                                        PopperProps={{
+                                            modifiers: [
+                                                {
+                                                    name: 'offset',
+                                                    options: {
+                                                        offset: [0, -4],
+                                                    },
+                                                },
+                                            ],
+                                        }}
+                                        componentsProps={{
+                                            tooltip: {
+                                                sx: {
+                                                    backgroundColor: '#E7F1FF',
+                                                    color: '#164563',
+                                                    fontFamily: 'DM Sans, sans-serif',
+                                                    fontSize: '14px',
+                                                    fontWeight: 500,
+                                                    padding: '4px 12px',
+                                                    borderRadius: '8px',
+                                                    boxShadow: 'none',
+                                                },
+                                            },
+                                        }}
+                                    >
+                                        <span>
+                                            <Checkbox
+                                                className="history-select-all-checkbox"
+                                                checked={allFilteredSelected}
+                                                indeterminate={isPartiallySelected}
+                                                onChange={handleToggleSelectAllFiltered}
+                                                inputProps={{ 'aria-label': 'Select all conversations' }}
+                                                sx={{
+                                                    color: '#D9D9D9',
+                                                    padding: '4px',
+                                                    '&.Mui-checked': { color: '#155DFC' },
+                                                    '&.MuiCheckbox-indeterminate': { color: '#155DFC' },
+                                                }}
+                                            />
+                                        </span>
+                                    </Tooltip>
+                                    <Box className="history-select-toolbar-content">
+                                        <Typography className="history-meta-text">
+                                            Select All
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                            ) : selectMode ? (
                                 <>
                                     <Box className="history-select-toolbar">
                                         <Tooltip
@@ -708,7 +813,8 @@ const History = () => {
                                         timestamp={item.timestamp}
                                         selectMode={selectMode}
                                         isSelected={selectedIdSet.has(item.id)}
-                                        showCheckboxOnHover
+                                        showCheckboxOnHover={!isPhoneDevice}
+                                        alwaysShowMenuButton={isPhoneDevice}
                                         isBookmarked={bookmarkedConversationIds.has(item.id)}
                                         onToggleSelect={handleToggleConversationSelection}
                                         onOpen={(opened) => handleOpenConversation(opened.id)}
@@ -756,7 +862,8 @@ const History = () => {
                                         timestamp={item.timestamp}
                                         selectMode={false}
                                         isSelected={selectedGraphIds.includes(item.id)}
-                                        showCheckboxOnHover
+                                        showCheckboxOnHover={!isPhoneDevice}
+                                        alwaysShowMenuButton={isPhoneDevice}
                                         onToggleSelect={handleToggleGraphSelection}
                                         onOpen={handleOpenGraph}
                                         isBookmarked={bookmarkedGraphIds.has(item.id)}

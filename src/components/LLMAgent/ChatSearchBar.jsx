@@ -1,11 +1,13 @@
 import React from 'react';
 
 import CloseIcon from '@mui/icons-material/Close';
-import SearchIcon from '@mui/icons-material/Search';
 import {
   Box,
   TextField,
+  useMediaQuery,
 } from '@mui/material';
+
+import { ReactComponent as UnionIcon } from '../../img/Union.svg';
 
 const ChatSearchBar = ({
     userInput,
@@ -14,8 +16,11 @@ const ChatSearchBar = ({
     isQueryLimitReached = false,
     onSubmit,
     onStop,
-}) => (
-    <div className="chat-header">
+}) => {
+    const isMobileViewport = useMediaQuery('(max-width:700px)');
+
+    return (
+        <div className="chat-header">
         <Box sx={{
             width: '100%',
             display: 'flex',
@@ -35,7 +40,7 @@ const ChatSearchBar = ({
                 onChange={(e) => setUserInput(e.target.value)}
                 disabled={isLoading || isQueryLimitReached}
                 variant="outlined"
-                placeholder="Ask a question about the biomedical literature..."
+                placeholder={isMobileViewport ? 'Ask more...' : 'Ask a question about the biomedical literature...'}
                 multiline
                 minRows={1}
                 maxRows={4}
@@ -43,13 +48,13 @@ const ChatSearchBar = ({
                     width: '100%',
                     '& .MuiInputBase-root': {
                         borderRadius: '16px',
-                        minHeight: '64px',
+                        minHeight: { xs: '44px', sm: '64px' },
                         height: 'auto',
                         alignItems: 'flex-start',
                         paddingLeft: '20px',
                         paddingRight: '90px !important',
-                        paddingTop: '12px',
-                        paddingBottom: '12px',
+                        paddingTop: { xs: '8px', sm: '12px' },
+                        paddingBottom: { xs: '8px', sm: '12px' },
                         fontFamily: 'Open Sans, sans-serif',
                         fontSize: '18px',
                         color: '#164563',
@@ -99,12 +104,13 @@ const ChatSearchBar = ({
                                     ? onStop
                                     : (!userInput.trim() || isQueryLimitReached ? undefined : () => onSubmit())}
                                 sx={{
-                                    height: '44px',
-                                    width: '44px',
+                                    height: { xs: '36px', sm: '44px' },
+                                    width: { xs: '36px', sm: '44px' },
                                     borderRadius: '50%',
+                                    transform: isMobileViewport ? 'translateY(-4px)' : 'none',
                                     backgroundColor: isLoading
                                         ? '#E7F1FF'
-                                        : (!userInput.trim() || isQueryLimitReached ? '#9fb6ff' : '#155DFC'),
+                                        : (!userInput.trim() || isQueryLimitReached ? '#E7F1FF' : '#155DFC'),
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -116,9 +122,11 @@ const ChatSearchBar = ({
                                         ? 'none'
                                         : (!userInput.trim() || isQueryLimitReached ? 'none' : '0 6px 12px rgba(21, 93, 252, 0.28)'),
                                     '&:hover': {
-                                        transform: isLoading
-                                            ? 'none'
-                                            : (!userInput.trim() || isQueryLimitReached ? 'none' : 'translateY(-1px)'),
+                                        transform: isMobileViewport
+                                            ? 'translateY(-4px)'
+                                            : (isLoading
+                                                ? 'none'
+                                                : (!userInput.trim() || isQueryLimitReached ? 'none' : 'translateY(-1px)')),
                                     },
                                 }}
                             >
@@ -132,7 +140,13 @@ const ChatSearchBar = ({
                                         }}
                                     />
                                 ) : (
-                                    <SearchIcon sx={{ color: '#ffffff', fontSize: '20px' }} />
+                                    <UnionIcon
+                                        style={{
+                                            color: (!userInput.trim() || isQueryLimitReached) ? '#155DFC' : '#ffffff',
+                                            width: isMobileViewport ? '16px' : '20px',
+                                            height: isMobileViewport ? '16px' : '20px',
+                                        }}
+                                    />
                                 )}
                             </Box>
                         </Box>
@@ -146,7 +160,8 @@ const ChatSearchBar = ({
                 }}
             />
         </Box>
-    </div>
-);
+        </div>
+    );
+};
 
 export default ChatSearchBar;

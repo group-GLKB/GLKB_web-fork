@@ -7,11 +7,15 @@ import React, {
   useState,
 } from 'react';
 
+import { useNavigate } from 'react-router-dom';
+
 import {
   Check as CheckIcon,
+  ChevronRight as ChevronRightIcon,
   Close as CloseIcon,
   ContentCopyOutlined as ContentCopyOutlinedIcon,
   Edit as EditIcon,
+  OpenInNew as OpenInNewIcon,
   Security as SecurityIcon,
 } from '@mui/icons-material';
 import {
@@ -21,12 +25,14 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Drawer,
   Tab,
   Tabs,
   TextField,
   Typography,
 } from '@mui/material';
 
+import apiDocsPreviewImage from '../../img/apidoc/Google Chrome - Light.png';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import {
   ReactComponent as CodeBlocksIcon,
@@ -34,7 +40,7 @@ import {
 import {
   createApiKey,
   deleteApiKey,
-    getApiKeyUsage,
+  getApiKeyUsage,
   listApiKeys,
   updateApiKeyName,
   updateApiKeyStatus,
@@ -43,18 +49,20 @@ import {
 const API_DOCS_TAB = 'api-docs';
 const API_KEYS_TAB = 'api-keys';
 const API_USAGE_TAB = 'api-usage';
-const SHOW_API_DOCS_TAB = false;
+const SHOW_API_DOCS_TAB = true;
 const SHOW_API_KEYS_TAB = true;
 const SHOW_API_USAGE_TAB = true;
+const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
+const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
 const tabs = [
-    { id: API_DOCS_TAB, label: 'API Docs' },
     { id: API_KEYS_TAB, label: 'API Keys' },
     { id: API_USAGE_TAB, label: 'Usage' },
+    { id: API_DOCS_TAB, label: 'API Docs' },
 ];
 
 const subtitleByTab = {
-    [API_DOCS_TAB]: 'Browse the GLKB API documentation without leaving the app.',
+    [API_DOCS_TAB]: 'Quickly jump to the full GLKB API documentation overview.',
     [API_KEYS_TAB]: 'Manage authentication keys for GLKB API access.',
     [API_USAGE_TAB]: 'Track your request volume and usage limits.',
 };
@@ -112,8 +120,12 @@ const normalizeKey = (entry) => ({
 });
 
 const ApiPage = () => {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState(API_KEYS_TAB);
     const [keys, setKeys] = useState([]);
+    const [isPhoneDevice, setIsPhoneDevice] = useState(false);
+    const [mobileDrawerKeyId, setMobileDrawerKeyId] = useState(null);
+    const [mobileUsageDrawerId, setMobileUsageDrawerId] = useState(null);
     const [loadingKeys, setLoadingKeys] = useState(false);
     const [loadingUsage, setLoadingUsage] = useState(false);
     const [keysError, setKeysError] = useState('');
@@ -144,6 +156,11 @@ const ApiPage = () => {
         return { total, active };
     }, [keys]);
 
+    const mobileDrawerEntry = useMemo(
+        () => keys.find((entry) => entry.id === mobileDrawerKeyId) || null,
+        [keys, mobileDrawerKeyId]
+    );
+
     const usageRows = useMemo(() => (
         usageSummary.apiList
             .filter((entry) => Number(entry?.is_delete || 0) !== 1)
@@ -159,6 +176,11 @@ const ApiPage = () => {
             queryCount: entry.query_count ?? entry.queries,
             }))
     ), [usageSummary.apiList]);
+
+    const mobileUsageDrawerEntry = useMemo(
+        () => usageRows.find((entry) => entry.id === mobileUsageDrawerId) || null,
+        [usageRows, mobileUsageDrawerId]
+    );
 
     const visibleTabs = useMemo(
         () => tabs.filter((tab) => {
@@ -206,6 +228,25 @@ const ApiPage = () => {
             setLoadingUsage(false);
         }
     };
+
+    useEffect(() => {
+        const evaluateIsPhone = () => {
+            setIsPhoneDevice(isPhoneUa() && isPhoneViewport());
+        };
+
+        evaluateIsPhone();
+        window.addEventListener('resize', evaluateIsPhone);
+        return () => {
+            window.removeEventListener('resize', evaluateIsPhone);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!isPhoneDevice) {
+            setMobileDrawerKeyId(null);
+            setMobileUsageDrawerId(null);
+        }
+    }, [isPhoneDevice]);
 
     useEffect(() => {
         if (activeTab === API_KEYS_TAB || activeTab === API_USAGE_TAB) {
@@ -306,6 +347,10 @@ const ApiPage = () => {
         }
     };
 
+    const handleMobileRowToggle = (keyId) => {
+        setMobileDrawerKeyId(keyId);
+    };
+
     const handleCopy = async (value) => {
         try {
             await navigator.clipboard.writeText(value);
@@ -339,7 +384,7 @@ const ApiPage = () => {
     return (
         <div className="api-page">
             <Box className="api-body">
-                <Box className="api-content">
+                <Box className={`api-content${activeTab === API_DOCS_TAB ? ' api-content-docs' : ''}`}>
                     <Box className="api-header">
                         <Box className="api-title-row">
                             <CodeBlocksIcon className="api-icon" style={{ width: 36, height: 36, color: '#164563' }} />
@@ -357,8 +402,8 @@ const ApiPage = () => {
                                 className="api-tabs"
                                 value={activeTab}
                                 onChange={(_, value) => setActiveTab(value)}
-                                variant="scrollable"
-                                allowScrollButtonsMobile
+                                variant={isPhoneDevice ? 'fullWidth' : 'scrollable'}
+                                allowScrollButtonsMobile={!isPhoneDevice}
                                 TabIndicatorProps={{
                                     sx: {
                                         backgroundColor: '#155DFC',
@@ -368,7 +413,7 @@ const ApiPage = () => {
                                 sx={{
                                     minHeight: 0,
                                     '& .MuiTabs-flexContainer': {
-                                        gap: '12px',
+                                        gap: isPhoneDevice ? 0 : '12px',
                                     },
                                     '& .MuiTab-root': {
                                         textTransform: 'none',
@@ -377,8 +422,10 @@ const ApiPage = () => {
                                         fontWeight: 600,
                                         color: '#164563',
                                         minHeight: 32,
-                                        minWidth: 0,
-                                        padding: '12px 24px',
+                                        minWidth: isPhoneDevice ? `${100 / Math.max(visibleTabs.length, 1)}%` : 0,
+                                        maxWidth: isPhoneDevice ? 'none' : undefined,
+                                        flex: isPhoneDevice ? 1 : undefined,
+                                        padding: isPhoneDevice ? '12px 0' : '12px 24px',
                                     },
                                     '& .MuiTab-root.Mui-selected': {
                                         color: '#155DFC',
@@ -390,34 +437,41 @@ const ApiPage = () => {
                                 ))}
                             </Tabs>
                         </Box>
-                        <Typography sx={{
-                            marginTop: '36px',
-                            marginBottom: '12px',
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontWeight: 700,
-                            fontSize: '24px',
-                            color: '#164563',
-                        }}>
-                            {activeTabLabel}
-                        </Typography>
-                        <Typography className="api-section-subtitle">
-                            {subtitleByTab[activeTab]}
-                        </Typography>
+                        {activeTab !== API_DOCS_TAB && (
+                            <>
+                                <Typography sx={{
+                                    marginTop: '36px',
+                                    marginBottom: '12px',
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontWeight: 700,
+                                    fontSize: '24px',
+                                    color: '#164563',
+                                }}>
+                                    {activeTabLabel}
+                                </Typography>
+                                <Typography className="api-section-subtitle">
+                                    {subtitleByTab[activeTab]}
+                                </Typography>
+                            </>
+                        )}
                     </Box>
                     {activeTab === API_DOCS_TAB && (
-                        <>
-                            <Box className="api-frame-wrap">
-                                <iframe
-                                    className="api-frame"
-                                    title="GLKB API Documentation"
-                                    src="https://glkb.dcmb.med.umich.edu/reorg-api/redoc"
-                                    loading="lazy"
-                                />
+                        <Box className="api-doc-tab-panel">
+                            <Box className="api-doc-tab-link-wrap">
+                                <Button
+                                    onClick={() => navigate('/api-docs/overview')}
+                                    className="api-doc-tab-headline-btn"
+                                >
+                                    <span>View our API Docs</span>
+                                    <OpenInNewIcon className="api-doc-tab-headline-icon" aria-hidden="true" />
+                                </Button>
                             </Box>
-                            <Typography className="api-note">
-                                If the docs do not load, your browser may block embedding for security reasons.
-                            </Typography>
-                        </>
+                            <img
+                                src={apiDocsPreviewImage}
+                                alt="API docs preview"
+                                className="api-doc-tab-preview"
+                            />
+                        </Box>
                     )}
                     {activeTab === API_KEYS_TAB && (
                         <>
@@ -449,70 +503,182 @@ const ApiPage = () => {
                                     </button>
                                 </div>
                             )}
-                            <div className="api-keys-table-wrap">
-                                <div className="api-keys-table">
-                                    <div className="api-keys-table-row api-keys-table-header">
-                                        <span className="api-keys-col api-keys-col--name">Name</span>
-                                        <span className="api-keys-col api-keys-col--key">Key</span>
-                                        <span className="api-keys-col api-keys-col--created">Created</span>
-                                        <span className="api-keys-col api-keys-col--last-used">Last Used</span>
-                                        <span className="api-keys-col api-keys-col--status">Status</span>
-                                        <span className="api-keys-col api-keys-col--actions">Actions</span>
-                                    </div>
-                                    {loadingKeys && (
-                                        <div className="api-keys-table-row api-keys-table-empty">
-                                            Loading keys...
+                            {!isPhoneDevice && (
+                                <div className="api-keys-table-wrap">
+                                    <div className="api-keys-table">
+                                        <div className="api-keys-table-row api-keys-table-header">
+                                            <span className="api-keys-col api-keys-col--name">Name</span>
+                                            <span className="api-keys-col api-keys-col--key">Key</span>
+                                            <span className="api-keys-col api-keys-col--created">Created</span>
+                                            <span className="api-keys-col api-keys-col--last-used">Last Used</span>
+                                            <span className="api-keys-col api-keys-col--status">Status</span>
+                                            <span className="api-keys-col api-keys-col--actions">Actions</span>
                                         </div>
+                                        {loadingKeys && (
+                                            <div className="api-keys-table-row api-keys-table-empty">
+                                                Loading keys...
+                                            </div>
+                                        )}
+                                        {!loadingKeys && keys.length === 0 && (
+                                            <div className="api-keys-table-row api-keys-table-empty">
+                                                No API keys yet.
+                                            </div>
+                                        )}
+                                        {!loadingKeys && keys.map((entry) => (
+                                            <div className="api-keys-table-row" key={entry.id}>
+                                                <span className="api-keys-col api-keys-col--name">{entry.name}</span>
+                                                <span className="api-keys-col api-keys-col--key">
+                                                    <span className={`api-keys-key-pill ${entry.status === 1 ? 'is-active' : 'is-inactive'}`}>
+                                                        {entry.value}
+                                                    </span>
+                                                </span>
+                                                <span className="api-keys-col api-keys-col--created">{entry.createdLabel}</span>
+                                                <span className="api-keys-col api-keys-col--last-used">{entry.lastUsedLabel}</span>
+                                                <span className="api-keys-col api-keys-col--status">
+                                                    <span className={`api-keys-status ${entry.status === 1 ? 'is-active' : ''}`}>
+                                                        {entry.statusLabel}
+                                                    </span>
+                                                </span>
+                                                <span className="api-keys-col api-keys-col--actions">
+                                                    <button
+                                                        type="button"
+                                                        className="api-keys-action is-icon"
+                                                        onClick={() => handleEdit(entry)}
+                                                        aria-label="Edit"
+                                                    >
+                                                        <EditIcon fontSize="small" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="api-keys-action"
+                                                        onClick={() => handleStatusToggle(entry)}
+                                                        disabled={statusUpdatingId === entry.id}
+                                                    >
+                                                        {entry.status === 1 ? 'Disable' : 'Enable'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="api-keys-action is-danger"
+                                                        onClick={() => handleDelete(entry)}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {isPhoneDevice && (
+                                <div className="api-keys-mobile-list" role="list">
+                                    {loadingKeys && (
+                                        <div className="api-keys-mobile-empty">Loading keys...</div>
                                     )}
                                     {!loadingKeys && keys.length === 0 && (
-                                        <div className="api-keys-table-row api-keys-table-empty">
-                                            No API keys yet.
-                                        </div>
+                                        <div className="api-keys-mobile-empty">No API keys yet.</div>
                                     )}
-                                    {!loadingKeys && keys.map((entry) => (
-                                        <div className="api-keys-table-row" key={entry.id}>
-                                            <span className="api-keys-col api-keys-col--name">{entry.name}</span>
-                                            <span className="api-keys-col api-keys-col--key">
-                                                <span className={`api-keys-key-pill ${entry.status === 1 ? 'is-active' : 'is-inactive'}`}>
-                                                    {entry.value}
-                                                </span>
-                                            </span>
-                                            <span className="api-keys-col api-keys-col--created">{entry.createdLabel}</span>
-                                            <span className="api-keys-col api-keys-col--last-used">{entry.lastUsedLabel}</span>
-                                            <span className="api-keys-col api-keys-col--status">
-                                                <span className={`api-keys-status ${entry.status === 1 ? 'is-active' : ''}`}>
-                                                    {entry.statusLabel}
-                                                </span>
-                                            </span>
-                                            <span className="api-keys-col api-keys-col--actions">
+                                    {!loadingKeys && keys.map((entry) => {
+                                        return (
+                                            <div className="api-keys-mobile-item" key={entry.id} role="listitem">
                                                 <button
                                                     type="button"
-                                                    className="api-keys-action is-icon"
-                                                    onClick={() => handleEdit(entry)}
-                                                    aria-label="Edit"
+                                                    className="api-keys-mobile-row"
+                                                    onClick={() => handleMobileRowToggle(entry.id)}
                                                 >
-                                                    <EditIcon fontSize="small" />
+                                                    <span className="api-keys-mobile-main">
+                                                        <span className="api-keys-mobile-name">{entry.name}</span>
+                                                        <span className="api-keys-mobile-key">{entry.value}</span>
+                                                    </span>
+                                                    <span className="api-keys-mobile-side">
+                                                        <span className={`api-keys-status ${entry.status === 1 ? 'is-active' : ''}`}>
+                                                            {entry.statusLabel}
+                                                        </span>
+                                                        <span className="api-keys-mobile-last-used">{entry.lastUsedLabel}</span>
+                                                    </span>
+                                                    <ChevronRightIcon className="api-keys-mobile-chevron" />
                                                 </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                            {isPhoneDevice && (
+                                <Drawer
+                                    anchor="bottom"
+                                    open={Boolean(mobileDrawerEntry)}
+                                    onClose={() => setMobileDrawerKeyId(null)}
+                                    PaperProps={{ className: 'api-keys-mobile-page-drawer' }}
+                                >
+                                    {mobileDrawerEntry && (
+                                        <div className="api-keys-mobile-page-drawer-body">
+                                            <div className="api-keys-mobile-page-drawer-header">
+                                                <div className="api-keys-mobile-page-drawer-head-main">
+                                                    <span className="api-keys-mobile-page-drawer-title">{mobileDrawerEntry.name}</span>
+                                                    <button
+                                                        type="button"
+                                                        className="api-keys-action is-icon"
+                                                        onClick={() => {
+                                                            setMobileDrawerKeyId(null);
+                                                            handleEdit(mobileDrawerEntry);
+                                                        }}
+                                                        aria-label="Edit API key"
+                                                    >
+                                                        <EditIcon fontSize="small" />
+                                                    </button>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="api-keys-dialog-close"
+                                                    onClick={() => setMobileDrawerKeyId(null)}
+                                                    aria-label="Close"
+                                                >
+                                                    <CloseIcon fontSize="small" />
+                                                </button>
+                                            </div>
+                                            <div className="api-keys-mobile-detail-grid">
+                                                <div>
+                                                    <span className="api-keys-mobile-label">Status</span>
+                                                    <span className={`api-keys-status ${mobileDrawerEntry.status === 1 ? 'is-active' : ''}`}>
+                                                        {mobileDrawerEntry.statusLabel}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <span className="api-keys-mobile-label">Last Used</span>
+                                                    <span className="api-keys-mobile-value">{mobileDrawerEntry.lastUsedLabel}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="api-keys-mobile-label">Created</span>
+                                                    <span className="api-keys-mobile-value">{mobileDrawerEntry.createdLabel}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="api-keys-mobile-label">Key</span>
+                                                    <span className="api-keys-mobile-value api-keys-mobile-value-key">{mobileDrawerEntry.value}</span>
+                                                </div>
+                                            </div>
+                                            <div className="api-keys-mobile-actions">
                                                 <button
                                                     type="button"
                                                     className="api-keys-action"
-                                                    onClick={() => handleStatusToggle(entry)}
-                                                    disabled={statusUpdatingId === entry.id}
+                                                    onClick={() => handleStatusToggle(mobileDrawerEntry)}
+                                                    disabled={statusUpdatingId === mobileDrawerEntry.id}
                                                 >
-                                                    {entry.status === 1 ? 'Disable' : 'Enable'}
+                                                    {mobileDrawerEntry.status === 1 ? 'Disable' : 'Enable'}
                                                 </button>
                                                 <button
                                                     type="button"
                                                     className="api-keys-action is-danger"
-                                                    onClick={() => handleDelete(entry)}
+                                                    onClick={() => {
+                                                        setMobileDrawerKeyId(null);
+                                                        handleDelete(mobileDrawerEntry);
+                                                    }}
                                                 >
                                                     Delete
                                                 </button>
-                                            </span>
+                                            </div>
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
+                                    )}
+                                </Drawer>
+                            )}
                             <div className="api-keys-notice">
                                 <div className="api-keys-notice-icon">
                                     <SecurityIcon className="api-keys-notice-icon-svg" />
@@ -550,51 +716,143 @@ const ApiPage = () => {
                                     </button>
                                 </div>
                             )}
-                            <div className="api-keys-table-wrap">
-                                <div className="api-keys-table api-usage-table">
-                                    <div className="api-keys-table-row api-keys-table-header api-usage-table-row">
-                                        <span className="api-keys-col api-keys-col--name">Name</span>
-                                        <span className="api-keys-col api-keys-col--key">Key</span>
-                                        <span className="api-keys-col api-keys-col--status">Status</span>
-                                        <span className="api-keys-col">Requests</span>
-                                        <span className="api-keys-col">Token</span>
-                                        <span className="api-keys-col">API Cost</span>
-                                        <span className="api-keys-col">Query Count</span>
-                                    </div>
-                                    {(loadingKeys || loadingUsage) && (
-                                        <div className="api-keys-table-row api-keys-table-empty">
-                                            Loading usage...
+                            {!isPhoneDevice && (
+                                <div className="api-keys-table-wrap">
+                                    <div className="api-keys-table api-usage-table">
+                                        <div className="api-keys-table-row api-keys-table-header api-usage-table-row">
+                                            <span className="api-keys-col api-keys-col--name">Name</span>
+                                            <span className="api-keys-col api-keys-col--key">Key</span>
+                                            <span className="api-keys-col api-keys-col--status">Status</span>
+                                            <span className="api-keys-col">Requests</span>
+                                            <span className="api-keys-col">Token</span>
+                                            <span className="api-keys-col">API Cost</span>
+                                            <span className="api-keys-col">Query Count</span>
                                         </div>
+                                        {(loadingKeys || loadingUsage) && (
+                                            <div className="api-keys-table-row api-keys-table-empty">
+                                                Loading usage...
+                                            </div>
+                                        )}
+                                        {!loadingKeys && !loadingUsage && usageRows.length === 0 && (
+                                            <div className="api-keys-table-row api-keys-table-empty">
+                                                No usage records yet.
+                                            </div>
+                                        )}
+                                        {!loadingKeys && !loadingUsage && usageRows.map((entry) => {
+                                            const isInactive = entry.status !== 1;
+                                            return (
+                                                <div className="api-keys-table-row api-usage-table-row" key={`usage-${entry.id}`}>
+                                                    <span className="api-keys-col api-keys-col--name">{entry.name}</span>
+                                                    <span className="api-keys-col api-keys-col--key">
+                                                        <span className={`api-keys-key-pill ${entry.status === 1 ? 'is-active' : 'is-inactive'}`}>
+                                                            {entry.value}
+                                                        </span>
+                                                    </span>
+                                                    <span className="api-keys-col api-keys-col--status">
+                                                        <span className={`api-keys-status ${entry.status === 1 ? 'is-active' : ''}`}>
+                                                            {entry.statusLabel}
+                                                        </span>
+                                                    </span>
+                                                    <span className={`api-usage-metric${isInactive ? ' is-inactive' : ''}`}>{formatUsageInteger(entry.requests)}</span>
+                                                    <span className={`api-usage-metric${isInactive ? ' is-inactive' : ''}`}>{formatUsageInteger(entry.token)}</span>
+                                                    <span className={`api-usage-metric${isInactive ? ' is-inactive' : ''}`}>${formatUsageCost(entry.apiCost)}</span>
+                                                    <span className={`api-usage-metric${isInactive ? ' is-inactive' : ''}`}>{formatUsageInteger(entry.queryCount)}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                            {isPhoneDevice && (
+                                <div className="api-keys-mobile-list" role="list">
+                                    {(loadingKeys || loadingUsage) && (
+                                        <div className="api-keys-mobile-empty">Loading usage...</div>
                                     )}
                                     {!loadingKeys && !loadingUsage && usageRows.length === 0 && (
-                                        <div className="api-keys-table-row api-keys-table-empty">
-                                            No usage records yet.
-                                        </div>
+                                        <div className="api-keys-mobile-empty">No usage records yet.</div>
                                     )}
                                     {!loadingKeys && !loadingUsage && usageRows.map((entry) => {
                                         const isInactive = entry.status !== 1;
                                         return (
-                                            <div className="api-keys-table-row api-usage-table-row" key={`usage-${entry.id}`}>
-                                                <span className="api-keys-col api-keys-col--name">{entry.name}</span>
-                                                <span className="api-keys-col api-keys-col--key">
-                                                    <span className={`api-keys-key-pill ${entry.status === 1 ? 'is-active' : 'is-inactive'}`}>
-                                                        {entry.value}
+                                            <div className="api-keys-mobile-item" key={`usage-mobile-${entry.id}`} role="listitem">
+                                                <button
+                                                    type="button"
+                                                    className="api-keys-mobile-row"
+                                                    onClick={() => setMobileUsageDrawerId(entry.id)}
+                                                >
+                                                    <span className="api-keys-mobile-main">
+                                                        <span className="api-keys-mobile-name">{entry.name}</span>
+                                                        <span className="api-keys-mobile-key">{entry.value}</span>
                                                     </span>
-                                                </span>
-                                                <span className="api-keys-col api-keys-col--status">
-                                                    <span className={`api-keys-status ${entry.status === 1 ? 'is-active' : ''}`}>
-                                                        {entry.statusLabel}
+                                                    <span className="api-keys-mobile-side">
+                                                        <span className={`api-keys-status ${entry.status === 1 ? 'is-active' : ''}`}>
+                                                            {entry.statusLabel}
+                                                        </span>
+                                                        <span className={`api-usage-mobile-requests${isInactive ? ' is-inactive' : ''}`}>
+                                                            Cost: ${formatUsageCost(entry.apiCost)}
+                                                        </span>
                                                     </span>
-                                                </span>
-                                                <span className={`api-usage-metric${isInactive ? ' is-inactive' : ''}`}>{formatUsageInteger(entry.requests)}</span>
-                                                <span className={`api-usage-metric${isInactive ? ' is-inactive' : ''}`}>{formatUsageInteger(entry.token)}</span>
-                                                <span className={`api-usage-metric${isInactive ? ' is-inactive' : ''}`}>${formatUsageCost(entry.apiCost)}</span>
-                                                <span className={`api-usage-metric${isInactive ? ' is-inactive' : ''}`}>{formatUsageInteger(entry.queryCount)}</span>
+                                                    <ChevronRightIcon className="api-keys-mobile-chevron" />
+                                                </button>
                                             </div>
                                         );
                                     })}
                                 </div>
-                            </div>
+                            )}
+                            {isPhoneDevice && (
+                                <Drawer
+                                    anchor="bottom"
+                                    open={Boolean(mobileUsageDrawerEntry)}
+                                    onClose={() => setMobileUsageDrawerId(null)}
+                                    PaperProps={{ className: 'api-keys-mobile-page-drawer' }}
+                                >
+                                    {mobileUsageDrawerEntry && (
+                                        <div className="api-keys-mobile-page-drawer-body">
+                                            <div className="api-keys-mobile-page-drawer-header">
+                                                <div className="api-keys-mobile-page-drawer-head-main">
+                                                    <span className="api-keys-mobile-page-drawer-title">{mobileUsageDrawerEntry.name}</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="api-keys-dialog-close"
+                                                    onClick={() => setMobileUsageDrawerId(null)}
+                                                    aria-label="Close"
+                                                >
+                                                    <CloseIcon fontSize="small" />
+                                                </button>
+                                            </div>
+                                            <div className="api-keys-mobile-detail-grid">
+                                                <div>
+                                                    <span className="api-keys-mobile-label">Status</span>
+                                                    <span className={`api-keys-status ${mobileUsageDrawerEntry.status === 1 ? 'is-active' : ''}`}>
+                                                        {mobileUsageDrawerEntry.statusLabel}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <span className="api-keys-mobile-label">Key</span>
+                                                    <span className="api-keys-mobile-value api-keys-mobile-value-key">{mobileUsageDrawerEntry.value}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="api-keys-mobile-label">Requests</span>
+                                                    <span className="api-keys-mobile-value">{formatUsageInteger(mobileUsageDrawerEntry.requests)}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="api-keys-mobile-label">Token</span>
+                                                    <span className="api-keys-mobile-value">{formatUsageInteger(mobileUsageDrawerEntry.token)}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="api-keys-mobile-label">API Cost</span>
+                                                    <span className="api-keys-mobile-value">${formatUsageCost(mobileUsageDrawerEntry.apiCost)}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="api-keys-mobile-label">Query Count</span>
+                                                    <span className="api-keys-mobile-value">{formatUsageInteger(mobileUsageDrawerEntry.queryCount)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </Drawer>
+                            )}
                         </>
                     )}
                     <Dialog

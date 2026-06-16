@@ -14,13 +14,16 @@ export default function SearchButton({
 }) {
     const iconSize = Math.round(size * 0.56);
     const isHomeVariant = variant === 'home';
+    const isHomeInteractive = isHomeVariant && !disabled && !hide;
     const backgroundColor = hide ? 'transparent' :
-        disabled ? (isHomeVariant ? '#9fb6ff' : '#0169B060') :
+        disabled ? (isHomeVariant ? '#E7F1FF' : '#0169B060') :
             isHomeVariant ? '#155DFC' : (alterColor ? '#079BD4' : '#0169B0');
-    const iconColor = isHomeVariant ? '#ffffff' : (!hide ? 'white' :
+    const iconColor = isHomeVariant
+        ? (isHomeInteractive ? '#ffffff' : '#155DFC')
+        : (!hide ? 'white' :
         disabled ? '#0169B060' :
             alterColor ? '#079BD4' : '#0169B0');
-    const buttonShadow = isHomeVariant && !disabled && !hide
+    const buttonShadow = isHomeInteractive
         ? '0 6px 12px rgba(21, 93, 252, 0.28)'
         : 'none';
     const ButtonIcon = isHomeVariant ? SearchIcon : ArrowForwardIcon;

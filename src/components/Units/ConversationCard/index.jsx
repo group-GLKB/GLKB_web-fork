@@ -54,6 +54,7 @@ const ConversationCard = ({
     onDelete,
     onManageFolders,
     isBookmarked = false,
+    alwaysShowMenuButton = false,
     bookmarkLabel,
     folderLabel = 'Add to folder',
     menuDisabled = false,
@@ -164,7 +165,7 @@ const ConversationCard = ({
     const shouldRenderCheckbox = selectMode || showCheckboxOnHover;
 
     return (
-        <Box className={`history-item-row${selectMode ? ' history-item-row-select-mode' : ''}`}>
+        <Box className={`history-item-row${selectMode ? ' history-item-row-select-mode' : ''}${!shouldRenderCheckbox ? ' history-item-row-no-checkbox' : ''}`}>
             {shouldRenderCheckbox && (
                 <Checkbox
                     className="history-row-checkbox"
@@ -240,7 +241,7 @@ const ConversationCard = ({
                         {hasMenu && (
                             <IconButton
                                 size="small"
-                                className="history-item-more"
+                                className={`history-item-more${alwaysShowMenuButton ? ' is-always-visible' : ''}`}
                                 onClick={handleOpenMenu}
                                 aria-label="Open conversation menu"
                                 disabled={menuDisabled || isEditing}

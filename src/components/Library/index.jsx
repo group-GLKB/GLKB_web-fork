@@ -14,6 +14,7 @@ import {
 
 import {
     Bookmark as BookmarkIcon,
+    Close as CloseIcon,
     ChevronRight as ChevronRightIcon,
     DeleteOutline as DeleteOutlineIcon,
     DriveFileRenameOutline as DriveFileRenameOutlineIcon,
@@ -21,6 +22,7 @@ import {
     FilterListOutlined as FilterListOutlinedIcon,
     FolderOutlined as FolderOutlinedIcon,
     FormatQuoteOutlined as FormatQuoteOutlinedIcon,
+    KeyboardArrowDown as KeyboardArrowDownIcon,
     MoreHoriz as MoreHorizIcon,
 } from '@mui/icons-material';
 import {
@@ -31,6 +33,7 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
+    Drawer,
     FormControl,
     IconButton,
     ListItemIcon,
@@ -98,6 +101,8 @@ const SORT_DATE = 'date';
 const ENTRY_PREVIEW_LIMIT = 5;
 const DEFAULT_FOLDER_NAME = 'New Folder';
 const DEBUG_HIDE_EXPLORE = true;
+const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
+const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
 const getConversationTitle = (conversation) => (
     conversation?.leadingTitle || conversation?.title || 'New Chat'
@@ -818,12 +823,26 @@ const Library = () => {
     const { isAuthenticated, loading } = useAuth();
     const [sortOption, setSortOption] = useState(SORT_DATE);
     const [searchQuery, setSearchQuery] = useState('');
+    const [isPhoneDevice, setIsPhoneDevice] = useState(false);
+    const [mobileFolderDrawerOpen, setMobileFolderDrawerOpen] = useState(false);
 
     const [selectedFolderId, setSelectedFolderId] = useState(() => {
         const params = new URLSearchParams(location.search);
         return params.get('folder');
     });
     const isFolderView = Boolean(selectedFolderId);
+
+    useEffect(() => {
+        const evaluateIsPhone = () => {
+            setIsPhoneDevice(isPhoneUa() && isPhoneViewport());
+        };
+
+        evaluateIsPhone();
+        window.addEventListener('resize', evaluateIsPhone);
+        return () => {
+            window.removeEventListener('resize', evaluateIsPhone);
+        };
+    }, []);
 
     useEffect(() => {
         if (DEBUG_HIDE_EXPLORE && activeTab === GRAPHS_TAB) {
@@ -1219,6 +1238,7 @@ const Library = () => {
     const handleSelectFolder = (folderId) => {
         const nextId = folderId ? String(folderId) : null;
         setSelectedFolderId(nextId);
+        setMobileFolderDrawerOpen(false);
         if (nextId) {
             navigate(`/library?folder=${nextId}`, { replace: true });
         } else {
@@ -1338,6 +1358,9 @@ const Library = () => {
             || folders.find((folder) => String(folder.fid) === String(selectedFolderId))?.name
             || 'Folder')
         : null;
+    const mobileFolderStatusLabel = isFolderView
+        ? (selectedFolderName || 'Folder')
+        : 'All Items';
     const getFolderItemCount = (folder) => (
         (folder?.chat_count ?? 0)
         + (folder?.ref_count ?? 0)
@@ -1498,7 +1521,8 @@ const Library = () => {
                 </DialogActions>
             </Dialog>
             <Box className="library-body">
-                <Box className="library-folder-manager">
+                {!isPhoneDevice && (
+                    <Box className="library-folder-manager">
                     <button
                         type="button"
                         className={`library-folder-manager-item${!selectedFolderId ? ' is-active' : ''}`}
@@ -1553,7 +1577,79 @@ const Library = () => {
                             )}
                         </div>
                     </Box>
-                </Box>
+                    </Box>
+                )}
+                {isPhoneDevice && (
+                    <Drawer
+                        anchor="bottom"
+                        open={mobileFolderDrawerOpen}
+                        onClose={() => setMobileFolderDrawerOpen(false)}
+                        PaperProps={{ className: 'library-mobile-folder-drawer-paper' }}
+                    >
+                        <div className="library-mobile-folder-drawer">
+                            <div className="library-mobile-folder-drawer-header">
+                                <span className="library-mobile-folder-drawer-title">Folders</span>
+                                <div className="library-mobile-folder-drawer-header-actions">
+                                    <IconButton
+                                        size="small"
+                                        aria-label="Add folder"
+                                        className="library-folder-manager-action"
+                                        onClick={() => handleOpenFolderDialog()}
+                                    >
+                                        <AddIcon style={{ width: 18, height: 18 }} />
+                                    </IconButton>
+                                    <button
+                                        type="button"
+                                        className="library-mobile-folder-drawer-close"
+                                        onClick={() => setMobileFolderDrawerOpen(false)}
+                                        aria-label="Close"
+                                    >
+                                        <CloseIcon fontSize="small" />
+                                    </button>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                className={`library-folder-manager-item${!selectedFolderId ? ' is-active' : ''}`}
+                                onClick={() => handleSelectFolder(null)}
+                            >
+                                <span className="library-folder-manager-icon">
+                                    <BookIcon style={{ width: 18, height: 18 }} />
+                                </span>
+                                <span className="library-folder-manager-label">All Items</span>
+                                <span className="library-folder-manager-count">{allItemsCount}</span>
+                            </button>
+                            <div className="library-folder-manager-list library-folder-manager-list-mobile">
+                                {folders.length > 0 ? (
+                                    folders.map((folder) => (
+                                        <button
+                                            key={folder.fid}
+                                            type="button"
+                                            className={`library-folder-manager-item${String(selectedFolderId) === String(folder.fid) ? ' is-active' : ''}`}
+                                            onClick={() => handleSelectFolder(folder.fid)}
+                                        >
+                                            <span className="library-folder-manager-icon">
+                                                <FolderOpenIcon style={{ width: 18, height: 18 }} />
+                                            </span>
+                                            <span className="library-folder-manager-label">{folder?.name || 'Untitled folder'}</span>
+                                            <span className="library-folder-manager-count">{getFolderItemCount(folder)}</span>
+                                        </button>
+                                    ))
+                                ) : (
+                                    <div className="library-folder-manager-empty">No folders yet.</div>
+                                )}
+                            </div>
+                            <button
+                                type="button"
+                                className="library-mobile-folder-new-button"
+                                onClick={() => handleOpenFolderDialog()}
+                            >
+                                <AddIcon style={{ width: 16, height: 16 }} />
+                                New Folder
+                            </button>
+                        </div>
+                    </Drawer>
+                )}
                 <Box className="library-content">
                     <Box className="library-header">
                         <Box className="library-title-bar">
@@ -1602,13 +1698,26 @@ const Library = () => {
                                 </button>
                             )}
                         </div>
+                        {isPhoneDevice && (
+                            <Box className="library-folder-status-row">
+                                <span className="library-folder-status-label">{mobileFolderStatusLabel}</span>
+                                <button
+                                    type="button"
+                                    className="library-folder-status-button"
+                                    onClick={() => setMobileFolderDrawerOpen(true)}
+                                >
+                                    <span>{folders.length} folders</span>
+                                    <KeyboardArrowDownIcon sx={{ fontSize: 18 }} />
+                                </button>
+                            </Box>
+                        )}
                         <Box className="library-tabs-row">
                             <Tabs
                                 className="library-tabs"
                                 value={activeTab}
                                 onChange={(_, value) => handleTabClick(value)}
-                                variant="scrollable"
-                                allowScrollButtonsMobile
+                                variant={isPhoneDevice ? 'fullWidth' : 'scrollable'}
+                                allowScrollButtonsMobile={!isPhoneDevice}
                                 TabIndicatorProps={{
                                     sx: {
                                         backgroundColor: '#155DFC',
@@ -1618,7 +1727,7 @@ const Library = () => {
                                 sx={{
                                     minHeight: 0,
                                     '& .MuiTabs-flexContainer': {
-                                        gap: '12px',
+                                        gap: isPhoneDevice ? 0 : '12px',
                                     },
                                     '& .MuiTab-root': {
                                         textTransform: 'none',
@@ -1627,8 +1736,10 @@ const Library = () => {
                                         fontWeight: 600,
                                         color: '#164563',
                                         minHeight: 32,
-                                        minWidth: 0,
-                                        padding: '12px 24px',
+                                        minWidth: isPhoneDevice ? '25%' : 0,
+                                        maxWidth: isPhoneDevice ? 'none' : undefined,
+                                        flex: isPhoneDevice ? 1 : undefined,
+                                        padding: isPhoneDevice ? '12px 0' : '12px 24px',
                                     },
                                     '& .MuiTab-root.Mui-selected': {
                                         color: '#155DFC',
@@ -1639,35 +1750,87 @@ const Library = () => {
                                     <Tab key={tab.id} value={tab.id} label={tab.label} />
                                 ))}
                             </Tabs>
-                            <Box className="library-sort">
-                                <span className="library-sort-label">Sort:</span>
-                                <FormControl size="small">
-                                    <Select
-                                        value={sortOption}
-                                        onChange={(event) => setSortOption(event.target.value)}
-                                        displayEmpty
-                                        sx={{
-                                            fontFamily: 'DM Sans, sans-serif',
-                                            fontSize: '12px',
-                                            fontWeight: 600,
-                                            color: '#164563',
-                                            minWidth: 110,
-                                            height: 28,
-                                            backgroundColor: '#E7F1FF',
-                                            borderRadius: '16px',
-                                            '& .MuiSelect-select': {
-                                                padding: '4px 8px',
-                                            },
-                                            '& fieldset': {
-                                                border: 'none',
-                                            },
-                                        }}
+                            {!isPhoneDevice && (
+                                <Box className="library-sort">
+                                    <span className="library-sort-label">Sort:</span>
+                                    <FormControl size="small">
+                                        <Select
+                                            value={sortOption}
+                                            onChange={(event) => setSortOption(event.target.value)}
+                                            displayEmpty
+                                            sx={{
+                                                fontFamily: 'DM Sans, sans-serif',
+                                                fontSize: '12px',
+                                                fontWeight: 600,
+                                                color: '#164563',
+                                                minWidth: 110,
+                                                height: 28,
+                                                backgroundColor: '#E7F1FF',
+                                                borderRadius: '16px',
+                                                '& .MuiSelect-select': {
+                                                    padding: '4px 8px',
+                                                },
+                                                '& fieldset': {
+                                                    border: 'none',
+                                                },
+                                            }}
+                                        >
+                                            <MenuItem value={SORT_AZ}>A-Z</MenuItem>
+                                            <MenuItem value={SORT_ZA}>Z-A</MenuItem>
+                                            <MenuItem value={SORT_DATE}>Date Added</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                    <IconButton
+                                        size="small"
+                                        onClick={handleExportReferences}
+                                        disabled={isReferenceExportDisabled}
+                                        title="Download references (.bib)"
+                                        className="library-sort-download"
                                     >
-                                        <MenuItem value={SORT_AZ}>A-Z</MenuItem>
-                                        <MenuItem value={SORT_ZA}>Z-A</MenuItem>
-                                        <MenuItem value={SORT_DATE}>Date Added</MenuItem>
-                                    </Select>
-                                </FormControl>
+                                        <DownloadIcon
+                                            aria-label="Download references"
+                                            style={{
+                                                width: 20,
+                                                height: 20,
+                                                color: isReferenceExportDisabled ? '#B0B0B0' : '#164563',
+                                            }}
+                                        />
+                                    </IconButton>
+                                </Box>
+                            )}
+                        </Box>
+                        {isPhoneDevice && (
+                            <Box className="library-mobile-sort-row">
+                                <Box className="library-sort">
+                                    <span className="library-sort-label">Sort:</span>
+                                    <FormControl size="small">
+                                        <Select
+                                            value={sortOption}
+                                            onChange={(event) => setSortOption(event.target.value)}
+                                            displayEmpty
+                                            sx={{
+                                                fontFamily: 'DM Sans, sans-serif',
+                                                fontSize: '12px',
+                                                fontWeight: 600,
+                                                color: '#164563',
+                                                minWidth: 110,
+                                                height: 28,
+                                                backgroundColor: '#E7F1FF',
+                                                borderRadius: '16px',
+                                                '& .MuiSelect-select': {
+                                                    padding: '4px 8px',
+                                                },
+                                                '& fieldset': {
+                                                    border: 'none',
+                                                },
+                                            }}
+                                        >
+                                            <MenuItem value={SORT_AZ}>A-Z</MenuItem>
+                                            <MenuItem value={SORT_ZA}>Z-A</MenuItem>
+                                            <MenuItem value={SORT_DATE}>Date Added</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Box>
                                 <IconButton
                                     size="small"
                                     onClick={handleExportReferences}
@@ -1685,7 +1848,7 @@ const Library = () => {
                                     />
                                 </IconButton>
                             </Box>
-                        </Box>
+                        )}
                     </Box>
                     <Box className="library-scroll">
                         {isSearching && !hasSearchResults && canRenderList ? (

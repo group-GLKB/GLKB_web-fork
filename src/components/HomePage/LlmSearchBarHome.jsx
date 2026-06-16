@@ -1,28 +1,36 @@
 import React, {
-    useEffect,
-    useState,
+  useEffect,
+  useState,
 } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import CloseIcon from '@mui/icons-material/Close';
-import SearchIcon from '@mui/icons-material/Search';
+import TuneIcon from '@mui/icons-material/Tune';
 import {
-    Autocomplete,
-    Box,
-    Paper,
-    Popper,
-    TextField,
+  Autocomplete,
+  Box,
+    Button,
+  Drawer,
+  IconButton,
+  Paper,
+  Popper,
+  TextField,
+  useMediaQuery,
 } from '@mui/material';
 
-import { useAuth } from '../Auth/AuthContext';
+import { ReactComponent as UnionIcon } from '../../img/Union.svg';
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
+    const [sortBy, setSortBy] = useState('Default');
+    const [paperType, setPaperType] = useState('All types');
     const [isOpen, setIsOpen] = useState(false);
+    const [mobileOptionsOpen, setMobileOptionsOpen] = useState(false);
+    const [desktopOptionsOpen, setDesktopOptionsOpen] = useState(false);
     const navigate = useNavigate();
-    const { isAuthenticated } = useAuth();
+    const isMobileLayout = useMediaQuery('(max-width:600px)');
     const inputTimeoutRef = React.useRef(null);
     const hasTrackedInputRef = React.useRef(false);
     const lastPrefillRef = React.useRef(undefined);
@@ -31,6 +39,20 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         // console.log(props);
         props.setOpen(isOpen);
     }, [isOpen, props]);
+
+    useEffect(() => {
+        if (!props.setExamplesOpen) return;
+        const hasAutocompleteExamples = Array.isArray(props.autocompleteOptions)
+            && props.autocompleteOptions.length > 0;
+        const isExamplePanelExpanded = isOpen && hasAutocompleteExamples && llmQuery.trim() === '';
+        props.setExamplesOpen(isExamplePanelExpanded);
+    }, [isOpen, llmQuery, props]);
+
+    useEffect(() => () => {
+        if (props.setExamplesOpen) {
+            props.setExamplesOpen(false);
+        }
+    }, [props]);
 
     useEffect(() => {
         if (typeof props.prefillQuery !== 'string') {
@@ -42,18 +64,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             setLlmQuery(props.prefillQuery);
         }
     }, [props.prefillQuery]);
-
-    const handleAuthGate = (event) => {
-        if (isAuthenticated) {
-            return false;
-        }
-        if (event) {
-            event.preventDefault();
-            event.stopPropagation();
-        }
-        navigate('/login');
-        return true;
-    };
 
     const CustomPopper = (props) => (
         <Popper
@@ -76,32 +86,226 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             ]}
         />
     );
+
+    const buildSearchOptionsPayload = () => {
+        let rankingMode = 'default';
+        if (sortBy === 'High impact first') rankingMode = 'high_impact';
+        if (sortBy === 'Most recent first') rankingMode = 'recent';
+
+        let filters = [];
+        if (paperType === 'Reviews only') filters = ['review'];
+        if (paperType === 'Exclude reviews') filters = ['non_review'];
+
+        return {
+            filters,
+            rankingMode,
+        };
+    };
+
     const navigateToLLMAgent = (query = '') => {
         // Clear input timeout to prevent search_input event after submission
         if (inputTimeoutRef.current) {
             clearTimeout(inputTimeoutRef.current);
             hasTrackedInputRef.current = true;
         }
-        if (!isAuthenticated) {
-            navigate('/login');
-            return;
-        }
+        const searchOptions = buildSearchOptionsPayload();
         if (query) {
-            navigate('/chat', { state: { initialQuery: query } });
+            navigate('/chat', {
+                state: {
+                    initialQuery: query,
+                    initialSearchOptions: searchOptions,
+                },
+            });
         } else {
-            navigate('/chat');
+            navigate('/chat', {
+                state: {
+                    initialSearchOptions: searchOptions,
+                },
+            });
         }
     };
+    const sortOptions = [
+        { value: 'Default', label: 'Default' },
+        { value: 'High impact first', label: 'High impact' },
+        { value: 'Most recent first', label: 'Most recent' },
+    ];
+    const paperTypeOptions = [
+        { value: 'All types', label: 'All types', width: 78 },
+        { value: 'Reviews only', label: 'Reviews only', width: 103 },
+        { value: 'Exclude reviews', label: 'Exclude reviews', width: 124 },
+    ];
+    const defaultSortBy = 'Default';
+    const defaultPaperType = 'All types';
+    const mobileSelectedOptions = [];
+    if (paperType !== defaultPaperType) mobileSelectedOptions.push(paperType);
+    if (sortBy !== defaultSortBy) mobileSelectedOptions.push(sortBy);
+    const mobileChipLabel = mobileSelectedOptions.length > 0 ? mobileSelectedOptions.join(' + ') : 'Search Options';
+    const openSearchOptions = () => {
+        setIsOpen(false);
+        if (props.setExamplesOpen) {
+            props.setExamplesOpen(false);
+        }
+        if (props.onCollapseExampleLists) {
+            props.onCollapseExampleLists();
+        }
+        if (isMobileLayout) {
+            setMobileOptionsOpen(true);
+            return;
+        }
+        setDesktopOptionsOpen(true);
+    };
+
+    const closeSearchOptions = () => {
+        setMobileOptionsOpen(false);
+        setDesktopOptionsOpen(false);
+    };
+
+    const handleResetSearchOptions = () => {
+        setPaperType(defaultPaperType);
+        setSortBy(defaultSortBy);
+    };
+
+    const optionChipSx = (isActive, { equalWidth = false, fixedWidth } = {}) => ({
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '40px',
+        minWidth: equalWidth ? 0 : `${fixedWidth || 72}px`,
+        padding: '0 8px',
+        borderRadius: '8px',
+        backgroundColor: isActive ? '#FFFFFF' : 'transparent',
+        boxShadow: isActive ? '0px 2px 2px rgba(0, 0, 0, 0.10)' : 'none',
+        fontFamily: 'DM Sans, sans-serif',
+        fontWeight: isActive ? 900 : 600,
+        fontSize: '14px',
+        lineHeight: '16px',
+        color: isActive ? '#155DFC' : '#646464',
+        textTransform: 'none',
+        cursor: 'pointer',
+        '&:hover': {
+            backgroundColor: isActive ? '#FFFFFF' : 'rgba(255, 255, 255, 0.35)',
+            boxShadow: isActive ? '0px 2px 2px rgba(0, 0, 0, 0.10)' : 'none',
+        },
+        whiteSpace: 'nowrap',
+        flex: equalWidth ? '1 0 0' : '0 0 auto',
+    });
+
+    const searchOptionsPanel = (
+        <>
+            <Box
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    py: 2,
+                    borderBottom: '1px solid #EDEDED',
+                }}
+            >
+                <Box sx={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 900, fontSize: '20px', lineHeight: '24px', color: '#333333' }}>
+                    Search Options
+                </Box>
+                <IconButton onClick={closeSearchOptions} size="small" sx={{ color: '#646464' }}>
+                    <CloseIcon fontSize="small" />
+                </IconButton>
+            </Box>
+
+            <Box sx={{ pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2.25 }}>
+                <Box>
+                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#333333' }}>
+                        Article Type
+                    </Box>
+                    <Box sx={{ backgroundColor: '#F4F4F4', borderRadius: '10px', p: '2px', display: 'flex', gap: 0 }}>
+                        {paperTypeOptions.map((option) => (
+                            <Box
+                                key={option.value}
+                                role="button"
+                                onClick={() => setPaperType(option.value)}
+                                sx={optionChipSx(option.value === paperType, { fixedWidth: option.width })}
+                            >
+                                {option.label}
+                            </Box>
+                        ))}
+                    </Box>
+                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: '#969696' }}>
+                        Search every article
+                    </Box>
+                </Box>
+
+                <Box>
+                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#333333' }}>
+                        Sort by
+                    </Box>
+                    <Box sx={{ backgroundColor: '#F4F4F4', borderRadius: '10px', p: '2px', display: 'flex', gap: 0 }}>
+                        {sortOptions.map((option) => (
+                            <Box
+                                key={option.value}
+                                role="button"
+                                onClick={() => setSortBy(option.value)}
+                                sx={optionChipSx(option.value === sortBy, { equalWidth: true })}
+                            >
+                                {option.label}
+                            </Box>
+                        ))}
+                    </Box>
+                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: '#969696' }}>
+                        Best matches for your query
+                    </Box>
+                </Box>
+            </Box>
+
+            <Box sx={{ mt: 'auto', pt: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+                <Box
+                    role="button"
+                    onClick={handleResetSearchOptions}
+                    sx={{
+                        fontFamily: 'DM Sans, sans-serif',
+                        fontWeight: 900,
+                        fontSize: '14px',
+                        lineHeight: '16px',
+                        color: '#646464',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                    }}
+                >
+                    Reset
+                </Box>
+                <Box
+                    role="button"
+                    onClick={closeSearchOptions}
+                    sx={{
+                        flex: 1,
+                        minWidth: '140px',
+                        height: '40px',
+                        borderRadius: '999px',
+                        backgroundColor: '#155DFC',
+                        color: '#FFFFFF',
+                        fontFamily: 'DM Sans, sans-serif',
+                        fontWeight: 900,
+                        fontSize: '14px',
+                        lineHeight: '16px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                    }}
+                >
+                    Done
+                </Box>
+            </Box>
+        </>
+    );
+
     return (
         <Box
             className="llm-searchbar"
-            onMouseDown={handleAuthGate}
-            onTouchStart={handleAuthGate}
             sx={{
                 width: '100%',
                 display: 'flex',
                 gap: 2,
                 margin: '0 auto',
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '16px',
                 backgroundColor: '#ffffff',
                 borderRadius: '16px',
                 borderWidth: '1px',
@@ -112,6 +316,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             <Autocomplete
                 freeSolo
                 fullWidth
+                open={!mobileOptionsOpen && !desktopOptionsOpen && isOpen}
                 disabled={isQueryLimitReached}
                 options={props.autocompleteOptions || []}
                 filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
@@ -139,111 +344,240 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     },
                 }}
                 inputValue={llmQuery}
-                onOpen={(event) => {
+                onOpen={() => {
                     if (isQueryLimitReached) {
-                        return;
-                    }
-                    if (handleAuthGate(event)) {
                         return;
                     }
                     setIsOpen(true);
                 }}
                 onClose={() => setIsOpen(false)}
                 PopperComponent={CustomPopper}
+                sx={{
+                    '& .MuiAutocomplete-groupLabel': {
+                        fontFamily: 'DM Sans, sans-serif',
+                        fontSize: '16px',
+                    },
+                }}
                 renderInput={(params) => (
-                    <TextField
-                        {...params}
-                        placeholder="Ask a question about the biomedical literature..."
-                        multiline
-                        minRows={4}
-                        maxRows={4}
-                        disabled={isQueryLimitReached}
-                        sx={{
-                            height: '130px',
-                            width: '100%',
-                            '& .MuiInputBase-root': {
-                                borderRadius: '16px',
+                    <Box sx={{ position: 'relative', width: '100%' }}>
+                        <TextField
+                            {...params}
+                            placeholder="Ask a question about the biomedical literature..."
+                            multiline
+                            minRows={4}
+                            maxRows={4}
+                            disabled={isQueryLimitReached}
+                            sx={{
                                 height: '130px',
-                                alignItems: 'flex-start',
-                                paddingLeft: '20px',
-                                paddingRight: '100px !important',
-                                paddingTop: '10px',
-                                paddingBottom: '10px',
-                                fontFamily: 'Open Sans, sans-serif',
-                                fontSize: '18px',
-                                color: '#164563',
-                                '& fieldset': {
-                                    border: 'none',
+                                width: '100%',
+                                '& .MuiInputBase-root': {
+                                    borderRadius: '16px',
+                                    height: '130px',
+                                    alignItems: 'flex-start',
+                                    paddingLeft: '20px',
+                                    paddingRight: '20px !important',
+                                    paddingTop: '0px',
+                                    paddingBottom: '58px',
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontSize: '16px',
+                                    color: '#164563',
+                                    '& fieldset': {
+                                        border: 'none',
+                                    },
                                 },
-                            },
-                            '& .MuiInputBase-input': {
-                                lineHeight: '26px',
-                                maxHeight: '100px',
-                            },
-                            '& .MuiInputBase-input::placeholder': {
-                                color: '#969696',
-                                opacity: 1,
-                            },
-                            '& .MuiOutlinedInput-notchedOutline': {
-                                borderColor: 'grey', // Optional: Customize border color
-                            },
-                        }}
-                        fullWidth
-                        InputProps={{
-                            ...params.InputProps,
-                            endAdornment: (
-                                <Box display="flex" alignItems="center" sx={{
-                                    position: 'absolute',
-                                    right: 12,
-                                    bottom: 13,
-                                    top: 'auto',
-                                    gap: 1,
-                                }}>
-                                    {/* Clear Icon */}
-                                    {llmQuery !== "" && !isQueryLimitReached && <CloseIcon
-                                        onMouseDown={(event) => {
-                                            event.preventDefault();
-                                        }}
-                                        onClick={() => {
-                                            setLlmQuery(''); // Clear the input field
-                                        }}
-                                        sx={{
-                                            color: 'grey.500',
-                                            cursor: 'pointer',
-                                            fontSize: '20px',
-                                        }}
-                                    />}
-                                    {/* Search Icon */}
-                                    {llmQuery.trim() && !isQueryLimitReached && (
-                                        <Box
-                                            role="button"
-                                            aria-label="Start chat"
-                                            className="search-button-big"
-                                            onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}
-                                            sx={{
-                                                height: '48px',
-                                                width: '48px',
-                                                borderRadius: '50%',
-                                                backgroundColor: '#E7F1FF',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                cursor: 'pointer',
-                                                transition: 'transform 120ms ease, box-shadow 160ms ease',
-                                                boxShadow: '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',
-                                                '&:hover': {
-                                                    transform: 'translateY(-1px)',
-                                                },
-                                            }}
-                                        >
-                                            <SearchIcon sx={{ color: '#155DFC', fontSize: '22px' }} />
-                                        </Box>
-                                    )}
-                                </Box>
-                            ),
-                        }}
+                                '& .MuiInputBase-input': {
+                                    lineHeight: '26px',
+                                    height: '62px !important',
+                                    maxHeight: '62px !important',
+                                    overflowY: 'auto !important',
+                                },
+                                '& .MuiInputBase-input::placeholder': {
+                                    color: '#A3AAB5',
+                                    opacity: 1,
+                                },
+                                '& .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: 'grey',
+                                },
+                            }}
+                            fullWidth
+                            InputProps={{
+                                ...params.InputProps,
+                                endAdornment: null,
+                            }}
+                        />
 
-                    />
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                left: '20px',
+                                right: '12px',
+                                bottom: '13px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: { xs: 'space-between', sm: 'flex-end' },
+                                gap: 2,
+                                pointerEvents: 'none',
+                            }}
+                        >
+                            <Box
+                                onMouseDown={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                }}
+                                onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    openSearchOptions();
+                                }}
+                                sx={{
+                                    display: { xs: 'inline-flex', sm: 'none' },
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    padding: '10px 8px',
+                                    margin: '-10px -8px',
+                                    borderRadius: '0px',
+                                    background: 'transparent',
+                                    color: '#323232',
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontWeight: 700,
+                                    fontSize: '14px',
+                                    lineHeight: '16px',
+                                    textTransform: 'none',
+                                    minWidth: 0,
+                                    maxWidth: 'calc(100% - 52px)',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    pointerEvents: 'auto',
+                                }}
+                            >
+                                <TuneIcon sx={{ color: '#323232', fontSize: '16px' }} />
+                                {mobileChipLabel}
+                            </Box>
+
+                            <Button
+                                sx={{
+                                    display: { xs: 'none', sm: 'inline-flex' },
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    height: '36px',
+                                    padding: '10px 8px',
+                                    margin: '-10px -8px',
+                                    borderRadius: '18px',
+                                    background: 'transparent',
+                                    color: '#323232',
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontWeight: 700,
+                                    fontSize: '14px',
+                                    lineHeight: '16px',
+                                    textTransform: 'none',
+                                    minWidth: 0,
+                                    whiteSpace: 'nowrap',
+                                    maxWidth: '280px',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    pointerEvents: 'auto',
+                                    '&:hover': {
+                                        background: 'transparent',
+                                    },
+                                }}
+                                onMouseDown={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                }}
+                                onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    openSearchOptions();
+                                }}
+                            >
+                                <TuneIcon sx={{ color: '#323232', fontSize: '16px' }} />
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{mobileChipLabel}</span>
+                            </Button>
+
+                            <Box
+                                role="button"
+                                aria-label="Start chat"
+                                className="search-button-big"
+                                onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}
+                                sx={{
+                                    height: { xs: '36px', sm: '48px' },
+                                    width: { xs: '36px', sm: '48px' },
+                                    borderRadius: '50%',
+                                    backgroundColor: llmQuery.trim() && !isQueryLimitReached ? '#155DFC' : '#E7F1FF',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    transition: 'transform 120ms ease, box-shadow 160ms ease',
+                                    boxShadow: llmQuery.trim() && !isQueryLimitReached
+                                        ? '0 6px 12px rgba(21, 93, 252, 0.28)'
+                                        : '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',
+                                    '&:hover': {
+                                        transform: 'translateY(-1px)',
+                                    },
+                                    pointerEvents: 'auto',
+                                }}
+                            >
+                                <UnionIcon
+                                    style={{
+                                        color: llmQuery.trim() && !isQueryLimitReached ? '#FFFFFF' : '#155DFC',
+                                        width: '20px',
+                                        height: '20px',
+                                    }}
+                                />
+                            </Box>
+                        </Box>
+
+                        <Drawer
+                            anchor="bottom"
+                            open={mobileOptionsOpen}
+                            onClose={closeSearchOptions}
+                            PaperProps={{
+                                sx: {
+                                    borderTopLeftRadius: '24px',
+                                    borderTopRightRadius: '24px',
+                                    backgroundColor: '#FFFFFF',
+                                    px: 3,
+                                    pb: 2,
+                                    pt: 0,
+                                    minHeight: '300px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                },
+                            }}
+                        >
+                            <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
+                                <Box sx={{ width: '44px', height: '4px', borderRadius: '4px', backgroundColor: '#D8D8D8' }} />
+                            </Box>
+                            {searchOptionsPanel}
+                        </Drawer>
+
+                        <Drawer
+                            anchor="right"
+                            open={desktopOptionsOpen}
+                            onClose={closeSearchOptions}
+                            ModalProps={{
+                                keepMounted: true,
+                            }}
+                            PaperProps={{
+                                sx: {
+                                    width: '369px',
+                                    maxWidth: '92vw',
+                                    backgroundColor: '#FFFFFF',
+                                    px: 3,
+                                    pb: 3,
+                                    pt: 0,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                },
+                            }}
+                        >
+                            {searchOptionsPanel}
+                        </Drawer>
+                    </Box>
                 )}
                 PaperComponent={({ children }) => (
                     <Paper className="homepage-autocomplete-panel">
@@ -259,6 +593,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             whiteSpace: 'normal',
                             alignItems: 'flex-start',
                             lineHeight: 1.4,
+                            fontFamily: 'DM Sans, sans-serif',
+                            fontSize: '16px',
                         }}
                     >
                         {option}

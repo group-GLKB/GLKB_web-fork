@@ -4,7 +4,7 @@ import './github-markdown-light.css';
 
 import React, {
   useCallback,
-    useContext,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -15,7 +15,7 @@ import { message } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import ReactMarkdown from 'react-markdown';
 import {
-    UNSAFE_NavigationContext,
+  UNSAFE_NavigationContext,
   useLocation,
   useNavigate,
 } from 'react-router-dom';
@@ -30,18 +30,23 @@ import {
   EditNote as EditNoteIcon,
   ExpandMore as ExpandMoreIcon,
   Link as LinkIcon,
+  Star as StarIcon,
+  ThumbsUpDownOutlined as ThumbsUpDownOutlinedIcon,
 } from '@mui/icons-material';
 import {
+  Alert,
   Box,
   Button as MuiButton,
   CircularProgress,
   Container,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Drawer,
   Grid,
   IconButton,
+  Snackbar,
   Stack,
   TextField,
   ToggleButton,
@@ -56,8 +61,10 @@ import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import {
   ReactComponent as SidebarLeftIcon,
 } from '../../img/navbar/sidebar.left.svg';
+import { submitChatFeedback } from '../../service/Feedback';
 import { LLMAgentService } from '../../service/LLMAgent';
 import {
+  getGuestTier,
   getMyTier,
   isFreePlanLimitReached,
 } from '../../service/Tier';
@@ -163,6 +170,8 @@ const setStoredSessionId = (historyId, sessionId) => {
 };
 
 const STEP_LABELS = stepLabels || {};
+const PUBMED_ESUMMARY_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi';
+const PLACEHOLDER_PMID_PREFIX = 'PMID ';
 
 const LEFT_MIN_PX = 360;
 const RIGHT_MIN_PX = 360;
@@ -172,6 +181,9 @@ const FALLBACK_MIN_LEFT_PERCENT = 45;
 const FALLBACK_MAX_LEFT_PERCENT = 80;
 const FALLBACK_COLLAPSE_THRESHOLD = 84;
 const DEBUG_FORCE_LIMIT_WARNING = false;
+const MOBILE_HEADER_NEW_CHAT_EVENT = 'glkb-mobile-header-new-chat';
+const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
+const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
 const areMessagesEqual = (left, right) => {
     if (left === right) return true;
@@ -208,6 +220,87 @@ const areMessagesEqual = (left, right) => {
 };
 
 const getStepLabel = (stepName) => STEP_LABELS[stepName] || stepName;
+
+const extractYearFromPubDate = (value) => {
+    if (!value || typeof value !== 'string') return '';
+    const match = value.match(/\b(19|20)\d{2}\b/);
+    return match ? match[0] : '';
+};
+
+const extractPmidFromReference = (ref) => {
+    if (!ref || typeof ref !== 'object') return null;
+    const direct = String(ref.pmid || '').trim();
+    if (/^\d+$/.test(direct)) return direct;
+
+    const url = String(ref.url || '').trim();
+    if (url) {
+        const urlMatch = url.match(/pubmed\.ncbi\.nlm\.nih\.gov\/(\d+)/i);
+        if (urlMatch?.[1]) return urlMatch[1];
+    }
+
+    const title = String(ref.title || '').trim();
+    const titleMatch = title.match(/^PMID\s+(\d+)$/i);
+    if (titleMatch?.[1]) return titleMatch[1];
+
+    return null;
+};
+
+const isPlaceholderPmidReference = (ref) => {
+    const pmid = extractPmidFromReference(ref);
+    if (!pmid) return false;
+    const title = String(ref.title || '').trim();
+    return title === `${PLACEHOLDER_PMID_PREFIX}${pmid}`;
+};
+
+const fetchPubmedSummaryMap = async (pmids) => {
+    if (!Array.isArray(pmids) || pmids.length === 0) return {};
+
+    const params = new URLSearchParams();
+    params.set('db', 'pubmed');
+    params.set('id', pmids.join(','));
+    params.set('retmode', 'json');
+
+    const response = await fetch(`${PUBMED_ESUMMARY_URL}?${params.toString()}`, {
+        method: 'GET',
+        credentials: 'omit',
+    });
+    if (!response.ok) {
+        throw new Error(`PubMed esummary request failed: ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const result = payload?.result;
+    if (!result || typeof result !== 'object') return {};
+
+    const map = {};
+    pmids.forEach((pmid) => {
+        const doc = result[pmid];
+        if (!doc || typeof doc !== 'object') return;
+
+        const title = typeof doc.title === 'string' ? doc.title.trim() : '';
+        const journal = typeof doc.fulljournalname === 'string'
+            ? doc.fulljournalname.trim()
+            : (typeof doc.source === 'string' ? doc.source.trim() : '');
+        const pubDate = typeof doc.pubdate === 'string' ? doc.pubdate : '';
+        const sortDate = typeof doc.sortpubdate === 'string' ? doc.sortpubdate : '';
+        const year = extractYearFromPubDate(pubDate) || extractYearFromPubDate(sortDate);
+        const authors = Array.isArray(doc.authors)
+            ? doc.authors
+                .map((item) => (typeof item?.name === 'string' ? item.name.trim() : ''))
+                .filter(Boolean)
+                .join(', ')
+            : '';
+
+        map[pmid] = {
+            title,
+            journal,
+            year,
+            authors,
+        };
+    });
+
+    return map;
+};
 
 const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
     const isTrajectoryLine = line && typeof line === 'object' && !Array.isArray(line);
@@ -490,6 +583,7 @@ const MessageCard = React.memo(function MessageCard({
     save,
     goref,
     downloadConversation,
+    onOpenFeedback,
 }) {
     const isAssistant = message.role === "assistant";
     const isLastUserMessage = index === totalMessages - 1 && message.role === 'assistant';
@@ -633,7 +727,7 @@ const MessageCard = React.memo(function MessageCard({
                         flex: 1, // Occupy maximum width
                     }}
                 >
-                    <Box sx={{ flex: 1 }}>
+                    <Box sx={{ flex: 1, maxWidth: "100%" }}>
                         {showThoughtHeader && (
                             <Box sx={{
                                 display: 'flex',
@@ -816,6 +910,15 @@ const MessageCard = React.memo(function MessageCard({
                                         style={{ width: '16px', height: '16px', display: 'block', color: '#646464' }}
                                     />
                                 </IconButton>}
+                                {!isLoading && (
+                                    <IconButton
+                                        size="small"
+                                        onClick={onOpenFeedback}
+                                        title="Share feedback"
+                                    >
+                                        <ThumbsUpDownOutlinedIcon sx={{ fontSize: 16, color: '#646464' }} />
+                                    </IconButton>
+                                )}
                             </Stack>
                             <MuiButton
                                 variant='contained'
@@ -934,6 +1037,8 @@ function LLMAgent() {
     const [isDraggingSplit, setIsDraggingSplit] = useState(false);
     const [dragIndicatorY, setDragIndicatorY] = useState(0);
     const [isReferencesCollapsed, setIsReferencesCollapsed] = useState(false);
+    const [isPhoneDevice, setIsPhoneDevice] = useState(false);
+    const [isMobileReferencesDrawerOpen, setIsMobileReferencesDrawerOpen] = useState(false);
     const [conversationsState, setConversationsState] = useState(() => getConversations());
     const [activeConversationId, setActiveConversationIdState] = useState(() => getActiveConversationId());
     const [isConversationLoading, setIsConversationLoading] = useState(false);
@@ -943,9 +1048,16 @@ function LLMAgent() {
         () => getStoredProcessingFlag() || getStoredIncompleteFlag()
     );
     const [showLeaveConfirmDialog, setShowLeaveConfirmDialog] = useState(false);
+    const [feedbackOpen, setFeedbackOpen] = useState(false);
+    const [feedbackRating, setFeedbackRating] = useState(0);
+    const [feedbackText, setFeedbackText] = useState('');
+    const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+    const [feedbackSuccessOpen, setFeedbackSuccessOpen] = useState(false);
+    const [feedbackSuccessText, setFeedbackSuccessText] = useState('Feedback submitted.');
     const [isEditingChatTitle, setIsEditingChatTitle] = useState(false);
     const [chatTitleDraft, setChatTitleDraft] = useState('');
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
+    const [queryLimitTotal, setQueryLimitTotal] = useState(10);
     const messagesEndRef = useRef(null);
     const abortControllerRef = useRef(null);
     const thinkingStepsRef = useRef([]);
@@ -953,6 +1065,7 @@ function LLMAgent() {
     const lastAutoSelectedRef = useRef(null);
     const sessionIdRef = useRef(null);
     const hasConsumedInitialQueryRef = useRef(false);
+    const initialSearchOptionsRef = useRef(null);
     const activeConversationIdRef = useRef(getActiveConversationId());
     const loadingConversationIdRef = useRef(null);
     const activeStreamIdRef = useRef(null);
@@ -964,6 +1077,25 @@ function LLMAgent() {
     const { navigator } = useContext(UNSAFE_NavigationContext);
     const { isAuthenticated, loading: authLoading } = useAuth();
     const [pendingNavigation, setPendingNavigation] = useState(null);
+    const useMobileReferencesDrawer = isPhoneDevice;
+
+    useEffect(() => {
+        const evaluateIsPhone = () => {
+            setIsPhoneDevice(isPhoneUa() && isPhoneViewport());
+        };
+
+        evaluateIsPhone();
+        window.addEventListener('resize', evaluateIsPhone);
+        return () => {
+            window.removeEventListener('resize', evaluateIsPhone);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!useMobileReferencesDrawer) {
+            setIsMobileReferencesDrawerOpen(false);
+        }
+    }, [useMobileReferencesDrawer]);
 
     useEffect(() => {
         if (!navigator) return undefined;
@@ -1057,18 +1189,23 @@ function LLMAgent() {
     };
 
     const refreshTierStatus = useCallback(async () => {
-        if (authLoading || !isAuthenticated) {
+        if (authLoading) {
             setIsQueryLimitReached(false);
+            setQueryLimitTotal(10);
             return;
         }
-        const result = await getMyTier();
+        const result = isAuthenticated ? await getMyTier() : await getGuestTier();
         if (!result.success) return;
         setIsQueryLimitReached(isFreePlanLimitReached(result.data));
+        setQueryLimitTotal(Number(result.data?.quota_limit) || 10);
     }, [authLoading, isAuthenticated]);
 
     const llmService = useMemo(() => new LLMAgentService(), []);
     const isLimitReachedEffective = isQueryLimitReached || DEBUG_FORCE_LIMIT_WARNING;
     const showLimitWarning = isLimitReachedEffective;
+    const displayedQueryLimit = Number.isFinite(Number(queryLimitTotal)) && Number(queryLimitTotal) > 0
+        ? Number(queryLimitTotal)
+        : 10;
     const activeConversation = useMemo(() => {
         const currentId = activeConversationIdRef.current || activeConversationId;
         if (!currentId) return null;
@@ -1122,9 +1259,19 @@ function LLMAgent() {
     }, [refreshTierStatus]);
 
     useEffect(() => {
+        if (authLoading) return undefined;
         let isMounted = true;
 
         const initializeConversations = async () => {
+            if (!isAuthenticated) {
+                setConversationsState([]);
+                setActiveConversationIdState(null);
+                activeConversationIdRef.current = null;
+                setIsConversationLoading(false);
+                setLoadingConversationId(null);
+                return;
+            }
+
             const cached = getConversations();
             let nextActiveId = getActiveConversationId();
             const hasInitialQuery = Boolean(location.state?.initialQuery);
@@ -1184,7 +1331,7 @@ function LLMAgent() {
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [authLoading, isAuthenticated, location.state?.initialQuery, location.state?.conversationId]);
 
     const cancelStreaming = useCallback((options = {}) => {
         const { abort = true } = options;
@@ -1201,6 +1348,7 @@ function LLMAgent() {
     }, []);
 
     useEffect(() => {
+        if (!isAuthenticated) return;
         const conversationId = location.state?.conversationId;
         if (!conversationId) return;
         let isMounted = true;
@@ -1240,7 +1388,7 @@ function LLMAgent() {
         return () => {
             isMounted = false;
         };
-    }, [location.state, cancelStreaming, llmService]);
+    }, [isAuthenticated, location.state, cancelStreaming, llmService]);
 
     const startNewConversation = useCallback(() => {
         cancelStreaming();
@@ -1267,6 +1415,11 @@ function LLMAgent() {
     const handleClick = (event, link) => {
         event.preventDefault();
         window.open(link, '_blank');
+    };
+
+    const handleReferenceEntryContainerClick = (event, link) => {
+        if (event.target.closest('.custom-div-url')) return;
+        handleClick(event, link);
     };
 
     useEffect(() => {
@@ -1298,6 +1451,7 @@ function LLMAgent() {
         if (location.state && location.state.initialQuery && !hasConsumedInitialQueryRef.current) {
             hasConsumedInitialQueryRef.current = true;
             const query = location.state.initialQuery;
+            initialSearchOptionsRef.current = location.state.initialSearchOptions || null;
             if (!isLoading) {
                 startNewConversation();
                 handleSubmit(null, query, null, { forceNewConversation: true });
@@ -1442,6 +1596,8 @@ function LLMAgent() {
             const messageRole = messageCard?.dataset?.messageRole;
             if (Number.isFinite(messageIndex) && messageRole === 'assistant') {
                 handleMessageClick(messageIndex);
+            } else if (useMobileReferencesDrawer) {
+                setIsMobileReferencesDrawerOpen(true);
             } else if (isReferencesCollapsed) {
                 expandReferences();
             }
@@ -1474,7 +1630,7 @@ function LLMAgent() {
             container.removeEventListener('click', handleReferenceClick);
             container.removeEventListener('mouseleave', handleMouseLeave);
         };
-    }, [chatHistory, expandReferences, isReferencesCollapsed]);
+    }, [chatHistory, expandReferences, isReferencesCollapsed, useMobileReferencesDrawer]);
 
     const parseReferences = (refs) => {
         if (!refs || !Array.isArray(refs)) return [];
@@ -1494,12 +1650,14 @@ function LLMAgent() {
             }
             const title = ref?.title || '';
             const url = ref?.url || '';
+            const pmid = ref?.pmid || null;
             const citationCount = ref?.n_citation ?? ref?.citation_count ?? 0;
             const year = ref?.date ?? ref?.year ?? '';
             const journal = ref?.journal || '';
             const authors = Array.isArray(ref?.authors) ? ref.authors.join(', ') : 'Authors not available';
             const evidence = Array.isArray(ref?.evidence) ? ref.evidence : [];
             return {
+                pmid,
                 title,
                 url,
                 citation_count: citationCount,
@@ -1537,7 +1695,7 @@ function LLMAgent() {
         };
 
         let historyId = activeConversationIdRef.current;
-        if (shouldStartNewConversation) {
+        if (shouldStartNewConversation && isAuthenticated) {
             try {
                 const leadingTitle = inputText.trim().slice(0, 200) || null;
                 const conversation = await createConversation(leadingTitle);
@@ -1584,6 +1742,9 @@ function LLMAgent() {
             }
             const abortController = new AbortController();
             abortControllerRef.current = abortController;
+            const requestSearchOptions = options.searchOptions || initialSearchOptionsRef.current || null;
+            initialSearchOptionsRef.current = null;
+
             await llmService.chat(inputText, abortControllerRef.current, (update) => {
                 const isActiveStream = activeStreamIdRef.current === streamId;
                 if (!isActiveStream && update.type !== 'saved') {
@@ -1717,9 +1878,11 @@ function LLMAgent() {
                                 });
                             }
                         }
-                        fetchConversations()
-                            .then((list) => setConversationsState(list))
-                            .catch((error) => logDev('[LLM] Failed to refresh conversations', error));
+                        if (isAuthenticated) {
+                            fetchConversations()
+                                .then((list) => setConversationsState(list))
+                                .catch((error) => logDev('[LLM] Failed to refresh conversations', error));
+                        }
                         break;
                     }
                     case 'error': // unsure if this is used
@@ -1743,7 +1906,9 @@ function LLMAgent() {
                 }
             }, {
                 historyId,
-                sessionId: sessionIdRef.current
+                sessionId: sessionIdRef.current,
+                filters: Array.isArray(requestSearchOptions?.filters) ? requestSearchOptions.filters : undefined,
+                rankingMode: typeof requestSearchOptions?.rankingMode === 'string' ? requestSearchOptions.rankingMode : undefined,
             });
         } catch (error) {
             console.error('Error in chat:', error);
@@ -1814,10 +1979,21 @@ function LLMAgent() {
             });
     };
 
-    const handleClear = () => {
+    const handleClear = useCallback(() => {
         startNewConversation();
         navigate('/');
-    };
+    }, [navigate, startNewConversation]);
+
+    useEffect(() => {
+        const handleMobileHeaderNewChat = () => {
+            handleClear();
+        };
+
+        window.addEventListener(MOBILE_HEADER_NEW_CHAT_EVENT, handleMobileHeaderNewChat);
+        return () => {
+            window.removeEventListener(MOBILE_HEADER_NEW_CHAT_EVENT, handleMobileHeaderNewChat);
+        };
+    }, [handleClear]);
 
     const handleToggleConversationBookmark = async () => {
         if (authLoading) return;
@@ -1883,7 +2059,9 @@ function LLMAgent() {
 
     const handleMessageClick = (index) => {
         if (chatHistory[index].role === 'assistant') {
-            if (isReferencesCollapsed) {
+            if (useMobileReferencesDrawer) {
+                setIsMobileReferencesDrawerOpen(true);
+            } else if (isReferencesCollapsed) {
                 expandReferences();
             }
             prevSelectedMessageIndexRef.current = null;
@@ -1997,7 +2175,7 @@ function LLMAgent() {
     }, []);
 
     const renderMessages = () => {
-        return (<Box sx={{ p: 2 }}>{chatHistory.map((message, index) => (
+        return (<Box sx={{ p: isPhoneDevice ? 1 : 2 }}>{chatHistory.map((message, index) => (
             <MessageCard
                 key={index}
                 index={index}
@@ -2012,6 +2190,7 @@ function LLMAgent() {
                 save={handleSaveEdit}
                 goref={handleMessageClick}
                 downloadConversation={handleDownloadConversation}
+                onOpenFeedback={handleOpenFeedback}
                 showReloadPrompt={showReloadPrompt}
                 onReloadLatest={handleReloadLatest}
                 onStop={handleStopStreaming}
@@ -2030,27 +2209,82 @@ function LLMAgent() {
     const references = selectedMessageIndex !== null
         ? chatHistory[selectedMessageIndex]?.references || []
         : [];
+    const [referenceSummaryMap, setReferenceSummaryMap] = useState({});
+    const referenceSummaryPendingRef = useRef(new Set());
+
+    useEffect(() => {
+        const candidates = Array.from(new Set(
+            references
+                .filter(isPlaceholderPmidReference)
+                .map((ref) => extractPmidFromReference(ref))
+                .filter((pmid) => pmid && !referenceSummaryMap[pmid] && !referenceSummaryPendingRef.current.has(pmid))
+        ));
+
+        if (candidates.length === 0) return;
+
+        candidates.forEach((pmid) => referenceSummaryPendingRef.current.add(pmid));
+
+        fetchPubmedSummaryMap(candidates)
+            .then((incomingMap) => {
+                if (!incomingMap || typeof incomingMap !== 'object') return;
+                setReferenceSummaryMap((prev) => ({
+                    ...prev,
+                    ...incomingMap,
+                }));
+            })
+            .catch((error) => {
+                logDev('[LLM] Failed to enrich placeholder references via esummary', error);
+            })
+            .finally(() => {
+                candidates.forEach((pmid) => referenceSummaryPendingRef.current.delete(pmid));
+            });
+    }, [references, referenceSummaryMap]);
+
+    const enrichedReferences = useMemo(
+        () => references.map((ref) => {
+            const pmid = extractPmidFromReference(ref);
+            if (!pmid || !isPlaceholderPmidReference(ref)) return ref;
+
+            const summary = referenceSummaryMap[pmid];
+            if (!summary) return ref;
+
+            return {
+                ...ref,
+                pmid,
+                title: summary.title || ref.title,
+                journal: summary.journal || ref.journal,
+                year: summary.year || ref.year,
+                authors: summary.authors || ref.authors,
+                citation_count: 'N/A',
+            };
+        }),
+        [references, referenceSummaryMap]
+    );
 
     useEffect(() => {
         if (!hoveredPubmedId) return;
-        const isStillVisible = references.some((ref) => {
-            const pubmedId = ref.url?.split('/')?.filter(Boolean)?.pop();
+        const isStillVisible = enrichedReferences.some((ref) => {
+            const pubmedId = extractPmidFromReference(ref);
             return pubmedId === hoveredPubmedId;
         });
         if (!isStillVisible) {
             setHoveredPubmedId(null);
         }
-    }, [hoveredPubmedId, references]);
+    }, [hoveredPubmedId, enrichedReferences]);
 
     const sortedReferences = useMemo(() => {
-        const sorted = [...references];
+        const sorted = [...enrichedReferences];
+        const getCitationSortValue = (value) => {
+            const num = Number(value);
+            return Number.isFinite(num) ? num : -1;
+        };
         if (sortOption === 'Citations') {
-            sorted.sort((a, b) => (b.citation_count || 0) - (a.citation_count || 0));
+            sorted.sort((a, b) => getCitationSortValue(b.citation_count) - getCitationSortValue(a.citation_count));
         } else {
             sorted.sort((a, b) => (b.year || 0) - (a.year || 0));
         }
         return sorted;
-    }, [references, sortOption]);
+    }, [enrichedReferences, sortOption]);
     const isExportDisabled = sortedReferences.length === 0;
 
     const handleExportReferences = () => {
@@ -2089,6 +2323,78 @@ function LLMAgent() {
     const handleCiteClick = (url) => {
         setSelectedCitation(url);
         setCiteDialogOpen(true);
+    };
+
+    const handleOpenFeedback = () => {
+        setFeedbackRating(0);
+        setFeedbackText('');
+        setFeedbackOpen(true);
+    };
+
+    const handleCloseFeedback = () => {
+        setFeedbackOpen(false);
+        setFeedbackRating(0);
+        setFeedbackText('');
+        setFeedbackSubmitting(false);
+    };
+
+    const handleSubmitFeedback = async () => {
+        if (!Number.isInteger(feedbackRating) || feedbackRating < 1 || feedbackRating > 5) {
+            message.error('Please select a rating from 1 to 5 stars.');
+            return;
+        }
+
+        const historyId = activeConversationIdRef.current || activeConversationId;
+        if (!historyId) {
+            message.error('Unable to submit feedback: conversation hid is missing.');
+            return;
+        }
+
+        try {
+            setFeedbackSubmitting(true);
+            const submittedSessionId = String(historyId);
+            const response = await submitChatFeedback({
+                sessionId: submittedSessionId,
+                rating: feedbackRating,
+                feedback: feedbackText.trim(),
+            });
+
+            if (response?.ok !== true) {
+                throw new Error(response?.message || 'Feedback submission failed.');
+            }
+
+            if (typeof response?.message === 'string' && /not\s*found/i.test(response.message)) {
+                throw new Error('Conversation not found for current user.');
+            }
+
+            const updatedHint = response?.updated ? ' Existing feedback was updated.' : '';
+            setFeedbackSuccessText(`${response?.message || 'Feedback submitted'}${updatedHint}`.trim());
+            setFeedbackSuccessOpen(true);
+            handleCloseFeedback();
+        } catch (error) {
+            const backendDetail = error.response?.data?.detail || error.response?.data?.message || error.message;
+            const submittedSessionId = String(historyId);
+            const normalizedDetail = typeof backendDetail === 'string' ? backendDetail.trim() : '';
+            const isRouteNotFound = error.response?.status === 404
+                && /^not\s+found$/i.test(normalizedDetail || '');
+            const isConversationNotFound =
+                /conversation\s+not\s+found|session[_\s-]*id.*not\s+exist|belongs\s+to\s+a\s+different\s+user/i
+                    .test(normalizedDetail || '');
+
+            if (isRouteNotFound) {
+                message.error(`Feedback API endpoint not found. session_id=${submittedSessionId}. Please verify backend route deployment.`);
+            } else if (isConversationNotFound) {
+                message.error(`Conversation not found for current user (session_id=${submittedSessionId}). Please reopen this chat and try again.`);
+            } else {
+                message.error((normalizedDetail || 'Failed to submit feedback. Please try again.'));
+            }
+            setFeedbackSubmitting(false);
+        }
+    };
+
+    const handleCloseFeedbackSuccess = (_, reason) => {
+        if (reason === 'clickaway') return;
+        setFeedbackSuccessOpen(false);
     };
 
     const handleCloseCiteDialog = () => {
@@ -2170,6 +2476,22 @@ function LLMAgent() {
                 citation={selectedCitation}
             />
 
+            <Snackbar
+                open={feedbackSuccessOpen}
+                autoHideDuration={3000}
+                onClose={handleCloseFeedbackSuccess}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                <Alert
+                    severity="success"
+                    variant="filled"
+                    onClose={handleCloseFeedbackSuccess}
+                    sx={{ width: '100%' }}
+                >
+                    {feedbackSuccessText}
+                </Alert>
+            </Snackbar>
+
             <Dialog
                 open={showLeaveConfirmDialog}
                 onClose={handleLeaveDialogCancel}
@@ -2238,6 +2560,145 @@ function LLMAgent() {
                 </DialogActions>
             </Dialog>
 
+            <Dialog
+                open={feedbackOpen}
+                onClose={handleCloseFeedback}
+                fullWidth
+                maxWidth={false}
+                PaperProps={{
+                    sx: {
+                        width: '100%',
+                        maxWidth: '512px',
+                        borderRadius: '16px',
+                        boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
+                    },
+                }}
+            >
+                <Box sx={{ p: '40px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography
+                            sx={{
+                                fontFamily: 'DM Sans, sans-serif',
+                                fontSize: '24px',
+                                fontWeight: '700 !important',
+                                lineHeight: 1.3,
+                                color: '#333333',
+                            }}
+                        >
+                            Share your feedback
+                        </Typography>
+                        <IconButton onClick={handleCloseFeedback} aria-label="Close feedback dialog">
+                            <ClearIcon sx={{ color: '#646464' }} />
+                        </IconButton>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <Typography
+                            sx={{
+                                fontFamily: 'DM Sans, sans-serif',
+                                fontSize: '16px',
+                                fontWeight: '400 !important',
+                                lineHeight: 1.5,
+                                color: '#323232',
+                            }}
+                        >
+                            Your feedback helps us improve GLKB.
+                        </Typography>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <IconButton
+                                    key={star}
+                                    onClick={() => setFeedbackRating(star)}
+                                    sx={{ p: 0, width: '40px', height: '40px' }}
+                                    aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
+                                >
+                                    <StarIcon
+                                        sx={{
+                                            fontSize: 32,
+                                            color: feedbackRating >= star ? '#F5AF18' : '#D8D8D8',
+                                        }}
+                                    />
+                                </IconButton>
+                            ))}
+                        </Box>
+
+                        <TextField
+                            multiline
+                            minRows={4}
+                            value={feedbackText}
+                            onChange={(event) => setFeedbackText(event.target.value)}
+                            placeholder="What did you think of this response?  (optional)"
+                            fullWidth
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: '8px',
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontSize: '16px',
+                                    fontWeight: '400 !important',
+                                    color: '#323232',
+                                    '& fieldset': {
+                                        borderColor: '#969696',
+                                    },
+                                },
+                                '& .MuiInputBase-input::placeholder': {
+                                    color: '#969696',
+                                    opacity: 1,
+                                },
+                            }}
+                        />
+                    </Box>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '28px' }}>
+                        <MuiButton
+                            onClick={handleCloseFeedback}
+                            sx={{
+                                borderRadius: '8px',
+                                border: '1px solid #D8D8D8',
+                                color: '#323232',
+                                backgroundColor: '#FFFFFF',
+                                textTransform: 'none',
+                                fontFamily: 'DM Sans, sans-serif',
+                                fontSize: '16px',
+                                fontWeight: '400 !important',
+                                lineHeight: 1.3,
+                                px: '16px',
+                                py: '8px',
+                                minWidth: '96px',
+                            }}
+                        >
+                            Cancel
+                        </MuiButton>
+                        <MuiButton
+                            onClick={handleSubmitFeedback}
+                            disabled={feedbackSubmitting || feedbackRating < 1}
+                            sx={{
+                                borderRadius: '8px',
+                                backgroundColor: '#155DFC',
+                                color: '#FFFFFF',
+                                textTransform: 'none',
+                                fontFamily: 'DM Sans, sans-serif',
+                                fontSize: '16px',
+                                fontWeight: '400 !important',
+                                lineHeight: 1.3,
+                                px: '16px',
+                                py: '8px',
+                                minWidth: '170px',
+                                '&:hover': {
+                                    backgroundColor: '#0E4EDB',
+                                },
+                                '&.Mui-disabled': {
+                                    backgroundColor: '#9EBEFF',
+                                    color: '#FFFFFF',
+                                },
+                            }}
+                        >
+                            {feedbackSubmitting ? 'Submitting...' : 'Submit feedback'}
+                        </MuiButton>
+                    </Box>
+                </Box>
+            </Dialog>
+
             <div className="llm-page">
                 <Grid className="llm-grid" container sx={{ width: "100%" }}>
                     <Grid item xs={12} className="llm-subgrid">
@@ -2258,7 +2719,7 @@ function LLMAgent() {
                                 <div className="llm-agent-container">
                                     <div className="chat-and-references">
                                         <Box ref={splitContainerRef} className="llm-split" sx={{ display: 'flex', minHeight: 0, height: '100%' }}>
-                                            <Box className="llm-column" sx={{ flex: `0 0 ${leftPaneWidth}%`, minWidth: `${LEFT_MIN_PX}px` }}>
+                                            <Box className="llm-column" sx={{ flex: useMobileReferencesDrawer ? '1 1 auto' : `0 0 ${leftPaneWidth}%`, minWidth: useMobileReferencesDrawer ? 0 : `${LEFT_MIN_PX}px` }}>
                                                 <div className="chat-container">
                                                     <Box className="llm-header" sx={{
                                                         display: 'flex',
@@ -2292,6 +2753,8 @@ function LLMAgent() {
                                                                     border: 'none',
                                                                     padding: 0,
                                                                     cursor: 'pointer',
+                                                                    whiteSpace: 'nowrap',
+                                                                    flexShrink: 0,
                                                                 }}>
                                                                 AI Chat
                                                             </Typography>
@@ -2391,6 +2854,7 @@ function LLMAgent() {
                                                             </IconButton>
                                                         </Box>
                                                         <MuiButton onClick={handleClear} disabled={isNewChatDisabled} sx={{
+                                                            display: useMobileReferencesDrawer ? 'none' : 'inline-flex',
                                                             borderRadius: '16px',
                                                             border: `1px solid ${newChatColor}`,
                                                             backgroundColor: '#ffffff',
@@ -2504,7 +2968,7 @@ function LLMAgent() {
                                                     {showLimitWarning && (
                                                         <div className="llm-limit-warning">
                                                             <span className="llm-limit-warning-text">
-                                                                You've reached your free plan limit (10 queries). Upgrade for unlimited access.
+                                                                You've reached your query limit ({displayedQueryLimit} queries). Upgrade for unlimited access.
                                                             </span>
                                                             <button
                                                                 type="button"
@@ -2525,7 +2989,7 @@ function LLMAgent() {
                                                     />
                                                 </div>
                                             </Box>
-                                            {!isReferencesCollapsed && (
+                                            {!useMobileReferencesDrawer && !isReferencesCollapsed && (
                                                 <>
                                                     <div className="llm-split-divider" onMouseDown={handleSplitMouseDown}>
                                                         {isDraggingSplit && (
@@ -2627,7 +3091,12 @@ function LLMAgent() {
                                                                             const pubmedId = ref.url.split('/').filter(Boolean).pop();
                                                                             const isHighlighted = hoveredPubmedId === pubmedId;
                                                                             return (
-                                                                                <div key={index} data-pubmed-id={pubmedId}>
+                                                                                <div
+                                                                                    key={index}
+                                                                                    data-pubmed-id={pubmedId}
+                                                                                    className="reference-entry-wrapper"
+                                                                                    onClick={(event) => handleReferenceEntryContainerClick(event, url[1])}
+                                                                                >
                                                                                     <ReferenceCard
                                                                                         url={url}
                                                                                         evidence={ref.evidence}
@@ -2649,7 +3118,7 @@ function LLMAgent() {
                                                 </>
                                             )}
                                         </Box>
-                                        {isReferencesCollapsed && (
+                                        {!useMobileReferencesDrawer && isReferencesCollapsed && (
                                             <IconButton
                                                 className="references-collapse-button"
                                                 onClick={expandReferences}
@@ -2660,6 +3129,127 @@ function LLMAgent() {
                                                 />
                                                 <span className="references-collapse-label">REFERENCES</span>
                                             </IconButton>
+                                        )}
+
+                                        {useMobileReferencesDrawer && (
+                                            <Drawer
+                                                anchor="bottom"
+                                                open={isMobileReferencesDrawerOpen}
+                                                onClose={() => setIsMobileReferencesDrawerOpen(false)}
+                                                PaperProps={{ className: 'llm-mobile-references-drawer' }}
+                                            >
+                                                <div className="references-container llm-mobile-references-container">
+                                                    <div style={{
+                                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                        height: '70px',
+                                                        borderBottom: '1px solid #E6E6E6',
+                                                        marginBottom: '1px',
+                                                    }}>
+                                                        <h3 style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: '16px', color: '#164563', marginBottom: '0', paddingLeft: '20px' }}>References</h3>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingRight: '10px' }}>
+                                                            <ToggleButtonGroup
+                                                                size="small"
+                                                                exclusive
+                                                                value={sortOption}
+                                                                onChange={(event, value) => {
+                                                                    if (value !== null) {
+                                                                        setSortOption(value);
+                                                                    }
+                                                                }}
+                                                                sx={{
+                                                                    border: '1px solid #E7F1FF',
+                                                                    borderRadius: '14px',
+                                                                    padding: '1px',
+                                                                    overflow: 'hidden',
+                                                                    '& .MuiToggleButton-root': {
+                                                                        textTransform: 'none',
+                                                                        fontFamily: 'DM Sans, sans-serif',
+                                                                        fontSize: '12px',
+                                                                        fontWeight: 700,
+                                                                        color: '#164563',
+                                                                        border: 'none',
+                                                                        padding: '0 8px',
+                                                                        height: '26px',
+                                                                        minHeight: '26px',
+                                                                        borderRadius: '13px',
+                                                                    },
+                                                                    '& .MuiToggleButton-root.Mui-selected': {
+                                                                        backgroundColor: '#E7F1FF',
+                                                                        color: '#164563',
+                                                                    },
+                                                                    '& .MuiToggleButton-root.Mui-selected:hover': {
+                                                                        backgroundColor: '#E0EDFF',
+                                                                    },
+                                                                }}
+                                                            >
+                                                                <ToggleButton value="Citations">Citation</ToggleButton>
+                                                                <ToggleButton value="Year">Year</ToggleButton>
+                                                            </ToggleButtonGroup>
+                                                            <IconButton
+                                                                size="small"
+                                                                className="references-action-button"
+                                                                onClick={handleExportReferences}
+                                                                disabled={isExportDisabled}
+                                                                title="Export all references"
+                                                            >
+                                                                <DownloadIcon
+                                                                    aria-label="Download references"
+                                                                    style={{
+                                                                        width: '20px',
+                                                                        height: '20px',
+                                                                        display: 'block',
+                                                                        color: isExportDisabled ? '#B0B0B0' : '#164563',
+                                                                    }}
+                                                                />
+                                                            </IconButton>
+                                                            <IconButton
+                                                                size="small"
+                                                                className="references-action-button"
+                                                                onClick={() => setIsMobileReferencesDrawerOpen(false)}
+                                                                title="Close references"
+                                                            >
+                                                                <ChevronRightIcon sx={{ color: '#164563', transform: 'rotate(90deg)' }} />
+                                                            </IconButton>
+                                                        </div>
+                                                    </div>
+
+                                                    {sortedReferences.length > 0 ? (
+                                                        <div ref={referencesListRef} className="references-list" style={{ maxHeight: 'calc(100% - 70px)', overflowY: 'auto', paddingLeft: '1rem', paddingRight: '1rem' }}>
+                                                            {sortedReferences.map((ref, index) => {
+                                                                const url = [
+                                                                    ref.title,
+                                                                    ref.url,
+                                                                    ref.citation_count,
+                                                                    ref.year,
+                                                                    ref.journal,
+                                                                    ref.authors
+                                                                ];
+                                                                const pubmedId = ref.url.split('/').filter(Boolean).pop();
+                                                                const isHighlighted = hoveredPubmedId === pubmedId;
+                                                                return (
+                                                                    <div
+                                                                        key={index}
+                                                                        data-pubmed-id={pubmedId}
+                                                                        className="reference-entry-wrapper"
+                                                                        onClick={(event) => handleReferenceEntryContainerClick(event, url[1])}
+                                                                    >
+                                                                        <ReferenceCard
+                                                                            url={url}
+                                                                            evidence={ref.evidence}
+                                                                            sourceHid={activeConversationIdRef.current || activeConversationId}
+                                                                            handleClick={handleClick}
+                                                                            onCiteClick={handleCiteClick}
+                                                                            isHighlighted={isHighlighted}
+                                                                        />
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <p style={{ padding: '16px 20px' }}>No references available for this response.</p>
+                                                    )}
+                                                </div>
+                                            </Drawer>
                                         )}
 
 

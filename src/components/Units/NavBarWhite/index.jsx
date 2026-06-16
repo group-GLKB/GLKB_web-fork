@@ -82,6 +82,7 @@ const collapsedWidth = 88;
 const compactRailWidth = 52;
 const MAX_RECENT_COUNT = 50;
 const DEBUG_HIDE_EXPLORE = true;
+const SIDEBAR_OPEN_EVENT = 'glkb-open-sidebar';
 
 const getStoredAccountProfile = () => {
     if (typeof window === 'undefined') {
@@ -132,7 +133,7 @@ const PermanentDrawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !=
     })
 );
 
-function NavBarWhite({ showLogo = true }) {
+function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
     const { isAuthenticated, user, logout } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
@@ -263,6 +264,17 @@ function NavBarWhite({ showLogo = true }) {
             window.removeEventListener('glkb-conversations-updated', updateRecent);
         };
     }, [isAuthenticated]);
+
+    useEffect(() => {
+        const handleOpenSidebar = () => {
+            setOpen(true);
+        };
+
+        window.addEventListener(SIDEBAR_OPEN_EVENT, handleOpenSidebar);
+        return () => {
+            window.removeEventListener(SIDEBAR_OPEN_EVENT, handleOpenSidebar);
+        };
+    }, []);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -926,7 +938,7 @@ function NavBarWhite({ showLogo = true }) {
 
     return (
         <>
-            {isCompactSidebar && !open && (
+            {isCompactSidebar && !open && !hideCompactRail && (
                 <Box
                     className="sidebar-mobile-rail"
                     sx={{

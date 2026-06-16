@@ -1,0 +1,70 @@
+.app-mobile-header {
+    position: sticky;
+    top: 0;
+    z-index: 1200;
+    height: 56px;
+    padding: 16px 24px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.app-mobile-header-context {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.app-mobile-header-logo-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.app-mobile-header-logo-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+.app-mobile-header-logo-wordmark {
+    height: 20px;
+    width: auto;
+    object-fit: contain;
+}
+
+.app-mobile-header-new-chat {
+    margin-left: auto;
+    border-radius: 16px;
+    border: 1px solid #155DFC;
+    background: #ffffff;
+    color: #155DFC;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 10px;
+    line-height: 1.1;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.app-layout-content.has-mobile-header {
+    min-height: calc(100vh - 56px);
+    height: calc(100vh - 56px);
+    padding-left: 0;
+}
+
+body[data-has-sidebar="true"] .app-layout-content.has-mobile-header {
+    min-height: calc(100vh - 56px);
+    height: calc(100vh - 56px);
+    padding-left: 0;
+}
