@@ -31,7 +31,7 @@ import {
 } from '@mui/material';
 
 import {
-    getGuestTier,
+  getGuestTier,
   getMyTier,
   isFreePlanLimitReached,
 } from '../../service/Tier';
@@ -239,7 +239,10 @@ const HomePage = () => {
             <Helmet>
                 <title>Home | GLKB</title>
                 <meta name="description" content="GLKB is an AI-powered research engine that synthesizes biomedical literature into structured, evidence-backed answers grounded in real publications, not just predictions." />
-                <meta property="og:title" content="Home Page - Genomic Literature Knowledge Base" />
+                <meta name="title" content="GLKB - Genomic Literature Knowledge Base" />
+                <meta property="og:title" content="GLKB - Genomic Literature Knowledge Base" />
+                <meta property="og:site_name" content="GLKB - Genomic Literature Knowledge Base" />
+                <meta name="twitter:title" content="GLKB - Genomic Literature Knowledge Base" />
                 <meta property="og:description" content="GLKB is an AI-powered research engine that synthesizes biomedical literature into structured, evidence-backed answers grounded in real publications, not just predictions." />
             </Helmet>
             <div className={`HomePageRoot${isPhoneDevice ? ' is-phone-device' : ''}`}>
