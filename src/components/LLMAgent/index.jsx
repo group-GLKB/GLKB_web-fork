@@ -64,7 +64,7 @@ import {
 import { submitChatFeedback } from '../../service/Feedback';
 import { LLMAgentService } from '../../service/LLMAgent';
 import {
-    getGuestTier,
+  getGuestTier,
   getMyTier,
   isFreePlanLimitReached,
 } from '../../service/Tier';

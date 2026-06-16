@@ -6,21 +6,18 @@ import React, {
 import { useNavigate } from 'react-router-dom';
 
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
-import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
-import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
-import SortIcon from '@mui/icons-material/Sort';
+import TuneIcon from '@mui/icons-material/Tune';
 import {
   Autocomplete,
   Box,
-  Divider,
+    Button,
   Drawer,
   IconButton,
-  MenuItem,
   Paper,
   Popper,
-  Select,
   TextField,
+  useMediaQuery,
 } from '@mui/material';
 
 import { ReactComponent as UnionIcon } from '../../img/Union.svg';
@@ -31,7 +28,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const [paperType, setPaperType] = useState('All types');
     const [isOpen, setIsOpen] = useState(false);
     const [mobileOptionsOpen, setMobileOptionsOpen] = useState(false);
+    const [desktopOptionsOpen, setDesktopOptionsOpen] = useState(false);
     const navigate = useNavigate();
+    const isMobileLayout = useMediaQuery('(max-width:600px)');
     const inputTimeoutRef = React.useRef(null);
     const hasTrackedInputRef = React.useRef(false);
     const lastPrefillRef = React.useRef(undefined);
@@ -125,23 +124,177 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             });
         }
     };
-    const sortOptions = ['Default', 'High impact first', 'Most recent first'];
-    const paperTypeOptions = ['All types', 'Reviews only', 'Exclude reviews'];
+    const sortOptions = [
+        { value: 'Default', label: 'Default' },
+        { value: 'High impact first', label: 'High impact' },
+        { value: 'Most recent first', label: 'Most recent' },
+    ];
+    const paperTypeOptions = [
+        { value: 'All types', label: 'All types', width: 78 },
+        { value: 'Reviews only', label: 'Reviews only', width: 103 },
+        { value: 'Exclude reviews', label: 'Exclude reviews', width: 124 },
+    ];
     const defaultSortBy = 'Default';
     const defaultPaperType = 'All types';
     const mobileSelectedOptions = [];
     if (paperType !== defaultPaperType) mobileSelectedOptions.push(paperType);
     if (sortBy !== defaultSortBy) mobileSelectedOptions.push(sortBy);
     const mobileChipLabel = mobileSelectedOptions.length > 0 ? mobileSelectedOptions.join(' + ') : 'Search Options';
-    const selectMenuProps = {
-        disableScrollLock: true,
-        PaperProps: {
-            sx: {
-                borderRadius: '16px',
-                boxShadow: '0px 1px 10px rgba(0, 0, 0, 0.05)',
-            },
-        },
+    const openSearchOptions = () => {
+        setIsOpen(false);
+        if (props.setExamplesOpen) {
+            props.setExamplesOpen(false);
+        }
+        if (props.onCollapseExampleLists) {
+            props.onCollapseExampleLists();
+        }
+        if (isMobileLayout) {
+            setMobileOptionsOpen(true);
+            return;
+        }
+        setDesktopOptionsOpen(true);
     };
+
+    const closeSearchOptions = () => {
+        setMobileOptionsOpen(false);
+        setDesktopOptionsOpen(false);
+    };
+
+    const handleResetSearchOptions = () => {
+        setPaperType(defaultPaperType);
+        setSortBy(defaultSortBy);
+    };
+
+    const optionChipSx = (isActive, { equalWidth = false, fixedWidth } = {}) => ({
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '40px',
+        minWidth: equalWidth ? 0 : `${fixedWidth || 72}px`,
+        padding: '0 8px',
+        borderRadius: '8px',
+        backgroundColor: isActive ? '#FFFFFF' : 'transparent',
+        boxShadow: isActive ? '0px 2px 2px rgba(0, 0, 0, 0.10)' : 'none',
+        fontFamily: 'DM Sans, sans-serif',
+        fontWeight: isActive ? 900 : 600,
+        fontSize: '14px',
+        lineHeight: '16px',
+        color: isActive ? '#155DFC' : '#646464',
+        textTransform: 'none',
+        cursor: 'pointer',
+        '&:hover': {
+            backgroundColor: isActive ? '#FFFFFF' : 'rgba(255, 255, 255, 0.35)',
+            boxShadow: isActive ? '0px 2px 2px rgba(0, 0, 0, 0.10)' : 'none',
+        },
+        whiteSpace: 'nowrap',
+        flex: equalWidth ? '1 0 0' : '0 0 auto',
+    });
+
+    const searchOptionsPanel = (
+        <>
+            <Box
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    py: 2,
+                    borderBottom: '1px solid #EDEDED',
+                }}
+            >
+                <Box sx={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 900, fontSize: '20px', lineHeight: '24px', color: '#333333' }}>
+                    Search Options
+                </Box>
+                <IconButton onClick={closeSearchOptions} size="small" sx={{ color: '#646464' }}>
+                    <CloseIcon fontSize="small" />
+                </IconButton>
+            </Box>
+
+            <Box sx={{ pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2.25 }}>
+                <Box>
+                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#333333' }}>
+                        Article Type
+                    </Box>
+                    <Box sx={{ backgroundColor: '#F4F4F4', borderRadius: '10px', p: '2px', display: 'flex', gap: 0 }}>
+                        {paperTypeOptions.map((option) => (
+                            <Box
+                                key={option.value}
+                                role="button"
+                                onClick={() => setPaperType(option.value)}
+                                sx={optionChipSx(option.value === paperType, { fixedWidth: option.width })}
+                            >
+                                {option.label}
+                            </Box>
+                        ))}
+                    </Box>
+                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: '#969696' }}>
+                        Search every article
+                    </Box>
+                </Box>
+
+                <Box>
+                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#333333' }}>
+                        Sort by
+                    </Box>
+                    <Box sx={{ backgroundColor: '#F4F4F4', borderRadius: '10px', p: '2px', display: 'flex', gap: 0 }}>
+                        {sortOptions.map((option) => (
+                            <Box
+                                key={option.value}
+                                role="button"
+                                onClick={() => setSortBy(option.value)}
+                                sx={optionChipSx(option.value === sortBy, { equalWidth: true })}
+                            >
+                                {option.label}
+                            </Box>
+                        ))}
+                    </Box>
+                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: '#969696' }}>
+                        Best matches for your query
+                    </Box>
+                </Box>
+            </Box>
+
+            <Box sx={{ mt: 'auto', pt: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+                <Box
+                    role="button"
+                    onClick={handleResetSearchOptions}
+                    sx={{
+                        fontFamily: 'DM Sans, sans-serif',
+                        fontWeight: 900,
+                        fontSize: '14px',
+                        lineHeight: '16px',
+                        color: '#646464',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                    }}
+                >
+                    Reset
+                </Box>
+                <Box
+                    role="button"
+                    onClick={closeSearchOptions}
+                    sx={{
+                        flex: 1,
+                        minWidth: '140px',
+                        height: '40px',
+                        borderRadius: '999px',
+                        backgroundColor: '#155DFC',
+                        color: '#FFFFFF',
+                        fontFamily: 'DM Sans, sans-serif',
+                        fontWeight: 900,
+                        fontSize: '14px',
+                        lineHeight: '16px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                    }}
+                >
+                    Done
+                </Box>
+            </Box>
+        </>
+    );
 
     return (
         <Box
@@ -163,7 +316,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             <Autocomplete
                 freeSolo
                 fullWidth
-                open={!mobileOptionsOpen && isOpen}
+                open={!mobileOptionsOpen && !desktopOptionsOpen && isOpen}
                 disabled={isQueryLimitReached}
                 options={props.autocompleteOptions || []}
                 filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
@@ -239,7 +392,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     overflowY: 'auto !important',
                                 },
                                 '& .MuiInputBase-input::placeholder': {
-                                    color: '#969696',
+                                    color: '#A3AAB5',
                                     opacity: 1,
                                 },
                                 '& .MuiOutlinedInput-notchedOutline': {
@@ -267,7 +420,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             }}
                         >
                             <Box
-                                role="button"
                                 onMouseDown={(event) => {
                                     event.preventDefault();
                                     event.stopPropagation();
@@ -275,136 +427,75 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 onClick={(event) => {
                                     event.preventDefault();
                                     event.stopPropagation();
-                                    setIsOpen(false);
-                                    if (props.setExamplesOpen) {
-                                        props.setExamplesOpen(false);
-                                    }
-                                    if (props.onCollapseExampleLists) {
-                                        props.onCollapseExampleLists();
-                                    }
-                                    setMobileOptionsOpen(true);
+                                    openSearchOptions();
                                 }}
                                 sx={{
                                     display: { xs: 'inline-flex', sm: 'none' },
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    padding: '11px 16px',
-                                    borderRadius: '18px',
-                                    background: '#EEEEEE',
-                                    color: '#646464',
+                                    gap: '6px',
+                                    padding: '10px 8px',
+                                    margin: '-10px -8px',
+                                    borderRadius: '0px',
+                                    background: 'transparent',
+                                    color: '#323232',
                                     fontFamily: 'DM Sans, sans-serif',
-                                    fontWeight: 400,
+                                    fontWeight: 700,
                                     fontSize: '14px',
-                                    lineHeight: '14px',
+                                    lineHeight: '16px',
+                                    textTransform: 'none',
+                                    minWidth: 0,
                                     maxWidth: 'calc(100% - 52px)',
                                     whiteSpace: 'nowrap',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
-                                    cursor: 'pointer',
                                     pointerEvents: 'auto',
                                 }}
                             >
+                                <TuneIcon sx={{ color: '#323232', fontSize: '16px' }} />
                                 {mobileChipLabel}
                             </Box>
 
-                            <Box
+                            <Button
                                 sx={{
-                                    display: { xs: 'none', sm: 'flex' },
+                                    display: { xs: 'none', sm: 'inline-flex' },
                                     alignItems: 'center',
-                                    gap: 3,
-                                    color: '#8A8A8A',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    height: '36px',
+                                    padding: '10px 8px',
+                                    margin: '-10px -8px',
+                                    borderRadius: '18px',
+                                    background: 'transparent',
+                                    color: '#323232',
                                     fontFamily: 'DM Sans, sans-serif',
-                                    fontSize: '16px',
-                                    lineHeight: '24px',
+                                    fontWeight: 700,
+                                    fontSize: '14px',
+                                    lineHeight: '16px',
+                                    textTransform: 'none',
+                                    minWidth: 0,
+                                    whiteSpace: 'nowrap',
+                                    maxWidth: '280px',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
                                     pointerEvents: 'auto',
+                                    '&:hover': {
+                                        background: 'transparent',
+                                    },
+                                }}
+                                onMouseDown={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                }}
+                                onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    openSearchOptions();
                                 }}
                             >
-                                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0 }}>
-                                    <span style={{ color: '#8A8A8A' }}>Sort by:</span>
-                                    <Select
-                                        value={sortBy}
-                                        onChange={(event) => setSortBy(event.target.value)}
-                                        renderValue={(value) => value}
-                                        variant="standard"
-                                        disableUnderline
-                                        MenuProps={selectMenuProps}
-                                        sx={{
-                                            minWidth: '0px',
-                                            color: '#111111',
-                                            fontFamily: 'DM Sans, sans-serif',
-                                            fontSize: '16px',
-                                            lineHeight: '24px',
-                                            '& .MuiSelect-select': {
-                                                borderRadius: '8px !important',
-                                                padding: '0 4px !important',
-                                                minHeight: 'unset',
-                                            },
-                                            '& .MuiSelect-icon': {
-                                                display: 'none',
-                                            },
-                                        }}
-                                    >
-                                        {sortOptions.map((option) => (
-                                            <MenuItem key={option} value={option} sx={{ fontFamily: 'DM Sans, sans-serif', fontSize: '16px' }}>
-                                                <Box sx={{ display: 'inline-flex', alignItems: 'center', width: '18px', marginRight: '8px' }}>
-                                                    <CheckIcon
-                                                        sx={{
-                                                            fontSize: '16px',
-                                                            color: '#155DFC',
-                                                            visibility: option === sortBy ? 'visible' : 'hidden',
-                                                        }}
-                                                    />
-                                                </Box>
-                                                <span>{option}</span>
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                    <SortIcon sx={{ color: '#8A8A8A', fontSize: '16px' }} />
-                                </Box>
-
-                                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0 }}>
-                                    <span style={{ color: '#8A8A8A' }}>Paper type:</span>
-                                    <Select
-                                        value={paperType}
-                                        onChange={(event) => setPaperType(event.target.value)}
-                                        renderValue={(value) => value}
-                                        variant="standard"
-                                        disableUnderline
-                                        MenuProps={selectMenuProps}
-                                        sx={{
-                                            minWidth: '0px',
-                                            color: '#111111',
-                                            fontFamily: 'DM Sans, sans-serif',
-                                            fontSize: '16px',
-                                            lineHeight: '24px',
-                                            '& .MuiSelect-select': {
-                                                borderRadius: '8px !important',
-                                                padding: '0 4px !important',
-                                                minHeight: 'unset',
-                                            },
-                                            '& .MuiSelect-icon': {
-                                                display: 'none',
-                                            },
-                                        }}
-                                    >
-                                        {paperTypeOptions.map((option) => (
-                                            <MenuItem key={option} value={option} sx={{ fontFamily: 'DM Sans, sans-serif', fontSize: '16px' }}>
-                                                <Box sx={{ display: 'inline-flex', alignItems: 'center', width: '18px', marginRight: '8px' }}>
-                                                    <CheckIcon
-                                                        sx={{
-                                                            fontSize: '16px',
-                                                            color: '#155DFC',
-                                                            visibility: option === paperType ? 'visible' : 'hidden',
-                                                        }}
-                                                    />
-                                                </Box>
-                                                <span>{option}</span>
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                    <FilterAltOutlinedIcon sx={{ color: '#8A8A8A', fontSize: '16px' }} />
-                                </Box>
-                            </Box>
+                                <TuneIcon sx={{ color: '#323232', fontSize: '16px' }} />
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{mobileChipLabel}</span>
+                            </Button>
 
                             <Box
                                 role="button"
@@ -443,96 +534,48 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         <Drawer
                             anchor="bottom"
                             open={mobileOptionsOpen}
-                            onClose={() => setMobileOptionsOpen(false)}
+                            onClose={closeSearchOptions}
                             PaperProps={{
                                 sx: {
                                     borderTopLeftRadius: '24px',
                                     borderTopRightRadius: '24px',
                                     backgroundColor: '#FFFFFF',
                                     px: 3,
-                                    pb: 3,
+                                    pb: 2,
                                     pt: 0,
+                                    minHeight: '300px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
                                 },
                             }}
                         >
                             <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
                                 <Box sx={{ width: '44px', height: '4px', borderRadius: '4px', backgroundColor: '#D8D8D8' }} />
                             </Box>
+                            {searchOptionsPanel}
+                        </Drawer>
 
-                            <Box sx={{ display: 'flex', alignItems: 'center', py: 2, borderBottom: '1px solid #EDEDED' }}>
-                                <Box sx={{ flex: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: '16px', color: '#333333' }}>
-                                    Search Options
-                                </Box>
-                                <IconButton onClick={() => setMobileOptionsOpen(false)} size="small" sx={{ color: '#646464' }}>
-                                    <CloseIcon fontSize="small" />
-                                </IconButton>
-                            </Box>
-
-                            <Box sx={{ pt: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                                <Box>
-                                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '16px', color: '#333333' }}>
-                                        Article Type
-                                    </Box>
-                                    <Box sx={{ background: '#F4F4F4', borderRadius: '24px', px: 3, py: 2 }}>
-                                        {paperTypeOptions.map((option, index) => (
-                                            <Box key={option}>
-                                                <Box
-                                                    role="button"
-                                                    onClick={() => setPaperType(option)}
-                                                    sx={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'space-between',
-                                                        py: 0.5,
-                                                        fontFamily: 'DM Sans, sans-serif',
-                                                        fontWeight: 400,
-                                                        fontSize: '16px',
-                                                        lineHeight: 1.5,
-                                                        color: '#333333',
-                                                        cursor: 'pointer',
-                                                    }}
-                                                >
-                                                    <span>{option}</span>
-                                                    {option === paperType ? <CheckIcon sx={{ fontSize: '20px', color: '#155DFC' }} /> : null}
-                                                </Box>
-                                                {index < paperTypeOptions.length - 1 ? <Divider sx={{ my: 1 }} /> : null}
-                                            </Box>
-                                        ))}
-                                    </Box>
-                                </Box>
-
-                                <Box>
-                                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '16px', color: '#333333' }}>
-                                        Sort by
-                                    </Box>
-                                    <Box sx={{ background: '#F4F4F4', borderRadius: '24px', px: 3, py: 2 }}>
-                                        {sortOptions.map((option, index) => (
-                                            <Box key={option}>
-                                                <Box
-                                                    role="button"
-                                                    onClick={() => setSortBy(option)}
-                                                    sx={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'space-between',
-                                                        py: 0.5,
-                                                        fontFamily: 'DM Sans, sans-serif',
-                                                        fontWeight: 400,
-                                                        fontSize: '16px',
-                                                        lineHeight: 1.5,
-                                                        color: '#333333',
-                                                        cursor: 'pointer',
-                                                    }}
-                                                >
-                                                    <span>{option}</span>
-                                                    {option === sortBy ? <CheckIcon sx={{ fontSize: '20px', color: '#155DFC' }} /> : null}
-                                                </Box>
-                                                {index < sortOptions.length - 1 ? <Divider sx={{ my: 1 }} /> : null}
-                                            </Box>
-                                        ))}
-                                    </Box>
-                                </Box>
-                            </Box>
+                        <Drawer
+                            anchor="right"
+                            open={desktopOptionsOpen}
+                            onClose={closeSearchOptions}
+                            ModalProps={{
+                                keepMounted: true,
+                            }}
+                            PaperProps={{
+                                sx: {
+                                    width: '369px',
+                                    maxWidth: '92vw',
+                                    backgroundColor: '#FFFFFF',
+                                    px: 3,
+                                    pb: 3,
+                                    pt: 0,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                },
+                            }}
+                        >
+                            {searchOptionsPanel}
                         </Drawer>
                     </Box>
                 )}
