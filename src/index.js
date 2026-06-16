@@ -31,6 +31,7 @@ import HomePage from './components/HomePage';
 import AppLayout from './components/Layout';
 import Library from './components/Library';
 import LLMAgent from './components/LLMAgent';
+import MaintenancePage from './components/MaintenancePage';
 import ResultPage from './components/ResultPage';
 import TestAuth from './components/TestAuth';
 
@@ -92,6 +93,7 @@ const initState = {
 }
 
 const INDEXABLE_PATHS = new Set(['/', '/about', '/chat']);
+const MAINTENANCE_MODE = false;
 
 const normalizePathname = (pathname) => {
     const normalized = pathname.replace(/\/+$/, '');
@@ -117,6 +119,18 @@ function RouteSeoControl() {
 
 // Create a wrapper component
 function AppWithRoutes() {
+    if (MAINTENANCE_MODE) {
+        return (
+            <HelmetProvider>
+                <Routes>
+                    <Route path="/about" element={<AboutPage />} />
+                    <Route path="/debug" element={<DebugPage />} />
+                    <Route path="*" element={<MaintenancePage />} />
+                </Routes>
+            </HelmetProvider>
+        );
+    }
+
     return (
         <HelmetProvider>
             <RouteSeoControl />
