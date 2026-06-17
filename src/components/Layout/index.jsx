@@ -18,6 +18,7 @@ import { Menu as MenuIcon } from '@mui/icons-material';
 
 import logoIcon from '../../img/GLKB_logo_icon.png';
 import logoWordmark from '../../img/navbar/logo.jpg';
+import { trackGtagEvent } from '../../utils/gtag';
 import NavBarWhite from '../Units/NavBarWhite';
 
 const FREE_BOOKMARK_BLOCKED_EVENT = 'glkb-free-bookmark-blocked';
@@ -118,7 +119,10 @@ const AppLayout = () => {
                         type="button"
                         className="app-mobile-header-context"
                         aria-label="Open sidebar"
-                        onClick={() => window.dispatchEvent(new CustomEvent(SIDEBAR_OPEN_EVENT))}
+                        onClick={() => {
+                            trackGtagEvent('mobile_header_sidebar_open_click', { source: 'layout_header' });
+                            window.dispatchEvent(new CustomEvent(SIDEBAR_OPEN_EVENT));
+                        }}
                     >
                         <MenuIcon sx={{ fontSize: 22, color: '#646464' }} />
                     </button>
@@ -132,7 +136,10 @@ const AppLayout = () => {
                         <button
                             type="button"
                             className="app-mobile-header-new-chat"
-                            onClick={() => window.dispatchEvent(new CustomEvent(MOBILE_HEADER_NEW_CHAT_EVENT))}
+                            onClick={() => {
+                                trackGtagEvent('mobile_header_new_chat_click', { source: 'layout_header' });
+                                window.dispatchEvent(new CustomEvent(MOBILE_HEADER_NEW_CHAT_EVENT));
+                            }}
                         >
                             New Chat
                         </button>

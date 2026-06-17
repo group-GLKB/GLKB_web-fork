@@ -35,6 +35,7 @@ import {
   getMyTier,
   isFreePlanLimitReached,
 } from '../../service/Tier';
+import { trackGtagEvent } from '../../utils/gtag';
 import { useAuth } from '../Auth/AuthContext';
 import exampleSchema from './exampleSchema.json';
 import LlmSearchBar from './LlmSearchBarHome';
@@ -353,7 +354,12 @@ const HomePage = () => {
                                                     <IconButton
                                                         aria-label="Close examples"
                                                         size="small"
-                                                        onClick={() => setShowExamples(undefined)}
+                                                        onClick={() => {
+                                                            trackGtagEvent('home_examples_close_click', {
+                                                                section: activePill?.id || '',
+                                                            });
+                                                            setShowExamples(undefined);
+                                                        }}
                                                         className="homepage-examples-close"
                                                     >
                                                         <CloseIcon sx={{ fontSize: 18 }} />
@@ -369,6 +375,10 @@ const HomePage = () => {
                                                                 if (handleAuthGate()) {
                                                                     return;
                                                                 }
+                                                                trackGtagEvent('home_example_item_click', {
+                                                                    section: activePill?.id || '',
+                                                                    label: activePill?.label || '',
+                                                                });
                                                                 setPrefillQuery(example);
                                                                 setShowExamples(undefined);
                                                             }}
@@ -398,6 +408,10 @@ const HomePage = () => {
                                                 if (handleAuthGate(event)) {
                                                     return;
                                                 }
+                                                trackGtagEvent('home_example_group_click', {
+                                                    section: pill.id,
+                                                    label: pill.label,
+                                                });
                                                 setShowExamples((current) => current === pill.id ? undefined : pill.id);
                                             }}
                                         >
@@ -422,6 +436,7 @@ const HomePage = () => {
                     </div>
                     <AntButton
                         onClick={() => {
+                            trackGtagEvent('home_tour_open_click', { source: 'floating_help_button' });
                             setRunTour(true);
                         }}
                         // style={{ marginTop: '20px' }}
