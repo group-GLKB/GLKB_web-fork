@@ -248,7 +248,7 @@ const HomePage = () => {
             <div className={`HomePageRoot${isPhoneDevice ? ' is-phone-device' : ''}`}>
                 <div className="HomePageContainer">
                     <div className="HomePageInner" style={{
-                        backgroundColor: '#FAFCFF',
+                        backgroundColor: '#FFFFFF',
                         transition: 'background-color 0.3s ease',
                     }}>
                         <Joyride
@@ -309,7 +309,7 @@ const HomePage = () => {
                                         fontFamily: 'DM Sans, sans-serif',
                                         fontWeight: 400,
                                         fontSize: '18px',
-                                        color: '#333333',
+                                        color: '#5C6470',
                                         lineHeight: '26.64px',
                                     }}
                                 >
