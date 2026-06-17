@@ -185,9 +185,9 @@
     flex: 0 0 auto;
     padding: 8px 16px;
     border-radius: 16px !important;
-    background-color: #ffffff;
-    border: 1px solid #0078FF;
-    color: #0078FF;
+    background-color: #F5F6F8;
+    border: none;
+    color: #333333;
     font-family: "DM Sans", sans-serif;
     font-weight: 500;
     font-size: 15px;
@@ -198,16 +198,16 @@
 }
 
 .homepage-pill:hover {
-    background-color: #ffffff;
-    border-color: #0078FF;
-    box-shadow: 0 6px 14px rgba(0, 120, 255, 0.16);
+    background-color: #F5F6F8;
+    border-color: transparent;
+    box-shadow: none;
     transform: translateY(-1px);
 }
 
 .homepage-pill.is-active {
-    background-color: #ffffff;
-    border-color: #0078FF;
-    box-shadow: 0 8px 18px rgba(0, 120, 255, 0.22);
+    background-color: #F5F6F8;
+    border-color: transparent;
+    box-shadow: none;
 }
 
 .homepage-pill-icon {

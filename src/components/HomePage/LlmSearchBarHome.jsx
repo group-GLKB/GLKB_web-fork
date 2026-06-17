@@ -198,7 +198,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     py: 2,
-                    borderBottom: '1px solid #EDEDED',
                 }}
             >
                 <Box sx={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 900, fontSize: '20px', lineHeight: '24px', color: '#333333' }}>
@@ -209,12 +208,14 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 </IconButton>
             </Box>
 
+            <Box sx={{ borderTop: '1px solid #EDEDED', mx: '-24px' }} />
+
             <Box sx={{ pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2.25 }}>
                 <Box>
                     <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#333333' }}>
                         Article Type
                     </Box>
-                    <Box sx={{ backgroundColor: '#F4F4F4', borderRadius: '10px', p: '2px', display: 'flex', gap: 0 }}>
+                    <Box sx={{ backgroundColor: '#F4F4F4', borderRadius: '10px', p: '4px', display: 'flex', gap: 0, justifyContent: 'space-between' }}>
                         {paperTypeOptions.map((option) => (
                             <Box
                                 key={option.value}
@@ -231,11 +232,13 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     </Box>
                 </Box>
 
+                <Box sx={{ borderTop: '1px solid #EDEDED', mx: '-24px' }} />
+
                 <Box>
                     <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#333333' }}>
                         Sort by
                     </Box>
-                    <Box sx={{ backgroundColor: '#F4F4F4', borderRadius: '10px', p: '2px', display: 'flex', gap: 0 }}>
+                    <Box sx={{ backgroundColor: '#F4F4F4', borderRadius: '10px', p: '4px', display: 'flex', gap: 0, justifyContent: 'space-between' }}>
                         {sortOptions.map((option) => (
                             <Box
                                 key={option.value}
@@ -306,7 +309,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 margin: '0 auto',
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '16px',
-                backgroundColor: '#ffffff',
+                backgroundColor: '#F7F8FA',
                 borderRadius: '16px',
                 borderWidth: '1px',
                 borderStyle: 'solid',
@@ -368,11 +371,12 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             maxRows={4}
                             disabled={isQueryLimitReached}
                             sx={{
-                                height: '130px',
+                                height: { xs: '130px', sm: '148px' },
                                 width: '100%',
                                 '& .MuiInputBase-root': {
                                     borderRadius: '16px',
-                                    height: '130px',
+                                    height: { xs: '130px', sm: '148px' },
+                                    backgroundColor: '#F7F8FA',
                                     alignItems: 'flex-start',
                                     paddingLeft: '20px',
                                     paddingRight: '20px !important',
