@@ -11,7 +11,7 @@ import TuneIcon from '@mui/icons-material/Tune';
 import {
   Autocomplete,
   Box,
-    Button,
+  Button,
   Drawer,
   IconButton,
   Paper,
@@ -21,6 +21,7 @@ import {
 } from '@mui/material';
 
 import { ReactComponent as UnionIcon } from '../../img/Union.svg';
+import { trackGtagEvent } from '../../utils/gtag';
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
@@ -109,6 +110,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             hasTrackedInputRef.current = true;
         }
         const searchOptions = buildSearchOptionsPayload();
+        trackGtagEvent('home_search_submit_click', {
+            has_query: Boolean(query),
+            ranking_mode: searchOptions.rankingMode,
+            filters: searchOptions.filters.join(','),
+        });
         if (query) {
             navigate('/chat', {
                 state: {
@@ -141,6 +147,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     if (sortBy !== defaultSortBy) mobileSelectedOptions.push(sortBy);
     const mobileChipLabel = mobileSelectedOptions.length > 0 ? mobileSelectedOptions.join(' + ') : 'Search Options';
     const openSearchOptions = () => {
+        trackGtagEvent('home_search_options_open_click', {
+            source: isMobileLayout ? 'mobile' : 'desktop',
+        });
         setIsOpen(false);
         if (props.setExamplesOpen) {
             props.setExamplesOpen(false);
@@ -156,11 +165,17 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     };
 
     const closeSearchOptions = () => {
+        trackGtagEvent('home_search_options_close_click', {
+            source: isMobileLayout ? 'mobile' : 'desktop',
+        });
         setMobileOptionsOpen(false);
         setDesktopOptionsOpen(false);
     };
 
     const handleResetSearchOptions = () => {
+        trackGtagEvent('home_search_options_reset_click', {
+            source: isMobileLayout ? 'mobile' : 'desktop',
+        });
         setPaperType(defaultPaperType);
         setSortBy(defaultSortBy);
     };
@@ -220,7 +235,12 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             <Box
                                 key={option.value}
                                 role="button"
-                                onClick={() => setPaperType(option.value)}
+                                onClick={() => {
+                                    trackGtagEvent('home_article_type_select_click', {
+                                        value: option.value,
+                                    });
+                                    setPaperType(option.value);
+                                }}
                                 sx={optionChipSx(option.value === paperType, { fixedWidth: option.width })}
                             >
                                 {option.label}
@@ -243,7 +263,12 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             <Box
                                 key={option.value}
                                 role="button"
-                                onClick={() => setSortBy(option.value)}
+                                onClick={() => {
+                                    trackGtagEvent('home_sort_mode_select_click', {
+                                        value: option.value,
+                                    });
+                                    setSortBy(option.value);
+                                }}
                                 sx={optionChipSx(option.value === sortBy, { equalWidth: true })}
                             >
                                 {option.label}
@@ -380,7 +405,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     alignItems: 'flex-start',
                                     paddingLeft: '20px',
                                     paddingRight: '20px !important',
-                                    paddingTop: '0px',
+                                    paddingTop: '16.5px',
                                     paddingBottom: '58px',
                                     fontFamily: 'DM Sans, sans-serif',
                                     fontSize: '16px',
@@ -614,6 +639,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     }
                     if (e.key === 'Enter' && !e.shiftKey && llmQuery.trim() !== "") {
                         e.preventDefault();
+                        trackGtagEvent('home_search_submit_enter', {
+                            ranking_mode: buildSearchOptionsPayload().rankingMode,
+                        });
                         navigateToLLMAgent(llmQuery.trim());
                     }
                 }}

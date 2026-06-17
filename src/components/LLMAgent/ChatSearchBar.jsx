@@ -8,6 +8,7 @@ import {
 } from '@mui/material';
 
 import { ReactComponent as UnionIcon } from '../../img/Union.svg';
+import { trackGtagEvent } from '../../utils/gtag';
 
 const ChatSearchBar = ({
     userInput,
@@ -88,6 +89,7 @@ const ChatSearchBar = ({
                                         event.preventDefault();
                                     }}
                                     onClick={() => {
+                                        trackGtagEvent('chat_input_clear_click', { source: 'chat_searchbar' });
                                         setUserInput('');
                                     }}
                                     sx={{
@@ -101,8 +103,17 @@ const ChatSearchBar = ({
                                 role="button"
                                 aria-label={isLoading ? 'Stop' : 'Send'}
                                 onClick={isLoading
-                                    ? onStop
-                                    : (!userInput.trim() || isQueryLimitReached ? undefined : () => onSubmit())}
+                                    ? () => {
+                                        trackGtagEvent('chat_stop_click', { source: 'chat_searchbar' });
+                                        onStop();
+                                    }
+                                    : (!userInput.trim() || isQueryLimitReached ? undefined : () => {
+                                        trackGtagEvent('chat_submit_click', {
+                                            source: 'chat_searchbar_button',
+                                            input_length: userInput.trim().length,
+                                        });
+                                        onSubmit();
+                                    })}
                                 sx={{
                                     height: { xs: '36px', sm: '44px' },
                                     width: { xs: '36px', sm: '44px' },
@@ -155,6 +166,10 @@ const ChatSearchBar = ({
                 onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey && userInput.trim() !== '' && !isLoading && !isQueryLimitReached) {
                         e.preventDefault();
+                        trackGtagEvent('chat_submit_enter', {
+                            source: 'chat_searchbar_input',
+                            input_length: userInput.trim().length,
+                        });
                         onSubmit();
                     }
                 }}
