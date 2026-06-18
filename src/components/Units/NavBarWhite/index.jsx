@@ -45,9 +45,6 @@ import {
 
 import logo from '../../../img/GLKB_logo_icon.png';
 import { ReactComponent as AddIcon } from '../../../img/navbar/add.svg';
-import {
-  ReactComponent as UpgradeIcon,
-} from '../../../img/navbar/arrow_circle_up.svg';
 import { ReactComponent as BookIcon } from '../../../img/navbar/book_4.svg';
 import {
   ReactComponent as CategorySearchIcon,
@@ -75,6 +72,7 @@ import {
   getConversationBookmarks,
   toggleConversationBookmark,
 } from '../../../utils/conversationBookmarks';
+import { trackGtagEvent } from '../../../utils/gtag';
 import { useAuth } from '../../Auth/AuthContext';
 
 const drawerWidth = 280;
@@ -375,20 +373,19 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const handleAccountClick = () => {
         handleCloseUserMenu();
+        trackGtagEvent('nav_account_click', { source: 'sidebar_user_menu' });
         navigate('/account');
     };
 
     const handleUpgradeWithCodeClick = () => {
         handleCloseUserMenu();
+        trackGtagEvent('nav_upgrade_code_click', { source: 'sidebar_user_menu' });
         navigate('/account', { state: { tab: 'testing' } });
-    };
-
-    const handleUpgradeClick = () => {
-        handleCloseUserMenu();
     };
 
     const handleLogoutClick = async () => {
         handleCloseUserMenu();
+        trackGtagEvent('nav_logout_click', { source: 'sidebar_user_menu' });
         await logout();
         window.location.href = '/';
     };
@@ -406,6 +403,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const handleRenameRecent = async () => {
         if (!recentMenuConversation?.id) return;
+        trackGtagEvent('recent_rename_click', { source: 'sidebar_recent_menu' });
         const idToEdit = String(recentMenuConversation.id);
         const titleToEdit = getConversationTitle(recentMenuConversation);
         handleCloseRecentMenu();
@@ -441,6 +439,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const handleBookmarkRecent = async () => {
         if (!recentMenuConversation?.id) return;
+        trackGtagEvent('recent_bookmark_click', { source: 'sidebar_recent_menu' });
         try {
             await toggleConversationBookmark(recentMenuConversation);
         } catch (error) {
@@ -451,6 +450,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const handleDeleteRecent = async () => {
         if (!recentMenuConversation?.id) return;
+        trackGtagEvent('recent_delete_click', { source: 'sidebar_recent_menu' });
         const idToDelete = String(recentMenuConversation.id);
         const deletingActiveConversation = String(activeConversationId) === idToDelete;
         try {
@@ -510,7 +510,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const renderNavItem = (item) => {
         const linkProps = item.onClick
-            ? { component: 'button', onClick: item.onClick, type: 'button' }
+            ? { component: 'button', type: 'button' }
             : item.to
                 ? { component: Link, to: item.to }
                 : { component: 'a', href: item.href, target: '_blank', rel: 'noopener noreferrer' };
@@ -521,6 +521,15 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
             <ListItemButton
                 selected={isSelected(item)}
                 aria-label={item.label}
+                onClick={(event) => {
+                    trackGtagEvent('nav_item_click', {
+                        label: item.label,
+                        target: item.to || item.href || '',
+                    });
+                    if (item.onClick) {
+                        item.onClick(event);
+                    }
+                }}
                 {...linkProps}
                 sx={{
                     width: '100%',
@@ -645,7 +654,15 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                     aria-label={open ? 'Go to home' : 'Expand sidebar'}
                                     component={open ? Link : 'button'}
                                     to={open ? '/' : undefined}
-                                    onClick={open ? undefined : () => setOpen(true)}
+                                    onClick={(event) => {
+                                        if (open) {
+                                            trackGtagEvent('nav_logo_click', { action: 'go_home' });
+                                            return;
+                                        }
+                                        event.preventDefault();
+                                        trackGtagEvent('nav_sidebar_expand_click', { source: 'logo_button' });
+                                        setOpen(true);
+                                    }}
                                     size="small"
                                     className="sidebar-logo-link"
                                     sx={{
@@ -746,7 +763,10 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                 <Tooltip title="Collapse sidebar" {...tooltipProps}>
                                     <IconButton
                                         aria-label="Collapse sidebar"
-                                        onClick={() => setOpen((prev) => !prev)}
+                                        onClick={() => {
+                                            trackGtagEvent('nav_sidebar_collapse_click', { source: 'collapse_button' });
+                                            setOpen((prev) => !prev);
+                                        }}
                                         size="small"
                                         sx={{
                                             width: 48,
@@ -960,7 +980,10 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                     <Tooltip title="Open sidebar" {...tooltipProps}>
                         <IconButton
                             aria-label="Expand sidebar"
-                            onClick={() => setOpen(true)}
+                            onClick={() => {
+                                trackGtagEvent('nav_sidebar_expand_click', { source: 'mobile_rail' });
+                                setOpen(true);
+                            }}
                             size="small"
                             sx={{
                                 width: 40,
@@ -1150,12 +1173,6 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                         />
                     </ListItemIcon>
                     <ListItemText>Account</ListItemText>
-                </MenuItem>
-                <MenuItem disabled onClick={handleUpgradeClick} sx={{ px: 2, py: 1 }}>
-                    <ListItemIcon sx={{ minWidth: "16px !important", mr: 1 }}>
-                        <UpgradeIcon style={{ width: 16, height: 16 }} />
-                    </ListItemIcon>
-                    <ListItemText>Upgrade</ListItemText>
                 </MenuItem>
                 <MenuItem onClick={handleUpgradeWithCodeClick} sx={{ px: 2, py: 1 }}>
                     <ListItemIcon sx={{ minWidth: "16px !important", mr: 1 }}>

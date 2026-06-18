@@ -11,7 +11,7 @@ import TuneIcon from '@mui/icons-material/Tune';
 import {
   Autocomplete,
   Box,
-    Button,
+  Button,
   Drawer,
   IconButton,
   Paper,
@@ -21,6 +21,7 @@ import {
 } from '@mui/material';
 
 import { ReactComponent as UnionIcon } from '../../img/Union.svg';
+import { trackGtagEvent } from '../../utils/gtag';
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
@@ -81,7 +82,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 },
                 {
                     name: 'offset',
-                    options: { offset: [0, 16] },
+                    options: { offset: [0, 24] },
                 },
             ]}
         />
@@ -109,6 +110,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             hasTrackedInputRef.current = true;
         }
         const searchOptions = buildSearchOptionsPayload();
+        trackGtagEvent('home_search_submit_click', {
+            has_query: Boolean(query),
+            ranking_mode: searchOptions.rankingMode,
+            filters: searchOptions.filters.join(','),
+        });
         if (query) {
             navigate('/chat', {
                 state: {
@@ -141,6 +147,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     if (sortBy !== defaultSortBy) mobileSelectedOptions.push(sortBy);
     const mobileChipLabel = mobileSelectedOptions.length > 0 ? mobileSelectedOptions.join(' + ') : 'Search Options';
     const openSearchOptions = () => {
+        trackGtagEvent('home_search_options_open_click', {
+            source: isMobileLayout ? 'mobile' : 'desktop',
+        });
         setIsOpen(false);
         if (props.setExamplesOpen) {
             props.setExamplesOpen(false);
@@ -156,11 +165,17 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     };
 
     const closeSearchOptions = () => {
+        trackGtagEvent('home_search_options_close_click', {
+            source: isMobileLayout ? 'mobile' : 'desktop',
+        });
         setMobileOptionsOpen(false);
         setDesktopOptionsOpen(false);
     };
 
     const handleResetSearchOptions = () => {
+        trackGtagEvent('home_search_options_reset_click', {
+            source: isMobileLayout ? 'mobile' : 'desktop',
+        });
         setPaperType(defaultPaperType);
         setSortBy(defaultSortBy);
     };
@@ -175,7 +190,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         borderRadius: '8px',
         backgroundColor: isActive ? '#FFFFFF' : 'transparent',
         boxShadow: isActive ? '0px 2px 2px rgba(0, 0, 0, 0.10)' : 'none',
-        fontFamily: 'DM Sans, sans-serif',
+        fontFamily: 'Geist, sans-serif',
         fontWeight: isActive ? 900 : 600,
         fontSize: '14px',
         lineHeight: '16px',
@@ -198,10 +213,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     py: 2,
-                    borderBottom: '1px solid #EDEDED',
                 }}
             >
-                <Box sx={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 900, fontSize: '20px', lineHeight: '24px', color: '#333333' }}>
+                <Box sx={{ fontFamily: 'Geist, sans-serif', fontWeight: 900, fontSize: '20px', lineHeight: '24px', color: '#333333' }}>
                     Search Options
                 </Box>
                 <IconButton onClick={closeSearchOptions} size="small" sx={{ color: '#646464' }}>
@@ -209,45 +223,59 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 </IconButton>
             </Box>
 
+            <Box sx={{ borderTop: '1px solid #EDEDED', mx: '-24px' }} />
+
             <Box sx={{ pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2.25 }}>
                 <Box>
-                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#333333' }}>
+                    <Box sx={{ mb: 1, fontFamily: 'Geist, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#333333' }}>
                         Article Type
                     </Box>
-                    <Box sx={{ backgroundColor: '#F4F4F4', borderRadius: '10px', p: '2px', display: 'flex', gap: 0 }}>
+                    <Box sx={{ backgroundColor: '#F4F4F4', borderRadius: '10px', p: '4px', display: 'flex', gap: 0, justifyContent: 'space-between' }}>
                         {paperTypeOptions.map((option) => (
                             <Box
                                 key={option.value}
                                 role="button"
-                                onClick={() => setPaperType(option.value)}
+                                onClick={() => {
+                                    trackGtagEvent('home_article_type_select_click', {
+                                        value: option.value,
+                                    });
+                                    setPaperType(option.value);
+                                }}
                                 sx={optionChipSx(option.value === paperType, { fixedWidth: option.width })}
                             >
                                 {option.label}
                             </Box>
                         ))}
                     </Box>
-                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: '#969696' }}>
+                    <Box sx={{ mt: 1, fontFamily: 'Geist, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: '#969696' }}>
                         Search every article
                     </Box>
                 </Box>
 
+                <Box sx={{ borderTop: '1px solid #EDEDED', mx: '-24px' }} />
+
                 <Box>
-                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#333333' }}>
+                    <Box sx={{ mb: 1, fontFamily: 'Geist, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#333333' }}>
                         Sort by
                     </Box>
-                    <Box sx={{ backgroundColor: '#F4F4F4', borderRadius: '10px', p: '2px', display: 'flex', gap: 0 }}>
+                    <Box sx={{ backgroundColor: '#F4F4F4', borderRadius: '10px', p: '4px', display: 'flex', gap: 0, justifyContent: 'space-between' }}>
                         {sortOptions.map((option) => (
                             <Box
                                 key={option.value}
                                 role="button"
-                                onClick={() => setSortBy(option.value)}
+                                onClick={() => {
+                                    trackGtagEvent('home_sort_mode_select_click', {
+                                        value: option.value,
+                                    });
+                                    setSortBy(option.value);
+                                }}
                                 sx={optionChipSx(option.value === sortBy, { equalWidth: true })}
                             >
                                 {option.label}
                             </Box>
                         ))}
                     </Box>
-                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: '#969696' }}>
+                    <Box sx={{ mt: 1, fontFamily: 'Geist, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: '#969696' }}>
                         Best matches for your query
                     </Box>
                 </Box>
@@ -258,7 +286,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     role="button"
                     onClick={handleResetSearchOptions}
                     sx={{
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'Geist, sans-serif',
                         fontWeight: 900,
                         fontSize: '14px',
                         lineHeight: '16px',
@@ -280,7 +308,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         borderRadius: '999px',
                         backgroundColor: '#155DFC',
                         color: '#FFFFFF',
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'Geist, sans-serif',
                         fontWeight: 900,
                         fontSize: '14px',
                         lineHeight: '16px',
@@ -304,14 +332,14 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 display: 'flex',
                 gap: 2,
                 margin: '0 auto',
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'Geist, sans-serif',
                 fontSize: '16px',
-                backgroundColor: '#ffffff',
+                backgroundColor: '#F7F8FA',
                 borderRadius: '16px',
                 borderWidth: '1px',
                 borderStyle: 'solid',
-                borderColor: '#E7F1FF',
-                boxShadow: '0px 6px 18px rgba(22, 69, 99, 0.08)',
+                borderColor: '#E5E9F0',
+                boxShadow: 'none',
             }}>
             <Autocomplete
                 freeSolo
@@ -354,7 +382,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 PopperComponent={CustomPopper}
                 sx={{
                     '& .MuiAutocomplete-groupLabel': {
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'Geist, sans-serif',
                         fontSize: '16px',
                     },
                 }}
@@ -368,17 +396,18 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             maxRows={4}
                             disabled={isQueryLimitReached}
                             sx={{
-                                height: '130px',
+                                height: { xs: '130px', sm: '148px' },
                                 width: '100%',
                                 '& .MuiInputBase-root': {
                                     borderRadius: '16px',
-                                    height: '130px',
+                                    height: { xs: '130px', sm: '148px' },
+                                    backgroundColor: '#F7F8FA',
                                     alignItems: 'flex-start',
                                     paddingLeft: '20px',
                                     paddingRight: '20px !important',
-                                    paddingTop: '0px',
+                                    paddingTop: '16.5px',
                                     paddingBottom: '58px',
-                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontFamily: 'Geist, sans-serif',
                                     fontSize: '16px',
                                     color: '#164563',
                                     '& fieldset': {
@@ -439,7 +468,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     borderRadius: '0px',
                                     background: 'transparent',
                                     color: '#323232',
-                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontFamily: 'Geist, sans-serif',
                                     fontWeight: 700,
                                     fontSize: '14px',
                                     lineHeight: '16px',
@@ -468,7 +497,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     borderRadius: '18px',
                                     background: 'transparent',
                                     color: '#323232',
-                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontFamily: 'Geist, sans-serif',
                                     fontWeight: 700,
                                     fontSize: '14px',
                                     lineHeight: '16px',
@@ -511,10 +540,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     cursor: 'pointer',
-                                    transition: 'transform 120ms ease, box-shadow 160ms ease',
-                                    boxShadow: llmQuery.trim() && !isQueryLimitReached
-                                        ? '0 6px 12px rgba(21, 93, 252, 0.28)'
-                                        : '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',
+                                    transition: 'transform 120ms ease',
+                                    boxShadow: 'none',
                                     '&:hover': {
                                         transform: 'translateY(-1px)',
                                     },
@@ -593,7 +620,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             whiteSpace: 'normal',
                             alignItems: 'flex-start',
                             lineHeight: 1.4,
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'Geist, sans-serif',
                             fontSize: '16px',
                         }}
                     >
@@ -610,6 +637,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     }
                     if (e.key === 'Enter' && !e.shiftKey && llmQuery.trim() !== "") {
                         e.preventDefault();
+                        trackGtagEvent('home_search_submit_enter', {
+                            ranking_mode: buildSearchOptionsPayload().rankingMode,
+                        });
                         navigateToLLMAgent(llmQuery.trim());
                     }
                 }}

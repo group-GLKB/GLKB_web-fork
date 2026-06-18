@@ -35,6 +35,7 @@ import {
   getMyTier,
   isFreePlanLimitReached,
 } from '../../service/Tier';
+import { trackGtagEvent } from '../../utils/gtag';
 import { useAuth } from '../Auth/AuthContext';
 import exampleSchema from './exampleSchema.json';
 import LlmSearchBar from './LlmSearchBarHome';
@@ -65,9 +66,16 @@ const HomePage = () => {
         book: <DescriptionOutlinedIcon />,
         knowledge: <span className="material-symbols-outlined" aria-hidden="true">stacks</span>,
     };
+    const iconColorMap = {
+        lightbulb: '#F5B22A',
+        chart: '#57CE55',
+        book: '#AC6DEF',
+        knowledge: '#4B88FD',
+    };
     const pills = (exampleSchema.pills || []).map((pill) => ({
         ...pill,
         icon: iconMap[pill.icon] || <LightbulbOutlinedIcon />,
+        iconColor: iconColorMap[pill.icon] || '#333333',
     }));
     const activePill = pills.find((pill) => pill.id === showExamples);
     const isHomeLimitReachedEffective = isQueryLimitReached || DEBUG_FORCE_LIMIT_WARNING;
@@ -248,7 +256,7 @@ const HomePage = () => {
             <div className={`HomePageRoot${isPhoneDevice ? ' is-phone-device' : ''}`}>
                 <div className="HomePageContainer">
                     <div className="HomePageInner" style={{
-                        backgroundColor: '#FAFCFF',
+                        backgroundColor: '#FFFFFF',
                         transition: 'background-color 0.3s ease',
                     }}>
                         <Joyride
@@ -271,7 +279,7 @@ const HomePage = () => {
                                 },
                                 tooltipContent: {
                                     textAlign: 'left',
-                                    fontFamily: 'Open Sans, sans-serif',
+                                    fontFamily: 'Geist, sans-serif',
                                 }
                             }}
                             locale={{
@@ -293,8 +301,8 @@ const HomePage = () => {
                                 <Typography
                                     className="glkb-title"
                                     sx={{
-                                        fontFamily: 'Open Sans, sans-serif',
-                                        fontWeight: 600,
+                                        fontFamily: 'Geist, sans-serif',
+                                        fontWeight: 800,
                                         fontSize: isPhoneDevice ? '30px' : '40px',
                                         lineHeight: 1.1,
                                     }}
@@ -306,10 +314,10 @@ const HomePage = () => {
                                 <Typography
                                     className="glkb-subtitle"
                                     sx={{
-                                        fontFamily: 'DM Sans, sans-serif',
+                                        fontFamily: 'Geist, sans-serif',
                                         fontWeight: 400,
                                         fontSize: '18px',
-                                        color: '#333333',
+                                        color: '#5C6470',
                                         lineHeight: '26.64px',
                                     }}
                                 >
@@ -353,7 +361,12 @@ const HomePage = () => {
                                                     <IconButton
                                                         aria-label="Close examples"
                                                         size="small"
-                                                        onClick={() => setShowExamples(undefined)}
+                                                        onClick={() => {
+                                                            trackGtagEvent('home_examples_close_click', {
+                                                                section: activePill?.id || '',
+                                                            });
+                                                            setShowExamples(undefined);
+                                                        }}
                                                         className="homepage-examples-close"
                                                     >
                                                         <CloseIcon sx={{ fontSize: 18 }} />
@@ -369,6 +382,10 @@ const HomePage = () => {
                                                                 if (handleAuthGate()) {
                                                                     return;
                                                                 }
+                                                                trackGtagEvent('home_example_item_click', {
+                                                                    section: activePill?.id || '',
+                                                                    label: activePill?.label || '',
+                                                                });
                                                                 setPrefillQuery(example);
                                                                 setShowExamples(undefined);
                                                             }}
@@ -398,10 +415,14 @@ const HomePage = () => {
                                                 if (handleAuthGate(event)) {
                                                     return;
                                                 }
+                                                trackGtagEvent('home_example_group_click', {
+                                                    section: pill.id,
+                                                    label: pill.label,
+                                                });
                                                 setShowExamples((current) => current === pill.id ? undefined : pill.id);
                                             }}
                                         >
-                                            <span className="homepage-pill-icon">{pill.icon}</span>
+                                            <span className="homepage-pill-icon" style={{ color: pill.iconColor }}>{pill.icon}</span>
                                             <span className="homepage-pill-label">{pill.label}</span>
                                         </Box>
                                     ))}
@@ -411,10 +432,10 @@ const HomePage = () => {
 
                         <div className="footer">
                             <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
-                                <p style={{ fontFamily: 'Open Sans, sans-serif', textAlign: 'center', color: '#969696', fontSize: isPhoneDevice ? '12px' : '14px', margin: 0 }}>
+                                <p style={{ fontFamily: 'Geist, sans-serif', textAlign: 'center', color: '#A8B3C8', fontSize: '14px', margin: 0 }}>
                                     © 2025 GLKB – Genomic Literature Knowledge Base | glkb.org
                                 </p>
-                                <p style={{ fontFamily: 'Open Sans, sans-serif', textAlign: 'center', color: '#969696', fontSize: isPhoneDevice ? '12px' : '14px', margin: 0 }}>
+                                <p style={{ fontFamily: 'Geist, sans-serif', textAlign: 'center', color: '#A8B3C8', fontSize: '14px', margin: 0 }}>
                                     Developed and maintained by the <a className="homepage-lab-link" href="https://jieliu6.github.io/" target="_blank" rel="noopener noreferrer">Jie Liu Lab</a>, Department of Computational Medicine and Bioinformatics, University of Michigan.
                                 </p>
                             </div>
@@ -422,6 +443,7 @@ const HomePage = () => {
                     </div>
                     <AntButton
                         onClick={() => {
+                            trackGtagEvent('home_tour_open_click', { source: 'floating_help_button' });
                             setRunTour(true);
                         }}
                         // style={{ marginTop: '20px' }}
@@ -436,7 +458,7 @@ const HomePage = () => {
                             backgroundColor: '#E7F1FF',
                             color: '#155DFC',
                             border: 'none',
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'Geist, sans-serif',
                             boxShadow: '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',
                         }}
                     >

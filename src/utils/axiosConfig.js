@@ -1,5 +1,30 @@
 import axios from 'axios';
+
 const Sentry = window.Sentry;
+
+const GUEST_ALLOWED_ENDPOINT_PREFIXES = [
+  '/api/v1/tier/guest-me',
+  '/api/v1/new-llm-agent/stream',
+  '/api/v1/new-llm-agent/chat',
+];
+
+const normalizeRequestUrl = (url = '') => {
+  if (!url || typeof url !== 'string') return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    try {
+      const parsed = new URL(url);
+      return parsed.pathname || '';
+    } catch {
+      return url;
+    }
+  }
+  return url;
+};
+
+const isGuestAllowedRequest = (url = '') => {
+  const normalized = normalizeRequestUrl(url);
+  return GUEST_ALLOWED_ENDPOINT_PREFIXES.some((prefix) => normalized.startsWith(prefix));
+};
 
 /**
  * Axios Interceptor Setup
@@ -15,6 +40,13 @@ if (process.env.NODE_ENV === 'production') {
 // Request interceptor to add JWT token to headers
 axios.interceptors.request.use(
   (config) => {
+    if (isGuestAllowedRequest(config.url)) {
+      if (config.headers?.Authorization) {
+        delete config.headers.Authorization;
+      }
+      return config;
+    }
+
     const token = localStorage.getItem('access_token');
     const tokenType = localStorage.getItem('token_type') || 'bearer';
     
@@ -49,6 +81,11 @@ axios.interceptors.response.use(
       });
     }
     if (error.response?.status === 401) {
+      const requestUrl = error.config?.url || '';
+      if (isGuestAllowedRequest(requestUrl)) {
+        return Promise.reject(error);
+      }
+
       // Token expired or invalid - clear storage and redirect to login
       localStorage.removeItem('access_token');
       localStorage.removeItem('token_type');
