@@ -279,7 +279,7 @@ const HomePage = () => {
                                 },
                                 tooltipContent: {
                                     textAlign: 'left',
-                                    fontFamily: 'Open Sans, sans-serif',
+                                    fontFamily: 'Geist, sans-serif',
                                 }
                             }}
                             locale={{
@@ -301,8 +301,8 @@ const HomePage = () => {
                                 <Typography
                                     className="glkb-title"
                                     sx={{
-                                        fontFamily: 'Open Sans, sans-serif',
-                                        fontWeight: 600,
+                                        fontFamily: 'Geist, sans-serif',
+                                        fontWeight: 800,
                                         fontSize: isPhoneDevice ? '30px' : '40px',
                                         lineHeight: 1.1,
                                     }}
@@ -314,7 +314,7 @@ const HomePage = () => {
                                 <Typography
                                     className="glkb-subtitle"
                                     sx={{
-                                        fontFamily: 'DM Sans, sans-serif',
+                                        fontFamily: 'Geist, sans-serif',
                                         fontWeight: 400,
                                         fontSize: '18px',
                                         color: '#5C6470',
@@ -458,7 +458,7 @@ const HomePage = () => {
                             backgroundColor: '#E7F1FF',
                             color: '#155DFC',
                             border: 'none',
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'Geist, sans-serif',
                             boxShadow: '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',
                         }}
                     >
