@@ -45,9 +45,6 @@ import {
 
 import logo from '../../../img/GLKB_logo_icon.png';
 import { ReactComponent as AddIcon } from '../../../img/navbar/add.svg';
-import {
-  ReactComponent as UpgradeIcon,
-} from '../../../img/navbar/arrow_circle_up.svg';
 import { ReactComponent as BookIcon } from '../../../img/navbar/book_4.svg';
 import {
   ReactComponent as CategorySearchIcon,
@@ -384,11 +381,6 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
         handleCloseUserMenu();
         trackGtagEvent('nav_upgrade_code_click', { source: 'sidebar_user_menu' });
         navigate('/account', { state: { tab: 'testing' } });
-    };
-
-    const handleUpgradeClick = () => {
-        handleCloseUserMenu();
-        trackGtagEvent('nav_upgrade_click', { source: 'sidebar_user_menu' });
     };
 
     const handleLogoutClick = async () => {
@@ -1181,12 +1173,6 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                         />
                     </ListItemIcon>
                     <ListItemText>Account</ListItemText>
-                </MenuItem>
-                <MenuItem disabled onClick={handleUpgradeClick} sx={{ px: 2, py: 1 }}>
-                    <ListItemIcon sx={{ minWidth: "16px !important", mr: 1 }}>
-                        <UpgradeIcon style={{ width: 16, height: 16 }} />
-                    </ListItemIcon>
-                    <ListItemText>Upgrade</ListItemText>
                 </MenuItem>
                 <MenuItem onClick={handleUpgradeWithCodeClick} sx={{ px: 2, py: 1 }}>
                     <ListItemIcon sx={{ minWidth: "16px !important", mr: 1 }}>
