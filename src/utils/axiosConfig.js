@@ -1,4 +1,5 @@
 import axios from 'axios';
+
 const Sentry = window.Sentry;
 
 const GUEST_ALLOWED_ENDPOINT_PREFIXES = [
