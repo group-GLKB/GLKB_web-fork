@@ -82,7 +82,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 },
                 {
                     name: 'offset',
-                    options: { offset: [0, 16] },
+                    options: { offset: [0, 24] },
                 },
             ]}
         />
@@ -338,8 +338,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 borderRadius: '16px',
                 borderWidth: '1px',
                 borderStyle: 'solid',
-                borderColor: '#E7F1FF',
-                boxShadow: '0px 6px 18px rgba(22, 69, 99, 0.08)',
+                borderColor: '#E5E9F0',
+                boxShadow: 'none',
             }}>
             <Autocomplete
                 freeSolo
@@ -540,10 +540,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     cursor: 'pointer',
-                                    transition: 'transform 120ms ease, box-shadow 160ms ease',
-                                    boxShadow: llmQuery.trim() && !isQueryLimitReached
-                                        ? '0 6px 12px rgba(21, 93, 252, 0.28)'
-                                        : '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',
+                                    transition: 'transform 120ms ease',
+                                    boxShadow: 'none',
                                     '&:hover': {
                                         transform: 'translateY(-1px)',
                                     },

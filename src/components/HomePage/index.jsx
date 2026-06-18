@@ -66,9 +66,16 @@ const HomePage = () => {
         book: <DescriptionOutlinedIcon />,
         knowledge: <span className="material-symbols-outlined" aria-hidden="true">stacks</span>,
     };
+    const iconColorMap = {
+        lightbulb: '#F5B22A',
+        chart: '#57CE55',
+        book: '#AC6DEF',
+        knowledge: '#4B88FD',
+    };
     const pills = (exampleSchema.pills || []).map((pill) => ({
         ...pill,
         icon: iconMap[pill.icon] || <LightbulbOutlinedIcon />,
+        iconColor: iconColorMap[pill.icon] || '#333333',
     }));
     const activePill = pills.find((pill) => pill.id === showExamples);
     const isHomeLimitReachedEffective = isQueryLimitReached || DEBUG_FORCE_LIMIT_WARNING;
@@ -415,7 +422,7 @@ const HomePage = () => {
                                                 setShowExamples((current) => current === pill.id ? undefined : pill.id);
                                             }}
                                         >
-                                            <span className="homepage-pill-icon">{pill.icon}</span>
+                                            <span className="homepage-pill-icon" style={{ color: pill.iconColor }}>{pill.icon}</span>
                                             <span className="homepage-pill-label">{pill.label}</span>
                                         </Box>
                                     ))}
@@ -425,10 +432,10 @@ const HomePage = () => {
 
                         <div className="footer">
                             <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
-                                <p style={{ fontFamily: 'Open Sans, sans-serif', textAlign: 'center', color: '#969696', fontSize: isPhoneDevice ? '12px' : '14px', margin: 0 }}>
+                                <p style={{ fontFamily: 'Geist, sans-serif', textAlign: 'center', color: '#969696', fontSize: '14px', margin: 0 }}>
                                     © 2025 GLKB – Genomic Literature Knowledge Base | glkb.org
                                 </p>
-                                <p style={{ fontFamily: 'Open Sans, sans-serif', textAlign: 'center', color: '#969696', fontSize: isPhoneDevice ? '12px' : '14px', margin: 0 }}>
+                                <p style={{ fontFamily: 'Geist, sans-serif', textAlign: 'center', color: '#969696', fontSize: '14px', margin: 0 }}>
                                     Developed and maintained by the <a className="homepage-lab-link" href="https://jieliu6.github.io/" target="_blank" rel="noopener noreferrer">Jie Liu Lab</a>, Department of Computational Medicine and Bioinformatics, University of Michigan.
                                 </p>
                             </div>
