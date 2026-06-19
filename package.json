@@ -2,7 +2,7 @@
   "name": "my-app",
   "version": "0.1.0",
   "private": true,
-  "homepage": "http://glkb.dcmb.med.umich.edu",
+  "homepage": ".",
   "proxy": "http://GLKB-Backend-408804593.us-east-1.elb.amazonaws.com",
   "dependencies": {
     "@ant-design/icons": "^5.0.1",
