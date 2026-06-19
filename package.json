@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "homepage": ".",
-  "proxy": "http://GLKB-Backend-408804593.us-east-1.elb.amazonaws.com",
+  "proxy": "https://glkb.org",
   "dependencies": {
     "@ant-design/icons": "^5.0.1",
     "@ant-design/pro-components": "^2.7.19",
