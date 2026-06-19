@@ -2,8 +2,8 @@
   "name": "my-app",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://glkb.dcmb.med.umich.edu",
-  "proxy": "https://glkb.dcmb.med.umich.edu",
+  "homepage": ".",
+  "proxy": "https://glkb.org",
   "dependencies": {
     "@ant-design/icons": "^5.0.1",
     "@ant-design/pro-components": "^2.7.19",
