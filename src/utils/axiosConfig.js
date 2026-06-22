@@ -35,6 +35,8 @@ const isGuestAllowedRequest = (url = '') => {
 // In local dev, setupProxy.js handles the proxying
 if (process.env.NODE_ENV === 'production') {
   axios.defaults.baseURL = 'https://backend.glkb.org/reorg-api';
+} else {
+  axios.defaults.baseURL = 'https://glkb.dcmb.med.umich.edu/reorg-api';
 }
 
 // Request interceptor to add JWT token to headers
