@@ -12,7 +12,7 @@ module.exports = function (app) {
     app.use(
         '/api',
         createProxyMiddleware({
-            target: process.env.NODE_ENV === 'production' ? 'https://backend.glkb.org' : 'https://glkb.dcmb.med.umich.edu',
+            target: process.env.REACT_APP_API_PROXY_TARGET || 'https://glkb.dcmb.med.umich.edu',
             changeOrigin: true,
             secure: false,
             pathRewrite: {
