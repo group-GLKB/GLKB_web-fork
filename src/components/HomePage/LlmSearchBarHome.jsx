@@ -190,7 +190,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         borderRadius: '8px',
         backgroundColor: isActive ? '#FFFFFF' : 'transparent',
         boxShadow: isActive ? '0px 2px 2px rgba(0, 0, 0, 0.10)' : 'none',
-        fontFamily: 'Geist, sans-serif',
+        fontFamily: 'DM Sans, sans-serif',
         fontWeight: isActive ? 900 : 600,
         fontSize: '14px',
         lineHeight: '16px',
@@ -215,7 +215,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     py: 2,
                 }}
             >
-                <Box sx={{ fontFamily: 'Geist, sans-serif', fontWeight: 900, fontSize: '20px', lineHeight: '24px', color: '#333333' }}>
+                <Box sx={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 900, fontSize: '20px', lineHeight: '24px', color: '#333333' }}>
                     Search Options
                 </Box>
                 <IconButton onClick={closeSearchOptions} size="small" sx={{ color: '#646464' }}>
@@ -227,7 +227,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
 
             <Box sx={{ pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2.25 }}>
                 <Box>
-                    <Box sx={{ mb: 1, fontFamily: 'Geist, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#333333' }}>
+                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#333333' }}>
                         Article Type
                     </Box>
                     <Box sx={{ backgroundColor: '#F4F4F4', borderRadius: '10px', p: '4px', display: 'flex', gap: 0, justifyContent: 'space-between' }}>
@@ -247,7 +247,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             </Box>
                         ))}
                     </Box>
-                    <Box sx={{ mt: 1, fontFamily: 'Geist, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: '#969696' }}>
+                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: '#969696' }}>
                         Search every article
                     </Box>
                 </Box>
@@ -255,7 +255,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 <Box sx={{ borderTop: '1px solid #EDEDED', mx: '-24px' }} />
 
                 <Box>
-                    <Box sx={{ mb: 1, fontFamily: 'Geist, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#333333' }}>
+                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#333333' }}>
                         Sort by
                     </Box>
                     <Box sx={{ backgroundColor: '#F4F4F4', borderRadius: '10px', p: '4px', display: 'flex', gap: 0, justifyContent: 'space-between' }}>
@@ -275,7 +275,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             </Box>
                         ))}
                     </Box>
-                    <Box sx={{ mt: 1, fontFamily: 'Geist, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: '#969696' }}>
+                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: '#969696' }}>
                         Best matches for your query
                     </Box>
                 </Box>
@@ -286,7 +286,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     role="button"
                     onClick={handleResetSearchOptions}
                     sx={{
-                        fontFamily: 'Geist, sans-serif',
+                        fontFamily: 'DM Sans, sans-serif',
                         fontWeight: 900,
                         fontSize: '14px',
                         lineHeight: '16px',
@@ -308,7 +308,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         borderRadius: '999px',
                         backgroundColor: '#155DFC',
                         color: '#FFFFFF',
-                        fontFamily: 'Geist, sans-serif',
+                        fontFamily: 'DM Sans, sans-serif',
                         fontWeight: 900,
                         fontSize: '14px',
                         lineHeight: '16px',
@@ -468,7 +468,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     borderRadius: '0px',
                                     background: 'transparent',
                                     color: '#323232',
-                                    fontFamily: 'Geist, sans-serif',
+                                    fontFamily: 'DM Sans, sans-serif',
                                     fontWeight: 700,
                                     fontSize: '14px',
                                     lineHeight: '16px',
@@ -497,7 +497,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     borderRadius: '18px',
                                     background: 'transparent',
                                     color: '#323232',
-                                    fontFamily: 'Geist, sans-serif',
+                                    fontFamily: 'DM Sans, sans-serif',
                                     fontWeight: 700,
                                     fontSize: '14px',
                                     lineHeight: '16px',
