@@ -224,7 +224,6 @@ export const upsertConversation = (list, conversation) => {
 
 export const updateConversationMessages = (list, id, messages) => {
     if (!id) return sortConversations(list || []);
-    const now = new Date().toISOString();
     let found = false;
     const next = (list || []).map((item) => {
         if (item.id !== id) return item;
@@ -232,12 +231,12 @@ export const updateConversationMessages = (list, id, messages) => {
         return {
             ...item,
             messages,
-            updatedAt: now,
             messageCount: Array.isArray(messages) ? messages.length : item.messageCount,
         };
     });
 
     if (!found) {
+        const now = new Date().toISOString();
         next.unshift({
             id: String(id),
             hid: Number(id),
