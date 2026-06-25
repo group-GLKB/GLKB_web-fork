@@ -111,7 +111,7 @@
 }
 
 .history-item-row:hover .history-item,
-.history-item-row:focus-within .history-item {
+.history-item:focus-visible {
     background-color: #E7F1FF;
     border-radius: 12px;
 }
