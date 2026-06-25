@@ -26,6 +26,16 @@ const isGuestAllowedRequest = (url = '') => {
   return GUEST_ALLOWED_ENDPOINT_PREFIXES.some((prefix) => normalized.startsWith(prefix));
 };
 
+const getStoredAuth = () => {
+  const token = localStorage.getItem('access_token');
+  const tokenType = localStorage.getItem('token_type') || 'bearer';
+  return {
+    token,
+    tokenType,
+    isAuthenticated: Boolean(token),
+  };
+};
+
 /**
  * Axios Interceptor Setup
  * Automatically includes JWT token in all API requests
@@ -38,15 +48,14 @@ axios.defaults.baseURL = process.env.REACT_APP_API_BASE_URL || 'https://glkb.dcm
 // Request interceptor to add JWT token to headers
 axios.interceptors.request.use(
   (config) => {
-    if (isGuestAllowedRequest(config.url)) {
+    const { token, tokenType, isAuthenticated } = getStoredAuth();
+
+    if (isGuestAllowedRequest(config.url) && !isAuthenticated) {
       if (config.headers?.Authorization) {
         delete config.headers.Authorization;
       }
       return config;
     }
-
-    const token = localStorage.getItem('access_token');
-    const tokenType = localStorage.getItem('token_type') || 'bearer';
     
     if (token) {
       config.headers.Authorization = `${tokenType} ${token}`;
@@ -80,7 +89,8 @@ axios.interceptors.response.use(
     }
     if (error.response?.status === 401) {
       const requestUrl = error.config?.url || '';
-      if (isGuestAllowedRequest(requestUrl)) {
+      const { isAuthenticated } = getStoredAuth();
+      if (isGuestAllowedRequest(requestUrl) && !isAuthenticated) {
         return Promise.reject(error);
       }
 

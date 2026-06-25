@@ -187,7 +187,6 @@ export class LLMAgentService {
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'text/event-stream',
-                    'Authorization': `${localStorage.getItem('token_type') || 'Bearer'} ${localStorage.getItem('access_token')}`,
                 },
                 withCredentials: true,
                 responseType: 'text',
