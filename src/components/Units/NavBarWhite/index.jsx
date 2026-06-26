@@ -43,7 +43,7 @@ import {
   useTheme,
 } from '@mui/material/styles';
 
-import logo from '../../../img/GLKB_logo_icon.jpg';
+import logo from '../../../img/GLKB_logo_icon.png';
 import { ReactComponent as AddIcon } from '../../../img/navbar/add.svg';
 import { ReactComponent as BookIcon } from '../../../img/navbar/book_4.svg';
 import {
@@ -53,7 +53,7 @@ import {
   ReactComponent as CodeBlocksIcon,
 } from '../../../img/navbar/code_blocks.svg';
 import { ReactComponent as HistoryIcon } from '../../../img/navbar/history.svg';
-import logoWordmark from '../../../img/navbar/logo.jpg';
+import logoWordmark from '../../../img/navbar/logo.png';
 import {
   ReactComponent as SidebarLeftIcon,
 } from '../../../img/navbar/sidebar.left.svg';
@@ -734,7 +734,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                     opacity: open ? 1 : 0,
                                     width: open ? 'auto' : 0,
                                     overflow: 'hidden',
-                                    marginLeft: '6px',
+                                    marginLeft: '12px',
                                     textDecoration: 'none',
                                     color: 'inherit',
                                     transition: 'opacity 0.2s ease, width 0.2s ease',
@@ -745,10 +745,9 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                     src={logoWordmark}
                                     alt="GLKB"
                                     sx={{
-                                        height: 56,
+                                        height: 36,
                                         width: 'auto',
-                                        objectFit: 'contain',
-                                        transform: 'translateY(2px)'
+                                        objectFit: 'contain'
                                     }}
                                 />
                             </Box>

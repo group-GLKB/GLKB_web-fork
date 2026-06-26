@@ -22,11 +22,11 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 
-import logoIcon from '../../img/GLKB_logo_icon.jpg';
+import logoIcon from '../../img/GLKB_logo_icon.png';
 import {
   ReactComponent as CodeBlocksIcon,
 } from '../../img/navbar/code_blocks.svg';
-import logoWordmark from '../../img/navbar/logo.jpg';
+import logoWordmark from '../../img/navbar/logo.png';
 import {
   DOCS_CATEGORIES,
   flattenDocsPages,
