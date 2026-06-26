@@ -42,8 +42,10 @@ const getStoredAuth = () => {
  */
 
 // Configure base URL via environment variable (e.g. .env.development / .env.production)
-// Example: REACT_APP_API_BASE_URL=https://glkb.dcmb.med.umich.edu/reorg-api
-axios.defaults.baseURL = process.env.REACT_APP_API_BASE_URL || 'https://glkb.dcmb.med.umich.edu/reorg-api';
+// Prefer deriving API base URL from REACT_APP_API_PROXY_TARGET when available.
+const proxyTarget = (process.env.REACT_APP_API_PROXY_TARGET || '').trim().replace(/\/+$/, '');
+const derivedApiBaseUrl = proxyTarget ? `${proxyTarget}/reorg-api` : '';
+axios.defaults.baseURL = derivedApiBaseUrl || 'https://glkb.dcmb.med.umich.edu/reorg-api';
 
 // Request interceptor to add JWT token to headers
 axios.interceptors.request.use(
