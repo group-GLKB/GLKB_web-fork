@@ -22,7 +22,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 
-import logoIcon from '../../img/GLKB_logo_icon.png';
+import logoIcon from '../../img/GLKB_logo_icon.jpg';
 import {
   ReactComponent as CodeBlocksIcon,
 } from '../../img/navbar/code_blocks.svg';

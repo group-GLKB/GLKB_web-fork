@@ -43,7 +43,7 @@ import {
   useTheme,
 } from '@mui/material/styles';
 
-import logo from '../../../img/GLKB_logo_icon.png';
+import logo from '../../../img/GLKB_logo_icon.jpg';
 import { ReactComponent as AddIcon } from '../../../img/navbar/add.svg';
 import { ReactComponent as BookIcon } from '../../../img/navbar/book_4.svg';
 import {
@@ -745,9 +745,10 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                     src={logoWordmark}
                                     alt="GLKB"
                                     sx={{
-                                        height: 28,
+                                        height: 56,
                                         width: 'auto',
                                         objectFit: 'contain',
+                                        transform: 'translateY(2px)'
                                     }}
                                 />
                             </Box>
