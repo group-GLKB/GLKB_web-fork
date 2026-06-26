@@ -41,9 +41,9 @@ const getStoredAuth = () => {
  * Automatically includes JWT token in all API requests
  */
 
-// Configure base URL via environment variable (e.g. .env.development)
-// Example: REACT_APP_API_BASE_URL=https://glkb.dcmb.med.umich.edu/reorg-api
-axios.defaults.baseURL = process.env.REACT_APP_API_BASE_URL || 'https://glkb.dcmb.med.umich.edu/reorg-api';
+// Configure base URL via environment variable (e.g. .env.development / .env.production)
+// Example: REACT_APP_API_BASE_URL=https://backend.glkb.org/reorg-api
+axios.defaults.baseURL = process.env.REACT_APP_API_BASE_URL || 'https://backend.glkb.org/reorg-api';
 
 // Request interceptor to add JWT token to headers
 axios.interceptors.request.use(

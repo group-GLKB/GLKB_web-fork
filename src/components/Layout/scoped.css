@@ -37,9 +37,10 @@
 }
 
 .app-mobile-header-logo-wordmark {
-    height: 20px;
+    height: 40px;
     width: auto;
     object-fit: contain;
+    transform: translateY(1px);
 }
 
 .app-mobile-header-new-chat {
