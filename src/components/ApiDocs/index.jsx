@@ -201,6 +201,22 @@ const resolveMarkdownAssetUrl = (assetPath = '') => {
     return `${window.location.origin}${basePath}/${normalizedAssetPath}`;
 };
 
+const resolveImageAssetUrl = (assetPath = '') => {
+    if (!assetPath || typeof assetPath !== 'string') return assetPath;
+    if (/^(https?:)?\/\//i.test(assetPath) || assetPath.startsWith('data:') || assetPath.startsWith('blob:') || assetPath.startsWith('/')) {
+        return assetPath;
+    }
+
+    const normalizedAssetPath = assetPath.replace(/^\.\//, '').replace(/^\/+/, '');
+    const publicUrl = process.env.PUBLIC_URL || '';
+    const normalizedPublicBase = publicUrl === '.'
+        ? ''
+        : publicUrl.replace(/\/+$/, '').replace(/^\/+/, '');
+    const basePath = normalizedPublicBase ? `/${normalizedPublicBase}` : '';
+
+    return `${window.location.origin}${basePath}/${normalizedAssetPath}`;
+};
+
 const CodeBlockRenderer = ({ className, children, ...props }) => {
     const [copied, setCopied] = useState(false);
     const childArray = React.Children.toArray(children);
@@ -776,8 +792,8 @@ const ApiDocsPage = () => {
             <header className="api-docs-header">
                 <div className="api-docs-header-brand">
                     <Link to="/" className="api-docs-logo-link" aria-label="GLKB Home">
-                        <img src={logoIcon} alt="GLKB icon" className="api-docs-logo-icon" />
-                        <img src={logoWordmark} alt="GLKB" className="api-docs-logo" />
+                        <img src={resolveImageAssetUrl(logoIcon)} alt="GLKB icon" className="api-docs-logo-icon" />
+                        <img src={resolveImageAssetUrl(logoWordmark)} alt="GLKB" className="api-docs-logo" />
                     </Link>
                     <span className="api-docs-header-title">API Docs</span>
                 </div>

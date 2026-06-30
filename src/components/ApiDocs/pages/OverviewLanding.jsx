@@ -127,6 +127,22 @@ const NAV_ITEMS = [
     { id: 'knowledge-base', label: 'Knowledge Base' },
 ];
 
+const resolveImageAssetUrl = (assetPath = '') => {
+    if (!assetPath || typeof assetPath !== 'string') return assetPath;
+    if (/^(https?:)?\/\//i.test(assetPath) || assetPath.startsWith('data:') || assetPath.startsWith('blob:') || assetPath.startsWith('/')) {
+        return assetPath;
+    }
+
+    const normalizedAssetPath = assetPath.replace(/^\.\//, '').replace(/^\/+/, '');
+    const publicUrl = process.env.PUBLIC_URL || '';
+    const normalizedPublicBase = publicUrl === '.'
+        ? ''
+        : publicUrl.replace(/\/+$/, '').replace(/^\/+/, '');
+    const basePath = normalizedPublicBase ? `/${normalizedPublicBase}` : '';
+
+    return `${window.location.origin}${basePath}/${normalizedAssetPath}`;
+};
+
 const OverviewLanding = ({ navigate }) => {
     const [activeNavId, setActiveNavId] = useState(NAV_ITEMS[0]?.id || '');
     const [indexMenuOpen, setIndexMenuOpen] = useState(false);
@@ -245,7 +261,7 @@ const OverviewLanding = ({ navigate }) => {
                                 <p>263M+</p>
                                 <h3>Biomedical Terms</h3>
                             </div>
-                            <img src={dnaIcon} alt="Biomedical terms" className="api-docs-overview-stat-icon" />
+                            <img src={resolveImageAssetUrl(dnaIcon)} alt="Biomedical terms" className="api-docs-overview-stat-icon" />
                         </article>
 
                         <article className="api-docs-overview-stat-card">
@@ -253,7 +269,7 @@ const OverviewLanding = ({ navigate }) => {
                                 <p>14.6M+</p>
                                 <h3>Relationships</h3>
                             </div>
-                            <img src={relationIcon} alt="Relationships" className="api-docs-overview-stat-icon" />
+                            <img src={resolveImageAssetUrl(relationIcon)} alt="Relationships" className="api-docs-overview-stat-icon" />
                         </article>
                     </div>
                 </section>
