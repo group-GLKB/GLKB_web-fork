@@ -3094,7 +3094,7 @@ function LLMAgent() {
                                                                                 <div
                                                                                     key={index}
                                                                                     data-pubmed-id={pubmedId}
-                                                                                    className="reference-entry-wrapper"
+                                                                                    className={`reference-entry-wrapper${isHighlighted ? ' highlighted' : ''}`}
                                                                                     onClick={(event) => handleReferenceEntryContainerClick(event, url[1])}
                                                                                 >
                                                                                     <ReferenceCard
@@ -3230,7 +3230,7 @@ function LLMAgent() {
                                                                     <div
                                                                         key={index}
                                                                         data-pubmed-id={pubmedId}
-                                                                        className="reference-entry-wrapper"
+                                                                        className={`reference-entry-wrapper${isHighlighted ? ' highlighted' : ''}`}
                                                                         onClick={(event) => handleReferenceEntryContainerClick(event, url[1])}
                                                                     >
                                                                         <ReferenceCard

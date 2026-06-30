@@ -185,6 +185,22 @@ const renderHighlightedSnippet = (snippet, query) => {
     ));
 };
 
+const resolveMarkdownAssetUrl = (assetPath = '') => {
+    if (!assetPath || typeof assetPath !== 'string') return '';
+    if (/^(https?:)?\/\//i.test(assetPath) || assetPath.startsWith('data:') || assetPath.startsWith('blob:')) {
+        return assetPath;
+    }
+
+    const normalizedAssetPath = assetPath.replace(/^\.\//, '').replace(/^\/+/, '');
+    const publicUrl = process.env.PUBLIC_URL || '';
+    const normalizedPublicBase = publicUrl === '.'
+        ? ''
+        : publicUrl.replace(/\/+$/, '').replace(/^\/+/, '');
+    const basePath = normalizedPublicBase ? `/${normalizedPublicBase}` : '';
+
+    return `${window.location.origin}${basePath}/${normalizedAssetPath}`;
+};
+
 const CodeBlockRenderer = ({ className, children, ...props }) => {
     const [copied, setCopied] = useState(false);
     const childArray = React.Children.toArray(children);
@@ -437,7 +453,7 @@ const ApiDocsPage = () => {
                     source = page.markdownInline;
                 } else if (page.markdown) {
                     try {
-                        const response = await fetch(page.markdown);
+                        const response = await fetch(resolveMarkdownAssetUrl(page.markdown));
                         source = await response.text();
                     } catch {
                         source = '';
@@ -687,7 +703,7 @@ const ApiDocsPage = () => {
         }
 
         let isAlive = true;
-        fetch(activePage.markdown)
+        fetch(resolveMarkdownAssetUrl(activePage.markdown))
             .then((response) => response.text())
             .then((text) => {
                 if (isAlive) setMarkdownContent(text);
