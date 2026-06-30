@@ -619,6 +619,11 @@
     cursor: pointer;
 }
 
+.references-list .reference-entry-wrapper.highlighted {
+    background-color: #E7F1FF;
+    border-radius: 12px;
+}
+
 .references-list>div::after {
     content: '';
     position: absolute;
