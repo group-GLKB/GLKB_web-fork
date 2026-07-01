@@ -883,7 +883,12 @@ const MessageCard = React.memo(function MessageCard({
                         {isAssistant && <Box sx={{ justifyContent: "space-between", direction: "row", display: "flex", alignItems: "center", mt: "5px" }}>
                             <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
                                 {!isLoading && (
-                                    <IconButton size="small" onClick={() => copy(message.content)}>
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => copy(message.content)}
+                                        title="Copy response"
+                                        aria-label="Copy response"
+                                    >
                                         <img
                                             src={contentCopyIcon}
                                             alt="Copy"
@@ -995,7 +1000,12 @@ const MessageCard = React.memo(function MessageCard({
                                 <CheckIcon fontSize="small" />
                             </IconButton>
                         </> : <div className="user-message-actions">
-                            <IconButton size="small" onClick={() => copy(message.content)}>
+                            <IconButton
+                                size="small"
+                                onClick={() => copy(message.content)}
+                                title="Copy message"
+                                aria-label="Copy message"
+                            >
                                 <img
                                     src={contentCopyIcon}
                                     alt="Copy"
@@ -1074,7 +1084,7 @@ function LLMAgent() {
     const navigationBypassRef = useRef(false);
     const originalNavigatorMethodsRef = useRef({ push: null, replace: null });
     const navigate = useNavigate();
-    const { navigator } = useContext(UNSAFE_NavigationContext);
+    const { navigator: routerNavigator } = useContext(UNSAFE_NavigationContext);
     const { isAuthenticated, loading: authLoading } = useAuth();
     const [pendingNavigation, setPendingNavigation] = useState(null);
     const useMobileReferencesDrawer = isPhoneDevice;
@@ -1098,21 +1108,21 @@ function LLMAgent() {
     }, [useMobileReferencesDrawer]);
 
     useEffect(() => {
-        if (!navigator) return undefined;
+        if (!routerNavigator) return undefined;
 
-        if (!originalNavigatorMethodsRef.current.push && typeof navigator.push === 'function') {
-            originalNavigatorMethodsRef.current.push = navigator.push.bind(navigator);
+        if (!originalNavigatorMethodsRef.current.push && typeof routerNavigator.push === 'function') {
+            originalNavigatorMethodsRef.current.push = routerNavigator.push.bind(routerNavigator);
         }
-        if (!originalNavigatorMethodsRef.current.replace && typeof navigator.replace === 'function') {
-            originalNavigatorMethodsRef.current.replace = navigator.replace.bind(navigator);
+        if (!originalNavigatorMethodsRef.current.replace && typeof routerNavigator.replace === 'function') {
+            originalNavigatorMethodsRef.current.replace = routerNavigator.replace.bind(routerNavigator);
         }
 
         if (!isLoading) {
             if (originalNavigatorMethodsRef.current.push) {
-                navigator.push = originalNavigatorMethodsRef.current.push;
+                routerNavigator.push = originalNavigatorMethodsRef.current.push;
             }
             if (originalNavigatorMethodsRef.current.replace) {
-                navigator.replace = originalNavigatorMethodsRef.current.replace;
+                routerNavigator.replace = originalNavigatorMethodsRef.current.replace;
             }
             return undefined;
         }
@@ -1135,18 +1145,18 @@ function LLMAgent() {
             setShowLeaveConfirmDialog(true);
         };
 
-        navigator.push = guardedPush;
-        navigator.replace = guardedReplace;
+        routerNavigator.push = guardedPush;
+        routerNavigator.replace = guardedReplace;
 
         return () => {
             if (originalNavigatorMethodsRef.current.push) {
-                navigator.push = originalNavigatorMethodsRef.current.push;
+                routerNavigator.push = originalNavigatorMethodsRef.current.push;
             }
             if (originalNavigatorMethodsRef.current.replace) {
-                navigator.replace = originalNavigatorMethodsRef.current.replace;
+                routerNavigator.replace = originalNavigatorMethodsRef.current.replace;
             }
         };
-    }, [isLoading, navigator]);
+    }, [isLoading, routerNavigator]);
 
     useEffect(() => {
         if (isLoading) return;
@@ -1969,7 +1979,12 @@ function LLMAgent() {
     };
 
     const handleCopyMessage = (content) => {
-        navigator.clipboard.writeText(content)
+        if (!window.navigator?.clipboard?.writeText) {
+            message.error('Copy is not supported in this browser context.');
+            return;
+        }
+
+        window.navigator.clipboard.writeText(content)
             .then(() => {
                 message.success('Content copied to clipboard');
             })

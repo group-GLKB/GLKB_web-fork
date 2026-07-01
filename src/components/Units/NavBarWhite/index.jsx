@@ -747,6 +747,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                     sx={{
                                         height: 36,
                                         width: 'auto',
+                                        transform: 'translateY(1px)',
                                         objectFit: 'contain'
                                     }}
                                 />
