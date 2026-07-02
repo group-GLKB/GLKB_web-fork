@@ -11,9 +11,10 @@
             "panelTitle": "Entity Insights",
             "icon": "lightbulb",
             "examples": [
-                "What biological functions are associated with the TP53 gene?",
-                "Which genes are most strongly associated with Alzheimer's disease in the literature?",
-                "What pathways involve the mTOR signaling pathway and what processes does it regulate?"
+                "What genes are most strongly associated with pancreatic cancer, and what evidence supports each association?",
+                "How does PD-1/PD-L1 signaling contribute to immune evasion and immunotherapy response in pancreatic cancer?",
+                "Which inflammatory pathways are associated with increased risk of colorectal cancer?",
+                "What genes are implicated in cystic fibrosis-related pancreatic disease, and how do they interact?"
             ]
         },
         {
@@ -22,9 +23,10 @@
             "panelTitle": "Research Trend",
             "icon": "chart",
             "examples": [
-                "How has the number of publications on Alzheimer's disease changed over the past 10 years?",
-                "Which genes have seen the largest increase in publications related to Type 1 Diabetes since 2020?",
-                "What are the most rapidly growing research topics in CRISPR-based gene editing?"
+                "What research trends are emerging around KRAS mutations and pancreatic cancer progression?",
+                "What are the major research trends in single-cell studies of pancreatic cancer tumor microenvironment?",
+                "How has the literature on microbiome involvement in colorectal cancer evolved, and what mechanisms are most often discussed?",
+                "What trends are emerging in studies linking inflammation, fibrosis, and pancreatic cancer progression?"
             ]
         },
         {
@@ -33,9 +35,9 @@
             "panelTitle": "Mechanisms and Relationships",
             "icon": "book",
             "examples": [
-                "Which transcription factors regulate INS gene expression in pancreatic beta cells?",
-                "What molecular pathways link IL6 signaling to inflammatory responses?",
-                "Which proteins interact with ACE2 during viral infection?"
+                "What evidence connects KRAS mutations with immune evasion in pancreatic cancer?",
+                "What evidence links type 2 diabetes with pancreatic cancer risk?",
+                "How are cancer-associated fibroblasts related to immune suppression in pancreatic ductal adenocarcinoma?"
             ]
         },
         {
@@ -44,9 +46,9 @@
             "panelTitle": "Literature Discovery",
             "icon": "knowledge",
             "examples": [
-                "What recent studies investigate the role of the gut microbiome in autoimmune diseases?",
-                "Which genes have recently been implicated in beta-cell dysfunction in Type 1 Diabetes?",
-                "Are there studies linking viral infections to the onset of autoimmune diabetes?"
+                "Find papers that study KRAS mutations in pancreatic ductal adenocarcinoma.",
+                "Find papers linking BRCA2 mutations with pancreatic cancer susceptibility.",
+                "Find papers about microbiome changes in colorectal cancer progression."
             ]
         }
     ]
