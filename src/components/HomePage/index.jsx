@@ -433,7 +433,7 @@ const HomePage = () => {
                         <div className="footer">
                             <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
                                 <p style={{ fontFamily: 'Geist, sans-serif', textAlign: 'center', color: '#A8B3C8', fontSize: '14px', margin: 0 }}>
-                                    © 2025 GLKB – Genomic Literature Knowledge Base | glkb.org
+                                    © 2026 GLKB – Genomic Literature Knowledge Base | glkb.org
                                 </p>
                                 <p style={{ fontFamily: 'Geist, sans-serif', textAlign: 'center', color: '#A8B3C8', fontSize: '14px', margin: 0 }}>
                                     Developed and maintained by the <a className="homepage-lab-link" href="https://jieliu6.github.io/" target="_blank" rel="noopener noreferrer">Jie Liu Lab</a>, Department of Computational Medicine and Bioinformatics, University of Michigan.
