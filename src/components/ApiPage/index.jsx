@@ -49,7 +49,7 @@ import {
 const API_DOCS_TAB = 'api-docs';
 const API_KEYS_TAB = 'api-keys';
 const API_USAGE_TAB = 'api-usage';
-const SHOW_API_DOCS_TAB = true;
+const SHOW_API_DOCS_TAB = false;
 const SHOW_API_KEYS_TAB = true;
 const SHOW_API_USAGE_TAB = true;
 const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
