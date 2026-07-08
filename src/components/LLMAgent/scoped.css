@@ -551,6 +551,172 @@
     transform: translateY(0);
 }
 
+.investigate-summary-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    margin-bottom: 10px;
+    color: #5A6B86;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.investigate-summary-icon,
+.investigate-summary-chevron {
+    font-size: 16px !important;
+    color: #5A6B86;
+}
+
+.investigate-summary-text {
+    color: #5A6B86;
+}
+
+.investigate-progress-shell {
+    margin-top: 8px;
+    margin-bottom: 12px;
+    border-left: 2px solid #D8DEE8;
+    padding-left: 14px;
+}
+
+.investigate-progress-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    cursor: pointer;
+}
+
+.investigate-progress-head-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.investigate-progress-head-icon {
+    font-size: 16px !important;
+    color: #4B88FD;
+}
+
+.investigate-progress-head-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #5A6B86;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.investigate-progress-head-caret {
+    font-size: 16px !important;
+    color: #7488a6;
+    transition: transform 0.18s ease;
+}
+
+.investigate-progress-head-caret.expanded {
+    transform: rotate(180deg);
+}
+
+.investigate-progress-head-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+}
+
+.investigate-progress-time,
+.investigate-progress-notify {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #5A6B86;
+}
+
+.investigate-progress-body {
+    margin-top: 10px;
+    border-top: 1px solid #D6DDE8;
+    padding-top: 14px;
+}
+
+.investigate-progress-stages {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 12px;
+}
+
+.investigate-progress-stage {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.investigate-progress-stage-bar {
+    width: 22px;
+    height: 3px;
+    border-radius: 999px;
+    background: #95A4BC;
+}
+
+.investigate-progress-stage-bar.done {
+    background: #4B88FD;
+}
+
+.investigate-progress-stage-label {
+    text-transform: uppercase;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: #7A8EA9;
+}
+
+.investigate-progress-angles {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: #5A6B86;
+    font-family: 'DM Sans', sans-serif;
+}
+
+.investigate-progress-angles-title {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.investigate-progress-angle-item {
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.5;
+    padding-left: 2px;
+}
+
+@media (max-width: 980px) {
+    .investigate-progress-head {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .investigate-progress-head-right {
+        gap: 12px;
+    }
+
+    .investigate-progress-stages {
+        gap: 10px;
+    }
+}
+
 @keyframes llm-step-label-out {
     from {
         opacity: 1;
