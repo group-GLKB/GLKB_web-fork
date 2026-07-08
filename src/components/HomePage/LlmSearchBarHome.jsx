@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import CloseIcon from '@mui/icons-material/Close';
+import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import TuneIcon from '@mui/icons-material/Tune';
 import {
   Autocomplete,
@@ -25,6 +26,7 @@ import { trackGtagEvent } from '../../utils/gtag';
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
+    const [investigateEnabled, setInvestigateEnabled] = useState(false);
     const [sortBy, setSortBy] = useState('Default');
     const [paperType, setPaperType] = useState('All types');
     const [isOpen, setIsOpen] = useState(false);
@@ -100,6 +102,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         return {
             filters,
             rankingMode,
+            investigateEnabled,
         };
     };
 
@@ -114,6 +117,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             has_query: Boolean(query),
             ranking_mode: searchOptions.rankingMode,
             filters: searchOptions.filters.join(','),
+            investigate_enabled: searchOptions.investigateEnabled,
         });
         if (query) {
             navigate('/chat', {
@@ -443,118 +447,190 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 bottom: '13px',
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: { xs: 'space-between', sm: 'flex-end' },
+                                justifyContent: 'space-between',
                                 gap: 2,
                                 pointerEvents: 'none',
                             }}
                         >
                             <Box
-                                onMouseDown={(event) => {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                }}
-                                onClick={(event) => {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    openSearchOptions();
-                                }}
                                 sx={{
-                                    display: { xs: 'inline-flex', sm: 'none' },
+                                    display: 'inline-flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '6px',
-                                    padding: '10px 8px',
-                                    margin: '-10px -8px',
-                                    borderRadius: '0px',
-                                    background: 'transparent',
-                                    color: '#323232',
-                                    fontFamily: 'DM Sans, sans-serif',
-                                    fontWeight: 700,
-                                    fontSize: '14px',
-                                    lineHeight: '16px',
-                                    textTransform: 'none',
+                                    gap: { xs: '8px', sm: '12px' },
                                     minWidth: 0,
-                                    maxWidth: 'calc(100% - 52px)',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
                                     pointerEvents: 'auto',
                                 }}
                             >
-                                <TuneIcon sx={{ color: '#323232', fontSize: '16px' }} />
-                                {mobileChipLabel}
+                                <Button
+                                    onMouseDown={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                    }}
+                                    onClick={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        setInvestigateEnabled((prev) => {
+                                            const next = !prev;
+                                            trackGtagEvent('home_investigate_toggle_click', {
+                                                enabled: next,
+                                            });
+                                            return next;
+                                        });
+                                    }}
+                                    sx={{
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '6px',
+                                        height: '36px',
+                                        padding: '8px 12px',
+                                        margin: '-8px -12px',
+                                        borderRadius: '999px',
+                                        border: 'none',
+                                        background: investigateEnabled ? '#E7F1FF' : 'transparent',
+                                        color: investigateEnabled ? '#155DFC' : '#5A6B86',
+                                        fontFamily: 'DM Sans, sans-serif',
+                                        fontWeight: 700,
+                                        fontSize: '14px',
+                                        lineHeight: '16px',
+                                        textTransform: 'none',
+                                        minWidth: 0,
+                                        whiteSpace: 'nowrap',
+                                        boxShadow: 'none !important',
+                                        transition: 'background-color 0.18s ease, color 0.18s ease',
+                                        '& .MuiButton-startIcon': {
+                                            margin: 0,
+                                        },
+                                        '&:hover': {
+                                            border: 'none',
+                                            background: investigateEnabled ? '#DBEBFF' : '#F4F8FF',
+                                            color: investigateEnabled ? '#0E4EDB' : '#475B79',
+                                        },
+                                    }}
+                                    startIcon={<ScienceOutlinedIcon sx={{ fontSize: '16px' }} />}
+                                    title={investigateEnabled ? 'Investigate on' : 'Investigate off'}
+                                >
+                                    Investigate
+                                </Button>
                             </Box>
 
-                            <Button
-                                sx={{
-                                    display: { xs: 'none', sm: 'inline-flex' },
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '6px',
-                                    height: '36px',
-                                    padding: '10px 8px',
-                                    margin: '-10px -8px',
-                                    borderRadius: '18px',
-                                    background: 'transparent',
-                                    color: '#323232',
-                                    fontFamily: 'DM Sans, sans-serif',
-                                    fontWeight: 700,
-                                    fontSize: '14px',
-                                    lineHeight: '16px',
-                                    textTransform: 'none',
-                                    minWidth: 0,
-                                    whiteSpace: 'nowrap',
-                                    maxWidth: '280px',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    pointerEvents: 'auto',
-                                    '&:hover': {
-                                        background: 'transparent',
-                                    },
-                                }}
-                                onMouseDown={(event) => {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                }}
-                                onClick={(event) => {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    openSearchOptions();
-                                }}
-                            >
-                                <TuneIcon sx={{ color: '#323232', fontSize: '16px' }} />
-                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{mobileChipLabel}</span>
-                            </Button>
-
                             <Box
-                                role="button"
-                                aria-label="Start chat"
-                                className="search-button-big"
-                                onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}
                                 sx={{
-                                    height: { xs: '36px', sm: '48px' },
-                                    width: { xs: '36px', sm: '48px' },
-                                    borderRadius: '50%',
-                                    backgroundColor: llmQuery.trim() && !isQueryLimitReached ? '#155DFC' : '#E7F1FF',
-                                    display: 'flex',
+                                    display: 'inline-flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center',
-                                    cursor: 'pointer',
-                                    transition: 'transform 120ms ease',
-                                    boxShadow: 'none',
-                                    '&:hover': {
-                                        transform: 'translateY(-1px)',
-                                    },
+                                    gap: { xs: '8px', sm: '12px' },
+                                    minWidth: 0,
+                                    marginLeft: { xs: 0, sm: 'auto' },
                                     pointerEvents: 'auto',
                                 }}
                             >
-                                <UnionIcon
-                                    style={{
-                                        color: llmQuery.trim() && !isQueryLimitReached ? '#FFFFFF' : '#155DFC',
-                                        width: '20px',
-                                        height: '20px',
+                                <Box
+                                    onMouseDown={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
                                     }}
-                                />
+                                    onClick={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        openSearchOptions();
+                                    }}
+                                    sx={{
+                                        display: { xs: 'inline-flex', sm: 'none' },
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '6px',
+                                        padding: '10px 8px',
+                                        margin: '-10px -8px',
+                                        borderRadius: '0px',
+                                        background: 'transparent',
+                                        color: '#323232',
+                                        fontFamily: 'DM Sans, sans-serif',
+                                        fontWeight: 700,
+                                        fontSize: '14px',
+                                        lineHeight: '16px',
+                                        textTransform: 'none',
+                                        minWidth: 0,
+                                        maxWidth: 'calc(100% - 52px)',
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        pointerEvents: 'auto',
+                                    }}
+                                >
+                                    <TuneIcon sx={{ color: '#323232', fontSize: '16px' }} />
+                                    {mobileChipLabel}
+                                </Box>
+
+                                <Button
+                                    sx={{
+                                        display: { xs: 'none', sm: 'inline-flex' },
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '6px',
+                                        height: '36px',
+                                        padding: '10px 8px',
+                                        margin: '-10px -8px',
+                                        borderRadius: '18px',
+                                        background: 'transparent',
+                                        color: '#323232',
+                                        fontFamily: 'DM Sans, sans-serif',
+                                        fontWeight: 700,
+                                        fontSize: '14px',
+                                        lineHeight: '16px',
+                                        textTransform: 'none',
+                                        minWidth: 0,
+                                        whiteSpace: 'nowrap',
+                                        maxWidth: '280px',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        pointerEvents: 'auto',
+                                        '&:hover': {
+                                            background: 'transparent',
+                                        },
+                                    }}
+                                    onMouseDown={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                    }}
+                                    onClick={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        openSearchOptions();
+                                    }}
+                                >
+                                    <TuneIcon sx={{ color: '#323232', fontSize: '16px' }} />
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{mobileChipLabel}</span>
+                                </Button>
+
+                                <Box
+                                    role="button"
+                                    aria-label="Start chat"
+                                    className="search-button-big"
+                                    onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}
+                                    sx={{
+                                        height: { xs: '36px', sm: '48px' },
+                                        width: { xs: '36px', sm: '48px' },
+                                        borderRadius: '50%',
+                                        backgroundColor: llmQuery.trim() && !isQueryLimitReached ? '#155DFC' : '#E7F1FF',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        transition: 'transform 120ms ease',
+                                        boxShadow: 'none',
+                                        '&:hover': {
+                                            transform: 'translateY(-1px)',
+                                        },
+                                        pointerEvents: 'auto',
+                                    }}
+                                >
+                                    <UnionIcon
+                                        style={{
+                                            color: llmQuery.trim() && !isQueryLimitReached ? '#FFFFFF' : '#155DFC',
+                                            width: '20px',
+                                            height: '20px',
+                                        }}
+                                    />
+                                </Box>
                             </Box>
                         </Box>
 

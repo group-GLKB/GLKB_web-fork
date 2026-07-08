@@ -1,5 +1,34 @@
 import axios from 'axios';
 
+const DEFAULT_STREAM_ENDPOINT = '/api/v1/new-llm-agent/stream';
+const INVESTIGATE_STREAM_ENDPOINT = process.env.REACT_APP_INVESTIGATE_STREAM_ENDPOINT || '/api/v1/deep-research/stream';
+const INVESTIGATE_CLARIFY_ENDPOINT = process.env.REACT_APP_INVESTIGATE_CLARIFY_ENDPOINT || '/api/v1/deep-research/clarify';
+const INVESTIGATE_API_BASE_URL = (process.env.REACT_APP_INVESTIGATE_API_BASE_URL || '').trim().replace(/\/+$/, '');
+
+const normalizePath = (path = '') => {
+    if (!path || typeof path !== 'string') return '';
+    if (/^(https?:)?\/\//i.test(path)) return path;
+    return path.startsWith('/') ? path : `/${path}`;
+};
+
+const resolveInvestigateStreamUrl = () => {
+    const normalizedEndpoint = normalizePath(INVESTIGATE_STREAM_ENDPOINT);
+    if (!normalizedEndpoint) return DEFAULT_STREAM_ENDPOINT;
+    if (/^(https?:)?\/\//i.test(normalizedEndpoint)) return normalizedEndpoint;
+    if (!INVESTIGATE_API_BASE_URL) return normalizedEndpoint;
+    return `${INVESTIGATE_API_BASE_URL}${normalizedEndpoint}`;
+};
+
+const resolveInvestigateClarifyUrl = () => {
+    const normalizedEndpoint = normalizePath(INVESTIGATE_CLARIFY_ENDPOINT);
+    if (!normalizedEndpoint) return '/api/v1/deep-research/clarify';
+    if (/^(https?:)?\/\//i.test(normalizedEndpoint)) return normalizedEndpoint;
+    if (!INVESTIGATE_API_BASE_URL) return normalizedEndpoint;
+    return `${INVESTIGATE_API_BASE_URL}${normalizedEndpoint}`;
+};
+
+const investigateClient = axios.create();
+
 export class LLMAgentService {
     constructor() {
         this.messages = [];
@@ -41,7 +70,16 @@ export class LLMAgentService {
                         // console.log('Processing data:', data);
 
                         // Handle the Complete step differently
-                        if (data.step === 'Complete') {
+                        if (data.type === 'clarification' || data.step === 'Clarifying the question') {
+                            await onUpdate({
+                                type: 'clarification',
+                                invocationId: data.invocation_id || null,
+                                stage: data.stage || null,
+                                reason: data.reason || '',
+                                questions: Array.isArray(data.questions) ? data.questions : [],
+                                sessionId: data.session_id || null,
+                            });
+                        } else if (data.step === 'Complete') {
                             // Send the final response
                             await onUpdate({
                                 type: 'final',
@@ -128,7 +166,16 @@ export class LLMAgentService {
                         const jsonStr = line.substring(6);
                         const data = JSON.parse(jsonStr);
 
-                        if (data.step === 'Complete') {
+                        if (data.type === 'clarification' || data.step === 'Clarifying the question') {
+                            onUpdate({
+                                type: 'clarification',
+                                invocationId: data.invocation_id || null,
+                                stage: data.stage || null,
+                                reason: data.reason || '',
+                                questions: Array.isArray(data.questions) ? data.questions : [],
+                                sessionId: data.session_id || null,
+                            });
+                        } else if (data.step === 'Complete') {
                             onUpdate({
                                 type: 'final',
                                 answer: data.response,
@@ -162,14 +209,26 @@ export class LLMAgentService {
                 }
             };
 
+            const sessionId = options.sessionId || null;
+            const investigateEnabled = Boolean(options.investigateEnabled);
             const historyId = Number.isFinite(Number(options.historyId))
                 ? Number(options.historyId)
                 : null;
-            const sessionId = options.sessionId || null;
-            const payload = {
-                question,
-                history_id: historyId,
-            };
+            const payload = investigateEnabled
+                ? {
+                    question,
+                    messages: Array.isArray(this.messages)
+                        ? this.messages.map((msg) => ({
+                            role: msg?.role,
+                            content: msg?.content,
+                        }))
+                        : [],
+                }
+                : {
+                    question,
+                    history_id: historyId,
+                };
+
             if (sessionId) {
                 payload.session_id = sessionId;
             }
@@ -183,12 +242,15 @@ export class LLMAgentService {
                 payload.ranking_mode = options.rankingMode.trim();
             }
 
-            await axios.post('/api/v1/new-llm-agent/stream', payload, {
+            const streamEndpoint = investigateEnabled ? resolveInvestigateStreamUrl() : DEFAULT_STREAM_ENDPOINT;
+            const httpClient = investigateEnabled ? investigateClient : axios;
+
+            await httpClient.post(streamEndpoint, payload, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'text/event-stream',
                 },
-                withCredentials: true,
+                withCredentials: !investigateEnabled,
                 responseType: 'text',
                 signal: abortController.signal,
                 onDownloadProgress: (progressEvent) => {
@@ -213,6 +275,18 @@ export class LLMAgentService {
             });
             throw error;
         }
+    }
+
+    async clarify(payload) {
+        const endpoint = resolveInvestigateClarifyUrl();
+        const response = await investigateClient.post(endpoint, payload, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            withCredentials: false,
+        });
+        return response.data;
     }
 
     async getAnswer(question) {
