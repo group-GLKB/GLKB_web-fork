@@ -562,12 +562,27 @@
     font-size: 16px;
     font-weight: 600;
     line-height: 1.4;
+    border-radius: 18px;
+    padding: 4px 8px 4px 0;
+}
+
+.investigate-summary-row.can-toggle {
+    cursor: pointer;
+}
+
+.investigate-summary-row.can-toggle:hover {
+    background: rgba(0, 0, 0, 0.04);
 }
 
 .investigate-summary-icon,
 .investigate-summary-chevron {
     font-size: 16px !important;
     color: #5A6B86;
+    transition: transform 0.2s ease;
+}
+
+.investigate-summary-chevron.expanded {
+    transform: rotate(90deg);
 }
 
 .investigate-summary-text {
