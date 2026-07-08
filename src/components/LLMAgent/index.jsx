@@ -580,12 +580,39 @@ const parseThinkingEntry = (entry) => {
         stepName = action || 'Step';
     }
 
-    if (stepFromEntry && STEP_LABELS[stepFromEntry]) {
+    let derivedStepName = stepName;
+    const normalizedAction = action.toUpperCase();
+    if (normalizedAction) {
+        if (normalizedAction === 'TOOL CALL' || normalizedAction === 'TOOL RESULT') {
+            const toolName = stepName || 'Tool';
+            derivedStepName = `${normalizedAction}: ${toolName}`;
+        } else if (
+            normalizedAction === 'AGENT START'
+            || normalizedAction === 'AGENT INPUT'
+            || normalizedAction === 'AGENT OUTPUT'
+        ) {
+            derivedStepName = normalizedAction;
+        } else {
+            derivedStepName = action;
+        }
+    }
+
+    const isGenericTransportStep = (
+        stepFromEntry === 'Processing'
+        || stepFromEntry === 'Started'
+        || stepFromEntry === 'Complete'
+    );
+
+    if (derivedStepName && STEP_LABELS[derivedStepName]) {
+        stepName = derivedStepName;
+    } else if (stepFromEntry && STEP_LABELS[stepFromEntry]) {
         stepName = stepFromEntry;
-    } else if (STEP_LABELS[stepName]) {
-        stepName = stepName;
-    } else if (stepFromEntry) {
+    } else if (derivedStepName) {
+        stepName = derivedStepName;
+    } else if (stepFromEntry && !isGenericTransportStep) {
         stepName = stepFromEntry;
+    } else {
+        stepName = 'Step';
     }
 
     return { stepName, line: raw };
@@ -699,12 +726,16 @@ const MessageCard = React.memo(function MessageCard({
         [message.trajectory]
     );
     const activeStreamingGroups = isLoading ? streamingGroups : [];
-    const staticGroups = !isLoading && trajectoryGroups.length
-        ? trajectoryGroups
+    const staticGroups = !isLoading
+        ? (
+            (isInvestigateMessage && groupedThoughts.length)
+                ? groupedThoughts
+                : (trajectoryGroups.length ? trajectoryGroups : groupedThoughts)
+        )
         : groupedThoughts;
     const displayGroups = isLoading ? activeStreamingGroups : staticGroups;
     const hasDisplayGroups = displayGroups.length > 0;
-    const isTrajectoryDisplay = !isLoading && trajectoryGroups.length > 0;
+    const isTrajectoryDisplay = !isLoading && !isInvestigateMessage && trajectoryGroups.length > 0;
     const loadingCurrentIndex = isLoading ? displayGroups.length - 1 : -1;
     const currentStepLabel = useMemo(() => {
         if (!isLoading) return '';
@@ -722,8 +753,11 @@ const MessageCard = React.memo(function MessageCard({
         : (thoughtDurationLabel ? `Thought for ${thoughtDurationLabel}` : 'Thought summary');
     const showInvestigateProgress = isAssistant && isInvestigateMessage && isLoading;
     const showInvestigateSummary = isAssistant && isInvestigateMessage && !isLoading && Boolean(investigatedDurationLabel);
-    const showThoughtHeader = !isInvestigateMessage && isAssistant
-        && (isLoading || thoughtDurationLabel || hasDisplayGroups);
+    const showThoughtHeader = isAssistant && (
+        isInvestigateMessage
+            ? (!isLoading && (thoughtDurationLabel || hasDisplayGroups))
+            : (isLoading || thoughtDurationLabel || hasDisplayGroups)
+    );
     const showReloadInMessage = showReloadPrompt && isLastUserMessage && isAssistant && !isLoading;
     const canToggleThoughts = !isLoading && hasDisplayGroups;
     const investigateStageLabels = ['Retrieved', 'Screened', 'Extracted', 'Cited'];
@@ -741,16 +775,7 @@ const MessageCard = React.memo(function MessageCard({
             .flatMap((group) => Array.isArray(group.lines) ? group.lines : [])
             .map((line) => String(line || '').replace(/^[-•\s]+/, '').trim())
             .filter((line) => line.length >= 12);
-        const deduped = Array.from(new Set(raw));
-        if (deduped.length > 0) {
-            return deduped.slice(0, 4);
-        }
-        return [
-            'Mapping your question into research angles',
-            'Retrieving and screening relevant studies',
-            'Extracting grounded evidence from literature',
-            'Synthesizing answers with supporting citations',
-        ];
+        return Array.from(new Set(raw));
     }, [activeStreamingGroups]);
 
     const toggleGroup = useCallback((nextIndex) => {
@@ -894,12 +919,14 @@ const MessageCard = React.memo(function MessageCard({
                                             ))}
                                         </Box>
 
-                                        <Box className="investigate-progress-angles">
-                                            <span className="investigate-progress-angles-title">Investigating {investigateAngles.length} angles:</span>
-                                            {investigateAngles.map((angle, angleIndex) => (
-                                                <span key={`${angle}-${angleIndex}`} className="investigate-progress-angle-item">- {angle}</span>
-                                            ))}
-                                        </Box>
+                                        {investigateAngles.length > 0 && (
+                                            <Box className="investigate-progress-angles">
+                                                <span className="investigate-progress-angles-title">Investigating {investigateAngles.length} angles:</span>
+                                                {investigateAngles.map((angle, angleIndex) => (
+                                                    <span key={`${angle}-${angleIndex}`} className="investigate-progress-angle-item">- {angle}</span>
+                                                ))}
+                                            </Box>
+                                        )}
                                     </Box>
                                 )}
                             </Box>
@@ -967,7 +994,7 @@ const MessageCard = React.memo(function MessageCard({
                             </Box>
                         )}
 
-                        {isAssistant && !isInvestigateMessage && !isLoading && thoughtsExpanded && hasDisplayGroups && (
+                        {isAssistant && !isLoading && thoughtsExpanded && hasDisplayGroups && (
                             <Box sx={{
                                 mt: '6px',
                                 display: 'flex',
