@@ -22,6 +22,7 @@ import {
 import remarkGfm from 'remark-gfm';
 
 import {
+  AccessTimeOutlined as AccessTimeOutlinedIcon,
   Bookmark as BookmarkIcon,
   BookmarkBorder as BookmarkBorderIcon,
   Check as CheckIcon,
@@ -30,13 +31,15 @@ import {
   EditNote as EditNoteIcon,
   ExpandMore as ExpandMoreIcon,
   Link as LinkIcon,
+  NotificationsNoneOutlined as NotificationsNoneOutlinedIcon,
+  ScienceOutlined as ScienceOutlinedIcon,
   Star as StarIcon,
-  ThumbsUpDownOutlined as ThumbsUpDownOutlinedIcon,
 } from '@mui/icons-material';
 import {
   Alert,
   Box,
   Button as MuiButton,
+  Checkbox,
   CircularProgress,
   Container,
   Dialog,
@@ -44,8 +47,11 @@ import {
   DialogContent,
   DialogTitle,
   Drawer,
+  FormControlLabel,
   Grid,
   IconButton,
+  Radio,
+  RadioGroup,
   Snackbar,
   Stack,
   TextField,
@@ -57,6 +63,7 @@ import {
 import contentCopyIcon from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import replayIcon from '../../img/llm/replay.svg';
+import thumbsUpDownIcon from '../../img/llm/thumbs_up_down.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import {
   ReactComponent as SidebarLeftIcon,
@@ -105,6 +112,84 @@ const formatDuration = (durationMs) => {
         return `${minutes}m ${seconds}s`;
     }
     return `${seconds}s`;
+};
+
+const formatInvestigatedDuration = (durationMs) => {
+    if (durationMs === null || durationMs === undefined) return '';
+    const totalSeconds = Math.max(0, Math.round(durationMs / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+};
+
+const getClarificationQuestionKey = (question, index) => {
+    const raw = typeof question?.header === 'string' ? question.header.trim() : '';
+    return raw || `question-${index}`;
+};
+
+const buildClarificationDrafts = (questions) => {
+    if (!Array.isArray(questions)) return {};
+    return questions.reduce((acc, question, index) => {
+        const key = getClarificationQuestionKey(question, index);
+        const defaults = Array.isArray(question?.default)
+            ? question.default.map((item) => String(item || '').trim()).filter(Boolean)
+            : [];
+        acc[key] = {
+            selected: defaults,
+            text: '',
+        };
+        return acc;
+    }, {});
+};
+
+const buildClarifyAnswers = (questions, drafts) => {
+    if (!Array.isArray(questions)) return [];
+
+    return questions.reduce((acc, question, index) => {
+        const key = getClarificationQuestionKey(question, index);
+        const draft = drafts?.[key] || { selected: [], text: '' };
+        const header = typeof question?.header === 'string' ? question.header.trim() : key;
+        const responseType = String(question?.response_type || 'text').toLowerCase();
+        const selected = Array.isArray(draft.selected)
+            ? draft.selected.map((item) => String(item || '').trim()).filter(Boolean)
+            : [];
+        const text = typeof draft.text === 'string' ? draft.text.trim() : '';
+
+        if (responseType === 'text') {
+            if (!text) return acc;
+            acc.push({ header, selected: [], text });
+            return acc;
+        }
+
+        if (responseType === 'single') {
+            if (text) {
+                acc.push({ header, selected: [], text });
+                return acc;
+            }
+            if (selected[0]) {
+                acc.push({ header, selected: [selected[0]], text: null });
+            }
+            return acc;
+        }
+
+        if (responseType === 'multi') {
+            if (selected.length === 0 && !text) return acc;
+            acc.push({
+                header,
+                selected,
+                text: text || null,
+            });
+            return acc;
+        }
+
+        if (!selected.length && !text) return acc;
+        acc.push({
+            header,
+            selected,
+            text: text || null,
+        });
+        return acc;
+    }, []);
 };
 
 const logDev = (...args) => {
@@ -598,10 +683,13 @@ const MessageCard = React.memo(function MessageCard({
     const [thoughtsExpanded, setThoughtsExpanded] = useState(() => isLoading);
     const [animatedStepLabel, setAnimatedStepLabel] = useState('');
     const [stepLabelPhase, setStepLabelPhase] = useState('idle');
+    const [investigateExpanded, setInvestigateExpanded] = useState(true);
     const allowResponseRefresh = true;
     const stepLabelTimersRef = useRef([]);
     const renderedStepLabelRef = useRef('');
     const thoughtDurationLabel = formatDuration(message.thoughtDurationMs);
+    const investigatedDurationLabel = formatInvestigatedDuration(message.thoughtDurationMs);
+    const isInvestigateMessage = Boolean(message.investigateMode);
     const groupedThoughts = useMemo(
         () => groupThinkingSteps(message.thinkingSteps),
         [message.thinkingSteps]
@@ -632,10 +720,38 @@ const MessageCard = React.memo(function MessageCard({
     const thoughtHeaderText = isLoading
         ? (animatedStepLabel || loadingStepLabel)
         : (thoughtDurationLabel ? `Thought for ${thoughtDurationLabel}` : 'Thought summary');
-    const showThoughtHeader = isAssistant
+    const showInvestigateProgress = isAssistant && isInvestigateMessage && isLoading;
+    const showInvestigateSummary = isAssistant && isInvestigateMessage && !isLoading && Boolean(investigatedDurationLabel);
+    const showThoughtHeader = !isInvestigateMessage && isAssistant
         && (isLoading || thoughtDurationLabel || hasDisplayGroups);
     const showReloadInMessage = showReloadPrompt && isLastUserMessage && isAssistant && !isLoading;
     const canToggleThoughts = !isLoading && hasDisplayGroups;
+    const investigateStageLabels = ['Retrieved', 'Screened', 'Extracted', 'Cited'];
+    const investigateStageIndex = useMemo(() => {
+        if (!showInvestigateProgress) return -1;
+        const step = (streamingStepName || activeStreamingGroups[activeStreamingGroups.length - 1]?.name || '').toLowerCase();
+        if (/cite|reference|pmid/.test(step)) return 3;
+        if (/extract|evidence|read|fulltext/.test(step)) return 2;
+        if (/screen|rank|filter/.test(step)) return 1;
+        if (/retriev|search|query/.test(step)) return 0;
+        return Math.min(3, Math.max(0, activeStreamingGroups.length - 1));
+    }, [showInvestigateProgress, streamingStepName, activeStreamingGroups]);
+    const investigateAngles = useMemo(() => {
+        const raw = activeStreamingGroups
+            .flatMap((group) => Array.isArray(group.lines) ? group.lines : [])
+            .map((line) => String(line || '').replace(/^[-•\s]+/, '').trim())
+            .filter((line) => line.length >= 12);
+        const deduped = Array.from(new Set(raw));
+        if (deduped.length > 0) {
+            return deduped.slice(0, 4);
+        }
+        return [
+            'Mapping your question into research angles',
+            'Retrieving and screening relevant studies',
+            'Extracting grounded evidence from literature',
+            'Synthesizing answers with supporting citations',
+        ];
+    }, [activeStreamingGroups]);
 
     const toggleGroup = useCallback((nextIndex) => {
         setExpandedGroups((prev) => ({
@@ -651,6 +767,12 @@ const MessageCard = React.memo(function MessageCard({
         }
         setThoughtsExpanded(false);
     }, [isLoading]);
+
+    useEffect(() => {
+        if (showInvestigateProgress) {
+            setInvestigateExpanded(true);
+        }
+    }, [showInvestigateProgress]);
 
     useEffect(() => {
         const clearTimers = () => {
@@ -728,6 +850,61 @@ const MessageCard = React.memo(function MessageCard({
                     }}
                 >
                     <Box sx={{ flex: 1, maxWidth: "100%" }}>
+                        {showInvestigateSummary && (
+                            <Box className="investigate-summary-row">
+                                <ScienceOutlinedIcon className="investigate-summary-icon" />
+                                <span className="investigate-summary-text">Investigated for {investigatedDurationLabel}</span>
+                                <ChevronRightIcon className="investigate-summary-chevron" />
+                            </Box>
+                        )}
+
+                        {showInvestigateProgress && (
+                            <Box className="investigate-progress-shell">
+                                <Box
+                                    className="investigate-progress-head"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => setInvestigateExpanded((prev) => !prev)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter' || event.key === ' ') {
+                                            event.preventDefault();
+                                            setInvestigateExpanded((prev) => !prev);
+                                        }
+                                    }}
+                                >
+                                    <Box className="investigate-progress-head-left">
+                                        <ScienceOutlinedIcon className="investigate-progress-head-icon" />
+                                        <span className="investigate-progress-head-title">Mapping your question into research angles...</span>
+                                        <ExpandMoreIcon className={`investigate-progress-head-caret${investigateExpanded ? ' expanded' : ''}`} />
+                                    </Box>
+                                    <Box className="investigate-progress-head-right">
+                                        <span className="investigate-progress-time"><AccessTimeOutlinedIcon fontSize="inherit" />~6 min</span>
+                                        <span className="investigate-progress-notify"><NotificationsNoneOutlinedIcon fontSize="inherit" />Notify me</span>
+                                    </Box>
+                                </Box>
+
+                                {investigateExpanded && (
+                                    <Box className="investigate-progress-body">
+                                        <Box className="investigate-progress-stages">
+                                            {investigateStageLabels.map((label, stageIndex) => (
+                                                <Box key={label} className="investigate-progress-stage">
+                                                    <span className={`investigate-progress-stage-bar${stageIndex <= investigateStageIndex ? ' done' : ''}`} />
+                                                    <span className="investigate-progress-stage-label">{label}</span>
+                                                </Box>
+                                            ))}
+                                        </Box>
+
+                                        <Box className="investigate-progress-angles">
+                                            <span className="investigate-progress-angles-title">Investigating {investigateAngles.length} angles:</span>
+                                            {investigateAngles.map((angle, angleIndex) => (
+                                                <span key={`${angle}-${angleIndex}`} className="investigate-progress-angle-item">- {angle}</span>
+                                            ))}
+                                        </Box>
+                                    </Box>
+                                )}
+                            </Box>
+                        )}
+
                         {showThoughtHeader && (
                             <Box sx={{
                                 display: 'flex',
@@ -790,7 +967,7 @@ const MessageCard = React.memo(function MessageCard({
                             </Box>
                         )}
 
-                        {isAssistant && !isLoading && thoughtsExpanded && hasDisplayGroups && (
+                        {isAssistant && !isInvestigateMessage && !isLoading && thoughtsExpanded && hasDisplayGroups && (
                             <Box sx={{
                                 mt: '6px',
                                 display: 'flex',
@@ -921,7 +1098,11 @@ const MessageCard = React.memo(function MessageCard({
                                         onClick={onOpenFeedback}
                                         title="Share feedback"
                                     >
-                                        <ThumbsUpDownOutlinedIcon sx={{ fontSize: 16, color: '#646464' }} />
+                                        <img
+                                            src={thumbsUpDownIcon}
+                                            alt="Feedback"
+                                            style={{ width: '16px', height: '16px', display: 'block', objectFit: 'contain' }}
+                                        />
                                     </IconButton>
                                 )}
                             </Stack>
@@ -1068,6 +1249,10 @@ function LLMAgent() {
     const [chatTitleDraft, setChatTitleDraft] = useState('');
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
     const [queryLimitTotal, setQueryLimitTotal] = useState(10);
+    const [pendingClarification, setPendingClarification] = useState(null);
+    const [clarificationDrafts, setClarificationDrafts] = useState({});
+    const [clarificationError, setClarificationError] = useState('');
+    const [clarificationSubmitting, setClarificationSubmitting] = useState(false);
     const messagesEndRef = useRef(null);
     const abortControllerRef = useRef(null);
     const thinkingStepsRef = useRef([]);
@@ -1355,6 +1540,10 @@ function LLMAgent() {
         setStreamingGroups([]);
         setStreamingStepName('');
         thinkingStepsRef.current = [];
+        setPendingClarification(null);
+        setClarificationDrafts({});
+        setClarificationError('');
+        setClarificationSubmitting(false);
     }, []);
 
     useEffect(() => {
@@ -1409,6 +1598,10 @@ function LLMAgent() {
         sessionIdRef.current = null;
         setStreamingStepName('');
         setShowReloadPrompt(false);
+        setPendingClarification(null);
+        setClarificationDrafts({});
+        setClarificationError('');
+        setClarificationSubmitting(false);
         setIsConversationLoading(false);
         setLoadingConversationId(null);
         loadingConversationIdRef.current = null;
@@ -1696,12 +1889,17 @@ function LLMAgent() {
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const requestStartedAt = Date.now();
 
+        const requestSearchOptions = options.searchOptions || initialSearchOptionsRef.current || null;
+        initialSearchOptionsRef.current = null;
+        const investigateEnabled = Boolean(requestSearchOptions?.investigateEnabled);
+
         // Create new user message
         const newMessage = {
             role: 'user',
             content: inputText,
             references: [],
-            timestamp: t || timestamp
+            timestamp: t || timestamp,
+            investigateMode: investigateEnabled,
         };
 
         let historyId = activeConversationIdRef.current;
@@ -1731,6 +1929,10 @@ function LLMAgent() {
         setIsProcessing(true);
         setStreamingGroups([]);
         setStreamingStepName('');
+        setPendingClarification(null);
+        setClarificationDrafts({});
+        setClarificationError('');
+        setClarificationSubmitting(false);
         thinkingStepsRef.current = [];
 
         try {
@@ -1745,6 +1947,7 @@ function LLMAgent() {
                 thinkingSteps: [],
                 thoughtDurationMs: null,
                 trajectory: null,
+                investigateMode: investigateEnabled,
             }]);
 
             if (abortControllerRef.current) {
@@ -1752,9 +1955,6 @@ function LLMAgent() {
             }
             const abortController = new AbortController();
             abortControllerRef.current = abortController;
-            const requestSearchOptions = options.searchOptions || initialSearchOptionsRef.current || null;
-            initialSearchOptionsRef.current = null;
-
             await llmService.chat(inputText, abortControllerRef.current, (update) => {
                 const isActiveStream = activeStreamIdRef.current === streamId;
                 if (!isActiveStream && update.type !== 'saved') {
@@ -1762,6 +1962,22 @@ function LLMAgent() {
                 }
                 logDev('[LLM] update', update);
                 switch (update.type) {
+                    case 'clarification':
+                        if (!isActiveStream) return;
+                        if (update.sessionId) {
+                            sessionIdRef.current = update.sessionId;
+                        }
+                        setPendingClarification({
+                            invocationId: update.invocationId || null,
+                            stage: update.stage || null,
+                            sessionId: update.sessionId || sessionIdRef.current || null,
+                            reason: update.reason || '',
+                            questions: Array.isArray(update.questions) ? update.questions : [],
+                        });
+                        setClarificationDrafts(buildClarificationDrafts(update.questions));
+                        setClarificationError('');
+                        setClarificationSubmitting(false);
+                        break;
                     case 'step':
                         if (!isActiveStream) return;
                         {
@@ -1778,7 +1994,8 @@ function LLMAgent() {
                                         references: [],
                                         timestamp: timestamp,
                                         thinkingSteps: thinkingStepsRef.current,
-                                        thoughtDurationMs: Date.now() - requestStartedAt
+                                        thoughtDurationMs: Date.now() - requestStartedAt,
+                                        investigateMode: investigateEnabled,
                                     };
                                     newHistory[newHistory.length - 1] = assistantMessage;
 
@@ -1832,6 +2049,10 @@ function LLMAgent() {
                         if (update.sessionId) {
                             sessionIdRef.current = update.sessionId;
                         }
+                        setPendingClarification(null);
+                        setClarificationDrafts({});
+                        setClarificationError('');
+                        setClarificationSubmitting(false);
                         setIsProcessing(false);
                         setStreamingStepName('');
                         setChatHistory(prev => {
@@ -1844,6 +2065,7 @@ function LLMAgent() {
                                 thinkingSteps: thinkingStepsRef.current,
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 trajectory: update.trajectory || null,
+                                investigateMode: investigateEnabled,
                             };
                             newHistory[newHistory.length - 1] = assistantMessage;
 
@@ -1897,6 +2119,10 @@ function LLMAgent() {
                     }
                     case 'error': // unsure if this is used
                         if (!isActiveStream) return;
+                        setPendingClarification(null);
+                        setClarificationDrafts({});
+                        setClarificationError('');
+                        setClarificationSubmitting(false);
                         setIsProcessing(false);
                         setStreamingStepName('');
                         setChatHistory(prev => {
@@ -1907,7 +2133,8 @@ function LLMAgent() {
                                 references: [],
                                 timestamp: timestamp,
                                 thinkingSteps: thinkingStepsRef.current,
-                                thoughtDurationMs: Date.now() - requestStartedAt
+                                thoughtDurationMs: Date.now() - requestStartedAt,
+                                investigateMode: investigateEnabled,
                             };
                             newHistory[newHistory.length - 1] = errorMessage;
                             return newHistory;
@@ -1919,6 +2146,11 @@ function LLMAgent() {
                 sessionId: sessionIdRef.current,
                 filters: Array.isArray(requestSearchOptions?.filters) ? requestSearchOptions.filters : undefined,
                 rankingMode: typeof requestSearchOptions?.rankingMode === 'string' ? requestSearchOptions.rankingMode : undefined,
+                investigateEnabled: Boolean(requestSearchOptions?.investigateEnabled),
+                messagesOverride: [...baseHistory, newMessage].map((msg) => ({
+                    role: msg?.role,
+                    content: msg?.content,
+                })),
             });
         } catch (error) {
             console.error('Error in chat:', error);
@@ -1934,7 +2166,8 @@ function LLMAgent() {
                         references: [],
                         timestamp: timestamp,
                         thinkingSteps: thinkingStepsRef.current,
-                        thoughtDurationMs: Date.now() - requestStartedAt
+                        thoughtDurationMs: Date.now() - requestStartedAt,
+                        investigateMode: investigateEnabled,
                     };
                     newHistory[newHistory.length - 1] = errorMessage;
                     return newHistory;
@@ -1946,9 +2179,58 @@ function LLMAgent() {
                 setIsLoading(false);
                 setIsProcessing(false);
                 activeStreamIdRef.current = null;
+                setPendingClarification(null);
+                setClarificationDrafts({});
+                setClarificationError('');
+                setClarificationSubmitting(false);
             }
         }
     };
+
+    const updateClarificationDraft = useCallback((questionKey, nextDraft) => {
+        setClarificationDrafts((prev) => ({
+            ...prev,
+            [questionKey]: {
+                selected: Array.isArray(nextDraft?.selected) ? nextDraft.selected : [],
+                text: typeof nextDraft?.text === 'string' ? nextDraft.text : '',
+            },
+        }));
+    }, []);
+
+    const submitClarification = useCallback(async ({ useDefaults = false } = {}) => {
+        if (!pendingClarification?.invocationId || !pendingClarification?.stage || !pendingClarification?.sessionId) {
+            setClarificationError('Clarification session has expired. Please ask your question again.');
+            return;
+        }
+
+        setClarificationSubmitting(true);
+        setClarificationError('');
+        try {
+            const answers = useDefaults
+                ? []
+                : buildClarifyAnswers(pendingClarification.questions, clarificationDrafts);
+
+            const result = await llmService.clarify({
+                invocation_id: pendingClarification.invocationId,
+                stage: pendingClarification.stage,
+                session_id: pendingClarification.sessionId,
+                answers,
+            });
+
+            setPendingClarification(null);
+            setClarificationDrafts({});
+            setClarificationError('');
+            setClarificationSubmitting(false);
+
+            if (result?.resolved === false) {
+                message.info('Clarification session not found. Continuing with default research scope.');
+            }
+        } catch (error) {
+            const detail = error?.response?.data?.detail || error?.message || 'Unable to submit clarification.';
+            setClarificationError(String(detail));
+            setClarificationSubmitting(false);
+        }
+    }, [clarificationDrafts, llmService, pendingClarification]);
 
     useEffect(() => {
         return () => {
@@ -2506,6 +2788,268 @@ function LLMAgent() {
                     {feedbackSuccessText}
                 </Alert>
             </Snackbar>
+
+            <Dialog
+                open={Boolean(pendingClarification)}
+                onClose={() => {}}
+                disableEscapeKeyDown
+                fullWidth
+                maxWidth="sm"
+            >
+                <DialogTitle
+                    sx={{
+                        fontFamily: 'DM Sans, sans-serif',
+                        fontSize: '20px',
+                        fontWeight: 700,
+                        color: '#164563',
+                    }}
+                >
+                    Clarify Your Research Scope
+                </DialogTitle>
+                <DialogContent>
+                    <Typography
+                        sx={{
+                            fontFamily: 'DM Sans, sans-serif',
+                            fontSize: '14px',
+                            color: '#5B5B5B',
+                            lineHeight: 1.5,
+                            mb: 2,
+                        }}
+                    >
+                        Answering these helps the agent narrow evidence and improve citation quality.
+                    </Typography>
+
+                    {pendingClarification?.reason && (
+                        <Box
+                            sx={{
+                                borderRadius: '10px',
+                                backgroundColor: '#F4F8FF',
+                                border: '1px solid #D6E6FF',
+                                px: 1.5,
+                                py: 1,
+                                mb: 2,
+                            }}
+                        >
+                            <Typography
+                                sx={{
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontSize: '13px',
+                                    color: '#1C4C8C',
+                                    lineHeight: 1.45,
+                                }}
+                            >
+                                {pendingClarification.reason}
+                            </Typography>
+                        </Box>
+                    )}
+
+                    <Stack spacing={2}>
+                        {(pendingClarification?.questions || []).map((question, index) => {
+                            const questionKey = getClarificationQuestionKey(question, index);
+                            const draft = clarificationDrafts[questionKey] || { selected: [], text: '' };
+                            const selected = Array.isArray(draft.selected) ? draft.selected : [];
+                            const otherText = typeof draft.text === 'string' ? draft.text : '';
+                            const responseType = String(question?.response_type || 'text').toLowerCase();
+                            const options = Array.isArray(question?.options) ? question.options : [];
+                            const radioValue = otherText ? '__other__' : (selected[0] || '');
+
+                            return (
+                                <Box
+                                    key={questionKey}
+                                    sx={{
+                                        border: '1px solid #E6EDF8',
+                                        borderRadius: '12px',
+                                        p: 1.5,
+                                    }}
+                                >
+                                    <Typography
+                                        sx={{
+                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontSize: '12px',
+                                            fontWeight: 700,
+                                            color: '#6B7A90',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.03em',
+                                            mb: 0.5,
+                                        }}
+                                    >
+                                        {question?.header || `Question ${index + 1}`}
+                                    </Typography>
+
+                                    <Typography
+                                        sx={{
+                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontSize: '15px',
+                                            fontWeight: 500,
+                                            color: '#243449',
+                                            lineHeight: 1.45,
+                                            mb: 1,
+                                        }}
+                                    >
+                                        {question?.question || ''}
+                                    </Typography>
+
+                                    {responseType === 'single' && (
+                                        <>
+                                            <RadioGroup
+                                                value={radioValue}
+                                                onChange={(event) => {
+                                                    const nextValue = event.target.value;
+                                                    if (nextValue === '__other__') {
+                                                        updateClarificationDraft(questionKey, {
+                                                            selected: [],
+                                                            text: otherText,
+                                                        });
+                                                        return;
+                                                    }
+                                                    updateClarificationDraft(questionKey, {
+                                                        selected: nextValue ? [nextValue] : [],
+                                                        text: '',
+                                                    });
+                                                }}
+                                            >
+                                                {options.map((option) => {
+                                                    const optionLabel = String(option?.label || '').trim();
+                                                    if (!optionLabel) return null;
+                                                    return (
+                                                        <FormControlLabel
+                                                            key={optionLabel}
+                                                            value={optionLabel}
+                                                            control={<Radio size="small" />}
+                                                            label={option?.description || optionLabel}
+                                                        />
+                                                    );
+                                                })}
+                                                <FormControlLabel value="__other__" control={<Radio size="small" />} label="Other" />
+                                            </RadioGroup>
+                                            <TextField
+                                                fullWidth
+                                                size="small"
+                                                placeholder="Optional custom answer"
+                                                value={otherText}
+                                                onChange={(event) => {
+                                                    updateClarificationDraft(questionKey, {
+                                                        selected: [],
+                                                        text: event.target.value,
+                                                    });
+                                                }}
+                                                sx={{ mt: 1 }}
+                                            />
+                                        </>
+                                    )}
+
+                                    {responseType === 'multi' && (
+                                        <>
+                                            <Stack spacing={0.5}>
+                                                {options.map((option) => {
+                                                    const optionLabel = String(option?.label || '').trim();
+                                                    if (!optionLabel) return null;
+                                                    const checked = selected.includes(optionLabel);
+                                                    return (
+                                                        <FormControlLabel
+                                                            key={optionLabel}
+                                                            control={(
+                                                                <Checkbox
+                                                                    size="small"
+                                                                    checked={checked}
+                                                                    onChange={(event) => {
+                                                                        const nextSelected = event.target.checked
+                                                                            ? [...selected, optionLabel]
+                                                                            : selected.filter((item) => item !== optionLabel);
+                                                                        updateClarificationDraft(questionKey, {
+                                                                            selected: Array.from(new Set(nextSelected)),
+                                                                            text: otherText,
+                                                                        });
+                                                                    }}
+                                                                />
+                                                            )}
+                                                            label={option?.description || optionLabel}
+                                                        />
+                                                    );
+                                                })}
+                                            </Stack>
+                                            <TextField
+                                                fullWidth
+                                                size="small"
+                                                placeholder="Optional additional context"
+                                                value={otherText}
+                                                onChange={(event) => {
+                                                    updateClarificationDraft(questionKey, {
+                                                        selected,
+                                                        text: event.target.value,
+                                                    });
+                                                }}
+                                                sx={{ mt: 1 }}
+                                            />
+                                        </>
+                                    )}
+
+                                    {responseType === 'text' && (
+                                        <TextField
+                                            fullWidth
+                                            size="small"
+                                            placeholder="Type your answer"
+                                            value={otherText}
+                                            onChange={(event) => {
+                                                updateClarificationDraft(questionKey, {
+                                                    selected: [],
+                                                    text: event.target.value,
+                                                });
+                                            }}
+                                        />
+                                    )}
+                                </Box>
+                            );
+                        })}
+                    </Stack>
+
+                    {clarificationError && (
+                        <Typography
+                            sx={{
+                                mt: 2,
+                                fontFamily: 'DM Sans, sans-serif',
+                                fontSize: '13px',
+                                color: '#B42318',
+                            }}
+                        >
+                            {clarificationError}
+                        </Typography>
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2.5 }}>
+                    <MuiButton
+                        disabled={clarificationSubmitting}
+                        onClick={() => submitClarification({ useDefaults: true })}
+                        sx={{
+                            borderRadius: '10px',
+                            border: '1px solid #CBD5E1',
+                            textTransform: 'none',
+                            fontFamily: 'DM Sans, sans-serif',
+                            color: '#475569',
+                        }}
+                    >
+                        Skip (Use Defaults)
+                    </MuiButton>
+                    <MuiButton
+                        disabled={clarificationSubmitting}
+                        onClick={() => submitClarification({ useDefaults: false })}
+                        sx={{
+                            borderRadius: '10px',
+                            border: '1px solid #155DFC',
+                            backgroundColor: '#155DFC',
+                            textTransform: 'none',
+                            fontFamily: 'DM Sans, sans-serif',
+                            color: '#FFFFFF',
+                            '&:hover': {
+                                backgroundColor: '#0E4EDB',
+                                borderColor: '#0E4EDB',
+                            },
+                        }}
+                    >
+                        {clarificationSubmitting ? 'Submitting...' : 'Submit Answers'}
+                    </MuiButton>
+                </DialogActions>
+            </Dialog>
 
             <Dialog
                 open={showLeaveConfirmDialog}
