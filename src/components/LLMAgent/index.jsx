@@ -754,9 +754,7 @@ const MessageCard = React.memo(function MessageCard({
     const showInvestigateProgress = isAssistant && isInvestigateMessage && isLoading;
     const showInvestigateSummary = isAssistant && isInvestigateMessage && !isLoading && Boolean(investigatedDurationLabel);
     const showThoughtHeader = isAssistant && (
-        isInvestigateMessage
-            ? (!isLoading && (thoughtDurationLabel || hasDisplayGroups))
-            : (isLoading || thoughtDurationLabel || hasDisplayGroups)
+        !isInvestigateMessage && (isLoading || thoughtDurationLabel || hasDisplayGroups)
     );
     const showReloadInMessage = showReloadPrompt && isLastUserMessage && isAssistant && !isLoading;
     const canToggleThoughts = !isLoading && hasDisplayGroups;
@@ -770,7 +768,7 @@ const MessageCard = React.memo(function MessageCard({
         if (/retriev|search|query/.test(step)) return 0;
         return Math.min(3, Math.max(0, activeStreamingGroups.length - 1));
     }, [showInvestigateProgress, streamingStepName, activeStreamingGroups]);
-    const investigateAngles = useMemo(() => {
+    const investigateActivityItems = useMemo(() => {
         const raw = activeStreamingGroups
             .flatMap((group) => Array.isArray(group.lines) ? group.lines : [])
             .map((line) => String(line || '').replace(/^[-•\s]+/, '').trim())
@@ -876,10 +874,25 @@ const MessageCard = React.memo(function MessageCard({
                 >
                     <Box sx={{ flex: 1, maxWidth: "100%" }}>
                         {showInvestigateSummary && (
-                            <Box className="investigate-summary-row">
+                            <Box
+                                className={`investigate-summary-row${canToggleThoughts ? ' can-toggle' : ''}`}
+                                role={canToggleThoughts ? 'button' : undefined}
+                                tabIndex={canToggleThoughts ? 0 : -1}
+                                onClick={canToggleThoughts ? () => setThoughtsExpanded((prev) => !prev) : undefined}
+                                onKeyDown={(event) => {
+                                    if (!canToggleThoughts) return;
+                                    if (event.key === 'Enter' || event.key === ' ') {
+                                        event.preventDefault();
+                                        setThoughtsExpanded((prev) => !prev);
+                                    }
+                                }}
+                                aria-label={canToggleThoughts ? (thoughtsExpanded ? 'Collapse investigation thoughts' : 'Expand investigation thoughts') : undefined}
+                            >
                                 <ScienceOutlinedIcon className="investigate-summary-icon" />
                                 <span className="investigate-summary-text">Investigated for {investigatedDurationLabel}</span>
-                                <ChevronRightIcon className="investigate-summary-chevron" />
+                                {canToggleThoughts && (
+                                    <ChevronRightIcon className={`investigate-summary-chevron${thoughtsExpanded ? ' expanded' : ''}`} />
+                                )}
                             </Box>
                         )}
 
@@ -919,11 +932,11 @@ const MessageCard = React.memo(function MessageCard({
                                             ))}
                                         </Box>
 
-                                        {investigateAngles.length > 0 && (
+                                        {investigateActivityItems.length > 0 && (
                                             <Box className="investigate-progress-angles">
-                                                <span className="investigate-progress-angles-title">Investigating {investigateAngles.length} angles:</span>
-                                                {investigateAngles.map((angle, angleIndex) => (
-                                                    <span key={`${angle}-${angleIndex}`} className="investigate-progress-angle-item">- {angle}</span>
+                                                <span className="investigate-progress-angles-title">Research activity ({investigateActivityItems.length} steps):</span>
+                                                {investigateActivityItems.map((item, itemIndex) => (
+                                                    <span key={`${item}-${itemIndex}`} className="investigate-progress-angle-item">- {item}</span>
                                                 ))}
                                             </Box>
                                         )}
