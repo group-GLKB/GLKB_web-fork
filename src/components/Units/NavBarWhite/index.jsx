@@ -250,6 +250,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
             .then((list) => {
                 if (!isMounted) return;
                 setRecentConversations(list);
+                setActiveConversationIdState(getActiveConversationId());
             })
             .catch(() => {
                 if (!isMounted) return;
@@ -483,11 +484,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
     const isActiveConversation = (conversation) => {
         if (!conversation?.id) return false;
         if (location.pathname !== '/chat') return false;
-        if (conversation.id !== activeConversationId) return false;
-        if (Array.isArray(conversation.messages)) {
-            return conversation.messages.length > 0;
-        }
-        return (conversation.messageCount ?? 0) > 0;
+        return String(conversation.id) === String(activeConversationId || '');
     };
 
     const tooltipProps = {
