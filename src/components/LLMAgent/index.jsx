@@ -304,7 +304,26 @@ const areMessagesEqual = (left, right) => {
     return true;
 };
 
-const getStepLabel = (stepName) => STEP_LABELS[stepName] || stepName;
+const getStepLabel = (stepName) => {
+    if (!stepName) return '';
+    if (STEP_LABELS[stepName]) return STEP_LABELS[stepName];
+
+    const toolMatch = String(stepName).match(/^TOOL\s+(?:CALL|RESULT):\s*(.+)$/i);
+    if (toolMatch?.[1]) {
+        const toolName = toolMatch[1].trim();
+        return STEP_LABELS[toolName] || toolName.replace(/_/g, ' ');
+    }
+
+    const normalizedAgentStep = String(stepName).toUpperCase();
+    if (normalizedAgentStep === 'AGENT START' || normalizedAgentStep === 'AGENT INPUT') {
+        return STEP_LABELS.GLKBAgent || 'Agent is thinking';
+    }
+    if (normalizedAgentStep === 'AGENT OUTPUT') {
+        return STEP_LABELS.FinalAnswerAgent || 'Formulating the final answer';
+    }
+
+    return stepName;
+};
 
 const extractYearFromPubDate = (value) => {
     if (!value || typeof value !== 'string') return '';
