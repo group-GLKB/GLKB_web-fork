@@ -19,9 +19,9 @@ import {
 import SearchButton from '../Units/SearchButton/SearchButton';
 
 const LLMExampleQueries = [
-    "What is the role of BRCA1 in breast cancer?",
-    "How many articles about Alzheimer's disease were published in 2020?",
-    "What pathways does TP53 participate in?",
+    "What are the major research trends in single-cell studies of pancreatic cancer tumor microenvironment?",
+    "What genes are most strongly associated with pancreatic cancer, and what evidence supports each association?",
+    "What evidence links type 2 diabetes with pancreatic cancer risk?",
 ];
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
