@@ -1513,12 +1513,12 @@
 
 .markdown-body h1,
 .markdown-body h2 {
-    color: #164563;
+    color: #0C1018;
 }
 
 .markdown-body p,
 .markdown-body li {
-    white-space: pre-wrap;
+    white-space: normal;
 }
 
 .message-wrapper.user .message,
