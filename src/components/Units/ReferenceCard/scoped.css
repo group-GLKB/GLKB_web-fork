@@ -1,3 +1,182 @@
 .ant-card-bordered{
     border: none !important;
 }
+
+.reference-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+    cursor: pointer;
+    font-family: 'Geist', sans-serif;
+}
+
+.reference-card-index {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 2px;
+    flex-shrink: 0;
+}
+
+.reference-card-index-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    background-color: #E5E9F0;
+    color: #222A38;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.reference-card.is-highlighted .reference-card-index-badge {
+    background-color: #155DFC;
+    color: #FFFFFF;
+}
+
+.reference-card-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.reference-card-head {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.reference-card-title {
+    color: #0C1018;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 20px;
+    word-break: break-word;
+}
+
+.reference-card-title:hover {
+    color: #155DFC;
+}
+
+.reference-card-meta {
+    color: #5E6E87;
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.reference-card-journal {
+    font-style: italic;
+}
+
+.reference-card-quote {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.reference-card-quote-bar {
+    flex-shrink: 0;
+    width: 2px;
+    align-self: stretch;
+    background-color: #E5E9F0;
+    border-radius: 1px;
+}
+
+.reference-card-quote-text {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    color: #222A38;
+    font-size: 13px;
+    line-height: 18px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.reference-card-quote-text--clamped-off {
+    display: block;
+    -webkit-line-clamp: unset;
+}
+
+.reference-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.reference-card-footer-meta {
+    color: #8090AB;
+    font-size: 11px;
+    line-height: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.reference-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.reference-card:hover .reference-card-actions,
+.reference-card.is-highlighted .reference-card-actions {
+    opacity: 1;
+}
+
+.reference-card-icon-btn.MuiIconButton-root {
+    padding: 3px;
+    color: #5E6E87;
+}
+
+.reference-card-icon-btn.MuiIconButton-root:hover {
+    background-color: #F2F4F8;
+    color: #155DFC;
+}
+
+.reference-card-fulltext {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px 6px;
+    color: #5E6E87;
+    font-size: 10px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    border-radius: 4px;
+}
+
+.reference-card-fulltext:hover {
+    background-color: #F2F4F8;
+    color: #155DFC;
+}
+
+.reference-card-more-toggle {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #155DFC;
+    cursor: pointer;
+}

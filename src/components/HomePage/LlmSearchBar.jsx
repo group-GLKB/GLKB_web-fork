@@ -1,6 +1,6 @@
 import React, {
-    useEffect,
-    useState,
+  useEffect,
+  useState,
 } from 'react';
 
 import { useNavigate } from 'react-router-dom';
@@ -9,11 +9,11 @@ import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import CloseIcon from '@mui/icons-material/Close';
 import {
-    Autocomplete,
-    Box,
-    Paper,
-    Popper,
-    TextField,
+  Autocomplete,
+  Box,
+  Paper,
+  Popper,
+  TextField,
 } from '@mui/material';
 
 import SearchButton from '../Units/SearchButton/SearchButton';

@@ -161,7 +161,7 @@
 .homepage-pills {
     display: flex;
     flex-wrap: nowrap;
-    justify-content: space-between;
+    justify-content: center;
     gap: 12px;
     margin-top: 0;
     position: relative;
@@ -181,16 +181,16 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
     flex: 0 0 auto;
-    padding: 8px 16px;
-    border-radius: 16px !important;
-    background-color: #F5F6F8;
+    padding: 8px 12px;
+    border-radius: 8px !important;
+    background-color: #F2F4F8;
     border: 0.5px solid #E5E9F0;
-    color: #333333;
+    color: #222A38;
     font-family: "Geist", sans-serif;
     font-weight: 500;
-    font-size: 15px;
+    font-size: 12px;
     letter-spacing: 0.01em;
     cursor: pointer;
     box-shadow: none;
@@ -198,14 +198,14 @@
 }
 
 .homepage-pill:hover {
-    background-color: #F5F6F8;
+    background-color: #F2F4F8;
     border-color: #E5E9F0;
     box-shadow: none;
     transform: translateY(-1px);
 }
 
 .homepage-pill.is-active {
-    background-color: #F5F6F8;
+    background-color: #F2F4F8;
     border-color: #E5E9F0;
     box-shadow: none;
 }
@@ -214,18 +214,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 16px;
     color: inherit;
 }
 
 .homepage-pill-icon svg {
-    font-size: 18px;
-    color: inherit;
-}
-
-.homepage-pill-icon .material-symbols-outlined {
-    font-size: 18px;
-    line-height: 1;
+    font-size: 16px;
     color: inherit;
 }
 
@@ -258,7 +252,7 @@
 
     .homepage-pill {
         padding: 8px 12px;
-        font-size: 14px;
+        font-size: 12px;
     }
 }
 
@@ -269,7 +263,7 @@
 
     .homepage-pills {
         flex-wrap: nowrap;
-        justify-content: space-between;
+        justify-content: center;
         gap: 16px;
     }
 

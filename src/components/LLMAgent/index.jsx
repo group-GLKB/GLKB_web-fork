@@ -3617,55 +3617,23 @@ function LLMAgent() {
                                                             />
                                                         )}
                                                     </div>
-                                                    <Box className="llm-column" sx={{ flex: 1, minWidth: `${RIGHT_MIN_PX}px` }}>
+                                                    <Box className="llm-column references-column" sx={{ flex: 1, minWidth: `${RIGHT_MIN_PX}px` }}>
                                                         <div style={{ height: '100%', width: '100%' }}>
                                                             <div className="references-container">
-                                                                <div style={{
-                                                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                                    height: '70px',
-                                                                    borderBottom: '1px solid #E6E6E6',
-                                                                    marginBottom: '1px',
-                                                                }}>
-                                                                    <h3 style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: '16px', color: '#164563', marginBottom: '0', paddingLeft: '32px' }}>References</h3>
-                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                        <ToggleButtonGroup
-                                                                            size="small"
-                                                                            exclusive
-                                                                            value={sortOption}
-                                                                            onChange={(event, value) => {
-                                                                                if (value !== null) {
-                                                                                    setSortOption(value);
-                                                                                }
-                                                                            }}
-                                                                            sx={{
-                                                                                border: '1px solid #E7F1FF',
-                                                                                borderRadius: '14px',
-                                                                                padding: '1px',
-                                                                                overflow: 'hidden',
-                                                                                '& .MuiToggleButton-root': {
-                                                                                    textTransform: 'none',
-                                                                                    fontFamily: 'DM Sans, sans-serif',
-                                                                                    fontSize: '12px',
-                                                                                    fontWeight: 700,
-                                                                                    color: '#164563',
-                                                                                    border: 'none',
-                                                                                    padding: '0 8px',
-                                                                                    height: '26px',
-                                                                                    minHeight: '26px',
-                                                                                    borderRadius: '13px',
-                                                                                },
-                                                                                '& .MuiToggleButton-root.Mui-selected': {
-                                                                                    backgroundColor: '#E7F1FF',
-                                                                                    color: '#164563',
-                                                                                },
-                                                                                '& .MuiToggleButton-root.Mui-selected:hover': {
-                                                                                    backgroundColor: '#E0EDFF',
-                                                                                },
-                                                                            }}
-                                                                        >
-                                                                            <ToggleButton value="Citations">Citation</ToggleButton>
-                                                                            <ToggleButton value="Year">Year</ToggleButton>
-                                                                        </ToggleButtonGroup>
+                                                                <div className="references-header-row">
+                                                                    <h3 className="references-title">References</h3>
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        className="references-action-button"
+                                                                        onClick={collapseReferences}
+                                                                        title="Collapse references"
+                                                                    >
+                                                                        <ChevronRightIcon sx={{ color: '#5E6E87', fontSize: 20 }} />
+                                                                    </IconButton>
+                                                                </div>
+                                                                <div className="references-toolbar-row">
+                                                                    <span className="references-count-label">{sortedReferences.length} Citations</span>
+                                                                    <div className="references-toolbar-actions">
                                                                         <IconButton
                                                                             size="small"
                                                                             className="references-action-button"
@@ -3676,27 +3644,32 @@ function LLMAgent() {
                                                                             <DownloadIcon
                                                                                 aria-label="Download references"
                                                                                 style={{
-                                                                                    width: '20px',
-                                                                                    height: '20px',
+                                                                                    width: '16px',
+                                                                                    height: '16px',
                                                                                     display: 'block',
-                                                                                    color: isExportDisabled ? '#B0B0B0' : '#164563',
+                                                                                    color: isExportDisabled ? '#B0B7C3' : '#5E6E87',
                                                                                 }}
                                                                             />
                                                                         </IconButton>
-                                                                        <IconButton
+                                                                        <ToggleButtonGroup
                                                                             size="small"
-                                                                            className="references-action-button"
-                                                                            onClick={collapseReferences}
-                                                                            sx={{ marginRight: '8px' }}
-                                                                            title="Collapse references"
+                                                                            exclusive
+                                                                            value={sortOption}
+                                                                            onChange={(event, value) => {
+                                                                                if (value !== null) {
+                                                                                    setSortOption(value);
+                                                                                }
+                                                                            }}
+                                                                            className="references-sort-toggle"
                                                                         >
-                                                                            <ChevronRightIcon sx={{ color: '#164563' }} />
-                                                                        </IconButton>
+                                                                            <ToggleButton value="Citations">Citation</ToggleButton>
+                                                                            <ToggleButton value="Year">Year</ToggleButton>
+                                                                        </ToggleButtonGroup>
                                                                     </div>
                                                                 </div>
 
                                                                 {sortedReferences.length > 0 ? (
-                                                                    <div ref={referencesListRef} className="references-list" style={{ maxHeight: 'calc(100% - 70px)', overflowY: 'auto', paddingLeft: '2rem', paddingRight: '2rem' }}>
+                                                                    <div ref={referencesListRef} className="references-list" style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingLeft: '2rem', paddingRight: '2rem' }}>
                                                                         {sortedReferences.map((ref, index) => {
                                                                             const url = [
                                                                                 ref.title,
@@ -3722,6 +3695,7 @@ function LLMAgent() {
                                                                                         handleClick={handleClick}
                                                                                         onCiteClick={handleCiteClick}
                                                                                         isHighlighted={isHighlighted}
+                                                                                        index={index + 1}
                                                                                     />
                                                                                 </div>
                                                                             );
@@ -3757,14 +3731,9 @@ function LLMAgent() {
                                                 PaperProps={{ className: 'llm-mobile-references-drawer' }}
                                             >
                                                 <div className="references-container llm-mobile-references-container">
-                                                    <div style={{
-                                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                        height: '70px',
-                                                        borderBottom: '1px solid #E6E6E6',
-                                                        marginBottom: '1px',
-                                                    }}>
-                                                        <h3 style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: '16px', color: '#164563', marginBottom: '0', paddingLeft: '20px' }}>References</h3>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingRight: '10px' }}>
+                                                    <div className="references-header-row">
+                                                        <h3 className="references-title">References</h3>
+                                                        <div className="references-toolbar-actions">
                                                             <ToggleButtonGroup
                                                                 size="small"
                                                                 exclusive
@@ -3774,31 +3743,7 @@ function LLMAgent() {
                                                                         setSortOption(value);
                                                                     }
                                                                 }}
-                                                                sx={{
-                                                                    border: '1px solid #E7F1FF',
-                                                                    borderRadius: '14px',
-                                                                    padding: '1px',
-                                                                    overflow: 'hidden',
-                                                                    '& .MuiToggleButton-root': {
-                                                                        textTransform: 'none',
-                                                                        fontFamily: 'DM Sans, sans-serif',
-                                                                        fontSize: '12px',
-                                                                        fontWeight: 700,
-                                                                        color: '#164563',
-                                                                        border: 'none',
-                                                                        padding: '0 8px',
-                                                                        height: '26px',
-                                                                        minHeight: '26px',
-                                                                        borderRadius: '13px',
-                                                                    },
-                                                                    '& .MuiToggleButton-root.Mui-selected': {
-                                                                        backgroundColor: '#E7F1FF',
-                                                                        color: '#164563',
-                                                                    },
-                                                                    '& .MuiToggleButton-root.Mui-selected:hover': {
-                                                                        backgroundColor: '#E0EDFF',
-                                                                    },
-                                                                }}
+                                                                className="references-sort-toggle"
                                                             >
                                                                 <ToggleButton value="Citations">Citation</ToggleButton>
                                                                 <ToggleButton value="Year">Year</ToggleButton>
@@ -3813,10 +3758,10 @@ function LLMAgent() {
                                                                 <DownloadIcon
                                                                     aria-label="Download references"
                                                                     style={{
-                                                                        width: '20px',
-                                                                        height: '20px',
+                                                                        width: '16px',
+                                                                        height: '16px',
                                                                         display: 'block',
-                                                                        color: isExportDisabled ? '#B0B0B0' : '#164563',
+                                                                        color: isExportDisabled ? '#B0B7C3' : '#5E6E87',
                                                                     }}
                                                                 />
                                                             </IconButton>
@@ -3826,13 +3771,13 @@ function LLMAgent() {
                                                                 onClick={() => setIsMobileReferencesDrawerOpen(false)}
                                                                 title="Close references"
                                                             >
-                                                                <ChevronRightIcon sx={{ color: '#164563', transform: 'rotate(90deg)' }} />
+                                                                <ChevronRightIcon sx={{ color: '#5E6E87', transform: 'rotate(90deg)' }} />
                                                             </IconButton>
                                                         </div>
                                                     </div>
 
                                                     {sortedReferences.length > 0 ? (
-                                                        <div ref={referencesListRef} className="references-list" style={{ maxHeight: 'calc(100% - 70px)', overflowY: 'auto', paddingLeft: '1rem', paddingRight: '1rem' }}>
+                                                        <div ref={referencesListRef} className="references-list" style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingLeft: '1rem', paddingRight: '1rem' }}>
                                                             {sortedReferences.map((ref, index) => {
                                                                 const url = [
                                                                     ref.title,
@@ -3858,6 +3803,7 @@ function LLMAgent() {
                                                                             handleClick={handleClick}
                                                                             onCiteClick={handleCiteClick}
                                                                             isHighlighted={isHighlighted}
+                                                                            index={index + 1}
                                                                         />
                                                                     </div>
                                                                 );
