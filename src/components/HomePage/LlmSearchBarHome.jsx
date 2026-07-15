@@ -7,8 +7,6 @@ import { useNavigate } from 'react-router-dom';
 
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import CloseIcon from '@mui/icons-material/Close';
-import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
-import TuneIcon from '@mui/icons-material/Tune';
 import {
   Autocomplete,
   Box,
@@ -21,7 +19,9 @@ import {
   useMediaQuery,
 } from '@mui/material';
 
-import { ReactComponent as UnionIcon } from '../../img/Union.svg';
+import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
+import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
+import { ReactComponent as SearchOptionsIcon } from '../../img/llm/search_options.svg';
 import { trackGtagEvent } from '../../utils/gtag';
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
@@ -338,7 +338,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 margin: '0 auto',
                 fontFamily: 'Geist, sans-serif',
                 fontSize: '16px',
-                backgroundColor: '#F7F8FA',
+                backgroundColor: '#F2F4F8',
                 borderRadius: '16px',
                 borderWidth: '1px',
                 borderStyle: 'solid',
@@ -405,7 +405,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 '& .MuiInputBase-root': {
                                     borderRadius: '16px',
                                     height: { xs: '130px', sm: '148px' },
-                                    backgroundColor: '#F7F8FA',
+                                    backgroundColor: '#F2F4F8',
                                     alignItems: 'flex-start',
                                     paddingLeft: '20px',
                                     paddingRight: '20px !important',
@@ -413,7 +413,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     paddingBottom: '58px',
                                     fontFamily: 'Geist, sans-serif',
                                     fontSize: '16px',
-                                    color: '#164563',
+                                    color: '#0C1018',
                                     '& fieldset': {
                                         border: 'none',
                                     },
@@ -425,7 +425,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     overflowY: 'auto !important',
                                 },
                                 '& .MuiInputBase-input::placeholder': {
-                                    color: '#A3AAB5',
+                                    color: '#A8B3C8',
                                     opacity: 1,
                                 },
                                 '& .MuiOutlinedInput-notchedOutline': {
@@ -487,9 +487,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         borderRadius: '999px',
                                         border: 'none',
                                         background: investigateEnabled ? '#E7F1FF' : 'transparent',
-                                        color: investigateEnabled ? '#155DFC' : '#5A6B86',
-                                        fontFamily: 'DM Sans, sans-serif',
-                                        fontWeight: 700,
+                                        color: investigateEnabled ? '#155DFC' : '#5E6E87',
+                                        fontFamily: 'Geist, sans-serif',
+                                        fontWeight: 600,
                                         fontSize: '14px',
                                         lineHeight: '16px',
                                         textTransform: 'none',
@@ -506,7 +506,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                             color: investigateEnabled ? '#0E4EDB' : '#475B79',
                                         },
                                     }}
-                                    startIcon={<ScienceOutlinedIcon sx={{ fontSize: '16px' }} />}
+                                    startIcon={<InvestigateIcon style={{ width: '16px', height: '16px' }} />}
                                     title={investigateEnabled ? 'Investigate on' : 'Investigate off'}
                                 >
                                     Investigate
@@ -542,9 +542,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         margin: '-10px -8px',
                                         borderRadius: '0px',
                                         background: 'transparent',
-                                        color: '#323232',
-                                        fontFamily: 'DM Sans, sans-serif',
-                                        fontWeight: 700,
+                                        color: '#46566C',
+                                        fontFamily: 'Geist, sans-serif',
+                                        fontWeight: 600,
                                         fontSize: '14px',
                                         lineHeight: '16px',
                                         textTransform: 'none',
@@ -556,7 +556,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         pointerEvents: 'auto',
                                     }}
                                 >
-                                    <TuneIcon sx={{ color: '#323232', fontSize: '16px' }} />
+                                    <SearchOptionsIcon style={{ color: '#46566C', width: '16px', height: '16px' }} />
                                     {mobileChipLabel}
                                 </Box>
 
@@ -571,9 +571,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         margin: '-10px -8px',
                                         borderRadius: '18px',
                                         background: 'transparent',
-                                        color: '#323232',
-                                        fontFamily: 'DM Sans, sans-serif',
-                                        fontWeight: 700,
+                                        color: '#46566C',
+                                        fontFamily: 'Geist, sans-serif',
+                                        fontWeight: 600,
                                         fontSize: '14px',
                                         lineHeight: '16px',
                                         textTransform: 'none',
@@ -597,7 +597,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         openSearchOptions();
                                     }}
                                 >
-                                    <TuneIcon sx={{ color: '#323232', fontSize: '16px' }} />
+                                    <SearchOptionsIcon style={{ color: '#46566C', width: '16px', height: '16px' }} />
                                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{mobileChipLabel}</span>
                                 </Button>
 
@@ -607,10 +607,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     className="search-button-big"
                                     onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}
                                     sx={{
-                                        height: { xs: '36px', sm: '48px' },
-                                        width: { xs: '36px', sm: '48px' },
-                                        borderRadius: '50%',
-                                        backgroundColor: llmQuery.trim() && !isQueryLimitReached ? '#155DFC' : '#E7F1FF',
+                                        height: { xs: '32px', sm: '32px' },
+                                        width: { xs: '32px', sm: '32px' },
+                                        borderRadius: '8px',
+                                        backgroundColor: llmQuery.trim() && !isQueryLimitReached ? '#155DFC' : '#D9E6FE',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -623,11 +623,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         pointerEvents: 'auto',
                                     }}
                                 >
-                                    <UnionIcon
+                                    <SearchArrowIcon
                                         style={{
                                             color: llmQuery.trim() && !isQueryLimitReached ? '#FFFFFF' : '#155DFC',
-                                            width: '20px',
-                                            height: '20px',
+                                            width: '16px',
+                                            height: '16px',
                                         }}
                                     />
                                 </Box>

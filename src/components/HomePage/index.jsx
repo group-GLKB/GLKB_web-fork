@@ -19,9 +19,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowOutward as ArrowOutwardIcon,
   Close as CloseIcon,
-  DescriptionOutlined as DescriptionOutlinedIcon,
-  LightbulbOutlined as LightbulbOutlinedIcon,
-  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -30,6 +27,10 @@ import {
   Typography,
 } from '@mui/material';
 
+import { ReactComponent as PillEntityInsightsIcon } from '../../img/llm/pill_entity_insights.svg';
+import { ReactComponent as PillLiteratureDiscoveryIcon } from '../../img/llm/pill_literature_discovery.svg';
+import { ReactComponent as PillMechanismsIcon } from '../../img/llm/pill_mechanisms.svg';
+import { ReactComponent as PillResearchTrendIcon } from '../../img/llm/pill_research_trend.svg';
 import {
   getGuestTier,
   getMyTier,
@@ -61,20 +62,20 @@ const HomePage = () => {
     const navigate = useNavigate();
     const examplePanelRef = useRef(null);
     const iconMap = {
-        lightbulb: <LightbulbOutlinedIcon />,
-        chart: <TrendingUpIcon />,
-        book: <DescriptionOutlinedIcon />,
-        knowledge: <span className="material-symbols-outlined" aria-hidden="true">stacks</span>,
+        lightbulb: <PillEntityInsightsIcon />,
+        chart: <PillResearchTrendIcon />,
+        book: <PillMechanismsIcon />,
+        knowledge: <PillLiteratureDiscoveryIcon />,
     };
     const iconColorMap = {
-        lightbulb: '#F5B22A',
-        chart: '#57CE55',
-        book: '#AC6DEF',
+        lightbulb: '#FBBF7A',
+        chart: '#08B046',
+        book: '#BD7AFB',
         knowledge: '#4B88FD',
     };
     const pills = (exampleSchema.pills || []).map((pill) => ({
         ...pill,
-        icon: iconMap[pill.icon] || <LightbulbOutlinedIcon />,
+        icon: iconMap[pill.icon] || <PillEntityInsightsIcon />,
         iconColor: iconColorMap[pill.icon] || '#333333',
     }));
     const activePill = pills.find((pill) => pill.id === showExamples);
