@@ -10,8 +10,9 @@ import {
   Bookmark as BookmarkIcon,
   BookmarkBorder as BookmarkBorderIcon,
   ExpandMore as ExpandMoreIcon,
+  OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material';
-import { IconButton } from '@mui/material';
+import { IconButton, Tooltip } from '@mui/material';
 
 import formatQuoteIcon from '../../../img/llm/format_quote.svg';
 import {
@@ -20,6 +21,7 @@ import {
   toggleBookmark,
 } from '../../../utils/bookmarks';
 import { useAuth } from '../../Auth/AuthContext';
+import './scoped.css';
 
 const ReferenceCard = ({
     url,
@@ -28,7 +30,7 @@ const ReferenceCard = ({
     handleClick,
     onCiteClick,
     isHighlighted = false,
-    transparentBackground = false,
+    index = null,
     showCitations = true,
 }) => {
     const [isBookmarked, setIsBookmarked] = useState(false);
@@ -99,274 +101,131 @@ const ReferenceCard = ({
         [evidence]
     );
     const hasEvidence = evidenceItems.length > 0;
-
-    const getLastName = (fullName) => {
-        const parts = fullName.trim().split(' ');
-        return parts[parts.length - 1];
-    };
-
+    const extraEvidenceCount = Math.max(evidenceItems.length - 1, 0);
 
     const renderAuthors = () => {
         const authorsList = authors.split(', ').filter(name => name.trim().length > 0);
         if (authorsList.length === 0) return null;
-        if (authorsList.length === 1) {
-            return renderAuthorBubbles([authorsList[0]]);
-        }
-        if (authorsList.length === 2) {
-            return renderAuthorBubbles(authorsList);
-        }
-        return renderAuthorBubbles([
-            authorsList[0],
-            '...',
-            authorsList[authorsList.length - 1]
-        ]);
+        if (authorsList.length <= 2) return authorsList.join(', ');
+        return `${authorsList[0]}, ..., ${authorsList[authorsList.length - 1]}`;
     };
-    const renderAuthorBubbles = (list) => (
-        list.map((author, idx) => (
-            <span
-                key={idx}
-            >
-                {author}{idx < list.length - 1 ? ',' : ''}
-            </span>
-        ))
-    );
+
+    const citationCount = Number(url?.[2]);
+    const hasCitationCount = showCitations && Number.isFinite(citationCount);
+    const metaParts = [renderAuthors(), url?.[3]].filter(Boolean);
+
     return (
         <div
             onClick={(event) => handleClick(event, url[1])}
-            style={{
-                cursor: 'pointer',
-                marginBottom: '2px',
-                borderRadius: showHighlight ? '12px' : '10px',
-                backgroundColor: showHighlight ? '#E7F1FF' : 'transparent',
-                width: '100%',
-                transition: 'background-color 0.2s ease, border-radius 0.2s ease',
-                padding: '0px',
-                fontFamily: 'DM Sans, sans-serif',
-            }}
-            className="custom-div-url"
+            className={`reference-card${showHighlight ? ' is-highlighted' : ''}`}
         >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <div style={{ color: '#808080', fontSize: '14px', fontWeight: 400 }}>
-                    PubMed ID: {pubmedId}
+            {index !== null && (
+                <div className="reference-card-index">
+                    <span className="reference-card-index-badge">{index}</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <IconButton
-                        size="small"
-                        onClick={handleCiteClick}
-                        sx={{
-                            padding: '4px',
-                            color: '#000000',
-                            '&:hover': {
-                                backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                            },
+            )}
+            <div className="reference-card-body">
+                <div className="reference-card-head">
+                    <a
+                        href={url[1]}
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            handleClick(event, url[1]);
                         }}
-                        title="Cite this reference"
+                        className="reference-card-title"
                     >
-                        <img
-                            src={formatQuoteIcon}
-                            alt="Quote"
-                            style={{ width: '18px', height: '18px', display: 'block' }}
-                        />
-                    </IconButton>
-                    <IconButton
-                        size="small"
-                        onClick={handleBookmarkClick}
-                        sx={{
-                            padding: '4px',
-                            color: isBookmarked ? '#2c5cf3' : '#000000',
-                            '&:hover': {
-                                backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                            },
-                        }}
-                        title={isBookmarked ? 'Remove bookmark' : 'Bookmark this reference'}
-                    >
-                        {isBookmarked ? (
-                            <BookmarkIcon sx={{ fontSize: 18 }} />
-                        ) : (
-                            <BookmarkBorderIcon sx={{ fontSize: 18 }} />
-                        )}
-                    </IconButton>
+                        {url[0]}
+                    </a>
+                    {(metaParts.length > 0 || url[4]) && (
+                        <div className="reference-card-meta">
+                            {metaParts.join(' · ')}
+                            {metaParts.length > 0 && url[4] && ' · '}
+                            {url[4] && <span className="reference-card-journal">{url[4]}</span>}
+                        </div>
+                    )}
                 </div>
-            </div>
 
-            <a
-                href={url[1]}
-                onClick={(event) => {
-                    event.stopPropagation();
-                    handleClick(event, url[1]);
-                }}
-                style={{
-                    color: '#323232',
-                    textDecoration: 'none',
-                    fontWeight: 600,
-                    fontSize: '16px',
-                    display: 'block',
-                    marginBottom: '6px',
-                    wordBreak: 'break-word',
-                }}
-            >
-                {url[0]}
-            </a>
-
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                gap: '12px',
-                marginBottom: '6px',
-            }}>
-                <div style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '6px',
-                    fontSize: '14px',
-                    fontWeight: 400,
-                    fontStyle: 'italic',
-                    color: '#808080',
-                    flex: 1,
-                }}>
-                    {renderAuthors()}
-                </div>
-                {showCitations && !hasEvidence && (
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-end',
-                        fontSize: '14px',
-                        fontWeight: 400,
-                        color: '#323232',
-                        lineHeight: '16px',
-                        flexShrink: 0,
-                    }}>
-                        <span>Citations: {url[2]}</span>
+                {hasEvidence && (
+                    <div className="reference-card-quote">
+                        <span className="reference-card-quote-bar" />
+                        <p className="reference-card-quote-text">“{evidenceItems[0].quote}”</p>
                     </div>
                 )}
-            </div>
 
-            <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-end',
-                gap: '12px',
-            }}>
-                <div style={{
-                    fontSize: '14px',
-                    fontWeight: 400,
-                    color: '#323232',
-                    wordBreak: 'break-word',
-                    flex: 1,
-                }} title="Journal">
-                    {url[4]}
-                </div>
-                {!hasEvidence && (
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-end',
-                        fontSize: '14px',
-                        fontWeight: 400,
-                        color: '#323232',
-                        lineHeight: '16px',
-                        flexShrink: 0,
-                    }}>
-                        <span>{url[3]}</span>
-                    </div>
-                )}
-                {showCitations && hasEvidence && (
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-end',
-                        fontSize: '14px',
-                        fontWeight: 400,
-                        color: '#323232',
-                        lineHeight: '16px',
-                        flexShrink: 0,
-                    }}>
-                        <span>Citations: {url[2]}</span>
-                    </div>
-                )}
-            </div>
-            {hasEvidence && (
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '12px',
-                    marginTop: '4px',
-                }}>
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        minHeight: '20px',
-                    }}>
-                        <button
-                            type="button"
+                <div className="reference-card-footer">
+                    <span className="reference-card-footer-meta">
+                        PMID: {pubmedId}
+                        {hasCitationCount && ` · ${citationCount} Citation${citationCount === 1 ? '' : 's'}`}
+                    </span>
+                    <div className="reference-card-actions" onClick={(event) => event.stopPropagation()}>
+                        <Tooltip title={isBookmarked ? 'Remove bookmark' : 'Bookmark this reference'} arrow>
+                            <IconButton
+                                size="small"
+                                onClick={handleBookmarkClick}
+                                className="reference-card-icon-btn"
+                            >
+                                {isBookmarked ? (
+                                    <BookmarkIcon sx={{ fontSize: 13, color: '#155DFC' }} />
+                                ) : (
+                                    <BookmarkBorderIcon sx={{ fontSize: 13 }} />
+                                )}
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Cite paper" arrow>
+                            <IconButton
+                                size="small"
+                                onClick={handleCiteClick}
+                                className="reference-card-icon-btn"
+                            >
+                                <img
+                                    src={formatQuoteIcon}
+                                    alt="Quote"
+                                    style={{ width: 14, height: 14, display: 'block' }}
+                                />
+                            </IconButton>
+                        </Tooltip>
+                        <a
+                            href={url[1]}
+                            className="reference-card-fulltext"
                             onClick={(event) => {
                                 event.stopPropagation();
-                                setIsEvidenceOpen((prev) => !prev);
+                                handleClick(event, url[1]);
                             }}
-                            style={{
-                                padding: 0,
-                                border: 'none',
-                                background: 'none',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                fontFamily: 'DM Sans, sans-serif',
-                                fontSize: '14px',
-                                fontWeight: 600,
-                                color: '#2c5cf3',
-                                cursor: 'pointer',
-                            }}
-                            aria-expanded={isEvidenceOpen}
                         >
-                            Original sentences
-                            <ExpandMoreIcon
-                                sx={{
-                                    fontSize: 16,
-                                    color: '#2c5cf3',
-                                    transform: isEvidenceOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                                    transition: 'transform 0.2s ease',
-                                }}
-                            />
-                        </button>
-                    </div>
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-end',
-                        fontSize: '14px',
-                        fontWeight: 400,
-                        color: '#323232',
-                        lineHeight: 1.4,
-                        flexShrink: 0,
-                    }}>
-                        <span>{url[3]}</span>
+                            Full Text
+                            <OpenInNewIcon sx={{ fontSize: 12 }} />
+                        </a>
                     </div>
                 </div>
-            )}
-            {hasEvidence && isEvidenceOpen && (
-                <div style={{
-                    marginTop: '8px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '6px',
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontSize: '13px',
-                    fontWeight: 400,
-                    color: '#646464',
-                }}>
-                    {evidenceItems.map((item, idx) => (
-                        <div key={`${pubmedId}-evidence-${idx}`} style={{ lineHeight: 1.5 }}>
-                            “{item.quote}”
-                        </div>
-                    ))}
-                </div>
-            )}
+
+                {extraEvidenceCount > 0 && (
+                    <button
+                        type="button"
+                        className="reference-card-more-toggle"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            setIsEvidenceOpen((prev) => !prev);
+                        }}
+                        aria-expanded={isEvidenceOpen}
+                    >
+                        {isEvidenceOpen ? 'Hide extra excerpts' : `+${extraEvidenceCount} more excerpt${extraEvidenceCount === 1 ? '' : 's'}`}
+                        <ExpandMoreIcon
+                            sx={{
+                                fontSize: 15,
+                                transform: isEvidenceOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                transition: 'transform 0.2s ease',
+                            }}
+                        />
+                    </button>
+                )}
+                {isEvidenceOpen && evidenceItems.slice(1).map((item, idx) => (
+                    <div className="reference-card-quote" key={`${pubmedId}-evidence-${idx}`}>
+                        <span className="reference-card-quote-bar" />
+                        <p className="reference-card-quote-text reference-card-quote-text--clamped-off">“{item.quote}”</p>
+                    </div>
+                ))}
+            </div>
         </div>
-
-
     );
 };
 
