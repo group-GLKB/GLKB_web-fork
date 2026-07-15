@@ -52,3 +52,6 @@ e2e/.auth/
 .env.*.local
 playwright-report/
 test-results/
+
+# Local MCP server config (may contain machine-specific settings)
+.mcp.json
