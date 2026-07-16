@@ -14,7 +14,7 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: #FAFCFF;
+    background-color: #FDFEFF;
     overflow: hidden;
 }
 
@@ -124,20 +124,6 @@
     background-color: transparent;
 }
 
-.llm-split-divider::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 3px;
-    width: 1px;
-    background-color: #F4F4F4;
-}
-
-.llm-split-divider:hover::before {
-    background-color: #D0D0D0;
-}
-
 .llm-split-drag-indicator {
     position: absolute;
     left: 50%;
@@ -150,32 +136,6 @@
     box-shadow: 0 6px 16px rgba(22, 69, 99, 0.18);
     pointer-events: none;
     z-index: 2;
-}
-
-.references-collapse-button.MuiIconButton-root {
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 48px;
-    height: 155px;
-    border-radius: 12px;
-    background-color: #ffffff;
-    border: 1px solid #E0E0E0;
-    box-shadow: 0 8px 24px rgba(22, 69, 99, 0.18);
-    color: #164563;
-    z-index: 6;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    padding: 0;
-    overflow: visible;
-}
-
-.references-collapse-button:hover {
-    background-color: #F2F6FF;
 }
 
 .references-action-button.MuiIconButton-root {
@@ -196,30 +156,6 @@
     color: #B0B0B0;
 }
 
-.references-collapse-icon {
-    width: 15px;
-    height: 15px;
-    color: #164563;
-    display: block;
-    transform: translateY(-4px) scaleX(-1);
-}
-
-.references-collapse-icon path {
-    fill: currentColor;
-}
-
-.references-collapse-label {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
-    font-weight: 700;
-    color: #164563;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    transform: rotate(180deg);
-    letter-spacing: 0.12em;
-    line-height: 1;
-}
-
 .llm-column {
     display: flex;
     flex-direction: column;
@@ -233,7 +169,7 @@
     border: none;
     border-radius: 0;
     width: 100%;
-    background-color: #FAFCFF;
+    background-color: #FDFEFF;
     height: 100%;
     min-height: 0;
     padding: 0;
@@ -258,14 +194,35 @@
 }
 
 .references-column {
-    padding: 16px 16px 24px 0;
+    padding: 16px 14px 24px 0;
     box-sizing: border-box;
+    position: relative;
 }
 
 .references-column .references-container {
     border: 1px solid #E5E9F0;
     border-radius: 16px;
     overflow: hidden;
+    box-shadow: 0 2px 10px rgba(12, 16, 24, 0.04);
+}
+
+.references-collapse-toggle.MuiIconButton-root {
+    position: absolute;
+    z-index: 3;
+    top: 30px;
+    left: -32px;
+    width: 32px;
+    height: 32px;
+    padding: 6px;
+    border: 1px solid #F2F4F8;
+    border-right: none;
+    border-radius: 4px 0 0 4px;
+    background-color: #D9E6FE;
+    color: #155DFC;
+}
+
+.references-collapse-toggle.MuiIconButton-root:hover {
+    background-color: #C9DCFD;
 }
 
 .llm-mobile-references-drawer {
@@ -283,8 +240,17 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 24px;
+    gap: 12px;
+    padding: 20px 24px;
     border-bottom: 1px solid #F2F4F8;
+}
+
+.references-header-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
 }
 
 .references-title {
@@ -294,6 +260,116 @@
     font-size: 16px;
     line-height: 20px;
     color: #0C1018;
+    flex-shrink: 0;
+}
+
+.references-scope-trigger {
+    min-width: 0;
+    max-width: 218px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0 0 0 12px;
+    border: none;
+    border-left: 1px solid #F2F4F8;
+    background: transparent;
+    color: #8090AB;
+    font-family: 'Geist', sans-serif;
+    font-size: 10px;
+    line-height: 14px;
+    cursor: pointer;
+}
+
+.references-scope-trigger span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.references-scope-icon {
+    width: 12px !important;
+    height: 12px !important;
+    color: #8090AB;
+    flex-shrink: 0;
+}
+
+.material-symbols-outlined.references-scope-icon {
+    width: 16px !important;
+    height: 16px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+    font-size: 16px;
+    line-height: 16px;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+}
+
+.references-scope-chevron {
+    width: 14px !important;
+    height: 14px !important;
+    color: #8090AB;
+    transform: rotate(90deg);
+    transition: transform 0.16s ease;
+    flex-shrink: 0;
+}
+
+.references-scope-chevron.expanded {
+    transform: rotate(-90deg);
+}
+
+.references-scope-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px 24px;
+    border-bottom: 1px solid #F2F4F8;
+    background-color: #F8F9FC;
+}
+
+.references-scope-option {
+    width: 100%;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #0C1018;
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 16px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.references-scope-option-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.references-scope-option-number {
+    display: inline-block;
+    min-width: 21px;
+}
+
+.references-scope-radio {
+    width: 20px;
+    height: 20px;
+    border-radius: 12px;
+    border: 1px solid #CBD2E0;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.references-scope-radio.selected {
+    border: 4px solid #155DFC;
 }
 
 .references-toolbar-row {
@@ -852,6 +928,10 @@
     border-radius: 4px;
 }
 
+.references-list {
+    padding: 0;
+}
+
 .references-list>div {
     width: 100%;
 }
@@ -861,35 +941,30 @@
 }
 
 .references-list>div {
-    margin: 0 -12px;
-    padding: 16px 12px;
-    border-radius: 10px;
+    margin: 0;
+    padding: 16px 24px;
+    border-radius: 8px;
     position: relative;
     box-sizing: border-box;
     transition: background-color 0.2s ease, border-radius 0.2s ease;
 }
 
 .references-list .reference-entry-wrapper {
-    cursor: pointer;
+    cursor: default;
 }
 
 .references-list .reference-entry-wrapper.highlighted {
     background-color: #F7F9FF;
-    border-radius: 10px;
+    border-radius: 8px;
 }
 
 .references-list>div::after {
     content: '';
     position: absolute;
-    left: 12px;
-    right: 12px;
+    left: 0;
+    right: 0;
     bottom: 0;
     border-bottom: 1px solid #F2F4F8;
-}
-
-.references-list>div:hover {
-    background-color: #F7F9FF;
-    border-radius: 10px;
 }
 
 .references-list>div:last-child::after {
@@ -1063,11 +1138,11 @@
 }
 
 .message-wrapper.user .message {
-    background-color: #ffffff !important;
-    color: #164563;
-    border-radius: 16px 16px 0 16px;
+    background-color: #E5E9F0 !important;
+    color: #141B26;
+    border-radius: 8px;
     padding: 8px 16px;
-    max-width: 80%;
+    max-width: 480px;
 }
 
 .reference-button-wrapper {
@@ -1482,43 +1557,63 @@
     opacity: 1;
 }
 
+.message-wrapper.assistant .MuiIconButton-root {
+    width: 24px;
+    height: 24px;
+    padding: 4px;
+    border-radius: 4px;
+    color: #8090AB;
+}
+
+.message-wrapper.assistant .MuiIconButton-root:hover {
+    background-color: #F2F4F8;
+    color: #155DFC;
+}
+
 .markdown-body a[href*="pubmed.ncbi.nlm.nih.gov"] {
     display: inline-flex;
     align-items: center;
+    gap: 2px;
     position: relative;
     text-decoration: none;
-    color: #646464;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
+    color: #222A38;
+    font-family: 'Geist', sans-serif;
+    font-size: 10px;
     font-weight: 400;
-    padding: 4px;
-    border-radius: 12px;
-    background-color: #F4F4F4;
-    transition: background-color 0.2s ease;
+    line-height: 12px;
+    padding: 2px 6px 2px 4px;
+    border-radius: 256px;
+    background-color: #D9E6FE;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    vertical-align: baseline;
 }
 
 .markdown-body a[href*="pubmed.ncbi.nlm.nih.gov"]::before {
     content: '';
-    width: 14px;
-    height: 14px;
-    margin-right: 4px;
+    width: 16px;
+    height: 16px;
     flex-shrink: 0;
-    background: url('../../img/llm/draft.svg') no-repeat center / 14px 14px;
+    background: url('../../img/llm/reference_chip_abstract.svg') no-repeat center / 16px 16px;
+}
+
+.markdown-body .inline-citation-number {
+    min-width: 8px;
 }
 
 .markdown-body a[href*="pubmed.ncbi.nlm.nih.gov"]:hover {
-    color: #646464;
-    background-color: #EDEDED;
+    color: #0C1018;
+    background-color: #BBCFFE;
+    box-shadow: inset 0 0 0 0.3px #7AADFB;
 }
 
 .markdown-body h1,
 .markdown-body h2 {
-    color: #164563;
+    color: #0C1018;
 }
 
 .markdown-body p,
 .markdown-body li {
-    white-space: pre-wrap;
+    white-space: normal;
 }
 
 .message-wrapper.user .message,
@@ -1532,6 +1627,48 @@
 .message.assistant.selected,
 .message-wrapper.assistant .message {
     background-color: transparent;
+}
+
+.llm-header-references-toggle.MuiButton-root {
+    min-width: 0;
+    padding: 4px;
+    border-radius: 4px;
+    color: #5E6E87;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    text-transform: none;
+}
+
+.llm-header-references-toggle.MuiButton-root .MuiButton-startIcon {
+    margin: 0 4px 0 0;
+}
+
+.llm-header-references-toggle.MuiButton-root .MuiSvgIcon-root {
+    width: 16px;
+    height: 16px;
+}
+
+.llm-header-references-toggle.MuiButton-root:hover {
+    background-color: #F2F4F8;
+}
+
+@media (min-width: 981px) {
+    .chat-container .messages-container {
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+
+    .chat-container .message-wrapper {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .chat-container .chat-header {
+        width: calc(100% - 48px);
+        padding: 24px 0;
+    }
 }
 
 .llm-reference-button.MuiButtonBase-root {

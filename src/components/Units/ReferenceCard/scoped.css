@@ -5,9 +5,9 @@
 .reference-card {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: 8px;
     width: 100%;
-    cursor: pointer;
+    cursor: default;
     font-family: 'Geist', sans-serif;
 }
 
@@ -23,12 +23,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
     border-radius: 4px;
     background-color: #E5E9F0;
     color: #222A38;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 500;
     line-height: 1;
     transition: background-color 0.2s ease, color 0.2s ease;
@@ -44,7 +45,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .reference-card-head {
@@ -57,19 +58,15 @@
     color: #0C1018;
     text-decoration: none;
     font-weight: 600;
-    font-size: 15px;
-    line-height: 20px;
+    font-size: 13px;
+    line-height: 16px;
     word-break: break-word;
-}
-
-.reference-card-title:hover {
-    color: #155DFC;
 }
 
 .reference-card-meta {
     color: #5E6E87;
-    font-size: 12px;
-    line-height: 16px;
+    font-size: 10px;
+    line-height: 14px;
 }
 
 .reference-card-journal {
@@ -90,13 +87,18 @@
     border-radius: 1px;
 }
 
-.reference-card-quote-text {
+.reference-card-quote-content {
+    position: relative;
     flex: 1;
     min-width: 0;
+}
+
+.reference-card-quote-text {
     margin: 0;
+    padding-right: 18px;
     color: #222A38;
-    font-size: 13px;
-    line-height: 18px;
+    font-size: 12px;
+    line-height: 16px;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
@@ -108,6 +110,22 @@
     -webkit-line-clamp: unset;
 }
 
+.reference-card-evidence-toggle.MuiIconButton-root {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 16px;
+    height: 16px;
+    padding: 1px;
+    color: #5E6E87;
+    background-color: #FFFFFF;
+}
+
+.reference-card-evidence-toggle.MuiIconButton-root:hover {
+    color: #155DFC;
+    background-color: #F2F4F8;
+}
+
 .reference-card-footer {
     display: flex;
     align-items: center;
@@ -117,8 +135,8 @@
 
 .reference-card-footer-meta {
     color: #8090AB;
-    font-size: 11px;
-    line-height: 16px;
+    font-size: 10px;
+    line-height: 14px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

@@ -7,7 +7,7 @@ import {
   useMediaQuery,
 } from '@mui/material';
 
-import { ReactComponent as UnionIcon } from '../../img/Union.svg';
+import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { trackGtagEvent } from '../../utils/gtag';
 
 const ChatSearchBar = ({
@@ -27,12 +27,12 @@ const ChatSearchBar = ({
             display: 'flex',
             gap: 2,
             margin: '0 auto',
-            backgroundColor: '#ffffff',
+            backgroundColor: '#F2F4F8',
             borderRadius: '16px',
             borderWidth: '1px',
             borderStyle: 'solid',
-            borderColor: '#E7F1FF',
-            boxShadow: '0px 6px 18px rgba(22, 69, 99, 0.08)',
+            borderColor: '#E5E9F0',
+            boxShadow: 'none',
         }}>
             <TextField
                 className="input-form"
@@ -53,12 +53,12 @@ const ChatSearchBar = ({
                         height: 'auto',
                         alignItems: 'flex-start',
                         paddingLeft: '20px',
-                        paddingRight: '90px !important',
+                        paddingRight: '76px !important',
                         paddingTop: { xs: '8px', sm: '12px' },
                         paddingBottom: { xs: '8px', sm: '12px' },
                         fontFamily: 'Open Sans, sans-serif',
-                        fontSize: '18px',
-                        color: '#164563',
+                        fontSize: '14px',
+                        color: '#0C1018',
                         '& fieldset': {
                             border: 'none',
                         },
@@ -115,10 +115,10 @@ const ChatSearchBar = ({
                                         onSubmit();
                                     })}
                                 sx={{
-                                    height: { xs: '36px', sm: '44px' },
-                                    width: { xs: '36px', sm: '44px' },
-                                    borderRadius: '50%',
-                                    transform: isMobileViewport ? 'translateY(-4px)' : 'none',
+                                    height: '32px',
+                                    width: '32px',
+                                    borderRadius: '8px',
+                                    transform: 'none',
                                     backgroundColor: isLoading
                                         ? '#E7F1FF'
                                         : (!userInput.trim() || isQueryLimitReached ? '#E7F1FF' : '#155DFC'),
@@ -129,15 +129,9 @@ const ChatSearchBar = ({
                                         ? 'pointer'
                                         : (!userInput.trim() || isQueryLimitReached ? 'not-allowed' : 'pointer'),
                                     transition: 'transform 120ms ease, box-shadow 160ms ease',
-                                    boxShadow: isLoading
-                                        ? 'none'
-                                        : (!userInput.trim() || isQueryLimitReached ? 'none' : '0 6px 12px rgba(21, 93, 252, 0.28)'),
+                                    boxShadow: 'none',
                                     '&:hover': {
-                                        transform: isMobileViewport
-                                            ? 'translateY(-4px)'
-                                            : (isLoading
-                                                ? 'none'
-                                                : (!userInput.trim() || isQueryLimitReached ? 'none' : 'translateY(-1px)')),
+                                        transform: isLoading || !userInput.trim() || isQueryLimitReached ? 'none' : 'translateY(-1px)',
                                     },
                                 }}
                             >
@@ -151,11 +145,11 @@ const ChatSearchBar = ({
                                         }}
                                     />
                                 ) : (
-                                    <UnionIcon
+                                    <SearchArrowIcon
                                         style={{
                                             color: (!userInput.trim() || isQueryLimitReached) ? '#155DFC' : '#ffffff',
-                                            width: isMobileViewport ? '16px' : '20px',
-                                            height: isMobileViewport ? '16px' : '20px',
+                                            width: '16px',
+                                            height: '16px',
                                         }}
                                     />
                                 )}

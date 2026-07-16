@@ -4,11 +4,12 @@
   -ms-text-size-adjust: 100%;
   -webkit-text-size-adjust: 100%;
   margin: 0;
-  color: #1f2328;
+  color: #0C1018;
   font-family: "Open Sans", sans-serif;
   letter-spacing: -.01em;
   font-size: 16px;
   line-height: 24px;
+  white-space: normal;
   word-wrap: break-word;
 }
 
@@ -78,7 +79,7 @@
 
 .markdown-body mark {
   background-color: #ff0;
-  color: #1f2328;
+  color: #0C1018;
 }
 
 .markdown-body small {
@@ -252,7 +253,7 @@
   padding: 0.25rem;
   font: 11px ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
   line-height: 10px;
-  color: #1f2328;
+  color: #0C1018;
   vertical-align: middle;
   background-color: #f6f8fa;
   border: solid 1px #d1d9e0b3;
@@ -269,6 +270,7 @@
 .markdown-body h6 {
   margin-top: 30px;
   margin-bottom: 16px;
+  color: #0C1018;
   font-weight: 600;
   line-height: 1.25;
 }
@@ -369,7 +371,7 @@
   left: 15px;
   top: 8px;
   border-radius: 50%;
-  background: #1f2328;
+  background: #0C1018;
 }
 
 .markdown-body dd {
@@ -477,7 +479,7 @@
 .markdown-body h4 .octicon-link,
 .markdown-body h5 .octicon-link,
 .markdown-body h6 .octicon-link {
-  color: #1f2328;
+  color: #0C1018;
   vertical-align: middle;
   visibility: hidden;
 }
@@ -574,16 +576,17 @@
 .markdown-body ul ol,
 .markdown-body ol ol,
 .markdown-body ol ul {
-  margin-top: 8px;
-  margin-bottom: 0;
+  margin-top: 4px;
+  margin-bottom: 4px;
 }
 
 .markdown-body li>p {
-  margin-top: 1rem;
+  margin-top: 0;
+  margin-bottom: 4px;
 }
 
 .markdown-body li+li {
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .markdown-body dl {
@@ -615,6 +618,7 @@
   padding-right: 1rem;
   font-size: .875rem;
   line-height: 1.25rem;
+  text-align: left;
   border: 1px solid #ececf1;
 }
 
@@ -681,7 +685,7 @@
   display: block;
   padding: 5px 0 0;
   clear: both;
-  color: #1f2328;
+  color: #0C1018;
 }
 
 .markdown-body span.align-center {
@@ -796,11 +800,12 @@
   overflow: auto;
   font-size: 85%;
   line-height: 1.45;
-  color: #1f2328;
+  color: #0C1018;
   background-color: rgb(250, 250, 250);
   border-radius: 6px;
-  padding-right: 50px;
-  margin: 0;
+  padding: 12px 50px 12px 14px;
+  margin: 12px 0;
+  box-shadow: 0 2px 8px rgba(12, 16, 24, 0.08);
 }
 
 .markdown-body pre code,
@@ -884,7 +889,7 @@
 }
 
 .markdown-body .footnotes li:target {
-  color: #1f2328;
+  color: #0C1018;
 }
 
 .markdown-body .footnotes .data-footnote-backref g-emoji {
@@ -911,7 +916,7 @@
 
 .markdown-body .pl-smi,
 .markdown-body .pl-s .pl-s1 {
-  color: #1f2328;
+  color: #0C1018;
 }
 
 .markdown-body .pl-ent {
@@ -969,12 +974,12 @@
 
 .markdown-body .pl-mi {
   font-style: italic;
-  color: #1f2328;
+  color: #0C1018;
 }
 
 .markdown-body .pl-mb {
   font-weight: bold;
-  color: #1f2328;
+  color: #0C1018;
 }
 
 .markdown-body .pl-md {
