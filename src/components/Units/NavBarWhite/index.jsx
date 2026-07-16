@@ -75,7 +75,7 @@ import {
 import { trackGtagEvent } from '../../../utils/gtag';
 import { useAuth } from '../../Auth/AuthContext';
 
-const drawerWidth = 280;
+const drawerWidth = 240;
 const collapsedWidth = 88;
 const compactRailWidth = 52;
 const MAX_RECENT_COUNT = 50;
@@ -143,6 +143,9 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
         if (typeof window === 'undefined') {
             return true;
         }
+        if (location.pathname === '/chat' && !isSmallScreen) {
+            return true;
+        }
         const storedOpen = window.localStorage.getItem('sidebar-open');
         if (storedOpen === null) {
             return !isSmallScreen;
@@ -166,11 +169,16 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
             return;
         }
 
+        if (location.pathname === '/chat') {
+            setOpen(true);
+            return;
+        }
+
         const storedOpen = window.localStorage.getItem('sidebar-open');
         if (storedOpen !== null) {
             setOpen(storedOpen === 'true');
         }
-    }, [isSmallScreen]);
+    }, [isSmallScreen, location.pathname]);
 
     useEffect(() => {
         if (!isCompactSidebar) {
@@ -530,18 +538,19 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                 {...linkProps}
                 sx={{
                     width: '100%',
-                    minHeight: 48,
-                    mb: 0.5,
-                    borderRadius: 1.5,
+                    minHeight: 36,
+                    mb: item.noBottomMargin ? 0 : 2,
+                    py: 0,
+                    borderRadius: 1,
                     justifyContent: 'flex-start',
-                    px: 1.5,
-                    color: '#164563',
+                    px: 0,
+                    color: '#222A38',
                     '&.Mui-selected': {
                         backgroundColor: 'transparent',
-                        color: '#164563',
+                        color: '#222A38',
                         '& .sidebar-nav-icon': {
-                            backgroundColor: '#2c5cf3',
-                            color: '#ffffff',
+                            backgroundColor: '#D9E6FE',
+                            color: '#155DFC',
                         },
                         '&:hover': {
                             backgroundColor: 'transparent',
@@ -563,11 +572,11 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                     <Box
                         className="sidebar-nav-icon"
                         sx={{
-                            width: 48,
-                            height: 48,
-                            borderRadius: '50%',
-                            backgroundColor: '#e9f1fe',
-                            color: '#2c5cf3',
+                            width: 36,
+                            height: 36,
+                            borderRadius: '4px',
+                            backgroundColor: 'transparent',
+                            color: '#46566C',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -580,10 +589,10 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                 <ListItemText
                     primary={item.label}
                     primaryTypographyProps={{
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontWeight: 600,
+                        fontFamily: 'Geist, sans-serif',
+                        fontWeight: 500,
                         fontSize: '16px',
-                        color: '#164563',
+                        color: '#222A38',
                     }}
                     sx={{
                         opacity: open ? 1 : 0,
@@ -612,14 +621,14 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
     };
 
     const drawerContent = (
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', px: 2, py: 3 }}>
                 <Box
                     sx={{
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 1,
-                        px: 1.5,
-                        py: 1,
+                        gap: 0,
+                        px: 0,
+                        py: 0,
                     }}
                 >
                     {showLogo && (
@@ -629,7 +638,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'flex-start',
-                                pl: 1,
+                                pl: 0,
                             }}
                         >
                             <Tooltip
@@ -664,8 +673,8 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                     className="sidebar-logo-link"
                                     sx={{
                                         p: 0,
-                                        width: 48,
-                                        height: 48,
+                                        width: 36,
+                                        height: 36,
                                         borderRadius: '50%',
                                         '&:hover': {
                                             backgroundColor: 'rgba(1, 105, 176, 0.04)',
@@ -690,8 +699,8 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                 >
                                     <Box
                                         sx={{
-                                            width: 48,
-                                            height: 48,
+                                            width: 36,
+                                            height: 36,
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
@@ -749,48 +758,44 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                     }}
                                 />
                             </Box>
-                            <Box
-                                sx={{
-                                    opacity: open ? 1 : 0,
-                                    width: open ? 'auto' : 0,
-                                    overflow: 'hidden',
-                                    marginLeft: 'auto',
-                                    transition: 'opacity 0.2s ease, width 0.2s ease',
-                                }}
-                            >
+                            {open && (
                                 <Tooltip title="Collapse sidebar" {...tooltipProps}>
                                     <IconButton
                                         aria-label="Collapse sidebar"
                                         onClick={() => {
-                                            trackGtagEvent('nav_sidebar_collapse_click', { source: 'collapse_button' });
-                                            setOpen((prev) => !prev);
+                                            trackGtagEvent('nav_sidebar_collapse_click', { source: 'sidebar_header' });
+                                            setOpen(false);
                                         }}
                                         size="small"
                                         sx={{
-                                            width: 48,
-                                            height: 48,
-                                            borderRadius: '50%',
+                                            width: 36,
+                                            height: 36,
+                                            ml: 'auto',
+                                            borderRadius: '4px',
+                                            color: '#46566C',
+                                            flexShrink: 0,
                                             '&:hover': {
-                                                backgroundColor: 'rgba(1, 105, 176, 0.04)',
+                                                backgroundColor: '#F2F4F8',
                                             },
                                         }}
                                     >
-                                        <SidebarLeftIcon style={{ width: 22, height: 22 }} />
+                                        <SidebarLeftIcon style={{ width: 20, height: 20 }} />
                                     </IconButton>
                                 </Tooltip>
-                            </Box>
+                            )}
                         </Box>
                     )}
                 </Box>
                 <Divider sx={{ display: 'none', borderColor: '#E2E8F0' }} />
-                <List sx={{ px: 1, py: 1 }}>
+                <List sx={{ px: 0, pt: 3, pb: 0 }}>
                     {topItems.map((item) => renderNavItem(item))}
                 </List>
-                <Divider sx={{ mx: 3.5, borderColor: '#E2E8F0' }} />
+                <Divider sx={{ mx: 0, borderColor: '#E6EAF3' }} />
                 <Box className="sidebar-scroll">
-                    <List sx={{ px: 1, py: 1 }}>
+                    <List sx={{ px: 0, pt: 2, pb: 0 }}>
                         {middleItems.map((item) => renderNavItem(item))}
                     </List>
+                    <Divider sx={{ mx: 0, borderColor: '#E6EAF3' }} />
                     {/* <Divider sx={{ mx: 3.5, borderColor: '#E2E8F0' }} />
                     <List sx={{ px: 1, py: 1 }}>
                         {bottomItems.map((item) => renderNavItem(item))}
@@ -800,10 +805,11 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                             <Typography
                                 className="sidebar-recent-title"
                                 sx={{
-                                    fontFamily: 'DM Sans, sans-serif',
-                                    fontWeight: 700,
+                                    fontFamily: 'Geist, sans-serif',
+                                    fontWeight: 500,
                                     fontSize: '12px',
-                                    color: '#969696',
+                                    lineHeight: '16px',
+                                    color: '#8090AB',
                                     textTransform: 'none',
                                 }}
                             >
@@ -813,13 +819,15 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                 {recentConversations.slice(0, maxRecentCount).map((conversation) => (
                                     (() => {
                                         const isEditingRecent = String(editingRecentId) === String(conversation.id);
+                                        const isActiveRecent = isActiveConversation(conversation);
                                         return (
                                             <Box
                                                 key={conversation.id}
                                                 sx={{
                                                     position: 'relative',
-                                                    width: '100%',
-                                                    minHeight: 32,
+                                                    width: isActiveRecent ? 'calc(100% + 16px)' : '100%',
+                                                    marginLeft: isActiveRecent ? '-8px' : 0,
+                                                    minHeight: 16,
                                                     '&:hover .recent-entry-button, &:focus-within .recent-entry-button': {
                                                         paddingRight: '36px',
                                                     },
@@ -833,6 +841,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                     component={isEditingRecent ? 'input' : 'button'}
                                                     type={isEditingRecent ? 'text' : 'button'}
                                                     className="recent-entry-button"
+                                                    aria-current={isActiveRecent ? 'page' : undefined}
                                                     value={isEditingRecent ? editingRecentTitle : undefined}
                                                     autoFocus={isEditingRecent}
                                                     onChange={isEditingRecent ? (event) => setEditingRecentTitle(event.target.value) : undefined}
@@ -855,16 +864,16 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                     }}
                                                     sx={{
                                                         width: '100%',
-                                                        border: '1px solid',
-                                                        borderColor: isActiveConversation(conversation) ? '#155DFC' : 'transparent',
-                                                        backgroundColor: isActiveConversation(conversation) ? '#E7F1FF' : 'transparent',
-                                                        padding: '6px 8px',
-                                                        borderRadius: '8px',
-                                                        fontFamily: 'DM Sans, sans-serif',
-                                                        fontSize: '13px',
-                                                        fontWeight: 500,
-                                                        lineHeight: 1.4,
-                                                        color: '#164563',
+                                                        border: 'none',
+                                                        backgroundColor: isActiveRecent ? '#EAF1FF' : 'transparent',
+                                                        padding: isActiveRecent ? '4px 8px' : 0,
+                                                        margin: isActiveRecent ? '-4px 0' : 0,
+                                                        borderRadius: isActiveRecent ? '4px' : 0,
+                                                        fontFamily: 'Geist, sans-serif',
+                                                        fontSize: '12px',
+                                                        fontWeight: isActiveRecent ? 500 : 400,
+                                                        lineHeight: '16px',
+                                                        color: isActiveRecent ? '#155DFC' : '#222A38',
                                                         textAlign: 'left',
                                                         cursor: 'pointer',
                                                         whiteSpace: 'nowrap',
@@ -872,7 +881,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                         textOverflow: 'ellipsis',
                                                         transition: 'background-color 0.2s ease, border-color 0.2s ease, padding-right 0.16s ease',
                                                         '&:hover': {
-                                                            backgroundColor: '#E7F1FF',
+                                                            backgroundColor: isActiveRecent ? '#EAF1FF' : 'transparent',
                                                         },
                                                         ...(isEditingRecent && {
                                                             cursor: 'text',
@@ -880,7 +889,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                             borderColor: '#155DFC',
                                                             boxShadow: '0 0 0 2px rgba(21, 93, 252, 0.12)',
                                                             '&:hover': {
-                                                                backgroundColor: isActiveConversation(conversation) ? '#E7F1FF' : '#ffffff',
+                                                                backgroundColor: '#ffffff',
                                                             },
                                                         }),
                                                     }}
@@ -920,10 +929,11 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                         </Box>
                     )}
                 </Box>
-                <Box sx={{ mt: 'auto', pb: 0 }}>
-                    <List sx={{ px: 1, py: 1 }}>
+                <Box sx={{ mt: 'auto', pb: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Divider sx={{ mx: 0, borderColor: '#E6EAF3' }} />
+                    <List sx={{ px: 0, py: 0 }}>
                         {!isAuthenticated ? (
-                            renderNavItem(loginItem)
+                            renderNavItem({ ...loginItem, noBottomMargin: true })
                         ) : (
                             renderNavItem({
                                 label: userDisplayName,
@@ -947,6 +957,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                     backgroundColor: '#e9f1fe',
                                     color: '#2c5cf3',
                                 },
+                                noBottomMargin: true,
                             })
                         )}
                     </List>

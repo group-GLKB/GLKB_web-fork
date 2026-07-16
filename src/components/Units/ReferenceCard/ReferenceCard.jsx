@@ -101,7 +101,6 @@ const ReferenceCard = ({
         [evidence]
     );
     const hasEvidence = evidenceItems.length > 0;
-    const extraEvidenceCount = Math.max(evidenceItems.length - 1, 0);
 
     const renderAuthors = () => {
         const authorsList = authors.split(', ').filter(name => name.trim().length > 0);
@@ -116,7 +115,6 @@ const ReferenceCard = ({
 
     return (
         <div
-            onClick={(event) => handleClick(event, url[1])}
             className={`reference-card${showHighlight ? ' is-highlighted' : ''}`}
         >
             {index !== null && (
@@ -126,16 +124,9 @@ const ReferenceCard = ({
             )}
             <div className="reference-card-body">
                 <div className="reference-card-head">
-                    <a
-                        href={url[1]}
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            handleClick(event, url[1]);
-                        }}
-                        className="reference-card-title"
-                    >
+                    <div className="reference-card-title">
                         {url[0]}
-                    </a>
+                    </div>
                     {(metaParts.length > 0 || url[4]) && (
                         <div className="reference-card-meta">
                             {metaParts.join(' · ')}
@@ -148,7 +139,31 @@ const ReferenceCard = ({
                 {hasEvidence && (
                     <div className="reference-card-quote">
                         <span className="reference-card-quote-bar" />
-                        <p className="reference-card-quote-text">“{evidenceItems[0].quote}”</p>
+                        <div className="reference-card-quote-content">
+                            <p className={`reference-card-quote-text${isEvidenceOpen ? ' reference-card-quote-text--clamped-off' : ''}`}>
+                                “{evidenceItems[0].quote}”
+                            </p>
+                            <Tooltip title={isEvidenceOpen ? 'Collapse excerpts' : 'Expand excerpts'} arrow>
+                                <IconButton
+                                    size="small"
+                                    className="reference-card-evidence-toggle"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        setIsEvidenceOpen((previous) => !previous);
+                                    }}
+                                    aria-label={isEvidenceOpen ? 'Collapse excerpts' : 'Expand excerpts'}
+                                    aria-expanded={isEvidenceOpen}
+                                >
+                                    <ExpandMoreIcon
+                                        sx={{
+                                            fontSize: 14,
+                                            transform: isEvidenceOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                            transition: 'transform 0.2s ease',
+                                        }}
+                                    />
+                                </IconButton>
+                            </Tooltip>
+                        </div>
                     </div>
                 )}
 
@@ -198,26 +213,6 @@ const ReferenceCard = ({
                     </div>
                 </div>
 
-                {extraEvidenceCount > 0 && (
-                    <button
-                        type="button"
-                        className="reference-card-more-toggle"
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            setIsEvidenceOpen((prev) => !prev);
-                        }}
-                        aria-expanded={isEvidenceOpen}
-                    >
-                        {isEvidenceOpen ? 'Hide extra excerpts' : `+${extraEvidenceCount} more excerpt${extraEvidenceCount === 1 ? '' : 's'}`}
-                        <ExpandMoreIcon
-                            sx={{
-                                fontSize: 15,
-                                transform: isEvidenceOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                                transition: 'transform 0.2s ease',
-                            }}
-                        />
-                    </button>
-                )}
                 {isEvidenceOpen && evidenceItems.slice(1).map((item, idx) => (
                     <div className="reference-card-quote" key={`${pubmedId}-evidence-${idx}`}>
                         <span className="reference-card-quote-bar" />

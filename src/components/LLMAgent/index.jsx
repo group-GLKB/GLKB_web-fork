@@ -30,7 +30,7 @@ import {
   Clear as ClearIcon,
   EditNote as EditNoteIcon,
   ExpandMore as ExpandMoreIcon,
-  Link as LinkIcon,
+    Link as LinkIcon,
   NotificationsNoneOutlined as NotificationsNoneOutlinedIcon,
   ScienceOutlined as ScienceOutlinedIcon,
   Star as StarIcon,
@@ -62,12 +62,9 @@ import {
 
 import contentCopyIcon from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
+import { ReactComponent as ReferenceIcon } from '../../img/llm/reference.svg';
 import replayIcon from '../../img/llm/replay.svg';
 import thumbsUpDownIcon from '../../img/llm/thumbs_up_down.svg';
-import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
-import {
-  ReactComponent as SidebarLeftIcon,
-} from '../../img/navbar/sidebar.left.svg';
 import { submitChatFeedback } from '../../service/Feedback';
 import { LLMAgentService } from '../../service/LLMAgent';
 import {
@@ -261,6 +258,8 @@ const PLACEHOLDER_PMID_PREFIX = 'PMID ';
 const LEFT_MIN_PX = 360;
 const RIGHT_MIN_PX = 360;
 const DIVIDER_PX = 8;
+const PREFERRED_CHAT_COLUMN_MIN_PX = 680;
+const MIN_SPLIT_WIDTH_WITH_REFERENCES = PREFERRED_CHAT_COLUMN_MIN_PX + DIVIDER_PX + RIGHT_MIN_PX;
 const DEFAULT_LEFT_PERCENT = 66;
 const FALLBACK_MIN_LEFT_PERCENT = 45;
 const FALLBACK_MAX_LEFT_PERCENT = 80;
@@ -713,6 +712,7 @@ const MessageCard = React.memo(function MessageCard({
     copy,
     save,
     goref,
+    showMessageReferences,
     downloadConversation,
     onOpenFeedback,
 }) {
@@ -722,6 +722,13 @@ const MessageCard = React.memo(function MessageCard({
     const messageID = index;
     const isSelected = index === selectedMessageIndex;
     const hasReferences = Array.isArray(message.references) && message.references.length > 0;
+    const getReferenceNumber = (href) => {
+        const pmid = String(href || '').split('/').filter(Boolean).pop();
+        const referenceIndex = (message.references || []).findIndex(
+            (reference) => extractPmidFromReference(reference) === pmid
+        );
+        return referenceIndex >= 0 ? referenceIndex + 1 : null;
+    };
     const allowUserEdit = true;
     const [editContent, setEditContent] = useState('');
     const [isEditing, setIsEditing] = useState(false);
@@ -1109,7 +1116,20 @@ const MessageCard = React.memo(function MessageCard({
                                         onChange={(event) => setEditContent(event.target.value)}
                                     /> : (
                                         <div className="markdown-body" style={{ fontFamily: 'Open Sans, sans-serif' }}>
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            <ReactMarkdown
+                                                remarkPlugins={[remarkGfm]}
+                                                components={{
+                                                    a: ({ href, children, ...props }) => {
+                                                        const isPubMedReference = href?.includes('pubmed.ncbi.nlm.nih.gov');
+                                                        const referenceNumber = isPubMedReference ? getReferenceNumber(href) : null;
+                                                        return (
+                                                            <a href={href} {...props}>
+                                                                <span className="inline-citation-number">{referenceNumber || children}</span>
+                                                            </a>
+                                                        );
+                                                    },
+                                                }}
+                                            >
                                                 {message.content}
                                             </ReactMarkdown>
                                         </div>
@@ -1165,7 +1185,7 @@ const MessageCard = React.memo(function MessageCard({
                                     </IconButton>
                                 )}
                             </Stack>
-                            <MuiButton
+                            {showMessageReferences && <MuiButton
                                 variant='contained'
                                 startIcon={<LinkIcon />}
                                 size="small"
@@ -1210,7 +1230,7 @@ const MessageCard = React.memo(function MessageCard({
                                 }}
                             >
                                 References
-                            </MuiButton>
+                            </MuiButton>}
 
                         </Box>}
 
@@ -1313,6 +1333,7 @@ function LLMAgent() {
     const [clarificationError, setClarificationError] = useState('');
     const [clarificationSubmitting, setClarificationSubmitting] = useState(false);
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
     const abortControllerRef = useRef(null);
     const thinkingStepsRef = useRef([]);
     const prevSelectedMessageIndexRef = useRef(null);
@@ -1679,11 +1700,6 @@ function LLMAgent() {
         window.open(link, '_blank');
     };
 
-    const handleReferenceEntryContainerClick = (event, link) => {
-        if (event.target.closest('.custom-div-url')) return;
-        handleClick(event, link);
-    };
-
     useEffect(() => {
         scrollToBottom();
     }, [chatHistory, streamingGroups]);
@@ -1739,29 +1755,27 @@ function LLMAgent() {
 
     const collapseReferences = useCallback((widthToStore) => {
         if (isReferencesCollapsed) return;
-        const nextWidth = Number.isFinite(widthToStore) ? widthToStore : leftPaneWidth;
-        setLeftPaneWidth(100);
         setIsReferencesCollapsed(true);
-    }, [isReferencesCollapsed, leftPaneWidth]);
+    }, [isReferencesCollapsed]);
 
     const expandReferences = useCallback(() => {
-        let nextWidth = DEFAULT_LEFT_PERCENT;
-
-        if (splitContainerRef.current) {
-            const rect = splitContainerRef.current.getBoundingClientRect();
-            const availableWidth = Math.max(1, rect.width - DIVIDER_PX);
-            const minLeftPercent = Math.min(100, (LEFT_MIN_PX / availableWidth) * 100);
-            const maxLeftPercent = Math.max(0, 100 - (RIGHT_MIN_PX / availableWidth) * 100);
-            const safeMin = Math.min(minLeftPercent, maxLeftPercent);
-            const safeMax = Math.max(minLeftPercent, maxLeftPercent);
-            nextWidth = Math.min(safeMax, Math.max(safeMin, nextWidth));
-        } else {
-            nextWidth = Math.min(FALLBACK_MAX_LEFT_PERCENT, Math.max(FALLBACK_MIN_LEFT_PERCENT, nextWidth));
-        }
-
-        setLeftPaneWidth(nextWidth);
         setIsReferencesCollapsed(false);
     }, []);
+
+    useEffect(() => {
+        if (useMobileReferencesDrawer || !splitContainerRef.current) return undefined;
+
+        const updateReferenceLayout = () => {
+            setIsReferencesCollapsed(
+                splitContainerRef.current.getBoundingClientRect().width < MIN_SPLIT_WIDTH_WITH_REFERENCES
+            );
+        };
+
+        updateReferenceLayout();
+        const resizeObserver = new ResizeObserver(updateReferenceLayout);
+        resizeObserver.observe(splitContainerRef.current);
+        return () => resizeObserver.disconnect();
+    }, [useMobileReferencesDrawer]);
 
     const updateSplitWidth = useCallback((clientX) => {
         if (!splitContainerRef.current) return;
@@ -2447,6 +2461,44 @@ function LLMAgent() {
         setSelectedMessageIndex(lastAssistantIndex);
     }, [chatHistory, isProcessing]);
 
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container || isProcessing) return undefined;
+
+        const updateSelectedResponse = () => {
+            const containerRect = container.getBoundingClientRect();
+            const anchorY = containerRect.top + (containerRect.height * 0.38);
+            const assistantCards = Array.from(container.querySelectorAll('.message-card[data-message-role="assistant"]'));
+            if (!assistantCards.length) return;
+
+            const visibleCards = assistantCards.filter((card) => {
+                const cardRect = card.getBoundingClientRect();
+                return cardRect.bottom > containerRect.top && cardRect.top < containerRect.bottom;
+            });
+            const candidates = visibleCards.length ? visibleCards : assistantCards;
+            const activeCard = candidates.reduce((closest, card) => {
+                const closestDistance = Math.abs(closest.getBoundingClientRect().top - anchorY);
+                const cardDistance = Math.abs(card.getBoundingClientRect().top - anchorY);
+                return cardDistance < closestDistance ? card : closest;
+            });
+            const nextIndex = Number(activeCard.dataset.messageIndex);
+            if (Number.isInteger(nextIndex)) {
+                setSelectedMessageIndex((currentIndex) => currentIndex === nextIndex ? currentIndex : nextIndex);
+            }
+        };
+
+        let animationFrameId = requestAnimationFrame(updateSelectedResponse);
+        const handleScroll = () => {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = requestAnimationFrame(updateSelectedResponse);
+        };
+        container.addEventListener('scroll', handleScroll, { passive: true });
+        return () => {
+            cancelAnimationFrame(animationFrameId);
+            container.removeEventListener('scroll', handleScroll);
+        };
+    }, [chatHistory, isProcessing]);
+
     // useEffect(() => {
     //     if (!isLoading && !isProcessing && chatHistory.length > 0) {
     //         const lastMessage = chatHistory[chatHistory.length - 1];
@@ -2545,6 +2597,7 @@ function LLMAgent() {
                 copy={handleCopyMessage}
                 save={handleSaveEdit}
                 goref={handleMessageClick}
+                showMessageReferences={!isReferencesCollapsed && !useMobileReferencesDrawer}
                 downloadConversation={handleDownloadConversation}
                 onOpenFeedback={handleOpenFeedback}
                 showReloadPrompt={showReloadPrompt}
@@ -2558,9 +2611,26 @@ function LLMAgent() {
     const [citeDialogOpen, setCiteDialogOpen] = useState(false);
     const [selectedCitation, setSelectedCitation] = useState(null);
     const [hoveredPubmedId, setHoveredPubmedId] = useState(null);
+    const [isReferenceScopeOpen, setIsReferenceScopeOpen] = useState(false);
     const referencesListRef = useRef(null);
-    const isNewChatDisabled = isLoading || chatHistory.length === 0;
-    const newChatColor = isNewChatDisabled ? '#B0B0B0' : '#155DFC';
+    const referenceSourceOptions = useMemo(() => chatHistory
+        .map((item, itemIndex) => {
+            const refs = Array.isArray(item?.references) ? item.references : [];
+            if (item?.role !== 'assistant' || refs.length === 0) return null;
+            const previousUserMessage = chatHistory
+                .slice(0, itemIndex)
+                .reverse()
+                .find((entry) => entry?.role === 'user' && entry?.content);
+            const label = previousUserMessage?.content || item?.content || `Response ${itemIndex + 1}`;
+            return {
+                index: itemIndex,
+                label: String(label).replace(/\s+/g, ' ').trim(),
+                count: refs.length,
+            };
+        })
+        .filter(Boolean), [chatHistory]);
+
+    const selectedReferenceSource = referenceSourceOptions.find((item) => item.index === selectedMessageIndex) || null;
 
     const references = selectedMessageIndex !== null
         ? chatHistory[selectedMessageIndex]?.references || []
@@ -2629,15 +2699,17 @@ function LLMAgent() {
     }, [hoveredPubmedId, enrichedReferences]);
 
     const sortedReferences = useMemo(() => {
-        const sorted = [...enrichedReferences];
+        const sorted = enrichedReferences.map((reference, originalIndex) => ({ reference, originalIndex }));
         const getCitationSortValue = (value) => {
             const num = Number(value);
             return Number.isFinite(num) ? num : -1;
         };
         if (sortOption === 'Citations') {
-            sorted.sort((a, b) => getCitationSortValue(b.citation_count) - getCitationSortValue(a.citation_count));
+            sorted.sort(({ reference: a }, { reference: b }) => (
+                getCitationSortValue(b.citation_count) - getCitationSortValue(a.citation_count)
+            ));
         } else {
-            sorted.sort((a, b) => (b.year || 0) - (a.year || 0));
+            sorted.sort(({ reference: a }, { reference: b }) => (a.year || 0) - (b.year || 0));
         }
         return sorted;
     }, [enrichedReferences, sortOption]);
@@ -2646,7 +2718,7 @@ function LLMAgent() {
     const handleExportReferences = () => {
         if (sortedReferences.length === 0) return;
 
-        const bibTexContent = sortedReferences.map((ref, index) => {
+        const bibTexContent = sortedReferences.map(({ reference: ref }) => {
             const pubmedId = ref.url.split('/').filter(Boolean).pop();
             const cleanTitle = ref.title.replace(/[{}]/g, '');
             const cleanAuthors = ref.authors.replace(/,/g, ' and');
@@ -2821,6 +2893,7 @@ function LLMAgent() {
         <>
             <Helmet>
                 <title>AI Chat - Genomic Literature Knowledge Base</title>
+                <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=forum" />
                 <meta name="description" content="Ask, Analyze, Cite. Start a chat now with GLKB, your scientific research AI assistant." />
                 <meta property="og:title" content="AI Chat - Genomic Literature Knowledge Base | AI-Powered Genomics Search" />
                 <meta property="og:description" content="Ask, Analyze, Cite. Start a chat now with GLKB, your scientific research AI assistant." />
@@ -3337,116 +3410,44 @@ function LLMAgent() {
                                 <div className="llm-agent-container">
                                     <div className="chat-and-references">
                                         <Box ref={splitContainerRef} className="llm-split" sx={{ display: 'flex', minHeight: 0, height: '100%' }}>
-                                            <Box className="llm-column" sx={{ flex: useMobileReferencesDrawer ? '1 1 auto' : `0 0 ${leftPaneWidth}%`, minWidth: useMobileReferencesDrawer ? 0 : `${LEFT_MIN_PX}px` }}>
+                                            <Box
+                                                className="llm-column"
+                                                sx={{
+                                                    flex: useMobileReferencesDrawer || isReferencesCollapsed
+                                                        ? '1 1 auto'
+                                                        : `0 0 ${leftPaneWidth}%`,
+                                                    minWidth: useMobileReferencesDrawer ? 0 : `${LEFT_MIN_PX}px`,
+                                                }}
+                                            >
                                                 <div className="chat-container">
                                                     <Box className="llm-header" sx={{
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'space-between',
-                                                        padding: '16px',
-                                                        height: '70px',
-                                                        borderBottom: '1px solid #E6E6E6',
-                                                        marginBottom: '1px',
+                                                        padding: '0 24px',
+                                                        height: '66px',
+                                                        backgroundColor: '#FFFFFF',
                                                     }}>
                                                         <Box sx={{
                                                             display: 'flex',
                                                             alignItems: 'center',
                                                             gap: '8px',
-                                                            paddingLeft: '16px',
                                                             minWidth: 0,
                                                             flex: 1,
                                                         }}>
-                                                            <Typography
-                                                                component="button"
-                                                                type="button"
-                                                                onClick={() => navigate('/')}
-                                                                aria-label="Go to home"
-                                                                sx={{
-                                                                    fontFamily: 'DM Sans, sans-serif',
-                                                                    fontSize: '16px',
-                                                                    fontWeight: 500,
-                                                                    color: '#164563',
-                                                                    textDecoration: 'underline',
-                                                                    background: 'none',
-                                                                    border: 'none',
-                                                                    padding: 0,
-                                                                    cursor: 'pointer',
-                                                                    whiteSpace: 'nowrap',
-                                                                    flexShrink: 0,
-                                                                }}>
-                                                                AI Chat
-                                                            </Typography>
                                                             <Typography sx={{
-                                                                fontFamily: 'DM Sans, sans-serif',
-                                                                fontSize: '16px',
-                                                                fontWeight: 500,
-                                                                color: '#8A8A8A',
+                                                                fontFamily: 'Geist, sans-serif',
+                                                                fontSize: '14px',
+                                                                fontWeight: 600,
+                                                                lineHeight: '18px',
+                                                                color: '#141B26',
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'nowrap',
+                                                                maxWidth: '420px',
                                                             }}>
-                                                                &gt;
+                                                                {chatTitle}
                                                             </Typography>
-                                                            {isEditingChatTitle ? (
-                                                                <TextField
-                                                                    value={chatTitleDraft}
-                                                                    onChange={(event) => setChatTitleDraft(event.target.value)}
-                                                                    size="small"
-                                                                    autoFocus
-                                                                    onKeyDown={(event) => {
-                                                                        if (event.key === 'Enter') {
-                                                                            event.preventDefault();
-                                                                            handleConfirmChatTitleEdit();
-                                                                        }
-                                                                        if (event.key === 'Escape') {
-                                                                            event.preventDefault();
-                                                                            handleCancelChatTitleEdit();
-                                                                        }
-                                                                    }}
-                                                                    sx={{
-                                                                        maxWidth: '280px',
-                                                                        '& .MuiInputBase-root': {
-                                                                            fontFamily: 'DM Sans, sans-serif',
-                                                                            fontSize: '14px',
-                                                                            fontWeight: 500,
-                                                                            color: '#164563',
-                                                                        },
-                                                                    }}
-                                                                />
-                                                            ) : (
-                                                                <Typography sx={{
-                                                                    fontFamily: 'DM Sans, sans-serif',
-                                                                    fontSize: '16px',
-                                                                    fontWeight: 600,
-                                                                    color: '#164563',
-                                                                    overflow: 'hidden',
-                                                                    textOverflow: 'ellipsis',
-                                                                    whiteSpace: 'nowrap',
-                                                                    maxWidth: '280px',
-                                                                }}>
-                                                                    {chatTitle}
-                                                                </Typography>
-                                                            )}
-                                                            <IconButton
-                                                                size="small"
-                                                                onClick={isEditingChatTitle ? handleConfirmChatTitleEdit : handleEditChatTitle}
-                                                                disabled={
-                                                                    authLoading
-                                                                    || !isAuthenticated
-                                                                    || (!activeConversationIdRef.current && !activeConversationId)
-                                                                }
-                                                                sx={{
-                                                                    padding: '4px',
-                                                                    color: isEditingChatTitle ? '#2c5cf3' : '#8A8A8A',
-                                                                    '&:hover': {
-                                                                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                                                                    },
-                                                                }}
-                                                                title={isEditingChatTitle ? 'Save chat title' : 'Edit chat title'}
-                                                            >
-                                                                {isEditingChatTitle ? (
-                                                                    <CheckIcon sx={{ fontSize: 18 }} />
-                                                                ) : (
-                                                                    <EditNoteIcon sx={{ fontSize: 18 }} />
-                                                                )}
-                                                            </IconButton>
                                                             <IconButton
                                                                 size="small"
                                                                 onClick={handleToggleConversationBookmark}
@@ -3457,45 +3458,29 @@ function LLMAgent() {
                                                                 }
                                                                 sx={{
                                                                     padding: '4px',
-                                                                    color: isConversationBookmarked ? '#2c5cf3' : '#8A8A8A',
+                                                                    color: isConversationBookmarked ? '#155DFC' : '#5E6E87',
                                                                     '&:hover': {
-                                                                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                                                        backgroundColor: '#F2F4F8',
                                                                     },
                                                                 }}
                                                                 title={isConversationBookmarked ? 'Remove bookmark' : 'Bookmark this chat'}
                                                             >
                                                                 {isConversationBookmarked ? (
-                                                                    <BookmarkIcon sx={{ fontSize: 18 }} />
+                                                                    <BookmarkIcon sx={{ fontSize: 16 }} />
                                                                 ) : (
-                                                                    <BookmarkBorderIcon sx={{ fontSize: 18 }} />
+                                                                    <BookmarkBorderIcon sx={{ fontSize: 16 }} />
                                                                 )}
                                                             </IconButton>
                                                         </Box>
-                                                        <MuiButton onClick={handleClear} disabled={isNewChatDisabled} sx={{
-                                                            display: useMobileReferencesDrawer ? 'none' : 'inline-flex',
-                                                            borderRadius: '16px',
-                                                            border: `1px solid ${newChatColor}`,
-                                                            backgroundColor: '#ffffff',
-                                                            color: newChatColor,
-                                                            fontFamily: 'DM Sans, sans-serif',
-                                                            fontSize: '14px',
-                                                            fontWeight: 700,
-                                                            padding: '8px',
-                                                            gap: '6px',
-                                                            textTransform: 'none',
-                                                            opacity: 1,
-                                                            '&.Mui-disabled': {
-                                                                color: newChatColor,
-                                                                border: `1px solid ${newChatColor}`,
-                                                                opacity: 1,
-                                                            },
-                                                            '&:hover': {
-                                                                backgroundColor: '#ffffff',
-                                                            },
-                                                        }}>
-                                                            <AddIcon style={{ width: '16px', height: '16px', color: newChatColor }} />
-                                                            New Chat
-                                                        </MuiButton>
+                                                        {!useMobileReferencesDrawer && isReferencesCollapsed && (
+                                                            <MuiButton
+                                                                className="llm-header-references-toggle"
+                                                                onClick={expandReferences}
+                                                                startIcon={<ReferenceIcon />}
+                                                            >
+                                                                References
+                                                            </MuiButton>
+                                                        )}
                                                     </Box>
                                                     {/* Add example queries section */}
                                                     {!isConversationLoading && chatHistory.length === 0 && (
@@ -3530,7 +3515,7 @@ function LLMAgent() {
                                                         </div>
                                                     )}
 
-                                                    <div className="messages-container">
+                                                    <div ref={messagesContainerRef} className="messages-container">
                                                         {!isConversationLoading && renderMessages()}
                                                         <div ref={messagesEndRef} />
                                                     </div>
@@ -3618,19 +3603,52 @@ function LLMAgent() {
                                                         )}
                                                     </div>
                                                     <Box className="llm-column references-column" sx={{ flex: 1, minWidth: `${RIGHT_MIN_PX}px` }}>
+                                                        <IconButton
+                                                            size="small"
+                                                            className="references-collapse-toggle"
+                                                            onClick={collapseReferences}
+                                                            aria-label="Collapse references"
+                                                            title="Collapse references"
+                                                        >
+                                                            <ChevronRightIcon sx={{ fontSize: 20 }} />
+                                                        </IconButton>
                                                         <div style={{ height: '100%', width: '100%' }}>
                                                             <div className="references-container">
                                                                 <div className="references-header-row">
-                                                                    <h3 className="references-title">References</h3>
-                                                                    <IconButton
-                                                                        size="small"
-                                                                        className="references-action-button"
-                                                                        onClick={collapseReferences}
-                                                                        title="Collapse references"
-                                                                    >
-                                                                        <ChevronRightIcon sx={{ color: '#5E6E87', fontSize: 20 }} />
-                                                                    </IconButton>
+                                                                    <div className="references-header-main">
+                                                                        <h3 className="references-title">References</h3>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="references-scope-trigger"
+                                                                            onClick={() => setIsReferenceScopeOpen((prev) => !prev)}
+                                                                            aria-expanded={isReferenceScopeOpen}
+                                                                        >
+                                                                            <span className="material-symbols-outlined references-scope-icon" aria-hidden="true">forum</span>
+                                                                            <span>{selectedReferenceSource?.label || 'Select a response'}</span>
+                                                                            <ChevronRightIcon className={`references-scope-chevron${isReferenceScopeOpen ? ' expanded' : ''}`} />
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
+                                                                {isReferenceScopeOpen && (
+                                                                    <div className="references-scope-panel">
+                                                                        {referenceSourceOptions.map((item, optionIndex) => (
+                                                                            <button
+                                                                                key={item.index}
+                                                                                type="button"
+                                                                                className="references-scope-option"
+                                                                                onClick={() => {
+                                                                                    setSelectedMessageIndex(item.index);
+                                                                                    setIsReferenceScopeOpen(false);
+                                                                                }}
+                                                                            >
+                                                                                <span className="references-scope-option-label">
+                                                                                    <span className="references-scope-option-number">{optionIndex + 1}.</span> {item.label}
+                                                                                </span>
+                                                                                <span className={`references-scope-radio${selectedMessageIndex === item.index ? ' selected' : ''}`} />
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                                 <div className="references-toolbar-row">
                                                                     <span className="references-count-label">{sortedReferences.length} Citations</span>
                                                                     <div className="references-toolbar-actions">
@@ -3669,8 +3687,8 @@ function LLMAgent() {
                                                                 </div>
 
                                                                 {sortedReferences.length > 0 ? (
-                                                                    <div ref={referencesListRef} className="references-list" style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingLeft: '2rem', paddingRight: '2rem' }}>
-                                                                        {sortedReferences.map((ref, index) => {
+                                                                    <div ref={referencesListRef} className="references-list" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+                                                                        {sortedReferences.map(({ reference: ref, originalIndex }) => {
                                                                             const url = [
                                                                                 ref.title,
                                                                                 ref.url,
@@ -3683,10 +3701,9 @@ function LLMAgent() {
                                                                             const isHighlighted = hoveredPubmedId === pubmedId;
                                                                             return (
                                                                                 <div
-                                                                                    key={index}
+                                                                                    key={`${pubmedId}-${originalIndex}`}
                                                                                     data-pubmed-id={pubmedId}
                                                                                     className={`reference-entry-wrapper${isHighlighted ? ' highlighted' : ''}`}
-                                                                                    onClick={(event) => handleReferenceEntryContainerClick(event, url[1])}
                                                                                 >
                                                                                     <ReferenceCard
                                                                                         url={url}
@@ -3695,7 +3712,7 @@ function LLMAgent() {
                                                                                         handleClick={handleClick}
                                                                                         onCiteClick={handleCiteClick}
                                                                                         isHighlighted={isHighlighted}
-                                                                                        index={index + 1}
+                                                                                        index={originalIndex + 1}
                                                                                     />
                                                                                 </div>
                                                                             );
@@ -3710,19 +3727,6 @@ function LLMAgent() {
                                                 </>
                                             )}
                                         </Box>
-                                        {!useMobileReferencesDrawer && isReferencesCollapsed && (
-                                            <IconButton
-                                                className="references-collapse-button"
-                                                onClick={expandReferences}
-                                                aria-label="Open references"
-                                            >
-                                                <SidebarLeftIcon
-                                                    className="references-collapse-icon"
-                                                />
-                                                <span className="references-collapse-label">REFERENCES</span>
-                                            </IconButton>
-                                        )}
-
                                         {useMobileReferencesDrawer && (
                                             <Drawer
                                                 anchor="bottom"
@@ -3778,7 +3782,7 @@ function LLMAgent() {
 
                                                     {sortedReferences.length > 0 ? (
                                                         <div ref={referencesListRef} className="references-list" style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingLeft: '1rem', paddingRight: '1rem' }}>
-                                                            {sortedReferences.map((ref, index) => {
+                                                            {sortedReferences.map(({ reference: ref, originalIndex }) => {
                                                                 const url = [
                                                                     ref.title,
                                                                     ref.url,
@@ -3791,10 +3795,9 @@ function LLMAgent() {
                                                                 const isHighlighted = hoveredPubmedId === pubmedId;
                                                                 return (
                                                                     <div
-                                                                        key={index}
+                                                                        key={`${pubmedId}-${originalIndex}`}
                                                                         data-pubmed-id={pubmedId}
                                                                         className={`reference-entry-wrapper${isHighlighted ? ' highlighted' : ''}`}
-                                                                        onClick={(event) => handleReferenceEntryContainerClick(event, url[1])}
                                                                     >
                                                                         <ReferenceCard
                                                                             url={url}
@@ -3803,7 +3806,7 @@ function LLMAgent() {
                                                                             handleClick={handleClick}
                                                                             onCiteClick={handleCiteClick}
                                                                             isHighlighted={isHighlighted}
-                                                                            index={index + 1}
+                                                                            index={originalIndex + 1}
                                                                         />
                                                                     </div>
                                                                 );
