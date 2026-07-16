@@ -30,7 +30,6 @@ import {
   Clear as ClearIcon,
   EditNote as EditNoteIcon,
   ExpandMore as ExpandMoreIcon,
-    Link as LinkIcon,
   NotificationsNoneOutlined as NotificationsNoneOutlinedIcon,
   ScienceOutlined as ScienceOutlinedIcon,
   Star as StarIcon,
@@ -60,11 +59,11 @@ import {
   Typography,
 } from '@mui/material';
 
-import contentCopyIcon from '../../img/llm/content_copy.svg';
+import { ReactComponent as ContentCopyIcon } from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import { ReactComponent as ReferenceIcon } from '../../img/llm/reference.svg';
-import replayIcon from '../../img/llm/replay.svg';
-import thumbsUpDownIcon from '../../img/llm/thumbs_up_down.svg';
+import { ReactComponent as ReplayIcon } from '../../img/llm/replay.svg';
+import { ReactComponent as ThumbsUpDownIcon } from '../../img/llm/thumbs_up_down.svg';
 import { submitChatFeedback } from '../../service/Feedback';
 import { LLMAgentService } from '../../service/LLMAgent';
 import {
@@ -134,6 +133,7 @@ const buildClarificationDrafts = (questions) => {
         acc[key] = {
             selected: defaults,
             text: '',
+            otherSelected: false,
         };
         return acc;
     }, {});
@@ -704,15 +704,12 @@ const MessageCard = React.memo(function MessageCard({
     isProcessing,
     streamingGroups,
     streamingStepName,
-    selectedMessageIndex,
     showReloadPrompt,
     onReloadLatest,
     onStop,
     refresh,
     copy,
     save,
-    goref,
-    showMessageReferences,
     downloadConversation,
     onOpenFeedback,
 }) {
@@ -720,8 +717,6 @@ const MessageCard = React.memo(function MessageCard({
     const isLastUserMessage = index === totalMessages - 1 && message.role === 'assistant';
     const isLoading = isProcessing && isLastUserMessage;
     const messageID = index;
-    const isSelected = index === selectedMessageIndex;
-    const hasReferences = Array.isArray(message.references) && message.references.length > 0;
     const getReferenceNumber = (href) => {
         const pmid = String(href || '').split('/').filter(Boolean).pop();
         const referenceIndex = (message.references || []).findIndex(
@@ -883,7 +878,7 @@ const MessageCard = React.memo(function MessageCard({
             <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: "5px", justifyContent: "flex-end" }}>
                 <Box
                     sx={{
-                        bgcolor: isAssistant ? "transparent" : "#ffffff", // Different background colors
+                        bgcolor: isAssistant ? "transparent" : "#E5E9F0", // Different background colors
                         boxShadow: isAssistant ? "none" : "0 4px 16px 0 rgba(0, 0, 0, 0.05)",
                         maxWidth: isAssistant ? "100%" : "80%", // Adjust max width for assistant messages
                         width: isAssistant ? "100%" : "auto",
@@ -1136,7 +1131,7 @@ const MessageCard = React.memo(function MessageCard({
                                     )}
                         </Box>
 
-                        {isAssistant && <Box sx={{ justifyContent: "space-between", direction: "row", display: "flex", alignItems: "center", mt: "5px" }}>
+                        {isAssistant && (
                             <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
                                 {!isLoading && (
                                     <IconButton
@@ -1145,11 +1140,7 @@ const MessageCard = React.memo(function MessageCard({
                                         title="Copy response"
                                         aria-label="Copy response"
                                     >
-                                        <img
-                                            src={contentCopyIcon}
-                                            alt="Copy"
-                                            style={{ width: '16px', height: '16px', display: 'block', objectFit: 'contain' }}
-                                        />
+                                        <ContentCopyIcon style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }} />
                                     </IconButton>
                                 )}
                                 {allowResponseRefresh && isLastUserMessage && !isLoading && (
@@ -1158,17 +1149,13 @@ const MessageCard = React.memo(function MessageCard({
                                         onClick={() => refresh(null, index)}
                                         title="Regenerate response"
                                     >
-                                        <img
-                                            src={replayIcon}
-                                            alt="Refresh"
-                                            style={{ width: '16px', height: '16px', display: 'block', objectFit: 'contain' }}
-                                        />
+                                        <ReplayIcon style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }} />
                                     </IconButton>
                                 )}
                                 {!isLoading && <IconButton size="small" onClick={() => downloadConversation(messageID)} title="Download this Q&A">
                                     <DownloadIcon
                                         aria-label="Download"
-                                        style={{ width: '16px', height: '16px', display: 'block', color: '#646464' }}
+                                        style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }}
                                     />
                                 </IconButton>}
                                 {!isLoading && (
@@ -1177,62 +1164,11 @@ const MessageCard = React.memo(function MessageCard({
                                         onClick={onOpenFeedback}
                                         title="Share feedback"
                                     >
-                                        <img
-                                            src={thumbsUpDownIcon}
-                                            alt="Feedback"
-                                            style={{ width: '16px', height: '16px', display: 'block', objectFit: 'contain' }}
-                                        />
+                                        <ThumbsUpDownIcon style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }} />
                                     </IconButton>
                                 )}
                             </Stack>
-                            {showMessageReferences && <MuiButton
-                                variant='contained'
-                                startIcon={<LinkIcon />}
-                                size="small"
-                                onClick={() => goref(messageID)}
-                                disabled={isLoading || !hasReferences}
-                                sx={{
-                                    px: "10px",
-                                    fontFamily: 'Open Sans, sans-serif',
-                                    fontWeight: isSelected ? 600 : 500,
-                                    height: "34px",
-                                    borderRadius: "16px",
-                                    border: isSelected ? "1px solid #155DFC" : "none",
-                                    bgcolor: isSelected ? "#f7f8fa" : "#E7F1FF",
-                                    color: "#155DFC",
-                                    boxShadow: isSelected ? "0 1px 2px rgba(21, 93, 252, 0.12)" : "none",
-                                    "& .MuiButton-startIcon": {
-                                        color: "#155DFC",
-                                    },
-                                    "& .MuiSvgIcon-root": {
-                                        color: "#155DFC",
-                                    },
-                                    "&:hover": {
-                                        bgcolor: isSelected ? "#EEF1F6" : "#EEF6FF",
-                                        color: "#155DFC",
-                                        borderColor: "#155DFC",
-                                        boxShadow: isSelected ? "0 1px 2px rgba(21, 93, 252, 0.16)" : "none",
-                                    },
-                                    "&.Mui-disabled": {
-                                        color: "#A0A8B5",
-                                        backgroundColor: "#EFF3F8",
-                                        border: "none",
-                                        boxShadow: "none",
-                                        fontWeight: 500,
-                                    },
-                                    "&.Mui-disabled .MuiButton-startIcon": {
-                                        color: "#A0A8B5",
-                                    },
-                                    "&.Mui-disabled .MuiSvgIcon-root": {
-                                        color: "#A0A8B5",
-                                    },
-                                    mb: "2px"
-                                }}
-                            >
-                                References
-                            </MuiButton>}
-
-                        </Box>}
+                        )}
 
                     </Box>
 
@@ -1266,11 +1202,7 @@ const MessageCard = React.memo(function MessageCard({
                                 title="Copy message"
                                 aria-label="Copy message"
                             >
-                                <img
-                                    src={contentCopyIcon}
-                                    alt="Copy"
-                                    style={{ width: '16px', height: '16px', display: 'block', objectFit: 'contain' }}
-                                />
+                                <ContentCopyIcon style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }} />
                             </IconButton>
                             {allowUserEdit && (
                                 <IconButton
@@ -1339,6 +1271,7 @@ function LLMAgent() {
     const prevSelectedMessageIndexRef = useRef(null);
     const lastAutoSelectedRef = useRef(null);
     const sessionIdRef = useRef(null);
+    const runIdRef = useRef(null);
     const hasConsumedInitialQueryRef = useRef(false);
     const initialSearchOptionsRef = useRef(null);
     const activeConversationIdRef = useRef(getActiveConversationId());
@@ -1676,6 +1609,7 @@ function LLMAgent() {
         lastAutoSelectedRef.current = null;
         setHoveredPubmedId(null);
         sessionIdRef.current = null;
+        runIdRef.current = null;
         setStreamingStepName('');
         setShowReloadPrompt(false);
         setPendingClarification(null);
@@ -2035,6 +1969,15 @@ function LLMAgent() {
                 }
                 logDev('[LLM] update', update);
                 switch (update.type) {
+                    case 'started':
+                        if (!isActiveStream) return;
+                        if (update.sessionId) {
+                            sessionIdRef.current = update.sessionId;
+                        }
+                        if (update.runId) {
+                            runIdRef.current = update.runId;
+                        }
+                        break;
                     case 'clarification':
                         if (!isActiveStream) return;
                         if (update.sessionId) {
@@ -2266,9 +2209,23 @@ function LLMAgent() {
             [questionKey]: {
                 selected: Array.isArray(nextDraft?.selected) ? nextDraft.selected : [],
                 text: typeof nextDraft?.text === 'string' ? nextDraft.text : '',
+                otherSelected: Boolean(nextDraft?.otherSelected),
             },
         }));
     }, []);
+
+    const hasInvalidOtherSelection = useMemo(() => {
+        const questions = pendingClarification?.questions;
+        if (!Array.isArray(questions)) return false;
+        return questions.some((question, index) => {
+            const responseType = String(question?.response_type || 'text').toLowerCase();
+            if (responseType !== 'single') return false;
+            const questionKey = getClarificationQuestionKey(question, index);
+            const draft = clarificationDrafts[questionKey];
+            if (!draft?.otherSelected) return false;
+            return !String(draft.text || '').trim();
+        });
+    }, [pendingClarification, clarificationDrafts]);
 
     const submitClarification = useCallback(async ({ useDefaults = false } = {}) => {
         if (!pendingClarification?.invocationId || !pendingClarification?.stage || !pendingClarification?.sessionId) {
@@ -2592,12 +2549,9 @@ function LLMAgent() {
                 isProcessing={isProcessing}
                 streamingGroups={streamingGroups}
                 streamingStepName={streamingStepName}
-                selectedMessageIndex={selectedMessageIndex}
                 refresh={handleRegenerateResponse}
                 copy={handleCopyMessage}
                 save={handleSaveEdit}
-                goref={handleMessageClick}
-                showMessageReferences={!isReferencesCollapsed && !useMobileReferencesDrawer}
                 downloadConversation={handleDownloadConversation}
                 onOpenFeedback={handleOpenFeedback}
                 showReloadPrompt={showReloadPrompt}
@@ -2978,12 +2932,12 @@ function LLMAgent() {
                     <Stack spacing={2}>
                         {(pendingClarification?.questions || []).map((question, index) => {
                             const questionKey = getClarificationQuestionKey(question, index);
-                            const draft = clarificationDrafts[questionKey] || { selected: [], text: '' };
+                            const draft = clarificationDrafts[questionKey] || { selected: [], text: '', otherSelected: false };
                             const selected = Array.isArray(draft.selected) ? draft.selected : [];
                             const otherText = typeof draft.text === 'string' ? draft.text : '';
                             const responseType = String(question?.response_type || 'text').toLowerCase();
                             const options = Array.isArray(question?.options) ? question.options : [];
-                            const radioValue = otherText ? '__other__' : (selected[0] || '');
+                            const radioValue = draft.otherSelected ? '__other__' : (selected[0] || '');
 
                             return (
                                 <Box
@@ -3031,12 +2985,14 @@ function LLMAgent() {
                                                         updateClarificationDraft(questionKey, {
                                                             selected: [],
                                                             text: otherText,
+                                                            otherSelected: true,
                                                         });
                                                         return;
                                                     }
                                                     updateClarificationDraft(questionKey, {
                                                         selected: nextValue ? [nextValue] : [],
                                                         text: '',
+                                                        otherSelected: false,
                                                     });
                                                 }}
                                             >
@@ -3063,6 +3019,7 @@ function LLMAgent() {
                                                     updateClarificationDraft(questionKey, {
                                                         selected: [],
                                                         text: event.target.value,
+                                                        otherSelected: true,
                                                     });
                                                 }}
                                                 sx={{ mt: 1 }}
@@ -3163,7 +3120,7 @@ function LLMAgent() {
                         Skip (Use Defaults)
                     </MuiButton>
                     <MuiButton
-                        disabled={clarificationSubmitting}
+                        disabled={clarificationSubmitting || hasInvalidOtherSelection}
                         onClick={() => submitClarification({ useDefaults: false })}
                         sx={{
                             borderRadius: '10px',

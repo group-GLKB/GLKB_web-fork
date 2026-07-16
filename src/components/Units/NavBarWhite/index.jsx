@@ -576,7 +576,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                             height: 36,
                             borderRadius: '4px',
                             backgroundColor: 'transparent',
-                            color: '#46566C',
+                            color: '#8090AB',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
