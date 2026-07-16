@@ -1,5 +1,5 @@
 body[data-has-sidebar="true"] {
-    --sidebar-width: 280px;
+    --sidebar-width: 240px;
 }
 
 body[data-has-sidebar="true"] .app-layout-content {
@@ -52,29 +52,31 @@ body[data-sidebar-overlay="true"] .app-layout-content {
 }
 
 .sidebar-recent-section {
-    padding: 8px 16px 0;
+    padding: 24px 0 0;
 }
 
 .sidebar-recent-title {
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 700;
+    font-family: 'Geist', sans-serif;
+    font-weight: 500;
     font-size: 12px;
-    color: #969696;
-    margin-bottom: 8px;
-    padding-left: 8px;
+    color: #8090AB;
+    line-height: 16px;
+    margin: 0 0 16px;
+    padding-left: 0;
 }
 
 .sidebar-recent-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding-right: 4px;
+    gap: 16px;
+    padding-right: 0;
 }
 
 .sidebar-scroll {
     flex: 1;
     overflow-y: auto;
-    padding-bottom: 8px;
+    margin: 0 -8px;
+    padding: 0 8px 8px;
 }
 
 .sidebar-recent-item-row {
@@ -86,13 +88,13 @@ body[data-sidebar-overlay="true"] .app-layout-content {
 .sidebar-recent-item {
     border: 1px solid transparent;
     background: transparent;
-    padding: 6px 8px;
-    border-radius: 8px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1.4;
-    color: #164563;
+    padding: 0;
+    border-radius: 0;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+    color: #222A38;
     text-align: left;
     cursor: pointer;
     white-space: nowrap;
@@ -110,12 +112,12 @@ body[data-sidebar-overlay="true"] .app-layout-content {
 }
 
 .sidebar-recent-item:hover {
-    background-color: #E7F1FF;
+    background-color: transparent;
 }
 
 .sidebar-recent-item.active {
-    border-color: #155DFC;
-    background-color: #E7F1FF;
+    border-color: transparent;
+    background-color: transparent;
 }
 
 .sidebar-recent-more {
