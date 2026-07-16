@@ -131,7 +131,7 @@
     height: 44px;
     transform: translate(-50%, -50%);
     border-radius: 8px;
-    background-color: #E7F1FF;
+    background-color: #EEF3FF;
     border: 1px solid #B7D3FF;
     box-shadow: 0 6px 16px rgba(22, 69, 99, 0.18);
     pointer-events: none;
@@ -479,7 +479,7 @@
     background-color: #ffffff !important;
     margin-left: auto;
     cursor: default;
-    color: #164563;
+    color: #141B26;
 }
 
 .message.assistant {
@@ -590,14 +590,14 @@
     padding: 10px 14px;
     border-radius: 10px 10px 0 0;
     border: none;
-    background: #E7F1FF;
+    background: #EEF3FF;
 }
 
 .llm-limit-warning-text {
     font-family: 'DM Sans', sans-serif;
     font-size: 14px;
     font-weight: 500;
-    color: #164563;
+    color: #141B26;
 }
 
 .llm-limit-warning-button {
@@ -703,14 +703,14 @@
 .investigate-summary-row {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     margin-top: 8px;
     margin-bottom: 10px;
-    color: #5A6B86;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 16px;
+    color: #5E6E87;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
     font-weight: 600;
-    line-height: 1.4;
+    line-height: 16px;
     border-radius: 18px;
     padding: 4px 8px 4px 0;
 }
@@ -726,7 +726,7 @@
 .investigate-summary-icon,
 .investigate-summary-chevron {
     font-size: 16px !important;
-    color: #5A6B86;
+    color: #5E6E87;
     transition: transform 0.2s ease;
 }
 
@@ -735,13 +735,13 @@
 }
 
 .investigate-summary-text {
-    color: #5A6B86;
+    color: #5E6E87;
 }
 
 .investigate-progress-shell {
     margin-top: 8px;
     margin-bottom: 12px;
-    border-left: 2px solid #D8DEE8;
+    border-left: 2px solid #CBD2E0;
     padding-left: 14px;
 }
 
@@ -770,7 +770,7 @@
     font-size: 16px;
     font-weight: 600;
     line-height: 1.4;
-    color: #5A6B86;
+    color: #5E6E87;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -778,7 +778,7 @@
 
 .investigate-progress-head-caret {
     font-size: 16px !important;
-    color: #7488a6;
+    color: #5E6E87;
     transition: transform 0.18s ease;
 }
 
@@ -802,12 +802,12 @@
     font-size: 16px;
     font-weight: 600;
     line-height: 1.4;
-    color: #5A6B86;
+    color: #5E6E87;
 }
 
 .investigate-progress-body {
     margin-top: 10px;
-    border-top: 1px solid #D6DDE8;
+    border-top: 1px solid #CBD2E0;
     padding-top: 14px;
 }
 
@@ -828,7 +828,7 @@
     width: 22px;
     height: 3px;
     border-radius: 999px;
-    background: #95A4BC;
+    background: #8090AB;
 }
 
 .investigate-progress-stage-bar.done {
@@ -841,14 +841,14 @@
     font-size: 10px;
     font-weight: 500;
     letter-spacing: 0.04em;
-    color: #7A8EA9;
+    color: #8090AB;
 }
 
 .investigate-progress-angles {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    color: #5A6B86;
+    color: #5E6E87;
     font-family: 'DM Sans', sans-serif;
 }
 
@@ -989,7 +989,7 @@
 
 .message-wrapper.user .message {
     background-color: #ffffff !important;
-    color: #164563;
+    color: #141B26;
     border-radius: 8px;
     padding: 8px 16px;
     max-width: 800px;
@@ -1619,7 +1619,7 @@
 .message-wrapper.user .message,
 .message-wrapper.user .message:hover {
     background-color: #ffffff !important;
-    color: #164563;
+    color: #141B26;
 }
 
 .message.assistant,
