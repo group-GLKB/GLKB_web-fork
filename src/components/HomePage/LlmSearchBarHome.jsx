@@ -396,15 +396,15 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             {...params}
                             placeholder="Ask a question about the biomedical literature..."
                             multiline
-                            minRows={4}
-                            maxRows={4}
+                            minRows={3}
+                            maxRows={9}
                             disabled={isQueryLimitReached}
                             sx={{
-                                height: { xs: '130px', sm: '148px' },
+                                minHeight: { xs: '148px', sm: '152px' },
                                 width: '100%',
                                 '& .MuiInputBase-root': {
                                     borderRadius: '16px',
-                                    height: { xs: '130px', sm: '148px' },
+                                    minHeight: { xs: '148px', sm: '152px' },
                                     backgroundColor: '#F2F4F8',
                                     alignItems: 'flex-start',
                                     paddingLeft: '20px',
@@ -420,9 +420,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 },
                                 '& .MuiInputBase-input': {
                                     lineHeight: '26px',
-                                    height: '62px !important',
-                                    maxHeight: '62px !important',
-                                    overflowY: 'auto !important',
+                                    padding: '0 !important',
                                 },
                                 '& .MuiInputBase-input::placeholder': {
                                     color: '#A8B3C8',
@@ -486,7 +484,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         margin: '-8px -12px',
                                         borderRadius: '999px',
                                         border: 'none',
-                                        background: investigateEnabled ? '#E7F1FF' : 'transparent',
+                                        background: investigateEnabled ? '#EEF3FF' : 'transparent',
                                         color: investigateEnabled ? '#155DFC' : '#5E6E87',
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 600,

@@ -120,8 +120,8 @@ const ChatSearchBar = ({
                                     borderRadius: '8px',
                                     transform: 'none',
                                     backgroundColor: isLoading
-                                        ? '#E7F1FF'
-                                        : (!userInput.trim() || isQueryLimitReached ? '#E7F1FF' : '#155DFC'),
+                                        ? '#EEF3FF'
+                                        : (!userInput.trim() || isQueryLimitReached ? '#EEF3FF' : '#155DFC'),
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
