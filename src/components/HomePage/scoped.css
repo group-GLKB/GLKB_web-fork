@@ -84,7 +84,7 @@
     font-weight: 800;
     font-size: 36px;
     line-height: 1.2;
-    color: #164563;
+    color: #141B26;
     margin: 0;
 }
 
@@ -93,7 +93,7 @@
     font-weight: 600;
     font-size: 16px;
     line-height: 1.5;
-    color: #646464;
+    color: #5E6E87;
     margin: 0;
 }
 
@@ -130,7 +130,7 @@
     font-family: 'Geist', sans-serif;
     font-size: 14px;
     font-weight: 500;
-    color: #164563;
+    color: #141B26;
     text-align: left;
 }
 
@@ -152,9 +152,9 @@
 }
 
 .homepage-limit-warning-button:disabled {
-    border-color: #cbd5e1;
-    background: #f1f5f9;
-    color: #94a3b8;
+    border-color: #CBD2E0;
+    background: #F2F4F8;
+    color: #A8B3C8;
     cursor: not-allowed;
 }
 
@@ -334,7 +334,7 @@
     border-radius: 16px;
     border: 0.5px solid #E5E9F0;
     background-color: #FCFDFD;
-    color: #164563;
+    color: #141B26;
     font-family: "Geist", sans-serif;
     font-weight: 500;
     font-size: 15px;
@@ -418,7 +418,7 @@
 .footer {
     align-items: center;
     padding: 0px;
-    color: #969696;
+    color: #8090AB;
     font-size: 14px;
     width: 100%;
     text-align: center;
@@ -545,7 +545,7 @@
 }
 
 .glkb-introduction a {
-    color: #007bff;
+    color: #155DFC;
     text-decoration: none;
 }
 
@@ -608,7 +608,7 @@
     border-radius: 16px !important;
     border: 0.5px solid #E5E9F0;
     background-color: #FCFDFD;
-    color: #164563;
+    color: #141B26;
     font-family: "Geist", sans-serif;
     font-weight: 500;
     font-size: 15px;
