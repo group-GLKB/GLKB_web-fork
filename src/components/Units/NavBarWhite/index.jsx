@@ -335,17 +335,15 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const middleItems = useMemo(() => (
         [
-            { label: 'Explore', to: '/search', icon: <CategorySearchIcon style={{ width: 22, height: 22 }} /> },
             { label: 'API', to: '/api-page', icon: <CodeBlocksIcon style={{ width: 22, height: 22 }} /> },
+            { label: 'Literature Review', to: '/search', icon: <CategorySearchIcon style={{ width: 22, height: 22 }} /> },
             { label: 'Library', to: '/library', icon: <BookIcon className="sidebar-book-icon" style={{ width: 22, height: 22 }} /> },
             { label: 'History', to: '/history', icon: <HistoryIcon className="sidebar-history-icon" style={{ width: 22, height: 22 }} /> },
-        ].filter((item) => !(DEBUG_HIDE_EXPLORE && item.label === 'Explore'))
+        ]
     ), []);
 
     const bottomItems = useMemo(() => (
-        [
-            { label: 'About', to: '/about', icon: <InfoOutlinedIcon sx={{ fontSize: 22 }} /> },
-        ]
+        []
     ), []);
 
     const loginItem = useMemo(() => (
@@ -546,14 +544,13 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                     px: 0,
                     color: 'var(--color-grey-800)',
                     '&.Mui-selected': {
-                        backgroundColor: 'transparent',
+                        backgroundColor: 'var(--color-blue-100)',
                         color: 'var(--color-grey-800)',
                         '& .sidebar-nav-icon': {
                             backgroundColor: 'var(--color-blue-100)',
-                            color: 'var(--color-blue-500)',
                         },
                         '&:hover': {
-                            backgroundColor: 'transparent',
+                            backgroundColor: 'var(--color-blue-100)',
                         },
                     },
                     '&:hover': {

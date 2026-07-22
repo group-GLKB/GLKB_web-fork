@@ -49,6 +49,7 @@ import {
 
 import { ReactComponent as FolderOpenIcon } from '../../img/folder_open.svg';
 import { ReactComponent as MetaIcon } from '../../img/library/Icon.svg';
+import LibrarySidebar from '../Units/LibrarySidebar';
 import {
     ReactComponent as ChatIcon,
 } from '../../img/library/Message square.svg';
@@ -1412,7 +1413,16 @@ const Library = () => {
     }
 
     return (
-        <div className="library-page">
+        <div className="library-page" style={{ display: 'flex', height: '100vh' }}>
+            <LibrarySidebar
+                folders={folders}
+                totalItems={graphs.length + reviews.length}
+                activeFolderId={selectedFolderId}
+                onSelectAll={() => { setSelectedFolderId(null); }}
+                onSelectFolder={(id) => { setSelectedFolderId(id); }}
+                onAddFolder={() => setFolderDialogOpen(true)}
+            />
+            <Box sx={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
             <CiteDialog
                 open={citeDialogOpen}
                 onClose={handleCloseCiteDialog}
@@ -2224,6 +2234,7 @@ const Library = () => {
                         )}
                     </Box>
                 </Box>
+            </Box>
             </Box>
         </div>
     );
