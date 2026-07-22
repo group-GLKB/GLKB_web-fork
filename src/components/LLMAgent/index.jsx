@@ -68,6 +68,7 @@ import { submitChatFeedback } from '../../service/Feedback';
 import {
   INVESTIGATE_PHASE_META,
   LLMAgentService,
+  PHASE_PERCENT_FLOOR,
   inferFunnelFromText,
   inferInvestigatePhase,
 } from '../../service/LLMAgent';
@@ -135,6 +136,30 @@ const mergeFunnel = (prev, next) => {
         extracted: next.extracted ?? base.extracted,
         cited: next.cited ?? base.cited,
     };
+};
+
+const mergeLiveKeywords = (prev, next) => {
+    if (!Array.isArray(next) || !next.length) return prev || [];
+    return Array.from(new Set([...(prev || []), ...next.map(String)]));
+};
+
+const mergeLivePapers = (prev, next) => {
+    if (!Array.isArray(next) || !next.length) return prev || [];
+    const map = new Map();
+    [...(prev || []), ...next].forEach((paper) => {
+        if (!paper) return;
+        const key = paper.pmid || paper.id || paper.title;
+        if (!key) return;
+        map.set(String(key), paper);
+    });
+    return Array.from(map.values());
+};
+
+const mergePercentMonotonic = (prev, next) => {
+    if (!Number.isFinite(Number(next))) return prev;
+    const n = Math.max(0, Math.min(100, Math.round(Number(next))));
+    if (!Number.isFinite(Number(prev))) return n;
+    return Math.max(Number(prev), n);
 };
 
 const formatFunnelValue = (value) => {
@@ -957,6 +982,9 @@ const MessageCard = React.memo(function MessageCard({
     investigatePhase,
     investigateFunnel,
     investigateStartedAt,
+    investigatePercent,
+    investigateKeywords,
+    investigatePapers,
     notifyEmailEnabled,
     onToggleNotifyEmail,
     pendingClarification,
@@ -1074,11 +1102,13 @@ const MessageCard = React.memo(function MessageCard({
 
     const phaseTitle = useMemo(() => {
         if (!showInvestigateProgress) return '';
+        // Prefer agent label (Figma status line), then phase title
+        // streamingStepName already maps tools; progress label may be richer
         const meta = INVESTIGATE_PHASE_META[resolvedPhase] || INVESTIGATE_PHASE_META.searching;
         if (streamingStepName) {
             const label = getStepLabel(streamingStepName);
-            if (label && label !== 'Thinking') {
-                return label.endsWith('...') ? label : `${label}...`;
+            if (label && label !== 'Thinking' && label !== 'Working...') {
+                return label.endsWith('...') || label.endsWith('…') ? label : `${label}`;
             }
         }
         return meta.title;
@@ -1088,6 +1118,30 @@ const MessageCard = React.memo(function MessageCard({
         () => formatEtaLabel(resolvedPhase || 'searching', investigateStartedAt || null),
         [resolvedPhase, investigateStartedAt],
     );
+
+    // Figma: real % bar when agent sends percent; else phase floor (monotonic)
+    const displayPercent = useMemo(() => {
+        if (!showInvestigateProgress) return null;
+        if (Number.isFinite(Number(investigatePercent))) {
+            return Math.max(0, Math.min(100, Math.round(Number(investigatePercent))));
+        }
+        return PHASE_PERCENT_FLOOR[resolvedPhase] ?? 8;
+    }, [showInvestigateProgress, investigatePercent, resolvedPhase]);
+
+    const visibleKeywords = useMemo(() => {
+        const list = Array.isArray(investigateKeywords) ? investigateKeywords : [];
+        return list.slice(0, 12);
+    }, [investigateKeywords]);
+
+    const keywordOverflow = useMemo(() => {
+        const list = Array.isArray(investigateKeywords) ? investigateKeywords : [];
+        return Math.max(0, list.length - 12);
+    }, [investigateKeywords]);
+
+    const visiblePapers = useMemo(() => {
+        const list = Array.isArray(investigatePapers) ? investigatePapers : [];
+        return list.slice(0, 8);
+    }, [investigatePapers]);
 
     const investigateActivityItems = useMemo(() => {
         const raw = activeStreamingGroups
@@ -1271,6 +1325,17 @@ const MessageCard = React.memo(function MessageCard({
 
                                 {investigateExpanded && (
                                     <Box className="investigate-progress-body">
+                                        {displayPercent != null && (
+                                            <Box className="investigate-percent-row" aria-label={`Progress ${displayPercent}%`}>
+                                                <Box className="investigate-percent-track">
+                                                    <Box
+                                                        className="investigate-percent-fill"
+                                                        style={{ width: `${displayPercent}%` }}
+                                                    />
+                                                </Box>
+                                                <span className="investigate-percent-label">{displayPercent}%</span>
+                                            </Box>
+                                        )}
                                         <Box className="investigate-progress-stages">
                                             {investigateStageLabels.map((label, stageIndex) => {
                                                 const key = label.toLowerCase();
@@ -1285,9 +1350,55 @@ const MessageCard = React.memo(function MessageCard({
                                             })}
                                         </Box>
 
+                                        {visibleKeywords.length > 0 && (
+                                            <Box className="investigate-keywords" aria-label="Search keywords">
+                                                <span className="investigate-keywords-title">Search keywords</span>
+                                                <Box className="investigate-keywords-chips">
+                                                    {visibleKeywords.map((kw) => (
+                                                        <span key={kw} className="investigate-keyword-chip">{kw}</span>
+                                                    ))}
+                                                    {keywordOverflow > 0 && (
+                                                        <span className="investigate-keyword-more">+{keywordOverflow} more</span>
+                                                    )}
+                                                </Box>
+                                            </Box>
+                                        )}
+
+                                        {visiblePapers.length > 0 && (
+                                            <Box className="investigate-live-papers" aria-label="Papers being read">
+                                                <span className="investigate-live-papers-title">
+                                                    Reading {investigatePapers?.length || visiblePapers.length} paper{(investigatePapers?.length || visiblePapers.length) === 1 ? '' : 's'}
+                                                </span>
+                                                <ul className="investigate-live-papers-list">
+                                                    {visiblePapers.map((paper) => (
+                                                        <li key={paper.id || paper.pmid || paper.title}>
+                                                            {paper.pmid ? (
+                                                                <a
+                                                                    href={`https://pubmed.ncbi.nlm.nih.gov/${paper.pmid}/`}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                >
+                                                                    {paper.title}
+                                                                </a>
+                                                            ) : (
+                                                                <span>{paper.title}</span>
+                                                            )}
+                                                            {(paper.journal || paper.year) && (
+                                                                <span className="investigate-live-paper-meta">
+                                                                    {[paper.journal, paper.year].filter(Boolean).join(' · ')}
+                                                                </span>
+                                                            )}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </Box>
+                                        )}
+
                                         {investigateActivityItems.length > 0 && (
                                             <Box className="investigate-progress-angles">
-                                                <span className="investigate-progress-angles-title">Research activity ({investigateActivityItems.length} steps):</span>
+                                                <span className="investigate-progress-angles-title">
+                                                    {resolvedPhase === 'searching' ? 'Searching for literature' : `Research activity (${investigateActivityItems.length} steps):`}
+                                                </span>
                                                 {investigateActivityItems.map((item, itemIndex) => (
                                                     <span key={`${item}-${itemIndex}`} className="investigate-progress-angle-item">- {item}</span>
                                                 ))}
@@ -1612,6 +1723,9 @@ function LLMAgent() {
     const [investigatePhase, setInvestigatePhase] = useState('searching');
     const [investigateFunnel, setInvestigateFunnel] = useState(() => emptyFunnel());
     const [investigateStartedAt, setInvestigateStartedAt] = useState(null);
+    const [investigatePercent, setInvestigatePercent] = useState(null);
+    const [investigateKeywords, setInvestigateKeywords] = useState([]);
+    const [investigatePapers, setInvestigatePapers] = useState([]);
     const [notifyEmailEnabled, setNotifyEmailEnabled] = useState(() => {
         try {
             return localStorage.getItem('glkb_investigate_notify_email') === '1';
@@ -1622,6 +1736,9 @@ function LLMAgent() {
     const [chatInvestigateEnabled, setChatInvestigateEnabled] = useState(false);
     const investigateFunnelRef = useRef(emptyFunnel());
     const investigatePhaseRef = useRef('searching');
+    const investigatePercentRef = useRef(null);
+    const investigateKeywordsRef = useRef([]);
+    const investigatePapersRef = useRef([]);
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
     const abortControllerRef = useRef(null);
@@ -2267,7 +2384,7 @@ function LLMAgent() {
         const investigateEnabled = Boolean(
             requestSearchOptions?.investigateEnabled ?? chatInvestigateEnabled,
         );
-        // Discard expired investigate session on explicit clarify retry
+        // Discard expired investigate session on explicit retry (clarify session expiry)
         const resetInvestigateSession = Boolean(options.resetInvestigateSession);
         // Keep latest non-expired query options for clarify retry (no session_id reuse)
         lastSearchOptionsRef.current = {
@@ -2329,8 +2446,14 @@ function LLMAgent() {
         setInvestigatePhase('searching');
         setInvestigateFunnel(emptyFunnel());
         setInvestigateStartedAt(investigateEnabled ? requestStartedAt : null);
+        setInvestigatePercent(investigateEnabled ? PHASE_PERCENT_FLOOR.searching : null);
+        setInvestigateKeywords([]);
+        setInvestigatePapers([]);
         investigateFunnelRef.current = emptyFunnel();
         investigatePhaseRef.current = 'searching';
+        investigatePercentRef.current = investigateEnabled ? PHASE_PERCENT_FLOOR.searching : null;
+        investigateKeywordsRef.current = [];
+        investigatePapersRef.current = [];
         thinkingStepsRef.current = [];
 
         try {
@@ -2376,6 +2499,28 @@ function LLMAgent() {
                             investigateFunnelRef.current = mergeFunnel(investigateFunnelRef.current, update.funnel);
                             setInvestigateFunnel({ ...investigateFunnelRef.current });
                         }
+                        {
+                            const nextPct = mergePercentMonotonic(investigatePercentRef.current, update.percent);
+                            investigatePercentRef.current = nextPct;
+                            setInvestigatePercent(nextPct);
+                            if (update.keywords) {
+                                investigateKeywordsRef.current = mergeLiveKeywords(
+                                    investigateKeywordsRef.current,
+                                    update.keywords,
+                                );
+                                setInvestigateKeywords([...investigateKeywordsRef.current]);
+                            }
+                            if (update.papers) {
+                                investigatePapersRef.current = mergeLivePapers(
+                                    investigatePapersRef.current,
+                                    update.papers,
+                                );
+                                setInvestigatePapers([...investigatePapersRef.current]);
+                            }
+                            if (update.label) {
+                                setStreamingStepName(update.label);
+                            }
+                        }
                         break;
                     case 'clarification':
                         if (!isActiveStream) return;
@@ -2392,8 +2537,12 @@ function LLMAgent() {
                         setClarificationDrafts(buildClarificationDrafts(update.questions));
                         setClarificationError('');
                         setClarificationSubmitting(false);
-                        investigatePhaseRef.current = 'searching';
-                        setInvestigatePhase('searching');
+                        // Figma Asking Question: hold bar + keep phase; do not advance percent
+                        if (update.funnel) {
+                            investigateFunnelRef.current = mergeFunnel(investigateFunnelRef.current, update.funnel);
+                            setInvestigateFunnel({ ...investigateFunnelRef.current });
+                        }
+                        setStreamingStepName('Asking user question...');
                         break;
                     case 'step':
                         if (!isActiveStream) return;
@@ -2424,6 +2573,48 @@ function LLMAgent() {
                                 setSelectedMessageIndex(chatHistory.length + 1);
                                 break;
                             }
+
+                            // Apply live progress even when content is empty (agent progress frames)
+                            {
+                                const nextPhase = update.phase
+                                    || inferInvestigatePhase(update.step, rawContent)
+                                    || investigatePhaseRef.current;
+                                if (nextPhase && nextPhase !== investigatePhaseRef.current) {
+                                    investigatePhaseRef.current = nextPhase;
+                                    setInvestigatePhase(nextPhase);
+                                }
+                                if (update.funnel) {
+                                    investigateFunnelRef.current = mergeFunnel(
+                                        investigateFunnelRef.current,
+                                        update.funnel,
+                                    );
+                                    setInvestigateFunnel({ ...investigateFunnelRef.current });
+                                }
+                                const nextPct = mergePercentMonotonic(
+                                    investigatePercentRef.current,
+                                    update.percent ?? PHASE_PERCENT_FLOOR[nextPhase],
+                                );
+                                investigatePercentRef.current = nextPct;
+                                setInvestigatePercent(nextPct);
+                                if (update.keywords) {
+                                    investigateKeywordsRef.current = mergeLiveKeywords(
+                                        investigateKeywordsRef.current,
+                                        update.keywords,
+                                    );
+                                    setInvestigateKeywords([...investigateKeywordsRef.current]);
+                                }
+                                if (update.papers) {
+                                    investigatePapersRef.current = mergeLivePapers(
+                                        investigatePapersRef.current,
+                                        update.papers,
+                                    );
+                                    setInvestigatePapers([...investigatePapersRef.current]);
+                                }
+                                if (update.label || update.isProgress) {
+                                    setStreamingStepName(update.label || update.content || update.step);
+                                }
+                            }
+
                             if (hasContent) {
                                 const newEntry = { step: update.step, content: rawContent };
                                 thinkingStepsRef.current = [...thinkingStepsRef.current, newEntry];
@@ -2453,6 +2644,31 @@ function LLMAgent() {
                                             inferred,
                                         );
                                         setInvestigateFunnel({ ...investigateFunnelRef.current });
+                                    }
+                                }
+                                {
+                                    const nextPct = mergePercentMonotonic(
+                                        investigatePercentRef.current,
+                                        update.percent ?? PHASE_PERCENT_FLOOR[nextPhase],
+                                    );
+                                    investigatePercentRef.current = nextPct;
+                                    setInvestigatePercent(nextPct);
+                                    if (update.keywords) {
+                                        investigateKeywordsRef.current = mergeLiveKeywords(
+                                            investigateKeywordsRef.current,
+                                            update.keywords,
+                                        );
+                                        setInvestigateKeywords([...investigateKeywordsRef.current]);
+                                    }
+                                    if (update.papers) {
+                                        investigatePapersRef.current = mergeLivePapers(
+                                            investigatePapersRef.current,
+                                            update.papers,
+                                        );
+                                        setInvestigatePapers([...investigatePapersRef.current]);
+                                    }
+                                    if (update.label || update.isProgress) {
+                                        setStreamingStepName(update.label || update.content || update.step);
                                     }
                                 }
 
@@ -3098,6 +3314,9 @@ function LLMAgent() {
                 investigatePhase={investigatePhase}
                 investigateFunnel={investigateFunnel}
                 investigateStartedAt={investigateStartedAt}
+                investigatePercent={investigatePercent}
+                investigateKeywords={investigateKeywords}
+                investigatePapers={investigatePapers}
                 notifyEmailEnabled={notifyEmailEnabled}
                 onToggleNotifyEmail={(enabled) => {
                     setNotifyEmailEnabled(Boolean(enabled));
