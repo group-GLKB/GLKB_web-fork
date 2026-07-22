@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "homepage": "/",
-  "proxy": "https://glkb.org",
+  "proxy": "https://jieliulab3.dcmb.med.umich.edu",
   "dependencies": {
     "@ant-design/icons": "^5.0.1",
     "@ant-design/pro-components": "^2.7.19",
