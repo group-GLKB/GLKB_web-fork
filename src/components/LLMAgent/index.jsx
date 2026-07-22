@@ -163,6 +163,211 @@ const getUserNotifyEmail = () => {
     }
 };
 
+/** Inline clarify panel (Figma "Asking Question") — not a modal. */
+const ClarifyPanel = ({
+    pendingClarification,
+    clarificationDrafts,
+    clarificationError,
+    clarificationSubmitting,
+    hasInvalidOtherSelection,
+    onUpdateDraft,
+    onSubmit,
+    onSkip,
+}) => {
+    if (!pendingClarification) return null;
+
+    return (
+        <Box className="clarify-inline-panel" role="region" aria-label="Clarifying questions">
+            <Box className="clarify-inline-head">
+                <Typography className="clarify-inline-kicker">Asking user question...</Typography>
+                <Typography className="clarify-inline-title">Clarify your research scope</Typography>
+                {pendingClarification.reason ? (
+                    <Typography className="clarify-inline-reason">{pendingClarification.reason}</Typography>
+                ) : (
+                    <Typography className="clarify-inline-reason">
+                        Answering these helps the agent narrow evidence and improve citation quality.
+                    </Typography>
+                )}
+            </Box>
+
+            <Stack spacing={1.5} className="clarify-inline-questions">
+                {(pendingClarification.questions || []).map((question, index) => {
+                    const questionKey = getClarificationQuestionKey(question, index);
+                    const draft = clarificationDrafts[questionKey] || { selected: [], text: '', otherSelected: false };
+                    const selected = Array.isArray(draft.selected) ? draft.selected : [];
+                    const otherText = typeof draft.text === 'string' ? draft.text : '';
+                    const responseType = String(question?.response_type || 'text').toLowerCase();
+                    const options = Array.isArray(question?.options) ? question.options : [];
+                    const radioValue = draft.otherSelected ? '__other__' : (selected[0] || '');
+
+                    return (
+                        <Box key={questionKey} className="clarify-inline-card">
+                            <Typography className="clarify-inline-header">
+                                {question?.header || `Question ${index + 1}`}
+                            </Typography>
+                            <Typography className="clarify-inline-question">
+                                {question?.question || ''}
+                            </Typography>
+
+                            {responseType === 'single' && (
+                                <>
+                                    <RadioGroup
+                                        value={radioValue}
+                                        onChange={(event) => {
+                                            const nextValue = event.target.value;
+                                            if (nextValue === '__other__') {
+                                                onUpdateDraft(questionKey, {
+                                                    selected: [],
+                                                    text: otherText,
+                                                    otherSelected: true,
+                                                });
+                                                return;
+                                            }
+                                            onUpdateDraft(questionKey, {
+                                                selected: nextValue ? [nextValue] : [],
+                                                text: '',
+                                                otherSelected: false,
+                                            });
+                                        }}
+                                    >
+                                        {options.map((option) => {
+                                            const optionLabel = String(option?.label || '').trim();
+                                            if (!optionLabel) return null;
+                                            return (
+                                                <FormControlLabel
+                                                    key={optionLabel}
+                                                    value={optionLabel}
+                                                    control={<Radio size="small" />}
+                                                    label={option?.description || optionLabel}
+                                                />
+                                            );
+                                        })}
+                                        <FormControlLabel value="__other__" control={<Radio size="small" />} label="Other" />
+                                    </RadioGroup>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        placeholder="Type your answer here"
+                                        value={otherText}
+                                        onChange={(event) => {
+                                            onUpdateDraft(questionKey, {
+                                                selected: [],
+                                                text: event.target.value,
+                                                otherSelected: true,
+                                            });
+                                        }}
+                                        sx={{ mt: 1 }}
+                                    />
+                                </>
+                            )}
+
+                            {responseType === 'multi' && (
+                                <>
+                                    <Stack spacing={0.5}>
+                                        {options.map((option) => {
+                                            const optionLabel = String(option?.label || '').trim();
+                                            if (!optionLabel) return null;
+                                            const checked = selected.includes(optionLabel);
+                                            return (
+                                                <FormControlLabel
+                                                    key={optionLabel}
+                                                    control={(
+                                                        <Checkbox
+                                                            size="small"
+                                                            checked={checked}
+                                                            onChange={(event) => {
+                                                                const nextSelected = event.target.checked
+                                                                    ? [...selected, optionLabel]
+                                                                    : selected.filter((item) => item !== optionLabel);
+                                                                onUpdateDraft(questionKey, {
+                                                                    selected: Array.from(new Set(nextSelected)),
+                                                                    text: otherText,
+                                                                });
+                                                            }}
+                                                        />
+                                                    )}
+                                                    label={option?.description || optionLabel}
+                                                />
+                                            );
+                                        })}
+                                    </Stack>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        placeholder="Optional additional context"
+                                        value={otherText}
+                                        onChange={(event) => {
+                                            onUpdateDraft(questionKey, {
+                                                selected,
+                                                text: event.target.value,
+                                            });
+                                        }}
+                                        sx={{ mt: 1 }}
+                                    />
+                                </>
+                            )}
+
+                            {responseType === 'text' && (
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    placeholder="Type your answer here"
+                                    value={otherText}
+                                    onChange={(event) => {
+                                        onUpdateDraft(questionKey, {
+                                            selected: [],
+                                            text: event.target.value,
+                                        });
+                                    }}
+                                />
+                            )}
+                        </Box>
+                    );
+                })}
+            </Stack>
+
+            {clarificationError && (
+                <Typography className="clarify-inline-error">{clarificationError}</Typography>
+            )}
+
+            <Box className="clarify-inline-actions">
+                <MuiButton
+                    disabled={clarificationSubmitting}
+                    onClick={() => onSkip?.()}
+                    className="clarify-inline-skip"
+                    sx={{
+                        borderRadius: '10px',
+                        border: '1px solid #CBD5E1',
+                        textTransform: 'none',
+                        fontFamily: 'DM Sans, sans-serif',
+                        color: '#46566C',
+                    }}
+                >
+                    Skip
+                </MuiButton>
+                <MuiButton
+                    disabled={clarificationSubmitting || hasInvalidOtherSelection}
+                    onClick={() => onSubmit?.()}
+                    sx={{
+                        borderRadius: '10px',
+                        border: '1px solid #155DFC',
+                        backgroundColor: '#155DFC',
+                        textTransform: 'none',
+                        fontFamily: 'DM Sans, sans-serif',
+                        color: '#FFFFFF',
+                        '&:hover': {
+                            backgroundColor: '#0A47D6',
+                            borderColor: '#0A47D6',
+                        },
+                    }}
+                >
+                    {clarificationSubmitting ? 'Submitting...' : 'Submit'}
+                </MuiButton>
+            </Box>
+        </Box>
+    );
+};
+
 const getClarificationQuestionKey = (question, index) => {
     const raw = typeof question?.header === 'string' ? question.header.trim() : '';
     return raw || `question-${index}`;
@@ -754,6 +959,14 @@ const MessageCard = React.memo(function MessageCard({
     investigateStartedAt,
     notifyEmailEnabled,
     onToggleNotifyEmail,
+    pendingClarification,
+    clarificationDrafts,
+    clarificationError,
+    clarificationSubmitting,
+    hasInvalidOtherSelection,
+    onUpdateClarificationDraft,
+    onSubmitClarification,
+    onSkipClarification,
     showReloadPrompt,
     onReloadLatest,
     onStop,
@@ -1083,6 +1296,19 @@ const MessageCard = React.memo(function MessageCard({
                                     </Box>
                                 )}
                             </Box>
+                        )}
+
+                        {showInvestigateProgress && pendingClarification && (
+                            <ClarifyPanel
+                                pendingClarification={pendingClarification}
+                                clarificationDrafts={clarificationDrafts}
+                                clarificationError={clarificationError}
+                                clarificationSubmitting={clarificationSubmitting}
+                                hasInvalidOtherSelection={hasInvalidOtherSelection}
+                                onUpdateDraft={onUpdateClarificationDraft}
+                                onSubmit={() => onSubmitClarification?.({ useDefaults: false })}
+                                onSkip={() => onSkipClarification?.({ useDefaults: true })}
+                            />
                         )}
 
                         {showThoughtHeader && (
@@ -2458,7 +2684,10 @@ function LLMAgent() {
     }, [pendingClarification, clarificationDrafts]);
 
     const submitClarification = useCallback(async ({ useDefaults = false } = {}) => {
-        if (!pendingClarification?.invocationId || !pendingClarification?.stage || !pendingClarification?.sessionId) {
+        const sessionId = pendingClarification?.sessionId || sessionIdRef.current || null;
+        const invocationId = pendingClarification?.invocationId || null;
+        const stage = pendingClarification?.stage || null;
+        if (!invocationId || !stage || !sessionId) {
             setClarificationError('Clarification session has expired. Please ask your question again.');
             return;
         }
@@ -2471,9 +2700,9 @@ function LLMAgent() {
                 : buildClarifyAnswers(pendingClarification.questions, clarificationDrafts);
 
             const result = await llmService.clarify({
-                invocation_id: pendingClarification.invocationId,
-                stage: pendingClarification.stage,
-                session_id: pendingClarification.sessionId,
+                invocation_id: invocationId,
+                stage,
+                session_id: sessionId,
                 answers,
             });
 
@@ -2503,6 +2732,57 @@ function LLMAgent() {
             setClarificationSubmitting(false);
         }
     }, [clarificationDrafts, llmService, pendingClarification]);
+
+    // Resume completed DR runs if the tab was backgrounded / SSE dropped quietly
+    useEffect(() => {
+        if (!isLoading) return undefined;
+
+        const tryRecover = async () => {
+            if (!runIdRef.current) return;
+            try {
+                const run = await llmService.getRun({ runId: runIdRef.current });
+                if (!(run && (run.status === 'complete' || run.response))) return;
+                setPendingClarification(null);
+                setIsProcessing(false);
+                setStreamingStepName('');
+                setIsLoading(false);
+                setChatHistory((prev) => {
+                    if (!prev.length) return prev;
+                    const newHistory = [...prev];
+                    const last = newHistory[newHistory.length - 1];
+                    if (!last || last.role !== 'assistant' || last.content) return prev;
+                    newHistory[newHistory.length - 1] = {
+                        ...last,
+                        content: run.response || '',
+                        references: parseReferences(run.references),
+                        thinkingSteps: thinkingStepsRef.current,
+                        thoughtDurationMs: last.thoughtDurationMs || null,
+                        trajectory: run.trajectory || null,
+                        investigateMode: true,
+                        investigateFunnel: { ...investigateFunnelRef.current },
+                        investigatePhase: 'verifying',
+                    };
+                    if (run.response) llmService.updateMessages(run.response);
+                    return newHistory;
+                });
+                activeStreamIdRef.current = null;
+            } catch (error) {
+                logDev('[LLM] visibility run recovery failed', error);
+            }
+        };
+
+        const onVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                tryRecover();
+            }
+        };
+        document.addEventListener('visibilitychange', onVisibility);
+        const intervalId = window.setInterval(tryRecover, 45000);
+        return () => {
+            document.removeEventListener('visibilitychange', onVisibility);
+            window.clearInterval(intervalId);
+        };
+    }, [isLoading, llmService]);
 
     useEffect(() => {
         return () => {
@@ -2808,6 +3088,14 @@ function LLMAgent() {
                         message.success('Will email you when this investigation finishes.');
                     }
                 }}
+                pendingClarification={pendingClarification}
+                clarificationDrafts={clarificationDrafts}
+                clarificationError={clarificationError}
+                clarificationSubmitting={clarificationSubmitting}
+                hasInvalidOtherSelection={hasInvalidOtherSelection}
+                onUpdateClarificationDraft={updateClarificationDraft}
+                onSubmitClarification={submitClarification}
+                onSkipClarification={submitClarification}
                 refresh={handleRegenerateResponse}
                 copy={handleCopyMessage}
                 save={handleSaveEdit}
@@ -3134,8 +3422,9 @@ function LLMAgent() {
                 </Alert>
             </Snackbar>
 
+            {/* Clarify is inline in the investigate message (Figma Asking Question). Modal kept disabled. */}
             <Dialog
-                open={Boolean(pendingClarification)}
+                open={false}
                 onClose={() => {}}
                 disableEscapeKeyDown
                 fullWidth

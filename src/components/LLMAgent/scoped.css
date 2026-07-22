@@ -823,6 +823,80 @@ button.investigate-progress-notify.active {
     color: #0A47D6;
 }
 
+/* Figma Asking Question — inline clarify */
+.clarify-inline-panel {
+    margin: 12px 0 16px;
+    padding: 16px;
+    border: 1px solid #D9E6FE;
+    border-radius: 16px;
+    background: #FDFEFF;
+    box-shadow: 0 4px 16px rgba(21, 93, 252, 0.06);
+}
+
+.clarify-inline-kicker {
+    font-family: 'Geist', 'DM Sans', sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #155DFC !important;
+    margin-bottom: 4px !important;
+}
+
+.clarify-inline-title {
+    font-family: 'Geist', 'DM Sans', sans-serif !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #141B26 !important;
+    margin-bottom: 6px !important;
+}
+
+.clarify-inline-reason {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    color: #5E6E87 !important;
+    line-height: 1.45 !important;
+    margin-bottom: 12px !important;
+}
+
+.clarify-inline-card {
+    border: 1px solid #E6EDF8;
+    border-radius: 12px;
+    padding: 12px;
+    background: #FFFFFF;
+}
+
+.clarify-inline-header {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: #5E6E87 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 4px !important;
+}
+
+.clarify-inline-question {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    color: #222A38 !important;
+    line-height: 1.45 !important;
+    margin-bottom: 8px !important;
+}
+
+.clarify-inline-error {
+    margin-top: 12px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    color: #A10902 !important;
+}
+
+.clarify-inline-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 16px;
+}
+
 .investigate-progress-stage-count {
     font-family: 'Geist', 'DM Sans', sans-serif;
     font-size: 18px;
