@@ -805,6 +805,58 @@
     color: #5E6E87;
 }
 
+button.investigate-progress-notify {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 999px;
+}
+
+button.investigate-progress-notify:hover {
+    background: #EEF3FF;
+    color: #155DFC;
+}
+
+button.investigate-progress-notify.active {
+    background: #D9E6FE;
+    color: #0A47D6;
+}
+
+.investigate-progress-stage-count {
+    font-family: 'Geist', 'DM Sans', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #222A38;
+}
+
+.investigate-funnel-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 12px;
+}
+
+.investigate-funnel-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #F2F4F8;
+    color: #5E6E87;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.investigate-funnel-chip strong {
+    color: #222A38;
+    font-weight: 700;
+    font-size: 13px;
+}
+
 .investigate-progress-body {
     margin-top: 10px;
     border-top: 1px solid #CBD2E0;
