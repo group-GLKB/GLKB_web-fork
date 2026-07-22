@@ -120,10 +120,10 @@
   --color-accent-pink: var(--color-pink-500);
 
   /* font family */
-  --font-family-sans: var(--font-family-sans);
-  --font-family-mono: var(--font-family-mono);
-  --font-family-ui: var(--font-family-ui);
-  --font-family-body: var(--font-family-body);
+  --font-family-sans: "Geist", sans-serif;
+  --font-family-mono: "Geist Mono", monospace;
+  --font-family-ui: "DM Sans", sans-serif;
+  --font-family-body: "Inter", sans-serif;
 
   /* space */
   --space-1: 4px;
