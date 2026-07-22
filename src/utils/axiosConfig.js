@@ -45,7 +45,7 @@ const getStoredAuth = () => {
 // Prefer deriving API base URL from REACT_APP_API_PROXY_TARGET when available.
 const proxyTarget = (process.env.REACT_APP_API_PROXY_TARGET || '').trim().replace(/\/+$/, '');
 const derivedApiBaseUrl = proxyTarget ? `${proxyTarget}/reorg-api` : '';
-axios.defaults.baseURL = derivedApiBaseUrl || 'https://jieliulab3.dcmb.med.umich.edu/reorg-api';
+axios.defaults.baseURL = derivedApiBaseUrl || 'https://glkb.dcmb.med.umich.edu/reorg-api';
 
 // Request interceptor to add JWT token to headers
 axios.interceptors.request.use(
