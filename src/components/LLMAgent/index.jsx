@@ -2915,6 +2915,26 @@ function LLMAgent() {
                             return newHistory;
                         });
                         setSelectedMessageIndex(chatHistory.length + 1);
+                        // Figma Browser notification: fire if notifyMode === 'browser'
+                        if (investigateEnabled && notifyMode === 'browser' && update.answer) {
+                            try {
+                                if (window.Notification && Notification.permission === 'granted') {
+                                    new Notification('Investigation Complete', {
+                                        body: String(update.answer).substring(0, 200),
+                                        icon: '/favicon.ico',
+                                    });
+                                } else if (window.Notification && Notification.permission === 'default') {
+                                    Notification.requestPermission().then((perm) => {
+                                        if (perm === 'granted') {
+                                            new Notification('Investigation Complete', {
+                                                body: String(update.answer).substring(0, 200),
+                                                icon: '/favicon.ico',
+                                            });
+                                        }
+                                    });
+                                }
+                            } catch { /* browser may block */ }
+                        }
                         break;
                     case 'saved': {
                         if (isActiveStream) {
@@ -3848,272 +3868,6 @@ function LLMAgent() {
                     {feedbackSuccessText}
                 </Alert>
             </Snackbar>
-
-            {/* Clarify is inline in the investigate message (Figma Asking Question). Modal kept disabled. */}
-            <Dialog
-                open={false}
-                onClose={() => {}}
-                disableEscapeKeyDown
-                fullWidth
-                maxWidth="sm"
-            >
-                <DialogTitle
-                    sx={{
-                        fontFamily: 'var(--font-family-ui)',
-                        fontSize: '20px',
-                        fontWeight: 700,
-                        color: 'var(--color-grey-900)',
-                    }}
-                >
-                    Clarify Your Research Scope
-                </DialogTitle>
-                <DialogContent>
-                    <Typography
-                        sx={{
-                            fontFamily: 'var(--font-family-ui)',
-                            fontSize: '14px',
-                            color: 'var(--color-grey-500)',
-                            lineHeight: 1.5,
-                            mb: 2,
-                        }}
-                    >
-                        Answering these helps the agent narrow evidence and improve citation quality.
-                    </Typography>
-
-                    {pendingClarification?.reason && (
-                        <Box
-                            sx={{
-                                borderRadius: '10px',
-                                backgroundColor: 'var(--color-blue-25)',
-                                border: '1px solid var(--color-blue-100)',
-                                px: 1.5,
-                                py: 1,
-                                mb: 2,
-                            }}
-                        >
-                            <Typography
-                                sx={{
-                                    fontFamily: 'var(--font-family-ui)',
-                                    fontSize: '13px',
-                                    color: 'var(--color-blue-700)',
-                                    lineHeight: 1.45,
-                                }}
-                            >
-                                {pendingClarification.reason}
-                            </Typography>
-                        </Box>
-                    )}
-
-                    <Stack spacing={2}>
-                        {(pendingClarification?.questions || []).map((question, index) => {
-                            const questionKey = getClarificationQuestionKey(question, index);
-                            const draft = clarificationDrafts[questionKey] || { selected: [], text: '', otherSelected: false };
-                            const selected = Array.isArray(draft.selected) ? draft.selected : [];
-                            const otherText = typeof draft.text === 'string' ? draft.text : '';
-                            const responseType = String(question?.response_type || 'text').toLowerCase();
-                            const options = Array.isArray(question?.options) ? question.options : [];
-                            const radioValue = draft.otherSelected ? '__other__' : (selected[0] || '');
-
-                            return (
-                                <Box
-                                    key={questionKey}
-                                    sx={{
-                                        border: '1px solid var(--color-grey-50)',
-                                        borderRadius: 'var(--radius-3)',
-                                        p: 1.5,
-                                    }}
-                                >
-                                    <Typography
-                                        sx={{
-                                            fontFamily: 'var(--font-family-ui)',
-                                            fontSize: '12px',
-                                            fontWeight: 700,
-                                            color: 'var(--color-grey-500)',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.03em',
-                                            mb: 0.5,
-                                        }}
-                                    >
-                                        {question?.header || `Question ${index + 1}`}
-                                    </Typography>
-
-                                    <Typography
-                                        sx={{
-                                            fontFamily: 'var(--font-family-ui)',
-                                            fontSize: '15px',
-                                            fontWeight: 500,
-                                            color: 'var(--color-grey-800)',
-                                            lineHeight: 1.45,
-                                            mb: 1,
-                                        }}
-                                    >
-                                        {question?.question || ''}
-                                    </Typography>
-
-                                    {responseType === 'single' && (
-                                        <>
-                                            <RadioGroup
-                                                value={radioValue}
-                                                onChange={(event) => {
-                                                    const nextValue = event.target.value;
-                                                    if (nextValue === '__other__') {
-                                                        updateClarificationDraft(questionKey, {
-                                                            selected: [],
-                                                            text: otherText,
-                                                            otherSelected: true,
-                                                        });
-                                                        return;
-                                                    }
-                                                    updateClarificationDraft(questionKey, {
-                                                        selected: nextValue ? [nextValue] : [],
-                                                        text: '',
-                                                        otherSelected: false,
-                                                    });
-                                                }}
-                                            >
-                                                {options.map((option) => {
-                                                    const optionLabel = String(option?.label || '').trim();
-                                                    if (!optionLabel) return null;
-                                                    return (
-                                                        <FormControlLabel
-                                                            key={optionLabel}
-                                                            value={optionLabel}
-                                                            control={<Radio size="small" />}
-                                                            label={option?.description || optionLabel}
-                                                        />
-                                                    );
-                                                })}
-                                                <FormControlLabel value="__other__" control={<Radio size="small" />} label="Other" />
-                                            </RadioGroup>
-                                            <TextField
-                                                fullWidth
-                                                size="small"
-                                                placeholder="Optional custom answer"
-                                                value={otherText}
-                                                onChange={(event) => {
-                                                    updateClarificationDraft(questionKey, {
-                                                        selected: [],
-                                                        text: event.target.value,
-                                                        otherSelected: true,
-                                                    });
-                                                }}
-                                                sx={{ mt: 1 }}
-                                            />
-                                        </>
-                                    )}
-
-                                    {responseType === 'multi' && (
-                                        <>
-                                            <Stack spacing={0.5}>
-                                                {options.map((option) => {
-                                                    const optionLabel = String(option?.label || '').trim();
-                                                    if (!optionLabel) return null;
-                                                    const checked = selected.includes(optionLabel);
-                                                    return (
-                                                        <FormControlLabel
-                                                            key={optionLabel}
-                                                            control={(
-                                                                <Checkbox
-                                                                    size="small"
-                                                                    checked={checked}
-                                                                    onChange={(event) => {
-                                                                        const nextSelected = event.target.checked
-                                                                            ? [...selected, optionLabel]
-                                                                            : selected.filter((item) => item !== optionLabel);
-                                                                        updateClarificationDraft(questionKey, {
-                                                                            selected: Array.from(new Set(nextSelected)),
-                                                                            text: otherText,
-                                                                        });
-                                                                    }}
-                                                                />
-                                                            )}
-                                                            label={option?.description || optionLabel}
-                                                        />
-                                                    );
-                                                })}
-                                            </Stack>
-                                            <TextField
-                                                fullWidth
-                                                size="small"
-                                                placeholder="Optional additional context"
-                                                value={otherText}
-                                                onChange={(event) => {
-                                                    updateClarificationDraft(questionKey, {
-                                                        selected,
-                                                        text: event.target.value,
-                                                    });
-                                                }}
-                                                sx={{ mt: 1 }}
-                                            />
-                                        </>
-                                    )}
-
-                                    {responseType === 'text' && (
-                                        <TextField
-                                            fullWidth
-                                            size="small"
-                                            placeholder="Type your answer"
-                                            value={otherText}
-                                            onChange={(event) => {
-                                                updateClarificationDraft(questionKey, {
-                                                    selected: [],
-                                                    text: event.target.value,
-                                                });
-                                            }}
-                                        />
-                                    )}
-                                </Box>
-                            );
-                        })}
-                    </Stack>
-
-                    {clarificationError && (
-                        <Typography
-                            sx={{
-                                mt: 2,
-                                fontFamily: 'var(--font-family-ui)',
-                                fontSize: '13px',
-                                color: 'var(--color-red-700)',
-                            }}
-                        >
-                            {clarificationError}
-                        </Typography>
-                    )}
-                </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2.5 }}>
-                    <MuiButton
-                        disabled={clarificationSubmitting}
-                        onClick={() => submitClarification({ useDefaults: true })}
-                        sx={{
-                            borderRadius: '10px',
-                            border: '1px solid var(--color-grey-200)',
-                            textTransform: 'none',
-                            fontFamily: 'var(--font-family-ui)',
-                            color: '#46566C',
-                        }}
-                    >
-                        Skip (Use Defaults)
-                    </MuiButton>
-                    <MuiButton
-                        disabled={clarificationSubmitting || hasInvalidOtherSelection}
-                        onClick={() => submitClarification({ useDefaults: false })}
-                        sx={{
-                            borderRadius: '10px',
-                            border: '1px solid var(--color-blue-500)',
-                            backgroundColor: 'var(--color-blue-500)',
-                            textTransform: 'none',
-                            fontFamily: 'var(--font-family-ui)',
-                            color: 'var(--color-neutral-white)',
-                            '&:hover': {
-                                backgroundColor: 'var(--color-blue-600)',
-                                borderColor: 'var(--color-blue-600)',
-                            },
-                        }}
-                    >
-                        {clarificationSubmitting ? 'Submitting...' : 'Submit Answers'}
-                    </MuiButton>
-                </DialogActions>
-            </Dialog>
 
             <Dialog
                 open={showLeaveConfirmDialog}
