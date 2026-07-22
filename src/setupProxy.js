@@ -8,7 +8,12 @@ module.exports = function (app) {
         next();
     });
 
-    // Proxy /api requests to /reorg-api on the backend
+    // Dev-only proxy for relative /api/* requests.
+    // Note: axiosConfig sets absolute baseURL (…/reorg-api), so normal axios calls
+    // bypass this proxy. This path only helps fetch()/relative clients and CRA.
+    //
+    // Express mounts at '/api' and strips that prefix before HPM sees req.url,
+    // so rewrite must use '^/' not '^/api' (otherwise /v1/... is forwarded bare → 404).
     app.use(
         '/api',
         createProxyMiddleware({
@@ -16,7 +21,7 @@ module.exports = function (app) {
             changeOrigin: true,
             secure: false,
             pathRewrite: {
-                '^/api': '/reorg-api/api',
+                '^/': '/reorg-api/api/',
             },
         })
     );
