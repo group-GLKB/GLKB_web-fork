@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '../utils/axiosConfig';
 
 const DEFAULT_STREAM_ENDPOINT = '/api/v1/new-llm-agent/stream';
 const INVESTIGATE_STREAM_ENDPOINT = process.env.REACT_APP_INVESTIGATE_STREAM_ENDPOINT || '/api/v1/deep-research/stream';
@@ -32,7 +32,8 @@ const resolveInvestigateRunUrl = (runId) => {
     return `${base.replace(/\/+$/, '')}/${encodeURIComponent(runId)}`;
 };
 
-const investigateClient = axios.create();
+// Use the shared axios instance (baseURL + JWT interceptors from axiosConfig).
+// Do NOT use axios.create() — bare clients miss /reorg-api prefix and auth.
 
 /** Pull optional numeric funnel fields from an agent SSE payload. */
 const extractFunnelMetrics = (data = {}) => {
@@ -269,14 +270,12 @@ export class LLMAgentService {
             }
 
             const streamEndpoint = investigateEnabled ? resolveInvestigateStreamUrl() : DEFAULT_STREAM_ENDPOINT;
-            const httpClient = investigateEnabled ? investigateClient : axios;
 
-            await httpClient.post(streamEndpoint, payload, {
+            await axios.post(streamEndpoint, payload, {
                 headers: {
                     'Content-Type': 'application/json',
                     Accept: 'text/event-stream',
                 },
-                withCredentials: !investigateEnabled,
                 responseType: 'text',
                 signal: abortController.signal,
                 onDownloadProgress: (progressEvent) => {
@@ -310,12 +309,11 @@ export class LLMAgentService {
 
     async clarify(payload) {
         const endpoint = resolveInvestigateClarifyUrl();
-        const response = await investigateClient.post(endpoint, payload, {
+        const response = await axios.post(endpoint, payload, {
             headers: {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',
             },
-            withCredentials: false,
         });
         return response.data;
     }
@@ -328,18 +326,16 @@ export class LLMAgentService {
     async getRun({ runId, sessionId } = {}) {
         if (runId) {
             const endpoint = resolveInvestigateRunUrl(runId);
-            const response = await investigateClient.get(endpoint, {
+            const response = await axios.get(endpoint, {
                 headers: { Accept: 'application/json' },
-                withCredentials: false,
             });
             return response.data;
         }
         if (sessionId) {
             const endpoint = resolveInvestigateRunUrl();
-            const response = await investigateClient.get(endpoint, {
+            const response = await axios.get(endpoint, {
                 params: { session_id: sessionId },
                 headers: { Accept: 'application/json' },
-                withCredentials: false,
             });
             return response.data;
         }
