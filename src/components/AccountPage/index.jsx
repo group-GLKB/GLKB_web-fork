@@ -275,7 +275,7 @@ const AccountPage = () => {
                                     },
                                     '& .MuiTab-root': {
                                         textTransform: 'none',
-                                        fontFamily: 'DM Sans, sans-serif',
+                                        fontFamily: 'var(--font-family-ui)',
                                         fontSize: '13px',
                                         fontWeight: 600,
                                         color: '#164563',

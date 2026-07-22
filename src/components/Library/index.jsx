@@ -481,12 +481,12 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                     }
                 }}
             >
-                <Box className="history-item-content" sx={{ gap: '4px' }}>
+                <Box className="history-item-content" sx={{ gap: 'var(--space-1)' }}>
                     <Box sx={{
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        gap: '12px',
+                        gap: 'var(--space-3)',
                         height: '21px',
                     }}>
                         {pmid ? (
@@ -508,7 +508,7 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                             sx={{
                                 width: 28,
                                 height: 28,
-                                borderRadius: '8px',
+                                borderRadius: 'var(--radius-2)',
                                 color: '#164563',
                             }}
                         >
@@ -529,7 +529,7 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'flex-start',
-                            gap: '12px',
+                            gap: 'var(--space-3)',
                         }}>
                             <Box sx={{
                                 display: 'flex',
@@ -564,7 +564,7 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
-                                gap: '12px',
+                                gap: 'var(--space-3)',
                             }}
                         >
                             <Typography sx={{
@@ -609,10 +609,10 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                 PaperProps={{
                     sx: {
                         minWidth: 176,
-                        borderRadius: 2,
+                        borderRadius: 'var(--radius-2)',
                         boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
                         '& .MuiMenuItem-root': {
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'var(--font-family-ui)',
                             fontSize: '13px',
                             fontWeight: 500,
                             color: '#164563',
@@ -698,7 +698,7 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                         sx={{
                             width: 28,
                             height: 28,
-                            borderRadius: '8px',
+                            borderRadius: 'var(--radius-2)',
                             color: '#164563',
                         }}
                     >
@@ -726,10 +726,10 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                 PaperProps={{
                     sx: {
                         minWidth: 176,
-                        borderRadius: 2,
+                        borderRadius: 'var(--radius-2)',
                         boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
                         '& .MuiMenuItem-root': {
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'var(--font-family-ui)',
                             fontSize: '13px',
                             fontWeight: 500,
                             color: '#164563',
@@ -785,7 +785,7 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                         primaryTypographyProps={{
                             sx: {
                                 color: '#B42318',
-                                fontFamily: 'DM Sans, sans-serif',
+                                fontFamily: 'var(--font-family-ui)',
                                 fontSize: '13px',
                                 fontWeight: 500,
                             },
@@ -1425,7 +1425,7 @@ const Library = () => {
                 maxWidth="xs"
             >
                 <DialogTitle sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: 'var(--font-family-ui)',
                     fontWeight: 600,
                     fontSize: '18px',
                 }}>
@@ -1443,10 +1443,10 @@ const Library = () => {
                         inputProps={{ maxLength: 60 }}
                         sx={{
                             '& .MuiInputBase-input': {
-                                fontFamily: 'DM Sans, sans-serif',
+                                fontFamily: 'var(--font-family-ui)',
                             },
                             '& .MuiInputLabel-root': {
-                                fontFamily: 'DM Sans, sans-serif',
+                                fontFamily: 'var(--font-family-ui)',
                             },
                         }}
                     />
@@ -1471,7 +1471,7 @@ const Library = () => {
                 maxWidth="xs"
             >
                 <DialogTitle sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: 'var(--font-family-ui)',
                     fontWeight: 600,
                     fontSize: '18px',
                 }}>
@@ -1479,7 +1479,7 @@ const Library = () => {
                 </DialogTitle>
                 <DialogContent>
                     {folders.length === 0 ? (
-                        <Typography sx={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: '#646464' }}>
+                        <Typography sx={{ fontFamily: 'var(--font-family-ui)', fontSize: '14px', color: '#646464' }}>
                             No folders yet. Create one to organize your bookmarks.
                         </Typography>
                     ) : (
@@ -1493,7 +1493,7 @@ const Library = () => {
                                     py: 0.5,
                                 }}
                             >
-                                <Typography sx={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: '#164563' }}>
+                                <Typography sx={{ fontFamily: 'var(--font-family-ui)', fontSize: '14px', color: '#164563' }}>
                                     {folder.name}
                                 </Typography>
                                 <Checkbox
@@ -1656,7 +1656,7 @@ const Library = () => {
                             <Box className="library-title-row">
                                 <BookIcon className="library-book-icon" style={{ width: 36, height: 36, color: '#164563' }} />
                                 <Typography sx={{
-                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontFamily: 'var(--font-family-ui)',
                                     fontWeight: 600,
                                     fontSize: '32px',
                                     color: '#164563',
@@ -1666,8 +1666,8 @@ const Library = () => {
                             </Box>
                         </Box>
                         <Typography sx={{
-                            marginTop: '8px',
-                            fontFamily: 'DM Sans, sans-serif',
+                            marginTop: 'var(--space-2)',
+                            fontFamily: 'var(--font-family-ui)',
                             fontWeight: 500,
                             fontSize: '14px',
                             color: '#646464',
@@ -1731,7 +1731,7 @@ const Library = () => {
                                     },
                                     '& .MuiTab-root': {
                                         textTransform: 'none',
-                                        fontFamily: 'DM Sans, sans-serif',
+                                        fontFamily: 'var(--font-family-ui)',
                                         fontSize: '13px',
                                         fontWeight: 600,
                                         color: '#164563',
@@ -1759,14 +1759,14 @@ const Library = () => {
                                             onChange={(event) => setSortOption(event.target.value)}
                                             displayEmpty
                                             sx={{
-                                                fontFamily: 'DM Sans, sans-serif',
+                                                fontFamily: 'var(--font-family-ui)',
                                                 fontSize: '12px',
                                                 fontWeight: 600,
                                                 color: '#164563',
                                                 minWidth: 110,
                                                 height: 28,
                                                 backgroundColor: '#E7F1FF',
-                                                borderRadius: '16px',
+                                                borderRadius: 'var(--radius-4)',
                                                 '& .MuiSelect-select': {
                                                     padding: '4px 8px',
                                                 },
@@ -1809,14 +1809,14 @@ const Library = () => {
                                             onChange={(event) => setSortOption(event.target.value)}
                                             displayEmpty
                                             sx={{
-                                                fontFamily: 'DM Sans, sans-serif',
+                                                fontFamily: 'var(--font-family-ui)',
                                                 fontSize: '12px',
                                                 fontWeight: 600,
                                                 color: '#164563',
                                                 minWidth: 110,
                                                 height: 28,
                                                 backgroundColor: '#E7F1FF',
-                                                borderRadius: '16px',
+                                                borderRadius: 'var(--radius-4)',
                                                 '& .MuiSelect-select': {
                                                     padding: '4px 8px',
                                                 },
@@ -2012,7 +2012,7 @@ const Library = () => {
                                                                             </Box>
                                                                         ) : (
                                                                             <Typography className="history-title" sx={{
-                                                                                fontFamily: 'DM Sans, sans-serif',
+                                                                                fontFamily: 'var(--font-family-ui)',
                                                                                 fontWeight: 600,
                                                                                 fontSize: '16px',
                                                                                 color: '#164563',
@@ -2176,7 +2176,7 @@ const Library = () => {
                                                                         </Box>
                                                                     ) : (
                                                                         <Typography className="history-title" sx={{
-                                                                            fontFamily: 'DM Sans, sans-serif',
+                                                                            fontFamily: 'var(--font-family-ui)',
                                                                             fontWeight: 600,
                                                                             fontSize: '16px',
                                                                             color: '#164563',

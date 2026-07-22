@@ -994,11 +994,11 @@ const ResultPage = () => {
 
                 },
                 color: "black",
-                borderRadius: '16px',
+                borderRadius: 'var(--radius-4)',
                 border: boolValues[label] ? 'solid 2px transparent' : 'solid 2px #ccc',
                 height: '39px',
                 fontWeight: 'normal',
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: 'var(--font-family-body)',
                 padding: '9px 9px',
                 fontSize: '14px',
                 lineHeight: '1.5',
@@ -1083,7 +1083,7 @@ const ResultPage = () => {
                                         flexDirection: 'column',
                                         flex: 6,
                                         minHeight: 0,
-                                        gap: '24px',
+                                        gap: 'var(--space-6)',
                                         padding: {
                                             xs: '16px 20px 24px',
                                             md: '20px 28px 28px',
@@ -1093,10 +1093,10 @@ const ResultPage = () => {
                                     }}
                                 >
                                     <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                                             <CategorySearchIcon style={{ width: 36, height: 36, color: '#164563' }} />
                                             <Typography sx={{
-                                                fontFamily: 'DM Sans, sans-serif',
+                                                fontFamily: 'var(--font-family-ui)',
                                                 fontWeight: 600,
                                                 fontSize: '32px',
                                                 color: '#164563',
@@ -1105,8 +1105,8 @@ const ResultPage = () => {
                                             </Typography>
                                         </Box>
                                         <Typography sx={{
-                                            marginTop: '8px',
-                                            fontFamily: 'DM Sans, sans-serif',
+                                            marginTop: 'var(--space-2)',
+                                            fontFamily: 'var(--font-family-ui)',
                                             fontWeight: 500,
                                             fontSize: '14px',
                                             color: '#646464',
@@ -1117,8 +1117,8 @@ const ResultPage = () => {
                                             sx={{
                                                 display: 'flex',
                                                 alignItems: 'center',
-                                                gap: '8px',
-                                                marginTop: '24px',
+                                                gap: 'var(--space-2)',
+                                                marginTop: 'var(--space-6)',
                                                 color: '#97A7BD',
                                             }}
                                         >
@@ -1129,13 +1129,13 @@ const ResultPage = () => {
                                                 classNames={{ root: "explore-help-tooltip" }}
                                                 styles={{
                                                     root: { maxWidth: '380px' },
-                                                    body: { fontSize: '16px', fontFamily: 'Open Sans, sans-serif' },
+                                                    body: { fontSize: '16px', fontFamily: 'var(--font-family-body)' },
                                                 }}
                                             >
                                                 <InfoCircleOutlined style={{ color: 'inherit' }} />
                                             </Tooltip>
                                             <Typography sx={{
-                                                fontFamily: 'DM Sans, sans-serif',
+                                                fontFamily: 'var(--font-family-ui)',
                                                 fontWeight: 400,
                                                 fontSize: '14px',
                                                 color: 'inherit',
@@ -1154,7 +1154,7 @@ const ResultPage = () => {
                                                     alignItems: 'center',
                                                     gap: '6px',
                                                     color: 'inherit',
-                                                    fontFamily: 'DM Sans, sans-serif',
+                                                    fontFamily: 'var(--font-family-ui)',
                                                     fontSize: '14px',
                                                     fontWeight: 600,
                                                     '&:hover': {
@@ -1169,7 +1169,7 @@ const ResultPage = () => {
                                         <div
                                             ref={searchBarContainerRef}
                                             className="search-bar-container"
-                                            style={{ marginTop: '8px', boxShadow: "0 1px 10px 0 rgba(0, 0, 0, 0.05)", borderRadius: '20px' }}
+                                            style={{ marginTop: 'var(--space-2)', boxShadow: "0 1px 10px 0 rgba(0, 0, 0, 0.05)", borderRadius: '20px' }}
                                         >
                                             <div className="search-bar-wrapper">
                                                 <SearchBarKnowledge
@@ -1264,7 +1264,7 @@ const ResultPage = () => {
                                                     <div className="loading-container">
                                                         <Spin size="large" />
                                                         <Typography sx={{
-                                                            fontFamily: 'Open Sans, sans-serif',
+                                                            fontFamily: 'var(--font-family-body)',
                                                             fontSize: '14px',
                                                             fontWeight: 400,
                                                             color: '#646464',
@@ -1294,11 +1294,11 @@ const ResultPage = () => {
                                                                     sx={{
                                                                         width: '100px',
                                                                         height: '100px',
-                                                                        marginBottom: '4px',
+                                                                        marginBottom: 'var(--space-1)',
                                                                     }}
                                                                 />
                                                                 <Typography sx={{
-                                                                    fontFamily: 'Open Sans, sans-serif',
+                                                                    fontFamily: 'var(--font-family-body)',
                                                                     fontSize: '14px',
                                                                     fontWeight: 400,
                                                                 }}
@@ -1360,7 +1360,7 @@ const ResultPage = () => {
                                                                             <div className="legend-subsection">
                                                                                 <div className="legend-subtitle-row">
                                                                                     <div className="legend-subtitle">Legends</div>
-                                                                                    <Tooltip title={LegendTooltipContent} styles={{ root: { maxWidth: '380px' }, body: { fontSize: '16px', fontFamily: 'Open Sans, sans-serif' } }}>
+                                                                                    <Tooltip title={LegendTooltipContent} styles={{ root: { maxWidth: '380px' }, body: { fontSize: '16px', fontFamily: 'var(--font-family-body)' } }}>
                                                                                         <InfoCircleOutlined style={{ color: 'var(--color-blue-400)' }} />
                                                                                     </Tooltip>
                                                                                     <button
@@ -1427,7 +1427,7 @@ const ResultPage = () => {
                                         minHeight: 0,
                                         overflow: 'hidden',
                                         '& *': {
-                                            fontFamily: 'Open Sans, sans-serif',
+                                            fontFamily: 'var(--font-family-body)',
                                         },
 
                                     }} className="floating-information-new">
@@ -1531,7 +1531,7 @@ const ResultPage = () => {
                 </Box>
                 <AntButton
                     onClick={() => startTour()}
-                    // style={{ marginTop: '20px' }}
+                    // style={{ marginTop: 'var(--space-5)' }}
                     style={{
                         position: 'fixed',
                         bottom: '50px',
@@ -1544,7 +1544,7 @@ const ResultPage = () => {
                         color: 'var(--color-blue-500)',
                         boxShadow: '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',
                         border: 'none',
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-family-ui)',
                     }}
                     disabled={!searchFlag}
                 >

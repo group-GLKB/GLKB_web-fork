@@ -364,7 +364,7 @@ const ClarifyPanel = ({
                         borderRadius: '10px',
                         border: '1px solid var(--color-grey-200)',
                         textTransform: 'none',
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-family-ui)',
                         color: '#46566C',
                     }}
                 >
@@ -378,7 +378,7 @@ const ClarifyPanel = ({
                         border: '1px solid var(--color-blue-500)',
                         backgroundColor: 'var(--color-blue-500)',
                         textTransform: 'none',
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-family-ui)',
                         color: 'var(--color-neutral-white)',
                         '&:hover': {
                             backgroundColor: 'var(--color-blue-600)',
@@ -692,14 +692,14 @@ const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
                 sx={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '4px',
+                    gap: 'var(--space-1)',
                 }}
                 data-line-key={lineKey}
             >
                 {(tool || summary) && (
                     <Typography
                         sx={{
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'var(--font-family-ui)',
                             fontSize: '16px',
                             fontWeight: 400,
                             color: 'var(--color-grey-500)',
@@ -711,7 +711,7 @@ const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
                             <Box
                                 component="span"
                                 sx={{
-                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontFamily: 'var(--font-family-ui)',
                                     fontSize: '16px',
                                     fontWeight: 800,
                                     textTransform: 'uppercase',
@@ -728,7 +728,7 @@ const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
                 {result && (
                     <Typography
                         sx={{
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'var(--font-family-ui)',
                             fontSize: '16px',
                             fontWeight: 400,
                             color: 'var(--color-grey-500)',
@@ -746,7 +746,7 @@ const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
     return (
         <Typography
             sx={{
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'var(--font-family-ui)',
                 fontSize: '12px',
                 fontWeight: 400,
                 color: 'var(--color-grey-400)',
@@ -789,14 +789,14 @@ const ThoughtGroup = React.memo(
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '8px 16px',
-                        borderRadius: '8px',
+                        borderRadius: 'var(--radius-2)',
                         cursor: canToggle ? 'pointer' : 'default',
                         '&:hover': canToggle ? { backgroundColor: 'rgba(0, 0, 0, 0.04)' } : undefined,
                         '&:hover .thought-step-arrow': canToggle ? { opacity: 1 } : undefined,
                     }}
                 >
                     <Typography sx={{
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-family-ui)',
                         fontSize: '16px',
                         fontWeight: 400,
                         color: 'var(--color-grey-500)',
@@ -821,7 +821,7 @@ const ThoughtGroup = React.memo(
                         mt: '6px',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '4px',
+                        gap: 'var(--space-1)',
                         borderLeft: showBorder ? '2px solid #D9D9D9' : 'none',
                         pl: showBorder ? '10px' : '0px',
                         ml: showBorder ? 2 : '0px',
@@ -1277,7 +1277,7 @@ const MessageCard = React.memo(function MessageCard({
                         pb: isAssistant ? "24px" : "12px",
                         // border: isAssistant ? "1px solid" : "none",
                         borderColor: "divider",
-                        borderRadius: "24px",
+                        borderRadius: "var(--radius-5)",
                         flex: 1, // Occupy maximum width
                     }}
                 >
@@ -1510,8 +1510,8 @@ const MessageCard = React.memo(function MessageCard({
                             <Box sx={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                mt: '8px',
-                                mb: '8px',
+                                mt: 'var(--space-2)',
+                                mb: 'var(--space-2)',
                             }}>
                                 <Box
                                     role={canToggleThoughts ? 'button' : undefined}
@@ -1545,7 +1545,7 @@ const MessageCard = React.memo(function MessageCard({
                                             ? `loading-step-label${stepLabelPhase !== 'idle' ? ` loading-step-label--${stepLabelPhase}` : ''}`
                                             : undefined}
                                         sx={{
-                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontFamily: 'var(--font-family-ui)',
                                             fontSize: '16px',
                                             fontWeight: isLoading ? 400 : 600,
                                             color: isLoading ? 'transparent' : 'var(--color-grey-500)',
@@ -1573,9 +1573,9 @@ const MessageCard = React.memo(function MessageCard({
                                 mt: '6px',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                gap: '0px',
+                                gap: '0',
                                 borderLeft: '2px solid #E6E6E6',
-                                pl: '4px',
+                                pl: 'var(--space-1)',
                                 ml: 1,
                             }}>
                                 {displayGroups.map((group, groupIndex) => (
@@ -1597,17 +1597,17 @@ const MessageCard = React.memo(function MessageCard({
                                 <Box
                                     sx={{
                                         backgroundColor: 'var(--color-grey-50)',
-                                        borderRadius: '8px',
+                                        borderRadius: 'var(--radius-2)',
                                         padding: '6px 8px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'space-between',
-                                        gap: '8px',
+                                        gap: 'var(--space-2)',
                                     }}
                                 >
                                     <Typography
                                         sx={{
-                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontFamily: 'var(--font-family-ui)',
                                             fontSize: '12px',
                                             fontWeight: 500,
                                             color: 'var(--color-grey-500)',
@@ -1621,12 +1621,12 @@ const MessageCard = React.memo(function MessageCard({
                                         onClick={onReloadLatest}
                                         sx={{
                                             textTransform: 'none',
-                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontFamily: 'var(--font-family-ui)',
                                             fontWeight: 600,
                                             fontSize: '12px',
                                             minHeight: '28px',
                                             padding: '2px 8px',
-                                            borderRadius: '8px',
+                                            borderRadius: 'var(--radius-2)',
                                             borderColor: 'var(--color-grey-200)',
                                             color: 'var(--color-grey-500)',
                                             '&:hover': {
@@ -1650,7 +1650,7 @@ const MessageCard = React.memo(function MessageCard({
                                         sx={{ flex: 1, width: "100%" }}
                                         onChange={(event) => setEditContent(event.target.value)}
                                     /> : (
-                                        <div className="markdown-body" style={{ fontFamily: 'Open Sans, sans-serif' }}>
+                                        <div className="markdown-body" style={{ fontFamily: 'var(--font-family-body)' }}>
                                             <ReactMarkdown
                                                 remarkPlugins={[remarkGfm]}
                                                 components={{
@@ -1672,7 +1672,7 @@ const MessageCard = React.memo(function MessageCard({
                         </Box>
 
                         {isAssistant && (
-                            <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
+                            <Stack direction="row" spacing={1} mt={2} sx={{ pb: "var(--space-2)" }}>
                                 {!isLoading && (
                                     <IconButton
                                         size="small"
@@ -1716,7 +1716,7 @@ const MessageCard = React.memo(function MessageCard({
 
             </Container>
             {!isAssistant && <Box sx={{ justifyContent: "flex-end", direction: "row", display: "flex", alignItems: "center" }}>
-                <Stack direction="row" spacing={1} sx={{ pb: "8px", pr: "24px" }}>
+                <Stack direction="row" spacing={1} sx={{ pb: "var(--space-2)", pr: "var(--space-6)" }}>
                     {
                         isEditing ? <>
                             <IconButton size="small" onClick={() => {
@@ -3771,7 +3771,7 @@ function LLMAgent() {
             >
                 <DialogTitle
                     sx={{
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-family-ui)',
                         fontSize: '20px',
                         fontWeight: 700,
                         color: 'var(--color-grey-900)',
@@ -3782,7 +3782,7 @@ function LLMAgent() {
                 <DialogContent>
                     <Typography
                         sx={{
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'var(--font-family-ui)',
                             fontSize: '14px',
                             color: 'var(--color-grey-500)',
                             lineHeight: 1.5,
@@ -3805,7 +3805,7 @@ function LLMAgent() {
                         >
                             <Typography
                                 sx={{
-                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontFamily: 'var(--font-family-ui)',
                                     fontSize: '13px',
                                     color: 'var(--color-blue-700)',
                                     lineHeight: 1.45,
@@ -3831,13 +3831,13 @@ function LLMAgent() {
                                     key={questionKey}
                                     sx={{
                                         border: '1px solid var(--color-grey-50)',
-                                        borderRadius: '12px',
+                                        borderRadius: 'var(--radius-3)',
                                         p: 1.5,
                                     }}
                                 >
                                     <Typography
                                         sx={{
-                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontFamily: 'var(--font-family-ui)',
                                             fontSize: '12px',
                                             fontWeight: 700,
                                             color: 'var(--color-grey-500)',
@@ -3851,7 +3851,7 @@ function LLMAgent() {
 
                                     <Typography
                                         sx={{
-                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontFamily: 'var(--font-family-ui)',
                                             fontSize: '15px',
                                             fontWeight: 500,
                                             color: 'var(--color-grey-800)',
@@ -3983,7 +3983,7 @@ function LLMAgent() {
                         <Typography
                             sx={{
                                 mt: 2,
-                                fontFamily: 'DM Sans, sans-serif',
+                                fontFamily: 'var(--font-family-ui)',
                                 fontSize: '13px',
                                 color: 'var(--color-red-700)',
                             }}
@@ -4000,7 +4000,7 @@ function LLMAgent() {
                             borderRadius: '10px',
                             border: '1px solid var(--color-grey-200)',
                             textTransform: 'none',
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'var(--font-family-ui)',
                             color: '#46566C',
                         }}
                     >
@@ -4014,7 +4014,7 @@ function LLMAgent() {
                             border: '1px solid var(--color-blue-500)',
                             backgroundColor: 'var(--color-blue-500)',
                             textTransform: 'none',
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'var(--font-family-ui)',
                             color: 'var(--color-neutral-white)',
                             '&:hover': {
                                 backgroundColor: 'var(--color-blue-600)',
@@ -4036,18 +4036,18 @@ function LLMAgent() {
             >
                 <DialogTitle
                     sx={{
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-family-ui)',
                         fontSize: '20px',
                         fontWeight: 700,
                         color: 'var(--color-grey-900)',
-                        paddingBottom: '8px',
+                        paddingBottom: 'var(--space-2)',
                     }}
                 >
                     Leave this page?
                 </DialogTitle>
                 <DialogContent
                     sx={{
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-family-ui)',
                         fontSize: '14px',
                         color: 'var(--color-grey-500)',
                         lineHeight: 1.5,
@@ -4060,11 +4060,11 @@ function LLMAgent() {
                     <MuiButton
                         onClick={handleLeaveDialogCancel}
                         sx={{
-                            borderRadius: '12px',
+                            borderRadius: 'var(--radius-3)',
                             border: '1px solid #D6DDE8',
                             color: 'var(--color-grey-900)',
                             textTransform: 'none',
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'var(--font-family-ui)',
                             fontWeight: 700,
                             fontSize: '14px',
                             padding: '8px 16px',
@@ -4075,12 +4075,12 @@ function LLMAgent() {
                     <MuiButton
                         onClick={handleLeaveDialogConfirm}
                         sx={{
-                            borderRadius: '12px',
+                            borderRadius: 'var(--radius-3)',
                             border: '1px solid #DC2626',
                             backgroundColor: '#FC2415',
                             color: 'var(--color-neutral-white)',
                             textTransform: 'none',
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'var(--font-family-ui)',
                             fontWeight: 700,
                             fontSize: '14px',
                             padding: '8px 16px',
@@ -4104,16 +4104,16 @@ function LLMAgent() {
                     sx: {
                         width: '100%',
                         maxWidth: '512px',
-                        borderRadius: '16px',
+                        borderRadius: 'var(--radius-4)',
                         boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
                     },
                 }}
             >
-                <Box sx={{ p: '40px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                <Box sx={{ p: 'var(--space-10)', display: 'flex', flexDirection: 'column', gap: '28px' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <Typography
                             sx={{
-                                fontFamily: 'DM Sans, sans-serif',
+                                fontFamily: 'var(--font-family-ui)',
                                 fontSize: '24px',
                                 fontWeight: '700 !important',
                                 lineHeight: 1.3,
@@ -4127,10 +4127,10 @@ function LLMAgent() {
                         </IconButton>
                     </Box>
 
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
                         <Typography
                             sx={{
-                                fontFamily: 'DM Sans, sans-serif',
+                                fontFamily: 'var(--font-family-ui)',
                                 fontSize: '16px',
                                 fontWeight: '400 !important',
                                 lineHeight: 1.5,
@@ -4140,7 +4140,7 @@ function LLMAgent() {
                             Your feedback helps us improve GLKB.
                         </Typography>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                             {[1, 2, 3, 4, 5].map((star) => (
                                 <IconButton
                                     key={star}
@@ -4167,8 +4167,8 @@ function LLMAgent() {
                             fullWidth
                             sx={{
                                 '& .MuiOutlinedInput-root': {
-                                    borderRadius: '8px',
-                                    fontFamily: 'DM Sans, sans-serif',
+                                    borderRadius: 'var(--radius-2)',
+                                    fontFamily: 'var(--font-family-ui)',
                                     fontSize: '16px',
                                     fontWeight: '400 !important',
                                     color: 'var(--color-grey-800)',
@@ -4188,17 +4188,17 @@ function LLMAgent() {
                         <MuiButton
                             onClick={handleCloseFeedback}
                             sx={{
-                                borderRadius: '8px',
+                                borderRadius: 'var(--radius-2)',
                                 border: '1px solid #D8D8D8',
                                 color: 'var(--color-grey-800)',
                                 backgroundColor: 'var(--color-neutral-white)',
                                 textTransform: 'none',
-                                fontFamily: 'DM Sans, sans-serif',
+                                fontFamily: 'var(--font-family-ui)',
                                 fontSize: '16px',
                                 fontWeight: '400 !important',
                                 lineHeight: 1.3,
-                                px: '16px',
-                                py: '8px',
+                                px: 'var(--space-4)',
+                                py: 'var(--space-2)',
                                 minWidth: '96px',
                             }}
                         >
@@ -4208,16 +4208,16 @@ function LLMAgent() {
                             onClick={handleSubmitFeedback}
                             disabled={feedbackSubmitting || feedbackRating < 1}
                             sx={{
-                                borderRadius: '8px',
+                                borderRadius: 'var(--radius-2)',
                                 backgroundColor: 'var(--color-blue-500)',
                                 color: 'var(--color-neutral-white)',
                                 textTransform: 'none',
-                                fontFamily: 'DM Sans, sans-serif',
+                                fontFamily: 'var(--font-family-ui)',
                                 fontSize: '16px',
                                 fontWeight: '400 !important',
                                 lineHeight: 1.3,
-                                px: '16px',
-                                py: '8px',
+                                px: 'var(--space-4)',
+                                py: 'var(--space-2)',
                                 minWidth: '170px',
                                 '&:hover': {
                                     backgroundColor: 'var(--color-blue-600)',
@@ -4240,12 +4240,12 @@ function LLMAgent() {
                         <div className="llm-main-content">
                             {/* <MuiButton variant="text" sx={{
                                 color: 'var(--color-grey-800)',
-                                fontFamily: 'Open Sans, sans-serif',
+                                fontFamily: 'var(--font-family-body)',
                                 alignSelf: 'flex-start',
                                 zIndex: 1,
-                                borderRadius: '24px',
-                                marginTop: '16px',
-                                marginBottom: '16px',
+                                borderRadius: 'var(--radius-5)',
+                                marginTop: 'var(--space-4)',
+                                marginBottom: 'var(--space-4)',
                             }}
                                 onClick={() => navigate('/')}>
                                 <ArrowBackIcon />Back
@@ -4275,12 +4275,12 @@ function LLMAgent() {
                                                         <Box sx={{
                                                             display: 'flex',
                                                             alignItems: 'center',
-                                                            gap: '8px',
+                                                            gap: 'var(--space-2)',
                                                             minWidth: 0,
                                                             flex: 1,
                                                         }}>
                                                             <Typography sx={{
-                                                                fontFamily: 'Geist, sans-serif',
+                                                                fontFamily: 'var(--font-family-sans)',
                                                                 fontSize: '14px',
                                                                 fontWeight: 600,
                                                                 lineHeight: '18px',
@@ -4331,19 +4331,19 @@ function LLMAgent() {
                                                         <div className='empty-components-container'>
                                                             <div className="empty-page-title" style={{ paddingTop: '1rem' }}>
                                                                 <div style={{ gap: '1rem', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
-                                                                    <Typography sx={{ fontFamily: "Geist, sans-serif", fontSize: '32px', fontWeight: '700', color: "var(--color-grey-900)" }}>
+                                                                    <Typography sx={{ fontFamily: "var(--font-family-sans)", fontSize: '32px', fontWeight: '700', color: "var(--color-grey-900)" }}>
                                                                         Explore Biomedical Literature
                                                                     </Typography>
-                                                                    <Typography sx={{ fontFamily: "Geist, sans-serif", fontSize: '18px', fontWeight: '500', color: "var(--color-grey-500)" }}>
+                                                                    <Typography sx={{ fontFamily: "var(--font-family-sans)", fontSize: '18px', fontWeight: '500', color: "var(--color-grey-500)" }}>
                                                                         AI-powered Genomic Literature Knowledge Base
                                                                     </Typography>
                                                                 </div>
                                                             </div>
                                                             <div className="example-queries-header">
-                                                                <Typography sx={{ fontFamily: "Geist, sans-serif", fontSize: '16px', fontWeight: '400', color: "var(--color-grey-400)", width: '100%', textAlign: 'left' }}>
+                                                                <Typography sx={{ fontFamily: "var(--font-family-sans)", fontSize: '16px', fontWeight: '400', color: "var(--color-grey-400)", width: '100%', textAlign: 'left' }}>
                                                                     Try these example queries:
                                                                 </Typography>
-                                                                <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '10px', minHeight: '80px' }}>
+                                                                <div className="example-query-list" style={{ marginTop: '0', paddingTop: '10px', minHeight: '80px' }}>
                                                                     {
                                                                         ["What is the role of BRCA1 in breast cancer?",
                                                                             "How many articles about Alzheimer's disease are published in 2020?",
@@ -4367,7 +4367,7 @@ function LLMAgent() {
                                                         <div className="chat-loading-overlay">
                                                             <CircularProgress size={28} sx={{ color: 'var(--color-grey-900)' }} />
                                                             <Typography sx={{
-                                                                fontFamily: 'Open Sans, sans-serif',
+                                                                fontFamily: 'var(--font-family-body)',
                                                                 fontSize: '14px',
                                                                 fontWeight: 400,
                                                                 color: 'var(--color-grey-500)',

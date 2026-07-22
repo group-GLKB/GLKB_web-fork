@@ -3,20 +3,20 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 32px;
+    padding: var(--space-8);
     background: linear-gradient(180deg, #f6f8fb 0%, #eef2f7 100%);
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-family-ui);
 }
 
 .debug-card {
     width: min(720px, 92vw);
     background: var(--color-neutral-white);
     border-radius: 18px;
-    padding: 24px 28px;
+    padding: var(--space-6) 28px;
     box-shadow: 0 16px 40px rgba(18, 38, 63, 0.12);
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--space-4);
 }
 
 .debug-title {
@@ -29,9 +29,9 @@
     display: inline-flex;
     align-items: center;
     min-height: 56px;
-    padding: 16px 20px;
+    padding: var(--space-4) 20px;
     background: #f4f6fa;
-    border-radius: 12px;
+    border-radius: var(--radius-3);
 }
 
 .debug-meta {
@@ -42,7 +42,7 @@
 .debug-divider {
     height: 1px;
     background: #e6ebf2;
-    margin: 4px 0;
+    margin: var(--space-1) 0;
 }
 
 .debug-label {

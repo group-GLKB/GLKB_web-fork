@@ -62,7 +62,7 @@
     background: transparent;
     border: none;
     margin: 0 -12px;
-    padding: 16px 12px;
+    padding: var(--space-4) 12px;
     border-radius: 10px;
     box-sizing: border-box;
     cursor: pointer;
@@ -74,7 +74,7 @@
 .history-item-row-no-checkbox .history-item {
     grid-column: 1;
     margin: 0;
-    padding: 16px 0;
+    padding: var(--space-4) 0;
 }
 
 @media (max-width: 767px) {
@@ -105,7 +105,7 @@
 .history-item-title-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     min-width: 0;
     width: 100%;
 }
@@ -113,13 +113,13 @@
 .history-item-row:hover .history-item,
 .history-item:focus-visible {
     background-color: #E7F1FF;
-    border-radius: 12px;
+    border-radius: var(--radius-3);
 }
 
 .history-title {
     flex: 1;
     min-width: 0;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-family-ui);
     font-weight: 600;
     font-size: 16px;
     color: #164563;
@@ -132,9 +132,9 @@
     flex: 1;
     min-width: 0;
     border: 1px solid #DADADA;
-    border-radius: 8px;
-    padding: 4px 8px;
-    font-family: 'DM Sans', sans-serif;
+    border-radius: var(--radius-2);
+    padding: var(--space-1) 8px;
+    font-family: var(--font-family-ui);
     font-weight: 600;
     font-size: 16px;
     color: #164563;
@@ -172,11 +172,11 @@
 .history-item:focus-visible {
     outline: 2px solid var(--color-blue-500);
     outline-offset: 4px;
-    border-radius: 8px;
+    border-radius: var(--radius-2);
 }
 
 .history-subtitle {
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-family-ui);
     font-weight: 400;
     font-size: 14px;
     color: #646464;
@@ -188,7 +188,7 @@
 }
 
 .history-timestamp {
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-family-ui);
     font-weight: 500;
     font-size: 12px;
     color: #808080;

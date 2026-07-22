@@ -551,7 +551,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        fontFamily: '"DM Sans", sans-serif',
+                        fontFamily: 'var(--font-family-ui)',
                         fontWeight: 700,
                         fontSize: '12px',
                         color: '#2A83FF',
@@ -567,7 +567,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                 padding: 0,
                                 margin: 0,
                                 cursor: selectedSources.length ? 'pointer' : 'default',
-                                fontFamily: '"DM Sans", sans-serif',
+                                fontFamily: 'var(--font-family-ui)',
                                 fontWeight: 700,
                                 fontSize: '12px',
                                 color: selectedSources.length ? '#2A83FF' : '#90A1BA',
@@ -581,7 +581,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                         display: 'flex',
                         flexDirection: isSmallScreen ? 'column' : 'row',
                         alignItems: isSmallScreen ? 'stretch' : 'flex-end',
-                        gap: '16px',
+                        gap: 'var(--space-4)',
                         padding: '12px 0',
                     }}>
                         <Box className="explore-pill-row">
@@ -690,7 +690,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                 boxShadow: '0px 2px 3px -1px var(--color-neutral-black)26',
                                                 marginBottom: '5px',
                                                 overflow: 'hidden',
-                                                fontFamily: 'Open Sans, sans-serif',
+                                                fontFamily: 'var(--font-family-body)',
                                                 "& .MuiAutocomplete-option.Mui-focused": {
                                                     backgroundColor: '#EDF5FE !important',
                                                 },
@@ -698,7 +698,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                     color: '#196ED8 !important',
                                                 },
                                                 "& .MuiAutocomplete-groupLabel": {
-                                                    fontFamily: 'Open Sans, sans-serif',
+                                                    fontFamily: 'var(--font-family-body)',
                                                 }
                                             }}
                                         >

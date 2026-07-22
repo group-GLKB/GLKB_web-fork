@@ -32,13 +32,13 @@ const ChatSearchBar = ({
             gap: 2,
             margin: '0 auto',
             backgroundColor: 'var(--color-grey-50)',
-            borderRadius: '16px',
+            borderRadius: 'var(--radius-4)',
             borderWidth: '1px',
             borderStyle: 'solid',
             borderColor: 'var(--color-grey-100)',
             boxShadow: 'none',
             flexDirection: 'column',
-            paddingBottom: '8px',
+            paddingBottom: 'var(--space-2)',
         }}>
             <TextField
                 className="input-form"
@@ -62,15 +62,15 @@ const ChatSearchBar = ({
                 sx={{
                     width: '100%',
                     '& .MuiInputBase-root': {
-                        borderRadius: '16px',
-                        minHeight: { xs: '44px', sm: '64px' },
+                        borderRadius: 'var(--radius-4)',
+                        minHeight: { xs: '44px', sm: 'var(--space-16)' },
                         height: 'auto',
                         alignItems: 'flex-start',
                         paddingLeft: '20px',
                         paddingRight: '76px !important',
-                        paddingTop: { xs: '8px', sm: '12px' },
-                        paddingBottom: { xs: '8px', sm: '12px' },
-                        fontFamily: 'Open Sans, sans-serif',
+                        paddingTop: { xs: '8px', sm: 'var(--space-3)' },
+                        paddingBottom: { xs: '8px', sm: 'var(--space-3)' },
+                        fontFamily: 'var(--font-family-body)',
                         fontSize: '14px',
                         color: 'var(--color-grey-950)',
                         '& fieldset': {
@@ -162,7 +162,7 @@ const ChatSearchBar = ({
                     ),
                 }}
             />
-            <Box sx={{ display: 'flex', alignItems: 'center', px: '12px', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', px: 'var(--space-3)', gap: 1 }}>
                 <Button
                     disabled={isLoading || isQueryLimitReached}
                     onMouseDown={(event) => {
@@ -188,7 +188,7 @@ const ChatSearchBar = ({
                         border: 'none',
                         background: investigateEnabled ? 'var(--color-blue-50)' : 'transparent',
                         color: investigateEnabled ? 'var(--color-blue-500)' : 'var(--color-grey-500)',
-                        fontFamily: 'Geist, sans-serif',
+                        fontFamily: 'var(--font-family-sans)',
                         fontWeight: 600,
                         fontSize: '13px',
                         lineHeight: '16px',

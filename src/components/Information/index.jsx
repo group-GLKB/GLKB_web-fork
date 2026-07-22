@@ -245,7 +245,7 @@ const Information = ({ width, ...props }) => {
         if (!normalized) return null;
 
         return (
-            <div style={{ marginTop: '12px' }}>
+            <div style={{ marginTop: 'var(--space-3)' }}>
                 <ReferenceCard url={normalized} handleClick={handleClick} onCiteClick={handleCiteClick} />
                 <div className="reference-separator" />
             </div>
@@ -255,7 +255,7 @@ const Information = ({ width, ...props }) => {
 
     const [sortBy, setSortBy] = useState('year'); // 'year' or 'citations'
     const referencesTitleStyle = {
-        fontFamily: 'DM Sans, sans-serif',
+        fontFamily: 'var(--font-family-ui)',
         fontWeight: 600,
         fontSize: '16px',
         color: '#164563',
@@ -273,7 +273,7 @@ const Information = ({ width, ...props }) => {
         overflow: 'hidden',
         '& .MuiToggleButton-root': {
             textTransform: 'none',
-            fontFamily: 'DM Sans, sans-serif',
+            fontFamily: 'var(--font-family-ui)',
             fontSize: '12px',
             fontWeight: 700,
             color: '#164563',
@@ -562,11 +562,11 @@ const Information = ({ width, ...props }) => {
                         fontSize: '24px',
                         lineHeight: '1.5',
                         fontWeight: '700',
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-family-ui)',
                         borderTopLeftRadius: '10px',
                         borderTopRightRadius: '10px',
-                        paddingTop: '24px',
-                        paddingBottom: '16px',
+                        paddingTop: 'var(--space-6)',
+                        paddingBottom: 'var(--space-4)',
                         border: 'none',
                         background: 'transparent',
                         wordWrap: 'break-word !important',
@@ -576,7 +576,7 @@ const Information = ({ width, ...props }) => {
                         padding: '0px',
                         backgroundColor: '#F7F7F7',
                         minHeight: '200px',
-                        // marginTop: '20px',
+                        // marginTop: 'var(--space-5)',
                         marginBottom: '10px',
                         border: 'none',
                         background: 'transparent',
@@ -596,7 +596,7 @@ const Information = ({ width, ...props }) => {
                 ) : (
                     <div style={{ position: 'relative', height: '100%' }}>
                         <div className="transcriptGradientTop"></div>
-                        <div style={{ paddingLeft: '24px', paddingRight: '24px', paddingTop: '0px', paddingBottom: '20px', overflowY: 'auto', maxHeight: '100%' }}>
+                        <div style={{ paddingLeft: '24px', paddingRight: '24px', paddingTop: '0', paddingBottom: 'var(--space-5)', overflowY: 'auto', maxHeight: '100%' }}>
 
                             {/* Article Node Details - Direct Display */}
                             {Object.keys(nodeDetails).length !== 0 && nodeDetails[0] && nodeDetails[0][0] && 'title' in nodeDetails[0][0] && (
@@ -712,7 +712,7 @@ const Information = ({ width, ...props }) => {
                                                         display: 'flex',
                                                         // justifyContent: 'space-between',
                                                         alignItems: 'center',
-                                                        marginTop: '20px',
+                                                        marginTop: 'var(--space-5)',
                                                         marginBottom: '10px',
                                                         position: sentenceVisibility[index] ? 'sticky' : 'static',
                                                         top: 0,
@@ -740,7 +740,7 @@ const Information = ({ width, ...props }) => {
                                                             size="small"
                                                             dataSource={edge[2]}
                                                             renderItem={(item, i) => (
-                                                                <List.Item key={i} className="related-article-item" style={{ paddingBottom: '8px' }}>
+                                                                <List.Item key={i} className="related-article-item" style={{ paddingBottom: 'var(--space-2)' }}>
                                                                     <div className="custom-div-edge">
                                                                         <div style={{ whiteSpace: 'pre-wrap' }}>{item[0]}</div>
                                                                         <p className="info-row" style={{ color: '#555555', margin: '2px 0' }}>
@@ -769,7 +769,7 @@ const Information = ({ width, ...props }) => {
                                                         justifyContent: 'space-between',
                                                         alignItems: 'center',
                                                         marginBottom: '10px',
-                                                        marginTop: '8px'
+                                                        marginTop: 'var(--space-2)'
                                                     }}>
                                                         <h4 style={referencesTitleStyle}>References</h4>
                                                         <ToggleButtonGroup

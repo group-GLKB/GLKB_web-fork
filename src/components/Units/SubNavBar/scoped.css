@@ -5,7 +5,7 @@
     /* padding: 0.3rem 0.2rem; */
     font-size: clamp(12px, 2vw, 16px);
     background-color: white;
-    /* margin-top: 120px; */
+    /* margin-top: var(--space-30); */
     /* margin-bottom:5px; */
     gap: 1px;
     border-radius: 100px;
@@ -14,8 +14,8 @@
 
 button {
 
-    padding: 0px;
-    font-family: "Open Sans", sans-serif;
+    padding: 0;
+    font-family: var(--font-family-body);
     font-weight: 700;
     font-size: 12px;
     cursor: pointer;

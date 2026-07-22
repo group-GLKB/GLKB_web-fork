@@ -12,7 +12,7 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 24px;
+    padding: var(--space-6);
 }
 
 .maintenance-icon {
@@ -21,8 +21,8 @@
 }
 
 .maintenance-title {
-    margin: 48px 0 0;
-    font-family: 'DM Sans', sans-serif;
+    margin: var(--space-12) 0 0;
+    font-family: var(--font-family-ui);
     font-size: 36px;
     font-weight: 700;
     color: #323232;
@@ -30,8 +30,8 @@
 }
 
 .maintenance-subtitle {
-    margin: 12px 0 0;
-    font-family: 'DM Sans', sans-serif;
+    margin: var(--space-3) 0 0;
+    font-family: var(--font-family-ui);
     font-size: 18px;
     font-weight: 400;
     color: #646464;
@@ -45,11 +45,11 @@
 }
 
 .maintenance-contact-button {
-    margin-top: 48px !important;
+    margin-top: var(--space-12) !important;
     border: none;
-    border-radius: 12px !important;
-    padding: 8px 16px !important;
-    font-family: 'DM Sans', sans-serif;
+    border-radius: var(--radius-3) !important;
+    padding: var(--space-2) 16px !important;
+    font-family: var(--font-family-ui);
     font-size: 16px;
     font-weight: 500;
     cursor: pointer;
@@ -65,7 +65,7 @@
 
 .maintenance-footer p {
     margin: 0;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-body);
     text-align: center;
     color: var(--color-grey-400);
     font-size: 14px;

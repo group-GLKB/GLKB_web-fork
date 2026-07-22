@@ -608,7 +608,7 @@ const History = () => {
                                 <Box className="history-title-row">
                                     <HistoryIcon className="history-icon" style={{ width: 36, height: 36, color: '#164563' }} />
                                     <Typography sx={{
-                                        fontFamily: 'DM Sans, sans-serif',
+                                        fontFamily: 'var(--font-family-ui)',
                                         fontWeight: 600,
                                         fontSize: '32px',
                                         color: '#164563',
@@ -618,7 +618,7 @@ const History = () => {
                                 </Box>
                                 <Typography sx={{
                                     marginTop: '8.5px',
-                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontFamily: 'var(--font-family-ui)',
                                     fontWeight: 500,
                                     fontSize: '14px',
                                     color: '#646464',
@@ -671,11 +671,11 @@ const History = () => {
                                                 sx: {
                                                     backgroundColor: '#E7F1FF',
                                                     color: '#164563',
-                                                    fontFamily: 'DM Sans, sans-serif',
+                                                    fontFamily: 'var(--font-family-ui)',
                                                     fontSize: '14px',
                                                     fontWeight: 500,
                                                     padding: '4px 12px',
-                                                    borderRadius: '8px',
+                                                    borderRadius: 'var(--radius-2)',
                                                     boxShadow: 'none',
                                                 },
                                             },
@@ -724,11 +724,11 @@ const History = () => {
                                                     sx: {
                                                         backgroundColor: '#E7F1FF',
                                                         color: '#164563',
-                                                        fontFamily: 'DM Sans, sans-serif',
+                                                        fontFamily: 'var(--font-family-ui)',
                                                         fontSize: '14px',
                                                         fontWeight: 500,
                                                         padding: '4px 12px',
-                                                        borderRadius: '8px',
+                                                        borderRadius: 'var(--radius-2)',
                                                         boxShadow: 'none',
                                                     },
                                                 },
@@ -874,7 +874,7 @@ const History = () => {
                             ))
                         ) : (
                             <Typography sx={{
-                                fontFamily: 'DM Sans, sans-serif',
+                                fontFamily: 'var(--font-family-ui)',
                                 fontSize: '14px',
                                 color: '#646464',
                             }}>

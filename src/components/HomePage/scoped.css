@@ -43,7 +43,7 @@
     /* flex: 1; */
     padding-top: 50px;
     /* Increased padding-top to move content lower */
-    padding: 20px;
+    padding: var(--space-5);
     justify-content: center;
     /* overflow-y: auto; */
 }
@@ -67,7 +67,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 24px;
+    gap: var(--space-6);
     padding: 9vh max(4vw, 24px) 6vh;
     text-align: center;
 }
@@ -75,12 +75,12 @@
 .homepage-hero-inner {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-3);
     max-width: 760px;
 }
 
 .glkb-title {
-    font-family: "Geist", sans-serif;
+    font-family: var(--font-family-sans);
     font-weight: 800;
     font-size: 36px;
     line-height: 1.2;
@@ -89,7 +89,7 @@
 }
 
 .glkb-subtitle {
-    font-family: "Geist", sans-serif;
+    font-family: var(--font-family-sans);
     font-weight: 600;
     font-size: 16px;
     line-height: 1.5;
@@ -103,8 +103,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 24px;
-    --example-item-gap: 12px;
+    gap: var(--space-6);
+    --example-item-gap: var(--space-3);
     container-type: inline-size;
 }
 
@@ -118,16 +118,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--space-3);
     margin: 0 12px 0;
     padding: 10px 14px;
-    border-radius: 16px 16px 0 0;
+    border-radius: var(--radius-4) 16px 0 0;
     border: none;
     background: #E7F1FF;
 }
 
 .homepage-limit-warning-text {
-    font-family: 'Geist', sans-serif;
+    font-family: var(--font-family-sans);
     font-size: 14px;
     font-weight: 500;
     color: var(--color-grey-900);
@@ -140,7 +140,7 @@
     color: var(--color-blue-500);
     border-radius: 999px;
     padding: 6px 14px;
-    font-family: 'Geist', sans-serif;
+    font-family: var(--font-family-sans);
     font-size: 13px;
     font-weight: 700;
     cursor: pointer;
@@ -162,7 +162,7 @@
     display: flex;
     flex-wrap: nowrap;
     justify-content: center;
-    gap: 12px;
+    gap: var(--space-3);
     margin-top: 0;
     position: relative;
     z-index: 1;
@@ -181,14 +181,14 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: var(--space-2);
     flex: 0 0 auto;
-    padding: 8px 12px;
-    border-radius: 8px !important;
+    padding: var(--space-2) 12px;
+    border-radius: var(--radius-2) !important;
     background-color: var(--color-grey-50);
     border: 0.5px solid var(--color-grey-100);
     color: var(--color-grey-800);
-    font-family: "Geist", sans-serif;
+    font-family: var(--font-family-sans);
     font-weight: 500;
     font-size: 12px;
     letter-spacing: 0.01em;
@@ -251,7 +251,7 @@
     }
 
     .homepage-pill {
-        padding: 8px 12px;
+        padding: var(--space-2) 12px;
         font-size: 12px;
     }
 }
@@ -264,7 +264,7 @@
     .homepage-pills {
         flex-wrap: nowrap;
         justify-content: center;
-        gap: 16px;
+        gap: var(--space-4);
     }
 
     .homepage-pill {
@@ -278,8 +278,8 @@
     right: 0;
     top: calc(100% + 24px);
     width: 100%;
-    padding: 16px;
-    border-radius: 16px !important;
+    padding: var(--space-4);
+    border-radius: var(--radius-4) !important;
     border: 1px solid #E7F1FF;
     background-color: #F5F6F8 !important;
     box-shadow: 0px 6px 18px rgba(22, 69, 99, 0.08) !important;
@@ -291,11 +291,11 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-3);
 }
 
 .homepage-examples-title {
-    font-family: "Geist", sans-serif !important;
+    font-family: var(--font-family-sans) !important;
     font-weight: 700 !important;
     font-size: 16px !important;
     color: var(--color-blue-500) !important;
@@ -329,13 +329,13 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 12px 14px;
-    border-radius: 16px;
+    gap: var(--space-3);
+    padding: var(--space-3) 14px;
+    border-radius: var(--radius-4);
     border: 0.5px solid var(--color-grey-100);
     background-color: #FCFDFD;
     color: var(--color-grey-900);
-    font-family: "Geist", sans-serif;
+    font-family: var(--font-family-sans);
     font-weight: 500;
     font-size: 15px;
     text-align: left;
@@ -372,7 +372,7 @@
     padding-right: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
+    gap: var(--space-4);
     align-items: stretch;
 }
 
@@ -383,7 +383,7 @@
     flex-direction: column;
     align-items: flex-start;
     justify-content: flex-start;
-    gap: 8px;
+    gap: var(--space-2);
     min-width: 0;
 }
 
@@ -417,13 +417,13 @@
 
 .footer {
     align-items: center;
-    padding: 0px;
+    padding: 0;
     color: var(--color-grey-400);
     font-size: 14px;
     width: 100%;
     text-align: center;
     margin-top: auto;
-    margin-bottom: 24px;
+    margin-bottom: var(--space-6);
 }
 
 .footer p {
@@ -470,7 +470,7 @@
     align-items: flex-start;
     width: 100%;
     margin: 0 auto;
-    border-radius: 8px;
+    border-radius: var(--radius-2);
     /* 设置圆角 */
     max-width: '883px';
 }
@@ -493,7 +493,7 @@
     height: auto;
     margin-bottom: 10px;
     white-space: normal;
-    padding: 16px;
+    padding: var(--space-4);
     text-align: left;
     color: black;
     background-color: #F4F6FE;
@@ -501,7 +501,7 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     transition: background-color 0.3s;
     flex: 1;
-    border-radius: 8px;
+    border-radius: var(--radius-2);
     justify-content: flex-start !important;
     align-items: flex-start;
     overflow: hidden;
@@ -532,10 +532,10 @@
 }
 
 .glkb-introduction {
-    font-family: "Open Sans", sans-serif;
+    font-family: var(--font-family-body);
     font-size: 20px;
     max-width: 750px;
-    margin: 20px auto;
+    margin: var(--space-5) auto;
     text-align: justify;
     padding: 0 20px;
 }
@@ -563,7 +563,7 @@
 @media (max-width: 900px) {
     .homepage-hero {
         padding: 8vh 20px 5vh;
-        gap: 24px;
+        gap: var(--space-6);
     }
 
     .glkb-title {
@@ -573,8 +573,8 @@
 
 .homepage-autocomplete-panel {
     width: 100%;
-    padding: 16px;
-    border-radius: 16px !important;
+    padding: var(--space-4);
+    border-radius: var(--radius-4) !important;
     border: 0.5px solid var(--color-grey-100);
     background-color: #F5F6F8 !important;
     box-shadow: none !important;
@@ -602,14 +602,14 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 12px;
-    padding: 12px 14px;
+    gap: var(--space-3);
+    padding: var(--space-3) 14px;
     margin: 0 !important;
-    border-radius: 16px !important;
+    border-radius: var(--radius-4) !important;
     border: 0.5px solid var(--color-grey-100);
     background-color: #FCFDFD;
     color: var(--color-grey-900);
-    font-family: "Geist", sans-serif;
+    font-family: var(--font-family-sans);
     font-weight: 500;
     font-size: 15px;
     text-align: left;

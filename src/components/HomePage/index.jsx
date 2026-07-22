@@ -291,7 +291,7 @@ const HomePage = () => {
                                 },
                                 tooltipContent: {
                                     textAlign: 'left',
-                                    fontFamily: 'Geist, sans-serif',
+                                    fontFamily: 'var(--font-family-sans)',
                                 }
                             }}
                             locale={{
@@ -317,7 +317,7 @@ const HomePage = () => {
                                 <Typography
                                     className="glkb-title"
                                     sx={{
-                                        fontFamily: 'Geist, sans-serif',
+                                        fontFamily: 'var(--font-family-sans)',
                                         fontWeight: 800,
                                         fontSize: isPhoneDevice ? '30px' : '40px',
                                         lineHeight: 1.1,
@@ -330,7 +330,7 @@ const HomePage = () => {
                                 <Typography
                                     className="glkb-subtitle"
                                     sx={{
-                                        fontFamily: 'Geist, sans-serif',
+                                        fontFamily: 'var(--font-family-sans)',
                                         fontWeight: 400,
                                         fontSize: '18px',
                                         color: 'var(--color-grey-500)',
@@ -448,10 +448,10 @@ const HomePage = () => {
 
                         <div className="footer">
                             <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
-                                <p style={{ fontFamily: 'Geist, sans-serif', textAlign: 'center', color: 'var(--color-grey-300)', fontSize: '14px', margin: 0 }}>
+                                <p style={{ fontFamily: 'var(--font-family-sans)', textAlign: 'center', color: 'var(--color-grey-300)', fontSize: '14px', margin: 0 }}>
                                     © 2026 GLKB – Genomic Literature Knowledge Base | glkb.org
                                 </p>
-                                <p style={{ fontFamily: 'Geist, sans-serif', textAlign: 'center', color: 'var(--color-grey-300)', fontSize: '14px', margin: 0 }}>
+                                <p style={{ fontFamily: 'var(--font-family-sans)', textAlign: 'center', color: 'var(--color-grey-300)', fontSize: '14px', margin: 0 }}>
                                     Developed and maintained by the <a className="homepage-lab-link" href="https://jieliu6.github.io/" target="_blank" rel="noopener noreferrer">Jie Liu Lab</a>, Department of Computational Medicine and Bioinformatics, University of Michigan.
                                 </p>
                             </div>
@@ -462,7 +462,7 @@ const HomePage = () => {
                             trackGtagEvent('home_tour_open_click', { source: 'floating_help_button' });
                             setRunTour(true);
                         }}
-                        // style={{ marginTop: '20px' }}
+                        // style={{ marginTop: 'var(--space-5)' }}
                         style={{
                             position: 'fixed',
                             bottom: isPhoneDevice ? '100px' : '24px',
@@ -474,7 +474,7 @@ const HomePage = () => {
                             backgroundColor: '#E7F1FF',
                             color: 'var(--color-blue-500)',
                             border: 'none',
-                            fontFamily: 'Geist, sans-serif',
+                            fontFamily: 'var(--font-family-sans)',
                             boxShadow: '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',
                         }}
                     >

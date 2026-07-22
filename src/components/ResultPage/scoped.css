@@ -33,8 +33,8 @@ all {
     /* min-width: 1200px; */
     height: 100%;
     position: relative;
-    padding-bottom: 0px;
-    padding-top: 0px;
+    padding-bottom: 0;
+    padding-top: 0;
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -43,7 +43,7 @@ all {
 }
 
 .subgrid {
-    margin-bottom: 24px;
+    margin-bottom: var(--space-6);
 }
 
 /* Header styles */
@@ -91,7 +91,7 @@ all {
 .floating-settings,
 .floating-information {
     position: fixed;
-    top: 0px;
+    top: 0;
     /* Position directly below navbar */
     height: calc(100vh);
     /* Full height minus navbar height */
@@ -130,7 +130,7 @@ all {
 .floating-information>div {
     height: 100%;
     overflow-y: auto;
-    padding: 20px;
+    padding: var(--space-5);
     box-sizing: border-box;
 }
 
@@ -166,17 +166,17 @@ all {
 }
 
 .settings-float-button.collapsed {
-    left: 24px;
+    left: var(--space-6);
 }
 
 .information-float-button.collapsed {
-    right: 24px;
+    right: var(--space-6);
 }
 
 .result-split {
     display: flex;
     flex-direction: row;
-    gap: 48px;
+    gap: var(--space-12);
     height: 100%;
     flex: 1;
     min-height: 0;
@@ -208,7 +208,7 @@ all {
 }
 
 .result-left {
-    gap: 24px;
+    gap: var(--space-6);
 }
 
 /* Graph container */
@@ -230,8 +230,8 @@ all {
 
 .graph-bookmark-button {
     position: absolute !important;
-    top: 8px;
-    right: 8px;
+    top: var(--space-2);
+    right: var(--space-2);
     z-index: 30;
     width: 36px;
     min-width: 36px !important;
@@ -266,11 +266,11 @@ all {
 }
 
 .graph-container.expanded-left {
-    margin-left: 20px;
+    margin-left: var(--space-5);
 }
 
 .graph-container.expanded-left.expanded-right {
-    margin-right: 20px;
+    margin-right: var(--space-5);
 }
 
 /* Hide scrollbars */
@@ -297,7 +297,7 @@ all {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     text-align: center;
 }
 
@@ -342,21 +342,21 @@ all {
     .settings-float-button,
     .information-float-button {
         top: auto;
-        bottom: 24px;
+        bottom: var(--space-6);
     }
 
     .settings-float-button {
-        left: 24px;
+        left: var(--space-6);
     }
 
     .information-float-button {
-        right: 24px;
+        right: var(--space-6);
     }
 }
 
 .search-bar-container {
     /* position: absolute; */
-    /* top: 96px; */
+    /* top: var(--space-24); */
     /* Position right below the navbar */
     width: 100%;
     /* align-self: center; */
@@ -385,14 +385,14 @@ all {
 
 .search-bar-wrapper .MuiContainer-root {
     max-width: none;
-    padding: 0px !important;
+    padding: 0 !important;
 }
 
 .search-bar-wrapper .css-ganwlh-MuiContainer-root {
-    padding-left: 0px;
+    padding-left: 0;
     padding-right: 10px;
-    margin-right: 0px;
-    margin-left: 0px;
+    margin-right: 0;
+    margin-left: 0;
     max-width: none;
 }
 
@@ -408,36 +408,36 @@ all {
 
 .examples-popover {
     margin-top: 0;
-    border-radius: 16px !important;
+    border-radius: var(--radius-4) !important;
     box-shadow: 0px 6px 18px rgba(15, 23, 42, 0.12);
     border: 1px solid #E6F0FC;
 }
 
 .examples-popover-content {
-    padding: 16px 18px;
+    padding: var(--space-4) 18px;
     width: min(700px, 90vw);
     box-sizing: border-box;
 }
 
 .examples-popover-title {
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-family-ui);
     font-weight: 700;
     font-size: 16px;
     color: #164563;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-3);
 }
 
 .examples-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-3);
 }
 
 .example-card {
     border: 1px solid #E6F0FC;
     background: var(--color-neutral-white);
-    border-radius: 16px;
-    padding: 12px 14px;
+    border-radius: var(--radius-4);
+    padding: var(--space-3) 14px;
     text-align: left;
     cursor: pointer;
     display: flex;
@@ -452,7 +452,7 @@ all {
 }
 
 .example-description {
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-family-ui);
     font-weight: 500;
     font-size: 13px;
     color: #646464;
@@ -464,7 +464,7 @@ all {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--space-3);
 }
 
 .example-arrow-icon {
@@ -476,7 +476,7 @@ all {
 .example-pill-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px 12px;
+    gap: var(--space-2) 12px;
 }
 
 .example-pill .explore-pill-label {
@@ -535,7 +535,7 @@ all {
 /* Convert to article graph button */
 .convert-graph-button {
     position: fixed;
-    /* top: 120px; */
+    /* top: var(--space-30); */
     /* left: 50%; */
     transform: translateX(-50%);
     z-index: 1002;
@@ -557,7 +557,7 @@ all {
 .graph-controls {
     display: flex;
     justify-content: center;
-    /* padding-right: 16px; */
+    /* padding-right: var(--space-4); */
 }
 
 .graph-controls .ant-btn {
@@ -568,8 +568,8 @@ all {
 .graph-control-button-container {
     z-index: 20;
     position: absolute;
-    top: 20px;
-    right: 20px;
+    top: var(--space-5);
+    right: var(--space-5);
 }
 
 .start-tour-button {
@@ -600,8 +600,8 @@ all {
     /* background-color: rgba(255, 255, 255, 0.95); */
     position: relative;
     right: 0;
-    padding: 12px 16px;
-    border-radius: 8px;
+    padding: var(--space-3) 16px;
+    border-radius: var(--radius-2);
     /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); */
     z-index: 1000;
     width: 100%;
@@ -614,11 +614,11 @@ all {
 }
 
 .legend-subsection {
-    margin-bottom: 20px;
+    margin-bottom: var(--space-5);
 }
 
 .legend-subtitle {
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-body);
     font-weight: 600;
     font-size: 16px;
     line-height: 32px;
@@ -628,21 +628,21 @@ all {
 .legend-row {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
 }
 
 .legend-column {
     display: flex;
     align-items: start;
     flex-direction: row;
-    gap: 20px;
-    margin: 0px;
+    gap: var(--space-5);
+    margin: 0;
     padding-top: 10px;
     flex-wrap: wrap;
 }
 
 .legend-label {
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-body);
     display: flex;
     align-items: center;
     font-size: 14px;
@@ -655,8 +655,8 @@ all {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 4px;
-    margin: 4px 0;
+    padding: var(--space-2) 4px;
+    margin: var(--space-1) 0;
 }
 
 .legend-circle {
@@ -680,7 +680,7 @@ all {
 
 .legend-item .anticon-info-circle {
     font-size: 14px;
-    margin-left: 4px;
+    margin-left: var(--space-1);
 }
 
 .legend-item:hover {
@@ -689,24 +689,24 @@ all {
 }
 
 .ant-tooltip-inner {
-    padding: 4px 8px;
+    padding: var(--space-1) 8px;
     font-size: 12px;
 }
 
 .legend-toggle-button {
     position: fixed;
-    bottom: 20px;
+    bottom: var(--space-5);
     left: 33.5%;
     transform: translateX(-50%);
     z-index: 1000;
     background-color: #4a7298;
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-1);
     padding: 6px 16px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     transition: all 0.3s ease;
 }

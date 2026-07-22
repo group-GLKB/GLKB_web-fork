@@ -226,7 +226,7 @@ const ConversationCard = ({
                                 titleContent
                             ) : (
                                 <Typography className="history-title" sx={{
-                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontFamily: 'var(--font-family-ui)',
                                     fontWeight: 600,
                                     fontSize: '16px',
                                     color: '#164563',
@@ -248,7 +248,7 @@ const ConversationCard = ({
                                 sx={{
                                     width: 28,
                                     height: 28,
-                                    borderRadius: '8px',
+                                    borderRadius: 'var(--radius-2)',
                                     color: '#164563',
                                 }}
                             >
@@ -257,7 +257,7 @@ const ConversationCard = ({
                         )}
                     </Box>
                     <Typography sx={{
-                        fontFamily: 'DM Sans, sans-serif',
+                        fontFamily: 'var(--font-family-ui)',
                         fontWeight: 400,
                         fontSize: '14px',
                         color: '#646464',
@@ -272,7 +272,7 @@ const ConversationCard = ({
                         footerContent
                     ) : (timestamp !== undefined && timestamp !== null && (
                         <Typography sx={{
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'var(--font-family-ui)',
                             fontWeight: 500,
                             fontSize: '12px',
                             color: '#808080',
@@ -298,10 +298,10 @@ const ConversationCard = ({
                     PaperProps={{
                         sx: {
                             minWidth: 176,
-                            borderRadius: 2,
+                            borderRadius: 'var(--radius-2)',
                             boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
                             '& .MuiMenuItem-root': {
-                                fontFamily: 'DM Sans, sans-serif',
+                                fontFamily: 'var(--font-family-ui)',
                                 fontSize: '13px',
                                 fontWeight: 500,
                                 color: '#164563',
@@ -355,7 +355,7 @@ const ConversationCard = ({
                                     primaryTypographyProps={{
                                         sx: {
                                             color: '#B42318',
-                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontFamily: 'var(--font-family-ui)',
                                             fontSize: '13px',
                                             fontWeight: 500,
                                         },

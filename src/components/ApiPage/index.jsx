@@ -389,7 +389,7 @@ const ApiPage = () => {
                         <Box className="api-title-row">
                             <CodeBlocksIcon className="api-icon" style={{ width: 36, height: 36, color: '#164563' }} />
                             <Typography sx={{
-                                fontFamily: 'DM Sans, sans-serif',
+                                fontFamily: 'var(--font-family-ui)',
                                 fontWeight: 600,
                                 fontSize: '32px',
                                 color: '#164563',
@@ -417,7 +417,7 @@ const ApiPage = () => {
                                     },
                                     '& .MuiTab-root': {
                                         textTransform: 'none',
-                                        fontFamily: 'DM Sans, sans-serif',
+                                        fontFamily: 'var(--font-family-ui)',
                                         fontSize: '13px',
                                         fontWeight: 600,
                                         color: '#164563',
@@ -441,8 +441,8 @@ const ApiPage = () => {
                             <>
                                 <Typography sx={{
                                     marginTop: '36px',
-                                    marginBottom: '12px',
-                                    fontFamily: 'DM Sans, sans-serif',
+                                    marginBottom: 'var(--space-3)',
+                                    fontFamily: 'var(--font-family-ui)',
                                     fontWeight: 700,
                                     fontSize: '24px',
                                     color: '#164563',
@@ -983,7 +983,7 @@ const ApiPage = () => {
                         <DialogContent className="api-keys-dialog">
                             <Typography
                                 sx={{
-                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontFamily: 'var(--font-family-ui)',
                                     fontSize: '14px',
                                     lineHeight: 1.6,
                                     color: '#164563',

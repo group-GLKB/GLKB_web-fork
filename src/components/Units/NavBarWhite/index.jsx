@@ -502,11 +502,11 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                 sx: {
                     backgroundColor: 'var(--color-blue-50)',
                     color: 'var(--color-grey-900)',
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: 'var(--font-family-ui)',
                     fontWeight: 500,
                     fontSize: '14px',
                     padding: '4px 12px',
-                    borderRadius: '8px',
+                    borderRadius: 'var(--radius-2)',
                     boxShadow: 'none',
                 },
             },
@@ -541,7 +541,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                     minHeight: 36,
                     mb: item.noBottomMargin ? 0 : 2,
                     py: 0,
-                    borderRadius: 1,
+                    borderRadius: 'var(--radius-1)',
                     justifyContent: 'flex-start',
                     px: 0,
                     color: 'var(--color-grey-800)',
@@ -574,7 +574,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                         sx={{
                             width: 36,
                             height: 36,
-                            borderRadius: '4px',
+                            borderRadius: 'var(--radius-1)',
                             backgroundColor: 'transparent',
                             color: 'var(--color-grey-400)',
                             display: 'flex',
@@ -589,7 +589,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                 <ListItemText
                     primary={item.label}
                     primaryTypographyProps={{
-                        fontFamily: 'Geist, sans-serif',
+                        fontFamily: 'var(--font-family-sans)',
                         fontWeight: 500,
                         fontSize: '16px',
                         lineHeight: '28px',
@@ -772,7 +772,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                             width: 36,
                                             height: 36,
                                             ml: 'auto',
-                                            borderRadius: '4px',
+                                            borderRadius: 'var(--radius-1)',
                                             color: 'var(--color-grey-600)',
                                             flexShrink: 0,
                                             '&:hover': {
@@ -806,7 +806,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                             <Typography
                                 className="sidebar-recent-title"
                                 sx={{
-                                    fontFamily: 'Geist, sans-serif',
+                                    fontFamily: 'var(--font-family-sans)',
                                     fontWeight: 500,
                                     fontSize: '12px',
                                     lineHeight: '16px',
@@ -870,7 +870,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                         padding: isActiveRecent ? '4px 8px' : 0,
                                                         margin: isActiveRecent ? '-4px 0' : 0,
                                                         borderRadius: isActiveRecent ? '4px' : 0,
-                                                        fontFamily: 'Geist, sans-serif',
+                                                        fontFamily: 'var(--font-family-sans)',
                                                         fontSize: '12px',
                                                         fontWeight: isActiveRecent ? 500 : 400,
                                                         lineHeight: '16px',
@@ -910,7 +910,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                         transform: 'translateY(-50%)',
                                                         width: 24,
                                                         height: 24,
-                                                        borderRadius: '8px',
+                                                        borderRadius: 'var(--radius-2)',
                                                         color: 'var(--color-grey-900)',
                                                         opacity: 0,
                                                         pointerEvents: 'none',
@@ -999,7 +999,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                             sx={{
                                 width: 40,
                                 height: 40,
-                                borderRadius: '12px',
+                                borderRadius: 'var(--radius-3)',
                                 backgroundColor: isHomeRoute ? 'transparent' : 'var(--color-grey-100)',
                                 color: '#646464',
                                 '&:hover': {
@@ -1061,10 +1061,10 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                 PaperProps={{
                     sx: {
                         minWidth: 176,
-                        borderRadius: 2,
+                        borderRadius: 'var(--radius-2)',
                         boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
                         '& .MuiMenuItem-root': {
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'var(--font-family-ui)',
                             fontSize: '13px',
                             fontWeight: 500,
                             color: 'var(--color-grey-900)',
@@ -1101,7 +1101,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                         primaryTypographyProps={{
                             sx: {
                                 color: 'var(--color-red-700)',
-                                fontFamily: 'DM Sans, sans-serif',
+                                fontFamily: 'var(--font-family-ui)',
                                 fontSize: '13px',
                                 fontWeight: 500,
                             },
@@ -1129,17 +1129,17 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                 PaperProps={{
                     sx: {
                         minWidth: 240,
-                        borderRadius: '12px',
+                        borderRadius: 'var(--radius-3)',
                         boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
                         '& .MuiMenuItem-root': {
                             color: 'var(--color-grey-800)',
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'var(--font-family-ui)',
                             fontWeight: 400,
                             fontSize: '14px',
                         },
                         '& .MuiListItemText-primary': {
                             color: 'var(--color-grey-800)',
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'var(--font-family-ui)',
                             fontWeight: 400,
                             fontSize: '14px',
                         },
@@ -1165,7 +1165,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                 >
                     <Typography
                         sx={{
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'var(--font-family-ui)',
                             fontWeight: 400,
                             fontSize: '14px',
                             color: 'var(--color-grey-800)',

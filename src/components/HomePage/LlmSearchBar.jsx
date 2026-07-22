@@ -108,7 +108,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 height: '60px', // Adjust the height of the input field
                                 alignItems: 'center', // Center the text vertically
                                 paddingRight: '10px', // Remove right padding
-                                fontFamily: 'Open Sans, sans-serif',
+                                fontFamily: 'var(--font-family-body)',
                                 '& fieldset': {
                                     border: 'none',
                                 },
@@ -165,9 +165,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             borderColor: '#E6F0FC',
                             boxShadow: '0px 2px 3px -1px var(--color-neutral-black)26',
                             marginBottom: '5px',
-                            paddingTop: '0px',
+                            paddingTop: '0',
                             overflow: 'hidden',
-                            fontFamily: 'Open Sans, sans-serif',
+                            fontFamily: 'var(--font-family-body)',
                             "& .MuiAutocomplete-option.Mui-focused": {
                                 backgroundColor: '#EDF5FE !important',
                             },
@@ -175,11 +175,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 color: '#196ED8 !important',
                             },
                             "& .MuiAutocomplete-listbox": {
-                                paddingTop: '0px'
+                                paddingTop: '0'
                             },
                             "& .MuiAutocomplete-groupLabel": {
                                 height: '36px',
-                                fontFamily: 'Open Sans, sans-serif',
+                                fontFamily: 'var(--font-family-body)',
                             }
                         }}
                     >

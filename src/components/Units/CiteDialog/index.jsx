@@ -130,7 +130,7 @@ const CiteDialog = ({ open, onClose, citation }) => {
             fullWidth
             PaperProps={{
                 sx: {
-                    borderRadius: '12px',
+                    borderRadius: 'var(--radius-3)',
                     padding: '8px',
                 },
             }}
@@ -139,7 +139,7 @@ const CiteDialog = ({ open, onClose, citation }) => {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                fontFamily: 'Open Sans, sans-serif',
+                fontFamily: 'var(--font-family-body)',
                 fontSize: '20px',
                 fontWeight: 600,
             }}>
@@ -159,7 +159,7 @@ const CiteDialog = ({ open, onClose, citation }) => {
                                 mb: 1,
                             }}>
                                 <Typography sx={{
-                                    fontFamily: 'Open Sans, sans-serif',
+                                    fontFamily: 'var(--font-family-body)',
                                     fontWeight: 600,
                                     fontSize: '14px',
                                 }}>
@@ -169,8 +169,8 @@ const CiteDialog = ({ open, onClose, citation }) => {
                             <Box sx={{
                                 backgroundColor: '#f5f5f5',
                                 padding: '12px',
-                                borderRadius: '8px',
-                                fontFamily: 'Open Sans, sans-serif',
+                                borderRadius: 'var(--radius-2)',
+                                fontFamily: 'var(--font-family-body)',
                                 fontSize: '14px',
                                 cursor: 'pointer',
                                 '&:hover': {
@@ -191,9 +191,9 @@ const CiteDialog = ({ open, onClose, citation }) => {
                             variant="outlined"
                             onClick={() => handleCopyCitation('BibTeX')}
                             sx={{
-                                fontFamily: 'Open Sans, sans-serif',
+                                fontFamily: 'var(--font-family-body)',
                                 textTransform: 'none',
-                                borderRadius: '8px',
+                                borderRadius: 'var(--radius-2)',
                                 padding: '8px 24px',
                             }}
                         >
@@ -203,9 +203,9 @@ const CiteDialog = ({ open, onClose, citation }) => {
                             variant="outlined"
                             onClick={() => handleCopyCitation('EndNote')}
                             sx={{
-                                fontFamily: 'Open Sans, sans-serif',
+                                fontFamily: 'var(--font-family-body)',
                                 textTransform: 'none',
-                                borderRadius: '8px',
+                                borderRadius: 'var(--radius-2)',
                                 padding: '8px 24px',
                             }}
                         >

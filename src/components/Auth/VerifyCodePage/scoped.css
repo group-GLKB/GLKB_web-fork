@@ -4,13 +4,13 @@
   align-items: center;
   min-height: calc(100vh - 75px);
   background-color: #f5f5f5;
-  padding: 40px 20px;
+  padding: var(--space-10) 20px;
 }
 
 .verify-modal {
   background: white;
-  border-radius: 12px;
-  padding: 48px;
+  border-radius: var(--radius-3);
+  padding: var(--space-12);
   width: 100%;
   max-width: 480px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -18,7 +18,7 @@
 }
 
 .email-icon {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -33,14 +33,14 @@
 .verify-title {
   font-size: 28px;
   color: #1e3a5f;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
   font-weight: 600;
 }
 
 .verify-subtitle {
   font-size: 15px;
   color: var(--color-grey-500);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
   line-height: 1.5;
 }
 
@@ -48,11 +48,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 32px;
-  padding: 12px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
+  padding: var(--space-3);
   background-color: #f8f9fa;
-  border-radius: 8px;
+  border-radius: var(--radius-2);
 }
 
 .email-text {
@@ -67,7 +67,7 @@
   color: #4285f4;
   font-size: 15px;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: var(--space-1) 8px;
   transition: color 0.2s ease;
   text-decoration: none;
 }
@@ -79,16 +79,16 @@
 
 .code-inputs {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   justify-content: center;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .code-input {
   width: 56px;
   height: 56px;
   border: 2px solid #d9d9d9;
-  border-radius: 8px;
+  border-radius: var(--radius-2);
   font-size: 24px;
   font-weight: 600;
   text-align: center;
@@ -109,12 +109,12 @@
   padding: 14px;
   background-color: #4169E1;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-2);
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s ease;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
   color: white;
 }
 
@@ -128,7 +128,7 @@
 }
 
 .resend-section {
-  margin: 24px 0;
+  margin: var(--space-6) 0;
   font-size: 14px;
 }
 
@@ -161,7 +161,7 @@
   color: #999;
   font-size: 13px;
   line-height: 1.5;
-  margin-top: 24px;
+  margin-top: var(--space-6);
 }
 
 .privacy-text a {
@@ -176,8 +176,8 @@
 .error-message {
   color: #ff4d4f;
   font-size: 14px;
-  margin-bottom: 16px;
-  padding: 12px;
+  margin-bottom: var(--space-4);
+  padding: var(--space-3);
   background-color: #fff2f0;
   border-radius: 6px;
   border: 1px solid #ffccc7;
@@ -186,8 +186,8 @@
 .success-message {
   color: #52c41a;
   font-size: 14px;
-  margin-bottom: 16px;
-  padding: 12px;
+  margin-bottom: var(--space-4);
+  padding: var(--space-3);
   background-color: #f6ffed;
   border-radius: 6px;
   border: 1px solid #b7eb8f;

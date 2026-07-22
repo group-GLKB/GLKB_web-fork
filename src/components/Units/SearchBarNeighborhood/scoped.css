@@ -1,11 +1,11 @@
 /* Base styles for search components */
 .search-autocomplete-box {
     background-color: white;
-    border-radius: 4px;
+    border-radius: var(--radius-1);
 }
 
 .search-autocomplete-box .MuiOutlinedInput-root {
-    border-radius: 4px;
+    border-radius: var(--radius-1);
     border: 1px solid #d9d9d9;
     height: 40px;
 }
@@ -21,7 +21,7 @@
 /* Dropdown styles */
 .term-type-dropdown {
     background-color: white;
-    border-radius: 4px;
+    border-radius: var(--radius-1);
     height: 40px;
 }
 
@@ -40,11 +40,11 @@
     color: #333333 !important;
     font-size: 14px !important;
     font-weight: 400 !important;
-    font-family: 'Open Sans', sans-serif !important;
-    margin-bottom: 8px !important;
-    padding: 4px 8px !important;
+    font-family: var(--font-family-body) !important;
+    margin-bottom: var(--space-2) !important;
+    padding: var(--space-1) 8px !important;
     background-color: #f5f5f5 !important;
-    border-radius: 4px !important;
+    border-radius: var(--radius-1) !important;
     display: inline-block !important;
 }
 
@@ -55,7 +55,7 @@
 }
 
 .MuiAutocomplete-option {
-    padding: 8px 16px;
+    padding: var(--space-2) 16px;
 }
 
 .MuiAutocomplete-option:hover {

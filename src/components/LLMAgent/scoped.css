@@ -4,7 +4,7 @@
 }
 
 .ant-select-dropdown {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-body);
     font-size: 14px;
 }
 
@@ -130,7 +130,7 @@
     width: 18px;
     height: 44px;
     transform: translate(-50%, -50%);
-    border-radius: 8px;
+    border-radius: var(--radius-2);
     background-color: var(--color-blue-50);
     border: 1px solid var(--color-blue-200);
     box-shadow: 0 6px 16px rgba(22, 69, 99, 0.18);
@@ -139,8 +139,8 @@
 }
 
 .references-action-button.MuiIconButton-root {
-    padding: 4px;
-    border-radius: 4px;
+    padding: var(--space-1);
+    border-radius: var(--radius-1);
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
     width: 24px;
     height: 24px;
@@ -180,7 +180,7 @@
 }
 
 .references-container {
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-body);
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -194,14 +194,14 @@
 }
 
 .references-column {
-    padding: 16px 14px 24px 0;
+    padding: var(--space-4) 14px 24px 0;
     box-sizing: border-box;
     position: relative;
 }
 
 .references-column .references-container {
     border: 1px solid var(--color-grey-100);
-    border-radius: 16px;
+    border-radius: var(--radius-4);
     overflow: hidden;
     box-shadow: 0 2px 10px rgba(12, 16, 24, 0.04);
 }
@@ -216,7 +216,7 @@
     padding: 6px;
     border: 1px solid var(--color-grey-50);
     border-right: none;
-    border-radius: 4px 0 0 4px;
+    border-radius: var(--radius-1) 0 0 4px;
     background-color: var(--color-blue-100);
     color: var(--color-blue-500);
 }
@@ -240,22 +240,22 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 20px 24px;
+    gap: var(--space-3);
+    padding: var(--space-5) 24px;
     border-bottom: 1px solid var(--color-grey-50);
 }
 
 .references-header-main {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-3);
     min-width: 0;
     flex: 1;
 }
 
 .references-title {
     margin: 0;
-    font-family: 'Geist', sans-serif;
+    font-family: var(--font-family-sans);
     font-weight: 600;
     font-size: 16px;
     line-height: 20px;
@@ -274,7 +274,7 @@
     border-left: 1px solid var(--color-grey-50);
     background: transparent;
     color: var(--color-grey-400);
-    font-family: 'Geist', sans-serif;
+    font-family: var(--font-family-sans);
     font-size: 10px;
     line-height: 14px;
     cursor: pointer;
@@ -322,8 +322,8 @@
 .references-scope-panel {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    padding: 20px 24px;
+    gap: var(--space-4);
+    padding: var(--space-5) 24px;
     border-bottom: 1px solid var(--color-grey-50);
     background-color: var(--color-grey-25);
 }
@@ -334,12 +334,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: var(--space-4);
     padding: 0;
     border: none;
     background: transparent;
     color: var(--color-grey-950);
-    font-family: 'Geist', sans-serif;
+    font-family: var(--font-family-sans);
     font-size: 14px;
     font-weight: 600;
     line-height: 16px;
@@ -362,7 +362,7 @@
 .references-scope-radio {
     width: 20px;
     height: 20px;
-    border-radius: 12px;
+    border-radius: var(--radius-3);
     border: 1px solid var(--color-grey-200);
     box-sizing: border-box;
     flex-shrink: 0;
@@ -376,13 +376,13 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 24px;
+    padding: var(--space-2) 24px;
     border-bottom: 1px solid var(--color-grey-50);
     background-color: var(--color-blue-5);
 }
 
 .references-count-label {
-    font-family: 'Geist', sans-serif;
+    font-family: var(--font-family-sans);
     font-weight: 600;
     font-size: 12px;
     line-height: 16px;
@@ -392,7 +392,7 @@
 .references-toolbar-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
 }
 
 .references-sort-toggle.MuiToggleButtonGroup-root {
@@ -404,15 +404,15 @@
 
 .references-sort-toggle .MuiToggleButton-root {
     text-transform: none;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-family-ui);
     font-weight: 600;
     font-size: 12px;
     color: var(--color-grey-500);
     border: none;
-    padding: 4px 8px;
+    padding: var(--space-1) 8px;
     height: 22px;
     min-height: 22px;
-    border-radius: 4px !important;
+    border-radius: var(--radius-1) !important;
 }
 
 .references-sort-toggle .MuiToggleButton-root.Mui-selected {
@@ -425,7 +425,7 @@
 }
 
 .reference-item {
-    padding: 12px 0;
+    padding: var(--space-3) 0;
     border-bottom: 1px solid var(--color-grey-50);
 }
 
@@ -442,13 +442,13 @@
 }
 
 .reference-metadata {
-    margin: 4px 0;
+    margin: var(--space-1) 0;
     color: rgba(0, 0, 0, 0.45);
     font-size: 12px;
 }
 
 .reference-authors {
-    margin: 4px 0;
+    margin: var(--space-1) 0;
     color: rgba(0, 0, 0, 0.65);
     font-size: 12px;
 }
@@ -468,7 +468,7 @@
 .message {
     margin: 0.5rem 0;
     padding: 0.8rem;
-    border-radius: 8px;
+    border-radius: var(--radius-2);
     max-width: 80%;
     white-space: pre-wrap;
     cursor: pointer;
@@ -508,10 +508,10 @@
 
 .message-input {
     flex-grow: 1;
-    padding: 12px;
+    padding: var(--space-3);
     height: 42px;
     border: 1px solid var(--color-grey-100);
-    border-radius: 4px;
+    border-radius: var(--radius-1);
     font-size: 1rem;
     outline: none;
     background-color: white;
@@ -521,7 +521,7 @@
     padding: 0.8rem 1.5rem;
     background-color: var(--color-blue-50);
     border: 1px solid var(--color-grey-100);
-    border-radius: 4px;
+    border-radius: var(--radius-1);
     cursor: pointer;
     font-size: 1rem;
     font-weight: 600;
@@ -557,9 +557,9 @@
     align-items: center;
     padding-left: 56px;
     padding-right: 56px;
-    padding-top: 0px;
-    padding-bottom: 20px;
-    gap: 20px;
+    padding-top: 0;
+    padding-bottom: var(--space-5);
+    gap: var(--space-5);
     background: var(--color-blue-5);
     width: 100%;
     border-top: none;
@@ -570,7 +570,7 @@
     transform: translateX(-50%);
     z-index: 10;
     box-shadow: none;
-    border-radius: 4px;
+    border-radius: var(--radius-1);
 }
 
 .chat-container .chat-header {
@@ -585,7 +585,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--space-3);
     margin: 0 68px 0;
     padding: 10px 14px;
     border-radius: 10px 10px 0 0;
@@ -594,7 +594,7 @@
 }
 
 .llm-limit-warning-text {
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-family-ui);
     font-size: 14px;
     font-weight: 500;
     color: var(--color-grey-900);
@@ -606,7 +606,7 @@
     color: var(--color-blue-500);
     border-radius: 999px;
     padding: 6px 14px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-family-ui);
     font-size: 13px;
     font-weight: 700;
     cursor: pointer;
@@ -633,7 +633,7 @@
     visibility: hidden;
     flex: 1;
     overflow-y: auto;
-    padding: 16px;
+    padding: var(--space-4);
     width: 100%;
     margin-bottom: 0;
 }
@@ -645,7 +645,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: var(--space-2);
     background: rgba(248, 250, 252, 0.92);
     text-align: center;
     z-index: 2;
@@ -666,7 +666,7 @@
 
 .messages-container::-webkit-scrollbar-thumb {
     background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
+    border-radius: var(--radius-1);
 }
 
 .loading-step-label {
@@ -703,16 +703,16 @@
 .investigate-summary-row {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    margin-top: 8px;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
     margin-bottom: 10px;
     color: var(--color-grey-500);
-    font-family: 'Geist', sans-serif;
+    font-family: var(--font-family-sans);
     font-size: 12px;
     font-weight: 600;
     line-height: 16px;
     border-radius: 18px;
-    padding: 4px 8px 4px 0;
+    padding: var(--space-1) 8px 4px 0;
 }
 
 .investigate-summary-row.can-toggle {
@@ -739,8 +739,8 @@
 }
 
 .investigate-progress-shell {
-    margin-top: 8px;
-    margin-bottom: 12px;
+    margin-top: var(--space-2);
+    margin-bottom: var(--space-3);
     border-left: 2px solid var(--color-grey-200);
     padding-left: 14px;
 }
@@ -749,14 +749,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: var(--space-4);
     cursor: pointer;
 }
 
 .investigate-progress-head-left {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     min-width: 0;
 }
 
@@ -766,7 +766,7 @@
 }
 
 .investigate-progress-head-title {
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-family-ui);
     font-size: 16px;
     font-weight: 600;
     line-height: 1.4;
@@ -789,7 +789,7 @@
 .investigate-progress-head-right {
     display: inline-flex;
     align-items: center;
-    gap: 16px;
+    gap: var(--space-4);
     flex-shrink: 0;
 }
 
@@ -797,8 +797,8 @@
 .investigate-progress-notify {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-family: 'DM Sans', sans-serif;
+    gap: var(--space-1);
+    font-family: var(--font-family-ui);
     font-size: 16px;
     font-weight: 600;
     line-height: 1.4;
@@ -825,24 +825,24 @@ button.investigate-progress-notify.active {
 
 /* Figma Asking Question — inline clarify */
 .clarify-inline-panel {
-    margin: 12px 0 16px;
-    padding: 16px;
+    margin: var(--space-3) 0 16px;
+    padding: var(--space-4);
     border: 1px solid var(--color-blue-100);
-    border-radius: 16px;
+    border-radius: var(--radius-4);
     background: var(--color-blue-5);
     box-shadow: 0 4px 16px rgba(21, 93, 252, 0.06);
 }
 
 .clarify-inline-kicker {
-    font-family: 'Geist', 'DM Sans', sans-serif !important;
+    font-family: var(--font-family-sans) !important;
     font-size: 12px !important;
     font-weight: 600 !important;
     color: var(--color-blue-500) !important;
-    margin-bottom: 4px !important;
+    margin-bottom: var(--space-1) !important;
 }
 
 .clarify-inline-title {
-    font-family: 'Geist', 'DM Sans', sans-serif !important;
+    font-family: var(--font-family-sans) !important;
     font-size: 18px !important;
     font-weight: 700 !important;
     color: var(--color-grey-900) !important;
@@ -850,42 +850,42 @@ button.investigate-progress-notify.active {
 }
 
 .clarify-inline-reason {
-    font-family: 'DM Sans', sans-serif !important;
+    font-family: var(--font-family-ui) !important;
     font-size: 13px !important;
     color: var(--color-grey-500) !important;
     line-height: 1.45 !important;
-    margin-bottom: 12px !important;
+    margin-bottom: var(--space-3) !important;
 }
 
 .clarify-inline-card {
     border: 1px solid var(--color-grey-50);
-    border-radius: 12px;
-    padding: 12px;
+    border-radius: var(--radius-3);
+    padding: var(--space-3);
     background: var(--color-neutral-white);
 }
 
 .clarify-inline-header {
-    font-family: 'DM Sans', sans-serif !important;
+    font-family: var(--font-family-ui) !important;
     font-size: 12px !important;
     font-weight: 700 !important;
     color: var(--color-grey-500) !important;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    margin-bottom: 4px !important;
+    margin-bottom: var(--space-1) !important;
 }
 
 .clarify-inline-question {
-    font-family: 'DM Sans', sans-serif !important;
+    font-family: var(--font-family-ui) !important;
     font-size: 15px !important;
     font-weight: 500 !important;
     color: var(--color-grey-800) !important;
     line-height: 1.45 !important;
-    margin-bottom: 8px !important;
+    margin-bottom: var(--space-2) !important;
 }
 
 .clarify-inline-error {
-    margin-top: 12px !important;
-    font-family: 'DM Sans', sans-serif !important;
+    margin-top: var(--space-3) !important;
+    font-family: var(--font-family-ui) !important;
     font-size: 13px !important;
     color: var(--color-red-700) !important;
 }
@@ -893,15 +893,15 @@ button.investigate-progress-notify.active {
 .clarify-inline-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
-    margin-top: 16px;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
 }
 
 .investigate-progress-body {
     display: flex;
     flex-direction: column;
     gap: 14px;
-    padding: 4px 4px 8px;
+    padding: var(--space-1) 4px 8px;
 }
 
 .investigate-percent-row {
@@ -928,7 +928,7 @@ button.investigate-progress-notify.active {
 .investigate-percent-label {
     min-width: 40px;
     text-align: right;
-    font-family: 'Geist', 'DM Sans', sans-serif;
+    font-family: var(--font-family-sans);
     font-size: 13px;
     font-weight: 600;
     color: var(--color-blue-500);
@@ -937,11 +937,11 @@ button.investigate-progress-notify.active {
 .investigate-keywords-title,
 .investigate-live-papers-title {
     display: block;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-family-ui);
     font-size: 13px;
     font-weight: 600;
     color: var(--color-grey-600);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-2);
 }
 
 .investigate-keywords-chips {
@@ -954,12 +954,12 @@ button.investigate-progress-notify.active {
     display: inline-flex;
     align-items: center;
     max-width: 100%;
-    padding: 4px 10px;
+    padding: var(--space-1) 10px;
     border-radius: 999px;
     background: var(--color-blue-50);
     border: 1px solid var(--color-blue-100);
     color: var(--color-blue-600);
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-family-ui);
     font-size: 12px;
     line-height: 1.3;
 }
@@ -967,9 +967,9 @@ button.investigate-progress-notify.active {
 .investigate-keyword-more {
     display: inline-flex;
     align-items: center;
-    padding: 4px 8px;
+    padding: var(--space-1) 8px;
     color: var(--color-grey-500);
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-family-ui);
     font-size: 12px;
     font-weight: 600;
 }
@@ -980,14 +980,14 @@ button.investigate-progress-notify.active {
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
 }
 
 .investigate-live-papers-list li {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    padding: 8px 10px;
+    padding: var(--space-2) 10px;
     border-radius: 10px;
     background: #F8FAFD;
     border: 1px solid var(--color-grey-50);
@@ -996,7 +996,7 @@ button.investigate-progress-notify.active {
 .investigate-live-papers-list a {
     color: var(--color-blue-500);
     text-decoration: none;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-family-ui);
     font-size: 13px;
     font-weight: 500;
     line-height: 1.35;
@@ -1007,13 +1007,13 @@ button.investigate-progress-notify.active {
 }
 
 .investigate-live-paper-meta {
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-family-ui);
     font-size: 11px;
     color: #7A8BA3;
 }
 
 .investigate-progress-stage-count {
-    font-family: 'Geist', 'DM Sans', sans-serif;
+    font-family: var(--font-family-sans);
     font-size: 18px;
     font-weight: 600;
     line-height: 1.2;
@@ -1023,19 +1023,19 @@ button.investigate-progress-notify.active {
 .investigate-funnel-summary {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--space-2);
     margin: 0 0 12px;
 }
 
 .investigate-funnel-chip {
     display: inline-flex;
     align-items: baseline;
-    gap: 4px;
-    padding: 4px 10px;
+    gap: var(--space-1);
+    padding: var(--space-1) 10px;
     border-radius: 999px;
     background: var(--color-grey-50);
     color: var(--color-grey-500);
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-family-ui);
     font-size: 12px;
     font-weight: 500;
 }
@@ -1056,7 +1056,7 @@ button.investigate-progress-notify.active {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 14px;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-3);
 }
 
 .investigate-progress-stage {
@@ -1078,7 +1078,7 @@ button.investigate-progress-notify.active {
 
 .investigate-progress-stage-label {
     text-transform: uppercase;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-family-ui);
     font-size: 10px;
     font-weight: 500;
     letter-spacing: 0.04em;
@@ -1088,9 +1088,9 @@ button.investigate-progress-notify.active {
 .investigate-progress-angles {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-1);
     color: var(--color-grey-500);
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-family-ui);
 }
 
 .investigate-progress-angles-title {
@@ -1110,11 +1110,11 @@ button.investigate-progress-notify.active {
     .investigate-progress-head {
         flex-direction: column;
         align-items: flex-start;
-        gap: 8px;
+        gap: var(--space-2);
     }
 
     .investigate-progress-head-right {
-        gap: 12px;
+        gap: var(--space-3);
     }
 
     .investigate-progress-stages {
@@ -1166,7 +1166,7 @@ button.investigate-progress-notify.active {
 
 .references-list::-webkit-scrollbar-thumb {
     background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
+    border-radius: var(--radius-1);
 }
 
 .references-list {
@@ -1183,8 +1183,8 @@ button.investigate-progress-notify.active {
 
 .references-list>div {
     margin: 0;
-    padding: 16px 24px;
-    border-radius: 8px;
+    padding: var(--space-4) 24px;
+    border-radius: var(--radius-2);
     position: relative;
     box-sizing: border-box;
     transition: background-color 0.2s ease, border-radius 0.2s ease;
@@ -1196,7 +1196,7 @@ button.investigate-progress-notify.active {
 
 .references-list .reference-entry-wrapper.highlighted {
     background-color: var(--color-blue-25);
-    border-radius: 8px;
+    border-radius: var(--radius-2);
 }
 
 .references-list>div::after {
@@ -1213,11 +1213,11 @@ button.investigate-progress-notify.active {
 }
 
 .references-list>div:last-child {
-    padding-bottom: 16px;
+    padding-bottom: var(--space-4);
 }
 
 .message-wrapper {
-    padding: 8px 16px;
+    padding: var(--space-2) 16px;
     width: 100%;
     display: flex;
     align-items: center;
@@ -1231,8 +1231,8 @@ button.investigate-progress-notify.active {
 .message-wrapper.user .message {
     background-color: var(--color-neutral-white) !important;
     color: var(--color-grey-900);
-    border-radius: 8px;
-    padding: 8px 16px;
+    border-radius: var(--radius-2);
+    padding: var(--space-2) 16px;
     max-width: 800px;
 }
 
@@ -1246,11 +1246,11 @@ button.investigate-progress-notify.active {
 }
 
 .message-wrapper.assistant .message {
-    padding: 8px 0;
+    padding: var(--space-2) 0;
 }
 
 .message {
-    padding: 8px 0;
+    padding: var(--space-2) 0;
     max-width: 800px;
     width: fit-content;
 }
@@ -1263,7 +1263,7 @@ button.investigate-progress-notify.active {
 .system-icon {
     width: 32px;
     height: 32px;
-    margin-right: 8px;
+    margin-right: var(--space-2);
     border-radius: 50%;
     object-fit: contain;
     flex-shrink: 0;
@@ -1273,14 +1273,14 @@ button.investigate-progress-notify.active {
 }
 
 .reference-button-wrapper {
-    padding: 4px 16px;
+    padding: var(--space-1) 16px;
     display: flex;
     justify-content: flex-start;
 }
 
 .reference-button {
     font-size: 12px;
-    padding: 4px 12px;
+    padding: var(--space-1) 12px;
     height: auto;
     background: transparent;
     border: 1px solid var(--color-grey-100);
@@ -1314,16 +1314,16 @@ button.investigate-progress-notify.active {
 
 .message.streaming {
     background-color: #f5f5f5;
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 8px;
+    border-radius: var(--radius-2);
+    padding: var(--space-3);
+    margin-bottom: var(--space-2);
     max-width: 100%;
     overflow-wrap: break-word;
 }
 
 .message-wrapper {
     display: flex;
-    gap: 12px;
+    gap: var(--space-3);
     width: 100%;
 }
 
@@ -1340,8 +1340,8 @@ button.investigate-progress-notify.active {
 .reasoning-section,
 .response-section {
     background-color: #f8f9fa;
-    border-radius: 8px;
-    margin-bottom: 16px;
+    border-radius: var(--radius-2);
+    margin-bottom: var(--space-4);
     overflow: hidden;
 }
 
@@ -1349,21 +1349,21 @@ button.investigate-progress-notify.active {
 .response-header {
     display: flex;
     align-items: center;
-    padding: 12px 16px;
+    padding: var(--space-3) 16px;
     background-color: #f0f2f5;
     border-bottom: 1px solid #e4e6eb;
 }
 
 .reasoning-header span,
 .response-header span {
-    margin-left: 8px;
+    margin-left: var(--space-2);
     font-weight: 500;
     color: #1a1a1a;
 }
 
 .reasoning-content,
 .response-content {
-    padding: 16px;
+    padding: var(--space-4);
     color: #333;
     line-height: 1.5;
 }
@@ -1381,8 +1381,8 @@ button.investigate-progress-notify.active {
 .message-wrapper.user .message {
     background-color: var(--color-grey-100) !important;
     color: var(--color-grey-900);
-    border-radius: 8px;
-    padding: 8px 16px;
+    border-radius: var(--radius-2);
+    padding: var(--space-2) 16px;
     max-width: 480px;
 }
 
@@ -1393,9 +1393,9 @@ button.investigate-progress-notify.active {
 .messages-container {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--space-4);
     overflow-y: auto;
-    padding: 16px;
+    padding: var(--space-4);
     flex-grow: 1;
 }
 
@@ -1416,8 +1416,8 @@ button.investigate-progress-notify.active {
 .message-pair {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
 }
 
 .message-pair:last-child {
@@ -1427,7 +1427,7 @@ button.investigate-progress-notify.active {
 .assistant-response {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--space-4);
 }
 
 .reasoning-section,
@@ -1437,27 +1437,27 @@ button.investigate-progress-notify.active {
 
 .message-pair {
     display: flex;
-    gap: 16px;
-    margin-bottom: 16px;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
     width: 100%;
 }
 
 .step-item {
-    font-family: 'Open Sans', sans-serif;
-    margin: 8px 0;
+    font-family: var(--font-family-body);
+    margin: var(--space-2) 0;
     line-height: 1.5;
 }
 
 .step-item strong {
     color: #666;
-    margin-right: 8px;
+    margin-right: var(--space-2);
 }
 
 .reasoning-content {
-    padding: 12px;
+    padding: var(--space-3);
     background: #f9f9f9;
-    border-radius: 8px;
-    margin-top: 8px;
+    border-radius: var(--radius-2);
+    margin-top: var(--space-2);
 }
 
 .empty-components-container {
@@ -1486,7 +1486,7 @@ button.investigate-progress-notify.active {
     text-align: center;
     margin-left: 56px;
     margin-right: 56px;
-    gap: 4px;
+    gap: var(--space-1);
     width: calc(100% - 112px);
 }
 
@@ -1497,7 +1497,7 @@ button.investigate-progress-notify.active {
 }
 
 .example-query-list {
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-body);
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
@@ -1509,16 +1509,16 @@ button.investigate-progress-notify.active {
 
 @media (max-width: 700px) {
     .chat-header {
-        padding-left: 24px;
-        padding-right: 24px;
-        padding-bottom: 24px;
+        padding-left: var(--space-6);
+        padding-right: var(--space-6);
+        padding-bottom: var(--space-6);
     }
 
     .example-query-list {
         flex-direction: column;
-        gap: 12px;
+        gap: var(--space-3);
         align-items: center;
-        padding-bottom: 12px;
+        padding-bottom: var(--space-3);
     }
 }
 
@@ -1532,7 +1532,7 @@ button.investigate-progress-notify.active {
 .example-query {
     align-items: flex-start;
     background-color: #F4F9FE;
-    border-radius: 8px;
+    border-radius: var(--radius-2);
     border: 1.5px solid #e2e8f0;
     color: #333;
     color: #4A5568;
@@ -1549,7 +1549,7 @@ button.investigate-progress-notify.active {
     min-height: 70px;
     min-width: 185px;
     overflow: hidden;
-    padding: 16px;
+    padding: var(--space-4);
     text-align: left;
     transition: all 0.2s ease;
     width: auto;
@@ -1564,7 +1564,7 @@ button.investigate-progress-notify.active {
 @media (max-width: 700px) {
     .example-query {
         font-size: 14px;
-        padding: 12px;
+        padding: var(--space-3);
         min-width: 100%;
         max-width: 100%;
         margin: 0;
@@ -1596,7 +1596,7 @@ button.investigate-progress-notify.active {
 } */
 
 .response-content {
-    padding: 16px;
+    padding: var(--space-4);
     color: #333;
     line-height: 1.5;
 }
@@ -1608,19 +1608,19 @@ button.investigate-progress-notify.active {
 .response-content code {
     background-color: #f5f5f5;
     padding: 2px 4px;
-    border-radius: 4px;
+    border-radius: var(--radius-1);
     font-family: monospace;
 }
 
 .response-content pre {
     background-color: #f5f5f5;
     padding: 1em;
-    border-radius: 4px;
+    border-radius: var(--radius-1);
     overflow-x: auto;
 }
 
 .response-content blockquote {
-    border-left: 4px solid #ddd;
+    border-left: var(--space-1) solid #ddd;
     margin: 0;
     padding-left: 1em;
 }
@@ -1655,9 +1655,9 @@ button.investigate-progress-notify.active {
 .message-actions {
     display: none;
     position: absolute;
-    bottom: 8px;
-    right: 8px;
-    gap: 8px;
+    bottom: var(--space-2);
+    right: var(--space-2);
+    gap: var(--space-2);
 }
 
 /* 用户消息和助手消息的操作按钮 */
@@ -1669,7 +1669,7 @@ button.investigate-progress-notify.active {
 .message-action-button {
     background-color: rgba(255, 255, 255, 0.8);
     border: 1px solid var(--color-grey-100);
-    border-radius: 4px;
+    border-radius: var(--radius-1);
     width: 28px;
     height: 28px;
     display: flex;
@@ -1715,7 +1715,7 @@ button.investigate-progress-notify.active {
 .message-wrapper.editing .message {
     background-color: #f9f9f9;
     border: 1px dashed #ccc;
-    padding: 12px;
+    padding: var(--space-3);
 }
 
 /* 编辑框样式 */
@@ -1723,7 +1723,7 @@ button.investigate-progress-notify.active {
     width: 100%;
     padding: 10px;
     border: 1px solid #d9d9d9;
-    border-radius: 4px;
+    border-radius: var(--radius-1);
     font-size: 1rem;
     font-family: inherit;
     outline: none;
@@ -1735,14 +1735,14 @@ button.investigate-progress-notify.active {
 .edit-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    margin-top: 8px;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
 }
 
 /* 编辑操作按钮 */
 .edit-action-button {
     padding: 6px 12px;
-    border-radius: 4px;
+    border-radius: var(--radius-1);
     cursor: pointer;
     font-size: 14px;
     transition: all 0.2s;
@@ -1772,13 +1772,13 @@ button.investigate-progress-notify.active {
 /* 复制成功提示样式 */
 .copy-tooltip {
     position: fixed;
-    top: 20px;
+    top: var(--space-5);
     left: 50%;
     transform: translateX(-50%);
     background-color: rgba(0, 0, 0, 0.7);
     color: white;
-    padding: 8px 16px;
-    border-radius: 4px;
+    padding: var(--space-2) 16px;
+    border-radius: var(--radius-1);
     font-size: 14px;
     z-index: 1100;
     opacity: 0;
@@ -1801,8 +1801,8 @@ button.investigate-progress-notify.active {
 .message-wrapper.assistant .MuiIconButton-root {
     width: 24px;
     height: 24px;
-    padding: 4px;
-    border-radius: 4px;
+    padding: var(--space-1);
+    border-radius: var(--radius-1);
     color: var(--color-grey-400);
 }
 
@@ -1818,7 +1818,7 @@ button.investigate-progress-notify.active {
     position: relative;
     text-decoration: none;
     color: var(--color-grey-800);
-    font-family: 'Geist', sans-serif;
+    font-family: var(--font-family-sans);
     font-size: 10px;
     font-weight: 400;
     line-height: 12px;
@@ -1872,10 +1872,10 @@ button.investigate-progress-notify.active {
 
 .llm-header-references-toggle.MuiButton-root {
     min-width: 0;
-    padding: 4px;
-    border-radius: 4px;
+    padding: var(--space-1);
+    border-radius: var(--radius-1);
     color: var(--color-grey-500);
-    font-family: 'Geist', sans-serif;
+    font-family: var(--font-family-sans);
     font-size: 12px;
     font-weight: 600;
     line-height: 16px;
@@ -1897,8 +1897,8 @@ button.investigate-progress-notify.active {
 
 @media (min-width: 981px) {
     .chat-container .messages-container {
-        padding-left: 24px;
-        padding-right: 24px;
+        padding-left: var(--space-6);
+        padding-right: var(--space-6);
     }
 
     .chat-container .message-wrapper {
@@ -1908,7 +1908,7 @@ button.investigate-progress-notify.active {
 
     .chat-container .chat-header {
         width: calc(100% - 48px);
-        padding: 24px 0;
+        padding: var(--space-6) 0;
     }
 }
 
@@ -1917,11 +1917,11 @@ button.investigate-progress-notify.active {
     box-shadow: none;
     color: var(--color-blue-500);
     background-color: #f7f8fa;
-    border-radius: 4px;
+    border-radius: var(--radius-1);
     height: 40px;
     padding: 0 10px;
     margin-bottom: 2px;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-body);
     text-transform: none;
 }
 

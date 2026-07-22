@@ -3,7 +3,7 @@
 .search-bar-container {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
 }
 
 .input-container {
@@ -13,12 +13,12 @@
 }
 
 .input-field {
-    border-radius: 4px;
+    border-radius: var(--radius-1);
     border: 1px solid #d9d9d9;
     /* Reduce the width of the input field */
     width: 200px;
     /* Add some padding to maintain usability */
-    padding: 4px 8px;
+    padding: var(--space-1) 8px;
 }
 
 .log-box {
@@ -27,9 +27,9 @@
     align-items: center;
     background-color: white;
     border: 1px solid #d9d9d9;
-    border-radius: 4px;
-    padding: 4px 8px;
-    margin-top: 8px;
+    border-radius: var(--radius-1);
+    padding: var(--space-1) 8px;
+    margin-top: var(--space-2);
     overflow: visible !important;
     position: relative !important;
     z-index: 1000;
@@ -38,7 +38,7 @@
 
 .dropdown-field {
     width: 120px;
-    border-radius: 4px;
+    border-radius: var(--radius-1);
     border: 1px solid #d9d9d9;
 }
 
@@ -46,7 +46,7 @@
     background-color: var(--color-blue-400);
     border-color: var(--color-blue-400);
     color: white;
-    border-radius: 4px;
+    border-radius: var(--radius-1);
 }
 
 /* Update title styles to match SearchBarNeighborhood */
@@ -54,11 +54,11 @@
     color: #333333 !important;
     font-size: 14px !important;
     font-weight: 400 !important;
-    font-family: 'Open Sans', sans-serif !important;
-    margin-bottom: 8px !important;
-    padding: 4px 8px !important;
+    font-family: var(--font-family-body) !important;
+    margin-bottom: var(--space-2) !important;
+    padding: var(--space-1) 8px !important;
     background-color: #f5f5f5 !important;
-    border-radius: 4px !important;
+    border-radius: var(--radius-1) !important;
     display: inline-block !important;
 }
 
@@ -67,11 +67,11 @@
 /* Base styles for search components */
 .search-autocomplete-box {
     background-color: white;
-    border-radius: 4px;
+    border-radius: var(--radius-1);
 }
 
 .search-autocomplete-box .MuiOutlinedInput-root {
-    border-radius: 4px;
+    border-radius: var(--radius-1);
     border: 1px solid #d9d9d9;
     height: 32px;
 }
@@ -87,7 +87,7 @@
 /* Dropdown styles */
 .term-type-dropdown {
     background-color: white;
-    border-radius: 4px;
+    border-radius: var(--radius-1);
     height: 32px;
 }
 
@@ -115,7 +115,7 @@
 }
 
 .MuiAutocomplete-option {
-    padding: 8px 16px;
+    padding: var(--space-2) 16px;
 }
 
 .MuiAutocomplete-option:hover {
@@ -126,8 +126,8 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    column-gap: 16px;
-    row-gap: 12px;
+    column-gap: var(--space-4);
+    row-gap: var(--space-3);
     flex: 1 1 auto;
     width: 100%;
     min-width: 0;
@@ -146,12 +146,12 @@
 .explore-pill {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     padding: 0 12px;
-    border-radius: 16px;
+    border-radius: var(--radius-4);
     border: 1px solid #E7F1FF;
     background-color: var(--color-neutral-white);
-    font-family: "DM Sans", sans-serif;
+    font-family: var(--font-family-ui);
     font-weight: 500;
     font-size: 14px;
     color: #164563;
@@ -174,12 +174,12 @@
 
 .explore-pill-input {
     min-width: 180px;
-    border-radius: 16px;
+    border-radius: var(--radius-4);
     box-sizing: border-box;
 }
 
 .explore-pill-input .MuiInputBase-root {
-    font-family: "DM Sans", sans-serif;
+    font-family: var(--font-family-ui);
     font-weight: 500;
     font-size: 14px;
     color: #164563;
@@ -187,14 +187,14 @@
     height: 32px;
     align-items: center;
     border: 1px solid #E7F1FF;
-    border-radius: 16px;
+    border-radius: var(--radius-4);
     background-color: var(--color-neutral-white);
     box-shadow: 0px 4px 6px rgba(226, 232, 240, 0.50);
     box-sizing: border-box;
 }
 
 .explore-pill-input .MuiInputBase-input {
-    font-family: "DM Sans", sans-serif;
+    font-family: var(--font-family-ui);
     font-weight: 500;
     font-size: 14px;
     padding: 0;
