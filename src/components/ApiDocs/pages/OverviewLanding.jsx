@@ -287,7 +287,7 @@ const OverviewLanding = ({ navigate }) => {
                                         <span>{item.title}</span>
                                         <Icon
                                             className="api-docs-overview-why-icon"
-                                            sx={{ fontSize: 20, color: '#155DFC' }}
+                                            sx={{ fontSize: 20, color: 'var(--color-blue-500)' }}
                                         />
                                     </h3>
                                     <p>{item.body}</p>

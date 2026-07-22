@@ -17,7 +17,7 @@
 
 .maintenance-icon {
     font-size: 96px !important;
-    color: #969696;
+    color: var(--color-grey-400);
 }
 
 .maintenance-title {
@@ -41,7 +41,7 @@
 .maintenance-days {
     font-size: 24px;
     font-weight: 700;
-    color: #155DFC;
+    color: var(--color-blue-500);
 }
 
 .maintenance-contact-button {
@@ -53,8 +53,8 @@
     font-size: 16px;
     font-weight: 500;
     cursor: pointer;
-    background: #155DFC;
-    color: #ffffff;
+    background: var(--color-blue-500);
+    color: var(--color-neutral-white);
     text-transform: none !important;
     min-width: 0 !important;
 }
@@ -67,7 +67,7 @@
     margin: 0;
     font-family: 'Open Sans', sans-serif;
     text-align: center;
-    color: #969696;
+    color: var(--color-grey-400);
     font-size: 14px;
     line-height: 1.5;
 }

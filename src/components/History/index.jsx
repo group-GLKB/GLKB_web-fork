@@ -152,8 +152,8 @@ const getPillColors = (label) => {
     const base = nodeStyleColors[label] || nodeStyleColors.default || '#E5E5E5';
     return {
         base,
-        background: mixHex(base, '#ffffff', 0.75),
-        text: mixHex(base, '#000000', 0.35),
+        background: mixHex(base, 'var(--color-neutral-white)', 0.75),
+        text: mixHex(base, 'var(--color-neutral-black)', 0.35),
         shadow: toRgba(base, 0.3),
     };
 };
@@ -691,8 +691,8 @@ const History = () => {
                                                 sx={{
                                                     color: '#D9D9D9',
                                                     padding: '4px',
-                                                    '&.Mui-checked': { color: '#155DFC' },
-                                                    '&.MuiCheckbox-indeterminate': { color: '#155DFC' },
+                                                    '&.Mui-checked': { color: 'var(--color-blue-500)' },
+                                                    '&.MuiCheckbox-indeterminate': { color: 'var(--color-blue-500)' },
                                                 }}
                                             />
                                         </span>
@@ -744,8 +744,8 @@ const History = () => {
                                                     sx={{
                                                         color: '#D9D9D9',
                                                         padding: '4px',
-                                                        '&.Mui-checked': { color: '#155DFC' },
-                                                        '&.MuiCheckbox-indeterminate': { color: '#155DFC' },
+                                                        '&.Mui-checked': { color: 'var(--color-blue-500)' },
+                                                        '&.MuiCheckbox-indeterminate': { color: 'var(--color-blue-500)' },
                                                     }}
                                                 />
                                             </span>

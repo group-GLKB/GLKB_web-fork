@@ -32,7 +32,7 @@
 .left-section input {
     padding: 0.5rem;
     margin-right: 0.5rem;
-    border: 1px solid #ccc;
+    border: 1px solid var(--color-grey-200);
     border-radius: 4px;
 }
 
@@ -84,7 +84,7 @@
 
 
 .search-input {
-    border: 1px solid #ccc;
+    border: 1px solid var(--color-grey-200);
     padding: 5px;
     border-radius: 4px;
     display: flex;
@@ -92,7 +92,7 @@
     align-items: center;
     cursor: text;
     width: 400px;
-    background-color: #FFFFFF;
+    background-color: var(--color-neutral-white);
     height: 3.2rem;
 }
 

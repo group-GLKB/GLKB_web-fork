@@ -63,7 +63,7 @@
 
 .login-subtitle {
   font-size: 15px;
-  color: #666;
+  color: var(--color-grey-500);
   margin-bottom: 32px;
   line-height: 1.5;
 }
@@ -148,13 +148,13 @@
   content: '';
   flex: 1;
   height: 1px;
-  background-color: #e0e0e0;
+  background-color: var(--color-grey-100);
 }
 
 .divider span {
   padding: 0 16px;
   font-size: 13px;
-  color: #666;
+  color: var(--color-grey-500);
 }
 
 .login-input {
@@ -204,7 +204,7 @@
 
 .sso-text {
   margin: 24px 0 16px;
-  color: #666;
+  color: var(--color-grey-500);
   font-size: 14px;
 }
 

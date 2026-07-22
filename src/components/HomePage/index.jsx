@@ -75,12 +75,12 @@ const HomePage = () => {
         lightbulb: '#FBBF7A',
         chart: '#08B046',
         book: '#BD7AFB',
-        knowledge: '#4B88FD',
+        knowledge: 'var(--color-blue-400)',
     };
     const pills = (exampleSchema.pills || []).map((pill) => ({
         ...pill,
         icon: iconMap[pill.icon] || <PillEntityInsightsIcon />,
-        iconColor: iconColorMap[pill.icon] || '#222A38',
+        iconColor: iconColorMap[pill.icon] || 'var(--color-grey-800)',
     }));
     const activePill = pills.find((pill) => pill.id === showExamples);
     const isHomeLimitReachedEffective = isQueryLimitReached || DEBUG_FORCE_LIMIT_WARNING;
@@ -268,7 +268,7 @@ const HomePage = () => {
             <div className={`HomePageRoot${isPhoneDevice ? ' is-phone-device' : ''}`}>
                 <div className="HomePageContainer">
                     <div className="HomePageInner" style={{
-                        backgroundColor: '#FFFFFF',
+                        backgroundColor: 'var(--color-neutral-white)',
                         transition: 'background-color 0.3s ease',
                     }}>
                         <Joyride
@@ -280,7 +280,7 @@ const HomePage = () => {
                             callback={handleJoyrideCallback}
                             styles={{
                                 options: {
-                                    primaryColor: '#155DFC',
+                                    primaryColor: 'var(--color-blue-500)',
                                     zIndex: 10000
                                 },
                                 tooltip: {
@@ -323,9 +323,9 @@ const HomePage = () => {
                                         lineHeight: 1.1,
                                     }}
                                 >
-                                    <span style={{ color: '#141B26' }}>Ask.</span>{' '}
-                                    <span style={{ color: '#155DFC' }}>Analyze</span>
-                                    <span style={{ color: '#141B26' }}>. Cite.</span>
+                                    <span style={{ color: 'var(--color-grey-900)' }}>Ask.</span>{' '}
+                                    <span style={{ color: 'var(--color-blue-500)' }}>Analyze</span>
+                                    <span style={{ color: 'var(--color-grey-900)' }}>. Cite.</span>
                                 </Typography>
                                 <Typography
                                     className="glkb-subtitle"
@@ -333,7 +333,7 @@ const HomePage = () => {
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 400,
                                         fontSize: '18px',
-                                        color: '#5E6E87',
+                                        color: 'var(--color-grey-500)',
                                         lineHeight: '26.64px',
                                     }}
                                 >
@@ -448,10 +448,10 @@ const HomePage = () => {
 
                         <div className="footer">
                             <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
-                                <p style={{ fontFamily: 'Geist, sans-serif', textAlign: 'center', color: '#A8B3C8', fontSize: '14px', margin: 0 }}>
+                                <p style={{ fontFamily: 'Geist, sans-serif', textAlign: 'center', color: 'var(--color-grey-300)', fontSize: '14px', margin: 0 }}>
                                     © 2026 GLKB – Genomic Literature Knowledge Base | glkb.org
                                 </p>
-                                <p style={{ fontFamily: 'Geist, sans-serif', textAlign: 'center', color: '#A8B3C8', fontSize: '14px', margin: 0 }}>
+                                <p style={{ fontFamily: 'Geist, sans-serif', textAlign: 'center', color: 'var(--color-grey-300)', fontSize: '14px', margin: 0 }}>
                                     Developed and maintained by the <a className="homepage-lab-link" href="https://jieliu6.github.io/" target="_blank" rel="noopener noreferrer">Jie Liu Lab</a>, Department of Computational Medicine and Bioinformatics, University of Michigan.
                                 </p>
                             </div>
@@ -472,7 +472,7 @@ const HomePage = () => {
                             fontSize: '24px',
                             borderRadius: '50%',
                             backgroundColor: '#E7F1FF',
-                            color: '#155DFC',
+                            color: 'var(--color-blue-500)',
                             border: 'none',
                             fontFamily: 'Geist, sans-serif',
                             boxShadow: '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',

@@ -17,9 +17,9 @@ export default function SearchButton({
     const isHomeInteractive = isHomeVariant && !disabled && !hide;
     const backgroundColor = hide ? 'transparent' :
         disabled ? (isHomeVariant ? '#E7F1FF' : '#0169B060') :
-            isHomeVariant ? '#155DFC' : (alterColor ? '#079BD4' : '#0169B0');
+            isHomeVariant ? 'var(--color-blue-500)' : (alterColor ? '#079BD4' : '#0169B0');
     const iconColor = isHomeVariant
-        ? (isHomeInteractive ? '#ffffff' : '#155DFC')
+        ? (isHomeInteractive ? 'var(--color-neutral-white)' : 'var(--color-blue-500)')
         : (!hide ? 'white' :
         disabled ? '#0169B060' :
             alterColor ? '#079BD4' : '#0169B0');

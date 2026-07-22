@@ -25,7 +25,7 @@ body[data-sidebar-overlay="true"] .app-layout-content {
 }
 
 .MuiDrawer-paper {
-    background-color: #ffffff;
+    background-color: var(--color-neutral-white);
 }
 
 .sidebar-logo-link {
@@ -59,7 +59,7 @@ body[data-sidebar-overlay="true"] .app-layout-content {
     font-family: 'Geist', sans-serif;
     font-weight: 500;
     font-size: 12px;
-    color: #8090AB;
+    color: var(--color-grey-400);
     line-height: 16px;
     margin: 0 0 16px;
     padding-left: 0;
@@ -94,7 +94,7 @@ body[data-sidebar-overlay="true"] .app-layout-content {
     font-size: 12px;
     font-weight: 400;
     line-height: 16px;
-    color: #222A38;
+    color: var(--color-grey-800);
     text-align: left;
     cursor: pointer;
     white-space: nowrap;
@@ -128,7 +128,7 @@ body[data-sidebar-overlay="true"] .app-layout-content {
     width: 24px;
     height: 24px;
     border-radius: 8px;
-    color: #141B26;
+    color: var(--color-grey-900);
     z-index: 1;
     opacity: 0;
     pointer-events: none;

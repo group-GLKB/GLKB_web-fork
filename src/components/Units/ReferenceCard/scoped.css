@@ -27,8 +27,8 @@
     height: 16px;
     padding: 0 4px;
     border-radius: 4px;
-    background-color: #E5E9F0;
-    color: #222A38;
+    background-color: var(--color-grey-100);
+    color: var(--color-grey-800);
     font-size: 10px;
     font-weight: 500;
     line-height: 1;
@@ -36,8 +36,8 @@
 }
 
 .reference-card.is-highlighted .reference-card-index-badge {
-    background-color: #155DFC;
-    color: #FFFFFF;
+    background-color: var(--color-blue-500);
+    color: var(--color-neutral-white);
 }
 
 .reference-card-body {
@@ -55,7 +55,7 @@
 }
 
 .reference-card-title {
-    color: #0C1018;
+    color: var(--color-grey-950);
     text-decoration: none;
     font-weight: 600;
     font-size: 13px;
@@ -64,7 +64,7 @@
 }
 
 .reference-card-meta {
-    color: #5E6E87;
+    color: var(--color-grey-500);
     font-size: 10px;
     line-height: 14px;
 }
@@ -83,7 +83,7 @@
     flex-shrink: 0;
     width: 2px;
     align-self: stretch;
-    background-color: #E5E9F0;
+    background-color: var(--color-grey-100);
     border-radius: 1px;
 }
 
@@ -96,7 +96,7 @@
 .reference-card-quote-text {
     margin: 0;
     padding-right: 18px;
-    color: #222A38;
+    color: var(--color-grey-800);
     font-size: 12px;
     line-height: 16px;
     display: -webkit-box;
@@ -117,13 +117,13 @@
     width: 16px;
     height: 16px;
     padding: 1px;
-    color: #5E6E87;
-    background-color: #FFFFFF;
+    color: var(--color-grey-500);
+    background-color: var(--color-neutral-white);
 }
 
 .reference-card-evidence-toggle.MuiIconButton-root:hover {
-    color: #155DFC;
-    background-color: #F2F4F8;
+    color: var(--color-blue-500);
+    background-color: var(--color-grey-50);
 }
 
 .reference-card-footer {
@@ -134,7 +134,7 @@
 }
 
 .reference-card-footer-meta {
-    color: #8090AB;
+    color: var(--color-grey-400);
     font-size: 10px;
     line-height: 14px;
     white-space: nowrap;
@@ -158,12 +158,12 @@
 
 .reference-card-icon-btn.MuiIconButton-root {
     padding: 3px;
-    color: #5E6E87;
+    color: var(--color-grey-500);
 }
 
 .reference-card-icon-btn.MuiIconButton-root:hover {
-    background-color: #F2F4F8;
-    color: #155DFC;
+    background-color: var(--color-grey-50);
+    color: var(--color-blue-500);
 }
 
 .reference-card-fulltext {
@@ -171,7 +171,7 @@
     align-items: center;
     gap: 2px;
     padding: 3px 6px;
-    color: #5E6E87;
+    color: var(--color-grey-500);
     font-size: 10px;
     font-weight: 600;
     text-decoration: none;
@@ -180,8 +180,8 @@
 }
 
 .reference-card-fulltext:hover {
-    background-color: #F2F4F8;
-    color: #155DFC;
+    background-color: var(--color-grey-50);
+    color: var(--color-blue-500);
 }
 
 .reference-card-more-toggle {
@@ -195,6 +195,6 @@
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    color: #155DFC;
+    color: var(--color-blue-500);
     cursor: pointer;
 }

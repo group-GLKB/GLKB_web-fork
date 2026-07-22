@@ -57,10 +57,10 @@ import SearchBarKnowledge from './SearchBarKnowledge';
 import exampleTerms from './SearchBarKnowledge/example.json';
 
 // const StyledButton = styled(Button)(({ theme }) => ({
-//     backgroundColor: '#99c7b1',
+//     backgroundColor: 'var(--color-green-300)',
 //     color: 'black',
 //     '&:hover': {
-//         backgroundColor: '#577265',
+//         backgroundColor: 'var(--color-green-700)',
 //         color: 'black',
 //     },
 //     '&:focus': {
@@ -133,8 +133,8 @@ const getPillColors = (label) => {
     const base = nodeStyleColors[label] || nodeStyleColors.default || '#E5E5E5';
     return {
         base,
-        background: mixHex(base, '#ffffff', 0.75),
-        text: mixHex(base, '#000000', 0.35),
+        background: mixHex(base, 'var(--color-neutral-white)', 0.75),
+        text: mixHex(base, 'var(--color-neutral-black)', 0.35),
         shadow: toRgba(base, 0.3),
     };
 };
@@ -990,7 +990,7 @@ const ResultPage = () => {
                 backgroundColor: boolValues[label] ? color : '#fff',
                 boxShadow: "none",
                 ":hover": {
-                    backgroundColor: boolValues[label] ? color : '#f0f0f0',
+                    backgroundColor: boolValues[label] ? color : 'var(--color-grey-50)',
 
                 },
                 color: "black",
@@ -1361,7 +1361,7 @@ const ResultPage = () => {
                                                                                 <div className="legend-subtitle-row">
                                                                                     <div className="legend-subtitle">Legends</div>
                                                                                     <Tooltip title={LegendTooltipContent} styles={{ root: { maxWidth: '380px' }, body: { fontSize: '16px', fontFamily: 'Open Sans, sans-serif' } }}>
-                                                                                        <InfoCircleOutlined style={{ color: '#1890ff' }} />
+                                                                                        <InfoCircleOutlined style={{ color: 'var(--color-blue-400)' }} />
                                                                                     </Tooltip>
                                                                                     <button
                                                                                         className="toggle-button"
@@ -1417,7 +1417,7 @@ const ResultPage = () => {
                                     <Box sx={{
                                         borderRadius: 0,
                                         height: "100%",
-                                        background: '#ffffff',
+                                        background: 'var(--color-neutral-white)',
                                         transition: 'background-color 0.3s ease',
                                         paddingBottom: 0,
                                         borderLeft: '1px solid #F4F4F4',
@@ -1541,7 +1541,7 @@ const ResultPage = () => {
                         fontSize: '24px',
                         borderRadius: '50%',
                         backgroundColor: '#E7F1FF',
-                        color: '#155DFC',
+                        color: 'var(--color-blue-500)',
                         boxShadow: '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',
                         border: 'none',
                         fontFamily: 'DM Sans, sans-serif',

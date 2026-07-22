@@ -11,11 +11,11 @@
 }
 
 .search-autocomplete-box .MuiOutlinedInput-root:hover {
-    border-color: #40a9ff;
+    border-color: var(--color-blue-300);
 }
 
 .search-autocomplete-box .MuiOutlinedInput-root.Mui-focused {
-    border-color: #1890ff;
+    border-color: var(--color-blue-400);
 }
 
 /* Dropdown styles */
@@ -26,7 +26,7 @@
 }
 
 .term-type-dropdown:hover .ant-select-selector {
-    border-color: #40a9ff !important;
+    border-color: var(--color-blue-300) !important;
 }
 
 /* Common button styles */

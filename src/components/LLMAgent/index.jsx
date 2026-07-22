@@ -362,7 +362,7 @@ const ClarifyPanel = ({
                     className="clarify-inline-skip"
                     sx={{
                         borderRadius: '10px',
-                        border: '1px solid #CBD5E1',
+                        border: '1px solid var(--color-grey-200)',
                         textTransform: 'none',
                         fontFamily: 'DM Sans, sans-serif',
                         color: '#46566C',
@@ -375,14 +375,14 @@ const ClarifyPanel = ({
                     onClick={() => onSubmit?.()}
                     sx={{
                         borderRadius: '10px',
-                        border: '1px solid #155DFC',
-                        backgroundColor: '#155DFC',
+                        border: '1px solid var(--color-blue-500)',
+                        backgroundColor: 'var(--color-blue-500)',
                         textTransform: 'none',
                         fontFamily: 'DM Sans, sans-serif',
-                        color: '#FFFFFF',
+                        color: 'var(--color-neutral-white)',
                         '&:hover': {
-                            backgroundColor: '#0A47D6',
-                            borderColor: '#0A47D6',
+                            backgroundColor: 'var(--color-blue-600)',
+                            borderColor: 'var(--color-blue-600)',
                         },
                     }}
                 >
@@ -702,7 +702,7 @@ const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '16px',
                             fontWeight: 400,
-                            color: '#5E6E87',
+                            color: 'var(--color-grey-500)',
                             whiteSpace: 'pre-wrap',
                             lineHeight: 1.5,
                         }}
@@ -731,7 +731,7 @@ const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '16px',
                             fontWeight: 400,
-                            color: '#5E6E87',
+                            color: 'var(--color-grey-500)',
                             whiteSpace: 'pre-wrap',
                             lineHeight: 1.5,
                         }}
@@ -749,7 +749,7 @@ const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '12px',
                 fontWeight: 400,
-                color: '#8090AB',
+                color: 'var(--color-grey-400)',
                 whiteSpace: 'pre-wrap',
             }}
             data-line-key={lineKey}
@@ -799,7 +799,7 @@ const ThoughtGroup = React.memo(
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '16px',
                         fontWeight: 400,
-                        color: '#5E6E87',
+                        color: 'var(--color-grey-500)',
                     }}>
                         {getStepLabel(group.name)}
                     </Typography>
@@ -1266,7 +1266,7 @@ const MessageCard = React.memo(function MessageCard({
             <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: "5px", justifyContent: "flex-end" }}>
                 <Box
                     sx={{
-                        bgcolor: isAssistant ? "transparent" : "#E5E9F0", // Different background colors
+                        bgcolor: isAssistant ? "transparent" : "var(--color-grey-100)", // Different background colors
                         boxShadow: isAssistant ? "none" : "0 4px 16px 0 rgba(0, 0, 0, 0.05)",
                         maxWidth: isAssistant ? "100%" : "80%", // Adjust max width for assistant messages
                         width: isAssistant ? "100%" : "auto",
@@ -1548,7 +1548,7 @@ const MessageCard = React.memo(function MessageCard({
                                             fontFamily: 'DM Sans, sans-serif',
                                             fontSize: '16px',
                                             fontWeight: isLoading ? 400 : 600,
-                                            color: isLoading ? 'transparent' : '#5E6E87',
+                                            color: isLoading ? 'transparent' : 'var(--color-grey-500)',
                                             WebkitTextFillColor: isLoading ? 'transparent' : undefined,
                                         }}
                                     >
@@ -1558,7 +1558,7 @@ const MessageCard = React.memo(function MessageCard({
                                         <ExpandMoreIcon
                                             sx={{
                                                 fontSize: '16px',
-                                                color: '#5E6E87',
+                                                color: 'var(--color-grey-500)',
                                                 transform: thoughtsExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                                                 transition: 'transform 0.2s ease',
                                             }}
@@ -1596,7 +1596,7 @@ const MessageCard = React.memo(function MessageCard({
                             {showReloadInMessage ? (
                                 <Box
                                     sx={{
-                                        backgroundColor: '#F2F4F8',
+                                        backgroundColor: 'var(--color-grey-50)',
                                         borderRadius: '8px',
                                         padding: '6px 8px',
                                         display: 'flex',
@@ -1610,7 +1610,7 @@ const MessageCard = React.memo(function MessageCard({
                                             fontFamily: 'DM Sans, sans-serif',
                                             fontSize: '12px',
                                             fontWeight: 500,
-                                            color: '#5E6E87',
+                                            color: 'var(--color-grey-500)',
                                         }}
                                     >
                                         Response interrupted. Reload latest message.
@@ -1627,11 +1627,11 @@ const MessageCard = React.memo(function MessageCard({
                                             minHeight: '28px',
                                             padding: '2px 8px',
                                             borderRadius: '8px',
-                                            borderColor: '#CBD2E0',
-                                            color: '#5E6E87',
+                                            borderColor: 'var(--color-grey-200)',
+                                            color: 'var(--color-grey-500)',
                                             '&:hover': {
-                                                borderColor: '#A8B3C8',
-                                                backgroundColor: '#E5E9F0',
+                                                borderColor: 'var(--color-grey-300)',
+                                                backgroundColor: 'var(--color-grey-100)',
                                             },
                                         }}
                                     >
@@ -1680,7 +1680,7 @@ const MessageCard = React.memo(function MessageCard({
                                         title="Copy response"
                                         aria-label="Copy response"
                                     >
-                                        <ContentCopyIcon style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }} />
+                                        <ContentCopyIcon style={{ width: '16px', height: '16px', display: 'block', color: 'var(--color-grey-400)' }} />
                                     </IconButton>
                                 )}
                                 {allowResponseRefresh && isLastUserMessage && !isLoading && (
@@ -1689,13 +1689,13 @@ const MessageCard = React.memo(function MessageCard({
                                         onClick={() => refresh(null, index)}
                                         title="Regenerate response"
                                     >
-                                        <ReplayIcon style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }} />
+                                        <ReplayIcon style={{ width: '16px', height: '16px', display: 'block', color: 'var(--color-grey-400)' }} />
                                     </IconButton>
                                 )}
                                 {!isLoading && <IconButton size="small" onClick={() => downloadConversation(messageID)} title="Download this Q&A">
                                     <DownloadIcon
                                         aria-label="Download"
-                                        style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }}
+                                        style={{ width: '16px', height: '16px', display: 'block', color: 'var(--color-grey-400)' }}
                                     />
                                 </IconButton>}
                                 {!isLoading && (
@@ -1704,7 +1704,7 @@ const MessageCard = React.memo(function MessageCard({
                                         onClick={onOpenFeedback}
                                         title="Share feedback"
                                     >
-                                        <ThumbsUpDownIcon style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }} />
+                                        <ThumbsUpDownIcon style={{ width: '16px', height: '16px', display: 'block', color: 'var(--color-grey-400)' }} />
                                     </IconButton>
                                 )}
                             </Stack>
@@ -1742,7 +1742,7 @@ const MessageCard = React.memo(function MessageCard({
                                 title="Copy message"
                                 aria-label="Copy message"
                             >
-                                <ContentCopyIcon style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }} />
+                                <ContentCopyIcon style={{ width: '16px', height: '16px', display: 'block', color: 'var(--color-grey-400)' }} />
                             </IconButton>
                             {allowUserEdit && (
                                 <IconButton
@@ -3774,7 +3774,7 @@ function LLMAgent() {
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '20px',
                         fontWeight: 700,
-                        color: '#141B26',
+                        color: 'var(--color-grey-900)',
                     }}
                 >
                     Clarify Your Research Scope
@@ -3784,7 +3784,7 @@ function LLMAgent() {
                         sx={{
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '14px',
-                            color: '#5E6E87',
+                            color: 'var(--color-grey-500)',
                             lineHeight: 1.5,
                             mb: 2,
                         }}
@@ -3796,8 +3796,8 @@ function LLMAgent() {
                         <Box
                             sx={{
                                 borderRadius: '10px',
-                                backgroundColor: '#F7F9FF',
-                                border: '1px solid #D6E6FF',
+                                backgroundColor: 'var(--color-blue-25)',
+                                border: '1px solid var(--color-blue-100)',
                                 px: 1.5,
                                 py: 1,
                                 mb: 2,
@@ -3807,7 +3807,7 @@ function LLMAgent() {
                                 sx={{
                                     fontFamily: 'DM Sans, sans-serif',
                                     fontSize: '13px',
-                                    color: '#0836B0',
+                                    color: 'var(--color-blue-700)',
                                     lineHeight: 1.45,
                                 }}
                             >
@@ -3830,7 +3830,7 @@ function LLMAgent() {
                                 <Box
                                     key={questionKey}
                                     sx={{
-                                        border: '1px solid #E6EDF8',
+                                        border: '1px solid var(--color-grey-50)',
                                         borderRadius: '12px',
                                         p: 1.5,
                                     }}
@@ -3840,7 +3840,7 @@ function LLMAgent() {
                                             fontFamily: 'DM Sans, sans-serif',
                                             fontSize: '12px',
                                             fontWeight: 700,
-                                            color: '#5E6E87',
+                                            color: 'var(--color-grey-500)',
                                             textTransform: 'uppercase',
                                             letterSpacing: '0.03em',
                                             mb: 0.5,
@@ -3854,7 +3854,7 @@ function LLMAgent() {
                                             fontFamily: 'DM Sans, sans-serif',
                                             fontSize: '15px',
                                             fontWeight: 500,
-                                            color: '#222A38',
+                                            color: 'var(--color-grey-800)',
                                             lineHeight: 1.45,
                                             mb: 1,
                                         }}
@@ -3985,7 +3985,7 @@ function LLMAgent() {
                                 mt: 2,
                                 fontFamily: 'DM Sans, sans-serif',
                                 fontSize: '13px',
-                                color: '#A10902',
+                                color: 'var(--color-red-700)',
                             }}
                         >
                             {clarificationError}
@@ -3998,7 +3998,7 @@ function LLMAgent() {
                         onClick={() => submitClarification({ useDefaults: true })}
                         sx={{
                             borderRadius: '10px',
-                            border: '1px solid #CBD5E1',
+                            border: '1px solid var(--color-grey-200)',
                             textTransform: 'none',
                             fontFamily: 'DM Sans, sans-serif',
                             color: '#46566C',
@@ -4011,14 +4011,14 @@ function LLMAgent() {
                         onClick={() => submitClarification({ useDefaults: false })}
                         sx={{
                             borderRadius: '10px',
-                            border: '1px solid #155DFC',
-                            backgroundColor: '#155DFC',
+                            border: '1px solid var(--color-blue-500)',
+                            backgroundColor: 'var(--color-blue-500)',
                             textTransform: 'none',
                             fontFamily: 'DM Sans, sans-serif',
-                            color: '#FFFFFF',
+                            color: 'var(--color-neutral-white)',
                             '&:hover': {
-                                backgroundColor: '#0A47D6',
-                                borderColor: '#0A47D6',
+                                backgroundColor: 'var(--color-blue-600)',
+                                borderColor: 'var(--color-blue-600)',
                             },
                         }}
                     >
@@ -4039,7 +4039,7 @@ function LLMAgent() {
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '20px',
                         fontWeight: 700,
-                        color: '#141B26',
+                        color: 'var(--color-grey-900)',
                         paddingBottom: '8px',
                     }}
                 >
@@ -4049,7 +4049,7 @@ function LLMAgent() {
                     sx={{
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '14px',
-                        color: '#5E6E87',
+                        color: 'var(--color-grey-500)',
                         lineHeight: 1.5,
                         paddingTop: '4px !important',
                     }}
@@ -4062,7 +4062,7 @@ function LLMAgent() {
                         sx={{
                             borderRadius: '12px',
                             border: '1px solid #D6DDE8',
-                            color: '#141B26',
+                            color: 'var(--color-grey-900)',
                             textTransform: 'none',
                             fontFamily: 'DM Sans, sans-serif',
                             fontWeight: 700,
@@ -4078,15 +4078,15 @@ function LLMAgent() {
                             borderRadius: '12px',
                             border: '1px solid #DC2626',
                             backgroundColor: '#FC2415',
-                            color: '#ffffff',
+                            color: 'var(--color-neutral-white)',
                             textTransform: 'none',
                             fontFamily: 'DM Sans, sans-serif',
                             fontWeight: 700,
                             fontSize: '14px',
                             padding: '8px 16px',
                             '&:hover': {
-                                backgroundColor: '#A10902',
-                                borderColor: '#A10902',
+                                backgroundColor: 'var(--color-red-700)',
+                                borderColor: 'var(--color-red-700)',
                             },
                         }}
                     >
@@ -4117,13 +4117,13 @@ function LLMAgent() {
                                 fontSize: '24px',
                                 fontWeight: '700 !important',
                                 lineHeight: 1.3,
-                                color: '#222A38',
+                                color: 'var(--color-grey-800)',
                             }}
                         >
                             Share your feedback
                         </Typography>
                         <IconButton onClick={handleCloseFeedback} aria-label="Close feedback dialog">
-                            <ClearIcon sx={{ color: '#5E6E87' }} />
+                            <ClearIcon sx={{ color: 'var(--color-grey-500)' }} />
                         </IconButton>
                     </Box>
 
@@ -4134,7 +4134,7 @@ function LLMAgent() {
                                 fontSize: '16px',
                                 fontWeight: '400 !important',
                                 lineHeight: 1.5,
-                                color: '#222A38',
+                                color: 'var(--color-grey-800)',
                             }}
                         >
                             Your feedback helps us improve GLKB.
@@ -4171,13 +4171,13 @@ function LLMAgent() {
                                     fontFamily: 'DM Sans, sans-serif',
                                     fontSize: '16px',
                                     fontWeight: '400 !important',
-                                    color: '#222A38',
+                                    color: 'var(--color-grey-800)',
                                     '& fieldset': {
-                                        borderColor: '#8090AB',
+                                        borderColor: 'var(--color-grey-400)',
                                     },
                                 },
                                 '& .MuiInputBase-input::placeholder': {
-                                    color: '#8090AB',
+                                    color: 'var(--color-grey-400)',
                                     opacity: 1,
                                 },
                             }}
@@ -4190,8 +4190,8 @@ function LLMAgent() {
                             sx={{
                                 borderRadius: '8px',
                                 border: '1px solid #D8D8D8',
-                                color: '#222A38',
-                                backgroundColor: '#FFFFFF',
+                                color: 'var(--color-grey-800)',
+                                backgroundColor: 'var(--color-neutral-white)',
                                 textTransform: 'none',
                                 fontFamily: 'DM Sans, sans-serif',
                                 fontSize: '16px',
@@ -4209,8 +4209,8 @@ function LLMAgent() {
                             disabled={feedbackSubmitting || feedbackRating < 1}
                             sx={{
                                 borderRadius: '8px',
-                                backgroundColor: '#155DFC',
-                                color: '#FFFFFF',
+                                backgroundColor: 'var(--color-blue-500)',
+                                color: 'var(--color-neutral-white)',
                                 textTransform: 'none',
                                 fontFamily: 'DM Sans, sans-serif',
                                 fontSize: '16px',
@@ -4220,11 +4220,11 @@ function LLMAgent() {
                                 py: '8px',
                                 minWidth: '170px',
                                 '&:hover': {
-                                    backgroundColor: '#0A47D6',
+                                    backgroundColor: 'var(--color-blue-600)',
                                 },
                                 '&.Mui-disabled': {
                                     backgroundColor: '#BBCFFE',
-                                    color: '#FFFFFF',
+                                    color: 'var(--color-neutral-white)',
                                 },
                             }}
                         >
@@ -4239,7 +4239,7 @@ function LLMAgent() {
                     <Grid item xs={12} className="llm-subgrid">
                         <div className="llm-main-content">
                             {/* <MuiButton variant="text" sx={{
-                                color: '#222A38',
+                                color: 'var(--color-grey-800)',
                                 fontFamily: 'Open Sans, sans-serif',
                                 alignSelf: 'flex-start',
                                 zIndex: 1,
@@ -4270,7 +4270,7 @@ function LLMAgent() {
                                                         justifyContent: 'space-between',
                                                         padding: '0 24px',
                                                         height: '66px',
-                                                        backgroundColor: '#FFFFFF',
+                                                        backgroundColor: 'var(--color-neutral-white)',
                                                     }}>
                                                         <Box sx={{
                                                             display: 'flex',
@@ -4284,7 +4284,7 @@ function LLMAgent() {
                                                                 fontSize: '14px',
                                                                 fontWeight: 600,
                                                                 lineHeight: '18px',
-                                                                color: '#141B26',
+                                                                color: 'var(--color-grey-900)',
                                                                 overflow: 'hidden',
                                                                 textOverflow: 'ellipsis',
                                                                 whiteSpace: 'nowrap',
@@ -4302,9 +4302,9 @@ function LLMAgent() {
                                                                 }
                                                                 sx={{
                                                                     padding: '4px',
-                                                                    color: isConversationBookmarked ? '#155DFC' : '#5E6E87',
+                                                                    color: isConversationBookmarked ? 'var(--color-blue-500)' : 'var(--color-grey-500)',
                                                                     '&:hover': {
-                                                                        backgroundColor: '#F2F4F8',
+                                                                        backgroundColor: 'var(--color-grey-50)',
                                                                     },
                                                                 }}
                                                                 title={isConversationBookmarked ? 'Remove bookmark' : 'Bookmark this chat'}
@@ -4331,16 +4331,16 @@ function LLMAgent() {
                                                         <div className='empty-components-container'>
                                                             <div className="empty-page-title" style={{ paddingTop: '1rem' }}>
                                                                 <div style={{ gap: '1rem', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
-                                                                    <Typography sx={{ fontFamily: "Geist, sans-serif", fontSize: '32px', fontWeight: '700', color: "#141B26" }}>
+                                                                    <Typography sx={{ fontFamily: "Geist, sans-serif", fontSize: '32px', fontWeight: '700', color: "var(--color-grey-900)" }}>
                                                                         Explore Biomedical Literature
                                                                     </Typography>
-                                                                    <Typography sx={{ fontFamily: "Geist, sans-serif", fontSize: '18px', fontWeight: '500', color: "#5E6E87" }}>
+                                                                    <Typography sx={{ fontFamily: "Geist, sans-serif", fontSize: '18px', fontWeight: '500', color: "var(--color-grey-500)" }}>
                                                                         AI-powered Genomic Literature Knowledge Base
                                                                     </Typography>
                                                                 </div>
                                                             </div>
                                                             <div className="example-queries-header">
-                                                                <Typography sx={{ fontFamily: "Geist, sans-serif", fontSize: '16px', fontWeight: '400', color: "#8090AB", width: '100%', textAlign: 'left' }}>
+                                                                <Typography sx={{ fontFamily: "Geist, sans-serif", fontSize: '16px', fontWeight: '400', color: "var(--color-grey-400)", width: '100%', textAlign: 'left' }}>
                                                                     Try these example queries:
                                                                 </Typography>
                                                                 <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '10px', minHeight: '80px' }}>
@@ -4365,12 +4365,12 @@ function LLMAgent() {
                                                     </div>
                                                     {isConversationLoading && loadingConversationId && (
                                                         <div className="chat-loading-overlay">
-                                                            <CircularProgress size={28} sx={{ color: '#141B26' }} />
+                                                            <CircularProgress size={28} sx={{ color: 'var(--color-grey-900)' }} />
                                                             <Typography sx={{
                                                                 fontFamily: 'Open Sans, sans-serif',
                                                                 fontSize: '14px',
                                                                 fontWeight: 400,
-                                                                color: '#5E6E87',
+                                                                color: 'var(--color-grey-500)',
                                                             }}>
                                                                 Loading chat history... This may take ~20 seconds
                                                             </Typography>
@@ -4390,21 +4390,21 @@ function LLMAgent() {
                                                         <button
                                                             type="submit"
                                                             className="send-button"
-                                                                border: "1px solid #155DFC",
+                                                                border: "1px solid var(--color-blue-500)",
                                                                 bgcolor: "#f7f8fa",
-                                                                color: "#155DFC",
+                                                                color: "var(--color-blue-500)",
                                                                 "& .MuiButton-startIcon": {
-                                                                    color: "#155DFC",
+                                                                    color: "var(--color-blue-500)",
                                                                 },
                                                                 "& .MuiSvgIcon-root": {
-                                                                    color: "#155DFC",
+                                                                    color: "var(--color-blue-500)",
                                                                 },
                                                         >
                                                             Send
-                                                                    color: "#155DFC",
-                                                                    boxShadow: index == selectedMessageIndex ? "0 0 0 1px #155DFC" : "none",
+                                                                    color: "var(--color-blue-500)",
+                                                                    boxShadow: index == selectedMessageIndex ? "0 0 0 1px var(--color-blue-500)" : "none",
                                                             icon={<DeleteOutlined />}
-                                                                boxShadow: index == selectedMessageIndex ? "0 0 0 1px #155DFC" : "none",
+                                                                boxShadow: index == selectedMessageIndex ? "0 0 0 1px var(--color-blue-500)" : "none",
                                                             className="clear-button"
                                                             disabled={isLoading}
                                                         >
@@ -4516,7 +4516,7 @@ function LLMAgent() {
                                                                                     width: '16px',
                                                                                     height: '16px',
                                                                                     display: 'block',
-                                                                                    color: isExportDisabled ? '#B0B7C3' : '#5E6E87',
+                                                                                    color: isExportDisabled ? 'var(--color-grey-300)' : 'var(--color-grey-500)',
                                                                                 }}
                                                                             />
                                                                         </IconButton>
@@ -4616,7 +4616,7 @@ function LLMAgent() {
                                                                         width: '16px',
                                                                         height: '16px',
                                                                         display: 'block',
-                                                                        color: isExportDisabled ? '#B0B7C3' : '#5E6E87',
+                                                                        color: isExportDisabled ? 'var(--color-grey-300)' : 'var(--color-grey-500)',
                                                                     }}
                                                                 />
                                                             </IconButton>
@@ -4626,7 +4626,7 @@ function LLMAgent() {
                                                                 onClick={() => setIsMobileReferencesDrawerOpen(false)}
                                                                 title="Close references"
                                                             >
-                                                                <ChevronRightIcon sx={{ color: '#5E6E87', transform: 'rotate(90deg)' }} />
+                                                                <ChevronRightIcon sx={{ color: 'var(--color-grey-500)', transform: 'rotate(90deg)' }} />
                                                             </IconButton>
                                                         </div>
                                                     </div>

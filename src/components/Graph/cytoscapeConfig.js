@@ -80,7 +80,7 @@ export function createStyleSheet(nodeIds) {
             selector: 'edge',
             style: {
                 'width': 'data(weight)',
-                'line-color': '#ccc',
+                'line-color': 'var(--color-grey-200)',
                 'curve-style': 'bezier'
             }
         },
@@ -91,7 +91,7 @@ export function createStyleSheet(nodeIds) {
                 'text-valign': 'top',
                 'text-halign': 'center',
                 'background-color': '#f5f5f5',
-                'border-color': '#ccc',
+                'border-color': 'var(--color-grey-200)',
                 'border-width': '1px',
                 'border-opacity': 0.5,
                 'background-opacity': 0.2,
@@ -108,7 +108,7 @@ export function createStyleSheet(nodeIds) {
                 'font-size': '14px',
                 'font-weight': 'bold',
                 'text-margin-y': '-10px',
-                'color': '#666',
+                'color': 'var(--color-grey-500)',
                 'text-background-color': '#fff',
                 'text-background-opacity': 0.8,
                 'text-background-padding': '3px'
@@ -137,7 +137,7 @@ export function createStyleSheet(nodeIds) {
             selector: 'node.cy-expand-collapse-collapsed-node',
             style: {
                 'background-color': '#f5f5f5',
-                'border-color': '#ccc',
+                'border-color': 'var(--color-grey-200)',
                 'border-width': '1px',
                 'border-opacity': 0.5,
                 'background-opacity': 0.2,
@@ -172,7 +172,7 @@ export function createStyleSheet(nodeIds) {
 
 function getLabelColor(label) {
     // Add your label color logic here
-    return '#000000'; // Default color
+    return 'var(--color-neutral-black)'; // Default color
 }
 
 function getNodeSize(frequency) {

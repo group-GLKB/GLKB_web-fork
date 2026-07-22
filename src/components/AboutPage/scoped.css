@@ -4,7 +4,7 @@
     overflow-x: hidden;
     scroll-behavior: smooth;
     background: #f6fcff;
-    color: #000000;
+    color: var(--color-neutral-black);
     font-family: 'Inter', sans-serif;
 }
 
@@ -23,7 +23,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 14px 32px;
-    background: #ffffff;
+    background: var(--color-neutral-white);
     border-bottom: 1px solid #e6eef5;
 }
 
@@ -58,7 +58,7 @@
     border: none;
     font-size: 16px;
     font-weight: 400;
-    color: #000000;
+    color: var(--color-neutral-black);
     cursor: pointer;
 }
 
@@ -70,7 +70,7 @@
     font-size: 16px;
     cursor: pointer;
     background: #0169ae;
-    color: #ffffff;
+    color: var(--color-neutral-white);
 }
 
 .about-page-section {
@@ -135,7 +135,7 @@
 
 .about-primary {
     background: #0169ae;
-    color: #ffffff;
+    color: var(--color-neutral-white);
     border: none;
 }
 
@@ -402,7 +402,7 @@
 }
 
 .about-work-card {
-    background: #ffffff;
+    background: var(--color-neutral-white);
     border-radius: 12px;
     padding: 24px;
     text-align: left;
@@ -431,7 +431,7 @@
     font-family: 'DM Sans', 'Inter', sans-serif;
     font-size: 24px;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--color-neutral-white);
 }
 
 .about-work-name {
@@ -621,7 +621,7 @@
     width: 114px;
     height: 37px;
     border-radius: 100px;
-    background: #ffffff;
+    background: var(--color-neutral-white);
     left: 4px;
     top: 4px;
     transition: transform 0.25s ease;
@@ -651,7 +651,7 @@
     font-family: 'DM Sans', 'Inter', sans-serif;
     font-size: 16px;
     font-weight: 400;
-    color: #155dfc;
+    color: var(--color-blue-500);
 }
 
 .about-pricing-cards {
@@ -664,7 +664,7 @@
 
 .about-pricing-card {
     --pricing-border: #bfe6ff;
-    background: #ffffff;
+    background: var(--color-neutral-white);
     border: 2px solid var(--pricing-border);
     border-radius: 19px;
     padding: 32px;
@@ -699,7 +699,7 @@
     left: 50%;
     transform: translateX(-50%);
     background: var(--pricing-border);
-    color: #ffffff;
+    color: var(--color-neutral-white);
     font-family: 'DM Sans', 'Inter', sans-serif;
     font-size: 11px;
     font-weight: 700;
@@ -790,12 +790,12 @@
 
 .about-pricing-button.is-selected {
     background: #01508a;
-    color: #ffffff;
+    color: var(--color-neutral-white);
 }
 
 .about-pricing-button--primary {
     background: #0169ae;
-    color: #ffffff;
+    color: var(--color-neutral-white);
 }
 
 .about-pricing-button--primary:hover {
@@ -846,7 +846,7 @@
     width: 16px;
     height: 16px;
     font-size: 16px;
-    color: #155dfc;
+    color: var(--color-blue-500);
     flex-shrink: 0;
 }
 
@@ -1000,7 +1000,7 @@
 .about-footer {
     margin-top: auto;
     background: #0169ae;
-    color: #ffffff;
+    color: var(--color-neutral-white);
     height: 264px;
     padding: 0 60px;
     display: flex;
@@ -1099,7 +1099,7 @@
 .about-use-card {
     position: absolute;
     border-radius: 20px;
-    background: #ffffff;
+    background: var(--color-neutral-white);
     padding: 24px;
     height: 307px;
     width: 560px;

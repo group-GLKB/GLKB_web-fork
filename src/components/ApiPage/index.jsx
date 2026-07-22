@@ -406,7 +406,7 @@ const ApiPage = () => {
                                 allowScrollButtonsMobile={!isPhoneDevice}
                                 TabIndicatorProps={{
                                     sx: {
-                                        backgroundColor: '#155DFC',
+                                        backgroundColor: 'var(--color-blue-500)',
                                         height: 2,
                                     },
                                 }}
@@ -428,7 +428,7 @@ const ApiPage = () => {
                                         padding: isPhoneDevice ? '12px 0' : '12px 24px',
                                     },
                                     '& .MuiTab-root.Mui-selected': {
-                                        color: '#155DFC',
+                                        color: 'var(--color-blue-500)',
                                     },
                                 }}
                             >

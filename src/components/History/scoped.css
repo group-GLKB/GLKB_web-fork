@@ -91,7 +91,7 @@
     padding: 0 64px 0 14px;
     border-radius: 10px;
     border: 1px solid #DADADA;
-    background-color: #ffffff;
+    background-color: var(--color-neutral-white);
     font-family: 'DM Sans';
     font-size: 14px;
     color: #164563;
@@ -109,7 +109,7 @@
 }
 
 .history-search-input:focus {
-    border-color: #155DFC;
+    border-color: var(--color-blue-500);
     box-shadow: 0 0 0 2px rgba(21, 93, 252, 0.15);
 }
 
@@ -242,7 +242,7 @@
     padding: 0 12px;
     border-radius: 16px;
     border: 1px solid #E7F1FF;
-    background-color: #ffffff;
+    background-color: var(--color-neutral-white);
     font-family: 'DM Sans', sans-serif;
     font-weight: 500;
     font-size: 14px;
@@ -265,7 +265,7 @@
     font-family: 'DM Sans', sans-serif;
     font-size: 14px;
     font-weight: 500;
-    color: #969696;
+    color: var(--color-grey-400);
 }
 
 .history-card-meta-icon {
@@ -283,7 +283,7 @@
     align-items: center;
     justify-content: space-between;
     min-height: 40px;
-    background: #ffffff;
+    background: var(--color-neutral-white);
     border-bottom: 1px solid #E5E7EB;
     padding: 0 0 8px;
 }

@@ -182,7 +182,7 @@ const ConversationCard = ({
                     sx={{
                         color: '#D9D9D9',
                         padding: '4px',
-                        '&.Mui-checked': { color: '#155DFC' },
+                        '&.Mui-checked': { color: 'var(--color-blue-500)' },
                     }}
                 />
             )}

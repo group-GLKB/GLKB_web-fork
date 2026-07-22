@@ -84,7 +84,7 @@
     font-weight: 800;
     font-size: 36px;
     line-height: 1.2;
-    color: #141B26;
+    color: var(--color-grey-900);
     margin: 0;
 }
 
@@ -93,7 +93,7 @@
     font-weight: 600;
     font-size: 16px;
     line-height: 1.5;
-    color: #5E6E87;
+    color: var(--color-grey-500);
     margin: 0;
 }
 
@@ -130,14 +130,14 @@
     font-family: 'Geist', sans-serif;
     font-size: 14px;
     font-weight: 500;
-    color: #141B26;
+    color: var(--color-grey-900);
     text-align: left;
 }
 
 .homepage-limit-warning-button {
-    border: 1px solid #155DFC;
-    background: #ffffff;
-    color: #155DFC;
+    border: 1px solid var(--color-blue-500);
+    background: var(--color-neutral-white);
+    color: var(--color-blue-500);
     border-radius: 999px;
     padding: 6px 14px;
     font-family: 'Geist', sans-serif;
@@ -148,13 +148,13 @@
 }
 
 .homepage-limit-warning-button:hover {
-    background: #F3F8FF;
+    background: var(--color-blue-25);
 }
 
 .homepage-limit-warning-button:disabled {
-    border-color: #CBD2E0;
-    background: #F2F4F8;
-    color: #A8B3C8;
+    border-color: var(--color-grey-200);
+    background: var(--color-grey-50);
+    color: var(--color-grey-300);
     cursor: not-allowed;
 }
 
@@ -185,9 +185,9 @@
     flex: 0 0 auto;
     padding: 8px 12px;
     border-radius: 8px !important;
-    background-color: #F2F4F8;
-    border: 0.5px solid #E5E9F0;
-    color: #222A38;
+    background-color: var(--color-grey-50);
+    border: 0.5px solid var(--color-grey-100);
+    color: var(--color-grey-800);
     font-family: "Geist", sans-serif;
     font-weight: 500;
     font-size: 12px;
@@ -198,15 +198,15 @@
 }
 
 .homepage-pill:hover {
-    background-color: #F2F4F8;
-    border-color: #E5E9F0;
+    background-color: var(--color-grey-50);
+    border-color: var(--color-grey-100);
     box-shadow: none;
     transform: translateY(-1px);
 }
 
 .homepage-pill.is-active {
-    background-color: #F2F4F8;
-    border-color: #E5E9F0;
+    background-color: var(--color-grey-50);
+    border-color: var(--color-grey-100);
     box-shadow: none;
 }
 
@@ -298,19 +298,19 @@
     font-family: "Geist", sans-serif !important;
     font-weight: 700 !important;
     font-size: 16px !important;
-    color: #155DFC !important;
+    color: var(--color-blue-500) !important;
 }
 
 .homepage-examples-close {
     border: 1px solid #D7E3EA;
-    background-color: #ffffff;
+    background-color: var(--color-neutral-white);
     color: #64748B;
     transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, transform 120ms ease;
 }
 
 .homepage-examples-close:hover {
     background-color: #EEF6FF;
-    color: #155DFC;
+    color: var(--color-blue-500);
     border-color: #BFD6FF;
     transform: translateY(-1px);
 }
@@ -332,9 +332,9 @@
     gap: 12px;
     padding: 12px 14px;
     border-radius: 16px;
-    border: 0.5px solid #E5E9F0;
+    border: 0.5px solid var(--color-grey-100);
     background-color: #FCFDFD;
-    color: #141B26;
+    color: var(--color-grey-900);
     font-family: "Geist", sans-serif;
     font-weight: 500;
     font-size: 15px;
@@ -406,7 +406,7 @@
 }
 
 .homepage-examples-arrow {
-    color: #155DFC;
+    color: var(--color-blue-500);
     font-size: 16px;
     transition: transform 140ms ease;
 }
@@ -418,7 +418,7 @@
 .footer {
     align-items: center;
     padding: 0px;
-    color: #8090AB;
+    color: var(--color-grey-400);
     font-size: 14px;
     width: 100%;
     text-align: center;
@@ -440,7 +440,7 @@
 .homepage-lab-link:visited,
 .homepage-lab-link:hover,
 .homepage-lab-link:active {
-    color: #4B88FD !important;
+    color: var(--color-blue-400) !important;
     font-weight: normal !important;
     text-decoration: none !important;
 }
@@ -545,7 +545,7 @@
 }
 
 .glkb-introduction a {
-    color: #155DFC;
+    color: var(--color-blue-500);
     text-decoration: none;
 }
 
@@ -575,7 +575,7 @@
     width: 100%;
     padding: 16px;
     border-radius: 16px !important;
-    border: 0.5px solid #E5E9F0;
+    border: 0.5px solid var(--color-grey-100);
     background-color: #F5F6F8 !important;
     box-shadow: none !important;
     box-sizing: border-box;
@@ -606,9 +606,9 @@
     padding: 12px 14px;
     margin: 0 !important;
     border-radius: 16px !important;
-    border: 0.5px solid #E5E9F0;
+    border: 0.5px solid var(--color-grey-100);
     background-color: #FCFDFD;
-    color: #141B26;
+    color: var(--color-grey-900);
     font-family: "Geist", sans-serif;
     font-weight: 500;
     font-size: 15px;

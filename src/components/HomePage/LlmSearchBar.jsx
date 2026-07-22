@@ -75,7 +75,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             borderWidth: (isOpen && llmQuery?.trim() === '') ? '0px 1px 1px 1px' : '1px',
             borderStyle: 'solid',
             borderColor: '#E6F0FC',
-            boxShadow: '0px 2px 3px -1px #00000026',
+            boxShadow: '0px 2px 3px -1px var(--color-neutral-black)26',
         }}>
             <Autocomplete
                 freeSolo
@@ -163,7 +163,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             borderWidth: '0px 1px 1px 1px',
                             borderStyle: 'solid',
                             borderColor: '#E6F0FC',
-                            boxShadow: '0px 2px 3px -1px #00000026',
+                            boxShadow: '0px 2px 3px -1px var(--color-neutral-black)26',
                             marginBottom: '5px',
                             paddingTop: '0px',
                             overflow: 'hidden',

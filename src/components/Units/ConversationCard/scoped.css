@@ -138,12 +138,12 @@
     font-weight: 600;
     font-size: 16px;
     color: #164563;
-    background-color: #ffffff;
+    background-color: var(--color-neutral-white);
     outline: none;
 }
 
 .history-title-input:focus {
-    border-color: #155DFC;
+    border-color: var(--color-blue-500);
     box-shadow: 0 0 0 2px rgba(21, 93, 252, 0.12);
 }
 
@@ -170,7 +170,7 @@
 }
 
 .history-item:focus-visible {
-    outline: 2px solid #155DFC;
+    outline: 2px solid var(--color-blue-500);
     outline-offset: 4px;
     border-radius: 8px;
 }

@@ -21,7 +21,7 @@
 
 .signup-header h2 {
   margin-bottom: 8px;
-  color: #1890ff;
+  color: var(--color-blue-400);
 }
 
 .signup-footer {
@@ -30,7 +30,7 @@
 }
 
 .signup-footer a {
-  color: #1890ff;
+  color: var(--color-blue-400);
   font-weight: 500;
 }
 

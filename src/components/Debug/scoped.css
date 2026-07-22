@@ -10,7 +10,7 @@
 
 .debug-card {
     width: min(720px, 92vw);
-    background: #ffffff;
+    background: var(--color-neutral-white);
     border-radius: 18px;
     padding: 24px 28px;
     box-shadow: 0 16px 40px rgba(18, 38, 63, 0.12);
@@ -62,15 +62,15 @@
 }
 
 .debug-input:focus {
-    border-color: #155dfc;
+    border-color: var(--color-blue-500);
     box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.12);
 }
 
 .debug-button {
     border: none;
     border-radius: 10px;
-    background: #155dfc;
-    color: #ffffff;
+    background: var(--color-blue-500);
+    color: var(--color-neutral-white);
     font-weight: 600;
     font-size: 14px;
     padding: 10px 14px;
@@ -97,7 +97,7 @@
     display: inline-block;
     font-size: 18px;
     font-weight: 400;
-    color: #5b5b5b;
+    color: var(--color-grey-500);
 }
 
 .loading-step-label--out {

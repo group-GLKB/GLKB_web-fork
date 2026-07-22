@@ -264,7 +264,7 @@ const AccountPage = () => {
                                 variant="fullWidth"
                                 TabIndicatorProps={{
                                     sx: {
-                                        backgroundColor: '#155DFC',
+                                        backgroundColor: 'var(--color-blue-500)',
                                         height: 2,
                                     },
                                 }}
@@ -286,7 +286,7 @@ const AccountPage = () => {
                                         padding: '12px 0',
                                     },
                                     '& .MuiTab-root.Mui-selected': {
-                                        color: '#155DFC',
+                                        color: 'var(--color-blue-500)',
                                     },
                                 }}
                             >

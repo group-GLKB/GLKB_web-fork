@@ -14,7 +14,7 @@
 
 .settings-nav {
     width: 280px;
-    background: #ffffff;
+    background: var(--color-neutral-white);
     border-right: 1px solid #E2E8F0;
     padding: 28px 0;
     flex-shrink: 0;
@@ -203,7 +203,7 @@
     padding: 7px 16px;
     border-radius: 8px;
     border: 1px solid #E8EAED;
-    background: #ffffff;
+    background: var(--color-neutral-white);
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
     font-weight: 500;
@@ -222,9 +222,9 @@
 }
 
 .flat-btn.dark {
-    background: #155DFC;
-    color: #ffffff;
-    border-color: #155DFC;
+    background: var(--color-blue-500);
+    color: var(--color-neutral-white);
+    border-color: var(--color-blue-500);
     font-weight: 500;
 }
 
@@ -290,7 +290,7 @@
 .subscription-progress-fill {
     height: 100%;
     border-radius: 999px;
-    background: linear-gradient(90deg, #155DFC 0%, #3B82F6 100%);
+    background: linear-gradient(90deg, var(--color-blue-500) 0%, #3B82F6 100%);
     transition: width 0.25s ease;
 }
 
@@ -313,12 +313,12 @@
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
     color: #1A2332;
-    background: #ffffff;
+    background: var(--color-neutral-white);
     outline: none;
 }
 
 .settings-inline-input:focus {
-    border-color: #155DFC;
+    border-color: var(--color-blue-500);
     box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.12);
 }
 
@@ -384,7 +384,7 @@
 }
 
 .modal {
-    background: #ffffff;
+    background: var(--color-neutral-white);
     border-radius: 16px;
     padding: 28px 32px;
     width: 420px;
@@ -454,7 +454,7 @@
 
 .modal-input:focus {
     border-color: #2563EB;
-    background: #ffffff;
+    background: var(--color-neutral-white);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
@@ -548,7 +548,7 @@
 .flat-btn.danger {
     background: #9F1239;
     border-color: #9F1239;
-    color: #ffffff;
+    color: var(--color-neutral-white);
 }
 
 .flat-btn.danger:hover:not(:disabled) {
@@ -567,7 +567,7 @@
     left: 50%;
     transform: translateX(-50%);
     background: #1A2332;
-    color: #ffffff;
+    color: var(--color-neutral-white);
     padding: 12px 20px;
     border-radius: 999px;
     font-size: 13.5px;

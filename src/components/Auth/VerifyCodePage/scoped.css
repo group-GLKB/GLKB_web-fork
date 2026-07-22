@@ -39,7 +39,7 @@
 
 .verify-subtitle {
   font-size: 15px;
-  color: #666;
+  color: var(--color-grey-500);
   margin-bottom: 24px;
   line-height: 1.5;
 }
@@ -133,7 +133,7 @@
 }
 
 .resend-text {
-  color: #666;
+  color: var(--color-grey-500);
 }
 
 .resend-button {

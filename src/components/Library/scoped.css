@@ -111,7 +111,7 @@
 
 .library-folder-manager-item.is-active {
     background-color: #E7F1FF;
-    color: #155DFC;
+    color: var(--color-blue-500);
     font-weight: 600;
 }
 
@@ -162,7 +162,7 @@
     padding: 0 64px 0 14px;
     border-radius: 10px;
     border: 1px solid #DADADA;
-    background-color: #ffffff;
+    background-color: var(--color-neutral-white);
     font-family: 'DM Sans';
     font-size: 14px;
     color: #164563;
@@ -180,7 +180,7 @@
 }
 
 .library-search-input:focus {
-    border-color: #155DFC;
+    border-color: var(--color-blue-500);
     box-shadow: 0 0 0 2px rgba(21, 93, 252, 0.15);
 }
 
@@ -250,14 +250,14 @@
     height: 28px;
     border-radius: 8px;
     border: 1px solid #D7E3EA;
-    background-color: #ffffff;
+    background-color: var(--color-neutral-white);
     color: #64748B;
     transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, transform 120ms ease;
 }
 
 .library-sort-download:hover {
     background-color: #EEF6FF;
-    color: #155DFC;
+    color: var(--color-blue-500);
     border-color: #BFD6FF;
     transform: translateY(-1px);
 }
@@ -290,7 +290,7 @@
 
 .library-folder-status-button {
     border: 1px solid #D7E3EA;
-    background: #ffffff;
+    background: var(--color-neutral-white);
     color: #164563;
     border-radius: 16px;
     padding: 6px 10px;
@@ -372,9 +372,9 @@
 .library-mobile-folder-new-button {
     width: 100%;
     border-radius: 10px;
-    border: 1px solid #155DFC;
-    background: #ffffff;
-    color: #155DFC;
+    border: 1px solid var(--color-blue-500);
+    background: var(--color-neutral-white);
+    color: var(--color-blue-500);
     font-family: 'DM Sans', sans-serif;
     font-size: 14px;
     font-weight: 700;
@@ -392,9 +392,9 @@
 
 .library-new-folder-button {
     border-radius: 16px !important;
-    border: 1px solid #155DFC !important;
-    background-color: #ffffff;
-    color: #155DFC;
+    border: 1px solid var(--color-blue-500) !important;
+    background-color: var(--color-neutral-white);
+    color: var(--color-blue-500);
     font-family: 'DM Sans, sans-serif';
     font-size: 14px;
     font-weight: 700 !important;
@@ -406,7 +406,7 @@
 }
 
 .library-new-folder-button:hover {
-    background-color: #ffffff;
+    background-color: var(--color-neutral-white);
 }
 
 .library-folder-grid {
@@ -418,7 +418,7 @@
 
 .library-folder-card {
     position: relative;
-    background: #ffffff;
+    background: var(--color-neutral-white);
     border: 1px solid #D8D8D8;
     border-radius: 8px;
     padding: 8px;
@@ -481,7 +481,7 @@
     font-family: 'DM Sans';
     font-weight: 400;
     font-size: 12px;
-    color: #969696;
+    color: var(--color-grey-400);
 }
 
 .library-folder-page-title {
@@ -628,7 +628,7 @@
     padding-left: 0px !important;
     border: none;
     background: transparent;
-    color: #155DFC;
+    color: var(--color-blue-500);
     font-family: 'DM Sans';
     font-size: 13px;
     font-weight: 600;
@@ -643,7 +643,7 @@
 .library-show-more-arrow {
     font-size: 10px;
     line-height: 1;
-    color: #155DFC;
+    color: var(--color-blue-500);
 }
 
 .library-empty-text {
@@ -713,7 +713,7 @@
     font-family: 'DM Sans', sans-serif;
     font-size: 14px;
     font-weight: 500;
-    color: #969696;
+    color: var(--color-grey-400);
 }
 
 .library-card-meta-icon {
@@ -760,7 +760,7 @@
     padding: 0 12px;
     border-radius: 16px;
     border: 1px solid #E7F1FF;
-    background-color: #ffffff;
+    background-color: var(--color-neutral-white);
     font-family: 'DM Sans', sans-serif;
     font-weight: 500;
     font-size: 14px;
@@ -779,7 +779,7 @@
 .library-chat-item {
     width: 100%;
     text-align: left;
-    background: #ffffff;
+    background: var(--color-neutral-white);
     border: 1px solid #E5E7EB;
     padding: 12px 14px;
     border-radius: 12px;

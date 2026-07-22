@@ -43,8 +43,8 @@
 }
 
 .add-button {
-    background-color: #1890ff;
-    border-color: #1890ff;
+    background-color: var(--color-blue-400);
+    border-color: var(--color-blue-400);
     color: white;
     border-radius: 4px;
 }
@@ -77,11 +77,11 @@
 }
 
 .search-autocomplete-box .MuiOutlinedInput-root:hover {
-    border-color: #40a9ff;
+    border-color: var(--color-blue-300);
 }
 
 .search-autocomplete-box .MuiOutlinedInput-root.Mui-focused {
-    border-color: #1890ff;
+    border-color: var(--color-blue-400);
 }
 
 /* Dropdown styles */
@@ -92,7 +92,7 @@
 }
 
 .term-type-dropdown:hover .ant-select-selector {
-    border-color: #40a9ff !important;
+    border-color: var(--color-blue-300) !important;
 }
 
 /* Common button styles */
@@ -150,7 +150,7 @@
     padding: 0 12px;
     border-radius: 16px;
     border: 1px solid #E7F1FF;
-    background-color: #ffffff;
+    background-color: var(--color-neutral-white);
     font-family: "DM Sans", sans-serif;
     font-weight: 500;
     font-size: 14px;
@@ -168,7 +168,7 @@
 
 .explore-pill-filled {
     border-color: rgba(226, 232, 240, 0.50);
-    background-color: #ffffff;
+    background-color: var(--color-neutral-white);
     box-shadow: 0px 4px 6px rgba(226, 232, 240, 0.50);
 }
 
@@ -188,7 +188,7 @@
     align-items: center;
     border: 1px solid #E7F1FF;
     border-radius: 16px;
-    background-color: #ffffff;
+    background-color: var(--color-neutral-white);
     box-shadow: 0px 4px 6px rgba(226, 232, 240, 0.50);
     box-sizing: border-box;
 }
@@ -219,7 +219,7 @@
 .explore-pill-skeleton {
     min-width: 120px;
     height: 32px;
-    border: 1px dashed #E0E0E0;
+    border: 1px dashed var(--color-grey-100);
     background-color: #F9FAFC;
     color: transparent;
     display: inline-flex;

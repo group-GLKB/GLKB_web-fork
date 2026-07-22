@@ -185,7 +185,7 @@ const Filter = props => {
                         {label}
                         {isRelationship && (
                             <Tooltip title={explanation}>
-                                <InfoCircleOutlined style={{ marginLeft: '5px', color: '#1890ff' }} />
+                                <InfoCircleOutlined style={{ marginLeft: '5px', color: 'var(--color-blue-400)' }} />
                             </Tooltip>
                         )}
                     </div>

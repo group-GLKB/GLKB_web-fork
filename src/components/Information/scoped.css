@@ -173,7 +173,7 @@ all {
     align-items: center;
     height: 200px;
     font-size: 16px;
-    color: #666;
+    color: var(--color-grey-500);
     text-align: center;
     padding: 20px;
     line-height: 1.5;

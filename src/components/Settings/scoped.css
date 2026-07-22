@@ -31,12 +31,12 @@ all {
     flex-direction: column;
     border-radius: 10px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    background-color: #FFFFFF;
+    background-color: var(--color-neutral-white);
 }
 
 .ant-card-body {
     padding: 0 !important;
-    background-color: #FFFFFF !important;
+    background-color: var(--color-neutral-white) !important;
 }
 
 .ant-collapse {
@@ -44,7 +44,7 @@ all {
 }
 
 .ant-collapse-content {
-    background-color: #FFFFFF !important;
+    background-color: var(--color-neutral-white) !important;
 }
 
 .panel-header {
@@ -262,7 +262,7 @@ all {
 }
 
 .ant-typography {
-    background-color: #f0f0f0;
+    background-color: var(--color-grey-50);
     padding: 10px;
     border-radius: 4px;
 }

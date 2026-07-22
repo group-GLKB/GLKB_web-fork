@@ -174,8 +174,8 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
         const base = nodeStyleColors[label] || nodeStyleColors.default || '#E5E5E5';
         return {
             base,
-            background: mixHex(base, '#ffffff', 0.75),
-            text: mixHex(base, '#000000', 0.35),
+            background: mixHex(base, 'var(--color-neutral-white)', 0.75),
+            text: mixHex(base, 'var(--color-neutral-black)', 0.35),
             shadow: toRgba(base, 0.3),
         };
     };
@@ -543,7 +543,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                     borderWidth: '1px',
                     borderStyle: 'solid',
                     borderColor: '#E6F0FC',
-                    boxShadow: '0px 2px 3px -1px #00000026',
+                    boxShadow: '0px 2px 3px -1px var(--color-neutral-black)26',
                     padding: '12px 20px',
                     alignItems: 'stretch',
                 }}>
@@ -687,7 +687,7 @@ const SearchBarKnowledge = React.forwardRef((props, ref) => {
                                                 borderWidth: '1px',
                                                 borderStyle: 'solid',
                                                 borderColor: '#E6F0FC',
-                                                boxShadow: '0px 2px 3px -1px #00000026',
+                                                boxShadow: '0px 2px 3px -1px var(--color-neutral-black)26',
                                                 marginBottom: '5px',
                                                 overflow: 'hidden',
                                                 fontFamily: 'Open Sans, sans-serif',

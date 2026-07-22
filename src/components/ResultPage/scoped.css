@@ -237,9 +237,9 @@ all {
     min-width: 36px !important;
     height: 36px;
     border-radius: 10px !important;
-    border: 1px solid #155DFC !important;
+    border: 1px solid var(--color-blue-500) !important;
     background: #E7F1FF !important;
-    color: #155DFC !important;
+    color: var(--color-blue-500) !important;
     padding: 0 !important;
     box-shadow: 0 1px 3px rgba(21, 93, 252, 0.18) !important;
 }
@@ -435,7 +435,7 @@ all {
 
 .example-card {
     border: 1px solid #E6F0FC;
-    background: #ffffff;
+    background: var(--color-neutral-white);
     border-radius: 16px;
     padding: 12px 14px;
     text-align: left;
@@ -541,7 +541,7 @@ all {
     z-index: 1002;
     padding: 10px 20px;
     color: black;
-    background-color: #99c7b1;
+    background-color: var(--color-green-300);
     border: none;
     border-radius: 5px;
     cursor: pointer;
@@ -550,7 +550,7 @@ all {
 }
 
 .convert-graph-button:hover {
-    background-color: #577265;
+    background-color: var(--color-green-700);
     color: black;
 }
 

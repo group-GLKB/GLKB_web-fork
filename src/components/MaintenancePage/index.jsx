@@ -36,7 +36,7 @@ const MaintenancePage = () => (
                 variant="contained"
                 disableElevation
                 sx={{
-                    background: '#155dfc',
+                    background: 'var(--color-blue-500)',
                     border: 'none',
                     borderRadius: '12px',
                     color: '#fff',
@@ -52,7 +52,7 @@ const MaintenancePage = () => (
                     letterSpacing: 'normal',
                     boxShadow: 'none',
                     '&:hover': {
-                        background: '#155dfc',
+                        background: 'var(--color-blue-500)',
                         border: 'none',
                         boxShadow: 'none',
                     },

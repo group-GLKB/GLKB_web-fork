@@ -172,8 +172,8 @@ const getPillColors = (label) => {
     const base = nodeStyleColors[label] || nodeStyleColors.default || '#E5E5E5';
     return {
         base,
-        background: mixHex(base, '#ffffff', 0.75),
-        text: mixHex(base, '#000000', 0.35),
+        background: mixHex(base, 'var(--color-neutral-white)', 0.75),
+        text: mixHex(base, 'var(--color-neutral-black)', 0.35),
         shadow: toRgba(base, 0.3),
     };
 };
@@ -491,7 +491,7 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                     }}>
                         {pmid ? (
                             <Typography sx={{
-                                color: '#969696',
+                                color: 'var(--color-grey-400)',
                                 fontSize: '14px',
                                 fontWeight: 500,
                             }}>
@@ -538,7 +538,7 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                                 fontSize: '14px',
                                 fontWeight: 400,
                                 fontStyle: 'italic',
-                                color: '#969696',
+                                color: 'var(--color-grey-400)',
                                 lineHeight: '16px',
                                 flex: 1,
                             }}>
@@ -1501,7 +1501,7 @@ const Library = () => {
                                     checked={Boolean(folderPickerSelections?.[folder.fid])}
                                     disabled={folderPickerLoading}
                                     onChange={() => handleToggleFolderSelection(folder.fid)}
-                                    sx={{ color: '#155DFC', '&.Mui-checked': { color: '#155DFC' } }}
+                                    sx={{ color: 'var(--color-blue-500)', '&.Mui-checked': { color: 'var(--color-blue-500)' } }}
                                 />
                             </Box>
                         ))
@@ -1720,7 +1720,7 @@ const Library = () => {
                                 allowScrollButtonsMobile={!isPhoneDevice}
                                 TabIndicatorProps={{
                                     sx: {
-                                        backgroundColor: '#155DFC',
+                                        backgroundColor: 'var(--color-blue-500)',
                                         height: 2,
                                     },
                                 }}
@@ -1742,7 +1742,7 @@ const Library = () => {
                                         padding: isPhoneDevice ? '12px 0' : '12px 24px',
                                     },
                                     '& .MuiTab-root.Mui-selected': {
-                                        color: '#155DFC',
+                                        color: 'var(--color-blue-500)',
                                     },
                                 }}
                             >
@@ -1792,7 +1792,7 @@ const Library = () => {
                                             style={{
                                                 width: 20,
                                                 height: 20,
-                                                color: isReferenceExportDisabled ? '#B0B0B0' : '#164563',
+                                                color: isReferenceExportDisabled ? 'var(--color-grey-300)' : '#164563',
                                             }}
                                         />
                                     </IconButton>
@@ -1843,7 +1843,7 @@ const Library = () => {
                                         style={{
                                             width: 20,
                                             height: 20,
-                                            color: isReferenceExportDisabled ? '#B0B0B0' : '#164563',
+                                            color: isReferenceExportDisabled ? 'var(--color-grey-300)' : '#164563',
                                         }}
                                     />
                                 </IconButton>
