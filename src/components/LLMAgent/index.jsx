@@ -1632,6 +1632,7 @@ function LLMAgent() {
     const runIdRef = useRef(null);
     const hasConsumedInitialQueryRef = useRef(false);
     const initialSearchOptionsRef = useRef(null);
+    const lastSearchOptionsRef = useRef(null);
     const activeConversationIdRef = useRef(getActiveConversationId());
     const loadingConversationIdRef = useRef(null);
     const activeStreamIdRef = useRef(null);
@@ -2266,6 +2267,17 @@ function LLMAgent() {
         const investigateEnabled = Boolean(
             requestSearchOptions?.investigateEnabled ?? chatInvestigateEnabled,
         );
+        // Keep latest non-expired query options for clarify retry (no session_id reuse)
+        lastSearchOptionsRef.current = {
+            investigateEnabled,
+            filters: Array.isArray(requestSearchOptions?.filters) ? requestSearchOptions.filters : undefined,
+            rankingMode: typeof requestSearchOptions?.rankingMode === 'string'
+                ? requestSearchOptions.rankingMode
+                : undefined,
+            maxArticles: Number.isFinite(Number(requestSearchOptions?.maxArticles))
+                ? Number(requestSearchOptions.maxArticles)
+                : undefined,
+        };
 
         // Create new user message
         const newMessage = {
@@ -2717,9 +2729,13 @@ function LLMAgent() {
                     : '';
                 if (retryQuestion) {
                     message.info('Clarification session expired. Restarting with your answers applied.');
+                    const prior = lastSearchOptionsRef.current || {};
                     handleSubmit(null, retryQuestion, null, {
                         searchOptions: {
                             investigateEnabled: true,
+                            filters: prior.filters,
+                            rankingMode: prior.rankingMode,
+                            maxArticles: prior.maxArticles,
                         },
                     });
                 } else {
