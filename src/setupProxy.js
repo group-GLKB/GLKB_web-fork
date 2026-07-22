@@ -12,13 +12,12 @@ module.exports = function (app) {
     app.use(
         '/api',
         createProxyMiddleware({
-            target: process.env.REACT_APP_API_PROXY_TARGET || 'https://glkb.dcmb.med.umich.edu',
+            target: process.env.REACT_APP_API_PROXY_TARGET || 'https://jieliulab3.dcmb.med.umich.edu',
             changeOrigin: true,
             secure: false,
             pathRewrite: {
-                '^/api': '/api', // Rewrite /api to /reorg-api/api
+                '^/api': '/reorg-api/api',
             },
         })
     );
-
 };
