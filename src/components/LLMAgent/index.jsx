@@ -1120,28 +1120,62 @@ const MessageCard = React.memo(function MessageCard({
     );
 
     // Figma: real % bar when agent sends percent; else phase floor (monotonic)
+    // After complete: prefer message.investigatePercent (persisted on final)
     const displayPercent = useMemo(() => {
-        if (!showInvestigateProgress) return null;
-        if (Number.isFinite(Number(investigatePercent))) {
-            return Math.max(0, Math.min(100, Math.round(Number(investigatePercent))));
+        const live = Number.isFinite(Number(investigatePercent))
+            ? Math.max(0, Math.min(100, Math.round(Number(investigatePercent))))
+            : null;
+        const saved = Number.isFinite(Number(message.investigatePercent))
+            ? Math.max(0, Math.min(100, Math.round(Number(message.investigatePercent))))
+            : null;
+        if (showInvestigateProgress) {
+            if (live != null) return live;
+            return PHASE_PERCENT_FLOOR[resolvedPhase] ?? 8;
         }
-        return PHASE_PERCENT_FLOOR[resolvedPhase] ?? 8;
-    }, [showInvestigateProgress, investigatePercent, resolvedPhase]);
+        // completed card: show 100 if we have funnel/phase saved
+        if (showInvestigateSummary) return saved ?? (isInvestigateMessage ? 100 : null);
+        return null;
+    }, [
+        showInvestigateProgress,
+        showInvestigateSummary,
+        investigatePercent,
+        message.investigatePercent,
+        resolvedPhase,
+        isInvestigateMessage,
+    ]);
 
-    const visibleKeywords = useMemo(() => {
-        const list = Array.isArray(investigateKeywords) ? investigateKeywords : [];
-        return list.slice(0, 12);
-    }, [investigateKeywords]);
+    const resolvedKeywords = useMemo(() => {
+        if (isLoading && Array.isArray(investigateKeywords) && investigateKeywords.length) {
+            return investigateKeywords;
+        }
+        if (Array.isArray(message.investigateKeywords) && message.investigateKeywords.length) {
+            return message.investigateKeywords;
+        }
+        return Array.isArray(investigateKeywords) ? investigateKeywords : [];
+    }, [isLoading, investigateKeywords, message.investigateKeywords]);
 
-    const keywordOverflow = useMemo(() => {
-        const list = Array.isArray(investigateKeywords) ? investigateKeywords : [];
-        return Math.max(0, list.length - 12);
-    }, [investigateKeywords]);
+    const visibleKeywords = useMemo(() => resolvedKeywords.slice(0, 12), [resolvedKeywords]);
 
-    const visiblePapers = useMemo(() => {
-        const list = Array.isArray(investigatePapers) ? investigatePapers : [];
-        return list.slice(0, 8);
-    }, [investigatePapers]);
+    const keywordOverflow = useMemo(
+        () => Math.max(0, resolvedKeywords.length - 12),
+        [resolvedKeywords],
+    );
+
+    const resolvedPapers = useMemo(() => {
+        if (isLoading && Array.isArray(investigatePapers) && investigatePapers.length) {
+            return investigatePapers;
+        }
+        if (Array.isArray(message.investigatePapers) && message.investigatePapers.length) {
+            return message.investigatePapers;
+        }
+        return Array.isArray(investigatePapers) ? investigatePapers : [];
+    }, [isLoading, investigatePapers, message.investigatePapers]);
+
+    const visiblePapers = useMemo(() => resolvedPapers.slice(0, 8), [resolvedPapers]);
+    const paperOverflow = useMemo(
+        () => Math.max(0, resolvedPapers.length - 8),
+        [resolvedPapers],
+    );
 
     const investigateActivityItems = useMemo(() => {
         const raw = activeStreamingGroups
@@ -1282,6 +1316,52 @@ const MessageCard = React.memo(function MessageCard({
                                 })}
                             </Box>
                         )}
+                        {showInvestigateSummary && visibleKeywords.length > 0 && (
+                            <Box className="investigate-keywords" aria-label="Search keywords used">
+                                <span className="investigate-keywords-title">Search keywords</span>
+                                <Box className="investigate-keywords-chips">
+                                    {visibleKeywords.map((kw) => (
+                                        <span key={kw} className="investigate-keyword-chip">{kw}</span>
+                                    ))}
+                                    {keywordOverflow > 0 && (
+                                        <span className="investigate-keyword-more">+{keywordOverflow} more</span>
+                                    )}
+                                </Box>
+                            </Box>
+                        )}
+                        {showInvestigateSummary && visiblePapers.length > 0 && (
+                            <Box className="investigate-live-papers" aria-label="Papers reviewed">
+                                <span className="investigate-live-papers-title">
+                                    Reviewed {resolvedPapers.length} paper{resolvedPapers.length === 1 ? '' : 's'}
+                                    {paperOverflow > 0 ? ` (showing ${visiblePapers.length})` : ''}
+                                </span>
+                                <ul className="investigate-live-papers-list">
+                                    {visiblePapers.map((paper) => (
+                                        <li key={paper.id || paper.pmid || paper.title}>
+                                            {paper.pmid ? (
+                                                <a
+                                                    href={`https://pubmed.ncbi.nlm.nih.gov/${paper.pmid}/`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                >
+                                                    {paper.title}
+                                                </a>
+                                            ) : (
+                                                <span>{paper.title}</span>
+                                            )}
+                                            {(paper.journal || paper.year) && (
+                                                <span className="investigate-live-paper-meta">
+                                                    {[paper.journal, paper.year].filter(Boolean).join(' · ')}
+                                                </span>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                                {paperOverflow > 0 && (
+                                    <span className="investigate-keyword-more">+{paperOverflow} more</span>
+                                )}
+                            </Box>
+                        )}
 
                         {showInvestigateProgress && (
                             <Box className="investigate-progress-shell">
@@ -1367,7 +1447,8 @@ const MessageCard = React.memo(function MessageCard({
                                         {visiblePapers.length > 0 && (
                                             <Box className="investigate-live-papers" aria-label="Papers being read">
                                                 <span className="investigate-live-papers-title">
-                                                    Reading {investigatePapers?.length || visiblePapers.length} paper{(investigatePapers?.length || visiblePapers.length) === 1 ? '' : 's'}
+                                                    Reading {resolvedPapers.length} paper{resolvedPapers.length === 1 ? '' : 's'}
+                                                    {paperOverflow > 0 ? ` (showing ${visiblePapers.length})` : ''}
                                                 </span>
                                                 <ul className="investigate-live-papers-list">
                                                     {visiblePapers.map((paper) => (
@@ -1391,6 +1472,9 @@ const MessageCard = React.memo(function MessageCard({
                                                         </li>
                                                     ))}
                                                 </ul>
+                                                {paperOverflow > 0 && (
+                                                    <span className="investigate-keyword-more">+{paperOverflow} more</span>
+                                                )}
                                             </Box>
                                         )}
 
@@ -2731,6 +2815,12 @@ function LLMAgent() {
                                 investigateMode: investigateEnabled,
                                 investigateFunnel: { ...investigateFunnelRef.current },
                                 investigatePhase: investigatePhaseRef.current || 'verifying',
+                                investigatePercent: mergePercentMonotonic(
+                                    investigatePercentRef.current,
+                                    update.percent ?? 100,
+                                ) ?? 100,
+                                investigateKeywords: [...(investigateKeywordsRef.current || [])],
+                                investigatePapers: [...(investigatePapersRef.current || [])],
                             };
                             newHistory[newHistory.length - 1] = assistantMessage;
 
@@ -2843,6 +2933,9 @@ function LLMAgent() {
                                 investigateMode: true,
                                 investigateFunnel: { ...investigateFunnelRef.current },
                                 investigatePhase: 'verifying',
+                                investigatePercent: investigatePercentRef.current ?? 100,
+                                investigateKeywords: [...(investigateKeywordsRef.current || [])],
+                                investigatePapers: [...(investigatePapersRef.current || [])],
                             };
                             if (run.response) {
                                 llmService.updateMessages(run.response);
@@ -3001,6 +3094,9 @@ function LLMAgent() {
                         investigateMode: true,
                         investigateFunnel: { ...investigateFunnelRef.current },
                         investigatePhase: 'verifying',
+                        investigatePercent: investigatePercentRef.current ?? 100,
+                        investigateKeywords: [...(investigateKeywordsRef.current || [])],
+                        investigatePapers: [...(investigatePapersRef.current || [])],
                     };
                     if (run.response) llmService.updateMessages(run.response);
                     return newHistory;
