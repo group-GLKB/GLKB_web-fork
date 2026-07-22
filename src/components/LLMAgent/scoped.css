@@ -805,6 +805,132 @@
     color: #5E6E87;
 }
 
+button.investigate-progress-notify {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 999px;
+}
+
+button.investigate-progress-notify:hover {
+    background: #EEF3FF;
+    color: #155DFC;
+}
+
+button.investigate-progress-notify.active {
+    background: #D9E6FE;
+    color: #0A47D6;
+}
+
+/* Figma Asking Question — inline clarify */
+.clarify-inline-panel {
+    margin: 12px 0 16px;
+    padding: 16px;
+    border: 1px solid #D9E6FE;
+    border-radius: 16px;
+    background: #FDFEFF;
+    box-shadow: 0 4px 16px rgba(21, 93, 252, 0.06);
+}
+
+.clarify-inline-kicker {
+    font-family: 'Geist', 'DM Sans', sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #155DFC !important;
+    margin-bottom: 4px !important;
+}
+
+.clarify-inline-title {
+    font-family: 'Geist', 'DM Sans', sans-serif !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #141B26 !important;
+    margin-bottom: 6px !important;
+}
+
+.clarify-inline-reason {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    color: #5E6E87 !important;
+    line-height: 1.45 !important;
+    margin-bottom: 12px !important;
+}
+
+.clarify-inline-card {
+    border: 1px solid #E6EDF8;
+    border-radius: 12px;
+    padding: 12px;
+    background: #FFFFFF;
+}
+
+.clarify-inline-header {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: #5E6E87 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 4px !important;
+}
+
+.clarify-inline-question {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    color: #222A38 !important;
+    line-height: 1.45 !important;
+    margin-bottom: 8px !important;
+}
+
+.clarify-inline-error {
+    margin-top: 12px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    color: #A10902 !important;
+}
+
+.clarify-inline-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.investigate-progress-stage-count {
+    font-family: 'Geist', 'DM Sans', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #222A38;
+}
+
+.investigate-funnel-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 12px;
+}
+
+.investigate-funnel-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #F2F4F8;
+    color: #5E6E87;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.investigate-funnel-chip strong {
+    color: #222A38;
+    font-weight: 700;
+    font-size: 13px;
+}
+
 .investigate-progress-body {
     margin-top: 10px;
     border-top: 1px solid #CBD2E0;

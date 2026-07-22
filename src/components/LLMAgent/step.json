@@ -15,5 +15,13 @@
     "get_citing_articles": "Following citation trails",
     "cite_evidence": "Selecting supporting evidence",
     "FinalAnswerAgent": "Formulating the final answer",
-    "GLKBAgent": "Agent is thinking"
+    "GLKBAgent": "Agent is thinking",
+    "GLKBHarness": "Running deep investigation",
+    "Searching": "Searching...",
+    "Reading": "Reading...",
+    "Analyzing": "Analyzing",
+    "Writing": "Writing...",
+    "Verifying": "Verifying...",
+    "Processing": "Working...",
+    "Clarifying the question": "Asking clarifying questions"
 }
