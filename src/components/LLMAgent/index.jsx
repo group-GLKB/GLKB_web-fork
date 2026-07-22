@@ -2267,6 +2267,8 @@ function LLMAgent() {
         const investigateEnabled = Boolean(
             requestSearchOptions?.investigateEnabled ?? chatInvestigateEnabled,
         );
+        // Discard expired investigate session on explicit clarify retry
+        const resetInvestigateSession = Boolean(options.resetInvestigateSession);
         // Keep latest non-expired query options for clarify retry (no session_id reuse)
         lastSearchOptionsRef.current = {
             investigateEnabled,
@@ -2306,7 +2308,12 @@ function LLMAgent() {
                 logDev('[LLM] Failed to create conversation', error);
             }
         }
-        sessionIdRef.current = getStoredSessionId(historyId) || sessionIdRef.current;
+        if (resetInvestigateSession) {
+            sessionIdRef.current = null;
+            setStoredSessionId(historyId, null);
+        } else {
+            sessionIdRef.current = getStoredSessionId(historyId) || sessionIdRef.current;
+        }
 
         // Update chat history with user message
         setChatHistory([...baseHistory, newMessage]);
@@ -2731,6 +2738,7 @@ function LLMAgent() {
                     message.info('Clarification session expired. Restarting with your answers applied.');
                     const prior = lastSearchOptionsRef.current || {};
                     handleSubmit(null, retryQuestion, null, {
+                        resetInvestigateSession: true,
                         searchOptions: {
                             investigateEnabled: true,
                             filters: prior.filters,
