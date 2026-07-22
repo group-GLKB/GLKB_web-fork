@@ -897,6 +897,121 @@ button.investigate-progress-notify.active {
     margin-top: 16px;
 }
 
+.investigate-progress-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 4px 4px 8px;
+}
+
+.investigate-percent-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.investigate-percent-track {
+    flex: 1;
+    height: 8px;
+    border-radius: 999px;
+    background: #E8EEF8;
+    overflow: hidden;
+}
+
+.investigate-percent-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #155DFC 0%, #4B8BFF 100%);
+    transition: width 0.35s ease;
+}
+
+.investigate-percent-label {
+    min-width: 40px;
+    text-align: right;
+    font-family: 'Geist', 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #155DFC;
+}
+
+.investigate-keywords-title,
+.investigate-live-papers-title {
+    display: block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #46566C;
+    margin-bottom: 8px;
+}
+
+.investigate-keywords-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.investigate-keyword-chip {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #EEF3FF;
+    border: 1px solid #D9E6FE;
+    color: #0E4EDB;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+.investigate-keyword-more {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    color: #5E6E87;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.investigate-live-papers-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.investigate-live-papers-list li {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #F8FAFD;
+    border: 1px solid #E6EDF8;
+}
+
+.investigate-live-papers-list a {
+    color: #155DFC;
+    text-decoration: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+.investigate-live-papers-list a:hover {
+    text-decoration: underline;
+}
+
+.investigate-live-paper-meta {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    color: #7A8BA3;
+}
+
 .investigate-progress-stage-count {
     font-family: 'Geist', 'DM Sans', sans-serif;
     font-size: 18px;

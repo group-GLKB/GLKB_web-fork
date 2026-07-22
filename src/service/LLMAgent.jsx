@@ -37,7 +37,8 @@ const resolveInvestigateRunUrl = (runId) => {
 
 /** Pull optional numeric funnel fields from an agent SSE payload. */
 const extractFunnelMetrics = (data = {}) => {
-    const source = data.metrics || data.funnel || data.progress || data;
+    const detail = data.detail && typeof data.detail === 'object' ? data.detail : {};
+    const source = { ...data, ...detail, ...(data.metrics || {}), ...(data.funnel || {}) };
     const pick = (...keys) => {
         for (const key of keys) {
             const value = source?.[key];
@@ -48,9 +49,15 @@ const extractFunnelMetrics = (data = {}) => {
         return null;
     };
 
-    const retrieved = pick('retrieved', 'retrieved_count', 'n_retrieved', 'Retrieved');
+    const retrieved = pick('retrieved', 'retrieved_count', 'n_retrieved', 'n_pool', 'Retrieved');
     const screened = pick('screened', 'screened_count', 'n_screened', 'filtered', 'Screened');
-    const extracted = pick('extracted', 'extracted_count', 'n_extracted', 'Extracted');
+    const extracted = pick(
+        'extracted',
+        'extracted_papers',
+        'extracted_count',
+        'n_extracted',
+        'Extracted',
+    );
     const cited = pick('cited', 'cited_count', 'n_cited', 'citations', 'Cited');
 
     if (
@@ -65,9 +72,87 @@ const extractFunnelMetrics = (data = {}) => {
     return { retrieved, screened, extracted, cited };
 };
 
+/** Normalize keywords/queries from progress detail. */
+export const extractKeywords = (data = {}) => {
+    const detail = data.detail && typeof data.detail === 'object' ? data.detail : {};
+    const raw =
+        data.queries ||
+        data.keywords ||
+        data.search_keywords ||
+        detail.queries ||
+        detail.keywords ||
+        detail.search_keywords ||
+        null;
+    if (!raw) return null;
+    const list = Array.isArray(raw) ? raw : [raw];
+    const out = list
+        .map((item) => {
+            if (typeof item === 'string') return item.trim();
+            if (item && typeof item === 'object') {
+                return String(item.query || item.keyword || item.text || item.label || '').trim();
+            }
+            return '';
+        })
+        .filter(Boolean);
+    return out.length ? Array.from(new Set(out)) : null;
+};
+
+/** Normalize paper objects from progress detail. */
+export const extractPapers = (data = {}) => {
+    const detail = data.detail && typeof data.detail === 'object' ? data.detail : {};
+    const raw =
+        data.papers ||
+        data.articles ||
+        detail.papers ||
+        detail.articles ||
+        detail.reading ||
+        null;
+    if (!Array.isArray(raw) || !raw.length) return null;
+    const out = raw.map((item, index) => {
+        if (typeof item === 'string') {
+            const pmidMatch = item.match(/\b(\d{5,9})\b/);
+            return {
+                id: pmidMatch ? pmidMatch[1] : `p-${index}`,
+                pmid: pmidMatch ? pmidMatch[1] : null,
+                title: item,
+                journal: null,
+                year: null,
+            };
+        }
+        const pmid = item?.pmid || item?.PMID || item?.id || null;
+        return {
+            id: String(pmid || item?.title || index),
+            pmid: pmid ? String(pmid) : null,
+            title: item?.title || item?.name || (pmid ? `PMID ${pmid}` : 'Untitled'),
+            journal: item?.journal || item?.journal_name || null,
+            year: item?.year || item?.pub_year || null,
+        };
+    });
+    return out.length ? out : null;
+};
+
+/** Clamp percent 0-100; null if missing. */
+export const normalizePercent = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    const num = Number(value);
+    if (!Number.isFinite(num)) return null;
+    return Math.max(0, Math.min(100, Math.round(num)));
+};
+
+/** Fallback percent by phase when agent omits percent (Figma stage ETA order). */
+export const PHASE_PERCENT_FLOOR = {
+    searching: 10,
+    reading: 25,
+    analyzing: 55,
+    writing: 75,
+    verifying: 90,
+    summary: 100,
+};
+
 /** Infer investigate phase label from step/content text (Figma stages). */
 export const inferInvestigatePhase = (step = '', content = '') => {
     const text = `${step} ${content}`.toLowerCase();
+    if (/summary|done —|done -/.test(text)) return 'summary';
     if (/verif|check(ing)? every conclusion|evidence.?gate/.test(text)) return 'verifying';
     if (/writ(e|ing)|6-section|investigation report|formulat/.test(text)) return 'writing';
     if (/analyz|organis|organiz|claims|facets|angles|hypothesis/.test(text)) return 'analyzing';
@@ -160,11 +245,25 @@ export class LLMAgentService {
                     try {
                         const jsonStr = line.substring(6);
                         const data = JSON.parse(jsonStr);
+                        const detail = data.detail && typeof data.detail === 'object' ? data.detail : {};
                         const funnel = extractFunnelMetrics(data);
+                        const keywords = extractKeywords(data);
+                        const papers = extractPapers(data);
+                        const percent = normalizePercent(
+                            data.percent ?? data.progress_percent ?? detail.percent ?? null,
+                        );
+                        const label = data.label || detail.label || data.message || data.content || '';
                         const phase =
                             data.phase ||
+                            detail.phase ||
                             data.stage_label ||
-                            inferInvestigatePhase(data.step, data.message || data.content || '');
+                            inferInvestigatePhase(data.step || data.type, label);
+
+                        // Agent DR progress frames: type === "progress" (or tool_name progress)
+                        const isProgressFrame =
+                            data.type === 'progress' ||
+                            data.tool_name === 'progress' ||
+                            (data.percent != null && data.phase);
 
                         if (data.step === 'Started') {
                             onUpdate({
@@ -173,7 +272,10 @@ export class LLMAgentService {
                                 sessionId: data.session_id || null,
                                 phase: phase || 'searching',
                                 funnel,
-                                percent: data.percent ?? data.progress_percent ?? null,
+                                percent: percent ?? PHASE_PERCENT_FLOOR.searching,
+                                keywords,
+                                papers,
+                                label: label || 'Starting investigation…',
                             });
                         } else if (data.type === 'clarification' || data.step === 'Clarifying the question') {
                             onUpdate({
@@ -183,8 +285,11 @@ export class LLMAgentService {
                                 reason: data.reason || '',
                                 questions: Array.isArray(data.questions) ? data.questions : [],
                                 sessionId: data.session_id || null,
-                                phase: 'searching',
+                                phase: phase || 'searching',
                                 funnel,
+                                percent, // hold bar during clarify
+                                keywords,
+                                papers,
                             });
                         } else if (data.step === 'Complete') {
                             onUpdate({
@@ -195,7 +300,10 @@ export class LLMAgentService {
                                 sessionId: data.session_id || null,
                                 trajectory: data.trajectory || null,
                                 funnel,
-                                phase: 'verifying',
+                                phase: 'summary',
+                                percent: 100,
+                                keywords,
+                                papers,
                             });
                         } else if (data.step === 'Saved') {
                             onUpdate({
@@ -210,16 +318,18 @@ export class LLMAgentService {
                                 error: data.error || data.detail || 'Unknown error',
                                 funnel,
                             });
-                        } else if (data.step) {
+                        } else if (isProgressFrame || data.step) {
                             onUpdate({
                                 type: 'step',
-                                step: data.step,
-                                content: data.message || data.content || '',
+                                step: data.step || data.phase || 'Processing',
+                                content: label || data.message || data.content || '',
                                 phase,
                                 funnel,
-                                percent: data.percent ?? data.progress_percent ?? null,
-                                keywords: data.keywords || data.search_keywords || null,
-                                papers: data.papers || data.articles || null,
+                                percent,
+                                keywords,
+                                papers,
+                                label,
+                                isProgress: Boolean(isProgressFrame),
                             });
                         }
                     } catch (e) {
