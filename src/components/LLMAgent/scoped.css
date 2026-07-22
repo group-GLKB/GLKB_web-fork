@@ -1935,3 +1935,50 @@ button.investigate-progress-notify.active {
     border-color: var(--color-blue-500);
     background-color: #e1e2e4;
 }
+
+/* Figma 1024px responsive — Reference panel adaptation */
+@media (max-width: 1024px) {
+    .references-column {
+        padding: 12px 8px 16px 0 !important;
+    }
+
+    .references-column .references-container {
+        border-radius: 12px !important;
+    }
+
+    .references-header-row {
+        padding: 16px 16px !important;
+        gap: 8px !important;
+    }
+
+    .references-title {
+        font-size: 14px !important;
+    }
+
+    .references-scope-trigger {
+        max-width: 140px !important;
+        font-size: 9px !important;
+    }
+
+    .references-toolbar-row {
+        padding: 6px 16px !important;
+    }
+
+    .references-list {
+        padding: 0 !important;
+    }
+
+    .reference-card {
+        padding: 10px 12px !important;
+    }
+
+    .reference-card-title {
+        font-size: 12px !important;
+    }
+
+    .references-collapse-toggle.MuiIconButton-root {
+        left: -24px !important;
+        width: 24px !important;
+        height: 24px !important;
+    }
+}

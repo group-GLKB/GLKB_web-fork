@@ -12,7 +12,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material';
-import { IconButton, Tooltip } from '@mui/material';
+import { Box, IconButton, Tooltip, Typography } from '@mui/material';
 
 import formatQuoteIcon from '../../../img/llm/format_quote.svg';
 import {
@@ -35,6 +35,7 @@ const ReferenceCard = ({
 }) => {
     const [isBookmarked, setIsBookmarked] = useState(false);
     const [isEvidenceOpen, setIsEvidenceOpen] = useState(false);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
     const { isAuthenticated, loading } = useAuth();
     const navigate = useNavigate();
     const showHighlight = isHighlighted;
@@ -199,6 +200,22 @@ const ReferenceCard = ({
                                 />
                             </IconButton>
                         </Tooltip>
+                        <Tooltip title={isDetailOpen ? 'Collapse details' : 'Full details'} arrow>
+                            <IconButton
+                                size="small"
+                                className="reference-card-icon-btn"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    setIsDetailOpen((prev) => !prev);
+                                }}
+                            >
+                                <ExpandMoreIcon sx={{
+                                    fontSize: 14,
+                                    transform: isDetailOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.2s ease',
+                                }} />
+                            </IconButton>
+                        </Tooltip>
                         <a
                             href={url[1]}
                             className="reference-card-fulltext"
@@ -219,6 +236,22 @@ const ReferenceCard = ({
                         <p className="reference-card-quote-text reference-card-quote-text--clamped-off">“{item.quote}”</p>
                     </div>
                 ))}
+
+                {/* Figma Full Text detail panel */}
+                {isDetailOpen && (
+                    <Box sx={{
+                        mt: 'var(--space-3)', p: 'var(--space-3)',
+                        bgcolor: 'var(--color-grey-50)', borderRadius: 'var(--radius-2)',
+                        border: '1px solid var(--color-grey-100)',
+                    }}>
+                        <Typography sx={{
+                            fontFamily: 'var(--font-family-body)', fontSize: 11, lineHeight: '16px',
+                            color: 'var(--color-grey-800)', wordBreak: 'break-word',
+                        }}>
+                            {renderAuthors()}{url[3] ? ` (${url[3]})` : ''}. {url[0]}. {url[4] ? `${url[4]}.` : ''} PubMed ID: {pubmedId}.
+                        </Typography>
+                    </Box>
+                )}
             </div>
         </div>
     );

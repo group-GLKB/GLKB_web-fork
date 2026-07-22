@@ -143,7 +143,7 @@ const CiteDialog = ({ open, onClose, citation }) => {
                 fontSize: '20px',
                 fontWeight: 600,
             }}>
-                Cite
+                Cite this paper
                 <IconButton onClick={onClose} size="small">
                     <CloseIcon />
                 </IconButton>
