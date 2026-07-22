@@ -28,8 +28,11 @@ import {
   Check as CheckIcon,
   ChevronRight as ChevronRightIcon,
   Clear as ClearIcon,
+  Close as CloseIcon,
   EditNote as EditNoteIcon,
+  EmailOutlined as EmailOutlinedIcon,
   ExpandMore as ExpandMoreIcon,
+  Language as LanguageIcon,
   NotificationsNoneOutlined as NotificationsNoneOutlinedIcon,
   ScienceOutlined as ScienceOutlinedIcon,
   Star as StarIcon,
@@ -40,6 +43,7 @@ import {
   Button as MuiButton,
   Checkbox,
   CircularProgress,
+  ClickAwayListener,
   Container,
   Dialog,
   DialogActions,
@@ -49,6 +53,7 @@ import {
   FormControlLabel,
   Grid,
   IconButton,
+  Popper,
   Radio,
   RadioGroup,
   Snackbar,
@@ -1384,22 +1389,81 @@ const MessageCard = React.memo(function MessageCard({
                                     </Box>
                                     <Box className="investigate-progress-head-right">
                                         <span className="investigate-progress-time"><AccessTimeOutlinedIcon fontSize="inherit" />{etaLabel}</span>
-                                        <button
-                                            type="button"
-                                            className={`investigate-progress-notify${notifyEmailEnabled ? ' active' : ''}`}
-                                            onClick={(event) => {
-                                                event.stopPropagation();
-                                                if (typeof onToggleNotifyEmail === 'function') {
-                                                    onToggleNotifyEmail(!notifyEmailEnabled);
-                                                }
-                                            }}
-                                            title={notifyEmailEnabled
-                                                ? 'Email notification on — click to turn off'
-                                                : 'Email me when research completes'}
-                                        >
-                                            <NotificationsNoneOutlinedIcon fontSize="inherit" />
-                                            {notifyEmailEnabled ? 'Notify on' : 'Notify me'}
-                                        </button>
+                                        {/* Figma Notify dropdown: Email | Browser | Not now */}
+                                        <Box sx={{ position: 'relative' }}>
+                                            <button
+                                                type="button"
+                                                className={`investigate-progress-notify${notifyMode !== 'off' ? ' active' : ''}`}
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    setNotifyAnchorEl(notifyAnchorEl ? null : event.currentTarget);
+                                                }}
+                                                title={notifyMode === 'email' ? 'Email notification on' : notifyMode === 'browser' ? 'Browser notification on' : 'Notify me'}
+                                            >
+                                                <NotificationsNoneOutlinedIcon fontSize="inherit" />
+                                                {notifyMode === 'off' ? 'Notify me' : 'Notify on'}
+                                            </button>
+                                            <Popper
+                                                open={Boolean(notifyAnchorEl)}
+                                                anchorEl={notifyAnchorEl}
+                                                placement="bottom-end"
+                                                sx={{ zIndex: 1300 }}
+                                            >
+                                                <ClickAwayListener onClickAway={() => setNotifyAnchorEl(null)}>
+                                                    <Box sx={{
+                                                        mt: 'var(--space-2)',
+                                                        p: 'var(--space-2)',
+                                                        minWidth: 180,
+                                                        bgcolor: 'var(--color-neutral-white)',
+                                                        border: '1px solid var(--color-grey-100)',
+                                                        borderRadius: 'var(--radius-4)',
+                                                        boxShadow: '0 8px 32px rgba(12,16,24,0.12)',
+                                                    }}>
+                                                        <Typography sx={{ fontFamily: 'var(--font-family-ui)', fontSize: 12, fontWeight: 700, color: 'var(--color-grey-500)', textTransform: 'uppercase', letterSpacing: '0.03em', mb: 1, px: 1 }}>
+                                                            Get notified when complete
+                                                        </Typography>
+                                                        {[
+                                                            { mode: 'email', icon: <EmailOutlinedIcon sx={{ fontSize: 14 }} />, label: 'Email' },
+                                                            { mode: 'browser', icon: <LanguageIcon sx={{ fontSize: 14 }} />, label: 'Browser' },
+                                                            { mode: 'off', icon: <CloseIcon sx={{ fontSize: 14 }} />, label: 'Not now' },
+                                                        ].map(({ mode, icon, label }) => (
+                                                            <Box
+                                                                key={mode}
+                                                                role="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setNotifyMode(mode);
+                                                                    setNotifyAnchorEl(null);
+                                                                    try { localStorage.setItem('glkb_investigate_notify_mode', mode); } catch {}
+                                                                    if (mode !== 'off' && typeof onToggleNotifyEmail === 'function') {
+                                                                        onToggleNotifyEmail(true);
+                                                                    } else if (mode === 'off' && typeof onToggleNotifyEmail === 'function') {
+                                                                        onToggleNotifyEmail(false);
+                                                                    }
+                                                                }}
+                                                                sx={{
+                                                                    display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+                                                                    px: 'var(--space-3)', py: 'var(--space-2)', borderRadius: 'var(--radius-2)',
+                                                                    cursor: 'pointer',
+                                                                    bgcolor: notifyMode === mode ? 'var(--color-blue-50)' : 'transparent',
+                                                                    '&:hover': { bgcolor: 'var(--color-blue-25)' },
+                                                                }}
+                                                            >
+                                                                <Box sx={{ color: notifyMode === mode ? 'var(--color-blue-500)' : 'var(--color-grey-400)', display: 'flex' }}>
+                                                                    {icon}
+                                                                </Box>
+                                                                <Typography sx={{ fontFamily: 'var(--font-family-ui)', fontSize: 13, fontWeight: 600, color: notifyMode === mode ? 'var(--color-blue-500)' : 'var(--color-grey-800)', flex: 1 }}>
+                                                                    {label}
+                                                                </Typography>
+                                                                {notifyMode === mode && (
+                                                                    <CheckIcon sx={{ fontSize: 14, color: 'var(--color-blue-500)' }} />
+                                                                )}
+                                                            </Box>
+                                                        ))}
+                                                    </Box>
+                                                </ClickAwayListener>
+                                            </Popper>
+                                        </Box>
                                     </Box>
                                 </Box>
 
@@ -1818,6 +1882,14 @@ function LLMAgent() {
         }
     });
     const [chatInvestigateEnabled, setChatInvestigateEnabled] = useState(false);
+    // Figma "Investigate Thinking - Instruction" landing tip
+    const [showInvestigateTip, setShowInvestigateTip] = useState(() => {
+        try { return localStorage.getItem('glkb_investigate_tip_seen') !== '1'; } catch { return true; }
+    });
+    const [notifyAnchorEl, setNotifyAnchorEl] = useState(null);
+    const [notifyMode, setNotifyMode] = useState(() => {
+        try { return localStorage.getItem('glkb_investigate_notify_mode') || 'email'; } catch { return 'email'; }
+    });
     const investigateFunnelRef = useRef(emptyFunnel());
     const investigatePhaseRef = useRef('searching');
     const investigatePercentRef = useRef(null);
@@ -2352,6 +2424,19 @@ function LLMAgent() {
             if (link && link.href) {
                 const pubmedId = link.href.split('/').filter(Boolean).pop();
                 setHoveredPubmedId(pubmedId);
+                // Figma hover preview: find matching reference data
+                const allRefs = chatHistory
+                    .filter(m => m?.role === 'assistant' && Array.isArray(m.references))
+                    .flatMap(m => m.references);
+                const match = allRefs.find(ref => extractPmidFromReference(ref) === pubmedId);
+                if (match) {
+                    setHoverCardRef(match);
+                    setHoverCardAnchor({ el: link, mouseX: e.clientX, mouseY: e.clientY });
+                }
+            } else {
+                setHoveredPubmedId(null);
+                setHoverCardAnchor(null);
+                setHoverCardRef(null);
             }
         };
 
@@ -3451,6 +3536,9 @@ function LLMAgent() {
     const [citeDialogOpen, setCiteDialogOpen] = useState(false);
     const [selectedCitation, setSelectedCitation] = useState(null);
     const [hoveredPubmedId, setHoveredPubmedId] = useState(null);
+    // Figma "Reference - Hover Preview" (#70:3017)
+    const [hoverCardAnchor, setHoverCardAnchor] = useState(null);
+    const [hoverCardRef, setHoverCardRef] = useState(null);
     const [isReferenceScopeOpen, setIsReferenceScopeOpen] = useState(false);
     const referencesListRef = useRef(null);
     const referenceSourceOptions = useMemo(() => chatHistory
@@ -4426,6 +4514,49 @@ function LLMAgent() {
                                                             </button>
                                                         </div>
                                                     )}
+                                                    {/* Figma "Investigate Thinking - Instruction" — landing tip */}
+                                                    {!isConversationLoading && chatHistory.length === 0 && showInvestigateTip && (
+                                                        <Box sx={{
+                                                            position: 'fixed', inset: 0, zIndex: 1200,
+                                                            bgcolor: 'rgba(0,0,0,0.32)', display: 'flex', flexDirection: 'column',
+                                                            alignItems: 'center', justifyContent: 'center',
+                                                        }} onClick={() => {
+                                                            setShowInvestigateTip(false);
+                                                            try { localStorage.setItem('glkb_investigate_tip_seen', '1'); } catch {}
+                                                        }}>
+                                                            <Box sx={{
+                                                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0',
+                                                            }} onClick={(e) => e.stopPropagation()}>
+                                                                <Box sx={{
+                                                                    p: 'var(--space-4)', maxWidth: 200,
+                                                                    bgcolor: 'var(--color-blue-50)', borderRadius: 'var(--radius-3)',
+                                                                }}>
+                                                                    <Typography sx={{
+                                                                        fontFamily: 'var(--font-family-ui)', fontSize: 12, fontWeight: 500,
+                                                                        color: 'var(--color-grey-800)', lineHeight: '16px', mb: 'var(--space-3)',
+                                                                    }}>
+                                                                        Turn on Investigate to get more comprehensive lit reviews and answers
+                                                                    </Typography>
+                                                                    <Box sx={{
+                                                                        display: 'flex', alignItems: 'center', gap: 'var(--space-2)',
+                                                                        px: 'var(--space-2)', py: 'var(--space-1)',
+                                                                        bgcolor: 'var(--color-grey-50)', borderRadius: 'var(--radius-2)',
+                                                                    }}>
+                                                                        <ScienceOutlinedIcon sx={{ fontSize: 16, color: 'var(--color-grey-500)' }} />
+                                                                        <Typography sx={{ fontFamily: 'var(--font-family-ui)', fontSize: 12, fontWeight: 600, color: 'var(--color-grey-500)' }}>
+                                                                            Investigate
+                                                                        </Typography>
+                                                                    </Box>
+                                                                </Box>
+                                                                <Box sx={{
+                                                                    width: 0, height: 0,
+                                                                    borderLeft: '8px solid transparent',
+                                                                    borderRight: '8px solid transparent',
+                                                                    borderTop: '8px solid var(--color-blue-50)',
+                                                                }} />
+                                                            </Box>
+                                                        </Box>
+                                                    )}
                                                     <ChatSearchBar
                                                         userInput={userInput}
                                                         setUserInput={setUserInput}
@@ -4678,6 +4809,60 @@ function LLMAgent() {
                     </Grid>
                 </Grid>
             </div>
+            {/* Figma "Reference - Hover Preview" (#70:3017) */}
+            <Popper
+                open={Boolean(hoverCardAnchor && hoverCardRef)}
+                anchorEl={hoverCardAnchor?.el || null}
+                placement="right-start"
+                sx={{ zIndex: 1300, pointerEvents: 'none' }}
+                modifiers={[{ name: 'offset', options: { offset: [8, 8] } }]}
+            >
+                {hoverCardRef && (
+                    <Box sx={{
+                        width: 240, p: 'var(--space-4)',
+                        bgcolor: 'var(--color-neutral-white)',
+                        border: '1px solid var(--color-grey-100)',
+                        borderRadius: 'var(--radius-4)',
+                        boxShadow: '0 8px 32px rgba(12,16,24,0.14)',
+                        pointerEvents: 'auto',
+                    }}>
+                        <Typography sx={{
+                            fontFamily: 'var(--font-family-ui)', fontSize: 13, fontWeight: 600,
+                            color: 'var(--color-grey-950)', lineHeight: '18px', mb: 'var(--space-2)',
+                            display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                        }}>
+                            {hoverCardRef.title || 'Untitled'}
+                        </Typography>
+                        <Typography sx={{
+                            fontFamily: 'var(--font-family-body)', fontSize: 11, fontWeight: 400,
+                            color: 'var(--color-grey-500)', lineHeight: '14px', mb: 'var(--space-3)',
+                        }}>
+                            {[hoverCardRef.authors, hoverCardRef.year, hoverCardRef.journal].filter(Boolean).join(' · ')}
+                        </Typography>
+                        {(Array.isArray(hoverCardRef.evidence) && hoverCardRef.evidence[0]?.quote) && (
+                            <Box sx={{
+                                display: 'flex', gap: 'var(--space-2)', mb: 'var(--space-3)',
+                                pl: 'var(--space-2)', borderLeft: '2px solid var(--color-grey-200)',
+                            }}>
+                                <Typography sx={{
+                                    fontFamily: 'var(--font-family-body)', fontSize: 11, fontWeight: 400,
+                                    color: 'var(--color-grey-800)', fontStyle: 'italic', lineHeight: '16px',
+                                    display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                                }}>
+                                    "{hoverCardRef.evidence[0].quote}"
+                                </Typography>
+                            </Box>
+                        )}
+                        <Typography sx={{
+                            fontFamily: 'var(--font-family-body)', fontSize: 10, fontWeight: 400,
+                            color: 'var(--color-grey-500)',
+                        }}>
+                            PMID: {extractPmidFromReference(hoverCardRef) || '—'}
+                            {hoverCardRef.citation_count && ` · ${hoverCardRef.citation_count} Citation${hoverCardRef.citation_count === 1 ? '' : 's'}`}
+                        </Typography>
+                    </Box>
+                )}
+            </Popper>
         </>
     );
 }
