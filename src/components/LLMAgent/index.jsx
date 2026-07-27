@@ -2925,6 +2925,7 @@ function LLMAgent() {
                 filters: Array.isArray(requestSearchOptions?.filters) ? requestSearchOptions.filters : undefined,
                 rankingMode: typeof requestSearchOptions?.rankingMode === 'string' ? requestSearchOptions.rankingMode : undefined,
                 investigateEnabled,
+                notifyEnabled: investigateEnabled && (notifyEmailEnabled || notifyBrowserEnabled),
                 notifyEmail: (investigateEnabled && notifyEmailEnabled)
                     ? (getUserNotifyEmail() || undefined)
                     : undefined,
