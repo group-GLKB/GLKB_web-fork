@@ -4345,9 +4345,9 @@ function LLMAgent() {
                                                                 </Typography>
                                                                 <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '10px', minHeight: '80px' }}>
                                                                     {
-                                                                        ["What is the role of BRCA1 in breast cancer?",
-                                                                            "How many articles about Alzheimer's disease are published in 2020?",
-                                                                            "What pathways does TP53 participate in?"
+                                                                        ["What are the major research trends in single-cell studies of pancreatic cancer tumor microenvironment?",
+                                                                            "What evidence links type 2 diabetes with pancreatic cancer risk?",
+                                                                            "What genes are most strongly associated with pancreatic cancer, and what evidence supports each association?"
                                                                         ].map((query, index) => (
                                                                             <div className="example-query" key={index} onClick={() => handleExampleClick(query)}>
                                                                                 {query}
