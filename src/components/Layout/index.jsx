@@ -30,7 +30,7 @@ const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
 const getPageTitleByPath = (pathname) => {
-    if (pathname === '/') return 'Home | GLKB';
+    if (pathname === '/') return 'GLKB: Genomic Literature Knowledge Base';
     if (pathname.startsWith('/chat')) return 'AI Chat | GLKB';
     if (pathname.startsWith('/api-page')) return 'API | GLKB';
     if (pathname.startsWith('/account')) return 'Settings | GLKB';
