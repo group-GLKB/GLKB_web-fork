@@ -3453,11 +3453,6 @@ function LLMAgent() {
                         if ('Notification' in window && Notification.permission === 'default') {
                             Notification.requestPermission();
                         }
-                        if (!getUserNotifyEmail()) {
-                            message.warning('Sign in with email to receive completion notifications.');
-                        } else {
-                            message.success('Will notify you when this investigation finishes.');
-                        }
                     }
                 }}
                 pendingClarification={pendingClarification}
