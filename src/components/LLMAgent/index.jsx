@@ -65,7 +65,13 @@ import { ReactComponent as ReferenceIcon } from '../../img/llm/reference.svg';
 import { ReactComponent as ReplayIcon } from '../../img/llm/replay.svg';
 import { ReactComponent as ThumbsUpDownIcon } from '../../img/llm/thumbs_up_down.svg';
 import { submitChatFeedback } from '../../service/Feedback';
-import { LLMAgentService } from '../../service/LLMAgent';
+import {
+  INVESTIGATE_PHASE_META,
+  LLMAgentService,
+  inferFunnelFromText,
+  inferInvestigatePhase,
+} from '../../service/LLMAgent';
+import { getCurrentUser } from '../../service/Auth';
 import {
   getGuestTier,
   getMyTier,
@@ -116,6 +122,250 @@ const formatInvestigatedDuration = (durationMs) => {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return `${minutes}:${String(seconds).padStart(2, '0')}`;
+};
+
+const emptyFunnel = () => ({ retrieved: null, screened: null, extracted: null, cited: null });
+
+const mergeFunnel = (prev, next) => {
+    if (!next) return prev || emptyFunnel();
+    const base = prev || emptyFunnel();
+    return {
+        retrieved: next.retrieved ?? base.retrieved,
+        screened: next.screened ?? base.screened,
+        extracted: next.extracted ?? base.extracted,
+        cited: next.cited ?? base.cited,
+    };
+};
+
+const formatFunnelValue = (value) => {
+    if (value === null || value === undefined || value === '') return '—';
+    const num = Number(value);
+    if (!Number.isFinite(num)) return '—';
+    return num.toLocaleString();
+};
+
+const formatEtaLabel = (phase, startedAtMs) => {
+    const meta = INVESTIGATE_PHASE_META[phase] || INVESTIGATE_PHASE_META.searching;
+    if (!startedAtMs) return `~${meta.etaMin} min`;
+    const elapsedMin = (Date.now() - startedAtMs) / 60000;
+    const remain = Math.max(1, Math.round(meta.etaMin - elapsedMin * 0.35));
+    return `~${remain} min`;
+};
+
+const getUserNotifyEmail = () => {
+    try {
+        const user = (typeof getCurrentUser === 'function' ? getCurrentUser() : null)
+            || JSON.parse(localStorage.getItem('user') || 'null');
+        const email = user?.email || user?.mail || '';
+        return typeof email === 'string' ? email.trim() : '';
+    } catch {
+        return '';
+    }
+};
+
+/** Inline clarify panel (Figma "Asking Question") — not a modal. */
+const ClarifyPanel = ({
+    pendingClarification,
+    clarificationDrafts,
+    clarificationError,
+    clarificationSubmitting,
+    hasInvalidOtherSelection,
+    onUpdateDraft,
+    onSubmit,
+    onSkip,
+}) => {
+    if (!pendingClarification) return null;
+
+    return (
+        <Box className="clarify-inline-panel" role="region" aria-label="Clarifying questions">
+            <Box className="clarify-inline-head">
+                <Typography className="clarify-inline-kicker">Asking user question...</Typography>
+                <Typography className="clarify-inline-title">Clarify your research scope</Typography>
+                {pendingClarification.reason ? (
+                    <Typography className="clarify-inline-reason">{pendingClarification.reason}</Typography>
+                ) : (
+                    <Typography className="clarify-inline-reason">
+                        Answering these helps the agent narrow evidence and improve citation quality.
+                    </Typography>
+                )}
+            </Box>
+
+            <Stack spacing={1.5} className="clarify-inline-questions">
+                {(pendingClarification.questions || []).map((question, index) => {
+                    const questionKey = getClarificationQuestionKey(question, index);
+                    const draft = clarificationDrafts[questionKey] || { selected: [], text: '', otherSelected: false };
+                    const selected = Array.isArray(draft.selected) ? draft.selected : [];
+                    const otherText = typeof draft.text === 'string' ? draft.text : '';
+                    const responseType = String(question?.response_type || 'text').toLowerCase();
+                    const options = Array.isArray(question?.options) ? question.options : [];
+                    const radioValue = draft.otherSelected ? '__other__' : (selected[0] || '');
+
+                    return (
+                        <Box key={questionKey} className="clarify-inline-card">
+                            <Typography className="clarify-inline-header">
+                                {question?.header || `Question ${index + 1}`}
+                            </Typography>
+                            <Typography className="clarify-inline-question">
+                                {question?.question || ''}
+                            </Typography>
+
+                            {responseType === 'single' && (
+                                <>
+                                    <RadioGroup
+                                        value={radioValue}
+                                        onChange={(event) => {
+                                            const nextValue = event.target.value;
+                                            if (nextValue === '__other__') {
+                                                onUpdateDraft(questionKey, {
+                                                    selected: [],
+                                                    text: otherText,
+                                                    otherSelected: true,
+                                                });
+                                                return;
+                                            }
+                                            onUpdateDraft(questionKey, {
+                                                selected: nextValue ? [nextValue] : [],
+                                                text: '',
+                                                otherSelected: false,
+                                            });
+                                        }}
+                                    >
+                                        {options.map((option) => {
+                                            const optionLabel = String(option?.label || '').trim();
+                                            if (!optionLabel) return null;
+                                            return (
+                                                <FormControlLabel
+                                                    key={optionLabel}
+                                                    value={optionLabel}
+                                                    control={<Radio size="small" />}
+                                                    label={option?.description || optionLabel}
+                                                />
+                                            );
+                                        })}
+                                        <FormControlLabel value="__other__" control={<Radio size="small" />} label="Other" />
+                                    </RadioGroup>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        placeholder="Type your answer here"
+                                        value={otherText}
+                                        onChange={(event) => {
+                                            onUpdateDraft(questionKey, {
+                                                selected: [],
+                                                text: event.target.value,
+                                                otherSelected: true,
+                                            });
+                                        }}
+                                        sx={{ mt: 1 }}
+                                    />
+                                </>
+                            )}
+
+                            {responseType === 'multi' && (
+                                <>
+                                    <Stack spacing={0.5}>
+                                        {options.map((option) => {
+                                            const optionLabel = String(option?.label || '').trim();
+                                            if (!optionLabel) return null;
+                                            const checked = selected.includes(optionLabel);
+                                            return (
+                                                <FormControlLabel
+                                                    key={optionLabel}
+                                                    control={(
+                                                        <Checkbox
+                                                            size="small"
+                                                            checked={checked}
+                                                            onChange={(event) => {
+                                                                const nextSelected = event.target.checked
+                                                                    ? [...selected, optionLabel]
+                                                                    : selected.filter((item) => item !== optionLabel);
+                                                                onUpdateDraft(questionKey, {
+                                                                    selected: Array.from(new Set(nextSelected)),
+                                                                    text: otherText,
+                                                                });
+                                                            }}
+                                                        />
+                                                    )}
+                                                    label={option?.description || optionLabel}
+                                                />
+                                            );
+                                        })}
+                                    </Stack>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        placeholder="Optional additional context"
+                                        value={otherText}
+                                        onChange={(event) => {
+                                            onUpdateDraft(questionKey, {
+                                                selected,
+                                                text: event.target.value,
+                                            });
+                                        }}
+                                        sx={{ mt: 1 }}
+                                    />
+                                </>
+                            )}
+
+                            {responseType === 'text' && (
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    placeholder="Type your answer here"
+                                    value={otherText}
+                                    onChange={(event) => {
+                                        onUpdateDraft(questionKey, {
+                                            selected: [],
+                                            text: event.target.value,
+                                        });
+                                    }}
+                                />
+                            )}
+                        </Box>
+                    );
+                })}
+            </Stack>
+
+            {clarificationError && (
+                <Typography className="clarify-inline-error">{clarificationError}</Typography>
+            )}
+
+            <Box className="clarify-inline-actions">
+                <MuiButton
+                    disabled={clarificationSubmitting}
+                    onClick={() => onSkip?.()}
+                    className="clarify-inline-skip"
+                    sx={{
+                        borderRadius: '10px',
+                        border: '1px solid #CBD5E1',
+                        textTransform: 'none',
+                        fontFamily: 'DM Sans, sans-serif',
+                        color: '#46566C',
+                    }}
+                >
+                    Skip
+                </MuiButton>
+                <MuiButton
+                    disabled={clarificationSubmitting || hasInvalidOtherSelection}
+                    onClick={() => onSubmit?.()}
+                    sx={{
+                        borderRadius: '10px',
+                        border: '1px solid #155DFC',
+                        backgroundColor: '#155DFC',
+                        textTransform: 'none',
+                        fontFamily: 'DM Sans, sans-serif',
+                        color: '#FFFFFF',
+                        '&:hover': {
+                            backgroundColor: '#0A47D6',
+                            borderColor: '#0A47D6',
+                        },
+                    }}
+                >
+                    {clarificationSubmitting ? 'Submitting...' : 'Submit'}
+                </MuiButton>
+            </Box>
+        </Box>
+    );
 };
 
 const getClarificationQuestionKey = (question, index) => {
@@ -704,6 +954,19 @@ const MessageCard = React.memo(function MessageCard({
     isProcessing,
     streamingGroups,
     streamingStepName,
+    investigatePhase,
+    investigateFunnel,
+    investigateStartedAt,
+    notifyEmailEnabled,
+    onToggleNotifyEmail,
+    pendingClarification,
+    clarificationDrafts,
+    clarificationError,
+    clarificationSubmitting,
+    hasInvalidOtherSelection,
+    onUpdateClarificationDraft,
+    onSubmitClarification,
+    onSkipClarification,
     showReloadPrompt,
     onReloadLatest,
     onStop,
@@ -780,21 +1043,58 @@ const MessageCard = React.memo(function MessageCard({
     const showReloadInMessage = showReloadPrompt && isLastUserMessage && isAssistant && !isLoading;
     const canToggleThoughts = !isLoading && hasDisplayGroups;
     const investigateStageLabels = ['Retrieved', 'Screened', 'Extracted', 'Cited'];
+    const resolvedPhase = useMemo(() => {
+        if (!isInvestigateMessage) return null;
+        if (isLoading) {
+            return investigatePhase
+                || inferInvestigatePhase(streamingStepName, '')
+                || 'searching';
+        }
+        return message.investigatePhase || 'verifying';
+    }, [isInvestigateMessage, isLoading, investigatePhase, streamingStepName, message.investigatePhase]);
+
+    const resolvedFunnel = useMemo(() => {
+        const fromMessage = message.investigateFunnel || null;
+        if (!isLoading) return fromMessage || emptyFunnel();
+        const fromLive = investigateFunnel || emptyFunnel();
+        const activityLines = activeStreamingGroups
+            .flatMap((group) => (Array.isArray(group.lines) ? group.lines : []));
+        const inferred = inferFunnelFromText(activityLines);
+        return mergeFunnel(fromLive, inferred);
+    }, [isLoading, message.investigateFunnel, investigateFunnel, activeStreamingGroups]);
+
     const investigateStageIndex = useMemo(() => {
-        if (!showInvestigateProgress) return -1;
-        const step = (streamingStepName || activeStreamingGroups[activeStreamingGroups.length - 1]?.name || '').toLowerCase();
-        if (/cite|reference|pmid/.test(step)) return 3;
-        if (/extract|evidence|read|fulltext/.test(step)) return 2;
-        if (/screen|rank|filter/.test(step)) return 1;
-        if (/retriev|search|query/.test(step)) return 0;
-        return Math.min(3, Math.max(0, activeStreamingGroups.length - 1));
-    }, [showInvestigateProgress, streamingStepName, activeStreamingGroups]);
+        if (!showInvestigateProgress && !showInvestigateSummary) return -1;
+        const phase = resolvedPhase || 'searching';
+        if (phase === 'verifying' || phase === 'writing') return 3;
+        if (phase === 'analyzing') return 2;
+        if (phase === 'reading') return 1;
+        return 0;
+    }, [showInvestigateProgress, showInvestigateSummary, resolvedPhase]);
+
+    const phaseTitle = useMemo(() => {
+        if (!showInvestigateProgress) return '';
+        const meta = INVESTIGATE_PHASE_META[resolvedPhase] || INVESTIGATE_PHASE_META.searching;
+        if (streamingStepName) {
+            const label = getStepLabel(streamingStepName);
+            if (label && label !== 'Thinking') {
+                return label.endsWith('...') ? label : `${label}...`;
+            }
+        }
+        return meta.title;
+    }, [showInvestigateProgress, resolvedPhase, streamingStepName]);
+
+    const etaLabel = useMemo(
+        () => formatEtaLabel(resolvedPhase || 'searching', investigateStartedAt || null),
+        [resolvedPhase, investigateStartedAt],
+    );
+
     const investigateActivityItems = useMemo(() => {
         const raw = activeStreamingGroups
-            .flatMap((group) => Array.isArray(group.lines) ? group.lines : [])
+            .flatMap((group) => (Array.isArray(group.lines) ? group.lines : []))
             .map((line) => String(line || '').replace(/^[-•\s]+/, '').trim())
-            .filter((line) => line.length >= 12);
-        return Array.from(new Set(raw));
+            .filter((line) => line.length >= 8);
+        return Array.from(new Set(raw)).slice(0, 12);
     }, [activeStreamingGroups]);
 
     const toggleGroup = useCallback((nextIndex) => {
@@ -916,6 +1216,18 @@ const MessageCard = React.memo(function MessageCard({
                                 )}
                             </Box>
                         )}
+                        {showInvestigateSummary && (resolvedFunnel?.retrieved != null || resolvedFunnel?.cited != null) && (
+                            <Box className="investigate-funnel-summary" aria-label="Investigation funnel">
+                                {investigateStageLabels.map((label) => {
+                                    const key = label.toLowerCase();
+                                    return (
+                                        <span key={label} className="investigate-funnel-chip">
+                                            <strong>{formatFunnelValue(resolvedFunnel?.[key])}</strong> {label}
+                                        </span>
+                                    );
+                                })}
+                            </Box>
+                        )}
 
                         {showInvestigateProgress && (
                             <Box className="investigate-progress-shell">
@@ -933,24 +1245,44 @@ const MessageCard = React.memo(function MessageCard({
                                 >
                                     <Box className="investigate-progress-head-left">
                                         <ScienceOutlinedIcon className="investigate-progress-head-icon" />
-                                        <span className="investigate-progress-head-title">Mapping your question into research angles...</span>
+                                        <span className="investigate-progress-head-title">{phaseTitle || 'Searching...'}</span>
                                         <ExpandMoreIcon className={`investigate-progress-head-caret${investigateExpanded ? ' expanded' : ''}`} />
                                     </Box>
                                     <Box className="investigate-progress-head-right">
-                                        <span className="investigate-progress-time"><AccessTimeOutlinedIcon fontSize="inherit" />~6 min</span>
-                                        <span className="investigate-progress-notify"><NotificationsNoneOutlinedIcon fontSize="inherit" />Notify me</span>
+                                        <span className="investigate-progress-time"><AccessTimeOutlinedIcon fontSize="inherit" />{etaLabel}</span>
+                                        <button
+                                            type="button"
+                                            className={`investigate-progress-notify${notifyEmailEnabled ? ' active' : ''}`}
+                                            onClick={(event) => {
+                                                event.stopPropagation();
+                                                if (typeof onToggleNotifyEmail === 'function') {
+                                                    onToggleNotifyEmail(!notifyEmailEnabled);
+                                                }
+                                            }}
+                                            title={notifyEmailEnabled
+                                                ? 'Email notification on — click to turn off'
+                                                : 'Email me when research completes'}
+                                        >
+                                            <NotificationsNoneOutlinedIcon fontSize="inherit" />
+                                            {notifyEmailEnabled ? 'Notify on' : 'Notify me'}
+                                        </button>
                                     </Box>
                                 </Box>
 
                                 {investigateExpanded && (
                                     <Box className="investigate-progress-body">
                                         <Box className="investigate-progress-stages">
-                                            {investigateStageLabels.map((label, stageIndex) => (
+                                            {investigateStageLabels.map((label, stageIndex) => {
+                                                const key = label.toLowerCase();
+                                                const value = resolvedFunnel?.[key];
+                                                return (
                                                 <Box key={label} className="investigate-progress-stage">
                                                     <span className={`investigate-progress-stage-bar${stageIndex <= investigateStageIndex ? ' done' : ''}`} />
+                                                    <span className="investigate-progress-stage-count">{formatFunnelValue(value)}</span>
                                                     <span className="investigate-progress-stage-label">{label}</span>
                                                 </Box>
-                                            ))}
+                                                );
+                                            })}
                                         </Box>
 
                                         {investigateActivityItems.length > 0 && (
@@ -964,6 +1296,19 @@ const MessageCard = React.memo(function MessageCard({
                                     </Box>
                                 )}
                             </Box>
+                        )}
+
+                        {showInvestigateProgress && pendingClarification && (
+                            <ClarifyPanel
+                                pendingClarification={pendingClarification}
+                                clarificationDrafts={clarificationDrafts}
+                                clarificationError={clarificationError}
+                                clarificationSubmitting={clarificationSubmitting}
+                                hasInvalidOtherSelection={hasInvalidOtherSelection}
+                                onUpdateDraft={onUpdateClarificationDraft}
+                                onSubmit={() => onSubmitClarification?.({ useDefaults: false })}
+                                onSkip={() => onSkipClarification?.({ useDefaults: true })}
+                            />
                         )}
 
                         {showThoughtHeader && (
@@ -1264,6 +1609,19 @@ function LLMAgent() {
     const [clarificationDrafts, setClarificationDrafts] = useState({});
     const [clarificationError, setClarificationError] = useState('');
     const [clarificationSubmitting, setClarificationSubmitting] = useState(false);
+    const [investigatePhase, setInvestigatePhase] = useState('searching');
+    const [investigateFunnel, setInvestigateFunnel] = useState(() => emptyFunnel());
+    const [investigateStartedAt, setInvestigateStartedAt] = useState(null);
+    const [notifyEmailEnabled, setNotifyEmailEnabled] = useState(() => {
+        try {
+            return localStorage.getItem('glkb_investigate_notify_email') === '1';
+        } catch {
+            return false;
+        }
+    });
+    const [chatInvestigateEnabled, setChatInvestigateEnabled] = useState(false);
+    const investigateFunnelRef = useRef(emptyFunnel());
+    const investigatePhaseRef = useRef('searching');
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
     const abortControllerRef = useRef(null);
@@ -1274,6 +1632,7 @@ function LLMAgent() {
     const runIdRef = useRef(null);
     const hasConsumedInitialQueryRef = useRef(false);
     const initialSearchOptionsRef = useRef(null);
+    const lastSearchOptionsRef = useRef(null);
     const activeConversationIdRef = useRef(getActiveConversationId());
     const loadingConversationIdRef = useRef(null);
     const activeStreamIdRef = useRef(null);
@@ -1663,10 +2022,17 @@ function LLMAgent() {
         if (location.state && location.state.initialQuery && !hasConsumedInitialQueryRef.current) {
             hasConsumedInitialQueryRef.current = true;
             const query = location.state.initialQuery;
-            initialSearchOptionsRef.current = location.state.initialSearchOptions || null;
+            const searchOptions = location.state.initialSearchOptions || null;
+            initialSearchOptionsRef.current = searchOptions;
+            if (searchOptions?.investigateEnabled) {
+                setChatInvestigateEnabled(true);
+            }
             if (!isLoading) {
                 startNewConversation();
-                handleSubmit(null, query, null, { forceNewConversation: true });
+                handleSubmit(null, query, null, {
+                    forceNewConversation: true,
+                    searchOptions,
+                });
             }
         }
     }, [location.state, isLoading, startNewConversation]);
@@ -1898,7 +2264,22 @@ function LLMAgent() {
 
         const requestSearchOptions = options.searchOptions || initialSearchOptionsRef.current || null;
         initialSearchOptionsRef.current = null;
-        const investigateEnabled = Boolean(requestSearchOptions?.investigateEnabled);
+        const investigateEnabled = Boolean(
+            requestSearchOptions?.investigateEnabled ?? chatInvestigateEnabled,
+        );
+        // Discard expired investigate session on explicit clarify retry
+        const resetInvestigateSession = Boolean(options.resetInvestigateSession);
+        // Keep latest non-expired query options for clarify retry (no session_id reuse)
+        lastSearchOptionsRef.current = {
+            investigateEnabled,
+            filters: Array.isArray(requestSearchOptions?.filters) ? requestSearchOptions.filters : undefined,
+            rankingMode: typeof requestSearchOptions?.rankingMode === 'string'
+                ? requestSearchOptions.rankingMode
+                : undefined,
+            maxArticles: Number.isFinite(Number(requestSearchOptions?.maxArticles))
+                ? Number(requestSearchOptions.maxArticles)
+                : undefined,
+        };
 
         // Create new user message
         const newMessage = {
@@ -1927,7 +2308,12 @@ function LLMAgent() {
                 logDev('[LLM] Failed to create conversation', error);
             }
         }
-        sessionIdRef.current = getStoredSessionId(historyId) || sessionIdRef.current;
+        if (resetInvestigateSession) {
+            sessionIdRef.current = null;
+            setStoredSessionId(historyId, null);
+        } else {
+            sessionIdRef.current = getStoredSessionId(historyId) || sessionIdRef.current;
+        }
 
         // Update chat history with user message
         setChatHistory([...baseHistory, newMessage]);
@@ -1940,6 +2326,11 @@ function LLMAgent() {
         setClarificationDrafts({});
         setClarificationError('');
         setClarificationSubmitting(false);
+        setInvestigatePhase('searching');
+        setInvestigateFunnel(emptyFunnel());
+        setInvestigateStartedAt(investigateEnabled ? requestStartedAt : null);
+        investigateFunnelRef.current = emptyFunnel();
+        investigatePhaseRef.current = 'searching';
         thinkingStepsRef.current = [];
 
         try {
@@ -1977,6 +2368,14 @@ function LLMAgent() {
                         if (update.runId) {
                             runIdRef.current = update.runId;
                         }
+                        if (update.phase) {
+                            investigatePhaseRef.current = update.phase;
+                            setInvestigatePhase(update.phase);
+                        }
+                        if (update.funnel) {
+                            investigateFunnelRef.current = mergeFunnel(investigateFunnelRef.current, update.funnel);
+                            setInvestigateFunnel({ ...investigateFunnelRef.current });
+                        }
                         break;
                     case 'clarification':
                         if (!isActiveStream) return;
@@ -1993,6 +2392,8 @@ function LLMAgent() {
                         setClarificationDrafts(buildClarificationDrafts(update.questions));
                         setClarificationError('');
                         setClarificationSubmitting(false);
+                        investigatePhaseRef.current = 'searching';
+                        setInvestigatePhase('searching');
                         break;
                     case 'step':
                         if (!isActiveStream) return;
@@ -2029,6 +2430,30 @@ function LLMAgent() {
                                 const parsedEntry = parseThinkingEntry(newEntry);
                                 if (parsedEntry.stepName) {
                                     setStreamingStepName(parsedEntry.stepName);
+                                }
+
+                                const nextPhase = update.phase
+                                    || inferInvestigatePhase(update.step, rawContent)
+                                    || investigatePhaseRef.current;
+                                if (nextPhase && nextPhase !== investigatePhaseRef.current) {
+                                    investigatePhaseRef.current = nextPhase;
+                                    setInvestigatePhase(nextPhase);
+                                }
+                                if (update.funnel) {
+                                    investigateFunnelRef.current = mergeFunnel(
+                                        investigateFunnelRef.current,
+                                        update.funnel,
+                                    );
+                                    setInvestigateFunnel({ ...investigateFunnelRef.current });
+                                } else {
+                                    const inferred = inferFunnelFromText([rawContent]);
+                                    if (inferred) {
+                                        investigateFunnelRef.current = mergeFunnel(
+                                            investigateFunnelRef.current,
+                                            inferred,
+                                        );
+                                        setInvestigateFunnel({ ...investigateFunnelRef.current });
+                                    }
                                 }
 
                                 setStreamingGroups((prev) => {
@@ -2071,6 +2496,12 @@ function LLMAgent() {
                         setClarificationSubmitting(false);
                         setIsProcessing(false);
                         setStreamingStepName('');
+                        if (update.funnel) {
+                            investigateFunnelRef.current = mergeFunnel(
+                                investigateFunnelRef.current,
+                                update.funnel,
+                            );
+                        }
                         setChatHistory(prev => {
                             const newHistory = [...prev];
                             const assistantMessage = {
@@ -2082,6 +2513,8 @@ function LLMAgent() {
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 trajectory: update.trajectory || null,
                                 investigateMode: investigateEnabled,
+                                investigateFunnel: { ...investigateFunnelRef.current },
+                                investigatePhase: investigatePhaseRef.current || 'verifying',
                             };
                             newHistory[newHistory.length - 1] = assistantMessage;
 
@@ -2162,7 +2595,10 @@ function LLMAgent() {
                 sessionId: sessionIdRef.current,
                 filters: Array.isArray(requestSearchOptions?.filters) ? requestSearchOptions.filters : undefined,
                 rankingMode: typeof requestSearchOptions?.rankingMode === 'string' ? requestSearchOptions.rankingMode : undefined,
-                investigateEnabled: Boolean(requestSearchOptions?.investigateEnabled),
+                investigateEnabled,
+                notifyEmail: (investigateEnabled && notifyEmailEnabled)
+                    ? (getUserNotifyEmail() || undefined)
+                    : undefined,
                 messagesOverride: [...baseHistory, newMessage].map((msg) => ({
                     role: msg?.role,
                     content: msg?.content,
@@ -2170,6 +2606,45 @@ function LLMAgent() {
             });
         } catch (error) {
             console.error('Error in chat:', error);
+            // Deep Research disconnect recovery: poll GET /run/{run_id}
+            if (investigateEnabled && runIdRef.current && activeStreamIdRef.current === streamId) {
+                try {
+                    const run = await llmService.getRun({ runId: runIdRef.current });
+                    if (run && (run.status === 'complete' || run.response)) {
+                        setPendingClarification(null);
+                        setIsProcessing(false);
+                        setStreamingStepName('');
+                        setChatHistory((prev) => {
+                            const newHistory = [...prev];
+                            newHistory[newHistory.length - 1] = {
+                                role: 'assistant',
+                                content: run.response || '',
+                                references: parseReferences(run.references),
+                                timestamp,
+                                thinkingSteps: thinkingStepsRef.current,
+                                thoughtDurationMs: Date.now() - requestStartedAt,
+                                trajectory: run.trajectory || null,
+                                investigateMode: true,
+                                investigateFunnel: { ...investigateFunnelRef.current },
+                                investigatePhase: 'verifying',
+                            };
+                            if (run.response) {
+                                llmService.updateMessages(run.response);
+                            }
+                            return newHistory;
+                        });
+                        refreshTierStatus();
+                        if (activeStreamIdRef.current === streamId) {
+                            setIsLoading(false);
+                            setIsProcessing(false);
+                            activeStreamIdRef.current = null;
+                        }
+                        return;
+                    }
+                } catch (recoverError) {
+                    logDev('[LLM] run recovery failed', recoverError);
+                }
+            }
             if (error?.response?.status === 429) {
                 setIsQueryLimitReached(true);
             }
@@ -2228,7 +2703,10 @@ function LLMAgent() {
     }, [pendingClarification, clarificationDrafts]);
 
     const submitClarification = useCallback(async ({ useDefaults = false } = {}) => {
-        if (!pendingClarification?.invocationId || !pendingClarification?.stage || !pendingClarification?.sessionId) {
+        const sessionId = pendingClarification?.sessionId || sessionIdRef.current || null;
+        const invocationId = pendingClarification?.invocationId || null;
+        const stage = pendingClarification?.stage || null;
+        if (!invocationId || !stage || !sessionId) {
             setClarificationError('Clarification session has expired. Please ask your question again.');
             return;
         }
@@ -2241,9 +2719,9 @@ function LLMAgent() {
                 : buildClarifyAnswers(pendingClarification.questions, clarificationDrafts);
 
             const result = await llmService.clarify({
-                invocation_id: pendingClarification.invocationId,
-                stage: pendingClarification.stage,
-                session_id: pendingClarification.sessionId,
+                invocation_id: invocationId,
+                stage,
+                session_id: sessionId,
                 answers,
             });
 
@@ -2253,7 +2731,24 @@ function LLMAgent() {
             setClarificationSubmitting(false);
 
             if (result?.resolved === false) {
-                message.info('Clarification session not found. Continuing with default research scope.');
+                const retryQuestion = typeof result?.retry_question === 'string'
+                    ? result.retry_question.trim()
+                    : '';
+                if (retryQuestion) {
+                    message.info('Clarification session expired. Restarting with your answers applied.');
+                    const prior = lastSearchOptionsRef.current || {};
+                    handleSubmit(null, retryQuestion, null, {
+                        resetInvestigateSession: true,
+                        searchOptions: {
+                            investigateEnabled: true,
+                            filters: prior.filters,
+                            rankingMode: prior.rankingMode,
+                            maxArticles: prior.maxArticles,
+                        },
+                    });
+                } else {
+                    message.info('Clarification session not found. Continuing with default research scope.');
+                }
             }
         } catch (error) {
             const detail = error?.response?.data?.detail || error?.message || 'Unable to submit clarification.';
@@ -2261,6 +2756,57 @@ function LLMAgent() {
             setClarificationSubmitting(false);
         }
     }, [clarificationDrafts, llmService, pendingClarification]);
+
+    // Resume completed DR runs if the tab was backgrounded / SSE dropped quietly
+    useEffect(() => {
+        if (!isLoading) return undefined;
+
+        const tryRecover = async () => {
+            if (!runIdRef.current) return;
+            try {
+                const run = await llmService.getRun({ runId: runIdRef.current });
+                if (!(run && (run.status === 'complete' || run.response))) return;
+                setPendingClarification(null);
+                setIsProcessing(false);
+                setStreamingStepName('');
+                setIsLoading(false);
+                setChatHistory((prev) => {
+                    if (!prev.length) return prev;
+                    const newHistory = [...prev];
+                    const last = newHistory[newHistory.length - 1];
+                    if (!last || last.role !== 'assistant' || last.content) return prev;
+                    newHistory[newHistory.length - 1] = {
+                        ...last,
+                        content: run.response || '',
+                        references: parseReferences(run.references),
+                        thinkingSteps: thinkingStepsRef.current,
+                        thoughtDurationMs: last.thoughtDurationMs || null,
+                        trajectory: run.trajectory || null,
+                        investigateMode: true,
+                        investigateFunnel: { ...investigateFunnelRef.current },
+                        investigatePhase: 'verifying',
+                    };
+                    if (run.response) llmService.updateMessages(run.response);
+                    return newHistory;
+                });
+                activeStreamIdRef.current = null;
+            } catch (error) {
+                logDev('[LLM] visibility run recovery failed', error);
+            }
+        };
+
+        const onVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                tryRecover();
+            }
+        };
+        document.addEventListener('visibilitychange', onVisibility);
+        const intervalId = window.setInterval(tryRecover, 45000);
+        return () => {
+            document.removeEventListener('visibilitychange', onVisibility);
+            window.clearInterval(intervalId);
+        };
+    }, [isLoading, llmService]);
 
     useEffect(() => {
         return () => {
@@ -2549,6 +3095,31 @@ function LLMAgent() {
                 isProcessing={isProcessing}
                 streamingGroups={streamingGroups}
                 streamingStepName={streamingStepName}
+                investigatePhase={investigatePhase}
+                investigateFunnel={investigateFunnel}
+                investigateStartedAt={investigateStartedAt}
+                notifyEmailEnabled={notifyEmailEnabled}
+                onToggleNotifyEmail={(enabled) => {
+                    setNotifyEmailEnabled(Boolean(enabled));
+                    try {
+                        localStorage.setItem('glkb_investigate_notify_email', enabled ? '1' : '0');
+                    } catch {
+                        /* ignore */
+                    }
+                    if (enabled && !getUserNotifyEmail()) {
+                        message.warning('Sign in with email to receive completion notifications.');
+                    } else if (enabled) {
+                        message.success('Will email you when this investigation finishes.');
+                    }
+                }}
+                pendingClarification={pendingClarification}
+                clarificationDrafts={clarificationDrafts}
+                clarificationError={clarificationError}
+                clarificationSubmitting={clarificationSubmitting}
+                hasInvalidOtherSelection={hasInvalidOtherSelection}
+                onUpdateClarificationDraft={updateClarificationDraft}
+                onSubmitClarification={submitClarification}
+                onSkipClarification={submitClarification}
                 refresh={handleRegenerateResponse}
                 copy={handleCopyMessage}
                 save={handleSaveEdit}
@@ -2875,8 +3446,9 @@ function LLMAgent() {
                 </Alert>
             </Snackbar>
 
+            {/* Clarify is inline in the investigate message (Figma Asking Question). Modal kept disabled. */}
             <Dialog
-                open={Boolean(pendingClarification)}
+                open={false}
                 onClose={() => {}}
                 disableEscapeKeyDown
                 fullWidth
@@ -3544,7 +4116,14 @@ function LLMAgent() {
                                                         setUserInput={setUserInput}
                                                         isLoading={isLoading}
                                                         isQueryLimitReached={isLimitReachedEffective}
-                                                        onSubmit={handleSubmit}
+                                                        investigateEnabled={chatInvestigateEnabled}
+                                                        onInvestigateChange={setChatInvestigateEnabled}
+                                                        onSubmit={(event) => handleSubmit(event, null, null, {
+                                                            searchOptions: {
+                                                                investigateEnabled: chatInvestigateEnabled,
+                                                                ...(initialSearchOptionsRef.current || {}),
+                                                            },
+                                                        })}
                                                         onStop={handleStopStreaming}
                                                     />
                                                 </div>
