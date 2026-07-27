@@ -1817,6 +1817,13 @@ function LLMAgent() {
             return false;
         }
     });
+    const [notifyBrowserEnabled, setNotifyBrowserEnabled] = useState(() => {
+        try {
+            return localStorage.getItem('glkb_investigate_notify_browser') === '1';
+        } catch {
+            return false;
+        }
+    });
     const [chatInvestigateEnabled, setChatInvestigateEnabled] = useState(false);
     const investigateFunnelRef = useRef(emptyFunnel());
     const investigatePhaseRef = useRef('searching');
@@ -2802,6 +2809,22 @@ function LLMAgent() {
                                 update.funnel,
                             );
                         }
+                        // Browser notification on completion
+                        if (
+                            notifyBrowserEnabled &&
+                            typeof Notification !== 'undefined' &&
+                            Notification.permission === 'granted'
+                        ) {
+                            try {
+                                const title = 'GLKB Research Complete';
+                                const body = update.answer
+                                    ? update.answer.slice(0, 120).replace(/[#*_\[\]]/g, '').trim() + '…'
+                                    : 'Your deep research report is ready.';
+                                new Notification(title, { body, icon: '/favicon.ico' });
+                            } catch {
+                                /* notification blocked or unsupported */
+                            }
+                        }
                         setChatHistory(prev => {
                             const newHistory = [...prev];
                             const assistantMessage = {
@@ -3416,15 +3439,22 @@ function LLMAgent() {
                 notifyEmailEnabled={notifyEmailEnabled}
                 onToggleNotifyEmail={(enabled) => {
                     setNotifyEmailEnabled(Boolean(enabled));
+                    setNotifyBrowserEnabled(Boolean(enabled));
                     try {
                         localStorage.setItem('glkb_investigate_notify_email', enabled ? '1' : '0');
+                        localStorage.setItem('glkb_investigate_notify_browser', enabled ? '1' : '0');
                     } catch {
                         /* ignore */
                     }
-                    if (enabled && !getUserNotifyEmail()) {
-                        message.warning('Sign in with email to receive completion notifications.');
-                    } else if (enabled) {
-                        message.success('Will email you when this investigation finishes.');
+                    if (enabled) {
+                        if ('Notification' in window && Notification.permission === 'default') {
+                            Notification.requestPermission();
+                        }
+                        if (!getUserNotifyEmail()) {
+                            message.warning('Sign in with email to receive completion notifications.');
+                        } else {
+                            message.success('Will notify you when this investigation finishes.');
+                        }
                     }
                 }}
                 pendingClarification={pendingClarification}
