@@ -2815,15 +2815,17 @@ function LLMAgent() {
                             typeof Notification !== 'undefined' &&
                             Notification.permission === 'granted'
                         ) {
-                            try {
-                                const title = 'GLKB Research Complete';
-                                const body = update.answer
-                                    ? update.answer.slice(0, 120).replace(/[#*_\[\]]/g, '').trim() + '…'
-                                    : 'Your deep research report is ready.';
-                                new Notification(title, { body, icon: '/favicon.ico' });
-                            } catch {
-                                /* notification blocked or unsupported */
-                            }
+                            const title = 'GLKB Research Complete';
+                            const body = update.answer
+                                ? update.answer.slice(0, 120).replace(/[#*_\[\]]/g, '').trim() + '…'
+                                : 'Your deep research report is ready.';
+                            new Notification(title, { body, icon: '/favicon.ico' });
+                        } else if (notifyBrowserEnabled) {
+                            console.warn(
+                                '[GLKB] Browser notification skipped:',
+                                { hasAPI: typeof Notification !== 'undefined',
+                                  permission: typeof Notification !== 'undefined' ? Notification.permission : 'N/A' },
+                            );
                         }
                         setChatHistory(prev => {
                             const newHistory = [...prev];
