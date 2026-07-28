@@ -2235,8 +2235,9 @@ function LLMAgent() {
             if (searchOptions?.investigateEnabled) {
                 setChatInvestigateEnabled(true);
             }
-            // Clear location.state so page refresh does NOT re-trigger the same query.
-            navigate(location.pathname, { replace: true, state: {} });
+            // Clear history state so page refresh does NOT re-trigger the same query.
+            // Use replaceState (not navigate) to avoid React re-render that resets chatHistory.
+            window.history.replaceState({}, '', window.location.pathname);
             if (!isLoading) {
                 startNewConversation();
                 handleSubmit(null, query, null, {
