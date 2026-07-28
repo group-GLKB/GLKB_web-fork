@@ -2235,6 +2235,8 @@ function LLMAgent() {
             if (searchOptions?.investigateEnabled) {
                 setChatInvestigateEnabled(true);
             }
+            // Clear location.state so page refresh does NOT re-trigger the same query.
+            navigate(location.pathname, { replace: true, state: {} });
             if (!isLoading) {
                 startNewConversation();
                 handleSubmit(null, query, null, {
