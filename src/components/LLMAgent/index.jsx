@@ -2813,7 +2813,7 @@ function LLMAgent() {
                                 }
                             }
 
-                            if (hasContent) {
+                            if (hasContent && !update.isProgress) {
                                 const newEntry = { step: update.step, content: rawContent };
                                 thinkingStepsRef.current = [...thinkingStepsRef.current, newEntry];
                                 const parsedEntry = parseThinkingEntry(newEntry);
