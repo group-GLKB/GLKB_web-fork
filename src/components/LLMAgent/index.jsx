@@ -32,6 +32,12 @@ import {
   ExpandMore as ExpandMoreIcon,
   NotificationsNoneOutlined as NotificationsNoneOutlinedIcon,
   ScienceOutlined as ScienceOutlinedIcon,
+  Search as SearchIcon,
+  MenuBook as MenuBookIcon,
+  QuestionAnswer as QuestionAnswerIcon,
+  Psychology as PsychologyIcon,
+  AutoAwesome as AutoAwesomeIcon,
+  CheckCircleOutline as CheckCircleOutlineIcon,
   Star as StarIcon,
 } from '@mui/icons-material';
 import {
@@ -1177,6 +1183,81 @@ const MessageCard = React.memo(function MessageCard({
         [resolvedPapers],
     );
 
+    // Tool call step icons — maps tool names and phase labels to MUI icons (per Figma)
+    const TOOL_STEP_ICONS = useMemo(() => ({
+        search: SearchIcon,
+        article_search: SearchIcon,
+        search_pubmed: SearchIcon,
+        vocabulary_search: PsychologyIcon,
+        execute_cypher: PsychologyIcon,
+        fetch_abstract: MenuBookIcon,
+        get_fulltext: MenuBookIcon,
+        comprehensive_report: MenuBookIcon,
+        find_similar_articles: SearchIcon,
+        get_citing_articles: SearchIcon,
+        cite_evidence: CheckCircleOutlineIcon,
+        clarification: QuestionAnswerIcon,
+        question_rewritten: AutoAwesomeIcon,
+        writing: AutoAwesomeIcon,
+        verifying: CheckCircleOutlineIcon,
+        finalizing: AutoAwesomeIcon,
+        summary: CheckCircleOutlineIcon,
+        reading: MenuBookIcon,
+        searching: SearchIcon,
+        analyzing: PsychologyIcon,
+        load_skill: PsychologyIcon,
+    }), []);
+
+    const investigateTimelineSteps = useMemo(() => {
+        const steps = (message.thinkingSteps || []).filter(
+            (entry) => entry?.step && entry?.content,
+        );
+        if (!steps.length) return [];
+
+        // Deduplicate by step+content
+        const seen = new Set();
+        const unique = steps.filter((entry) => {
+            const key = `${entry.step || ''}|${(entry.content || '').slice(0, 60)}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+
+        // Extract tool name from content like "[TOOL CALL] article_search | Input: ..."
+        const deriveToolName = (content) => {
+            const m = String(content || '').match(/\[TOOL\s+(?:CALL|RESULT)\]:?\s*(\w+)/i);
+            return m ? m[1] : null;
+        };
+
+        const deriveStepIcon = (entry) => {
+            const toolName = deriveToolName(entry.content);
+            if (toolName && TOOL_STEP_ICONS[toolName]) return TOOL_STEP_ICONS[toolName];
+            // Fallback: match phase-like labels in the step text
+            const stepLower = String(entry.step || '').toLowerCase();
+            if (TOOL_STEP_ICONS[stepLower]) return TOOL_STEP_ICONS[stepLower];
+            // Default icon for generic steps
+            return ScienceOutlinedIcon;
+        };
+
+        const deriveLabel = (entry) => {
+            const stepStr = String(entry.step || '');
+            const content = String(entry.content || '');
+            // Try to extract a clean label from the step name
+            const labelKey = stepStr.trim();
+            if (STEP_LABELS[labelKey]) return STEP_LABELS[labelKey];
+            // Try extracting tool name and mapping it
+            const toolName = deriveToolName(content);
+            if (toolName && STEP_LABELS[toolName]) return STEP_LABELS[toolName];
+            return stepStr || 'Working';
+        };
+
+        return unique.map((entry) => ({
+            icon: deriveStepIcon(entry),
+            label: deriveLabel(entry),
+            step: entry.step,
+        }));
+    }, [message.thinkingSteps, TOOL_STEP_ICONS]);
+
     const investigateActivityItems = useMemo(() => {
         const raw = activeStreamingGroups
             .flatMap((group) => (Array.isArray(group.lines) ? group.lines : []))
@@ -1478,14 +1559,27 @@ const MessageCard = React.memo(function MessageCard({
                                             </Box>
                                         )}
 
-                                        {investigateActivityItems.length > 0 && (
-                                            <Box className="investigate-progress-angles">
-                                                <span className="investigate-progress-angles-title">
-                                                    {resolvedPhase === 'searching' ? 'Searching for literature' : `Research activity (${investigateActivityItems.length} steps):`}
-                                                </span>
-                                                {investigateActivityItems.map((item, itemIndex) => (
-                                                    <span key={`${item}-${itemIndex}`} className="investigate-progress-angle-item">- {item}</span>
-                                                ))}
+                                        {/* Figma-style tool call step timeline */}
+                                        {(investigateTimelineSteps.length > 0 || investigateActivityItems.length > 0) && (
+                                            <Box className="investigate-timeline">
+                                                {/* Timeline: show derived steps from message.thinkingSteps when complete,
+                                                    or raw activity items during live streaming */}
+                                                {(investigateTimelineSteps.length > 0
+                                                    ? investigateTimelineSteps
+                                                    : investigateActivityItems.map((item) => ({
+                                                        icon: ScienceOutlinedIcon,
+                                                        label: item,
+                                                        step: '',
+                                                    }))
+                                                ).map((entry, idx) => {
+                                                    const IconComp = entry.icon || ScienceOutlinedIcon;
+                                                    return (
+                                                        <Box key={`${entry.label}-${idx}`} className="investigate-timeline-step">
+                                                            <IconComp className="investigate-timeline-icon" />
+                                                            <span className="investigate-timeline-label">{entry.label}</span>
+                                                        </Box>
+                                                    );
+                                                })}
                                             </Box>
                                         )}
                                     </Box>
@@ -1813,13 +1907,6 @@ function LLMAgent() {
     const [notifyEmailEnabled, setNotifyEmailEnabled] = useState(() => {
         try {
             return localStorage.getItem('glkb_investigate_notify_email') === '1';
-        } catch {
-            return false;
-        }
-    });
-    const [notifyBrowserEnabled, setNotifyBrowserEnabled] = useState(() => {
-        try {
-            return localStorage.getItem('glkb_investigate_notify_browser') === '1';
         } catch {
             return false;
         }
@@ -2235,9 +2322,6 @@ function LLMAgent() {
             if (searchOptions?.investigateEnabled) {
                 setChatInvestigateEnabled(true);
             }
-            // Clear history state so page refresh does NOT re-trigger the same query.
-            // Use replaceState (not navigate) to avoid React re-render that resets chatHistory.
-            window.history.replaceState({}, '', window.location.pathname);
             if (!isLoading) {
                 startNewConversation();
                 handleSubmit(null, query, null, {
@@ -2812,24 +2896,6 @@ function LLMAgent() {
                                 update.funnel,
                             );
                         }
-                        // Browser notification on completion
-                        if (
-                            notifyBrowserEnabled &&
-                            typeof Notification !== 'undefined' &&
-                            Notification.permission === 'granted'
-                        ) {
-                            const title = 'GLKB Research Complete';
-                            const body = update.answer
-                                ? update.answer.slice(0, 120).replace(/[#*_\[\]]/g, '').trim() + '…'
-                                : 'Your deep research report is ready.';
-                            new Notification(title, { body, icon: '/favicon.ico' });
-                        } else if (notifyBrowserEnabled) {
-                            console.warn(
-                                '[GLKB] Browser notification skipped:',
-                                { hasAPI: typeof Notification !== 'undefined',
-                                  permission: typeof Notification !== 'undefined' ? Notification.permission : 'N/A' },
-                            );
-                        }
                         setChatHistory(prev => {
                             const newHistory = [...prev];
                             const assistantMessage = {
@@ -2930,7 +2996,6 @@ function LLMAgent() {
                 filters: Array.isArray(requestSearchOptions?.filters) ? requestSearchOptions.filters : undefined,
                 rankingMode: typeof requestSearchOptions?.rankingMode === 'string' ? requestSearchOptions.rankingMode : undefined,
                 investigateEnabled,
-                notifyEnabled: investigateEnabled && (notifyEmailEnabled || notifyBrowserEnabled),
                 notifyEmail: (investigateEnabled && notifyEmailEnabled)
                     ? (getUserNotifyEmail() || undefined)
                     : undefined,
@@ -3445,17 +3510,15 @@ function LLMAgent() {
                 notifyEmailEnabled={notifyEmailEnabled}
                 onToggleNotifyEmail={(enabled) => {
                     setNotifyEmailEnabled(Boolean(enabled));
-                    setNotifyBrowserEnabled(Boolean(enabled));
                     try {
                         localStorage.setItem('glkb_investigate_notify_email', enabled ? '1' : '0');
-                        localStorage.setItem('glkb_investigate_notify_browser', enabled ? '1' : '0');
                     } catch {
                         /* ignore */
                     }
-                    if (enabled) {
-                        if ('Notification' in window && Notification.permission === 'default') {
-                            Notification.requestPermission();
-                        }
+                    if (enabled && !getUserNotifyEmail()) {
+                        message.warning('Sign in with email to receive completion notifications.');
+                    } else if (enabled) {
+                        message.success('Will email you when this investigation finishes.');
                     }
                 }}
                 pendingClarification={pendingClarification}
@@ -4376,9 +4439,9 @@ function LLMAgent() {
                                                                 </Typography>
                                                                 <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '10px', minHeight: '80px' }}>
                                                                     {
-                                                                        ["What are the major research trends in single-cell studies of pancreatic cancer tumor microenvironment?",
-                                                                            "What evidence links type 2 diabetes with pancreatic cancer risk?",
-                                                                            "What genes are most strongly associated with pancreatic cancer, and what evidence supports each association?"
+                                                                        ["What is the role of BRCA1 in breast cancer?",
+                                                                            "How many articles about Alzheimer's disease are published in 2020?",
+                                                                            "What pathways does TP53 participate in?"
                                                                         ].map((query, index) => (
                                                                             <div className="example-query" key={index} onClick={() => handleExampleClick(query)}>
                                                                                 {query}

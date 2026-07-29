@@ -370,15 +370,13 @@ export class LLMAgentService {
             if (typeof options.rankingMode === 'string' && options.rankingMode.trim()) {
                 payload.ranking_mode = options.rankingMode.trim();
             }
-            // Backend PR #37: JWT-derived email for notification.
-            // Frontend sends notify:true as the intent signal; the backend
-            // extracts the actual email from the JWT (unforgeable).
-            if (investigateEnabled && options.notifyEnabled) {
-                payload.notify = true;
-                // Backward compat: also send notify_email if available
-                if (typeof options.notifyEmail === 'string' && options.notifyEmail.trim()) {
-                    payload.notify_email = options.notifyEmail.trim();
-                }
+            // Backend PR #31: email when Deep Research hits Complete
+            if (
+                investigateEnabled &&
+                typeof options.notifyEmail === 'string' &&
+                options.notifyEmail.trim()
+            ) {
+                payload.notify_email = options.notifyEmail.trim();
             }
 
             const streamEndpoint = investigateEnabled ? resolveInvestigateStreamUrl() : DEFAULT_STREAM_ENDPOINT;
