@@ -1256,24 +1256,37 @@ const MessageCard = React.memo(function MessageCard({
             return stepStr || 'Working';
         };
 
-        // Deduplicate by step+content, but track phase changes for headers
+        // Deduplicate by step+content, interleaving phase markers and tool steps
         const seen = new Set();
         const result = [];
         let lastStep = null;
+        let lastWasProgress = false;
 
         for (const entry of steps) {
             const key = `${entry.step || ''}|${(entry.content || '').slice(0, 60)}`;
             if (seen.has(key)) continue;
             seen.add(key);
 
-            const toolName = deriveToolName(entry.content);
-            const stepKey = entry.step?.trim() || '';
-
-            // Emit a phase header when the step changes and maps to a known icon
-            if (stepKey && stepKey !== lastStep && TOOL_STEP_ICONS[stepKey.toLowerCase()]) {
-                const phaseIcon = TOOL_STEP_ICONS[stepKey.toLowerCase()] || ScienceOutlinedIcon;
+            // Progress events with rich labels → used as phase headers directly
+            if (entry.isProgress && entry.content) {
+                const phaseIcon = TOOL_STEP_ICONS[entry.phase] || ScienceOutlinedIcon;
                 result.push({
                     icon: phaseIcon,
+                    label: entry.content,
+                    step: entry.step,
+                    kind: 'phase',
+                });
+                lastStep = entry.step?.trim() || '';
+                lastWasProgress = true;
+                continue;
+            }
+
+            const stepKey = entry.step?.trim() || '';
+
+            // For tool calls: emit phase header when step changes to a new label
+            if (stepKey && stepKey !== lastStep && TOOL_STEP_ICONS[stepKey.toLowerCase()]) {
+                result.push({
+                    icon: TOOL_STEP_ICONS[stepKey.toLowerCase()] || ScienceOutlinedIcon,
                     label: stepKey,
                     step: entry.step,
                     kind: 'phase',
@@ -1281,12 +1294,14 @@ const MessageCard = React.memo(function MessageCard({
                 lastStep = stepKey;
             }
 
+            // Tool call detail step
             result.push({
                 icon: deriveStepIcon(entry),
                 label: deriveLabel(entry),
                 step: entry.step,
                 kind: 'tool',
             });
+            lastWasProgress = false;
         }
 
         return result;
@@ -2836,9 +2851,19 @@ function LLMAgent() {
                                 if (update.label || update.isProgress) {
                                     setStreamingStepName(update.label || update.content || update.step);
                                 }
+                                // Capture progress labels as rich phase markers
+                                if (update.isProgress && update.label && update.phase) {
+                                    thinkingStepsRef.current = [...thinkingStepsRef.current, {
+                                        step: update.step || update.phase,
+                                        content: update.label,
+                                        isProgress: true,
+                                        phase: update.phase,
+                                    }];
+                                    setThinkingStepsVersion(v => v + 1);
+                                }
                             }
 
-                            if (hasContent) {
+                            if (hasContent && !update.isProgress) {
                                 const newEntry = { step: update.step, content: rawContent };
                                 thinkingStepsRef.current = [...thinkingStepsRef.current, newEntry];
                                 setThinkingStepsVersion(v => v + 1);
