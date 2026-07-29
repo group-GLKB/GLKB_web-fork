@@ -1085,6 +1085,39 @@ button.investigate-progress-notify.active {
     color: #8090AB;
 }
 
+/* ── Figma Investigate Tool Step Timeline ── */
+.investigate-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-left: 20px;
+    border-left: 1px solid #E5E9F0;
+    margin-top: 12px;
+}
+
+.investigate-timeline-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+}
+
+.investigate-timeline-icon {
+    width: 16px !important;
+    height: 16px !important;
+    color: #5E6E87;
+    flex-shrink: 0;
+}
+
+.investigate-timeline-label {
+    font-family: 'Geist', 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    color: #5E6E87;
+}
+
+/* Keep old angles for backward compatibility */
 .investigate-progress-angles {
     display: flex;
     flex-direction: column;
