@@ -1206,24 +1206,25 @@ const MessageCard = React.memo(function MessageCard({
         searching: SearchIcon,
         analyzing: PsychologyIcon,
         load_skill: PsychologyIcon,
+        // Full phase labels (from _TOOL_PHASE_MAP)
+        'searching for relevant articles': SearchIcon,
+        'reading article details': MenuBookIcon,
+        'exploring the knowledge graph': PsychologyIcon,
+        'organizing the evidence': PsychologyIcon,
+        'writing the report': AutoAwesomeIcon,
+        'verifying the answer': CheckCircleOutlineIcon,
+        'finalizing the report': AutoAwesomeIcon,
+        'selecting supporting evidence': CheckCircleOutlineIcon,
+        'clarifying the question': QuestionAnswerIcon,
+        'preparing my approach': PsychologyIcon,
+        'following citation trails': SearchIcon,
     }), []);
 
     const investigateTimelineSteps = useMemo(() => {
-        // During streaming, use live ref (synced via version counter); after completion, use persisted message
-        const source = isLoading ? thinkingStepsRef.current : (message.thinkingSteps || []);
-        const steps = source.filter(
+        const steps = (message.thinkingSteps || []).filter(
             (entry) => entry?.step && entry?.content,
         );
         if (!steps.length) return [];
-
-        // Deduplicate by step+content
-        const seen = new Set();
-        const unique = steps.filter((entry) => {
-            const key = `${entry.step || ''}|${(entry.content || '').slice(0, 60)}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-        });
 
         // Extract tool name from content like "[TOOL CALL] article_search | Input: ..."
         const deriveToolName = (content) => {
@@ -1232,10 +1233,6 @@ const MessageCard = React.memo(function MessageCard({
         };
 
         const deriveStepIcon = (entry) => {
-            // Progress phase markers: use phase-based icon
-            if (entry.isProgress && entry.phase) {
-                if (TOOL_STEP_ICONS[entry.phase]) return TOOL_STEP_ICONS[entry.phase];
-            }
             const toolName = deriveToolName(entry.content);
             if (toolName && TOOL_STEP_ICONS[toolName]) return TOOL_STEP_ICONS[toolName];
             const stepLower = String(entry.step || '').toLowerCase();
@@ -1244,24 +1241,50 @@ const MessageCard = React.memo(function MessageCard({
         };
 
         const deriveLabel = (entry) => {
-            // Progress phase markers: use the content (label) directly
-            if (entry.isProgress && entry.content) return entry.content;
+            // Use tool name from content to derive a clean label
+            const toolName = deriveToolName(entry.content);
+            if (toolName && STEP_LABELS[toolName]) return STEP_LABELS[toolName];
             const stepStr = String(entry.step || '');
-            const content = String(entry.content || '');
             const labelKey = stepStr.trim();
             if (STEP_LABELS[labelKey]) return STEP_LABELS[labelKey];
-            const toolName = deriveToolName(content);
-            if (toolName && STEP_LABELS[toolName]) return STEP_LABELS[toolName];
             return stepStr || 'Working';
         };
 
-        return unique.map((entry) => ({
-            icon: deriveStepIcon(entry),
-            label: deriveLabel(entry),
-            step: entry.step,
-            kind: entry.isProgress ? 'phase' : 'tool',
-        }));
-    }, [message.thinkingSteps, thinkingStepsVersion, isLoading, TOOL_STEP_ICONS]);
+        // Deduplicate by step+content, but track phase changes for headers
+        const seen = new Set();
+        const result = [];
+        let lastStep = null;
+
+        for (const entry of steps) {
+            const key = `${entry.step || ''}|${(entry.content || '').slice(0, 60)}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+
+            const toolName = deriveToolName(entry.content);
+            const stepKey = entry.step?.trim() || '';
+
+            // Emit a phase header when the step changes and maps to a known label
+            if (stepKey && stepKey !== lastStep && STEP_LABELS[stepKey]) {
+                const phaseIcon = TOOL_STEP_ICONS[stepKey.toLowerCase()] || ScienceOutlinedIcon;
+                result.push({
+                    icon: phaseIcon,
+                    label: STEP_LABELS[stepKey],
+                    step: entry.step,
+                    kind: 'phase',
+                });
+                lastStep = stepKey;
+            }
+
+            result.push({
+                icon: deriveStepIcon(entry),
+                label: deriveLabel(entry),
+                step: entry.step,
+                kind: 'tool',
+            });
+        }
+
+        return result;
+    }, [message.thinkingSteps, TOOL_STEP_ICONS]);
 
     const investigateActivityItems = useMemo(() => {
         const raw = activeStreamingGroups
@@ -1917,7 +1940,6 @@ function LLMAgent() {
     const [investigatePercent, setInvestigatePercent] = useState(null);
     const [investigateKeywords, setInvestigateKeywords] = useState([]);
     const [investigatePapers, setInvestigatePapers] = useState([]);
-    const [thinkingStepsVersion, setThinkingStepsVersion] = useState(0);
     const [notifyEmailEnabled, setNotifyEmailEnabled] = useState(() => {
         try {
             return localStorage.getItem('glkb_investigate_notify_email') === '1';
@@ -2221,7 +2243,6 @@ function LLMAgent() {
         setStreamingGroups([]);
         setStreamingStepName('');
         thinkingStepsRef.current = [];
-        setThinkingStepsVersion(v => v + 1);
         setPendingClarification(null);
         setClarificationDrafts({});
         setClarificationError('');
@@ -2648,7 +2669,6 @@ function LLMAgent() {
         investigateKeywordsRef.current = [];
         investigatePapersRef.current = [];
         thinkingStepsRef.current = [];
-        setThinkingStepsVersion(v => v + 1);
 
         try {
             logDev('[LLM] submit', { input: inputText });
@@ -2807,24 +2827,11 @@ function LLMAgent() {
                                 if (update.label || update.isProgress) {
                                     setStreamingStepName(update.label || update.content || update.step);
                                 }
-                                // Capture progress labels as phase markers in the step timeline
-                                if (update.isProgress && update.label && update.phase) {
-                                    const nextSteps = [...thinkingStepsRef.current, {
-                                        step: update.step || update.phase,
-                                        content: update.label,
-                                        isProgress: true,
-                                        phase: update.phase,
-                                    }];
-                                    thinkingStepsRef.current = nextSteps;
-                                    setThinkingStepsVersion(v => v + 1);
-                                }
                             }
 
-                            if (hasContent && !update.isProgress) {
+                            if (hasContent) {
                                 const newEntry = { step: update.step, content: rawContent };
-                                const nextSteps = [...thinkingStepsRef.current, newEntry];
-                                thinkingStepsRef.current = nextSteps;
-                                setThinkingStepsVersion(v => v + 1);
+                                thinkingStepsRef.current = [...thinkingStepsRef.current, newEntry];
                                 const parsedEntry = parseThinkingEntry(newEntry);
                                 if (parsedEntry.stepName) {
                                     setStreamingStepName(parsedEntry.stepName);
