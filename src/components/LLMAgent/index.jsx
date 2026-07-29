@@ -1269,12 +1269,12 @@ const MessageCard = React.memo(function MessageCard({
             const toolName = deriveToolName(entry.content);
             const stepKey = entry.step?.trim() || '';
 
-            // Emit a phase header when the step changes and maps to a known label
-            if (stepKey && stepKey !== lastStep && STEP_LABELS[stepKey]) {
+            // Emit a phase header when the step changes and maps to a known icon
+            if (stepKey && stepKey !== lastStep && TOOL_STEP_ICONS[stepKey.toLowerCase()]) {
                 const phaseIcon = TOOL_STEP_ICONS[stepKey.toLowerCase()] || ScienceOutlinedIcon;
                 result.push({
                     icon: phaseIcon,
-                    label: STEP_LABELS[stepKey],
+                    label: stepKey,
                     step: entry.step,
                     kind: 'phase',
                 });
