@@ -1117,6 +1117,29 @@ button.investigate-progress-notify.active {
     color: #5E6E87;
 }
 
+/* Phase headers — bolder, more prominent (per Figma) */
+.investigate-timeline-phase {
+    padding: 8px 0 4px;
+    border-bottom: none;
+}
+
+.investigate-timeline-phase:first-child {
+    padding-top: 0;
+}
+
+.investigate-timeline-phase-label {
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 20px;
+    color: #0C1018;
+}
+
+.investigate-timeline-phase .investigate-timeline-icon {
+    color: #155DFC;
+    width: 16px !important;
+    height: 16px !important;
+}
+
 /* Keep old angles for backward compatibility */
 .investigate-progress-angles {
     display: flex;
