@@ -1209,8 +1209,8 @@ const MessageCard = React.memo(function MessageCard({
     }), []);
 
     const investigateTimelineSteps = useMemo(() => {
-        // During streaming, use live state; after completion, use persisted message
-        const source = isLoading ? streamingThinkingSteps : (message.thinkingSteps || []);
+        // During streaming, use live ref (synced via version counter); after completion, use persisted message
+        const source = isLoading ? thinkingStepsRef.current : (message.thinkingSteps || []);
         const steps = source.filter(
             (entry) => entry?.step && entry?.content,
         );
@@ -1261,7 +1261,7 @@ const MessageCard = React.memo(function MessageCard({
             step: entry.step,
             kind: entry.isProgress ? 'phase' : 'tool',
         }));
-    }, [message.thinkingSteps, streamingThinkingSteps, isLoading, TOOL_STEP_ICONS]);
+    }, [message.thinkingSteps, thinkingStepsVersion, isLoading, TOOL_STEP_ICONS]);
 
     const investigateActivityItems = useMemo(() => {
         const raw = activeStreamingGroups
@@ -1917,7 +1917,7 @@ function LLMAgent() {
     const [investigatePercent, setInvestigatePercent] = useState(null);
     const [investigateKeywords, setInvestigateKeywords] = useState([]);
     const [investigatePapers, setInvestigatePapers] = useState([]);
-    const [streamingThinkingSteps, setStreamingThinkingSteps] = useState([]);
+    const [thinkingStepsVersion, setThinkingStepsVersion] = useState(0);
     const [notifyEmailEnabled, setNotifyEmailEnabled] = useState(() => {
         try {
             return localStorage.getItem('glkb_investigate_notify_email') === '1';
@@ -2221,7 +2221,7 @@ function LLMAgent() {
         setStreamingGroups([]);
         setStreamingStepName('');
         thinkingStepsRef.current = [];
-        setStreamingThinkingSteps([]);
+        setThinkingStepsVersion(v => v + 1);
         setPendingClarification(null);
         setClarificationDrafts({});
         setClarificationError('');
@@ -2648,7 +2648,7 @@ function LLMAgent() {
         investigateKeywordsRef.current = [];
         investigatePapersRef.current = [];
         thinkingStepsRef.current = [];
-        setStreamingThinkingSteps([]);
+        setThinkingStepsVersion(v => v + 1);
 
         try {
             logDev('[LLM] submit', { input: inputText });
@@ -2816,7 +2816,7 @@ function LLMAgent() {
                                         phase: update.phase,
                                     }];
                                     thinkingStepsRef.current = nextSteps;
-                                    setStreamingThinkingSteps(nextSteps);
+                                    setThinkingStepsVersion(v => v + 1);
                                 }
                             }
 
@@ -2824,7 +2824,7 @@ function LLMAgent() {
                                 const newEntry = { step: update.step, content: rawContent };
                                 const nextSteps = [...thinkingStepsRef.current, newEntry];
                                 thinkingStepsRef.current = nextSteps;
-                                setStreamingThinkingSteps(nextSteps);
+                                setThinkingStepsVersion(v => v + 1);
                                 const parsedEntry = parseThinkingEntry(newEntry);
                                 if (parsedEntry.stepName) {
                                     setStreamingStepName(parsedEntry.stepName);
