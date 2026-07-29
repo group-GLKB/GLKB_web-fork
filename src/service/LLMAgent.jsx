@@ -364,7 +364,11 @@ export class LLMAgentService {
             if (Number.isFinite(Number(options.maxArticles))) {
                 payload.max_articles = Number(options.maxArticles);
             }
-            if (Array.isArray(options.filters) && options.filters.length > 0) {
+            // Send the array even when empty. Omitting it means "no preference", and
+            // the backend then keeps the filter stored on the conversation — so an
+            // empty list was the one selection the user could never express, and
+            // turning "reviews only" back off did nothing (issue #11).
+            if (Array.isArray(options.filters)) {
                 payload.filters = options.filters;
             }
             if (typeof options.rankingMode === 'string' && options.rankingMode.trim()) {
