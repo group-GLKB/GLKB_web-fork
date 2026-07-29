@@ -1230,22 +1230,24 @@ const MessageCard = React.memo(function MessageCard({
         };
 
         const deriveStepIcon = (entry) => {
+            // Progress phase markers: use phase-based icon
+            if (entry.isProgress && entry.phase) {
+                if (TOOL_STEP_ICONS[entry.phase]) return TOOL_STEP_ICONS[entry.phase];
+            }
             const toolName = deriveToolName(entry.content);
             if (toolName && TOOL_STEP_ICONS[toolName]) return TOOL_STEP_ICONS[toolName];
-            // Fallback: match phase-like labels in the step text
             const stepLower = String(entry.step || '').toLowerCase();
             if (TOOL_STEP_ICONS[stepLower]) return TOOL_STEP_ICONS[stepLower];
-            // Default icon for generic steps
             return ScienceOutlinedIcon;
         };
 
         const deriveLabel = (entry) => {
+            // Progress phase markers: use the content (label) directly
+            if (entry.isProgress && entry.content) return entry.content;
             const stepStr = String(entry.step || '');
             const content = String(entry.content || '');
-            // Try to extract a clean label from the step name
             const labelKey = stepStr.trim();
             if (STEP_LABELS[labelKey]) return STEP_LABELS[labelKey];
-            // Try extracting tool name and mapping it
             const toolName = deriveToolName(content);
             if (toolName && STEP_LABELS[toolName]) return STEP_LABELS[toolName];
             return stepStr || 'Working';
@@ -1255,6 +1257,7 @@ const MessageCard = React.memo(function MessageCard({
             icon: deriveStepIcon(entry),
             label: deriveLabel(entry),
             step: entry.step,
+            kind: entry.isProgress ? 'phase' : 'tool',
         }));
     }, [message.thinkingSteps, TOOL_STEP_ICONS]);
 
@@ -1570,13 +1573,21 @@ const MessageCard = React.memo(function MessageCard({
                                                         icon: ScienceOutlinedIcon,
                                                         label: item,
                                                         step: '',
+                                                        kind: 'tool',
                                                     }))
                                                 ).map((entry, idx) => {
                                                     const IconComp = entry.icon || ScienceOutlinedIcon;
+                                                    const isPhase = entry.kind === 'phase';
+                                                    const stepClass = isPhase
+                                                        ? 'investigate-timeline-step investigate-timeline-phase'
+                                                        : 'investigate-timeline-step';
+                                                    const labelClass = isPhase
+                                                        ? 'investigate-timeline-label investigate-timeline-phase-label'
+                                                        : 'investigate-timeline-label';
                                                     return (
-                                                        <Box key={`${entry.label}-${idx}`} className="investigate-timeline-step">
+                                                        <Box key={`${entry.label}-${idx}`} className={stepClass}>
                                                             <IconComp className="investigate-timeline-icon" />
-                                                            <span className="investigate-timeline-label">{entry.label}</span>
+                                                            <span className={labelClass}>{entry.label}</span>
                                                         </Box>
                                                     );
                                                 })}
@@ -2790,6 +2801,15 @@ function LLMAgent() {
                                 }
                                 if (update.label || update.isProgress) {
                                     setStreamingStepName(update.label || update.content || update.step);
+                                }
+                                // Capture progress labels as phase markers in the step timeline
+                                if (update.isProgress && update.label && update.phase) {
+                                    thinkingStepsRef.current = [...thinkingStepsRef.current, {
+                                        step: update.step || update.phase,
+                                        content: update.label,
+                                        isProgress: true,
+                                        phase: update.phase,
+                                    }];
                                 }
                             }
 
