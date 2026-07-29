@@ -37,7 +37,7 @@ import {
   QuestionAnswer as QuestionAnswerIcon,
   Psychology as PsychologyIcon,
   AutoAwesome as AutoAwesomeIcon,
-  CheckCircleOutline as CheckCircleOutlineIcon,
+  CheckCircleOutlined as CheckCircleOutlineIcon,
   Star as StarIcon,
 } from '@mui/icons-material';
 import {
