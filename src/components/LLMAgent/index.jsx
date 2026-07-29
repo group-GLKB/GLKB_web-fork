@@ -1209,7 +1209,9 @@ const MessageCard = React.memo(function MessageCard({
     }), []);
 
     const investigateTimelineSteps = useMemo(() => {
-        const steps = (message.thinkingSteps || []).filter(
+        // During streaming, use live state; after completion, use persisted message
+        const source = isLoading ? streamingThinkingSteps : (message.thinkingSteps || []);
+        const steps = source.filter(
             (entry) => entry?.step && entry?.content,
         );
         if (!steps.length) return [];
@@ -1259,7 +1261,7 @@ const MessageCard = React.memo(function MessageCard({
             step: entry.step,
             kind: entry.isProgress ? 'phase' : 'tool',
         }));
-    }, [message.thinkingSteps, TOOL_STEP_ICONS]);
+    }, [message.thinkingSteps, streamingThinkingSteps, isLoading, TOOL_STEP_ICONS]);
 
     const investigateActivityItems = useMemo(() => {
         const raw = activeStreamingGroups
@@ -1915,6 +1917,7 @@ function LLMAgent() {
     const [investigatePercent, setInvestigatePercent] = useState(null);
     const [investigateKeywords, setInvestigateKeywords] = useState([]);
     const [investigatePapers, setInvestigatePapers] = useState([]);
+    const [streamingThinkingSteps, setStreamingThinkingSteps] = useState([]);
     const [notifyEmailEnabled, setNotifyEmailEnabled] = useState(() => {
         try {
             return localStorage.getItem('glkb_investigate_notify_email') === '1';
@@ -2218,6 +2221,7 @@ function LLMAgent() {
         setStreamingGroups([]);
         setStreamingStepName('');
         thinkingStepsRef.current = [];
+        setStreamingThinkingSteps([]);
         setPendingClarification(null);
         setClarificationDrafts({});
         setClarificationError('');
@@ -2644,6 +2648,7 @@ function LLMAgent() {
         investigateKeywordsRef.current = [];
         investigatePapersRef.current = [];
         thinkingStepsRef.current = [];
+        setStreamingThinkingSteps([]);
 
         try {
             logDev('[LLM] submit', { input: inputText });
@@ -2804,18 +2809,22 @@ function LLMAgent() {
                                 }
                                 // Capture progress labels as phase markers in the step timeline
                                 if (update.isProgress && update.label && update.phase) {
-                                    thinkingStepsRef.current = [...thinkingStepsRef.current, {
+                                    const nextSteps = [...thinkingStepsRef.current, {
                                         step: update.step || update.phase,
                                         content: update.label,
                                         isProgress: true,
                                         phase: update.phase,
                                     }];
+                                    thinkingStepsRef.current = nextSteps;
+                                    setStreamingThinkingSteps(nextSteps);
                                 }
                             }
 
                             if (hasContent && !update.isProgress) {
                                 const newEntry = { step: update.step, content: rawContent };
-                                thinkingStepsRef.current = [...thinkingStepsRef.current, newEntry];
+                                const nextSteps = [...thinkingStepsRef.current, newEntry];
+                                thinkingStepsRef.current = nextSteps;
+                                setStreamingThinkingSteps(nextSteps);
                                 const parsedEntry = parseThinkingEntry(newEntry);
                                 if (parsedEntry.stepName) {
                                     setStreamingStepName(parsedEntry.stepName);
