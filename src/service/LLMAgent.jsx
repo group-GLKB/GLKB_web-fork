@@ -352,6 +352,7 @@ export class LLMAgentService {
                             content: msg?.content,
                         }))
                         : [],
+                    history_id: historyId,
                 }
                 : {
                     question,
