@@ -22,7 +22,6 @@ import {
 import remarkGfm from 'remark-gfm';
 
 import {
-  AccessTimeOutlined as AccessTimeOutlinedIcon,
   Bookmark as BookmarkIcon,
   BookmarkBorder as BookmarkBorderIcon,
   Check as CheckIcon,
@@ -30,7 +29,6 @@ import {
   Clear as ClearIcon,
   EditNote as EditNoteIcon,
   ExpandMore as ExpandMoreIcon,
-  NotificationsNoneOutlined as NotificationsNoneOutlinedIcon,
   ScienceOutlined as ScienceOutlinedIcon,
   Star as StarIcon,
 } from '@mui/icons-material';
@@ -59,13 +57,21 @@ import {
   Typography,
 } from '@mui/material';
 
+import { emptyFunnel, mergeFunnel } from './funnel';
+import InvestigateProgress from './InvestigateProgress';
 import { ReactComponent as ContentCopyIcon } from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import { ReactComponent as ReferenceIcon } from '../../img/llm/reference.svg';
 import { ReactComponent as ReplayIcon } from '../../img/llm/replay.svg';
 import { ReactComponent as ThumbsUpDownIcon } from '../../img/llm/thumbs_up_down.svg';
 import { submitChatFeedback } from '../../service/Feedback';
-import { LLMAgentService } from '../../service/LLMAgent';
+import {
+  INVESTIGATE_PHASE_ORDER,
+  LLMAgentService,
+  PHASE_PERCENT_FLOOR,
+  inferInvestigatePhase,
+} from '../../service/LLMAgent';
+import { getCurrentUser } from '../../service/Auth';
 import {
   getGuestTier,
   getMyTier,
@@ -116,6 +122,303 @@ const formatInvestigatedDuration = (durationMs) => {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return `${minutes}:${String(seconds).padStart(2, '0')}`;
+};
+
+const mergeLiveKeywords = (prev, next) => {
+    if (!Array.isArray(next) || !next.length) return prev || [];
+    return Array.from(new Set([...(prev || []), ...next.map(String)]));
+};
+
+const mergeLivePapers = (prev, next) => {
+    if (!Array.isArray(next) || !next.length) return prev || [];
+    const map = new Map();
+    [...(prev || []), ...next].forEach((paper) => {
+        if (!paper) return;
+        const key = paper.pmid || paper.id || paper.title;
+        if (!key) return;
+        map.set(String(key), paper);
+    });
+    return Array.from(map.values());
+};
+
+/**
+ * Fold one progress frame's structured fields into the accumulated detail. Kept additive: a
+ * frame that omits `facets` must not blank the facets the analyzing step is displaying, and the
+ * writing frames only carry section/step/total. Keys are renamed to the shapes the panel reads.
+ */
+const mergeInvestigateDetail = (prev, next, label) => {
+    const out = { ...(prev || {}) };
+    if (Array.isArray(next.topic) && next.topic.length) out.topic = next.topic.map(String);
+    if (Array.isArray(next.facets) && next.facets.length) out.facets = next.facets.map(String);
+    // Retrieval channels reporting one by one. Accumulated (not replaced) and de-duplicated by
+    // name, because each frame carries the running list and a later frame must not drop an
+    // earlier probe's result.
+    if (Array.isArray(next.channels) && next.channels.length) {
+        const byName = new Map((out.channels || []).map((c) => [c.name, c]));
+        next.channels.forEach((c) => {
+            if (c && c.name) byName.set(String(c.name), { name: String(c.name), hits: Number(c.hits) || 0, ok: c.ok !== false });
+        });
+        out.channels = Array.from(byName.values());
+    }
+    // `facets` is capped for display; `n_facets` is the true count.
+    if (Number.isFinite(Number(next.n_facets))) out.nFacets = Number(next.n_facets);
+    if (Number.isFinite(Number(next.n_claims))) out.nClaims = Number(next.n_claims);
+    if (Number.isFinite(Number(next.n_conflicted))) out.nConflicted = Number(next.n_conflicted);
+    // `step`/`total` only mean "report section i of n" on the writing frames — the reading frame
+    // also carries a `total` (the paper count), which must not be read as a section count.
+    if (next.section) {
+        out.section = String(next.section);
+        if (Number.isFinite(Number(next.step))) out.step = Number(next.step);
+        if (Number.isFinite(Number(next.total))) out.totalSections = Number(next.total);
+    }
+    if (label) out.label = String(label);
+    return out;
+};
+
+/**
+ * Phases only ever move forward. A frame that names an earlier phase — a late-arriving event, a
+ * phase inferred from free text, or a stage that reports its own completion — must not rewind the
+ * header from "Reading..." back to "Searching...". Unknown phases are ignored rather than
+ * treated as a reset.
+ */
+const mergePhaseMonotonic = (prev, next) => {
+    if (!next) return prev;
+    if (!prev) return next;
+    const a = INVESTIGATE_PHASE_ORDER.indexOf(prev);
+    const b = INVESTIGATE_PHASE_ORDER.indexOf(next);
+    if (b < 0) return prev;
+    if (a < 0) return next;
+    return b >= a ? next : prev;
+};
+
+const mergePercentMonotonic = (prev, next) => {
+    if (!Number.isFinite(Number(next))) return prev;
+    const n = Math.max(0, Math.min(100, Math.round(Number(next))));
+    if (!Number.isFinite(Number(prev))) return n;
+    return Math.max(Number(prev), n);
+};
+
+const formatFunnelValue = (value) => {
+    if (value === null || value === undefined || value === '') return '—';
+    const num = Number(value);
+    if (!Number.isFinite(num)) return '—';
+    return num.toLocaleString();
+};
+
+const getUserNotifyEmail = () => {
+    try {
+        const user = (typeof getCurrentUser === 'function' ? getCurrentUser() : null)
+            || JSON.parse(localStorage.getItem('user') || 'null');
+        const email = user?.email || user?.mail || '';
+        return typeof email === 'string' ? email.trim() : '';
+    } catch {
+        return '';
+    }
+};
+
+/** Inline clarify panel (Figma "Asking Question") — not a modal. */
+const ClarifyPanel = ({
+    pendingClarification,
+    clarificationDrafts,
+    clarificationError,
+    clarificationSubmitting,
+    hasInvalidOtherSelection,
+    onUpdateDraft,
+    onSubmit,
+    onSkip,
+}) => {
+    if (!pendingClarification) return null;
+
+    return (
+        <Box className="clarify-inline-panel" role="region" aria-label="Clarifying questions">
+            <Box className="clarify-inline-head">
+                <Typography className="clarify-inline-kicker">Asking user question...</Typography>
+                <Typography className="clarify-inline-title">Clarify your research scope</Typography>
+                {pendingClarification.reason ? (
+                    <Typography className="clarify-inline-reason">{pendingClarification.reason}</Typography>
+                ) : (
+                    <Typography className="clarify-inline-reason">
+                        Answering these helps the agent narrow evidence and improve citation quality.
+                    </Typography>
+                )}
+            </Box>
+
+            <Stack spacing={1.5} className="clarify-inline-questions">
+                {(pendingClarification.questions || []).map((question, index) => {
+                    const questionKey = getClarificationQuestionKey(question, index);
+                    const draft = clarificationDrafts[questionKey] || { selected: [], text: '', otherSelected: false };
+                    const selected = Array.isArray(draft.selected) ? draft.selected : [];
+                    const otherText = typeof draft.text === 'string' ? draft.text : '';
+                    const responseType = String(question?.response_type || 'text').toLowerCase();
+                    const options = Array.isArray(question?.options) ? question.options : [];
+                    const radioValue = draft.otherSelected ? '__other__' : (selected[0] || '');
+
+                    return (
+                        <Box key={questionKey} className="clarify-inline-card">
+                            <Typography className="clarify-inline-header">
+                                {question?.header || `Question ${index + 1}`}
+                            </Typography>
+                            <Typography className="clarify-inline-question">
+                                {question?.question || ''}
+                            </Typography>
+
+                            {responseType === 'single' && (
+                                <>
+                                    <RadioGroup
+                                        value={radioValue}
+                                        onChange={(event) => {
+                                            const nextValue = event.target.value;
+                                            if (nextValue === '__other__') {
+                                                onUpdateDraft(questionKey, {
+                                                    selected: [],
+                                                    text: otherText,
+                                                    otherSelected: true,
+                                                });
+                                                return;
+                                            }
+                                            onUpdateDraft(questionKey, {
+                                                selected: nextValue ? [nextValue] : [],
+                                                text: '',
+                                                otherSelected: false,
+                                            });
+                                        }}
+                                    >
+                                        {options.map((option) => {
+                                            const optionLabel = String(option?.label || '').trim();
+                                            if (!optionLabel) return null;
+                                            return (
+                                                <FormControlLabel
+                                                    key={optionLabel}
+                                                    value={optionLabel}
+                                                    control={<Radio size="small" />}
+                                                    label={option?.description || optionLabel}
+                                                />
+                                            );
+                                        })}
+                                        <FormControlLabel value="__other__" control={<Radio size="small" />} label="Other" />
+                                    </RadioGroup>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        placeholder="Type your answer here"
+                                        value={otherText}
+                                        onChange={(event) => {
+                                            onUpdateDraft(questionKey, {
+                                                selected: [],
+                                                text: event.target.value,
+                                                otherSelected: true,
+                                            });
+                                        }}
+                                        sx={{ mt: 1 }}
+                                    />
+                                </>
+                            )}
+
+                            {responseType === 'multi' && (
+                                <>
+                                    <Stack spacing={0.5}>
+                                        {options.map((option) => {
+                                            const optionLabel = String(option?.label || '').trim();
+                                            if (!optionLabel) return null;
+                                            const checked = selected.includes(optionLabel);
+                                            return (
+                                                <FormControlLabel
+                                                    key={optionLabel}
+                                                    control={(
+                                                        <Checkbox
+                                                            size="small"
+                                                            checked={checked}
+                                                            onChange={(event) => {
+                                                                const nextSelected = event.target.checked
+                                                                    ? [...selected, optionLabel]
+                                                                    : selected.filter((item) => item !== optionLabel);
+                                                                onUpdateDraft(questionKey, {
+                                                                    selected: Array.from(new Set(nextSelected)),
+                                                                    text: otherText,
+                                                                });
+                                                            }}
+                                                        />
+                                                    )}
+                                                    label={option?.description || optionLabel}
+                                                />
+                                            );
+                                        })}
+                                    </Stack>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        placeholder="Optional additional context"
+                                        value={otherText}
+                                        onChange={(event) => {
+                                            onUpdateDraft(questionKey, {
+                                                selected,
+                                                text: event.target.value,
+                                            });
+                                        }}
+                                        sx={{ mt: 1 }}
+                                    />
+                                </>
+                            )}
+
+                            {responseType === 'text' && (
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    placeholder="Type your answer here"
+                                    value={otherText}
+                                    onChange={(event) => {
+                                        onUpdateDraft(questionKey, {
+                                            selected: [],
+                                            text: event.target.value,
+                                        });
+                                    }}
+                                />
+                            )}
+                        </Box>
+                    );
+                })}
+            </Stack>
+
+            {clarificationError && (
+                <Typography className="clarify-inline-error">{clarificationError}</Typography>
+            )}
+
+            <Box className="clarify-inline-actions">
+                <MuiButton
+                    disabled={clarificationSubmitting}
+                    onClick={() => onSkip?.()}
+                    className="clarify-inline-skip"
+                    sx={{
+                        borderRadius: '10px',
+                        border: '1px solid #CBD5E1',
+                        textTransform: 'none',
+                        fontFamily: 'DM Sans, sans-serif',
+                        color: '#46566C',
+                    }}
+                >
+                    Skip
+                </MuiButton>
+                <MuiButton
+                    disabled={clarificationSubmitting || hasInvalidOtherSelection}
+                    onClick={() => onSubmit?.()}
+                    sx={{
+                        borderRadius: '10px',
+                        border: '1px solid #155DFC',
+                        backgroundColor: '#155DFC',
+                        textTransform: 'none',
+                        fontFamily: 'DM Sans, sans-serif',
+                        color: '#FFFFFF',
+                        '&:hover': {
+                            backgroundColor: '#0A47D6',
+                            borderColor: '#0A47D6',
+                        },
+                    }}
+                >
+                    {clarificationSubmitting ? 'Submitting...' : 'Submit'}
+                </MuiButton>
+            </Box>
+        </Box>
+    );
 };
 
 const getClarificationQuestionKey = (question, index) => {
@@ -697,6 +1000,33 @@ const trajectoryToGroups = (trajectory) => {
         .filter((group) => group.name || group.lines.length > 0);
 };
 
+/**
+ * References placeholder shown while a run is streaming (MOTION-SPEC §7).
+ *
+ * A highlight wave travels top-to-bottom on a loop — at any instant one card group is at full
+ * opacity and the rest are near-invisible. This is deliberately a shimmer and NOT progressive
+ * loading: references only exist once the run completes, so an appearance of cards filling in
+ * would be a lie about what the panel knows.
+ */
+const REFERENCE_SKELETON_CARDS = 6;
+
+const ReferencesSkeleton = () => (
+    <div className="references-list ref-skeleton" aria-hidden="true">
+        {Array.from({ length: REFERENCE_SKELETON_CARDS }).map((_, i) => (
+            <div
+                className="ref-skeleton-card"
+                key={`ref-skeleton-${i}`}
+                style={{ animationDelay: `${(i * 1.6) / REFERENCE_SKELETON_CARDS}s` }}
+            >
+                <span className="ref-skeleton-bar short" />
+                <span className="ref-skeleton-bar" />
+                <span className="ref-skeleton-bar" />
+                <span className="ref-skeleton-bar medium" />
+            </div>
+        ))}
+    </div>
+);
+
 const MessageCard = React.memo(function MessageCard({
     index,
     message,
@@ -704,6 +1034,25 @@ const MessageCard = React.memo(function MessageCard({
     isProcessing,
     streamingGroups,
     streamingStepName,
+    investigatePhase,
+    investigateFunnel,
+    investigateStartedAt,
+    investigatePercent,
+    investigateKeywords,
+    investigatePapers,
+    investigateDetail,
+    thinkingStepsVersion,
+    liveThinkingStepsRef,
+    notifyEmailEnabled,
+    onToggleNotifyEmail,
+    pendingClarification,
+    clarificationDrafts,
+    clarificationError,
+    clarificationSubmitting,
+    hasInvalidOtherSelection,
+    onUpdateClarificationDraft,
+    onSubmitClarification,
+    onSkipClarification,
     showReloadPrompt,
     onReloadLatest,
     onStop,
@@ -780,23 +1129,76 @@ const MessageCard = React.memo(function MessageCard({
     const showReloadInMessage = showReloadPrompt && isLastUserMessage && isAssistant && !isLoading;
     const canToggleThoughts = !isLoading && hasDisplayGroups;
     const investigateStageLabels = ['Retrieved', 'Screened', 'Extracted', 'Cited'];
-    const investigateStageIndex = useMemo(() => {
-        if (!showInvestigateProgress) return -1;
-        const step = (streamingStepName || activeStreamingGroups[activeStreamingGroups.length - 1]?.name || '').toLowerCase();
-        if (/cite|reference|pmid/.test(step)) return 3;
-        if (/extract|evidence|read|fulltext/.test(step)) return 2;
-        if (/screen|rank|filter/.test(step)) return 1;
-        if (/retriev|search|query/.test(step)) return 0;
-        return Math.min(3, Math.max(0, activeStreamingGroups.length - 1));
-    }, [showInvestigateProgress, streamingStepName, activeStreamingGroups]);
-    const investigateActivityItems = useMemo(() => {
-        const raw = activeStreamingGroups
-            .flatMap((group) => Array.isArray(group.lines) ? group.lines : [])
-            .map((line) => String(line || '').replace(/^[-•\s]+/, '').trim())
-            .filter((line) => line.length >= 12);
-        return Array.from(new Set(raw));
-    }, [activeStreamingGroups]);
+    const resolvedPhase = useMemo(() => {
+        if (!isInvestigateMessage) return null;
+        if (isLoading) {
+            // 'planning' is the pre-retrieval floor: the panel mounts at submit, before any frame
+            // has arrived, and must not claim to be searching yet.
+            return investigatePhase
+                || inferInvestigatePhase(streamingStepName, '')
+                || 'planning';
+        }
+        return message.investigatePhase || 'verifying';
+    }, [isInvestigateMessage, isLoading, investigatePhase, streamingStepName, message.investigatePhase]);
 
+    const resolvedFunnel = useMemo(() => {
+        const fromMessage = message.investigateFunnel || null;
+        if (!isLoading) return fromMessage || emptyFunnel();
+        // Structured fields only. This used to also regex-scrape numbers out of the raw tool-log
+        // lines and let THOSE win, which is how Retrieved could jump to 9,000 and then fall back
+        // to 3,000: any stray figure in a tool result that happened to sit near the word
+        // "retrieved" overwrote the agent's real count, and the merge was last-write-wins rather
+        // than monotonic. The agent now reports every funnel number on every phase, so the
+        // scraper has nothing to add and plenty to break.
+        return investigateFunnel || emptyFunnel();
+    }, [isLoading, message.investigateFunnel, investigateFunnel]);
+
+    // Figma: real % bar when agent sends percent; else phase floor (monotonic)
+    // After complete: prefer message.investigatePercent (persisted on final)
+    const displayPercent = useMemo(() => {
+        const live = Number.isFinite(Number(investigatePercent))
+            ? Math.max(0, Math.min(100, Math.round(Number(investigatePercent))))
+            : null;
+        const saved = Number.isFinite(Number(message.investigatePercent))
+            ? Math.max(0, Math.min(100, Math.round(Number(message.investigatePercent))))
+            : null;
+        if (showInvestigateProgress) {
+            if (live != null) return live;
+            return PHASE_PERCENT_FLOOR[resolvedPhase] ?? 8;
+        }
+        // completed card: show 100 if we have funnel/phase saved
+        if (showInvestigateSummary) return saved ?? (isInvestigateMessage ? 100 : null);
+        return null;
+    }, [
+        showInvestigateProgress,
+        showInvestigateSummary,
+        investigatePercent,
+        message.investigatePercent,
+        resolvedPhase,
+        isInvestigateMessage,
+    ]);
+
+    const resolvedKeywords = useMemo(() => {
+        if (isLoading && Array.isArray(investigateKeywords) && investigateKeywords.length) {
+            return investigateKeywords;
+        }
+        if (Array.isArray(message.investigateKeywords) && message.investigateKeywords.length) {
+            return message.investigateKeywords;
+        }
+        return Array.isArray(investigateKeywords) ? investigateKeywords : [];
+    }, [isLoading, investigateKeywords, message.investigateKeywords]);
+
+    const resolvedPapers = useMemo(() => {
+        if (isLoading && Array.isArray(investigatePapers) && investigatePapers.length) {
+            return investigatePapers;
+        }
+        if (Array.isArray(message.investigatePapers) && message.investigatePapers.length) {
+            return message.investigatePapers;
+        }
+        return Array.isArray(investigatePapers) ? investigatePapers : [];
+    }, [isLoading, investigatePapers, message.investigatePapers]);
+
+    // Tool call step icons — maps tool names and phase labels to MUI icons (per Figma)
     const toggleGroup = useCallback((nextIndex) => {
         setExpandedGroups((prev) => ({
             ...prev,
@@ -916,54 +1318,51 @@ const MessageCard = React.memo(function MessageCard({
                                 )}
                             </Box>
                         )}
+                        {showInvestigateSummary && (resolvedFunnel?.retrieved != null || resolvedFunnel?.cited != null) && (
+                            <Box className="investigate-funnel-summary" aria-label="Investigation funnel">
+                                {investigateStageLabels.map((label) => {
+                                    const key = label.toLowerCase();
+                                    return (
+                                        <span key={label} className="investigate-funnel-chip">
+                                            <strong>{formatFunnelValue(resolvedFunnel?.[key])}</strong> {label}
+                                        </span>
+                                    );
+                                })}
+                            </Box>
+                        )}
 
                         {showInvestigateProgress && (
-                            <Box className="investigate-progress-shell">
-                                <Box
-                                    className="investigate-progress-head"
-                                    role="button"
-                                    tabIndex={0}
-                                    onClick={() => setInvestigateExpanded((prev) => !prev)}
-                                    onKeyDown={(event) => {
-                                        if (event.key === 'Enter' || event.key === ' ') {
-                                            event.preventDefault();
-                                            setInvestigateExpanded((prev) => !prev);
-                                        }
-                                    }}
-                                >
-                                    <Box className="investigate-progress-head-left">
-                                        <ScienceOutlinedIcon className="investigate-progress-head-icon" />
-                                        <span className="investigate-progress-head-title">Mapping your question into research angles...</span>
-                                        <ExpandMoreIcon className={`investigate-progress-head-caret${investigateExpanded ? ' expanded' : ''}`} />
-                                    </Box>
-                                    <Box className="investigate-progress-head-right">
-                                        <span className="investigate-progress-time"><AccessTimeOutlinedIcon fontSize="inherit" />~6 min</span>
-                                        <span className="investigate-progress-notify"><NotificationsNoneOutlinedIcon fontSize="inherit" />Notify me</span>
-                                    </Box>
-                                </Box>
+                            <InvestigateProgress
+                                phase={resolvedPhase}
+                                funnel={resolvedFunnel}
+                                percent={displayPercent}
+                                keywords={resolvedKeywords}
+                                papers={resolvedPapers}
+                                detail={investigateDetail}
+                                label={investigateDetail?.label || streamingStepName || ''}
+                                /* The agent's `summary` frame lands just before the report itself,
+                                   so this is the brief terminal beat: bar at 100%, ETA unmounts,
+                                   title becomes "Report ready" — then the panel gives way to the
+                                   "Investigated for m:ss" summary row when the run closes. */
+                                done={resolvedPhase === 'summary'}
+                                expanded={investigateExpanded}
+                                onToggleExpanded={() => setInvestigateExpanded((prev) => !prev)}
+                                notifyEmailEnabled={notifyEmailEnabled}
+                                onToggleNotifyEmail={onToggleNotifyEmail}
+                            />
+                        )}
 
-                                {investigateExpanded && (
-                                    <Box className="investigate-progress-body">
-                                        <Box className="investigate-progress-stages">
-                                            {investigateStageLabels.map((label, stageIndex) => (
-                                                <Box key={label} className="investigate-progress-stage">
-                                                    <span className={`investigate-progress-stage-bar${stageIndex <= investigateStageIndex ? ' done' : ''}`} />
-                                                    <span className="investigate-progress-stage-label">{label}</span>
-                                                </Box>
-                                            ))}
-                                        </Box>
-
-                                        {investigateActivityItems.length > 0 && (
-                                            <Box className="investigate-progress-angles">
-                                                <span className="investigate-progress-angles-title">Research activity ({investigateActivityItems.length} steps):</span>
-                                                {investigateActivityItems.map((item, itemIndex) => (
-                                                    <span key={`${item}-${itemIndex}`} className="investigate-progress-angle-item">- {item}</span>
-                                                ))}
-                                            </Box>
-                                        )}
-                                    </Box>
-                                )}
-                            </Box>
+                        {showInvestigateProgress && pendingClarification && (
+                            <ClarifyPanel
+                                pendingClarification={pendingClarification}
+                                clarificationDrafts={clarificationDrafts}
+                                clarificationError={clarificationError}
+                                clarificationSubmitting={clarificationSubmitting}
+                                hasInvalidOtherSelection={hasInvalidOtherSelection}
+                                onUpdateDraft={onUpdateClarificationDraft}
+                                onSubmit={() => onSubmitClarification?.({ useDefaults: false })}
+                                onSkip={() => onSkipClarification?.({ useDefaults: true })}
+                            />
                         )}
 
                         {showThoughtHeader && (
@@ -1276,6 +1675,31 @@ function LLMAgent() {
     const [clarificationDrafts, setClarificationDrafts] = useState({});
     const [clarificationError, setClarificationError] = useState('');
     const [clarificationSubmitting, setClarificationSubmitting] = useState(false);
+    const [investigatePhase, setInvestigatePhase] = useState('searching');
+    const [investigateFunnel, setInvestigateFunnel] = useState(() => emptyFunnel());
+    const [investigateStartedAt, setInvestigateStartedAt] = useState(null);
+    const [investigatePercent, setInvestigatePercent] = useState(null);
+    const [investigateKeywords, setInvestigateKeywords] = useState([]);
+    const [investigatePapers, setInvestigatePapers] = useState([]);
+    // The structured fields of the progress frames seen so far (topic, facets, n_claims,
+    // n_conflicted, section/step/total). Accumulated rather than replaced, so a later frame that
+    // omits a field does not blank the active step's detail block.
+    const [investigateDetail, setInvestigateDetail] = useState({});
+    const [thinkingStepsVersion, setThinkingStepsVersion] = useState(0);
+    const [notifyEmailEnabled, setNotifyEmailEnabled] = useState(() => {
+        try {
+            return localStorage.getItem('glkb_investigate_notify_email') === '1';
+        } catch {
+            return false;
+        }
+    });
+    const [chatInvestigateEnabled, setChatInvestigateEnabled] = useState(false);
+    const investigateFunnelRef = useRef(emptyFunnel());
+    const investigatePhaseRef = useRef('searching');
+    const investigatePercentRef = useRef(null);
+    const investigateKeywordsRef = useRef([]);
+    const investigatePapersRef = useRef([]);
+    const investigateDetailRef = useRef({});
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
     const abortControllerRef = useRef(null);
@@ -1286,6 +1710,7 @@ function LLMAgent() {
     const runIdRef = useRef(null);
     const hasConsumedInitialQueryRef = useRef(false);
     const initialSearchOptionsRef = useRef(null);
+    const lastSearchOptionsRef = useRef(null);
     const activeConversationIdRef = useRef(getActiveConversationId());
     const loadingConversationIdRef = useRef(null);
     const activeStreamIdRef = useRef(null);
@@ -1565,6 +1990,7 @@ function LLMAgent() {
         setStreamingGroups([]);
         setStreamingStepName('');
         thinkingStepsRef.current = [];
+        setThinkingStepsVersion(v => v + 1);
         setPendingClarification(null);
         setClarificationDrafts({});
         setClarificationError('');
@@ -1677,10 +2103,17 @@ function LLMAgent() {
         if (location.state && location.state.initialQuery && !hasConsumedInitialQueryRef.current) {
             hasConsumedInitialQueryRef.current = true;
             const query = location.state.initialQuery;
-            initialSearchOptionsRef.current = location.state.initialSearchOptions || null;
+            const searchOptions = location.state.initialSearchOptions || null;
+            initialSearchOptionsRef.current = searchOptions;
+            if (searchOptions?.investigateEnabled) {
+                setChatInvestigateEnabled(true);
+            }
             if (!isLoading) {
                 startNewConversation({ skipHistoryReset: true });
-                handleSubmit(null, query, null, { forceNewConversation: true });
+                handleSubmit(null, query, null, {
+                    forceNewConversation: true,
+                    searchOptions,
+                });
             }
         }
     }, [location.state, isLoading, startNewConversation]);
@@ -1912,7 +2345,22 @@ function LLMAgent() {
 
         const requestSearchOptions = options.searchOptions || initialSearchOptionsRef.current || null;
         initialSearchOptionsRef.current = null;
-        const investigateEnabled = Boolean(requestSearchOptions?.investigateEnabled);
+        const investigateEnabled = Boolean(
+            requestSearchOptions?.investigateEnabled ?? chatInvestigateEnabled,
+        );
+        // Discard expired investigate session on explicit retry (clarify session expiry)
+        const resetInvestigateSession = Boolean(options.resetInvestigateSession);
+        // Keep latest non-expired query options for clarify retry (no session_id reuse)
+        lastSearchOptionsRef.current = {
+            investigateEnabled,
+            filters: Array.isArray(requestSearchOptions?.filters) ? requestSearchOptions.filters : undefined,
+            rankingMode: typeof requestSearchOptions?.rankingMode === 'string'
+                ? requestSearchOptions.rankingMode
+                : undefined,
+            maxArticles: Number.isFinite(Number(requestSearchOptions?.maxArticles))
+                ? Number(requestSearchOptions.maxArticles)
+                : undefined,
+        };
 
         // Create new user message
         const newMessage = {
@@ -1941,7 +2389,12 @@ function LLMAgent() {
                 logDev('[LLM] Failed to create conversation', error);
             }
         }
-        sessionIdRef.current = getStoredSessionId(historyId) || sessionIdRef.current;
+        if (resetInvestigateSession) {
+            sessionIdRef.current = null;
+            setStoredSessionId(historyId, null);
+        } else {
+            sessionIdRef.current = getStoredSessionId(historyId) || sessionIdRef.current;
+        }
 
         // Update chat history with user message
         setChatHistory([...baseHistory, newMessage]);
@@ -1954,7 +2407,24 @@ function LLMAgent() {
         setClarificationDrafts({});
         setClarificationError('');
         setClarificationSubmitting(false);
+        // Start at `planning`, not `searching`: the panel is mounted here, at submit, and must
+        // already be moving before the first SSE frame arrives (the agent's own T0 frame follows
+        // within milliseconds, but the network round-trip should not be a visible dead spot).
+        setInvestigatePhase('planning');
+        setInvestigateFunnel(emptyFunnel());
+        setInvestigateStartedAt(investigateEnabled ? requestStartedAt : null);
+        setInvestigatePercent(investigateEnabled ? PHASE_PERCENT_FLOOR.planning : null);
+        setInvestigateKeywords([]);
+        setInvestigatePapers([]);
+        setInvestigateDetail({});
+        investigateFunnelRef.current = emptyFunnel();
+        investigatePhaseRef.current = 'planning';
+        investigatePercentRef.current = investigateEnabled ? PHASE_PERCENT_FLOOR.planning : null;
+        investigateKeywordsRef.current = [];
+        investigatePapersRef.current = [];
+        investigateDetailRef.current = {};
         thinkingStepsRef.current = [];
+        setThinkingStepsVersion(v => v + 1);
 
         try {
             logDev('[LLM] submit', { input: inputText });
@@ -1991,6 +2461,36 @@ function LLMAgent() {
                         if (update.runId) {
                             runIdRef.current = update.runId;
                         }
+                        if (update.phase) {
+                            investigatePhaseRef.current = update.phase;
+                            setInvestigatePhase(update.phase);
+                        }
+                        if (update.funnel) {
+                            investigateFunnelRef.current = mergeFunnel(investigateFunnelRef.current, update.funnel);
+                            setInvestigateFunnel({ ...investigateFunnelRef.current });
+                        }
+                        {
+                            const nextPct = mergePercentMonotonic(investigatePercentRef.current, update.percent);
+                            investigatePercentRef.current = nextPct;
+                            setInvestigatePercent(nextPct);
+                            if (update.keywords) {
+                                investigateKeywordsRef.current = mergeLiveKeywords(
+                                    investigateKeywordsRef.current,
+                                    update.keywords,
+                                );
+                                setInvestigateKeywords([...investigateKeywordsRef.current]);
+                            }
+                            if (update.papers) {
+                                investigatePapersRef.current = mergeLivePapers(
+                                    investigatePapersRef.current,
+                                    update.papers,
+                                );
+                                setInvestigatePapers([...investigatePapersRef.current]);
+                            }
+                            if (update.label) {
+                                setStreamingStepName(update.label);
+                            }
+                        }
                         break;
                     case 'clarification':
                         if (!isActiveStream) return;
@@ -2007,6 +2507,12 @@ function LLMAgent() {
                         setClarificationDrafts(buildClarificationDrafts(update.questions));
                         setClarificationError('');
                         setClarificationSubmitting(false);
+                        // Figma Asking Question: hold bar + keep phase; do not advance percent
+                        if (update.funnel) {
+                            investigateFunnelRef.current = mergeFunnel(investigateFunnelRef.current, update.funnel);
+                            setInvestigateFunnel({ ...investigateFunnelRef.current });
+                        }
+                        setStreamingStepName('Asking user question...');
                         break;
                     case 'step':
                         if (!isActiveStream) return;
@@ -2037,12 +2543,118 @@ function LLMAgent() {
                                 setSelectedMessageIndex(chatHistory.length + 1);
                                 break;
                             }
-                            if (hasContent) {
+
+                            // Apply live progress even when content is empty (agent progress frames)
+                            {
+                                const nextPhase = mergePhaseMonotonic(
+                                    investigatePhaseRef.current,
+                                    update.phase || inferInvestigatePhase(update.step, rawContent),
+                                );
+                                if (nextPhase && nextPhase !== investigatePhaseRef.current) {
+                                    investigatePhaseRef.current = nextPhase;
+                                    setInvestigatePhase(nextPhase);
+                                }
+                                if (update.funnel) {
+                                    investigateFunnelRef.current = mergeFunnel(
+                                        investigateFunnelRef.current,
+                                        update.funnel,
+                                    );
+                                    setInvestigateFunnel({ ...investigateFunnelRef.current });
+                                }
+                                const nextPct = mergePercentMonotonic(
+                                    investigatePercentRef.current,
+                                    update.percent ?? PHASE_PERCENT_FLOOR[nextPhase],
+                                );
+                                investigatePercentRef.current = nextPct;
+                                setInvestigatePercent(nextPct);
+                                if (update.keywords) {
+                                    investigateKeywordsRef.current = mergeLiveKeywords(
+                                        investigateKeywordsRef.current,
+                                        update.keywords,
+                                    );
+                                    setInvestigateKeywords([...investigateKeywordsRef.current]);
+                                }
+                                if (update.papers) {
+                                    investigatePapersRef.current = mergeLivePapers(
+                                        investigatePapersRef.current,
+                                        update.papers,
+                                    );
+                                    setInvestigatePapers([...investigatePapersRef.current]);
+                                }
+                                if (update.label || update.isProgress) {
+                                    setStreamingStepName(update.label || update.content || update.step);
+                                }
+                                if (update.detail && typeof update.detail === 'object') {
+                                    investigateDetailRef.current = mergeInvestigateDetail(
+                                        investigateDetailRef.current,
+                                        update.detail,
+                                        update.label,
+                                    );
+                                    setInvestigateDetail({ ...investigateDetailRef.current });
+                                }
+                                // Capture progress labels as rich phase markers
+                                if (update.isProgress && update.label && update.phase) {
+                                    thinkingStepsRef.current = [...thinkingStepsRef.current, {
+                                        step: update.step || update.phase,
+                                        content: update.label,
+                                        isProgress: true,
+                                        phase: update.phase,
+                                    }];
+                                    setThinkingStepsVersion(v => v + 1);
+                                }
+                            }
+
+                            if (hasContent && !update.isProgress) {
                                 const newEntry = { step: update.step, content: rawContent };
                                 thinkingStepsRef.current = [...thinkingStepsRef.current, newEntry];
+                                setThinkingStepsVersion(v => v + 1);
                                 const parsedEntry = parseThinkingEntry(newEntry);
                                 if (parsedEntry.stepName) {
                                     setStreamingStepName(parsedEntry.stepName);
+                                }
+
+                                const nextPhase = mergePhaseMonotonic(
+                                    investigatePhaseRef.current,
+                                    update.phase || inferInvestigatePhase(update.step, rawContent),
+                                );
+                                if (nextPhase && nextPhase !== investigatePhaseRef.current) {
+                                    investigatePhaseRef.current = nextPhase;
+                                    setInvestigatePhase(nextPhase);
+                                }
+                                // Structured funnel fields only — see mergeFunnel. Raw tool-log lines
+                                // used to be regex-scraped for numbers here, which wrote figures
+                                // pulled out of unrelated tool output straight into the counters.
+                                if (update.funnel) {
+                                    investigateFunnelRef.current = mergeFunnel(
+                                        investigateFunnelRef.current,
+                                        update.funnel,
+                                    );
+                                    setInvestigateFunnel({ ...investigateFunnelRef.current });
+                                }
+                                {
+                                    const nextPct = mergePercentMonotonic(
+                                        investigatePercentRef.current,
+                                        update.percent ?? PHASE_PERCENT_FLOOR[nextPhase],
+                                    );
+                                    investigatePercentRef.current = nextPct;
+                                    setInvestigatePercent(nextPct);
+                                    if (update.keywords) {
+                                        investigateKeywordsRef.current = mergeLiveKeywords(
+                                            investigateKeywordsRef.current,
+                                            update.keywords,
+                                        );
+                                        setInvestigateKeywords([...investigateKeywordsRef.current]);
+                                    }
+                                    if (update.papers) {
+                                        investigatePapersRef.current = mergeLivePapers(
+                                            investigatePapersRef.current,
+                                            update.papers,
+                                        );
+                                        setInvestigatePapers([...investigatePapersRef.current]);
+                                    }
+                                    if (update.label || update.isProgress) {
+                                        setStreamingStepName(update.label || update.content || update.step);
+                                    }
                                 }
 
                                 setStreamingGroups((prev) => {
@@ -2085,6 +2697,12 @@ function LLMAgent() {
                         setClarificationSubmitting(false);
                         setIsProcessing(false);
                         setStreamingStepName('');
+                        if (update.funnel) {
+                            investigateFunnelRef.current = mergeFunnel(
+                                investigateFunnelRef.current,
+                                update.funnel,
+                            );
+                        }
                         setChatHistory(prev => {
                             const newHistory = [...prev];
                             const assistantMessage = {
@@ -2096,6 +2714,14 @@ function LLMAgent() {
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 trajectory: update.trajectory || null,
                                 investigateMode: investigateEnabled,
+                                investigateFunnel: { ...investigateFunnelRef.current },
+                                investigatePhase: investigatePhaseRef.current || 'verifying',
+                                investigatePercent: mergePercentMonotonic(
+                                    investigatePercentRef.current,
+                                    update.percent ?? 100,
+                                ) ?? 100,
+                                investigateKeywords: [...(investigateKeywordsRef.current || [])],
+                                investigatePapers: [...(investigatePapersRef.current || [])],
                             };
                             newHistory[newHistory.length - 1] = assistantMessage;
 
@@ -2176,7 +2802,10 @@ function LLMAgent() {
                 sessionId: sessionIdRef.current,
                 filters: Array.isArray(requestSearchOptions?.filters) ? requestSearchOptions.filters : undefined,
                 rankingMode: typeof requestSearchOptions?.rankingMode === 'string' ? requestSearchOptions.rankingMode : undefined,
-                investigateEnabled: Boolean(requestSearchOptions?.investigateEnabled),
+                investigateEnabled,
+                notifyEmail: (investigateEnabled && notifyEmailEnabled)
+                    ? (getUserNotifyEmail() || undefined)
+                    : undefined,
                 messagesOverride: [...baseHistory, newMessage].map((msg) => ({
                     role: msg?.role,
                     content: msg?.content,
@@ -2184,6 +2813,48 @@ function LLMAgent() {
             });
         } catch (error) {
             console.error('Error in chat:', error);
+            // Deep Research disconnect recovery: poll GET /run/{run_id}
+            if (investigateEnabled && runIdRef.current && activeStreamIdRef.current === streamId) {
+                try {
+                    const run = await llmService.getRun({ runId: runIdRef.current });
+                    if (run && (run.status === 'complete' || run.response)) {
+                        setPendingClarification(null);
+                        setIsProcessing(false);
+                        setStreamingStepName('');
+                        setChatHistory((prev) => {
+                            const newHistory = [...prev];
+                            newHistory[newHistory.length - 1] = {
+                                role: 'assistant',
+                                content: run.response || '',
+                                references: parseReferences(run.references),
+                                timestamp,
+                                thinkingSteps: thinkingStepsRef.current,
+                                thoughtDurationMs: Date.now() - requestStartedAt,
+                                trajectory: run.trajectory || null,
+                                investigateMode: true,
+                                investigateFunnel: { ...investigateFunnelRef.current },
+                                investigatePhase: 'verifying',
+                                investigatePercent: investigatePercentRef.current ?? 100,
+                                investigateKeywords: [...(investigateKeywordsRef.current || [])],
+                                investigatePapers: [...(investigatePapersRef.current || [])],
+                            };
+                            if (run.response) {
+                                llmService.updateMessages(run.response);
+                            }
+                            return newHistory;
+                        });
+                        refreshTierStatus();
+                        if (activeStreamIdRef.current === streamId) {
+                            setIsLoading(false);
+                            setIsProcessing(false);
+                            activeStreamIdRef.current = null;
+                        }
+                        return;
+                    }
+                } catch (recoverError) {
+                    logDev('[LLM] run recovery failed', recoverError);
+                }
+            }
             if (error?.response?.status === 429) {
                 setIsQueryLimitReached(true);
             }
@@ -2242,7 +2913,10 @@ function LLMAgent() {
     }, [pendingClarification, clarificationDrafts]);
 
     const submitClarification = useCallback(async ({ useDefaults = false } = {}) => {
-        if (!pendingClarification?.invocationId || !pendingClarification?.stage || !pendingClarification?.sessionId) {
+        const sessionId = pendingClarification?.sessionId || sessionIdRef.current || null;
+        const invocationId = pendingClarification?.invocationId || null;
+        const stage = pendingClarification?.stage || null;
+        if (!invocationId || !stage || !sessionId) {
             setClarificationError('Clarification session has expired. Please ask your question again.');
             return;
         }
@@ -2255,9 +2929,9 @@ function LLMAgent() {
                 : buildClarifyAnswers(pendingClarification.questions, clarificationDrafts);
 
             const result = await llmService.clarify({
-                invocation_id: pendingClarification.invocationId,
-                stage: pendingClarification.stage,
-                session_id: pendingClarification.sessionId,
+                invocation_id: invocationId,
+                stage,
+                session_id: sessionId,
                 answers,
             });
 
@@ -2267,7 +2941,24 @@ function LLMAgent() {
             setClarificationSubmitting(false);
 
             if (result?.resolved === false) {
-                message.info('Clarification session not found. Continuing with default research scope.');
+                const retryQuestion = typeof result?.retry_question === 'string'
+                    ? result.retry_question.trim()
+                    : '';
+                if (retryQuestion) {
+                    message.info('Clarification session expired. Restarting with your answers applied.');
+                    const prior = lastSearchOptionsRef.current || {};
+                    handleSubmit(null, retryQuestion, null, {
+                        resetInvestigateSession: true,
+                        searchOptions: {
+                            investigateEnabled: true,
+                            filters: prior.filters,
+                            rankingMode: prior.rankingMode,
+                            maxArticles: prior.maxArticles,
+                        },
+                    });
+                } else {
+                    message.info('Clarification session not found. Continuing with default research scope.');
+                }
             }
         } catch (error) {
             const detail = error?.response?.data?.detail || error?.message || 'Unable to submit clarification.';
@@ -2275,6 +2966,60 @@ function LLMAgent() {
             setClarificationSubmitting(false);
         }
     }, [clarificationDrafts, llmService, pendingClarification]);
+
+    // Resume completed DR runs if the tab was backgrounded / SSE dropped quietly
+    useEffect(() => {
+        if (!isLoading) return undefined;
+
+        const tryRecover = async () => {
+            if (!runIdRef.current) return;
+            try {
+                const run = await llmService.getRun({ runId: runIdRef.current });
+                if (!(run && (run.status === 'complete' || run.response))) return;
+                setPendingClarification(null);
+                setIsProcessing(false);
+                setStreamingStepName('');
+                setIsLoading(false);
+                setChatHistory((prev) => {
+                    if (!prev.length) return prev;
+                    const newHistory = [...prev];
+                    const last = newHistory[newHistory.length - 1];
+                    if (!last || last.role !== 'assistant' || last.content) return prev;
+                    newHistory[newHistory.length - 1] = {
+                        ...last,
+                        content: run.response || '',
+                        references: parseReferences(run.references),
+                        thinkingSteps: thinkingStepsRef.current,
+                        thoughtDurationMs: last.thoughtDurationMs || null,
+                        trajectory: run.trajectory || null,
+                        investigateMode: true,
+                        investigateFunnel: { ...investigateFunnelRef.current },
+                        investigatePhase: 'verifying',
+                        investigatePercent: investigatePercentRef.current ?? 100,
+                        investigateKeywords: [...(investigateKeywordsRef.current || [])],
+                        investigatePapers: [...(investigatePapersRef.current || [])],
+                    };
+                    if (run.response) llmService.updateMessages(run.response);
+                    return newHistory;
+                });
+                activeStreamIdRef.current = null;
+            } catch (error) {
+                logDev('[LLM] visibility run recovery failed', error);
+            }
+        };
+
+        const onVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                tryRecover();
+            }
+        };
+        document.addEventListener('visibilitychange', onVisibility);
+        const intervalId = window.setInterval(tryRecover, 45000);
+        return () => {
+            document.removeEventListener('visibilitychange', onVisibility);
+            window.clearInterval(intervalId);
+        };
+    }, [isLoading, llmService]);
 
     useEffect(() => {
         return () => {
@@ -2563,6 +3308,37 @@ function LLMAgent() {
                 isProcessing={isProcessing}
                 streamingGroups={streamingGroups}
                 streamingStepName={streamingStepName}
+                investigatePhase={investigatePhase}
+                investigateFunnel={investigateFunnel}
+                investigateStartedAt={investigateStartedAt}
+                investigatePercent={investigatePercent}
+                investigateKeywords={investigateKeywords}
+                investigatePapers={investigatePapers}
+                investigateDetail={investigateDetail}
+                thinkingStepsVersion={thinkingStepsVersion}
+                liveThinkingStepsRef={thinkingStepsRef}
+                notifyEmailEnabled={notifyEmailEnabled}
+                onToggleNotifyEmail={(enabled) => {
+                    setNotifyEmailEnabled(Boolean(enabled));
+                    try {
+                        localStorage.setItem('glkb_investigate_notify_email', enabled ? '1' : '0');
+                    } catch {
+                        /* ignore */
+                    }
+                    if (enabled && !getUserNotifyEmail()) {
+                        message.warning('Sign in with email to receive completion notifications.');
+                    } else if (enabled) {
+                        message.success('Will email you when this investigation finishes.');
+                    }
+                }}
+                pendingClarification={pendingClarification}
+                clarificationDrafts={clarificationDrafts}
+                clarificationError={clarificationError}
+                clarificationSubmitting={clarificationSubmitting}
+                hasInvalidOtherSelection={hasInvalidOtherSelection}
+                onUpdateClarificationDraft={updateClarificationDraft}
+                onSubmitClarification={submitClarification}
+                onSkipClarification={submitClarification}
                 refresh={handleRegenerateResponse}
                 copy={handleCopyMessage}
                 save={handleSaveEdit}
@@ -2889,8 +3665,9 @@ function LLMAgent() {
                 </Alert>
             </Snackbar>
 
+            {/* Clarify is inline in the investigate message (Figma Asking Question). Modal kept disabled. */}
             <Dialog
-                open={Boolean(pendingClarification)}
+                open={false}
                 onClose={() => {}}
                 disableEscapeKeyDown
                 fullWidth
@@ -3558,7 +4335,14 @@ function LLMAgent() {
                                                         setUserInput={setUserInput}
                                                         isLoading={isLoading}
                                                         isQueryLimitReached={isLimitReachedEffective}
-                                                        onSubmit={handleSubmit}
+                                                        investigateEnabled={chatInvestigateEnabled}
+                                                        onInvestigateChange={setChatInvestigateEnabled}
+                                                        onSubmit={(event) => handleSubmit(event, null, null, {
+                                                            searchOptions: {
+                                                                investigateEnabled: chatInvestigateEnabled,
+                                                                ...(initialSearchOptionsRef.current || {}),
+                                                            },
+                                                        })}
                                                         onStop={handleStopStreaming}
                                                     />
                                                 </div>
@@ -3621,7 +4405,13 @@ function LLMAgent() {
                                                                     </div>
                                                                 )}
                                                                 <div className="references-toolbar-row">
-                                                                    <span className="references-count-label">{sortedReferences.length} Citations</span>
+                                                                    {/* While a run is in flight the count is not yet knowable — "0 Citations"
+                                                                        reads as "this answer has no sources", so show nothing until it lands. */}
+                                                                    <span className="references-count-label">
+                                                                        {isProcessing && sortedReferences.length === 0
+                                                                            ? ''
+                                                                            : `${sortedReferences.length} Citations`}
+                                                                    </span>
                                                                     <div className="references-toolbar-actions">
                                                                         <IconButton
                                                                             size="small"
@@ -3689,6 +4479,8 @@ function LLMAgent() {
                                                                             );
                                                                         })}
                                                                     </div>
+                                                                ) : isProcessing ? (
+                                                                    <ReferencesSkeleton />
                                                                 ) : (
                                                                     <p style={{ padding: '16px 32px' }}>No references available for this response.</p>
                                                                 )}

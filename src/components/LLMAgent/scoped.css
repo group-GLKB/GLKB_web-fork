@@ -549,8 +549,6 @@
     color: #666;
 }
 
-
-
 .chat-header {
     display: flex;
     justify-content: space-between;
@@ -738,147 +736,104 @@
     color: #5E6E87;
 }
 
-.investigate-progress-shell {
-    margin-top: 8px;
-    margin-bottom: 12px;
-    border-left: 2px solid #CBD2E0;
-    padding-left: 14px;
+/* Figma Asking Question — inline clarify */
+.clarify-inline-panel {
+    margin: 12px 0 16px;
+    padding: 16px;
+    border: 1px solid #D9E6FE;
+    border-radius: 16px;
+    background: #FDFEFF;
+    box-shadow: 0 4px 16px rgba(21, 93, 252, 0.06);
 }
 
-.investigate-progress-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    cursor: pointer;
+.clarify-inline-kicker {
+    font-family: 'Geist', 'DM Sans', sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #155DFC !important;
+    margin-bottom: 4px !important;
 }
 
-.investigate-progress-head-left {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
+.clarify-inline-title {
+    font-family: 'Geist', 'DM Sans', sans-serif !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #141B26 !important;
+    margin-bottom: 6px !important;
 }
 
-.investigate-progress-head-icon {
-    font-size: 16px !important;
-    color: #4B88FD;
+.clarify-inline-reason {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    color: #5E6E87 !important;
+    line-height: 1.45 !important;
+    margin-bottom: 12px !important;
 }
 
-.investigate-progress-head-title {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.4;
-    color: #5E6E87;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.clarify-inline-card {
+    border: 1px solid #E6EDF8;
+    border-radius: 12px;
+    padding: 12px;
+    background: #FFFFFF;
 }
 
-.investigate-progress-head-caret {
-    font-size: 16px !important;
-    color: #5E6E87;
-    transition: transform 0.18s ease;
-}
-
-.investigate-progress-head-caret.expanded {
-    transform: rotate(180deg);
-}
-
-.investigate-progress-head-right {
-    display: inline-flex;
-    align-items: center;
-    gap: 16px;
-    flex-shrink: 0;
-}
-
-.investigate-progress-time,
-.investigate-progress-notify {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.4;
-    color: #5E6E87;
-}
-
-.investigate-progress-body {
-    margin-top: 10px;
-    border-top: 1px solid #CBD2E0;
-    padding-top: 14px;
-}
-
-.investigate-progress-stages {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 14px;
-    margin-bottom: 12px;
-}
-
-.investigate-progress-stage {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.investigate-progress-stage-bar {
-    width: 22px;
-    height: 3px;
-    border-radius: 999px;
-    background: #8090AB;
-}
-
-.investigate-progress-stage-bar.done {
-    background: #4B88FD;
-}
-
-.investigate-progress-stage-label {
+.clarify-inline-header {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: #5E6E87 !important;
     text-transform: uppercase;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    color: #8090AB;
+    letter-spacing: 0.03em;
+    margin-bottom: 4px !important;
 }
 
-.investigate-progress-angles {
+.clarify-inline-question {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    color: #222A38 !important;
+    line-height: 1.45 !important;
+    margin-bottom: 8px !important;
+}
+
+.clarify-inline-error {
+    margin-top: 12px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    color: #A10902 !important;
+}
+
+.clarify-inline-actions {
     display: flex;
-    flex-direction: column;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.investigate-funnel-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 12px;
+}
+
+.investigate-funnel-chip {
+    display: inline-flex;
+    align-items: baseline;
     gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #F2F4F8;
     color: #5E6E87;
     font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
 }
 
-.investigate-progress-angles-title {
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.45;
-}
-
-.investigate-progress-angle-item {
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 1.5;
-    padding-left: 2px;
-}
-
-@media (max-width: 980px) {
-    .investigate-progress-head {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-    }
-
-    .investigate-progress-head-right {
-        gap: 12px;
-    }
-
-    .investigate-progress-stages {
-        gap: 10px;
-    }
+.investigate-funnel-chip strong {
+    color: #222A38;
+    font-weight: 700;
+    font-size: 13px;
 }
 
 @keyframes llm-step-label-out {
@@ -1694,3 +1649,345 @@
     border-color: #155DFC;
     background-color: #e1e2e4;
 }
+/* ============================================================================
+   Investigate progress panel (Figma `Inverstigate` + MOTION-SPEC.md)
+   Prefix `ip-`. Replaces the older .investigate-progress-* layout, which is kept
+   for the post-run summary row.
+   ========================================================================== */
+
+.ip-shell {
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
+
+.ip-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    cursor: pointer;
+}
+
+button.ip-head-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+}
+
+.ip-head-icon {
+    font-size: 16px !important;
+    color: #4B88FD;
+}
+
+/* Title transition is fade-out-to-blank then fade-in — NOT a crossfade
+   (MOTION-SPEC §3: there is a fully blank frame at the midpoint). */
+.ip-head-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #5E6E87;
+    white-space: nowrap;
+    opacity: 1;
+    transition: opacity 0.25s ease;
+}
+
+.ip-head-title.fading { opacity: 0; }
+
+.ip-head-caret {
+    font-size: 16px !important;
+    color: #5E6E87;
+    transition: transform 0.18s ease;
+}
+
+.ip-head-caret.expanded { transform: rotate(180deg); }
+
+.ip-head-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+}
+
+.ip-eta,
+.ip-notify {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: #5E6E87;
+}
+
+button.ip-notify {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 999px;
+}
+
+button.ip-notify:hover { background: #EEF3FF; color: #155DFC; }
+button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
+
+.ip-body {
+    padding: 14px 0 0 4px;
+}
+
+/* ── counters ───────────────────────────────────────────────────────────── */
+.ip-counters {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 104px));
+    gap: 0;
+    margin-bottom: 14px;
+}
+
+.ip-counter {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ip-counter-value {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #1B2A41;
+    /* tabular figures so a counting number does not jitter its own column */
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+}
+
+.ip-counter-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: #7B8AA1;
+}
+
+/* ── bar ────────────────────────────────────────────────────────────────── */
+.ip-bar {
+    position: relative;
+    width: min(100%, 460px);
+    height: 6px;
+    border-radius: 999px;
+    background: #E4E9F2;
+    overflow: hidden;
+}
+
+.ip-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: #155DFC;
+    /* width is driven frame-by-frame from JS; no CSS transition, or the two fight */
+}
+
+/* ── step rows ──────────────────────────────────────────────────────────── */
+.ip-steps {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid #EDF0F6;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ip-step-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ip-step-icon {
+    font-size: 17px !important;
+    color: #5E6E87;
+    flex-shrink: 0;
+}
+
+.ip-step-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.5;
+    color: #34435C;
+}
+
+/* completed rows dim one step (MOTION-SPEC §5) */
+.ip-step.done .ip-step-label { color: #6B7A93; }
+.ip-step.done .ip-step-icon { color: #8A97AC; }
+
+/* ── detail block ───────────────────────────────────────────────────────── */
+/* Indented under the active row with a 1px rail aligned to the row icon, and a
+   bottom fade so overflow dissolves instead of being hard-clipped (MOTION-SPEC §6). */
+/* No fixed height and no fade mask: each line is clamped instead, so the block stays short
+   without ever hiding a control underneath it. (The design's mask existed because its content
+   overflowed; with the list cycling one item at a time there is nothing to bleed off.) */
+.ip-step-detail {
+    margin: 6px 0 0 8px;
+    padding: 2px 0 0 18px;
+    border-left: 1px solid #E4E9F2;
+}
+
+/* at most two lines per item, so a long topic cannot push the rest out of view */
+.ip-step-detail .ip-detail-para,
+.ip-step-detail .ip-detail-bullet {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* expanded: the whole list, scrollable, no clamping */
+.ip-step-detail.expanded {
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.ip-step-detail.expanded .ip-detail-para,
+.ip-step-detail.expanded .ip-detail-bullet {
+    display: block;
+    -webkit-line-clamp: none;
+    overflow: visible;
+}
+
+.ip-detail-para,
+.ip-detail-bullet {
+    margin: 0 0 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.55;
+    color: #8A97AC;
+}
+
+.ip-detail-bullet { position: relative; padding-left: 12px; }
+
+.ip-detail-bullet::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: #A8B3C6;
+}
+
+.ip-detail-bullet-title {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.ip-detail-para a { color: #6B7A93; text-decoration: none; }
+.ip-detail-para a:hover { color: #155DFC; text-decoration: underline; }
+
+.ip-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ip-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 6px;
+    background: #F1F4F9;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    color: #5E6E87;
+    white-space: nowrap;
+}
+
+.ip-chip-more { background: transparent; color: #8A97AC; }
+
+/* cycling detail: a slice at a time, crossfading (MOTION-SPEC §6) */
+.ip-cycle {
+    opacity: 1;
+    transition: opacity 0.22s ease;
+}
+
+.ip-cycle.hidden { opacity: 0; }
+
+/* the "show all N" affordance — quiet until hovered, so it never competes with the content */
+.ip-cycle-toggle {
+    border: none;
+    background: transparent;
+    padding: 2px 0;
+    margin-top: 2px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #A8B3C6;
+}
+
+.ip-cycle-toggle:hover { color: #155DFC; text-decoration: underline; }
+
+@media (max-width: 720px) {
+    .ip-counters { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .ip-counter-value { font-size: 22px; }
+    .ip-head-right { gap: 10px; }
+}
+
+/* MOTION-SPEC §8 — no count-up, no cycling, no creep, no shimmer. The JS honours this
+   too; these rules cover the purely-CSS transitions. */
+@media (prefers-reduced-motion: reduce) {
+    .ip-head-title,
+    .ip-cycle,
+    .ip-bar-fill { transition: none !important; }
+    .ip-head-title.fading { opacity: 1; }
+    .ip-cycle.hidden { opacity: 1; }
+}
+
+/* ── References skeleton (MOTION-SPEC §7) ────────────────────────────────────
+   A highlight wave travels top-to-bottom on a loop: one card group at full
+   opacity, the rest near-invisible. Staggered animation-delay makes the wave. */
+.ref-skeleton {
+    padding: 8px 0;
+}
+
+.ref-skeleton-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 32px;
+    border-bottom: 1px solid #F0F2F7;
+    opacity: 0.28;
+    animation: ref-skeleton-wave 1.6s linear infinite;
+}
+
+.ref-skeleton-bar {
+    display: block;
+    height: 9px;
+    border-radius: 999px;
+    background: #E7EBF2;
+    width: 100%;
+}
+
+.ref-skeleton-bar.short { width: 26%; }
+.ref-skeleton-bar.medium { width: 62%; }
+
+@keyframes ref-skeleton-wave {
+    0%   { opacity: 0.28; }
+    12%  { opacity: 1; }
+    34%  { opacity: 0.28; }
+    100% { opacity: 0.28; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ref-skeleton-card {
+        animation: none;
+        opacity: 1;
+    }
+}
+
+/* a finished retrieval probe */
+.ip-channel { color: #6B7A93; }
+.ip-channel.failed { color: #A8B3C6; }
+.ip-channel-hits { color: #A8B3C6; }
