@@ -92,7 +92,7 @@ const initState = {
     searchType: ''
 }
 
-const INDEXABLE_PATHS = new Set(['/', '/about', '/chat']);
+const INDEXABLE_PATHS = new Set(['/', '/about', '/chat', '/search', '/api-page']);
 const MAINTENANCE_MODE = false;
 
 const normalizePathname = (pathname) => {
