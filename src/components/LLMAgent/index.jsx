@@ -1635,7 +1635,19 @@ const MessageCard = React.memo(function MessageCard({
 function LLMAgent() {
     const location = useLocation();
     const [userInput, setUserInput] = useState('');
-    const [chatHistory, setChatHistory] = useState(getStoredChatHistory);
+    const [chatHistory, setChatHistory] = useState(() => {
+        const initialQuery = location.state?.initialQuery;
+        if (initialQuery) {
+            return [{
+                role: 'user',
+                content: initialQuery,
+                references: [],
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                investigateMode: Boolean(location.state?.initialSearchOptions?.investigateEnabled),
+            }];
+        }
+        return getStoredChatHistory();
+    });
     const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [streamingGroups, setStreamingGroups] = useState([]);
@@ -2035,9 +2047,11 @@ function LLMAgent() {
         };
     }, [isAuthenticated, location.state, cancelStreaming, llmService]);
 
-    const startNewConversation = useCallback(() => {
+    const startNewConversation = useCallback((options = {}) => {
         cancelStreaming();
-        setChatHistory([]);
+        if (!options.skipHistoryReset) {
+            setChatHistory([]);
+        }
         setSelectedMessageIndex(null);
         lastAutoSelectedRef.current = null;
         setHoveredPubmedId(null);
@@ -2102,7 +2116,7 @@ function LLMAgent() {
                 setChatInvestigateEnabled(true);
             }
             if (!isLoading) {
-                startNewConversation();
+                startNewConversation({ skipHistoryReset: true });
                 handleSubmit(null, query, null, {
                     forceNewConversation: true,
                     searchOptions,
