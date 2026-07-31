@@ -32,6 +32,16 @@ const resolveInvestigateRunUrl = (runId) => {
     return `${base.replace(/\/+$/, '')}/${encodeURIComponent(runId)}`;
 };
 
+// Phase table lives in its own dependency-free module (the progress panel imports it without
+// dragging axios in); re-exported here so existing import sites keep working.
+export {
+    INVESTIGATE_PHASE_META,
+    INVESTIGATE_PHASE_ORDER,
+    PHASE_PERCENT_FLOOR,
+    phaseIndex,
+    phasePercentCap,
+} from './investigatePhases';
+
 // Use the shared axios instance (baseURL + JWT interceptors from axiosConfig).
 // Do NOT use axios.create() — bare clients miss /reorg-api prefix and auth.
 
@@ -139,24 +149,17 @@ export const normalizePercent = (value) => {
     return Math.max(0, Math.min(100, Math.round(num)));
 };
 
-/** Fallback percent by phase when agent omits percent (Figma stage ETA order). */
-export const PHASE_PERCENT_FLOOR = {
-    searching: 10,
-    reading: 25,
-    analyzing: 55,
-    writing: 75,
-    verifying: 90,
-    summary: 100,
-};
-
 /** Infer investigate phase label from step/content text (Figma stages). */
 export const inferInvestigatePhase = (step = '', content = '') => {
     const text = `${step} ${content}`.toLowerCase();
     if (/summary|done —|done -/.test(text)) return 'summary';
+    if (/polish|finaliz|placing figures/.test(text)) return 'finalizing';
     if (/verif|check(ing)? every conclusion|evidence.?gate/.test(text)) return 'verifying';
     if (/writ(e|ing)|6-section|investigation report|formulat/.test(text)) return 'writing';
     if (/analyz|organis|organiz|claims|facets|angles|hypothesis/.test(text)) return 'analyzing';
     if (/read(ing)?|fulltext|abstract|fetch_abstract|get_fulltext|paper/.test(text)) return 'reading';
+    if (/narrow(ing)? down|screen/.test(text)) return 'screening';
+    if (/plan(ning)?\b|investigating/.test(text)) return 'planning';
     if (/search|retriev|keyword|article_search|search_pubmed|clarif/.test(text)) return 'searching';
     if (/start|instruction|mapping|research angles/.test(text)) return 'searching';
     return null;
@@ -205,14 +208,6 @@ export const inferFunnelFromText = (lines = []) => {
         return null;
     }
     return funnel;
-};
-
-export const INVESTIGATE_PHASE_META = {
-    searching: { title: 'Searching...', etaMin: 6 },
-    reading: { title: 'Reading...', etaMin: 5 },
-    analyzing: { title: 'Analyzing', etaMin: 4 },
-    writing: { title: 'Writing...', etaMin: 3 },
-    verifying: { title: 'Verifying...', etaMin: 2 },
 };
 
 export class LLMAgentService {
@@ -329,6 +324,11 @@ export class LLMAgentService {
                                 keywords,
                                 papers,
                                 label,
+                                // The frame's remaining structured fields (facets, n_claims,
+                                // n_conflicted, section/step/total, topic, …). The progress panel
+                                // renders these as the active step's detail block, so they have to
+                                // survive the trip instead of being flattened into a label string.
+                                detail,
                                 isProgress: Boolean(isProgressFrame),
                             });
                         }
