@@ -810,84 +810,6 @@
     margin-top: 16px;
 }
 
-.investigate-keywords-title,
-.investigate-live-papers-title {
-    display: block;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    color: #46566C;
-    margin-bottom: 8px;
-}
-
-.investigate-keywords-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-
-.investigate-keyword-chip {
-    display: inline-flex;
-    align-items: center;
-    max-width: 100%;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: #EEF3FF;
-    border: 1px solid #D9E6FE;
-    color: #0E4EDB;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
-    line-height: 1.3;
-}
-
-.investigate-keyword-more {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 8px;
-    color: #5E6E87;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.investigate-live-papers-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.investigate-live-papers-list li {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 8px 10px;
-    border-radius: 10px;
-    background: #F8FAFD;
-    border: 1px solid #E6EDF8;
-}
-
-.investigate-live-papers-list a {
-    color: #155DFC;
-    text-decoration: none;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1.35;
-}
-
-.investigate-live-papers-list a:hover {
-    text-decoration: underline;
-}
-
-.investigate-live-paper-meta {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 11px;
-    color: #7A8BA3;
-}
-
 .investigate-funnel-summary {
     display: flex;
     flex-wrap: wrap;
@@ -1906,14 +1828,35 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 /* ── detail block ───────────────────────────────────────────────────────── */
 /* Indented under the active row with a 1px rail aligned to the row icon, and a
    bottom fade so overflow dissolves instead of being hard-clipped (MOTION-SPEC §6). */
+/* No fixed height and no fade mask: each line is clamped instead, so the block stays short
+   without ever hiding a control underneath it. (The design's mask existed because its content
+   overflowed; with the list cycling one item at a time there is nothing to bleed off.) */
 .ip-step-detail {
     margin: 6px 0 0 8px;
     padding: 2px 0 0 18px;
     border-left: 1px solid #E4E9F2;
-    max-height: 92px;
+}
+
+/* at most two lines per item, so a long topic cannot push the rest out of view */
+.ip-step-detail .ip-detail-para,
+.ip-step-detail .ip-detail-bullet {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    -webkit-mask-image: linear-gradient(to bottom, #000 62%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 62%, transparent 100%);
+}
+
+/* expanded: the whole list, scrollable, no clamping */
+.ip-step-detail.expanded {
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.ip-step-detail.expanded .ip-detail-para,
+.ip-step-detail.expanded .ip-detail-bullet {
+    display: block;
+    -webkit-line-clamp: none;
+    overflow: visible;
 }
 
 .ip-detail-para,
@@ -1963,13 +1906,28 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 
 .ip-chip-more { background: transparent; color: #8A97AC; }
 
-/* reading detail: two papers at a time, crossfading (MOTION-SPEC §6) */
-.ip-paper-pair {
+/* cycling detail: a slice at a time, crossfading (MOTION-SPEC §6) */
+.ip-cycle {
     opacity: 1;
-    transition: opacity 0.35s ease;
+    transition: opacity 0.22s ease;
 }
 
-.ip-paper-pair.hidden { opacity: 0; }
+.ip-cycle.hidden { opacity: 0; }
+
+/* the "show all N" affordance — quiet until hovered, so it never competes with the content */
+.ip-cycle-toggle {
+    border: none;
+    background: transparent;
+    padding: 2px 0;
+    margin-top: 2px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #A8B3C6;
+}
+
+.ip-cycle-toggle:hover { color: #155DFC; text-decoration: underline; }
 
 @media (max-width: 720px) {
     .ip-counters { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -1981,10 +1939,10 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
    too; these rules cover the purely-CSS transitions. */
 @media (prefers-reduced-motion: reduce) {
     .ip-head-title,
-    .ip-paper-pair,
+    .ip-cycle,
     .ip-bar-fill { transition: none !important; }
     .ip-head-title.fading { opacity: 1; }
-    .ip-paper-pair.hidden { opacity: 1; }
+    .ip-cycle.hidden { opacity: 1; }
 }
 
 /* ── References skeleton (MOTION-SPEC §7) ────────────────────────────────────
@@ -2028,3 +1986,8 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
         opacity: 1;
     }
 }
+
+/* a finished retrieval probe */
+.ip-channel { color: #6B7A93; }
+.ip-channel.failed { color: #A8B3C6; }
+.ip-channel-hits { color: #A8B3C6; }
