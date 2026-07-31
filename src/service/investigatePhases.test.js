@@ -71,26 +71,19 @@ describe('bar creep ceiling', () => {
     });
 });
 
-describe('ETA ladder', () => {
-    it('matches the measured recording: 6 / 5 / 4 / 2 / 1, with 3 skipped', () => {
-        expect(INVESTIGATE_PHASE_META.searching.etaMin).toBe(6);
-        expect(INVESTIGATE_PHASE_META.reading.etaMin).toBe(5);
-        expect(INVESTIGATE_PHASE_META.analyzing.etaMin).toBe(4);
-        expect(INVESTIGATE_PHASE_META.writing.etaMin).toBe(2);
-        expect(INVESTIGATE_PHASE_META.verifying.etaMin).toBe(1);
-        const shown = INVESTIGATE_PHASE_ORDER.map((p) => INVESTIGATE_PHASE_META[p].etaMin);
-        expect(shown).not.toContain(3);
+describe('phase meta', () => {
+    it('gives every phase a title', () => {
+        INVESTIGATE_PHASE_ORDER.forEach((p) => {
+            expect(typeof INVESTIGATE_PHASE_META[p].title).toBe('string');
+            expect(INVESTIGATE_PHASE_META[p].title.length).toBeGreaterThan(0);
+        });
     });
 
-    it('never increases as the run proceeds', () => {
-        const etas = INVESTIGATE_PHASE_ORDER.map((p) => INVESTIGATE_PHASE_META[p].etaMin);
-        expect(etas).toEqual([...etas].sort((a, b) => b - a));
-    });
-
-    it('reaches zero only at the end, where the element unmounts', () => {
-        expect(INVESTIGATE_PHASE_META.summary.etaMin).toBe(0);
-        INVESTIGATE_PHASE_ORDER.slice(0, -1).forEach((p) => {
-            expect(INVESTIGATE_PHASE_META[p].etaMin).toBeGreaterThan(0);
+    it('carries no ETA', () => {
+        // The header shows elapsed time. A leftover per-phase estimate here would be a second,
+        // silently stale source of truth for "how long is this taking".
+        INVESTIGATE_PHASE_ORDER.forEach((p) => {
+            expect(INVESTIGATE_PHASE_META[p].etaMin).toBeUndefined();
         });
     });
 });
