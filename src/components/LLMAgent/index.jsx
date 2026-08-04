@@ -22,7 +22,6 @@ import {
 import remarkGfm from 'remark-gfm';
 
 import {
-  AccessTimeOutlined as AccessTimeOutlinedIcon,
   Bookmark as BookmarkIcon,
   BookmarkBorder as BookmarkBorderIcon,
   Check as CheckIcon,
@@ -30,14 +29,7 @@ import {
   Clear as ClearIcon,
   EditNote as EditNoteIcon,
   ExpandMore as ExpandMoreIcon,
-  NotificationsNoneOutlined as NotificationsNoneOutlinedIcon,
   ScienceOutlined as ScienceOutlinedIcon,
-  Search as SearchIcon,
-  MenuBook as MenuBookIcon,
-  QuestionAnswer as QuestionAnswerIcon,
-  Psychology as PsychologyIcon,
-  AutoAwesome as AutoAwesomeIcon,
-  CheckCircleOutlined as CheckCircleOutlineIcon,
   Star as StarIcon,
 } from '@mui/icons-material';
 import {
@@ -65,6 +57,7 @@ import {
   Typography,
 } from '@mui/material';
 
+import InvestigateProgress from './InvestigateProgress';
 import { ReactComponent as ContentCopyIcon } from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import { ReactComponent as ReferenceIcon } from '../../img/llm/reference.svg';
@@ -72,7 +65,7 @@ import { ReactComponent as ReplayIcon } from '../../img/llm/replay.svg';
 import { ReactComponent as ThumbsUpDownIcon } from '../../img/llm/thumbs_up_down.svg';
 import { submitChatFeedback } from '../../service/Feedback';
 import {
-  INVESTIGATE_PHASE_META,
+  INVESTIGATE_PHASE_ORDER,
   LLMAgentService,
   PHASE_PERCENT_FLOOR,
   inferFunnelFromText,
@@ -161,6 +154,46 @@ const mergeLivePapers = (prev, next) => {
     return Array.from(map.values());
 };
 
+/**
+ * Fold one progress frame's structured fields into the accumulated detail. Kept additive: a
+ * frame that omits `facets` must not blank the facets the analyzing step is displaying, and the
+ * writing frames only carry section/step/total. Keys are renamed to the shapes the panel reads.
+ */
+const mergeInvestigateDetail = (prev, next, label) => {
+    const out = { ...(prev || {}) };
+    if (Array.isArray(next.topic) && next.topic.length) out.topic = next.topic.map(String);
+    if (Array.isArray(next.facets) && next.facets.length) out.facets = next.facets.map(String);
+    // `facets` is capped for display; `n_facets` is the true count.
+    if (Number.isFinite(Number(next.n_facets))) out.nFacets = Number(next.n_facets);
+    if (Number.isFinite(Number(next.n_claims))) out.nClaims = Number(next.n_claims);
+    if (Number.isFinite(Number(next.n_conflicted))) out.nConflicted = Number(next.n_conflicted);
+    // `step`/`total` only mean "report section i of n" on the writing frames — the reading frame
+    // also carries a `total` (the paper count), which must not be read as a section count.
+    if (next.section) {
+        out.section = String(next.section);
+        if (Number.isFinite(Number(next.step))) out.step = Number(next.step);
+        if (Number.isFinite(Number(next.total))) out.totalSections = Number(next.total);
+    }
+    if (label) out.label = String(label);
+    return out;
+};
+
+/**
+ * Phases only ever move forward. A frame that names an earlier phase — a late-arriving event, a
+ * phase inferred from free text, or a stage that reports its own completion — must not rewind the
+ * header from "Reading..." back to "Searching...". Unknown phases are ignored rather than
+ * treated as a reset.
+ */
+const mergePhaseMonotonic = (prev, next) => {
+    if (!next) return prev;
+    if (!prev) return next;
+    const a = INVESTIGATE_PHASE_ORDER.indexOf(prev);
+    const b = INVESTIGATE_PHASE_ORDER.indexOf(next);
+    if (b < 0) return prev;
+    if (a < 0) return next;
+    return b >= a ? next : prev;
+};
+
 const mergePercentMonotonic = (prev, next) => {
     if (!Number.isFinite(Number(next))) return prev;
     const n = Math.max(0, Math.min(100, Math.round(Number(next))));
@@ -173,14 +206,6 @@ const formatFunnelValue = (value) => {
     const num = Number(value);
     if (!Number.isFinite(num)) return '—';
     return num.toLocaleString();
-};
-
-const formatEtaLabel = (phase, startedAtMs) => {
-    const meta = INVESTIGATE_PHASE_META[phase] || INVESTIGATE_PHASE_META.searching;
-    if (!startedAtMs) return `~${meta.etaMin} min`;
-    const elapsedMin = (Date.now() - startedAtMs) / 60000;
-    const remain = Math.max(1, Math.round(meta.etaMin - elapsedMin * 0.35));
-    return `~${remain} min`;
 };
 
 const getUserNotifyEmail = () => {
@@ -978,6 +1003,33 @@ const trajectoryToGroups = (trajectory) => {
         .filter((group) => group.name || group.lines.length > 0);
 };
 
+/**
+ * References placeholder shown while a run is streaming (MOTION-SPEC §7).
+ *
+ * A highlight wave travels top-to-bottom on a loop — at any instant one card group is at full
+ * opacity and the rest are near-invisible. This is deliberately a shimmer and NOT progressive
+ * loading: references only exist once the run completes, so an appearance of cards filling in
+ * would be a lie about what the panel knows.
+ */
+const REFERENCE_SKELETON_CARDS = 6;
+
+const ReferencesSkeleton = () => (
+    <div className="references-list ref-skeleton" aria-hidden="true">
+        {Array.from({ length: REFERENCE_SKELETON_CARDS }).map((_, i) => (
+            <div
+                className="ref-skeleton-card"
+                key={`ref-skeleton-${i}`}
+                style={{ animationDelay: `${(i * 1.6) / REFERENCE_SKELETON_CARDS}s` }}
+            >
+                <span className="ref-skeleton-bar short" />
+                <span className="ref-skeleton-bar" />
+                <span className="ref-skeleton-bar" />
+                <span className="ref-skeleton-bar medium" />
+            </div>
+        ))}
+    </div>
+);
+
 const MessageCard = React.memo(function MessageCard({
     index,
     message,
@@ -991,6 +1043,7 @@ const MessageCard = React.memo(function MessageCard({
     investigatePercent,
     investigateKeywords,
     investigatePapers,
+    investigateDetail,
     thinkingStepsVersion,
     liveThinkingStepsRef,
     notifyEmailEnabled,
@@ -1082,9 +1135,11 @@ const MessageCard = React.memo(function MessageCard({
     const resolvedPhase = useMemo(() => {
         if (!isInvestigateMessage) return null;
         if (isLoading) {
+            // 'planning' is the pre-retrieval floor: the panel mounts at submit, before any frame
+            // has arrived, and must not claim to be searching yet.
             return investigatePhase
                 || inferInvestigatePhase(streamingStepName, '')
-                || 'searching';
+                || 'planning';
         }
         return message.investigatePhase || 'verifying';
     }, [isInvestigateMessage, isLoading, investigatePhase, streamingStepName, message.investigatePhase]);
@@ -1098,34 +1153,6 @@ const MessageCard = React.memo(function MessageCard({
         const inferred = inferFunnelFromText(activityLines);
         return mergeFunnel(fromLive, inferred);
     }, [isLoading, message.investigateFunnel, investigateFunnel, activeStreamingGroups]);
-
-    const investigateStageIndex = useMemo(() => {
-        if (!showInvestigateProgress && !showInvestigateSummary) return -1;
-        const phase = resolvedPhase || 'searching';
-        if (phase === 'verifying' || phase === 'writing') return 3;
-        if (phase === 'analyzing') return 2;
-        if (phase === 'reading') return 1;
-        return 0;
-    }, [showInvestigateProgress, showInvestigateSummary, resolvedPhase]);
-
-    const phaseTitle = useMemo(() => {
-        if (!showInvestigateProgress) return '';
-        // Prefer agent label (Figma status line), then phase title
-        // streamingStepName already maps tools; progress label may be richer
-        const meta = INVESTIGATE_PHASE_META[resolvedPhase] || INVESTIGATE_PHASE_META.searching;
-        if (streamingStepName) {
-            const label = getStepLabel(streamingStepName);
-            if (label && label !== 'Thinking' && label !== 'Working...') {
-                return label.endsWith('...') || label.endsWith('…') ? label : `${label}`;
-            }
-        }
-        return meta.title;
-    }, [showInvestigateProgress, resolvedPhase, streamingStepName]);
-
-    const etaLabel = useMemo(
-        () => formatEtaLabel(resolvedPhase || 'searching', investigateStartedAt || null),
-        [resolvedPhase, investigateStartedAt],
-    );
 
     // Figma: real % bar when agent sends percent; else phase floor (monotonic)
     // After complete: prefer message.investigatePercent (persisted on final)
@@ -1186,135 +1213,6 @@ const MessageCard = React.memo(function MessageCard({
     );
 
     // Tool call step icons — maps tool names and phase labels to MUI icons (per Figma)
-    const TOOL_STEP_ICONS = useMemo(() => ({
-        search: SearchIcon,
-        article_search: SearchIcon,
-        search_pubmed: SearchIcon,
-        vocabulary_search: PsychologyIcon,
-        execute_cypher: PsychologyIcon,
-        fetch_abstract: MenuBookIcon,
-        get_fulltext: MenuBookIcon,
-        comprehensive_report: MenuBookIcon,
-        find_similar_articles: SearchIcon,
-        get_citing_articles: SearchIcon,
-        cite_evidence: CheckCircleOutlineIcon,
-        clarification: QuestionAnswerIcon,
-        question_rewritten: AutoAwesomeIcon,
-        writing: AutoAwesomeIcon,
-        verifying: CheckCircleOutlineIcon,
-        finalizing: AutoAwesomeIcon,
-        summary: CheckCircleOutlineIcon,
-        reading: MenuBookIcon,
-        searching: SearchIcon,
-        analyzing: PsychologyIcon,
-        load_skill: PsychologyIcon,
-        // Full phase labels (from _TOOL_PHASE_MAP)
-        'searching for relevant articles': SearchIcon,
-        'reading article details': MenuBookIcon,
-        'exploring the knowledge graph': PsychologyIcon,
-        'organizing the evidence': PsychologyIcon,
-        'writing the report': AutoAwesomeIcon,
-        'verifying the answer': CheckCircleOutlineIcon,
-        'finalizing the report': AutoAwesomeIcon,
-        'selecting supporting evidence': CheckCircleOutlineIcon,
-        'clarifying the question': QuestionAnswerIcon,
-        'preparing my approach': PsychologyIcon,
-        'following citation trails': SearchIcon,
-    }), []);
-
-    const investigateTimelineSteps = useMemo(() => {
-        // During streaming, use live ref (triggered by thinkingStepsVersion prop); after, use message
-        const source = isLoading
-            ? (liveThinkingStepsRef?.current || [])
-            : (message.thinkingSteps || []);
-        const steps = source.filter(
-            (entry) => entry?.step && entry?.content,
-        );
-        if (!steps.length) return [];
-
-        // Extract tool name from content like "[TOOL CALL] article_search | Input: ..."
-        const deriveToolName = (content) => {
-            const m = String(content || '').match(/\[TOOL\s+(?:CALL|RESULT)\]:?\s*(\w+)/i);
-            return m ? m[1] : null;
-        };
-
-        const deriveStepIcon = (entry) => {
-            const toolName = deriveToolName(entry.content);
-            if (toolName && TOOL_STEP_ICONS[toolName]) return TOOL_STEP_ICONS[toolName];
-            const stepLower = String(entry.step || '').toLowerCase();
-            if (TOOL_STEP_ICONS[stepLower]) return TOOL_STEP_ICONS[stepLower];
-            return ScienceOutlinedIcon;
-        };
-
-        const deriveLabel = (entry) => {
-            // Use tool name from content to derive a clean label
-            const toolName = deriveToolName(entry.content);
-            if (toolName && STEP_LABELS[toolName]) return STEP_LABELS[toolName];
-            const stepStr = String(entry.step || '');
-            const labelKey = stepStr.trim();
-            if (STEP_LABELS[labelKey]) return STEP_LABELS[labelKey];
-            return stepStr || 'Working';
-        };
-
-        // Deduplicate by step+content, interleaving phase markers and tool steps
-        const seen = new Set();
-        const result = [];
-        let lastStep = null;
-        let lastWasProgress = false;
-
-        for (const entry of steps) {
-            const key = `${entry.step || ''}|${(entry.content || '').slice(0, 60)}`;
-            if (seen.has(key)) continue;
-            seen.add(key);
-
-            // Progress events with rich labels → used as phase headers directly
-            if (entry.isProgress && entry.content) {
-                const phaseIcon = TOOL_STEP_ICONS[entry.phase] || ScienceOutlinedIcon;
-                result.push({
-                    icon: phaseIcon,
-                    label: entry.content,
-                    step: entry.step,
-                    kind: 'phase',
-                });
-                lastStep = entry.step?.trim() || '';
-                lastWasProgress = true;
-                continue;
-            }
-
-            const stepKey = entry.step?.trim() || '';
-
-            // For tool calls: emit phase header when step changes to a new label
-            if (stepKey && stepKey !== lastStep && TOOL_STEP_ICONS[stepKey.toLowerCase()]) {
-                result.push({
-                    icon: TOOL_STEP_ICONS[stepKey.toLowerCase()] || ScienceOutlinedIcon,
-                    label: stepKey,
-                    step: entry.step,
-                    kind: 'phase',
-                });
-                lastStep = stepKey;
-            }
-
-            // Tool call detail step
-            result.push({
-                icon: deriveStepIcon(entry),
-                label: deriveLabel(entry),
-                step: entry.step,
-                kind: 'tool',
-            });
-            lastWasProgress = false;
-        }
-
-        return result;
-    }, [message.thinkingSteps, thinkingStepsVersion, isLoading, TOOL_STEP_ICONS]);
-
-    const investigateActivityItems = useMemo(() => {
-        const raw = activeStreamingGroups
-            .flatMap((group) => (Array.isArray(group.lines) ? group.lines : []))
-            .map((line) => String(line || '').replace(/^[-•\s]+/, '').trim())
-            .filter((line) => line.length >= 8);
-        return Array.from(new Set(raw)).slice(0, 12);
-    }, [activeStreamingGroups]);
-
     const toggleGroup = useCallback((nextIndex) => {
         setExpandedGroups((prev) => ({
             ...prev,
@@ -1494,154 +1392,24 @@ const MessageCard = React.memo(function MessageCard({
                         )}
 
                         {showInvestigateProgress && (
-                            <Box className="investigate-progress-shell">
-                                <Box
-                                    className="investigate-progress-head"
-                                    role="button"
-                                    tabIndex={0}
-                                    onClick={() => setInvestigateExpanded((prev) => !prev)}
-                                    onKeyDown={(event) => {
-                                        if (event.key === 'Enter' || event.key === ' ') {
-                                            event.preventDefault();
-                                            setInvestigateExpanded((prev) => !prev);
-                                        }
-                                    }}
-                                >
-                                    <Box className="investigate-progress-head-left">
-                                        <ScienceOutlinedIcon className="investigate-progress-head-icon" />
-                                        <span className="investigate-progress-head-title">{phaseTitle || 'Searching...'}</span>
-                                        <ExpandMoreIcon className={`investigate-progress-head-caret${investigateExpanded ? ' expanded' : ''}`} />
-                                    </Box>
-                                    <Box className="investigate-progress-head-right">
-                                        <span className="investigate-progress-time"><AccessTimeOutlinedIcon fontSize="inherit" />{etaLabel}</span>
-                                        <button
-                                            type="button"
-                                            className={`investigate-progress-notify${notifyEmailEnabled ? ' active' : ''}`}
-                                            onClick={(event) => {
-                                                event.stopPropagation();
-                                                if (typeof onToggleNotifyEmail === 'function') {
-                                                    onToggleNotifyEmail(!notifyEmailEnabled);
-                                                }
-                                            }}
-                                            title={notifyEmailEnabled
-                                                ? 'Email notification on — click to turn off'
-                                                : 'Email me when research completes'}
-                                        >
-                                            <NotificationsNoneOutlinedIcon fontSize="inherit" />
-                                            {notifyEmailEnabled ? 'Notify on' : 'Notify me'}
-                                        </button>
-                                    </Box>
-                                </Box>
-
-                                {investigateExpanded && (
-                                    <Box className="investigate-progress-body">
-                                        {displayPercent != null && (
-                                            <Box className="investigate-percent-row" aria-label={`Progress ${displayPercent}%`}>
-                                                <Box className="investigate-percent-track">
-                                                    <Box
-                                                        className="investigate-percent-fill"
-                                                        style={{ width: `${displayPercent}%` }}
-                                                    />
-                                                </Box>
-                                                <span className="investigate-percent-label">{displayPercent}%</span>
-                                            </Box>
-                                        )}
-                                        <Box className="investigate-progress-stages">
-                                            {investigateStageLabels.map((label, stageIndex) => {
-                                                const key = label.toLowerCase();
-                                                const value = resolvedFunnel?.[key];
-                                                return (
-                                                <Box key={label} className="investigate-progress-stage">
-                                                    <span className={`investigate-progress-stage-bar${stageIndex <= investigateStageIndex ? ' done' : ''}`} />
-                                                    <span className="investigate-progress-stage-count">{formatFunnelValue(value)}</span>
-                                                    <span className="investigate-progress-stage-label">{label}</span>
-                                                </Box>
-                                                );
-                                            })}
-                                        </Box>
-
-                                        {visibleKeywords.length > 0 && (
-                                            <Box className="investigate-keywords" aria-label="Search keywords">
-                                                <span className="investigate-keywords-title">Search keywords</span>
-                                                <Box className="investigate-keywords-chips">
-                                                    {visibleKeywords.map((kw) => (
-                                                        <span key={kw} className="investigate-keyword-chip">{kw}</span>
-                                                    ))}
-                                                    {keywordOverflow > 0 && (
-                                                        <span className="investigate-keyword-more">+{keywordOverflow} more</span>
-                                                    )}
-                                                </Box>
-                                            </Box>
-                                        )}
-
-                                        {visiblePapers.length > 0 && (
-                                            <Box className="investigate-live-papers" aria-label="Papers being read">
-                                                <span className="investigate-live-papers-title">
-                                                    Reading {resolvedPapers.length} paper{resolvedPapers.length === 1 ? '' : 's'}
-                                                    {paperOverflow > 0 ? ` (showing ${visiblePapers.length})` : ''}
-                                                </span>
-                                                <ul className="investigate-live-papers-list">
-                                                    {visiblePapers.map((paper) => (
-                                                        <li key={paper.id || paper.pmid || paper.title}>
-                                                            {paper.pmid ? (
-                                                                <a
-                                                                    href={`https://pubmed.ncbi.nlm.nih.gov/${paper.pmid}/`}
-                                                                    target="_blank"
-                                                                    rel="noreferrer"
-                                                                >
-                                                                    {paper.title}
-                                                                </a>
-                                                            ) : (
-                                                                <span>{paper.title}</span>
-                                                            )}
-                                                            {(paper.journal || paper.year) && (
-                                                                <span className="investigate-live-paper-meta">
-                                                                    {[paper.journal, paper.year].filter(Boolean).join(' · ')}
-                                                                </span>
-                                                            )}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                                {paperOverflow > 0 && (
-                                                    <span className="investigate-keyword-more">+{paperOverflow} more</span>
-                                                )}
-                                            </Box>
-                                        )}
-
-                                        {/* Figma-style tool call step timeline */}
-                                        {(investigateTimelineSteps.length > 0 || investigateActivityItems.length > 0) && (
-                                            <Box className="investigate-timeline">
-                                                {/* Timeline: show derived steps from message.thinkingSteps when complete,
-                                                    or raw activity items during live streaming */}
-                                                {(investigateTimelineSteps.length > 0
-                                                    ? investigateTimelineSteps
-                                                    : investigateActivityItems.map((item) => ({
-                                                        icon: ScienceOutlinedIcon,
-                                                        label: item,
-                                                        step: '',
-                                                        kind: 'tool',
-                                                    }))
-                                                ).map((entry, idx) => {
-                                                    const IconComp = entry.icon || ScienceOutlinedIcon;
-                                                    const isPhase = entry.kind === 'phase';
-                                                    const stepClass = isPhase
-                                                        ? 'investigate-timeline-step investigate-timeline-phase'
-                                                        : 'investigate-timeline-step';
-                                                    const labelClass = isPhase
-                                                        ? 'investigate-timeline-label investigate-timeline-phase-label'
-                                                        : 'investigate-timeline-label';
-                                                    return (
-                                                        <Box key={`${entry.label}-${idx}`} className={stepClass}>
-                                                            <IconComp className="investigate-timeline-icon" />
-                                                            <span className={labelClass}>{entry.label}</span>
-                                                        </Box>
-                                                    );
-                                                })}
-                                            </Box>
-                                        )}
-                                    </Box>
-                                )}
-                            </Box>
+                            <InvestigateProgress
+                                phase={resolvedPhase}
+                                funnel={resolvedFunnel}
+                                percent={displayPercent}
+                                keywords={resolvedKeywords}
+                                papers={resolvedPapers}
+                                detail={investigateDetail}
+                                label={investigateDetail?.label || streamingStepName || ''}
+                                /* The agent's `summary` frame lands just before the report itself,
+                                   so this is the brief terminal beat: bar at 100%, ETA unmounts,
+                                   title becomes "Report ready" — then the panel gives way to the
+                                   "Investigated for m:ss" summary row when the run closes. */
+                                done={resolvedPhase === 'summary'}
+                                expanded={investigateExpanded}
+                                onToggleExpanded={() => setInvestigateExpanded((prev) => !prev)}
+                                notifyEmailEnabled={notifyEmailEnabled}
+                                onToggleNotifyEmail={onToggleNotifyEmail}
+                            />
                         )}
 
                         {showInvestigateProgress && pendingClarification && (
@@ -1961,6 +1729,10 @@ function LLMAgent() {
     const [investigatePercent, setInvestigatePercent] = useState(null);
     const [investigateKeywords, setInvestigateKeywords] = useState([]);
     const [investigatePapers, setInvestigatePapers] = useState([]);
+    // The structured fields of the progress frames seen so far (topic, facets, n_claims,
+    // n_conflicted, section/step/total). Accumulated rather than replaced, so a later frame that
+    // omits a field does not blank the active step's detail block.
+    const [investigateDetail, setInvestigateDetail] = useState({});
     const [thinkingStepsVersion, setThinkingStepsVersion] = useState(0);
     const [notifyEmailEnabled, setNotifyEmailEnabled] = useState(() => {
         try {
@@ -1975,6 +1747,7 @@ function LLMAgent() {
     const investigatePercentRef = useRef(null);
     const investigateKeywordsRef = useRef([]);
     const investigatePapersRef = useRef([]);
+    const investigateDetailRef = useRef({});
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
     const abortControllerRef = useRef(null);
@@ -2680,17 +2453,22 @@ function LLMAgent() {
         setClarificationDrafts({});
         setClarificationError('');
         setClarificationSubmitting(false);
-        setInvestigatePhase('searching');
+        // Start at `planning`, not `searching`: the panel is mounted here, at submit, and must
+        // already be moving before the first SSE frame arrives (the agent's own T0 frame follows
+        // within milliseconds, but the network round-trip should not be a visible dead spot).
+        setInvestigatePhase('planning');
         setInvestigateFunnel(emptyFunnel());
         setInvestigateStartedAt(investigateEnabled ? requestStartedAt : null);
-        setInvestigatePercent(investigateEnabled ? PHASE_PERCENT_FLOOR.searching : null);
+        setInvestigatePercent(investigateEnabled ? PHASE_PERCENT_FLOOR.planning : null);
         setInvestigateKeywords([]);
         setInvestigatePapers([]);
+        setInvestigateDetail({});
         investigateFunnelRef.current = emptyFunnel();
-        investigatePhaseRef.current = 'searching';
-        investigatePercentRef.current = investigateEnabled ? PHASE_PERCENT_FLOOR.searching : null;
+        investigatePhaseRef.current = 'planning';
+        investigatePercentRef.current = investigateEnabled ? PHASE_PERCENT_FLOOR.planning : null;
         investigateKeywordsRef.current = [];
         investigatePapersRef.current = [];
+        investigateDetailRef.current = {};
         thinkingStepsRef.current = [];
         setThinkingStepsVersion(v => v + 1);
 
@@ -2814,9 +2592,10 @@ function LLMAgent() {
 
                             // Apply live progress even when content is empty (agent progress frames)
                             {
-                                const nextPhase = update.phase
-                                    || inferInvestigatePhase(update.step, rawContent)
-                                    || investigatePhaseRef.current;
+                                const nextPhase = mergePhaseMonotonic(
+                                    investigatePhaseRef.current,
+                                    update.phase || inferInvestigatePhase(update.step, rawContent),
+                                );
                                 if (nextPhase && nextPhase !== investigatePhaseRef.current) {
                                     investigatePhaseRef.current = nextPhase;
                                     setInvestigatePhase(nextPhase);
@@ -2851,6 +2630,14 @@ function LLMAgent() {
                                 if (update.label || update.isProgress) {
                                     setStreamingStepName(update.label || update.content || update.step);
                                 }
+                                if (update.detail && typeof update.detail === 'object') {
+                                    investigateDetailRef.current = mergeInvestigateDetail(
+                                        investigateDetailRef.current,
+                                        update.detail,
+                                        update.label,
+                                    );
+                                    setInvestigateDetail({ ...investigateDetailRef.current });
+                                }
                                 // Capture progress labels as rich phase markers
                                 if (update.isProgress && update.label && update.phase) {
                                     thinkingStepsRef.current = [...thinkingStepsRef.current, {
@@ -2872,9 +2659,10 @@ function LLMAgent() {
                                     setStreamingStepName(parsedEntry.stepName);
                                 }
 
-                                const nextPhase = update.phase
-                                    || inferInvestigatePhase(update.step, rawContent)
-                                    || investigatePhaseRef.current;
+                                const nextPhase = mergePhaseMonotonic(
+                                    investigatePhaseRef.current,
+                                    update.phase || inferInvestigatePhase(update.step, rawContent),
+                                );
                                 if (nextPhase && nextPhase !== investigatePhaseRef.current) {
                                     investigatePhaseRef.current = nextPhase;
                                     setInvestigatePhase(nextPhase);
@@ -3578,6 +3366,7 @@ function LLMAgent() {
                 investigatePercent={investigatePercent}
                 investigateKeywords={investigateKeywords}
                 investigatePapers={investigatePapers}
+                investigateDetail={investigateDetail}
                 thinkingStepsVersion={thinkingStepsVersion}
                 liveThinkingStepsRef={thinkingStepsRef}
                 notifyEmailEnabled={notifyEmailEnabled}
@@ -4668,7 +4457,13 @@ function LLMAgent() {
                                                                     </div>
                                                                 )}
                                                                 <div className="references-toolbar-row">
-                                                                    <span className="references-count-label">{sortedReferences.length} Citations</span>
+                                                                    {/* While a run is in flight the count is not yet knowable — "0 Citations"
+                                                                        reads as "this answer has no sources", so show nothing until it lands. */}
+                                                                    <span className="references-count-label">
+                                                                        {isProcessing && sortedReferences.length === 0
+                                                                            ? ''
+                                                                            : `${sortedReferences.length} Citations`}
+                                                                    </span>
                                                                     <div className="references-toolbar-actions">
                                                                         <IconButton
                                                                             size="small"
@@ -4736,6 +4531,8 @@ function LLMAgent() {
                                                                             );
                                                                         })}
                                                                     </div>
+                                                                ) : isProcessing ? (
+                                                                    <ReferencesSkeleton />
                                                                 ) : (
                                                                     <p style={{ padding: '16px 32px' }}>No references available for this response.</p>
                                                                 )}
