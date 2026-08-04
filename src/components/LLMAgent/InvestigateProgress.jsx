@@ -43,6 +43,7 @@ const PAPERS_PER_PAGE = 2;
 const CYCLE_PERIOD_MS = 900;    // one-line detail rotation: brisk enough to read as live
 const BAR_EASE_TAU = 0.30;       // seconds — catching up to a newly arrived target
 const BAR_CREEP_TAU = 55;        // seconds — the slow drift between targets, so the bar never sits still
+const ELAPSED_TICK_MS = 500;     // twice a second, so the displayed second is never >0.5s stale
 
 /**
  * While a counter's real value is still unknown, the design has it "ticking up (fake)" rather
@@ -96,6 +97,49 @@ const prefersReducedMotion = () => {
 };
 
 const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+// ── elapsed clock ───────────────────────────────────────────────────────────────────────────
+/**
+ * `m:ss`, minutes uncapped (a 73-minute run reads `73:20`, not `13:20`).
+ *
+ * Also backs the "Investigated for m:ss" summary row that replaces this panel when the run
+ * closes — one formatter, fed from the one `Date.now()` taken at submit, so the number the user
+ * watched tick is exactly the number they are left with. Truncating (not rounding) is what makes
+ * that hold: rounding the final duration would print 7:54 over a clock that last read 7:53.
+ */
+export const formatElapsed = (totalSeconds) => {
+    const total = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+    return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+};
+
+/**
+ * Seconds since `startedAt`, ticking until `running` goes false.
+ *
+ * Recomputed from the absolute start on every tick rather than incremented, so a throttled
+ * background tab or a slow frame cannot make the clock drift away from real elapsed time.
+ * State holds whole seconds: a tick that lands inside the same second sets an identical number and
+ * React bails out, so the twice-a-second interval costs at most one re-render per second.
+ *
+ * A missing `startedAt` falls back to mount time. That keeps the clock plausible instead of
+ * printing the ~56 years that `Date.now() - 0` would give.
+ */
+const useElapsedSeconds = (startedAt, running) => {
+    const mountedAt = useRef(Date.now());
+    const origin = Number.isFinite(Number(startedAt)) && Number(startedAt) > 0
+        ? Number(startedAt)
+        : mountedAt.current;
+    const [seconds, setSeconds] = useState(() => Math.max(0, Math.floor((Date.now() - origin) / 1000)));
+
+    useEffect(() => {
+        const read = () => setSeconds(Math.max(0, Math.floor((Date.now() - origin) / 1000)));
+        read();                                   // land on the right value before the first tick
+        if (!running) return undefined;           // frozen at the final time once the run closes
+        const id = setInterval(read, ELAPSED_TICK_MS);
+        return () => clearInterval(id);
+    }, [origin, running]);
+
+    return seconds;
+};
 
 // ── the step rows ───────────────────────────────────────────────────────────────────────────
 // Fixed rows in run order. `active`/`done` are the present/past tense forms; a row flips to past
@@ -417,6 +461,7 @@ const InvestigateProgress = ({
     papers = [],
     detail = {},
     label = '',
+    startedAt = null,
     done = false,
     expanded = true,
     onToggleExpanded,
@@ -427,6 +472,7 @@ const InvestigateProgress = ({
     const safeFunnel = funnel || {};
     const meta = INVESTIGATE_PHASE_META[phase] || INVESTIGATE_PHASE_META.planning;
     const idx = phaseIndex(phase);
+    const elapsedSeconds = useElapsedSeconds(startedAt, !done);
 
     // ── header title: fade to blank, swap, fade back in (not a crossfade) ──
     const [shownTitle, setShownTitle] = useState(meta.title);
@@ -571,11 +617,14 @@ const InvestigateProgress = ({
                     <ExpandMoreIcon className={`ip-head-caret${expanded ? ' expanded' : ''}`} />
                 </button>
                 <Box className="ip-head-right">
-                    {!done && (
-                        <span className="ip-eta">
-                            <AccessTimeOutlinedIcon fontSize="inherit" />~{meta.etaMin} min
-                        </span>
-                    )}
+                    {/* Elapsed, not an estimate. This was a hardcoded per-phase "~6 min" that
+                        stepped only when the phase changed, so it sat unchanged for minutes next
+                        to a moving bar — and its ladder never matched a measured run. Time spent
+                        is a fact we have, and it keeps showing once `done` so the final figure
+                        matches the "Investigated for m:ss" row that succeeds this panel. */}
+                    <span className="ip-elapsed" title="Time spent investigating">
+                        <AccessTimeOutlinedIcon fontSize="inherit" />{formatElapsed(elapsedSeconds)}
+                    </span>
                     <button
                         type="button"
                         className={`ip-notify${notifyEmailEnabled ? ' active' : ''}`}

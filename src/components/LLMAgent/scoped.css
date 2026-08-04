@@ -1715,7 +1715,7 @@ button.ip-head-left {
     flex-shrink: 0;
 }
 
-.ip-eta,
+.ip-elapsed,
 .ip-notify {
     display: inline-flex;
     align-items: center;
@@ -1726,6 +1726,10 @@ button.ip-head-left {
     line-height: 1.4;
     color: #5E6E87;
 }
+
+/* Tabular figures: the clock reflows every second, and proportional digits would shift the
+   notify button sideways on each tick. */
+.ip-elapsed { font-variant-numeric: tabular-nums; }
 
 button.ip-notify {
     border: none;

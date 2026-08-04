@@ -58,7 +58,7 @@ import {
 } from '@mui/material';
 
 import { emptyFunnel, mergeFunnel } from './funnel';
-import InvestigateProgress from './InvestigateProgress';
+import InvestigateProgress, { formatElapsed } from './InvestigateProgress';
 import { ReactComponent as ContentCopyIcon } from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import { ReactComponent as ReferenceIcon } from '../../img/llm/reference.svg';
@@ -116,12 +116,16 @@ const formatDuration = (durationMs) => {
     return `${seconds}s`;
 };
 
+/**
+ * The "Investigated for m:ss" row shown once the run closes.
+ *
+ * Formatting is delegated to the live header clock's `formatElapsed` so the two can never drift
+ * apart — same shape, same truncation, same `Date.now()` origin. Returns '' for an unknown
+ * duration, which is also what gates the row's visibility.
+ */
 const formatInvestigatedDuration = (durationMs) => {
     if (durationMs === null || durationMs === undefined) return '';
-    const totalSeconds = Math.max(0, Math.round(durationMs / 1000));
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+    return formatElapsed(durationMs / 1000);
 };
 
 const mergeLiveKeywords = (prev, next) => {
@@ -1340,8 +1344,11 @@ const MessageCard = React.memo(function MessageCard({
                                 papers={resolvedPapers}
                                 detail={investigateDetail}
                                 label={investigateDetail?.label || streamingStepName || ''}
+                                /* Same `Date.now()` the final "Investigated for m:ss" is measured
+                                   from, so the live clock and the summary row cannot disagree. */
+                                startedAt={investigateStartedAt}
                                 /* The agent's `summary` frame lands just before the report itself,
-                                   so this is the brief terminal beat: bar at 100%, ETA unmounts,
+                                   so this is the brief terminal beat: bar at 100%, clock freezes,
                                    title becomes "Report ready" — then the panel gives way to the
                                    "Investigated for m:ss" summary row when the run closes. */
                                 done={resolvedPhase === 'summary'}
