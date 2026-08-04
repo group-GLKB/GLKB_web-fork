@@ -38,8 +38,9 @@ import {
 const COUNT_UP_MS = 1100;        // measured: Retrieved 1.30s, Screened 1.87s, Extracted 0.77s, Cited 1.03s
 const TITLE_FADE_MS = 250;       // measured: fade out to blank then in, 0.47–0.53s total
 const PAPER_HOLD_MS = 1650;      // measured: 2.0s period = 1.65s hold + 0.35s crossfade
-const PAPER_FADE_MS = 350;
+const PAPER_FADE_MS = 220;
 const PAPERS_PER_PAGE = 2;
+const CYCLE_PERIOD_MS = 900;    // one-line detail rotation: brisk enough to read as live
 const BAR_EASE_TAU = 0.30;       // seconds — catching up to a newly arrived target
 const BAR_CREEP_TAU = 55;        // seconds — the slow drift between targets, so the bar never sits still
 
@@ -51,26 +52,35 @@ const BAR_CREEP_TAU = 55;        // seconds — the slow drift between targets, 
  * cadence, so no two runs count identically. Step size is a fraction of what is left, which makes
  * it decelerate and settle rather than hit the ceiling and freeze.
  *
- * When the true number lands the ramp is discarded and the counter animates from wherever it had
- * got to onto the real value — so the ramp is motion only, and every number the user can read
- * once a stage completes is a real one. (`addsToReal` can add the ramp to the real number
- * instead; it is off everywhere. Retrieved does not need it: the agent reports PRISMA's
- * "records identified", the pre-de-duplication count, which is already several times the fused
- * pool it used to report.)
+ * When the true number lands, `addsToReal` decides what happens to the ramp:
+ *   false - it is discarded and the counter animates onto the real value alone;
+ *   true  - the value the ramp reached is ADDED, so the counter settles on `real + ramp`.
+ * Retrieved is the one column with `addsToReal`, by product decision. Note what that means: the
+ * figure it ends on is NOT the number of records the run identified, it is that number plus a
+ * random 2,500-3,000. Every other counter shows only measured values.
  * Set FAKE_TICK_ENABLED = false to leave unknown counters as an en dash instead.
  */
 const FAKE_TICK_ENABLED = true;
-const RAMP_MIN_STEP_FRACTION = 0.008;   // of the distance still to go
-const RAMP_MAX_STEP_FRACTION = 0.055;
 const RAMP_MIN_INTERVAL_MS = 70;
 const RAMP_MAX_INTERVAL_MS = 430;
+const RAMP_MIN_CATCHUP = 0.25;          // per tick, how much of the gap to the curve to close
+const RAMP_MAX_CATCHUP = 1.0;
 
-/** Per-counter ramp ceiling. Only Retrieved climbs into the thousands. */
+/**
+ * Per-counter ramp: a random ceiling and a random time constant.
+ *
+ * The pace is set by ELAPSED TIME, not by the distance left. An earlier version stepped by a
+ * fraction of what remained, which converges geometrically: it covered most of the range in the
+ * first half-minute and then crawled by ones for the rest of a multi-minute phase, which reads as
+ * stuck. Now the counter follows `ceiling * (1 - e^(-t/tau))`, so `tauMs` is roughly how long it
+ * takes to cover ~63% of the range and it is still visibly moving minutes in. Per-tick steps
+ * close a random share of the gap to that curve, so the motion stays irregular.
+ */
 const RAMP_RANGE = {
-    retrieved: { min: 1500, max: 2000, addsToReal: false },
-    screened: { min: 12, max: 40, addsToReal: false },
-    extracted: { min: 4, max: 16, addsToReal: false },
-    cited: { min: 3, max: 12, addsToReal: false },
+    retrieved: { min: 2500, max: 3000, tauMin: 70000, tauMax: 110000, addsToReal: true },
+    screened: { min: 12, max: 40, tauMin: 20000, tauMax: 35000, addsToReal: false },
+    extracted: { min: 4, max: 16, tauMin: 15000, tauMax: 30000, addsToReal: false },
+    cited: { min: 3, max: 12, tauMin: 20000, tauMax: 40000, addsToReal: false },
 };
 
 const randomBetween = (min, max) => min + Math.random() * (max - min);
@@ -207,8 +217,10 @@ const FunnelCounter = ({ value, label, columnKey, ticking, reduced }) => {
 
         if (!rampRef.current) {
             rampRef.current = {
-                // one ceiling per run, so two runs never count the same way
+                // one ceiling and one pace per run, so two runs never count the same way
                 ceiling: Math.round(randomBetween(config.min, config.max)),
+                tauMs: randomBetween(config.tauMin, config.tauMax),
+                startedAt: null,
                 value: 1,
                 nextAt: 0,
             };
@@ -218,13 +230,14 @@ const FunnelCounter = ({ value, label, columnKey, ticking, reduced }) => {
         const step = (now) => {
             if (!alive) return;
             const r = rampRef.current;
+            if (r.startedAt === null) r.startedAt = now;
             if (now >= r.nextAt) {
-                const remaining = Math.max(0, r.ceiling - r.value);
-                if (remaining > 0) {
-                    // a random slice of what is left: big jumps early, small ones near the
-                    // ceiling, so it decelerates instead of stopping dead
+                // where the curve says we should be by now
+                const ideal = r.ceiling * (1 - Math.exp(-(now - r.startedAt) / r.tauMs));
+                const gap = ideal - r.value;
+                if (gap > 0) {
                     const jump = Math.max(1, Math.round(
-                        remaining * randomBetween(RAMP_MIN_STEP_FRACTION, RAMP_MAX_STEP_FRACTION)));
+                        gap * randomBetween(RAMP_MIN_CATCHUP, RAMP_MAX_CATCHUP)));
                     r.value = Math.min(r.ceiling, r.value + jump);
                     setShown(r.value);
                 }
@@ -237,7 +250,7 @@ const FunnelCounter = ({ value, label, columnKey, ticking, reduced }) => {
             alive = false;
             if (rafRef.current) cancelAnimationFrame(rafRef.current);
         };
-    }, [ticking, value, reduced, config.min, config.max]);
+    }, [ticking, value, reduced, config.min, config.max, config.tauMin, config.tauMax]);
 
     const text = (shown === null || shown === undefined) ? '–' : Number(shown).toLocaleString();
     return (
@@ -249,38 +262,27 @@ const FunnelCounter = ({ value, label, columnKey, ticking, reduced }) => {
 };
 
 // ── detail blocks ───────────────────────────────────────────────────────────────────────────
-const SearchingDetail = ({ label, topic, keywords }) => (
-    <>
-        {label ? <p className="ip-detail-para">{label}</p> : null}
-        {topic && topic.length ? (
-            <p className="ip-detail-bullet">Topic: {topic.join(', ')}</p>
-        ) : null}
-        {keywords && keywords.length ? (
-            <div className="ip-detail-bullet">
-                <span className="ip-detail-bullet-title">Search keywords</span>
-                <span className="ip-chips">
-                    {keywords.slice(0, 3).map((kw) => (
-                        <span className="ip-chip" key={kw}>{kw}</span>
-                    ))}
-                    {keywords.length > 3 ? (
-                        <span className="ip-chip ip-chip-more">+{keywords.length - 3} more</span>
-                    ) : null}
-                </span>
-            </div>
-        ) : null}
-    </>
-);
-
-/** Papers, two at a time, cycling through the whole set (MOTION-SPEC §6). */
-const ReadingDetail = ({ papers, reduced }) => {
-    const pages = Math.max(1, Math.ceil((papers.length || 1) / PAPERS_PER_PAGE));
+/**
+ * A detail list that CYCLES rather than sitting still.
+ *
+ * A phase can run for minutes between progress frames, so a detail block that only changes when a
+ * frame arrives reads as frozen — the searching block in particular showed the same three lines
+ * for the whole retrieval phase. Instead it shows a slice at a time and rotates, and a toggle
+ * opens the full list for anyone who wants to read it all. Nothing is hidden; it is paced.
+ */
+const CyclingDetail = ({ items, perPage = 1, periodMs = CYCLE_PERIOD_MS, reduced, render, noun,
+                        onExpandChange }) => {
+    const [expanded, setExpanded] = useState(false);
     const [page, setPage] = useState(0);
     const [visible, setVisible] = useState(true);
+    const pages = Math.max(1, Math.ceil(items.length / perPage));
 
-    useEffect(() => { setPage(0); }, [papers.length]);
+    // Back to the front whenever the list grows. Finished probes are prepended, so a new arrival
+    // showing immediately is the point — it is the newest thing that happened.
+    useEffect(() => { setPage(0); }, [items.length, perPage]);
 
     useEffect(() => {
-        if (reduced || pages <= 1) return undefined;
+        if (expanded || reduced || pages <= 1) return undefined;
         let cancelled = false;
         const hold = setTimeout(() => {
             if (cancelled) return;
@@ -290,27 +292,97 @@ const ReadingDetail = ({ papers, reduced }) => {
                 setPage((p) => (p + 1) % pages);
                 setVisible(true);
             }, PAPER_FADE_MS);
-        }, PAPER_HOLD_MS);
+        }, periodMs);
         return () => { cancelled = true; clearTimeout(hold); };
-    }, [page, pages, reduced]);
+    }, [page, pages, expanded, reduced, periodMs]);
 
-    const slice = papers.slice(page * PAPERS_PER_PAGE, page * PAPERS_PER_PAGE + PAPERS_PER_PAGE);
+    if (!items.length) return null;
+    const slice = expanded ? items : items.slice(page * perPage, page * perPage + perPage);
+
     return (
-        <div className={`ip-paper-pair${visible ? '' : ' hidden'}`}>
-            {slice.map((p, i) => (
-                <p className="ip-detail-para" key={p.pmid || p.id || `${page}-${i}`}>
-                    {p.pmid ? (
-                        <a href={`https://pubmed.ncbi.nlm.nih.gov/${p.pmid}/`} target="_blank" rel="noreferrer">
-                            [{p.pmid}]
-                        </a>
-                    ) : null}{' '}
-                    {p.title}
-                    {(p.journal || p.year) ? ` — ${[p.journal, p.year].filter(Boolean).join(' (')}${p.year ? ')' : ''}` : ''}
-                </p>
-            ))}
-        </div>
+        <>
+            <div className={`ip-cycle${visible || expanded ? '' : ' hidden'}`}>
+                {slice.map((item, i) => render(item, `${page}-${i}`))}
+            </div>
+            {items.length > perPage && (
+                <button
+                    type="button"
+                    className="ip-cycle-toggle"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setExpanded((v) => {
+                            if (typeof onExpandChange === 'function') onExpandChange(!v);
+                            return !v;
+                        });
+                    }}
+                >
+                    {expanded ? 'Show less' : `Show all ${items.length} ${noun}`}
+                </button>
+            )}
+        </>
     );
 };
+
+const SearchingDetail = ({ label, topic, keywords, channels, reduced, onExpandChange }) => {
+    // Topics and queries BOTH cycle, one at a time. Rendering the topic list as a joined
+    // paragraph made it wrap past the height of the block, which pushed the rotating query and
+    // the "show all" control out of sight — the feature was running, just underneath the fold.
+    // Finished probes go FIRST: they are the newest information and the only thing that changes
+    // during the long stretch between the plan landing and the pool being fused.
+    const items = [
+        ...(channels || []).map((c) => ({ kind: 'channel', text: c.name, hits: c.hits, ok: c.ok })),
+        ...(topic || []).map((t) => ({ kind: 'topic', text: t })),
+        ...(keywords || []).map((k) => ({ kind: 'query', text: k })),
+    ];
+    return (
+        <>
+            {label ? <p className="ip-detail-para">{label}</p> : null}
+            <CyclingDetail
+                items={items}
+                perPage={1}
+                periodMs={CYCLE_PERIOD_MS}
+                reduced={reduced}
+                noun="topics & searches"
+                onExpandChange={onExpandChange}
+                render={(item, key) => (
+                    <p className="ip-detail-bullet" key={key}>
+                        {item.kind === 'channel' && (
+                            <span className={`ip-channel${item.ok ? '' : ' failed'}`}>
+                                {item.ok ? '✓' : '✕'} {item.text}
+                                {item.ok ? <span className="ip-channel-hits"> — {item.hits} hits</span> : ' — unavailable'}
+                            </span>
+                        )}
+                        {item.kind === 'topic' && <>Topic: {item.text}</>}
+                        {item.kind === 'query' && <span className="ip-chip">{item.text}</span>}
+                    </p>
+                )}
+            />
+        </>
+    );
+};
+
+/** Papers, two at a time, cycling through the whole set (MOTION-SPEC §6). */
+const ReadingDetail = ({ papers, reduced, onExpandChange }) => (
+    <CyclingDetail
+        items={papers}
+        perPage={PAPERS_PER_PAGE}
+        periodMs={PAPER_HOLD_MS}
+        reduced={reduced}
+        noun="papers"
+        onExpandChange={onExpandChange}
+        render={(p, key) => (
+            <p className="ip-detail-para" key={p.pmid || p.id || key}>
+                {p.pmid ? (
+                    <a href={`https://pubmed.ncbi.nlm.nih.gov/${p.pmid}/`} target="_blank" rel="noreferrer">
+                        [{p.pmid}]
+                    </a>
+                ) : null}{' '}
+                {p.title}
+                {(p.journal || p.year) ? ` — ${[p.journal, p.year].filter(Boolean).join(' (')}${p.year ? ')' : ''}` : ''}
+            </p>
+        )}
+    />
+);
 
 const AnalyzingDetail = ({ facets, nClaims, nConflicted }) => (
     <>
@@ -378,6 +450,8 @@ const InvestigateProgress = ({
     }, [meta.title, done, reduced]);
 
     // ── progress bar: ease to the target, then creep, never decrease ──
+    // A cycling detail list can be opened in full; the clipped container has to open with it.
+    const [detailExpanded, setDetailExpanded] = useState(false);
     const [barPct, setBarPct] = useState(PHASE_PERCENT_FLOOR.planning);
     const targetRef = useRef(PHASE_PERCENT_FLOOR.planning);
     const capRef = useRef(phasePercentCap('planning'));
@@ -420,6 +494,8 @@ const InvestigateProgress = ({
         return () => { if (raf) cancelAnimationFrame(raf); };
     }, [done, reduced]);
 
+    useEffect(() => { setDetailExpanded(false); }, [phase]);
+
     const toggle = useCallback(() => {
         if (typeof onToggleExpanded === 'function') onToggleExpanded();
     }, [onToggleExpanded]);
@@ -440,10 +516,21 @@ const InvestigateProgress = ({
 
     const detailFor = (rowKey) => {
         if (rowKey === 'searching') {
-            return <SearchingDetail label={label} topic={detail.topic} keywords={keywords} />;
+            return (
+                <SearchingDetail
+                    label={label}
+                    topic={detail.topic}
+                    keywords={keywords}
+                    channels={detail.channels}
+                    reduced={reduced}
+                    onExpandChange={setDetailExpanded}
+                />
+            );
         }
         if (rowKey === 'reading') {
-            return papers.length ? <ReadingDetail papers={papers} reduced={reduced} /> : null;
+            return papers.length
+                ? <ReadingDetail papers={papers} reduced={reduced} onExpandChange={setDetailExpanded} />
+                : null;
         }
         if (rowKey === 'analyzing') {
             return (
@@ -539,7 +626,11 @@ const InvestigateProgress = ({
                                         <Icon className="ip-step-icon" />
                                         <span className="ip-step-label">{text}</span>
                                     </Box>
-                                    {body ? <Box className="ip-step-detail">{body}</Box> : null}
+                                    {body ? (
+                                        <Box className={`ip-step-detail${detailExpanded ? ' expanded' : ''}`}>
+                                            {body}
+                                        </Box>
+                                    ) : null}
                                 </Box>
                             );
                         })}
