@@ -57,6 +57,7 @@ import {
   Typography,
 } from '@mui/material';
 
+import { emptyFunnel, mergeFunnel } from './funnel';
 import InvestigateProgress from './InvestigateProgress';
 import { ReactComponent as ContentCopyIcon } from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
@@ -68,7 +69,6 @@ import {
   INVESTIGATE_PHASE_ORDER,
   LLMAgentService,
   PHASE_PERCENT_FLOOR,
-  inferFunnelFromText,
   inferInvestigatePhase,
 } from '../../service/LLMAgent';
 import { getCurrentUser } from '../../service/Auth';
@@ -124,19 +124,6 @@ const formatInvestigatedDuration = (durationMs) => {
     return `${minutes}:${String(seconds).padStart(2, '0')}`;
 };
 
-const emptyFunnel = () => ({ retrieved: null, screened: null, extracted: null, cited: null });
-
-const mergeFunnel = (prev, next) => {
-    if (!next) return prev || emptyFunnel();
-    const base = prev || emptyFunnel();
-    return {
-        retrieved: next.retrieved ?? base.retrieved,
-        screened: next.screened ?? base.screened,
-        extracted: next.extracted ?? base.extracted,
-        cited: next.cited ?? base.cited,
-    };
-};
-
 const mergeLiveKeywords = (prev, next) => {
     if (!Array.isArray(next) || !next.length) return prev || [];
     return Array.from(new Set([...(prev || []), ...next.map(String)]));
@@ -163,6 +150,16 @@ const mergeInvestigateDetail = (prev, next, label) => {
     const out = { ...(prev || {}) };
     if (Array.isArray(next.topic) && next.topic.length) out.topic = next.topic.map(String);
     if (Array.isArray(next.facets) && next.facets.length) out.facets = next.facets.map(String);
+    // Retrieval channels reporting one by one. Accumulated (not replaced) and de-duplicated by
+    // name, because each frame carries the running list and a later frame must not drop an
+    // earlier probe's result.
+    if (Array.isArray(next.channels) && next.channels.length) {
+        const byName = new Map((out.channels || []).map((c) => [c.name, c]));
+        next.channels.forEach((c) => {
+            if (c && c.name) byName.set(String(c.name), { name: String(c.name), hits: Number(c.hits) || 0, ok: c.ok !== false });
+        });
+        out.channels = Array.from(byName.values());
+    }
     // `facets` is capped for display; `n_facets` is the true count.
     if (Number.isFinite(Number(next.n_facets))) out.nFacets = Number(next.n_facets);
     if (Number.isFinite(Number(next.n_claims))) out.nClaims = Number(next.n_claims);
@@ -1147,12 +1144,14 @@ const MessageCard = React.memo(function MessageCard({
     const resolvedFunnel = useMemo(() => {
         const fromMessage = message.investigateFunnel || null;
         if (!isLoading) return fromMessage || emptyFunnel();
-        const fromLive = investigateFunnel || emptyFunnel();
-        const activityLines = activeStreamingGroups
-            .flatMap((group) => (Array.isArray(group.lines) ? group.lines : []));
-        const inferred = inferFunnelFromText(activityLines);
-        return mergeFunnel(fromLive, inferred);
-    }, [isLoading, message.investigateFunnel, investigateFunnel, activeStreamingGroups]);
+        // Structured fields only. This used to also regex-scrape numbers out of the raw tool-log
+        // lines and let THOSE win, which is how Retrieved could jump to 9,000 and then fall back
+        // to 3,000: any stray figure in a tool result that happened to sit near the word
+        // "retrieved" overwrote the agent's real count, and the merge was last-write-wins rather
+        // than monotonic. The agent now reports every funnel number on every phase, so the
+        // scraper has nothing to add and plenty to break.
+        return investigateFunnel || emptyFunnel();
+    }, [isLoading, message.investigateFunnel, investigateFunnel]);
 
     // Figma: real % bar when agent sends percent; else phase floor (monotonic)
     // After complete: prefer message.investigatePercent (persisted on final)
@@ -1189,13 +1188,6 @@ const MessageCard = React.memo(function MessageCard({
         return Array.isArray(investigateKeywords) ? investigateKeywords : [];
     }, [isLoading, investigateKeywords, message.investigateKeywords]);
 
-    const visibleKeywords = useMemo(() => resolvedKeywords.slice(0, 12), [resolvedKeywords]);
-
-    const keywordOverflow = useMemo(
-        () => Math.max(0, resolvedKeywords.length - 12),
-        [resolvedKeywords],
-    );
-
     const resolvedPapers = useMemo(() => {
         if (isLoading && Array.isArray(investigatePapers) && investigatePapers.length) {
             return investigatePapers;
@@ -1205,12 +1197,6 @@ const MessageCard = React.memo(function MessageCard({
         }
         return Array.isArray(investigatePapers) ? investigatePapers : [];
     }, [isLoading, investigatePapers, message.investigatePapers]);
-
-    const visiblePapers = useMemo(() => resolvedPapers.slice(0, 8), [resolvedPapers]);
-    const paperOverflow = useMemo(
-        () => Math.max(0, resolvedPapers.length - 8),
-        [resolvedPapers],
-    );
 
     // Tool call step icons — maps tool names and phase labels to MUI icons (per Figma)
     const toggleGroup = useCallback((nextIndex) => {
@@ -1342,52 +1328,6 @@ const MessageCard = React.memo(function MessageCard({
                                         </span>
                                     );
                                 })}
-                            </Box>
-                        )}
-                        {showInvestigateSummary && visibleKeywords.length > 0 && (
-                            <Box className="investigate-keywords" aria-label="Search keywords used">
-                                <span className="investigate-keywords-title">Search keywords</span>
-                                <Box className="investigate-keywords-chips">
-                                    {visibleKeywords.map((kw) => (
-                                        <span key={kw} className="investigate-keyword-chip">{kw}</span>
-                                    ))}
-                                    {keywordOverflow > 0 && (
-                                        <span className="investigate-keyword-more">+{keywordOverflow} more</span>
-                                    )}
-                                </Box>
-                            </Box>
-                        )}
-                        {showInvestigateSummary && visiblePapers.length > 0 && (
-                            <Box className="investigate-live-papers" aria-label="Papers reviewed">
-                                <span className="investigate-live-papers-title">
-                                    Reviewed {resolvedPapers.length} paper{resolvedPapers.length === 1 ? '' : 's'}
-                                    {paperOverflow > 0 ? ` (showing ${visiblePapers.length})` : ''}
-                                </span>
-                                <ul className="investigate-live-papers-list">
-                                    {visiblePapers.map((paper) => (
-                                        <li key={paper.id || paper.pmid || paper.title}>
-                                            {paper.pmid ? (
-                                                <a
-                                                    href={`https://pubmed.ncbi.nlm.nih.gov/${paper.pmid}/`}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                >
-                                                    {paper.title}
-                                                </a>
-                                            ) : (
-                                                <span>{paper.title}</span>
-                                            )}
-                                            {(paper.journal || paper.year) && (
-                                                <span className="investigate-live-paper-meta">
-                                                    {[paper.journal, paper.year].filter(Boolean).join(' · ')}
-                                                </span>
-                                            )}
-                                        </li>
-                                    ))}
-                                </ul>
-                                {paperOverflow > 0 && (
-                                    <span className="investigate-keyword-more">+{paperOverflow} more</span>
-                                )}
                             </Box>
                         )}
 
@@ -2667,21 +2607,15 @@ function LLMAgent() {
                                     investigatePhaseRef.current = nextPhase;
                                     setInvestigatePhase(nextPhase);
                                 }
+                                // Structured funnel fields only — see mergeFunnel. Raw tool-log lines
+                                // used to be regex-scraped for numbers here, which wrote figures
+                                // pulled out of unrelated tool output straight into the counters.
                                 if (update.funnel) {
                                     investigateFunnelRef.current = mergeFunnel(
                                         investigateFunnelRef.current,
                                         update.funnel,
                                     );
                                     setInvestigateFunnel({ ...investigateFunnelRef.current });
-                                } else {
-                                    const inferred = inferFunnelFromText([rawContent]);
-                                    if (inferred) {
-                                        investigateFunnelRef.current = mergeFunnel(
-                                            investigateFunnelRef.current,
-                                            inferred,
-                                        );
-                                        setInvestigateFunnel({ ...investigateFunnelRef.current });
-                                    }
                                 }
                                 {
                                     const nextPct = mergePercentMonotonic(

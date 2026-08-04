@@ -365,15 +365,21 @@ export class LLMAgentService {
             if (Number.isFinite(Number(options.maxArticles))) {
                 payload.max_articles = Number(options.maxArticles);
             }
-            // Send the array even when empty. Omitting it means "no preference", and
-            // the backend then keeps the filter stored on the conversation — so an
-            // empty list was the one selection the user could never express, and
-            // turning "reviews only" back off did nothing (issue #11).
-            if (Array.isArray(options.filters)) {
-                payload.filters = options.filters;
-            }
-            if (typeof options.rankingMode === 'string' && options.rankingMode.trim()) {
-                payload.ranking_mode = options.rankingMode.trim();
+            // Deep Research drops filters/ranking_mode — it runs its own hybrid retrieval rather
+            // than the agent's search tools. Sending them anyway would be worse than useless: the
+            // backend PERSISTS filters onto the conversation, so a selection that did nothing for
+            // the investigate turn would silently apply to the next ordinary chat turn.
+            if (!investigateEnabled) {
+                // Send the array even when empty. Omitting it means "no preference", and
+                // the backend then keeps the filter stored on the conversation — so an
+                // empty list was the one selection the user could never express, and
+                // turning "reviews only" back off did nothing (issue #11).
+                if (Array.isArray(options.filters)) {
+                    payload.filters = options.filters;
+                }
+                if (typeof options.rankingMode === 'string' && options.rankingMode.trim()) {
+                    payload.ranking_mode = options.rankingMode.trim();
+                }
             }
             // Backend PR #31: email when Deep Research hits Complete
             if (

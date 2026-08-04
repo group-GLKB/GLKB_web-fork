@@ -9,7 +9,7 @@
  *   * the bar only ever moves forward, and keeps moving between progress frames.
  */
 import React from 'react';
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import InvestigateProgress from './InvestigateProgress';
@@ -158,18 +158,89 @@ describe('step rows', () => {
 
 // ── detail content ──────────────────────────────────────────────────────────────────────────
 describe('detail block', () => {
-    it('shows the agent label, the topic and the keyword chips while searching', () => {
-        setup({
-            phase: 'searching',
-            label: 'Searched the literature — 1341 candidate papers found for: KRAS, TP53',
-            detail: { topic: ['KRAS mutation frequency', 'TP53 loss-of-function'] },
-            keywords: ['SoupX ambient RNA', 'CellBender', 'DecontX', 'Scrublet', 'Harmony'],
-        });
+    const searchingProps = {
+        phase: 'searching',
+        label: 'Searched the literature — 1341 candidate papers found for: KRAS, TP53',
+        detail: { topic: ['KRAS mutation frequency', 'TP53 loss-of-function'] },
+        keywords: ['SoupX ambient RNA', 'CellBender', 'DecontX', 'Scrublet', 'Harmony'],
+    };
+
+    it('shows the agent label and the topic while searching', () => {
+        setup(searchingProps);
         const d = document.querySelector('.ip-step-detail');
         expect(within(d).getByText(/1341 candidate papers found/)).toBeInTheDocument();
         expect(within(d).getByText(/Topic: KRAS mutation frequency/)).toBeInTheDocument();
-        expect(within(d).getByText('SoupX ambient RNA')).toBeInTheDocument();
-        expect(within(d).getByText('+2 more')).toBeInTheDocument();   // 5 keywords, 3 shown
+    });
+
+    it('shows one topic or search at a time rather than the whole list', () => {
+        // The searching phase can run for minutes between progress frames; a static block reads as
+        // frozen, so topics and queries rotate through one slot instead. Rendering them all at
+        // once also pushed the "show all" control below the fold.
+        setup(searchingProps);
+        expect(document.querySelectorAll('.ip-cycle .ip-detail-bullet')).toHaveLength(1);
+    });
+
+    it('rotates to the next search on its own', () => {
+        setup(searchingProps);
+        const shown = () => document.querySelector('.ip-cycle').textContent;
+        const first = shown();
+        act(() => { jest.advanceTimersByTime(2200); });
+        expect(shown()).not.toBe(first);
+    });
+
+    it('offers a way to read everything at once, and stops rotating while open', () => {
+        setup(searchingProps);                       // 2 topics + 5 queries
+        fireEvent.click(screen.getByRole('button', { name: /show all 7 topics & searches/i }));
+        const d = document.querySelector('.ip-step-detail');
+        expect(document.querySelectorAll('.ip-cycle .ip-detail-bullet')).toHaveLength(7);
+        expect(d).toHaveClass('expanded');           // and the line clamp opens with it
+
+        const all = document.querySelector('.ip-cycle').textContent;
+        act(() => { jest.advanceTimersByTime(3000); });
+        expect(document.querySelector('.ip-cycle').textContent).toBe(all);
+
+        fireEvent.click(screen.getByRole('button', { name: /show less/i }));
+        expect(document.querySelectorAll('.ip-cycle .ip-detail-bullet')).toHaveLength(1);
+    });
+
+    it('leads with the probes that have finished, newest information first', () => {
+        // The stretch between the plan landing and the pool being fused is minutes long, and the
+        // finished probes are the only thing that changes during it.
+        setup({
+            ...searchingProps,
+            detail: {
+                topic: ['t1'],
+                channels: [
+                    { name: 'Vector search over abstracts', hits: 180, ok: true },
+                    { name: 'Knowledge-graph expansion', hits: 95, ok: true },
+                ],
+            },
+        });
+        const first = document.querySelector('.ip-cycle').textContent;
+        expect(first).toMatch(/Vector search over abstracts/);
+        expect(first).toMatch(/180 hits/);
+    });
+
+    it('says so when a probe came back empty rather than hiding it', () => {
+        setup({
+            ...searchingProps,
+            detail: {
+                topic: [],
+                channels: [{ name: 'Knowledge-graph expansion', hits: 0, ok: false }],
+            },
+        });
+        expect(document.querySelector('.ip-cycle').textContent).toMatch(/unavailable/);
+    });
+
+    it('keeps the "show all" control visible instead of hiding it under a long topic', () => {
+        // A joined topic paragraph used to wrap past the block's fixed height and bury both the
+        // rotating item and this button.
+        setup({
+            ...searchingProps,
+            detail: { topic: ['A very long topic line '.repeat(12).trim(), 'second topic'] },
+        });
+        expect(screen.getByRole('button', { name: /show all/i })).toBeInTheDocument();
+        expect(document.querySelectorAll('.ip-cycle .ip-detail-bullet')).toHaveLength(1);
     });
 
     it('shows two papers at a time while reading, and links them to PubMed', () => {
@@ -280,12 +351,14 @@ describe('the fake ramp shown before a real number arrives', () => {
         expect(screenedText()).toBe('–');       // screening has not started yet
     });
 
-    it('lands on the real number, not on the ramp plus the real number', () => {
-        // The ramp is motion only. Retrieved shows PRISMA's "records identified" — already
-        // several times the fused pool — so nothing has to be added to make it substantial.
+    it('adds the ramp to the real number for Retrieved (product decision)', () => {
+        // Note what this means: the figure Retrieved settles on is NOT the number of records the
+        // run identified. It is that number plus wherever the ramp had got to. Flip
+        // RAMP_RANGE.retrieved.addsToReal to show the measured value alone.
         const { rerender } = setup({ phase: 'searching' });
         act(() => { jest.advanceTimersByTime(20000); });
-        expect(num(retrievedText())).toBeGreaterThan(1);
+        const ramped = num(retrievedText());
+        expect(ramped).toBeGreaterThan(1);
 
         rerender(
             <InvestigateProgress
@@ -300,7 +373,28 @@ describe('the fake ramp shown before a real number arrives', () => {
             />,
         );
         act(() => { jest.advanceTimersByTime(3000); });
-        expect(num(retrievedText())).toBe(4472);
+        expect(num(retrievedText())).toBe(4472 + ramped);
+    });
+
+    it('shows the measured value alone for every other counter', () => {
+        const { rerender } = setup({ phase: 'screening' });
+        act(() => { jest.advanceTimersByTime(20000); });
+        expect(num(screenedText())).toBeGreaterThan(1);      // ramping
+
+        rerender(
+            <InvestigateProgress
+                phase="reading"
+                funnel={{ retrieved: null, screened: 53, extracted: null, cited: null }}
+                percent={22}
+                keywords={[]}
+                papers={[]}
+                detail={{}}
+                label=""
+                expanded
+            />,
+        );
+        act(() => { jest.advanceTimersByTime(3000); });
+        expect(screenedText()).toBe('53');
     });
 
     it('carries on from where the ramp got to instead of restarting at zero', () => {
