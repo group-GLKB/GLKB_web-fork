@@ -12,7 +12,7 @@ import React from 'react';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
-import InvestigateProgress from './InvestigateProgress';
+import InvestigateProgress, { formatElapsed } from './InvestigateProgress';
 import { PHASE_PERCENT_FLOOR } from '../../service/investigatePhases';
 
 const setup = (props = {}) => render(
@@ -55,10 +55,76 @@ describe('on mount, before any progress frame', () => {
         expect(stepTexts()).toEqual(['Planning the investigation']);
     });
 
-    it('shows an ETA and the notify control', () => {
+    it('shows the elapsed clock and the notify control', () => {
         setup();
-        expect(screen.getByText(/~6 min/)).toBeInTheDocument();
+        expect(document.querySelector('.ip-elapsed').textContent).toContain('0:00');
         expect(screen.getByRole('button', { name: /notify me/i })).toBeInTheDocument();
+    });
+});
+
+// ── elapsed clock ───────────────────────────────────────────────────────────────────────────
+/**
+ * The header used to carry a hardcoded per-phase ETA ("~6 min") that stepped only when the phase
+ * changed — so it sat frozen for minutes beside a moving bar, and its ladder never matched a
+ * measured run. It now counts up from the moment the query was sent.
+ */
+describe('elapsed clock', () => {
+    const clock = () => document.querySelector('.ip-elapsed').textContent;
+
+    it('counts up as the run proceeds', () => {
+        setup({ startedAt: Date.now() });
+        act(() => { jest.advanceTimersByTime(65_000); });
+        expect(clock()).toContain('1:05');
+    });
+
+    it('pads the seconds and lets the minutes past 59', () => {
+        setup({ startedAt: Date.now() });
+        act(() => { jest.advanceTimersByTime(9_000); });
+        expect(clock()).toContain('0:09');
+        act(() => { jest.advanceTimersByTime(60 * 60_000); });
+        expect(clock()).toContain('60:09');
+    });
+
+    it('measures from the run start, not from when the panel mounted', () => {
+        // The panel remounts on re-render; a clock anchored to mount time would restart at 0:00
+        // mid-run and contradict the "Investigated for m:ss" row that follows it.
+        setup({ startedAt: Date.now() - 90_000 });
+        expect(clock()).toContain('1:30');
+    });
+
+    it('freezes at the final time once the run is done', () => {
+        setup({ startedAt: Date.now(), done: true });
+        act(() => { jest.advanceTimersByTime(30_000); });
+        expect(clock()).toContain('0:00');
+    });
+
+    it('falls back to mount time when no start is given', () => {
+        // Never `Date.now() - 0`, which would read as ~56 years.
+        setup();
+        act(() => { jest.advanceTimersByTime(3_000); });
+        expect(clock()).toContain('0:03');
+    });
+});
+
+describe('formatElapsed', () => {
+    // Shared with the "Investigated for m:ss" summary row in index.jsx, so the live clock and the
+    // figure the user is left with cannot drift apart.
+    it('truncates rather than rounds', () => {
+        // 473.9s must print the 7:53 the clock last showed, not 7:54.
+        expect(formatElapsed(473.9)).toBe('7:53');
+        expect(formatElapsed(0.99)).toBe('0:00');
+    });
+
+    it('pads seconds and leaves minutes uncapped', () => {
+        expect(formatElapsed(9)).toBe('0:09');
+        expect(formatElapsed(60)).toBe('1:00');
+        expect(formatElapsed(4400)).toBe('73:20');
+    });
+
+    it('never prints a negative or a NaN clock', () => {
+        expect(formatElapsed(-5)).toBe('0:00');
+        expect(formatElapsed(NaN)).toBe('0:00');
+        expect(formatElapsed(undefined)).toBe('0:00');
     });
 });
 

@@ -58,7 +58,9 @@ import {
 } from '@mui/material';
 
 import { emptyFunnel, mergeFunnel } from './funnel';
-import InvestigateProgress from './InvestigateProgress';
+import InvestigateProgress, { formatElapsed } from './InvestigateProgress';
+import { resolveClarifyRound } from './clarifyRound';
+import { mintSessionId } from './sessionId';
 import { ReactComponent as ContentCopyIcon } from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import { ReactComponent as ReferenceIcon } from '../../img/llm/reference.svg';
@@ -116,12 +118,16 @@ const formatDuration = (durationMs) => {
     return `${seconds}s`;
 };
 
+/**
+ * The "Investigated for m:ss" row shown once the run closes.
+ *
+ * Formatting is delegated to the live header clock's `formatElapsed` so the two can never drift
+ * apart — same shape, same truncation, same `Date.now()` origin. Returns '' for an unknown
+ * duration, which is also what gates the row's visibility.
+ */
 const formatInvestigatedDuration = (durationMs) => {
     if (durationMs === null || durationMs === undefined) return '';
-    const totalSeconds = Math.max(0, Math.round(durationMs / 1000));
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+    return formatElapsed(durationMs / 1000);
 };
 
 const mergeLiveKeywords = (prev, next) => {
@@ -1371,8 +1377,11 @@ const MessageCard = React.memo(function MessageCard({
                                 papers={resolvedPapers}
                                 detail={investigateDetail}
                                 label={investigateDetail?.label || streamingStepName || ''}
+                                /* Same `Date.now()` the final "Investigated for m:ss" is measured
+                                   from, so the live clock and the summary row cannot disagree. */
+                                startedAt={investigateStartedAt}
                                 /* The agent's `summary` frame lands just before the report itself,
-                                   so this is the brief terminal beat: bar at 100%, ETA unmounts,
+                                   so this is the brief terminal beat: bar at 100%, clock freezes,
                                    title becomes "Report ready" — then the panel gives way to the
                                    "Investigated for m:ss" summary row when the run closes. */
                                 done={resolvedPhase === 'summary'}
@@ -1739,6 +1748,21 @@ function LLMAgent() {
     const lastAutoSelectedRef = useRef(null);
     const sessionIdRef = useRef(null);
     const runIdRef = useRef(null);
+    // The clarify round's identifiers, mirrored out of React state.
+    //
+    // The panel is answered by POSTing to /clarify with (session_id, invocation_id, stage). Issue
+    // #12 captured a HAR where all three were plainly on the wire and Skip still produced
+    // "Clarification session has expired" with ZERO clarify requests — i.e. the submit handler read
+    // them as null. Every other live investigate value here is already mirrored into a ref for the
+    // same reason (funnel, phase, percent, papers, session id): a value the SSE handler writes and
+    // a click handler reads must not depend on which render each of them closed over.
+    const pendingClarificationRef = useRef(null);
+    // The ONLY way to set the pending round: the ref and the state must never disagree, or the
+    // panel would render one round while submit answers another.
+    const applyPendingClarification = useCallback((next) => {
+        pendingClarificationRef.current = next || null;
+        setPendingClarification(next || null);
+    }, []);
     const hasConsumedInitialQueryRef = useRef(false);
     const initialSearchOptionsRef = useRef(null);
     const lastSearchOptionsRef = useRef(null);
@@ -2022,7 +2046,7 @@ function LLMAgent() {
         setStreamingStepName('');
         thinkingStepsRef.current = [];
         setThinkingStepsVersion(v => v + 1);
-        setPendingClarification(null);
+        applyPendingClarification(null);
         setClarificationDrafts({});
         setClarificationError('');
         setClarificationSubmitting(false);
@@ -2083,7 +2107,7 @@ function LLMAgent() {
         runIdRef.current = null;
         setStreamingStepName('');
         setShowReloadPrompt(false);
-        setPendingClarification(null);
+        applyPendingClarification(null);
         setClarificationDrafts({});
         setClarificationError('');
         setClarificationSubmitting(false);
@@ -2426,6 +2450,11 @@ function LLMAgent() {
         } else {
             sessionIdRef.current = getStoredSessionId(historyId) || sessionIdRef.current;
         }
+        // An investigate run must know its session id BEFORE the stream opens, because that id is
+        // the only address a clarify round can be answered at. See mintSessionId.
+        if (investigateEnabled && !sessionIdRef.current) {
+            sessionIdRef.current = mintSessionId();
+        }
 
         // Update chat history with user message
         setChatHistory([...baseHistory, newMessage]);
@@ -2434,7 +2463,7 @@ function LLMAgent() {
         setIsProcessing(true);
         setStreamingGroups([]);
         setStreamingStepName('');
-        setPendingClarification(null);
+        applyPendingClarification(null);
         setClarificationDrafts({});
         setClarificationError('');
         setClarificationSubmitting(false);
@@ -2528,7 +2557,7 @@ function LLMAgent() {
                         if (update.sessionId) {
                             sessionIdRef.current = update.sessionId;
                         }
-                        setPendingClarification({
+                        applyPendingClarification({
                             invocationId: update.invocationId || null,
                             stage: update.stage || null,
                             sessionId: update.sessionId || sessionIdRef.current || null,
@@ -2724,7 +2753,7 @@ function LLMAgent() {
                         if (update.sessionId) {
                             sessionIdRef.current = update.sessionId;
                         }
-                        setPendingClarification(null);
+                        applyPendingClarification(null);
                         setClarificationDrafts({});
                         setClarificationError('');
                         setClarificationSubmitting(false);
@@ -2808,7 +2837,7 @@ function LLMAgent() {
                     }
                     case 'error': // unsure if this is used
                         if (!isActiveStream) return;
-                        setPendingClarification(null);
+                        applyPendingClarification(null);
                         setClarificationDrafts({});
                         setClarificationError('');
                         setClarificationSubmitting(false);
@@ -2851,7 +2880,7 @@ function LLMAgent() {
                 try {
                     const run = await llmService.getRun({ runId: runIdRef.current });
                     if (run && (run.status === 'complete' || run.response)) {
-                        setPendingClarification(null);
+                        applyPendingClarification(null);
                         setIsProcessing(false);
                         setStreamingStepName('');
                         setChatHistory((prev) => {
@@ -2913,7 +2942,7 @@ function LLMAgent() {
                 setIsLoading(false);
                 setIsProcessing(false);
                 activeStreamIdRef.current = null;
-                setPendingClarification(null);
+                applyPendingClarification(null);
                 setClarificationDrafts({});
                 setClarificationError('');
                 setClarificationSubmitting(false);
@@ -2946,11 +2975,27 @@ function LLMAgent() {
     }, [pendingClarification, clarificationDrafts]);
 
     const submitClarification = useCallback(async ({ useDefaults = false } = {}) => {
-        const sessionId = pendingClarification?.sessionId || sessionIdRef.current || null;
-        const invocationId = pendingClarification?.invocationId || null;
-        const stage = pendingClarification?.stage || null;
+        // Read the round from the ref FIRST. This handler is reached from a click deep inside a
+        // memoised MessageCard; the ref is written by the SSE handler the instant the frame lands
+        // and cannot be a render behind. State is kept as the fallback so the two can only
+        // disagree in the direction of "the ref is fresher".
+        const { questions, sessionId, invocationId, stage } = resolveClarifyRound(
+            pendingClarificationRef.current, pendingClarification, sessionIdRef.current,
+        );
+        // Last-resort guard. handleSubmit mints the session id before the stream opens and the
+        // agent puts invocation_id + stage on every clarification frame, so all three are present
+        // by construction. The old copy here said the session had "expired", which was a guess —
+        // nothing had timed out, we simply had no address to answer at — and it sent the user off
+        // to re-ask, which bills a second full run. Issue #12 asked for exactly this: "Missing
+        // session_id / invocation_id → fix client state, do not invent 'expired'."
         if (!invocationId || !stage || !sessionId) {
-            setClarificationError('Clarification session has expired. Please ask your question again.');
+            logDev('[LLM] clarify: incomplete round', { invocationId, stage, sessionId });
+            // Deliberately does NOT promise the run will carry on: clarify.timeout_s is null, so a
+            // round nobody can answer leaves the run paused rather than proceeding on defaults.
+            setClarificationError(
+                'Could not identify this clarification round, so your answers cannot be sent and '
+                + 'this investigation cannot continue. Please ask your question again.',
+            );
             return;
         }
 
@@ -2959,7 +3004,7 @@ function LLMAgent() {
         try {
             const answers = useDefaults
                 ? []
-                : buildClarifyAnswers(pendingClarification.questions, clarificationDrafts);
+                : buildClarifyAnswers(questions, clarificationDrafts);
 
             const result = await llmService.clarify({
                 invocation_id: invocationId,
@@ -2968,7 +3013,7 @@ function LLMAgent() {
                 answers,
             });
 
-            setPendingClarification(null);
+            applyPendingClarification(null);
             setClarificationDrafts({});
             setClarificationError('');
             setClarificationSubmitting(false);
@@ -3009,7 +3054,7 @@ function LLMAgent() {
             try {
                 const run = await llmService.getRun({ runId: runIdRef.current });
                 if (!(run && (run.status === 'complete' || run.response))) return;
-                setPendingClarification(null);
+                applyPendingClarification(null);
                 setIsProcessing(false);
                 setStreamingStepName('');
                 setIsLoading(false);

@@ -31,25 +31,25 @@ export const INVESTIGATE_PHASE_ORDER = [
 ];
 
 /**
- * Header title + the ETA shown for each phase.
+ * The header title for each phase.
  *
- * `etaMin` steps ONCE per phase and is not interpolated (measured from the design recording:
- * 6 / 5 / 4 / 2 / 1 — `3` is deliberately skipped). The previous values for writing (3) and
- * verifying (2) were each off by one step.
- *
- * Titles follow the recording for the five phases it shows; `planning` / `screening` /
+ * Titles follow the design recording for the five phases it shows; `planning` / `screening` /
  * `finalizing` are not in the recording and take their wording from the content-mapping doc.
+ *
+ * There used to be an `etaMin` here — a per-phase "~6 min" estimate lifted off the recording. It
+ * was dropped: it stepped only on a phase change, so it sat frozen for minutes at a stretch, and
+ * its ladder was never reconciled with a measured run. The header now shows elapsed time instead.
  */
 export const INVESTIGATE_PHASE_META = {
-    planning: { title: 'Investigating...', etaMin: 6 },
-    searching: { title: 'Searching...', etaMin: 6 },
-    screening: { title: 'Screening...', etaMin: 6 },
-    reading: { title: 'Reading...', etaMin: 5 },
-    analyzing: { title: 'Analyzing...', etaMin: 4 },
-    writing: { title: 'Writing...', etaMin: 2 },
-    verifying: { title: 'Verifying...', etaMin: 1 },
-    finalizing: { title: 'Polishing...', etaMin: 1 },
-    summary: { title: 'Report ready', etaMin: 0 },
+    planning: { title: 'Investigating...' },
+    searching: { title: 'Searching...' },
+    screening: { title: 'Screening...' },
+    reading: { title: 'Reading...' },
+    analyzing: { title: 'Analyzing...' },
+    writing: { title: 'Writing...' },
+    verifying: { title: 'Verifying...' },
+    finalizing: { title: 'Polishing...' },
+    summary: { title: 'Report ready' },
 };
 
 /**
