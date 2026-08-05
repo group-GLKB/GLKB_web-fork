@@ -20,7 +20,6 @@ import {
 } from '@mui/material';
 
 import { ReactComponent as MetaIcon } from '../../img/library/Icon.svg';
-import { ReactComponent as HistoryIcon } from '../../img/navbar/history.svg';
 import {
   fetchConversations,
   getConversations,
@@ -606,25 +605,26 @@ const History = () => {
                         {!isMobileSelectMode && (
                             <Box className="history-header">
                                 <Box className="history-title-row">
-                                    <HistoryIcon className="history-icon" style={{ width: 36, height: 36, color: '#164563' }} />
                                     <Typography sx={{
-                                        fontFamily: 'DM Sans, sans-serif',
+                                        fontFamily: 'Geist, sans-serif',
                                         fontWeight: 600,
-                                        fontSize: '32px',
-                                        color: '#164563',
+                                        fontSize: '24px',
+                                        lineHeight: '32px',
+                                        color: '#0C1018',
                                     }}>
                                         History
                                     </Typography>
                                 </Box>
                                 <Typography sx={{
-                                    marginTop: '8.5px',
-                                    fontFamily: 'DM Sans, sans-serif',
-                                    fontWeight: 500,
+                                    marginTop: '4px',
+                                    fontFamily: 'Geist, sans-serif',
+                                    fontWeight: 400,
                                     fontSize: '14px',
-                                    color: '#646464',
+                                    lineHeight: '20px',
+                                    color: '#5E6E87',
                                     textAlign: 'left',
                                 }}>
-                                    Search your past activity.
+                                    Revisit your past searches and conversations.
                                 </Typography>
                                 <div className="history-search">
                                     <input
@@ -671,7 +671,7 @@ const History = () => {
                                                 sx: {
                                                     backgroundColor: '#E7F1FF',
                                                     color: '#164563',
-                                                    fontFamily: 'DM Sans, sans-serif',
+                                                    fontFamily: 'Geist, sans-serif',
                                                     fontSize: '14px',
                                                     fontWeight: 500,
                                                     padding: '4px 12px',
@@ -724,7 +724,7 @@ const History = () => {
                                                     sx: {
                                                         backgroundColor: '#E7F1FF',
                                                         color: '#164563',
-                                                        fontFamily: 'DM Sans, sans-serif',
+                                                        fontFamily: 'Geist, sans-serif',
                                                         fontSize: '14px',
                                                         fontWeight: 500,
                                                         padding: '4px 12px',
@@ -874,7 +874,7 @@ const History = () => {
                             ))
                         ) : (
                             <Typography sx={{
-                                fontFamily: 'DM Sans, sans-serif',
+                                fontFamily: 'Geist, sans-serif',
                                 fontSize: '14px',
                                 color: '#646464',
                             }}>

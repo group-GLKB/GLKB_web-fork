@@ -59,7 +59,7 @@ const HomePage = () => {
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
     const [queryLimitTotal, setQueryLimitTotal] = useState(10);
     const [isPhoneDevice, setIsPhoneDevice] = useState(false);
-    const { isAuthenticated, loading } = useAuth();
+    const { isAuthenticated, loading, openLoginModal } = useAuth();
     const navigate = useNavigate();
     const examplePanelRef = useRef(null);
     const heroRef = useRef(null);
@@ -168,7 +168,7 @@ const HomePage = () => {
             event.preventDefault();
             event.stopPropagation();
         }
-        navigate('/login');
+        openLoginModal();
         return true;
     };
 

@@ -1,6 +1,7 @@
 import React, {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -35,7 +36,9 @@ const ReferenceCard = ({
 }) => {
     const [isBookmarked, setIsBookmarked] = useState(false);
     const [isEvidenceOpen, setIsEvidenceOpen] = useState(false);
-    const { isAuthenticated, loading } = useAuth();
+    const [isQuoteTruncated, setIsQuoteTruncated] = useState(false);
+    const quoteTextRef = useRef(null);
+    const { isAuthenticated, loading, openLoginModal } = useAuth();
     const navigate = useNavigate();
     const showHighlight = isHighlighted;
 
@@ -56,7 +59,7 @@ const ReferenceCard = ({
         event.stopPropagation();
         if (loading) return;
         if (!isAuthenticated) {
-            navigate('/login');
+            openLoginModal();
             return;
         }
         const entry = {
@@ -102,16 +105,41 @@ const ReferenceCard = ({
     );
     const hasEvidence = evidenceItems.length > 0;
 
+    // The meta line has to stay on a single row, so anything past the first
+    // author collapses into "et al." rather than listing names.
     const renderAuthors = () => {
         const authorsList = authors.split(', ').filter(name => name.trim().length > 0);
         if (authorsList.length === 0) return null;
-        if (authorsList.length <= 2) return authorsList.join(', ');
-        return `${authorsList[0]}, ..., ${authorsList[authorsList.length - 1]}`;
+        if (authorsList.length === 1) return authorsList[0];
+        return `${authorsList[0]} et al.`;
     };
 
     const citationCount = Number(url?.[2]);
     const hasCitationCount = showCitations && Number.isFinite(citationCount);
     const metaParts = [renderAuthors(), url?.[3]].filter(Boolean);
+
+    // Only offer the expand affordance when the excerpt is actually clipped —
+    // a quote that already fits should not show a chevron.
+    const firstQuote = hasEvidence ? evidenceItems[0].quote : '';
+    useEffect(() => {
+        const node = quoteTextRef.current;
+        if (!node) {
+            setIsQuoteTruncated(false);
+            return undefined;
+        }
+        const measure = () => {
+            // scrollHeight exceeds clientHeight only while the line clamp is active.
+            setIsQuoteTruncated(node.scrollHeight - node.clientHeight > 1);
+        };
+        measure();
+        if (typeof ResizeObserver === 'undefined') return undefined;
+        const observer = new ResizeObserver(measure);
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, [firstQuote, isEvidenceOpen]);
+
+    const hasExtraExcerpts = evidenceItems.length > 1;
+    const showQuoteToggle = hasEvidence && (isQuoteTruncated || isEvidenceOpen || hasExtraExcerpts);
 
     return (
         <div
@@ -140,29 +168,34 @@ const ReferenceCard = ({
                     <div className="reference-card-quote">
                         <span className="reference-card-quote-bar" />
                         <div className="reference-card-quote-content">
-                            <p className={`reference-card-quote-text${isEvidenceOpen ? ' reference-card-quote-text--clamped-off' : ''}`}>
+                            <p
+                                ref={quoteTextRef}
+                                className={`reference-card-quote-text${isEvidenceOpen ? ' reference-card-quote-text--clamped-off' : ''}${showQuoteToggle ? '' : ' reference-card-quote-text--no-toggle'}`}
+                            >
                                 “{evidenceItems[0].quote}”
                             </p>
-                            <Tooltip title={isEvidenceOpen ? 'Collapse excerpts' : 'Expand excerpts'} arrow>
-                                <IconButton
-                                    size="small"
-                                    className="reference-card-evidence-toggle"
-                                    onClick={(event) => {
-                                        event.stopPropagation();
-                                        setIsEvidenceOpen((previous) => !previous);
-                                    }}
-                                    aria-label={isEvidenceOpen ? 'Collapse excerpts' : 'Expand excerpts'}
-                                    aria-expanded={isEvidenceOpen}
-                                >
-                                    <ExpandMoreIcon
-                                        sx={{
-                                            fontSize: 14,
-                                            transform: isEvidenceOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                                            transition: 'transform 0.2s ease',
+                            {showQuoteToggle && (
+                                <Tooltip title={isEvidenceOpen ? 'Collapse excerpts' : 'Expand excerpts'} arrow>
+                                    <IconButton
+                                        size="small"
+                                        className="reference-card-evidence-toggle"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            setIsEvidenceOpen((previous) => !previous);
                                         }}
-                                    />
-                                </IconButton>
-                            </Tooltip>
+                                        aria-label={isEvidenceOpen ? 'Collapse excerpts' : 'Expand excerpts'}
+                                        aria-expanded={isEvidenceOpen}
+                                    >
+                                        <ExpandMoreIcon
+                                            sx={{
+                                                fontSize: 14,
+                                                transform: isEvidenceOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                                transition: 'transform 0.2s ease',
+                                            }}
+                                        />
+                                    </IconButton>
+                                </Tooltip>
+                            )}
                         </div>
                     </div>
                 )}

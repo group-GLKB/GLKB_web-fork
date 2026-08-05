@@ -44,7 +44,11 @@ const loadGoogleIdentityScript = () => {
   return googleScriptPromise;
 };
 
-const LoginPage = () => {
+/**
+ * Sign-in overlay. Rendered once near the app root and opened from anywhere via
+ * `openLoginModal()` so the user never loses the page they were on.
+ */
+const LoginModal = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
@@ -56,38 +60,48 @@ const LoginPage = () => {
   const {
     login,
     loginWithGoogle,
-    isAuthenticated,
-    loading: authLoading,
+    isLoginModalOpen,
+    closeLoginModal,
   } = useAuth();
   const googleInitializedRef = useRef(false);
   const googleButtonRef = useRef(null);
   const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
+    if (!isLoginModalOpen) return undefined;
     let isMounted = true;
 
     loadGoogleIdentityScript()
       .then(() => {
-        if (isMounted) {
-          setGoogleReady(true);
-        }
+        if (isMounted) setGoogleReady(true);
       })
       .catch(() => {
-        if (isMounted) {
-          setOauthLoading(false);
-        }
+        if (isMounted) setOauthLoading(false);
       });
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isLoginModalOpen]);
+
+  // Reset transient state each time the overlay is dismissed.
+  useEffect(() => {
+    if (isLoginModalOpen) return;
+    setError('');
+    setLoading(false);
+    setOauthLoading(false);
+    setShowGoogleFallback(false);
+    setAutoTriggerFallback(false);
+  }, [isLoginModalOpen]);
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      navigate('/', { replace: true });
-    }
-  }, [authLoading, isAuthenticated, navigate]);
+    if (!isLoginModalOpen) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') closeLoginModal();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isLoginModalOpen, closeLoginModal]);
 
   const handleGoogleLogin = () => {
     if (oauthLoading) return;
@@ -123,9 +137,7 @@ const LoginPage = () => {
 
               const result = await loginWithGoogle(response.credential);
 
-              if (result.success) {
-                navigate('/');
-              } else {
+              if (!result.success) {
                 setError(result.message);
               }
 
@@ -142,6 +154,7 @@ const LoginPage = () => {
   };
 
   useEffect(() => {
+    if (!isLoginModalOpen) return;
     if (!googleReady || !showGoogleFallback || !googleButtonRef.current || !googleClientId) {
       return;
     }
@@ -157,9 +170,7 @@ const LoginPage = () => {
 
           const result = await loginWithGoogle(response.credential);
 
-          if (result.success) {
-            navigate('/');
-          } else {
+          if (!result.success) {
             setError(result.message);
           }
         }
@@ -173,18 +184,15 @@ const LoginPage = () => {
       size: 'large',
       type: 'standard',
       text: 'continue_with',
-      shape: 'pill',
+      shape: 'rectangular',
       width: 320,
     });
     if (autoTriggerFallback) {
       const button = googleButtonRef.current.querySelector('div[role="button"]');
-      if (button) {
-        button.click();
-      }
+      if (button) button.click();
       setAutoTriggerFallback(false);
     }
-  }, [googleReady, showGoogleFallback, googleClientId, loginWithGoogle, navigate, autoTriggerFallback]);
-
+  }, [isLoginModalOpen, googleReady, showGoogleFallback, googleClientId, loginWithGoogle, autoTriggerFallback]);
 
   const handleContinue = async (e) => {
     e.preventDefault();
@@ -194,7 +202,7 @@ const LoginPage = () => {
     const result = await login(email);
 
     if (result.success) {
-      // Navigate to verification page with email
+      closeLoginModal();
       navigate('/verify-code', { state: { email } });
     } else {
       setError(result.message);
@@ -203,84 +211,82 @@ const LoginPage = () => {
     setLoading(false);
   };
 
-  const handleClose = () => {
-    navigate('/');
-  };
+  if (!isLoginModalOpen) return null;
 
   return (
-    <>
-      <div className="login-page-container">
-        <div className="login-modal">
-          <button
-            type="button"
-            className="login-close"
-            aria-label="Close login"
-            onClick={handleClose}
-          >
-            &times;
-          </button>
-          <h2 className="login-title">Sign in below to unlock the full potential of GLKB</h2>
+    <div
+      className="login-overlay"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) closeLoginModal();
+      }}
+    >
+      <div className="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
+        <button
+          type="button"
+          className="login-close"
+          aria-label="Close sign in"
+          onClick={closeLoginModal}
+        >
+          &times;
+        </button>
 
-          <p className="login-subtitle">New to GLKB? An account will be <strong>automatically created</strong> for you upon your first sign-in.</p>
+        <h2 className="login-title" id="login-modal-title">
+          Sign in to unlock the full potential of GLKB
+        </h2>
 
-          <div className="google-login-slot">
-            {showGoogleFallback ? (
-              <>
-                <div className="google-fallback-warning">
-                  Google sign-in is currently using popup mode.
-                </div>
-                <div className="google-fallback-subtitle">Login in a pop-up window</div>
-                <div className="google-fallback" ref={googleButtonRef} />
-              </>
-            ) : (
-              <button
-                type="button"
-                className="oauth-button google-button"
-                onClick={handleGoogleLogin}
-                disabled={oauthLoading}
-              >
-                <span className="oauth-icon"><FcGoogle size={24} /></span>
-                {oauthLoading ? 'Connecting...' : 'Continue with Google'}
-              </button>
-            )}
-          </div>
+        <p className="login-subtitle">
+          New to GLKB? Signing in <strong>automatically creates your account</strong>. No separate sign-up needed.
+        </p>
 
-          <div className="divider">
-            <span>OR</span>
-          </div>
-
-          <form onSubmit={handleContinue}>
-            <input
-              type="email"
-              className="login-input"
-              placeholder="sarah@yahoo.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-
-            {error && <div className="error-message">{error}</div>}
-
+        <div className="google-login-slot">
+          {showGoogleFallback ? (
+            <>
+              <div className="google-fallback-subtitle">Continue in the Google pop-up window</div>
+              <div className="google-fallback" ref={googleButtonRef} />
+            </>
+          ) : (
             <button
-              type="submit"
-              className="continue-button"
-              disabled={loading || !email.trim()}
+              type="button"
+              className="oauth-button google-button"
+              onClick={handleGoogleLogin}
+              disabled={oauthLoading}
             >
-              {loading ? 'Sending...' : 'Continue'}
+              <span className="oauth-icon"><FcGoogle size={20} /></span>
+              {oauthLoading ? 'Connecting...' : 'Continue with Google'}
             </button>
-          </form>
+          )}
+        </div>
 
-          {/* <div className="sso-text">
-            Single sign-on (SSO)
-          </div> */}
+        <div className="divider"><span>Or</span></div>
 
-          <div className="privacy-text">
-            By clicking continuing, you agree to our <a href="/privacy-policy">privacy policy</a>.
-          </div>
+        <form onSubmit={handleContinue}>
+          <input
+            type="email"
+            className="login-input"
+            placeholder="sarah@university.edu"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+
+          {error && <div className="error-message">{error}</div>}
+
+          <button
+            type="submit"
+            className="continue-button"
+            disabled={loading || !email.trim()}
+          >
+            {loading ? 'Sending...' : 'Continue'}
+          </button>
+        </form>
+
+        <div className="privacy-text">
+          By continuing, you agree to our <a href="/terms">Terms and Conditions</a> and <a href="/privacy-policy">Privacy Policy</a>.
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
-export default LoginPage;
+export default LoginModal;

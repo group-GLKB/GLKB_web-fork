@@ -18,6 +18,7 @@ import { Menu as MenuIcon } from '@mui/icons-material';
 import logoIcon from '../../img/GLKB_logo_icon.png';
 import logoWordmark from '../../img/navbar/logo.png';
 import { trackGtagEvent } from '../../utils/gtag';
+import LoginModal from '../Auth/LoginModal';
 import NavBarWhite from '../Units/NavBarWhite';
 
 const SIDEBAR_OPEN_EVENT = 'glkb-open-sidebar';
@@ -122,6 +123,8 @@ const AppLayout = () => {
             <div className={`app-layout-content${showMobileHeader ? ' has-mobile-header' : ''}`}>
                 <Outlet />
             </div>
+            {/* Sign-in lives in an overlay so it can appear over any page. */}
+            <LoginModal />
         </>
     );
 };

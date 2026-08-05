@@ -459,9 +459,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         <Box
                             sx={{
                                 position: 'absolute',
-                                left: '20px',
-                                right: '12px',
-                                bottom: '13px',
+                                left: '16px',
+                                right: '16px',
+                                bottom: '16px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
@@ -497,17 +497,16 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     sx={{
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        gap: '6px',
-                                        height: '36px',
-                                        padding: '8px 12px',
-                                        margin: '-8px -12px',
-                                        borderRadius: '999px',
+                                        gap: '4px',
+                                        height: '32px',
+                                        padding: '4px 8px',
+                                        borderRadius: '8px',
                                         border: 'none',
-                                        background: investigateEnabled ? '#EEF3FF' : 'transparent',
+                                        background: investigateEnabled ? '#D9E6FE' : 'transparent',
                                         color: investigateEnabled ? '#155DFC' : '#5E6E87',
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 600,
-                                        fontSize: '14px',
+                                        fontSize: '12px',
                                         lineHeight: '16px',
                                         textTransform: 'none',
                                         minWidth: 0,
@@ -519,11 +518,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         },
                                         '&:hover': {
                                             border: 'none',
-                                            background: investigateEnabled ? '#DBEBFF' : '#F4F8FF',
-                                            color: investigateEnabled ? '#0E4EDB' : '#475B79',
+                                            background: investigateEnabled ? '#BBCFFE' : '#F2F4F8',
+                                            color: investigateEnabled ? '#0A47D6' : '#46566C',
                                         },
                                     }}
-                                    startIcon={<InvestigateIcon style={{ width: '16px', height: '16px' }} />}
+                                    startIcon={<InvestigateIcon style={{ width: '20px', height: '20px' }} />}
                                     title={investigateEnabled ? 'Investigate on' : 'Investigate off'}
                                 >
                                     Investigate
@@ -534,7 +533,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 sx={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: { xs: '8px', sm: '12px' },
+                                    gap: { xs: '8px', sm: '16px' },
                                     minWidth: 0,
                                     marginLeft: { xs: 0, sm: 'auto' },
                                     pointerEvents: 'auto',
@@ -556,16 +555,15 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         display: { xs: 'inline-flex', sm: 'none' },
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        gap: '6px',
-                                        padding: '10px 8px',
-                                        margin: '-10px -8px',
-                                        borderRadius: '0px',
+                                        gap: '4px',
+                                        padding: '4px 8px',
+                                        borderRadius: '8px',
                                         background: 'transparent',
-                                        color: searchOptionsLocked ? '#A8B3C8' : '#46566C',
+                                        color: searchOptionsLocked ? '#A8B3C8' : '#5E6E87',
                                         cursor: searchOptionsLocked ? 'not-allowed' : 'pointer',
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 600,
-                                        fontSize: '14px',
+                                        fontSize: '12px',
                                         lineHeight: '16px',
                                         textTransform: 'none',
                                         minWidth: 0,
@@ -576,7 +574,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         pointerEvents: 'auto',
                                     }}
                                 >
-                                    <SearchOptionsIcon style={{ color: searchOptionsLocked ? '#A8B3C8' : '#46566C', width: '16px', height: '16px' }} />
+                                    <SearchOptionsIcon style={{ color: searchOptionsLocked ? '#A8B3C8' : '#5E6E87', width: '20px', height: '20px' }} />
                                     {mobileChipLabel}
                                 </Box>
 
@@ -585,17 +583,16 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         display: { xs: 'none', sm: 'inline-flex' },
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        gap: '6px',
-                                        height: '36px',
-                                        padding: '10px 8px',
-                                        margin: '-10px -8px',
-                                        borderRadius: '18px',
+                                        gap: '4px',
+                                        height: '32px',
+                                        padding: '4px 8px',
+                                        borderRadius: '8px',
                                         background: 'transparent',
-                                        color: searchOptionsLocked ? '#A8B3C8' : '#46566C',
+                                        color: searchOptionsLocked ? '#A8B3C8' : '#5E6E87',
                                         cursor: searchOptionsLocked ? 'not-allowed' : 'pointer',
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 600,
-                                        fontSize: '14px',
+                                        fontSize: '12px',
                                         lineHeight: '16px',
                                         textTransform: 'none',
                                         minWidth: 0,
@@ -625,7 +622,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         openSearchOptions();
                                     }}
                                 >
-                                    <SearchOptionsIcon style={{ color: searchOptionsLocked ? '#A8B3C8' : '#46566C', width: '16px', height: '16px' }} />
+                                    <SearchOptionsIcon style={{ color: searchOptionsLocked ? '#A8B3C8' : '#5E6E87', width: '20px', height: '20px' }} />
                                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{mobileChipLabel}</span>
                                 </Button>
 

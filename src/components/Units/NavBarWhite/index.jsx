@@ -132,7 +132,7 @@ const PermanentDrawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !=
 );
 
 function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
-    const { isAuthenticated, user, logout } = useAuth();
+    const { isAuthenticated, user, logout, openLoginModal } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     const theme = useTheme();
@@ -350,15 +350,16 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const loginItem = useMemo(() => (
         {
-            label: 'Login',
-            to: '/login',
+            label: 'Log in',
+            // Opens the sign-in overlay instead of navigating to a page.
+            onClick: () => openLoginModal(),
             icon: <PersonIcon sx={{ fontSize: 22 }} />,
             iconBoxSx: {
                 backgroundColor: '#155DFC',
                 color: '#ffffff',
             },
         }
-    ), []);
+    ), [openLoginModal]);
 
     const userDisplayName = storedProfile.name || user?.username || user?.email || 'Account';
     const isUserMenuOpen = Boolean(userMenuAnchorEl);

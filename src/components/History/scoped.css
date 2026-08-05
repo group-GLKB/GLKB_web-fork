@@ -4,7 +4,7 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: #FAFCFF;
+    background-color: #FDFEFF;
     overflow: hidden;
 }
 
@@ -72,10 +72,10 @@
 }
 
 .history-section-title {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-weight: 700;
     font-size: 14px;
-    color: #164563;
+    color: #222A38;
     margin-top: 16px;
 }
 
@@ -87,14 +87,14 @@
 
 .history-search-input {
     width: 100%;
-    height: 40px;
-    padding: 0 64px 0 14px;
-    border-radius: 10px;
-    border: 1px solid #DADADA;
+    height: 36px;
+    padding: 0 64px 0 12px;
+    border-radius: 8px;
+    border: 1px solid #CBD2E0;
     background-color: #ffffff;
-    font-family: 'DM Sans';
-    font-size: 14px;
-    color: #164563;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    color: #0C1018;
     outline: none;
     box-shadow: none;
 }
@@ -104,8 +104,8 @@
 .history-search-input::-moz-placeholder,
 .history-search-input:-ms-input-placeholder,
 .history-search-input::-ms-input-placeholder {
-    color: #9A9A9A;
-    font-family: 'DM Sans, sans-serif';
+    color: #5E6E87;
+    font-family: 'Geist, sans-serif';
 }
 
 .history-search-input:focus {
@@ -120,8 +120,8 @@
     transform: translateY(-50%);
     border: none;
     background: #EEF3FA;
-    color: #164563;
-    font-family: 'DM Sans';
+    color: #222A38;
+    font-family: 'Geist';
     font-size: 12px;
     font-weight: 600;
     padding: 4px 8px;
@@ -146,18 +146,18 @@
 }
 
 .history-meta-text {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-weight: 500;
     font-size: 13px;
-    color: #808080;
+    color: #5E6E87;
     text-align: left;
 }
 
 .history-select-toggle {
     border: none;
     background: transparent;
-    color: #164563;
-    font-family: 'DM Sans', sans-serif;
+    color: #222A38;
+    font-family: 'Geist', sans-serif;
     font-size: 13px;
     font-weight: 500;
     line-height: 1.4;
@@ -203,7 +203,7 @@
     border: none;
     background: transparent;
     color: #B42318;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-size: 13px;
     font-weight: 500;
     line-height: 1.4;
@@ -243,10 +243,10 @@
     border-radius: 16px;
     border: 1px solid #E7F1FF;
     background-color: #ffffff;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-weight: 500;
     font-size: 14px;
-    color: #164563;
+    color: #222A38;
     height: 32px;
     box-sizing: border-box;
 }
@@ -262,7 +262,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-size: 14px;
     font-weight: 500;
     color: #969696;
@@ -289,10 +289,10 @@
 }
 
 .history-mobile-select-title {
-    font-family: 'DM Sans', sans-serif !important;
+    font-family: 'Geist', sans-serif !important;
     font-size: 16px !important;
     font-weight: 700 !important;
-    color: #164563;
+    color: #222A38;
 }
 
 @media (max-width: 767px) {

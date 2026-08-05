@@ -57,6 +57,7 @@ import workflowSynthesize
   from '../../img/about/workflow/step3_synthesize_transparent.svg';
 import workflowVerify
   from '../../img/about/workflow/step4_verify_explore_transparent.svg';
+import { useAuth } from '../Auth/AuthContext';
 import faqData from './faqData.json';
 
 const SHOW_PRICING_SECTION = false;
@@ -66,9 +67,10 @@ const AboutPage = () => {
     const [expandedFaqId, setExpandedFaqId] = useState(null);
     const location = useLocation();
     const navigate = useNavigate();
+    const { openLoginModal } = useAuth();
 
     const handleGoToLogin = () => {
-        navigate('/login');
+        openLoginModal();
     };
 
     const handleGoToHome = () => {
