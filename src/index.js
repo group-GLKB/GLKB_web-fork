@@ -23,7 +23,7 @@ import ApiPage from './components/ApiPage';
 // import SignupPage from './components/Auth/SignupPage';
 // import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './components/Auth/AuthContext';
-import LoginPage from './components/Auth/LoginPage';
+import LoginRedirect from './components/Auth/LoginRedirect';
 import VerifyCodePage from './components/Auth/VerifyCodePage';
 import DebugPage from './components/Debug';
 import History from './components/History';
@@ -150,7 +150,7 @@ function AppWithRoutes() {
                     <Route path="/test-auth" element={<TestAuth />} />
 
                     {/* Authentication routes */}
-                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/login" element={<LoginRedirect />} />
                     <Route path="/verify-code" element={<VerifyCodePage />} />
                     {/* <Route path="/signup" element={<SignupPage />} /> */}
                     <Route path="*" element={<Navigate to="/" replace />} />

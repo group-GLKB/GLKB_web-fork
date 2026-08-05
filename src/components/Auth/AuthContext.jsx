@@ -13,6 +13,9 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Signing in happens in an overlay on top of whatever page the user is on,
+  // rather than by navigating away to a dedicated route.
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   // Check for existing authentication on mount
   useEffect(() => {
@@ -109,6 +112,16 @@ export const AuthProvider = ({ children }) => {
     return result;
   };
 
+  const openLoginModal = () => setIsLoginModalOpen(true);
+  const closeLoginModal = () => setIsLoginModalOpen(false);
+
+  // Close the overlay as soon as the user is signed in.
+  useEffect(() => {
+    if (isAuthenticated) {
+      setIsLoginModalOpen(false);
+    }
+  }, [isAuthenticated]);
+
   const value = {
     user,
     isAuthenticated,
@@ -119,7 +132,10 @@ export const AuthProvider = ({ children }) => {
     verifyCode,
     loginWithGoogle,
     updateUsername,
-    logout
+    logout,
+    isLoginModalOpen,
+    openLoginModal,
+    closeLoginModal
   };
 
   return (

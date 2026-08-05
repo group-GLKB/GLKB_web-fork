@@ -3,12 +3,10 @@ import React from 'react';
 import CloseIcon from '@mui/icons-material/Close';
 import {
   Box,
-  Button,
   TextField,
   useMediaQuery,
 } from '@mui/material';
 
-import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { trackGtagEvent } from '../../utils/gtag';
 
@@ -17,8 +15,9 @@ const ChatSearchBar = ({
     setUserInput,
     isLoading,
     isQueryLimitReached = false,
+    // Investigate is fixed for the life of a session, so the bar reports the
+    // mode for analytics but no longer renders a toggle.
     investigateEnabled = false,
-    onInvestigateChange,
     onSubmit,
     onStop,
 }) => {
@@ -38,7 +37,6 @@ const ChatSearchBar = ({
             borderColor: '#E5E9F0',
             boxShadow: 'none',
             flexDirection: 'column',
-            paddingBottom: '8px',
         }}>
             <TextField
                 className="input-form"
@@ -63,14 +61,14 @@ const ChatSearchBar = ({
                     width: '100%',
                     '& .MuiInputBase-root': {
                         borderRadius: '16px',
-                        minHeight: { xs: '44px', sm: '64px' },
+                        minHeight: { xs: '44px', sm: '52px' },
                         height: 'auto',
-                        alignItems: 'flex-start',
+                        alignItems: 'center',
                         paddingLeft: '20px',
-                        paddingRight: '76px !important',
-                        paddingTop: { xs: '8px', sm: '12px' },
-                        paddingBottom: { xs: '8px', sm: '12px' },
-                        fontFamily: 'Open Sans, sans-serif',
+                        paddingRight: '60px !important',
+                        paddingTop: { xs: '8px', sm: '10px' },
+                        paddingBottom: { xs: '8px', sm: '10px' },
+                        fontFamily: 'Geist, sans-serif',
                         fontSize: '14px',
                         color: '#0C1018',
                         '& fieldset': {
@@ -81,7 +79,7 @@ const ChatSearchBar = ({
                         lineHeight: '24px',
                     },
                     '& .MuiInputBase-input::placeholder': {
-                        color: '#969696',
+                        color: '#A8B3C8',
                         opacity: 1,
                     },
                 }}
@@ -120,9 +118,9 @@ const ChatSearchBar = ({
                                         onStop?.();
                                     }}
                                     sx={{
-                                        width: 36,
-                                        height: 36,
-                                        borderRadius: '50%',
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: '8px',
                                         backgroundColor: '#222A38',
                                         display: 'flex',
                                         alignItems: 'center',
@@ -144,10 +142,10 @@ const ChatSearchBar = ({
                                         onSubmit?.(event);
                                     }}
                                     sx={{
-                                        width: 36,
-                                        height: 36,
-                                        borderRadius: '50%',
-                                        backgroundColor: userInput.trim() && !isQueryLimitReached ? '#155DFC' : '#CBD2E0',
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: '8px',
+                                        backgroundColor: userInput.trim() && !isQueryLimitReached ? '#155DFC' : '#D9E6FE',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -155,57 +153,19 @@ const ChatSearchBar = ({
                                     }}
                                     title="Send"
                                 >
-                                    <SearchArrowIcon style={{ width: 18, height: 18 }} />
+                                    <SearchArrowIcon
+                                        style={{
+                                            width: 16,
+                                            height: 16,
+                                            color: userInput.trim() && !isQueryLimitReached ? '#FFFFFF' : '#155DFC',
+                                        }}
+                                    />
                                 </Box>
                             )}
                         </Box>
                     ),
                 }}
             />
-            <Box sx={{ display: 'flex', alignItems: 'center', px: '12px', gap: 1 }}>
-                <Button
-                    disabled={isLoading || isQueryLimitReached}
-                    onMouseDown={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                    }}
-                    onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        const next = !investigateEnabled;
-                        trackGtagEvent('chat_investigate_toggle_click', { enabled: next });
-                        onInvestigateChange?.(next);
-                    }}
-                    startIcon={<InvestigateIcon style={{ width: 16, height: 16 }} />}
-                    title={investigateEnabled ? 'Investigate on' : 'Investigate off'}
-                    sx={{
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        height: '32px',
-                        padding: '6px 12px',
-                        borderRadius: '999px',
-                        border: 'none',
-                        background: investigateEnabled ? '#EEF3FF' : 'transparent',
-                        color: investigateEnabled ? '#155DFC' : '#5E6E87',
-                        fontFamily: 'Geist, sans-serif',
-                        fontWeight: 600,
-                        fontSize: '13px',
-                        lineHeight: '16px',
-                        textTransform: 'none',
-                        minWidth: 0,
-                        boxShadow: 'none !important',
-                        '& .MuiButton-startIcon': { margin: 0 },
-                        '&:hover': {
-                            border: 'none',
-                            background: investigateEnabled ? '#DBEBFF' : '#F4F8FF',
-                            color: investigateEnabled ? '#0E4EDB' : '#475B79',
-                        },
-                    }}
-                >
-                    Investigate
-                </Button>
-            </Box>
         </Box>
         </div>
     );

@@ -924,19 +924,33 @@ const parseThinkingEntry = (entry) => {
         || stepFromEntry === 'Complete'
     );
 
-    if (derivedStepName && STEP_LABELS[derivedStepName]) {
-        stepName = derivedStepName;
-    } else if (stepFromEntry && STEP_LABELS[stepFromEntry]) {
-        stepName = stepFromEntry;
+    // Resolve to the human-facing wording from step.json. Grouping keys off this
+    // value, so "[TOOL CALL] search_pubmed" and its matching "[TOOL RESULT]"
+    // collapse into a single "Searching for relevant articles".
+    //
+    // The tool/agent name must win over `stepFromEntry`: the transport tags
+    // nearly every frame as "Processing", which would otherwise flatten every
+    // distinct tool into the generic "Working...".
+    const derivedLabel = derivedStepName ? getStepLabel(derivedStepName) : '';
+    const hasSpecificLabel = Boolean(derivedLabel) && derivedLabel !== derivedStepName;
+
+    if (hasSpecificLabel) {
+        stepName = derivedLabel;
+    } else if (stepFromEntry && STEP_LABELS[stepFromEntry] && !isGenericTransportStep) {
+        stepName = STEP_LABELS[stepFromEntry];
     } else if (derivedStepName) {
-        stepName = derivedStepName;
-    } else if (stepFromEntry && !isGenericTransportStep) {
-        stepName = stepFromEntry;
+        stepName = derivedLabel || derivedStepName;
+    } else if (stepFromEntry) {
+        stepName = getStepLabel(stepFromEntry) || stepFromEntry;
     } else {
         stepName = 'Step';
     }
 
-    return { stepName, line: raw };
+    // `[TOOL CALL] … | Input: {…}` / `[AGENT START] …` are internal debug traces.
+    // Users see only the mapped wording, never the raw payload.
+    const isInternalTrace = Boolean(action);
+
+    return { stepName, line: isInternalTrace ? '' : raw };
 };
 
 const groupThinkingSteps = (steps) => {
@@ -1026,6 +1040,16 @@ const ReferencesSkeleton = () => (
         ))}
     </div>
 );
+
+// The agent occasionally emits raw citation placeholders (`[[c1]]`, `[[c1, c2]]`)
+// that were never resolved into links. They carry no meaning for the reader, so
+// they are stripped rather than shown as literal text next to the real badges.
+const UNRESOLVED_CITATION_TOKEN = /\[\[\s*c\d+(?:\s*,\s*c\d+)*\s*\]\]/gi;
+
+const stripUnresolvedCitations = (content) => {
+    if (typeof content !== 'string' || !content.includes('[[')) return content;
+    return content.replace(UNRESOLVED_CITATION_TOKEN, '');
+};
 
 const MessageCard = React.memo(function MessageCard({
     index,
@@ -1122,7 +1146,11 @@ const MessageCard = React.memo(function MessageCard({
         ? (animatedStepLabel || loadingStepLabel)
         : (thoughtDurationLabel ? `Thought for ${thoughtDurationLabel}` : 'Thought summary');
     const showInvestigateProgress = isAssistant && isInvestigateMessage && isLoading;
-    const showInvestigateSummary = isAssistant && isInvestigateMessage && !isLoading && Boolean(investigatedDurationLabel);
+    // Once an investigation finishes its thinking collapses into this eyebrow —
+    // it should never vanish outright, so a missing duration still renders the row
+    // as long as there are thoughts behind it.
+    const showInvestigateSummary = isAssistant && isInvestigateMessage && !isLoading
+        && (Boolean(investigatedDurationLabel) || hasDisplayGroups);
     const showThoughtHeader = isAssistant && (
         !isInvestigateMessage && (isLoading || thoughtDurationLabel || hasDisplayGroups)
     );
@@ -1281,17 +1309,18 @@ const MessageCard = React.memo(function MessageCard({
                 <Box
                     sx={{
                         bgcolor: isAssistant ? "transparent" : "#E5E9F0", // Different background colors
-                        boxShadow: isAssistant ? "none" : "0 4px 16px 0 rgba(0, 0, 0, 0.05)",
+                        boxShadow: "none",
                         maxWidth: isAssistant ? "100%" : "80%", // Adjust max width for assistant messages
                         width: isAssistant ? "100%" : "auto",
                         display: "flex",
                         alignItems: "flex-start",
-                        px: isAssistant ? "0px" : "24px",
-                        pt: isAssistant ? "12px" : "0px",
+                        // The user bubble keeps even padding on every side per the design spec.
+                        px: isAssistant ? "0px" : "16px",
+                        pt: isAssistant ? "12px" : "12px",
                         pb: isAssistant ? "24px" : "12px",
                         // border: isAssistant ? "1px solid" : "none",
                         borderColor: "divider",
-                        borderRadius: "24px",
+                        borderRadius: isAssistant ? "24px" : "16px",
                         flex: 1, // Occupy maximum width
                     }}
                 >
@@ -1312,7 +1341,9 @@ const MessageCard = React.memo(function MessageCard({
                                 aria-label={canToggleThoughts ? (thoughtsExpanded ? 'Collapse investigation thoughts' : 'Expand investigation thoughts') : undefined}
                             >
                                 <ScienceOutlinedIcon className="investigate-summary-icon" />
-                                <span className="investigate-summary-text">Investigated for {investigatedDurationLabel}</span>
+                                <span className="investigate-summary-text">
+                                    {investigatedDurationLabel ? `Investigated for ${investigatedDurationLabel}` : 'Investigation details'}
+                                </span>
                                 {canToggleThoughts && (
                                     <ChevronRightIcon className={`investigate-summary-chevron${thoughtsExpanded ? ' expanded' : ''}`} />
                                 )}
@@ -1509,7 +1540,7 @@ const MessageCard = React.memo(function MessageCard({
                                         sx={{ flex: 1, width: "100%" }}
                                         onChange={(event) => setEditContent(event.target.value)}
                                     /> : (
-                                        <div className="markdown-body" style={{ fontFamily: 'Open Sans, sans-serif' }}>
+                                        <div className="markdown-body" style={{ fontFamily: 'Geist, sans-serif' }}>
                                             <ReactMarkdown
                                                 remarkPlugins={[remarkGfm]}
                                                 components={{
@@ -1524,7 +1555,7 @@ const MessageCard = React.memo(function MessageCard({
                                                     },
                                                 }}
                                             >
-                                                {message.content}
+                                                {stripUnresolvedCitations(message.content)}
                                             </ReactMarkdown>
                                         </div>
                                     )}
@@ -1720,7 +1751,7 @@ function LLMAgent() {
     const originalNavigatorMethodsRef = useRef({ push: null, replace: null });
     const navigate = useNavigate();
     const { navigator: routerNavigator } = useContext(UNSAFE_NavigationContext);
-    const { isAuthenticated, loading: authLoading } = useAuth();
+    const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
     const [pendingNavigation, setPendingNavigation] = useState(null);
     const useMobileReferencesDrawer = isPhoneDevice;
 
@@ -2657,8 +2688,10 @@ function LLMAgent() {
                                     }
                                 }
 
+                                // Groups are keyed on the mapped step wording, so a step still
+                                // shows up while streaming even though its raw trace is withheld.
                                 setStreamingGroups((prev) => {
-                                    if (!parsedEntry.line.trim()) {
+                                    if (!parsedEntry.stepName) {
                                         return prev;
                                     }
 
@@ -3084,7 +3117,7 @@ function LLMAgent() {
     const handleToggleConversationBookmark = async () => {
         if (authLoading) return;
         if (!isAuthenticated) {
-            navigate('/login');
+            openLoginModal();
             return;
         }
         const currentId = activeConversationIdRef.current || activeConversationId;
@@ -3106,7 +3139,7 @@ function LLMAgent() {
     const handleEditChatTitle = () => {
         if (authLoading) return;
         if (!isAuthenticated) {
-            navigate('/login');
+            openLoginModal();
             return;
         }
         const currentId = activeConversationIdRef.current || activeConversationId;
@@ -3123,7 +3156,7 @@ function LLMAgent() {
     const handleConfirmChatTitleEdit = async () => {
         if (authLoading) return;
         if (!isAuthenticated) {
-            navigate('/login');
+            openLoginModal();
             return;
         }
         const currentId = activeConversationIdRef.current || activeConversationId;
@@ -4336,7 +4369,6 @@ function LLMAgent() {
                                                         isLoading={isLoading}
                                                         isQueryLimitReached={isLimitReachedEffective}
                                                         investigateEnabled={chatInvestigateEnabled}
-                                                        onInvestigateChange={setChatInvestigateEnabled}
                                                         onSubmit={(event) => handleSubmit(event, null, null, {
                                                             searchOptions: {
                                                                 investigateEnabled: chatInvestigateEnabled,
