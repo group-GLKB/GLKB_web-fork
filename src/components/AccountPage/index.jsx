@@ -146,11 +146,7 @@ const AccountPage = () => {
     const usagePercent = quotaLimit > 0 ? Math.min(100, (quotaUsed / quotaLimit) * 100) : 0;
     const usageResetText = formatResetTime(tierInfo?.end_time || tierInfo?.period_start);
     const normalizedTier = `${tierInfo?.tier || 'free'}`.toLowerCase();
-    const isFreeTier = normalizedTier === 'free';
     const isUpgradeDisabled = normalizedTier === 'pro' || normalizedTier === 'admin';
-    const queryUsageText = normalizedTier === 'admin'
-        ? 'INF/INF'
-        : (tierLoading ? '--/--' : `${quotaUsed}/${quotaLimit}`);
 
     const openNameModal = () => {
         setNameDraft(displayName);
@@ -275,7 +271,7 @@ const AccountPage = () => {
                                     },
                                     '& .MuiTab-root': {
                                         textTransform: 'none',
-                                        fontFamily: 'DM Sans, sans-serif',
+                                        fontFamily: 'Geist, sans-serif',
                                         fontSize: '13px',
                                         fontWeight: 600,
                                         color: '#164563',
@@ -310,103 +306,75 @@ const AccountPage = () => {
                                     </div>
                                 </div>
 
-                                <div className="flat-row">
-                                    <div className="flat-field">
-                                        <div className="flat-label">Display Name</div>
-                                        <div className="flat-value">{displayName}</div>
-                                    </div>
-                                    <button type="button" className="flat-btn" onClick={openNameModal}>
-                                        Change name
+                                <h2 className="settings-title">Account</h2>
+
+                                <div className="settings-row">
+                                    <span className="settings-row-label">Display Name</span>
+                                    <button type="button" className="settings-row-action" onClick={openNameModal}>
+                                        Edit
                                     </button>
                                 </div>
 
-                                <div className="flat-row">
-                                    <div className="flat-field">
-                                        <div className="flat-label">Email</div>
-                                        <div className="flat-value">{email}</div>
+                                <div className="settings-row settings-row-last">
+                                    <span className="settings-row-label">Email</span>
+                                    <span className="settings-row-value">{email}</span>
+                                </div>
+
+                                <h2 className="settings-title">Usage &amp; Balance</h2>
+
+                                <div className="settings-row settings-row-stacked">
+                                    <div className="settings-row-head">
+                                        <span className="settings-row-label">Monthly Queries</span>
+                                        <span className="settings-row-chip">
+                                            {tierLoading ? 'Loading...' : usageResetText}
+                                        </span>
+                                    </div>
+                                    <div
+                                        className="subscription-progress"
+                                        role="progressbar"
+                                        aria-valuemin={0}
+                                        aria-valuemax={quotaLimit || 100}
+                                        aria-valuenow={quotaUsed}
+                                    >
+                                        <div
+                                            className="subscription-progress-fill"
+                                            style={{ width: `${usagePercent}%` }}
+                                        />
+                                    </div>
+                                    <div className="subscription-progress-footer">
+                                        <span>{tierLoading ? '-- used' : `${quotaUsed} used`}</span>
+                                        <span>{tierLoading ? '-- remaining' : `${quotaRemaining} remaining`}</span>
                                     </div>
                                 </div>
 
-                                <h2 className="settings-title">Subscription</h2>
-                                <div className="settings-divider"></div>
+                                <div className="settings-row">
+                                    <span className="settings-row-label">Your Subscription</span>
+                                    <span className="plan-badge">{formatTierLabel(tierInfo?.tier)}</span>
+                                </div>
 
-                                <div className="flat-row">
-                                    <div className="flat-field">
-                                        <div className="flat-label-row">
-                                            <div className="flat-label">Your Subscription</div>
-                                            <span className="plan-badge">{formatTierLabel(tierInfo?.tier)}</span>
-                                        </div>
-                                        {isFreeTier ? (
-                                            <div className="flat-value">
-                                                Upgrade to Pro for unlimited access to GLKB's full research capabilities.
-                                            </div>
-                                        ) : null}
-                                    </div>
+                                <div className="settings-row settings-row-last">
+                                    <span className="settings-row-label">API Usage</span>
                                     <button
                                         type="button"
-                                        className="flat-btn dark"
-                                        disabled
-                                        onClick={() => {
-                                            return;
-                                        }}
+                                        className="settings-row-action"
+                                        onClick={() => navigate('/api-page')}
                                     >
-                                        Upgrade plan
+                                        View dashboard
                                     </button>
-                                </div>
-                                <div className="flat-row">
-                                    <div className="flat-field">
-                                        <div className="subscription-inline-meta">
-                                            <span className="flat-label subscription-inline-label">Usage Resets</span>
-                                            <span className="flat-value subscription-inline-value">{tierLoading ? 'Loading...' : usageResetText}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flat-row flat-row-no-border">
-                                    <div className="flat-field">
-                                        <div className="subscription-inline-meta">
-                                            <span className="flat-label subscription-inline-label">Queries per month</span>
-                                            <span className="flat-value subscription-inline-value">
-                                                {queryUsageText}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flat-row subscription-progress-row">
-                                    <div className="flat-field">
-                                        <div className="subscription-progress" role="progressbar" aria-valuemin={0} aria-valuemax={quotaLimit || 100} aria-valuenow={quotaUsed}>
-                                            <div
-                                                className="subscription-progress-fill"
-                                                style={{ width: `${usagePercent}%` }}
-                                            />
-                                        </div>
-                                        <div className="subscription-progress-footer">
-                                            <span>{tierLoading ? '-- used' : `${quotaUsed} used`}</span>
-                                            <span>{tierLoading ? '-- remaining' : `${quotaRemaining} remaining`}</span>
-                                        </div>
-                                    </div>
                                 </div>
 
                                 <h2 className="settings-title">System</h2>
-                                <div className="settings-divider"></div>
 
-                                <div className="flat-row">
-                                    <div className="flat-field">
-                                        <div className="flat-label">Sign Out</div>
-                                        <div className="flat-value">You are signed in as {displayName}</div>
-                                    </div>
-                                    <button type="button" className="flat-btn" onClick={() => setShowSignoutModal(true)}>
+                                <div className="settings-row">
+                                    <span className="settings-row-label">Sign out</span>
+                                    <button type="button" className="settings-row-action" onClick={() => setShowSignoutModal(true)}>
                                         Sign out
                                     </button>
                                 </div>
 
-                                <div className="flat-row">
-                                    <div className="flat-field">
-                                        <div className="flat-label">Delete Account</div>
-                                        <div className="flat-sub">Permanently delete your account and data</div>
-                                    </div>
-                                    <button type="button" className="flat-btn" onClick={() => setShowDeleteModal(true)}>
+                                <div className="settings-row settings-row-last">
+                                    <span className="settings-row-label is-danger">Delete account</span>
+                                    <button type="button" className="settings-row-action" onClick={() => setShowDeleteModal(true)}>
                                         Learn more
                                     </button>
                                 </div>

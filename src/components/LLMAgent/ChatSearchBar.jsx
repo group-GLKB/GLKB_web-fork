@@ -7,7 +7,7 @@ import {
   useMediaQuery,
 } from '@mui/material';
 
-import { ReactComponent as UnionIcon } from '../../img/Union.svg';
+import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { trackGtagEvent } from '../../utils/gtag';
 
 const ChatSearchBar = ({
@@ -15,6 +15,9 @@ const ChatSearchBar = ({
     setUserInput,
     isLoading,
     isQueryLimitReached = false,
+    // Investigate is fixed for the life of a session, so the bar reports the
+    // mode for analytics but no longer renders a toggle.
+    investigateEnabled = false,
     onSubmit,
     onStop,
 }) => {
@@ -27,12 +30,13 @@ const ChatSearchBar = ({
             display: 'flex',
             gap: 2,
             margin: '0 auto',
-            backgroundColor: '#ffffff',
+            backgroundColor: '#F2F4F8',
             borderRadius: '16px',
             borderWidth: '1px',
             borderStyle: 'solid',
-            borderColor: '#E7F1FF',
-            boxShadow: '0px 6px 18px rgba(22, 69, 99, 0.08)',
+            borderColor: '#E5E9F0',
+            boxShadow: 'none',
+            flexDirection: 'column',
         }}>
             <TextField
                 className="input-form"
@@ -45,20 +49,28 @@ const ChatSearchBar = ({
                 multiline
                 minRows={1}
                 maxRows={4}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent?.isComposing) {
+                        e.preventDefault();
+                        if (!isLoading && !isQueryLimitReached && userInput.trim()) {
+                            onSubmit?.(e);
+                        }
+                    }
+                }}
                 sx={{
                     width: '100%',
                     '& .MuiInputBase-root': {
                         borderRadius: '16px',
-                        minHeight: { xs: '44px', sm: '64px' },
+                        minHeight: { xs: '44px', sm: '52px' },
                         height: 'auto',
-                        alignItems: 'flex-start',
+                        alignItems: 'center',
                         paddingLeft: '20px',
-                        paddingRight: '90px !important',
-                        paddingTop: { xs: '8px', sm: '12px' },
-                        paddingBottom: { xs: '8px', sm: '12px' },
-                        fontFamily: 'Open Sans, sans-serif',
-                        fontSize: '18px',
-                        color: '#164563',
+                        paddingRight: '60px !important',
+                        paddingTop: { xs: '8px', sm: '10px' },
+                        paddingBottom: { xs: '8px', sm: '10px' },
+                        fontFamily: 'Geist, sans-serif',
+                        fontSize: '14px',
+                        color: '#0C1018',
                         '& fieldset': {
                             border: 'none',
                         },
@@ -67,7 +79,7 @@ const ChatSearchBar = ({
                         lineHeight: '24px',
                     },
                     '& .MuiInputBase-input::placeholder': {
-                        color: '#969696',
+                        color: '#A8B3C8',
                         opacity: 1,
                     },
                 }}
@@ -99,79 +111,59 @@ const ChatSearchBar = ({
                                     }}
                                 />
                             )}
-                            <Box
-                                role="button"
-                                aria-label={isLoading ? 'Stop' : 'Send'}
-                                onClick={isLoading
-                                    ? () => {
+                            {isLoading ? (
+                                <Box
+                                    onClick={() => {
                                         trackGtagEvent('chat_stop_click', { source: 'chat_searchbar' });
-                                        onStop();
-                                    }
-                                    : (!userInput.trim() || isQueryLimitReached ? undefined : () => {
+                                        onStop?.();
+                                    }}
+                                    sx={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: '8px',
+                                        backgroundColor: '#222A38',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                    }}
+                                    title="Stop"
+                                >
+                                    <Box sx={{ width: 12, height: 12, backgroundColor: '#fff', borderRadius: '2px' }} />
+                                </Box>
+                            ) : (
+                                <Box
+                                    onClick={(event) => {
+                                        if (!userInput.trim() || isQueryLimitReached) return;
                                         trackGtagEvent('chat_submit_click', {
-                                            source: 'chat_searchbar_button',
-                                            input_length: userInput.trim().length,
+                                            source: 'chat_searchbar',
+                                            investigate: Boolean(investigateEnabled),
                                         });
-                                        onSubmit();
-                                    })}
-                                sx={{
-                                    height: { xs: '36px', sm: '44px' },
-                                    width: { xs: '36px', sm: '44px' },
-                                    borderRadius: '50%',
-                                    transform: isMobileViewport ? 'translateY(-4px)' : 'none',
-                                    backgroundColor: isLoading
-                                        ? '#E7F1FF'
-                                        : (!userInput.trim() || isQueryLimitReached ? '#E7F1FF' : '#155DFC'),
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    cursor: isLoading
-                                        ? 'pointer'
-                                        : (!userInput.trim() || isQueryLimitReached ? 'not-allowed' : 'pointer'),
-                                    transition: 'transform 120ms ease, box-shadow 160ms ease',
-                                    boxShadow: isLoading
-                                        ? 'none'
-                                        : (!userInput.trim() || isQueryLimitReached ? 'none' : '0 6px 12px rgba(21, 93, 252, 0.28)'),
-                                    '&:hover': {
-                                        transform: isMobileViewport
-                                            ? 'translateY(-4px)'
-                                            : (isLoading
-                                                ? 'none'
-                                                : (!userInput.trim() || isQueryLimitReached ? 'none' : 'translateY(-1px)')),
-                                    },
-                                }}
-                            >
-                                {isLoading ? (
-                                    <Box
-                                        sx={{
-                                            width: '12px',
-                                            height: '12px',
-                                            borderRadius: '4px',
-                                            backgroundColor: '#155DFC',
-                                        }}
-                                    />
-                                ) : (
-                                    <UnionIcon
+                                        onSubmit?.(event);
+                                    }}
+                                    sx={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: '8px',
+                                        backgroundColor: userInput.trim() && !isQueryLimitReached ? '#155DFC' : '#D9E6FE',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: userInput.trim() && !isQueryLimitReached ? 'pointer' : 'default',
+                                    }}
+                                    title="Send"
+                                >
+                                    <SearchArrowIcon
                                         style={{
-                                            color: (!userInput.trim() || isQueryLimitReached) ? '#155DFC' : '#ffffff',
-                                            width: isMobileViewport ? '16px' : '20px',
-                                            height: isMobileViewport ? '16px' : '20px',
+                                            width: 16,
+                                            height: 16,
+                                            color: userInput.trim() && !isQueryLimitReached ? '#FFFFFF' : '#155DFC',
                                         }}
                                     />
-                                )}
-                            </Box>
+                                </Box>
+                            )}
                         </Box>
                     ),
-                }}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && userInput.trim() !== '' && !isLoading && !isQueryLimitReached) {
-                        e.preventDefault();
-                        trackGtagEvent('chat_submit_enter', {
-                            source: 'chat_searchbar_input',
-                            input_length: userInput.trim().length,
-                        });
-                        onSubmit();
-                    }
                 }}
             />
         </Box>

@@ -3,6 +3,7 @@ import './scoped.css';
 
 import React, {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -19,9 +20,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowOutward as ArrowOutwardIcon,
   Close as CloseIcon,
-  DescriptionOutlined as DescriptionOutlinedIcon,
-  LightbulbOutlined as LightbulbOutlinedIcon,
-  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -30,6 +28,10 @@ import {
   Typography,
 } from '@mui/material';
 
+import { ReactComponent as PillEntityInsightsIcon } from '../../img/llm/pill_entity_insights.svg';
+import { ReactComponent as PillLiteratureDiscoveryIcon } from '../../img/llm/pill_literature_discovery.svg';
+import { ReactComponent as PillMechanismsIcon } from '../../img/llm/pill_mechanisms.svg';
+import { ReactComponent as PillResearchTrendIcon } from '../../img/llm/pill_research_trend.svg';
 import {
   getGuestTier,
   getMyTier,
@@ -57,25 +59,28 @@ const HomePage = () => {
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
     const [queryLimitTotal, setQueryLimitTotal] = useState(10);
     const [isPhoneDevice, setIsPhoneDevice] = useState(false);
-    const { isAuthenticated, loading } = useAuth();
+    const { isAuthenticated, loading, openLoginModal } = useAuth();
     const navigate = useNavigate();
     const examplePanelRef = useRef(null);
+    const heroRef = useRef(null);
+    const heroInnerRef = useRef(null);
+    const [heroTopOffset, setHeroTopOffset] = useState(null);
     const iconMap = {
-        lightbulb: <LightbulbOutlinedIcon />,
-        chart: <TrendingUpIcon />,
-        book: <DescriptionOutlinedIcon />,
-        knowledge: <span className="material-symbols-outlined" aria-hidden="true">stacks</span>,
+        lightbulb: <PillEntityInsightsIcon />,
+        chart: <PillResearchTrendIcon />,
+        book: <PillMechanismsIcon />,
+        knowledge: <PillLiteratureDiscoveryIcon />,
     };
     const iconColorMap = {
-        lightbulb: '#F5B22A',
-        chart: '#57CE55',
-        book: '#AC6DEF',
+        lightbulb: '#FBBF7A',
+        chart: '#08B046',
+        book: '#BD7AFB',
         knowledge: '#4B88FD',
     };
     const pills = (exampleSchema.pills || []).map((pill) => ({
         ...pill,
-        icon: iconMap[pill.icon] || <LightbulbOutlinedIcon />,
-        iconColor: iconColorMap[pill.icon] || '#333333',
+        icon: iconMap[pill.icon] || <PillEntityInsightsIcon />,
+        iconColor: iconColorMap[pill.icon] || '#222A38',
     }));
     const activePill = pills.find((pill) => pill.id === showExamples);
     const isHomeLimitReachedEffective = isQueryLimitReached || DEBUG_FORCE_LIMIT_WARNING;
@@ -117,6 +122,13 @@ const HomePage = () => {
         };
     }, []);
 
+    useLayoutEffect(() => {
+        if (!heroRef.current || !heroInnerRef.current) return;
+        const heroRect = heroRef.current.getBoundingClientRect();
+        const innerRect = heroInnerRef.current.getBoundingClientRect();
+        setHeroTopOffset(innerRect.top - heroRect.top);
+    }, []);
+
     useEffect(() => {
         let active = true;
 
@@ -156,7 +168,7 @@ const HomePage = () => {
             event.preventDefault();
             event.stopPropagation();
         }
-        navigate('/login');
+        openLoginModal();
         return true;
     };
 
@@ -268,7 +280,7 @@ const HomePage = () => {
                             callback={handleJoyrideCallback}
                             styles={{
                                 options: {
-                                    primaryColor: '#007bff',
+                                    primaryColor: '#155DFC',
                                     zIndex: 10000
                                 },
                                 tooltip: {
@@ -296,8 +308,12 @@ const HomePage = () => {
                             spotlightPadding={0}
                             scrollToFirstStep={true}
                         />
-                        <Box className="homepage-hero">
-                            <Box className="homepage-hero-inner">
+                        <Box
+                            className="homepage-hero"
+                            ref={heroRef}
+                            style={heroTopOffset !== null ? { justifyContent: 'flex-start', paddingTop: `${heroTopOffset}px` } : undefined}
+                        >
+                            <Box className="homepage-hero-inner" ref={heroInnerRef}>
                                 <Typography
                                     className="glkb-title"
                                     sx={{
@@ -307,9 +323,9 @@ const HomePage = () => {
                                         lineHeight: 1.1,
                                     }}
                                 >
-                                    <span style={{ color: '#333333' }}>Ask.</span>{' '}
+                                    <span style={{ color: '#141B26' }}>Ask.</span>{' '}
                                     <span style={{ color: '#155DFC' }}>Analyze</span>
-                                    <span style={{ color: '#333333' }}>. Cite.</span>
+                                    <span style={{ color: '#141B26' }}>. Cite.</span>
                                 </Typography>
                                 <Typography
                                     className="glkb-subtitle"
@@ -317,7 +333,7 @@ const HomePage = () => {
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 400,
                                         fontSize: '18px',
-                                        color: '#5C6470',
+                                        color: '#5E6E87',
                                         lineHeight: '26.64px',
                                     }}
                                 >
@@ -433,7 +449,7 @@ const HomePage = () => {
                         <div className="footer">
                             <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
                                 <p style={{ fontFamily: 'Geist, sans-serif', textAlign: 'center', color: '#A8B3C8', fontSize: '14px', margin: 0 }}>
-                                    © 2025 GLKB – Genomic Literature Knowledge Base | glkb.org
+                                    © 2026 GLKB – Genomic Literature Knowledge Base | glkb.org
                                 </p>
                                 <p style={{ fontFamily: 'Geist, sans-serif', textAlign: 'center', color: '#A8B3C8', fontSize: '14px', margin: 0 }}>
                                     Developed and maintained by the <a className="homepage-lab-link" href="https://jieliu6.github.io/" target="_blank" rel="noopener noreferrer">Jie Liu Lab</a>, Department of Computational Medicine and Bioinformatics, University of Michigan.

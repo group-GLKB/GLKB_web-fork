@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router-dom';
 
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import CloseIcon from '@mui/icons-material/Close';
-import TuneIcon from '@mui/icons-material/Tune';
 import {
   Autocomplete,
   Box,
@@ -20,11 +19,15 @@ import {
   useMediaQuery,
 } from '@mui/material';
 
-import { ReactComponent as UnionIcon } from '../../img/Union.svg';
+import { INVESTIGATE_ENABLED } from '../../config/features';
+import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
+import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
+import { ReactComponent as SearchOptionsIcon } from '../../img/llm/search_options.svg';
 import { trackGtagEvent } from '../../utils/gtag';
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
+    const [investigateEnabled, setInvestigateEnabled] = useState(false);
     const [sortBy, setSortBy] = useState('Default');
     const [paperType, setPaperType] = useState('All types');
     const [isOpen, setIsOpen] = useState(false);
@@ -89,6 +92,13 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     );
 
     const buildSearchOptionsPayload = () => {
+        // Investigate ignores filters / ranking_mode (see the lock comment below), and its
+        // controls are not rendered, so send the defaults rather than whatever the user
+        // happened to pick before turning Investigate on.
+        if (investigateEnabled) {
+            return { filters: [], rankingMode: 'default', investigateEnabled: true };
+        }
+
         let rankingMode = 'default';
         if (sortBy === 'High impact first') rankingMode = 'high_impact';
         if (sortBy === 'Most recent first') rankingMode = 'recent';
@@ -100,6 +110,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         return {
             filters,
             rankingMode,
+            investigateEnabled,
         };
     };
 
@@ -114,6 +125,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             has_query: Boolean(query),
             ranking_mode: searchOptions.rankingMode,
             filters: searchOptions.filters.join(','),
+            investigate_enabled: searchOptions.investigateEnabled,
         });
         if (query) {
             navigate('/chat', {
@@ -145,8 +157,18 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const mobileSelectedOptions = [];
     if (paperType !== defaultPaperType) mobileSelectedOptions.push(paperType);
     if (sortBy !== defaultSortBy) mobileSelectedOptions.push(sortBy);
-    const mobileChipLabel = mobileSelectedOptions.length > 0 ? mobileSelectedOptions.join(' + ') : 'Search Options';
+    // Deep Research runs its own hybrid retrieval instead of the agent's search tools, and drops
+    // `filters` / `ranking_mode` on the floor (see harness_runner.py's warning). Offering the
+    // control while Investigate is on promises filtering that never happens, so it is locked.
+    // The control is hidden rather than greyed out while locked: a disabled button still reads
+    // as "these settings apply, you just can't change them", which is the opposite of the truth.
+    const searchOptionsLocked = investigateEnabled;
+    const mobileChipLabel = (mobileSelectedOptions.length > 0)
+        ? mobileSelectedOptions.join(' + ')
+        : 'Search Options';
+
     const openSearchOptions = () => {
+        if (searchOptionsLocked) return;
         trackGtagEvent('home_search_options_open_click', {
             source: isMobileLayout ? 'mobile' : 'desktop',
         });
@@ -163,6 +185,18 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         }
         setDesktopOptionsOpen(true);
     };
+
+    // Turning Investigate on while the drawer is open must not leave an inert panel on screen,
+    // and the selections go back to their defaults so turning Investigate off again doesn't
+    // silently restore filters the user can no longer see.
+    useEffect(() => {
+        if (searchOptionsLocked) {
+            setMobileOptionsOpen(false);
+            setDesktopOptionsOpen(false);
+            setPaperType(defaultPaperType);
+            setSortBy(defaultSortBy);
+        }
+    }, [searchOptionsLocked]);
 
     const closeSearchOptions = () => {
         trackGtagEvent('home_search_options_close_click', {
@@ -334,7 +368,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 margin: '0 auto',
                 fontFamily: 'Geist, sans-serif',
                 fontSize: '16px',
-                backgroundColor: '#F7F8FA',
+                backgroundColor: '#F2F4F8',
                 borderRadius: '16px',
                 borderWidth: '1px',
                 borderStyle: 'solid',
@@ -392,16 +426,16 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             {...params}
                             placeholder="Ask a question about the biomedical literature..."
                             multiline
-                            minRows={4}
-                            maxRows={4}
+                            minRows={3}
+                            maxRows={9}
                             disabled={isQueryLimitReached}
                             sx={{
-                                height: { xs: '130px', sm: '148px' },
+                                minHeight: { xs: '148px', sm: '152px' },
                                 width: '100%',
                                 '& .MuiInputBase-root': {
                                     borderRadius: '16px',
-                                    height: { xs: '130px', sm: '148px' },
-                                    backgroundColor: '#F7F8FA',
+                                    minHeight: { xs: '148px', sm: '152px' },
+                                    backgroundColor: '#F2F4F8',
                                     alignItems: 'flex-start',
                                     paddingLeft: '20px',
                                     paddingRight: '20px !important',
@@ -409,19 +443,17 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     paddingBottom: '58px',
                                     fontFamily: 'Geist, sans-serif',
                                     fontSize: '16px',
-                                    color: '#164563',
+                                    color: '#0C1018',
                                     '& fieldset': {
                                         border: 'none',
                                     },
                                 },
                                 '& .MuiInputBase-input': {
                                     lineHeight: '26px',
-                                    height: '62px !important',
-                                    maxHeight: '62px !important',
-                                    overflowY: 'auto !important',
+                                    padding: '0 !important',
                                 },
                                 '& .MuiInputBase-input::placeholder': {
-                                    color: '#A3AAB5',
+                                    color: '#A8B3C8',
                                     opacity: 1,
                                 },
                                 '& .MuiOutlinedInput-notchedOutline': {
@@ -438,123 +470,196 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         <Box
                             sx={{
                                 position: 'absolute',
-                                left: '20px',
-                                right: '12px',
-                                bottom: '13px',
+                                left: '16px',
+                                right: '16px',
+                                bottom: '16px',
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: { xs: 'space-between', sm: 'flex-end' },
+                                justifyContent: 'space-between',
                                 gap: 2,
                                 pointerEvents: 'none',
                             }}
                         >
                             <Box
-                                onMouseDown={(event) => {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                }}
-                                onClick={(event) => {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    openSearchOptions();
-                                }}
                                 sx={{
-                                    display: { xs: 'inline-flex', sm: 'none' },
+                                    display: INVESTIGATE_ENABLED ? 'inline-flex' : 'none',
                                     alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '6px',
-                                    padding: '10px 8px',
-                                    margin: '-10px -8px',
-                                    borderRadius: '0px',
-                                    background: 'transparent',
-                                    color: '#323232',
-                                    fontFamily: 'DM Sans, sans-serif',
-                                    fontWeight: 700,
-                                    fontSize: '14px',
-                                    lineHeight: '16px',
-                                    textTransform: 'none',
+                                    gap: { xs: '8px', sm: '12px' },
                                     minWidth: 0,
-                                    maxWidth: 'calc(100% - 52px)',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
                                     pointerEvents: 'auto',
                                 }}
                             >
-                                <TuneIcon sx={{ color: '#323232', fontSize: '16px' }} />
-                                {mobileChipLabel}
+                                <Button
+                                    onMouseDown={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                    }}
+                                    onClick={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        setInvestigateEnabled((prev) => {
+                                            const next = !prev;
+                                            trackGtagEvent('home_investigate_toggle_click', {
+                                                enabled: next,
+                                            });
+                                            return next;
+                                        });
+                                    }}
+                                    sx={{
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '4px',
+                                        height: '32px',
+                                        padding: '4px 8px',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        background: investigateEnabled ? '#D9E6FE' : 'transparent',
+                                        color: investigateEnabled ? '#155DFC' : '#5E6E87',
+                                        fontFamily: 'Geist, sans-serif',
+                                        fontWeight: 600,
+                                        fontSize: '12px',
+                                        lineHeight: '16px',
+                                        textTransform: 'none',
+                                        minWidth: 0,
+                                        whiteSpace: 'nowrap',
+                                        boxShadow: 'none !important',
+                                        transition: 'background-color 0.18s ease, color 0.18s ease',
+                                        '& .MuiButton-startIcon': {
+                                            margin: 0,
+                                        },
+                                        '&:hover': {
+                                            border: 'none',
+                                            background: investigateEnabled ? '#BBCFFE' : '#F2F4F8',
+                                            color: investigateEnabled ? '#0A47D6' : '#46566C',
+                                        },
+                                    }}
+                                    startIcon={<InvestigateIcon style={{ width: '20px', height: '20px' }} />}
+                                    title={investigateEnabled ? 'Investigate on' : 'Investigate off'}
+                                >
+                                    Investigate
+                                </Button>
                             </Box>
 
-                            <Button
-                                sx={{
-                                    display: { xs: 'none', sm: 'inline-flex' },
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '6px',
-                                    height: '36px',
-                                    padding: '10px 8px',
-                                    margin: '-10px -8px',
-                                    borderRadius: '18px',
-                                    background: 'transparent',
-                                    color: '#323232',
-                                    fontFamily: 'DM Sans, sans-serif',
-                                    fontWeight: 700,
-                                    fontSize: '14px',
-                                    lineHeight: '16px',
-                                    textTransform: 'none',
-                                    minWidth: 0,
-                                    whiteSpace: 'nowrap',
-                                    maxWidth: '280px',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    pointerEvents: 'auto',
-                                    '&:hover': {
-                                        background: 'transparent',
-                                    },
-                                }}
-                                onMouseDown={(event) => {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                }}
-                                onClick={(event) => {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    openSearchOptions();
-                                }}
-                            >
-                                <TuneIcon sx={{ color: '#323232', fontSize: '16px' }} />
-                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{mobileChipLabel}</span>
-                            </Button>
-
                             <Box
-                                role="button"
-                                aria-label="Start chat"
-                                className="search-button-big"
-                                onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}
                                 sx={{
-                                    height: { xs: '36px', sm: '48px' },
-                                    width: { xs: '36px', sm: '48px' },
-                                    borderRadius: '50%',
-                                    backgroundColor: llmQuery.trim() && !isQueryLimitReached ? '#155DFC' : '#E7F1FF',
-                                    display: 'flex',
+                                    display: 'inline-flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center',
-                                    cursor: 'pointer',
-                                    transition: 'transform 120ms ease',
-                                    boxShadow: 'none',
-                                    '&:hover': {
-                                        transform: 'translateY(-1px)',
-                                    },
+                                    gap: { xs: '8px', sm: '16px' },
+                                    minWidth: 0,
+                                    // With Investigate hidden this is the row's only child, so
+                                    // `space-between` alone would park it on the left.
+                                    marginLeft: { xs: INVESTIGATE_ENABLED ? 0 : 'auto', sm: 'auto' },
                                     pointerEvents: 'auto',
                                 }}
                             >
-                                <UnionIcon
-                                    style={{
-                                        color: llmQuery.trim() && !isQueryLimitReached ? '#FFFFFF' : '#155DFC',
-                                        width: '20px',
-                                        height: '20px',
+                                <Box
+                                    onMouseDown={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
                                     }}
-                                />
+                                    onClick={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        openSearchOptions();
+                                    }}
+                                    sx={{
+                                        display: searchOptionsLocked ? 'none' : { xs: 'inline-flex', sm: 'none' },
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '4px',
+                                        padding: '4px 8px',
+                                        borderRadius: '8px',
+                                        background: 'transparent',
+                                        color: '#5E6E87',
+                                        cursor: 'pointer',
+                                        fontFamily: 'Geist, sans-serif',
+                                        fontWeight: 600,
+                                        fontSize: '12px',
+                                        lineHeight: '16px',
+                                        textTransform: 'none',
+                                        minWidth: 0,
+                                        maxWidth: 'calc(100% - 52px)',
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        pointerEvents: 'auto',
+                                    }}
+                                >
+                                    <SearchOptionsIcon style={{ color: '#5E6E87', width: '20px', height: '20px' }} />
+                                    {mobileChipLabel}
+                                </Box>
+
+                                <Button
+                                    sx={{
+                                        display: searchOptionsLocked ? 'none' : { xs: 'none', sm: 'inline-flex' },
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '4px',
+                                        height: '32px',
+                                        padding: '4px 8px',
+                                        borderRadius: '8px',
+                                        background: 'transparent',
+                                        color: '#5E6E87',
+                                        cursor: 'pointer',
+                                        fontFamily: 'Geist, sans-serif',
+                                        fontWeight: 600,
+                                        fontSize: '12px',
+                                        lineHeight: '16px',
+                                        textTransform: 'none',
+                                        minWidth: 0,
+                                        whiteSpace: 'nowrap',
+                                        maxWidth: '280px',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        pointerEvents: 'auto',
+                                        '&:hover': {
+                                            background: 'transparent',
+                                        },
+                                    }}
+                                    onMouseDown={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                    }}
+                                    onClick={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        openSearchOptions();
+                                    }}
+                                >
+                                    <SearchOptionsIcon style={{ color: '#5E6E87', width: '20px', height: '20px' }} />
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{mobileChipLabel}</span>
+                                </Button>
+
+                                <Box
+                                    role="button"
+                                    aria-label="Start chat"
+                                    className="search-button-big"
+                                    onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}
+                                    sx={{
+                                        height: { xs: '32px', sm: '32px' },
+                                        width: { xs: '32px', sm: '32px' },
+                                        borderRadius: '8px',
+                                        backgroundColor: llmQuery.trim() && !isQueryLimitReached ? '#155DFC' : '#D9E6FE',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        transition: 'transform 120ms ease',
+                                        boxShadow: 'none',
+                                        '&:hover': {
+                                            transform: 'translateY(-1px)',
+                                        },
+                                        pointerEvents: 'auto',
+                                    }}
+                                >
+                                    <SearchArrowIcon
+                                        style={{
+                                            color: llmQuery.trim() && !isQueryLimitReached ? '#FFFFFF' : '#155DFC',
+                                            width: '16px',
+                                            height: '16px',
+                                        }}
+                                    />
+                                </Box>
                             </Box>
                         </Box>
 

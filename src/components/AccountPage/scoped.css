@@ -100,16 +100,110 @@
 
 .settings-inner {
     width: 100%;
-    max-width: 560px;
+    max-width: 680px;
 }
 
+/* Figma 244:5280 — h4 section heading with 8px block padding. */
 .settings-title {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 18px;
+    font-family: 'Geist', sans-serif;
+    font-size: 20px;
     font-weight: 600;
-    color: #1A2332;
-    margin: 36px 0 14px;
-    letter-spacing: -0.1px;
+    line-height: 28px;
+    color: #0C1018;
+    margin: 16px 0 0;
+    padding: 8px 0;
+    letter-spacing: 0;
+}
+
+/* Rows are 20px block padding with a hairline rule; the last row in a
+   section drops the rule so it doesn't double up with the next heading. */
+.settings-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    padding: 20px 0;
+    border-bottom: 1px solid #E5E9F0;
+}
+
+.settings-row-last {
+    border-bottom: none;
+}
+
+.settings-row-stacked {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+}
+
+.settings-row-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.settings-row-label {
+    font-family: 'Geist', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 28px;
+    color: #222A38;
+    white-space: nowrap;
+}
+
+.settings-row-label.is-danger {
+    color: #A10902;
+}
+
+.settings-row-value {
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 28px;
+    color: #5E6E87;
+    text-align: right;
+    word-break: break-word;
+}
+
+/* Right-hand action chip: 28px tall, muted fill, 8px radius. */
+.settings-row-action {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 8px;
+    border: none;
+    border-radius: 8px;
+    background: #E5E9F0;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    color: #222A38;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease;
+}
+
+.settings-row-action:hover {
+    background: #CBD2E0;
+}
+
+.settings-row-chip {
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 8px;
+    background: #F2F4F8;
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 20px;
+    color: #5E6E87;
+    white-space: nowrap;
 }
 
 .settings-title-first {
@@ -204,7 +298,7 @@
     border-radius: 8px;
     border: 1px solid #E8EAED;
     background: #ffffff;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-size: 13px;
     font-weight: 500;
     color: #6B7A8D;
@@ -310,7 +404,7 @@
     border: 1px solid #E8EAED;
     border-radius: 8px;
     padding: 9px 12px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-size: 13px;
     color: #1A2332;
     background: #ffffff;
@@ -412,7 +506,7 @@
 }
 
 .modal-title {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-size: 22px;
     color: #1A2332;
     margin-bottom: 6px;
@@ -444,7 +538,7 @@
     padding: 10px 14px;
     border: 1.5px solid #E8EAED;
     border-radius: 8px;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-size: 14px;
     color: #1A2332;
     background: #FAFCFF;

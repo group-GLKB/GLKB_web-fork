@@ -52,3 +52,9 @@ e2e/.auth/
 .env.*.local
 playwright-report/
 test-results/
+
+# Local MCP server config (may contain machine-specific settings)
+.mcp.json
+
+# Local Claude Code config (editor/tooling, not project state)
+.claude/

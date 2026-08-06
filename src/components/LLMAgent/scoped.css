@@ -14,7 +14,7 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: #FAFCFF;
+    background-color: #FDFEFF;
     overflow: hidden;
 }
 
@@ -124,20 +124,6 @@
     background-color: transparent;
 }
 
-.llm-split-divider::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 3px;
-    width: 1px;
-    background-color: #F4F4F4;
-}
-
-.llm-split-divider:hover::before {
-    background-color: #D0D0D0;
-}
-
 .llm-split-drag-indicator {
     position: absolute;
     left: 50%;
@@ -145,79 +131,29 @@
     height: 44px;
     transform: translate(-50%, -50%);
     border-radius: 8px;
-    background-color: #E7F1FF;
+    background-color: #EEF3FF;
     border: 1px solid #B7D3FF;
     box-shadow: 0 6px 16px rgba(22, 69, 99, 0.18);
     pointer-events: none;
     z-index: 2;
 }
 
-.references-collapse-button.MuiIconButton-root {
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 48px;
-    height: 155px;
-    border-radius: 12px;
-    background-color: #ffffff;
-    border: 1px solid #E0E0E0;
-    box-shadow: 0 8px 24px rgba(22, 69, 99, 0.18);
-    color: #164563;
-    z-index: 6;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    padding: 0;
-    overflow: visible;
-}
-
-.references-collapse-button:hover {
-    background-color: #F2F6FF;
-}
-
 .references-action-button.MuiIconButton-root {
-    padding: 6px;
-    border-radius: 10px;
+    padding: 4px;
+    border-radius: 4px;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
-    width: 36px;
-    height: 36px;
+    width: 24px;
+    height: 24px;
     overflow: hidden;
 }
 
 .references-action-button.MuiIconButton-root:hover {
-    background-color: #f0f0f0;
+    background-color: #F2F4F8;
 }
 
 .references-action-button.MuiIconButton-root.Mui-disabled {
     background-color: transparent;
     color: #B0B0B0;
-}
-
-.references-collapse-icon {
-    width: 15px;
-    height: 15px;
-    color: #164563;
-    display: block;
-    transform: translateY(-4px) scaleX(-1);
-}
-
-.references-collapse-icon path {
-    fill: currentColor;
-}
-
-.references-collapse-label {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
-    font-weight: 700;
-    color: #164563;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    transform: rotate(180deg);
-    letter-spacing: 0.12em;
-    line-height: 1;
 }
 
 .llm-column {
@@ -233,7 +169,7 @@
     border: none;
     border-radius: 0;
     width: 100%;
-    background-color: #FAFCFF;
+    background-color: #FDFEFF;
     height: 100%;
     min-height: 0;
     padding: 0;
@@ -246,12 +182,47 @@
 .references-container {
     font-family: 'Open Sans', sans-serif;
     flex: 1;
+    display: flex;
+    flex-direction: column;
     overflow-y: hidden;
     border: none;
     border-radius: 0;
     height: 100%;
     min-height: 0;
+    box-sizing: border-box;
     background-color: #ffffff;
+}
+
+.references-column {
+    padding: 16px 14px 24px 0;
+    box-sizing: border-box;
+    position: relative;
+}
+
+.references-column .references-container {
+    border: 1px solid #E5E9F0;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(12, 16, 24, 0.04);
+}
+
+.references-collapse-toggle.MuiIconButton-root {
+    position: absolute;
+    z-index: 3;
+    top: 30px;
+    left: -32px;
+    width: 32px;
+    height: 32px;
+    padding: 6px;
+    border: 1px solid #F2F4F8;
+    border-right: none;
+    border-radius: 4px 0 0 4px;
+    background-color: #D9E6FE;
+    color: #155DFC;
+}
+
+.references-collapse-toggle.MuiIconButton-root:hover {
+    background-color: #C9DCFD;
 }
 
 .llm-mobile-references-drawer {
@@ -265,14 +236,192 @@
     height: 100%;
 }
 
-.references-container h3 {
+.references-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 20px 24px;
+    border-bottom: 1px solid #F2F4F8;
+}
+
+.references-header-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+}
+
+.references-title {
     margin: 0;
+    font-family: 'Geist', sans-serif;
+    font-weight: 600;
     font-size: 16px;
-    padding-left: 32px;
-    font-weight: normal;
-    color: black;
-    top: 0;
-    z-index: 1;
+    line-height: 20px;
+    color: #0C1018;
+    flex-shrink: 0;
+}
+
+.references-scope-trigger {
+    min-width: 0;
+    max-width: 218px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0 0 0 12px;
+    border: none;
+    border-left: 1px solid #F2F4F8;
+    background: transparent;
+    color: #8090AB;
+    font-family: 'Geist', sans-serif;
+    font-size: 10px;
+    line-height: 14px;
+    cursor: pointer;
+}
+
+.references-scope-trigger span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.references-scope-icon {
+    width: 12px !important;
+    height: 12px !important;
+    color: #8090AB;
+    flex-shrink: 0;
+}
+
+.material-symbols-outlined.references-scope-icon {
+    width: 16px !important;
+    height: 16px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+    font-size: 16px;
+    line-height: 16px;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+}
+
+.references-scope-chevron {
+    width: 14px !important;
+    height: 14px !important;
+    color: #8090AB;
+    transform: rotate(90deg);
+    transition: transform 0.16s ease;
+    flex-shrink: 0;
+}
+
+.references-scope-chevron.expanded {
+    transform: rotate(-90deg);
+}
+
+.references-scope-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px 24px;
+    border-bottom: 1px solid #F2F4F8;
+    background-color: #F8F9FC;
+}
+
+.references-scope-option {
+    width: 100%;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #0C1018;
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 16px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.references-scope-option-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.references-scope-option-number {
+    display: inline-block;
+    min-width: 21px;
+}
+
+.references-scope-radio {
+    width: 20px;
+    height: 20px;
+    border-radius: 12px;
+    border: 1px solid #CBD2E0;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.references-scope-radio.selected {
+    border: 4px solid #155DFC;
+}
+
+.references-toolbar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 24px;
+    border-bottom: 1px solid #F2F4F8;
+    background-color: #FCFDFE;
+}
+
+.references-count-label {
+    font-family: 'Geist', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 16px;
+    color: #0C1018;
+}
+
+.references-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.references-sort-toggle.MuiToggleButtonGroup-root {
+    background-color: #F2F4F8;
+    border-radius: 5px;
+    padding: 1px;
+    gap: 0;
+}
+
+.references-sort-toggle .MuiToggleButton-root {
+    text-transform: none;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    color: #5E6E87;
+    border: none;
+    padding: 4px 8px;
+    height: 22px;
+    min-height: 22px;
+    border-radius: 4px !important;
+}
+
+.references-sort-toggle .MuiToggleButton-root.Mui-selected {
+    background-color: #FFFFFF;
+    color: #155DFC;
+}
+
+.references-sort-toggle .MuiToggleButton-root.Mui-selected:hover {
+    background-color: #FFFFFF;
 }
 
 .reference-item {
@@ -330,7 +479,7 @@
     background-color: #ffffff !important;
     margin-left: auto;
     cursor: default;
-    color: #164563;
+    color: #141B26;
 }
 
 .message.assistant {
@@ -400,8 +549,6 @@
     color: #666;
 }
 
-
-
 .chat-header {
     display: flex;
     justify-content: space-between;
@@ -411,7 +558,7 @@
     padding-top: 0px;
     padding-bottom: 20px;
     gap: 20px;
-    background: #FAFCFF;
+    background: #FDFEFF;
     width: 100%;
     border-top: none;
     border-bottom: none;
@@ -441,14 +588,14 @@
     padding: 10px 14px;
     border-radius: 10px 10px 0 0;
     border: none;
-    background: #E7F1FF;
+    background: #EEF3FF;
 }
 
 .llm-limit-warning-text {
     font-family: 'DM Sans', sans-serif;
     font-size: 14px;
     font-weight: 500;
-    color: #164563;
+    color: #141B26;
 }
 
 .llm-limit-warning-button {
@@ -551,6 +698,144 @@
     transform: translateY(0);
 }
 
+.investigate-summary-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    margin-bottom: 10px;
+    color: #5E6E87;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    border-radius: 18px;
+    padding: 4px 8px 4px 0;
+}
+
+.investigate-summary-row.can-toggle {
+    cursor: pointer;
+}
+
+.investigate-summary-row.can-toggle:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.investigate-summary-icon,
+.investigate-summary-chevron {
+    font-size: 16px !important;
+    color: #5E6E87;
+    transition: transform 0.2s ease;
+}
+
+.investigate-summary-chevron.expanded {
+    transform: rotate(90deg);
+}
+
+.investigate-summary-text {
+    color: #5E6E87;
+}
+
+/* Figma Asking Question — inline clarify */
+.clarify-inline-panel {
+    margin: 12px 0 16px;
+    padding: 16px;
+    border: 1px solid #D9E6FE;
+    border-radius: 16px;
+    background: #FDFEFF;
+    box-shadow: 0 4px 16px rgba(21, 93, 252, 0.06);
+}
+
+.clarify-inline-kicker {
+    font-family: 'Geist', 'DM Sans', sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #155DFC !important;
+    margin-bottom: 4px !important;
+}
+
+.clarify-inline-title {
+    font-family: 'Geist', 'DM Sans', sans-serif !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #141B26 !important;
+    margin-bottom: 6px !important;
+}
+
+.clarify-inline-reason {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    color: #5E6E87 !important;
+    line-height: 1.45 !important;
+    margin-bottom: 12px !important;
+}
+
+.clarify-inline-card {
+    border: 1px solid #E6EDF8;
+    border-radius: 12px;
+    padding: 12px;
+    background: #FFFFFF;
+}
+
+.clarify-inline-header {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: #5E6E87 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 4px !important;
+}
+
+.clarify-inline-question {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    color: #222A38 !important;
+    line-height: 1.45 !important;
+    margin-bottom: 8px !important;
+}
+
+.clarify-inline-error {
+    margin-top: 12px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    color: #A10902 !important;
+}
+
+.clarify-inline-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.investigate-funnel-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 12px;
+}
+
+.investigate-funnel-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #F2F4F8;
+    color: #5E6E87;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.investigate-funnel-chip strong {
+    color: #222A38;
+    font-weight: 700;
+    font-size: 13px;
+}
+
 @keyframes llm-step-label-out {
     from {
         opacity: 1;
@@ -598,6 +883,10 @@
     border-radius: 4px;
 }
 
+.references-list {
+    padding: 0;
+}
+
 .references-list>div {
     width: 100%;
 }
@@ -607,35 +896,30 @@
 }
 
 .references-list>div {
-    margin: 0 -12px;
-    padding: 16px 12px;
-    border-radius: 10px;
+    margin: 0;
+    padding: 16px 24px;
+    border-radius: 8px;
     position: relative;
     box-sizing: border-box;
     transition: background-color 0.2s ease, border-radius 0.2s ease;
 }
 
 .references-list .reference-entry-wrapper {
-    cursor: pointer;
+    cursor: default;
 }
 
 .references-list .reference-entry-wrapper.highlighted {
-    background-color: #E7F1FF;
-    border-radius: 12px;
+    background-color: #F7F9FF;
+    border-radius: 8px;
 }
 
 .references-list>div::after {
     content: '';
     position: absolute;
-    left: 12px;
-    right: 12px;
+    left: 0;
+    right: 0;
     bottom: 0;
-    border-bottom: 2px solid #D9D9D9;
-}
-
-.references-list>div:hover {
-    background-color: #E7F1FF;
-    border-radius: 12px;
+    border-bottom: 1px solid #F2F4F8;
 }
 
 .references-list>div:last-child::after {
@@ -660,7 +944,7 @@
 
 .message-wrapper.user .message {
     background-color: #ffffff !important;
-    color: #164563;
+    color: #141B26;
     border-radius: 8px;
     padding: 8px 16px;
     max-width: 800px;
@@ -809,11 +1093,11 @@
 }
 
 .message-wrapper.user .message {
-    background-color: #ffffff !important;
-    color: #164563;
-    border-radius: 16px 16px 0 16px;
+    background-color: #E5E9F0 !important;
+    color: #141B26;
+    border-radius: 8px;
     padding: 8px 16px;
-    max-width: 80%;
+    max-width: 480px;
 }
 
 .reference-button-wrapper {
@@ -1228,49 +1512,69 @@
     opacity: 1;
 }
 
+.message-wrapper.assistant .MuiIconButton-root {
+    width: 24px;
+    height: 24px;
+    padding: 4px;
+    border-radius: 4px;
+    color: #8090AB;
+}
+
+.message-wrapper.assistant .MuiIconButton-root:hover {
+    background-color: #F2F4F8;
+    color: #155DFC;
+}
+
 .markdown-body a[href*="pubmed.ncbi.nlm.nih.gov"] {
     display: inline-flex;
     align-items: center;
+    gap: 2px;
     position: relative;
     text-decoration: none;
-    color: #646464;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
+    color: #222A38;
+    font-family: 'Geist', sans-serif;
+    font-size: 10px;
     font-weight: 400;
-    padding: 4px;
-    border-radius: 12px;
-    background-color: #F4F4F4;
-    transition: background-color 0.2s ease;
+    line-height: 12px;
+    padding: 2px 6px 2px 4px;
+    border-radius: 256px;
+    background-color: #D9E6FE;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    vertical-align: baseline;
 }
 
 .markdown-body a[href*="pubmed.ncbi.nlm.nih.gov"]::before {
     content: '';
-    width: 14px;
-    height: 14px;
-    margin-right: 4px;
+    width: 16px;
+    height: 16px;
     flex-shrink: 0;
-    background: url('../../img/llm/draft.svg') no-repeat center / 14px 14px;
+    background: url('../../img/llm/reference_chip_abstract.svg') no-repeat center / 16px 16px;
+}
+
+.markdown-body .inline-citation-number {
+    min-width: 8px;
 }
 
 .markdown-body a[href*="pubmed.ncbi.nlm.nih.gov"]:hover {
-    color: #646464;
-    background-color: #EDEDED;
+    color: #0C1018;
+    background-color: #BBCFFE;
+    box-shadow: inset 0 0 0 0.3px #7AADFB;
 }
 
 .markdown-body h1,
 .markdown-body h2 {
-    color: #164563;
+    color: #0C1018;
 }
 
 .markdown-body p,
 .markdown-body li {
-    white-space: pre-wrap;
+    white-space: normal;
 }
 
 .message-wrapper.user .message,
 .message-wrapper.user .message:hover {
     background-color: #ffffff !important;
-    color: #164563;
+    color: #141B26;
 }
 
 .message.assistant,
@@ -1278,6 +1582,48 @@
 .message.assistant.selected,
 .message-wrapper.assistant .message {
     background-color: transparent;
+}
+
+.llm-header-references-toggle.MuiButton-root {
+    min-width: 0;
+    padding: 4px;
+    border-radius: 4px;
+    color: #5E6E87;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    text-transform: none;
+}
+
+.llm-header-references-toggle.MuiButton-root .MuiButton-startIcon {
+    margin: 0 4px 0 0;
+}
+
+.llm-header-references-toggle.MuiButton-root .MuiSvgIcon-root {
+    width: 16px;
+    height: 16px;
+}
+
+.llm-header-references-toggle.MuiButton-root:hover {
+    background-color: #F2F4F8;
+}
+
+@media (min-width: 981px) {
+    .chat-container .messages-container {
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+
+    .chat-container .message-wrapper {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .chat-container .chat-header {
+        width: calc(100% - 48px);
+        padding: 24px 0;
+    }
 }
 
 .llm-reference-button.MuiButtonBase-root {
@@ -1303,3 +1649,357 @@
     border-color: #155DFC;
     background-color: #e1e2e4;
 }
+/* ============================================================================
+   Investigate progress panel (Figma `Inverstigate` + MOTION-SPEC.md)
+   Prefix `ip-`. Replaces the older .investigate-progress-* layout, which is kept
+   for the post-run summary row.
+   ========================================================================== */
+
+.ip-shell {
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
+
+.ip-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    cursor: pointer;
+}
+
+button.ip-head-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+}
+
+.ip-head-icon {
+    font-size: 16px !important;
+    color: #4B88FD;
+}
+
+/* Title transition is fade-out-to-blank then fade-in — NOT a crossfade
+   (MOTION-SPEC §3: there is a fully blank frame at the midpoint). */
+.ip-head-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #5E6E87;
+    white-space: nowrap;
+    opacity: 1;
+    transition: opacity 0.25s ease;
+}
+
+.ip-head-title.fading { opacity: 0; }
+
+.ip-head-caret {
+    font-size: 16px !important;
+    color: #5E6E87;
+    transition: transform 0.18s ease;
+}
+
+.ip-head-caret.expanded { transform: rotate(180deg); }
+
+.ip-head-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+}
+
+.ip-elapsed,
+.ip-notify {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: #5E6E87;
+}
+
+/* Tabular figures: the clock reflows every second, and proportional digits would shift the
+   notify button sideways on each tick. */
+.ip-elapsed { font-variant-numeric: tabular-nums; }
+
+button.ip-notify {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 999px;
+}
+
+button.ip-notify:hover { background: #EEF3FF; color: #155DFC; }
+button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
+
+.ip-body {
+    padding: 14px 0 0 4px;
+}
+
+/* Collapsed means hidden, not unmounted — the counters keep their value and their count-up
+   history across a close/open instead of restarting from zero. `display: none` also takes the
+   subtree out of the tab order and the accessibility tree, so nothing inside is reachable while
+   the panel is shut. */
+.ip-body.collapsed {
+    display: none;
+}
+
+/* ── counters ───────────────────────────────────────────────────────────── */
+.ip-counters {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 104px));
+    gap: 0;
+    margin-bottom: 14px;
+}
+
+.ip-counter {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ip-counter-value {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #1B2A41;
+    /* tabular figures so a counting number does not jitter its own column */
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+}
+
+.ip-counter-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: #7B8AA1;
+}
+
+/* ── bar ────────────────────────────────────────────────────────────────── */
+.ip-bar {
+    position: relative;
+    width: min(100%, 460px);
+    height: 6px;
+    border-radius: 999px;
+    background: #E4E9F2;
+    overflow: hidden;
+}
+
+.ip-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: #155DFC;
+    /* width is driven frame-by-frame from JS; no CSS transition, or the two fight */
+}
+
+/* ── step rows ──────────────────────────────────────────────────────────── */
+.ip-steps {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid #EDF0F6;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ip-step-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ip-step-icon {
+    font-size: 17px !important;
+    color: #5E6E87;
+    flex-shrink: 0;
+}
+
+.ip-step-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.5;
+    color: #34435C;
+}
+
+/* completed rows dim one step (MOTION-SPEC §5) */
+.ip-step.done .ip-step-label { color: #6B7A93; }
+.ip-step.done .ip-step-icon { color: #8A97AC; }
+
+/* ── detail block ───────────────────────────────────────────────────────── */
+/* Indented under the active row with a 1px rail aligned to the row icon, and a
+   bottom fade so overflow dissolves instead of being hard-clipped (MOTION-SPEC §6). */
+/* No fixed height and no fade mask: each line is clamped instead, so the block stays short
+   without ever hiding a control underneath it. (The design's mask existed because its content
+   overflowed; with the list cycling one item at a time there is nothing to bleed off.) */
+.ip-step-detail {
+    margin: 6px 0 0 8px;
+    padding: 2px 0 0 18px;
+    border-left: 1px solid #E4E9F2;
+}
+
+/* at most two lines per item, so a long topic cannot push the rest out of view */
+.ip-step-detail .ip-detail-para,
+.ip-step-detail .ip-detail-bullet {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* expanded: the whole list, scrollable, no clamping */
+.ip-step-detail.expanded {
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.ip-step-detail.expanded .ip-detail-para,
+.ip-step-detail.expanded .ip-detail-bullet {
+    display: block;
+    -webkit-line-clamp: none;
+    overflow: visible;
+}
+
+.ip-detail-para,
+.ip-detail-bullet {
+    margin: 0 0 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.55;
+    color: #8A97AC;
+}
+
+.ip-detail-bullet { position: relative; padding-left: 12px; }
+
+.ip-detail-bullet::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: #A8B3C6;
+}
+
+.ip-detail-bullet-title {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.ip-detail-para a { color: #6B7A93; text-decoration: none; }
+.ip-detail-para a:hover { color: #155DFC; text-decoration: underline; }
+
+.ip-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ip-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 6px;
+    background: #F1F4F9;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    color: #5E6E87;
+    white-space: nowrap;
+}
+
+.ip-chip-more { background: transparent; color: #8A97AC; }
+
+/* cycling detail: a slice at a time, crossfading (MOTION-SPEC §6) */
+.ip-cycle {
+    opacity: 1;
+    transition: opacity 0.22s ease;
+}
+
+.ip-cycle.hidden { opacity: 0; }
+
+/* the "show all N" affordance — quiet until hovered, so it never competes with the content */
+.ip-cycle-toggle {
+    border: none;
+    background: transparent;
+    padding: 2px 0;
+    margin-top: 2px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #A8B3C6;
+}
+
+.ip-cycle-toggle:hover { color: #155DFC; text-decoration: underline; }
+
+@media (max-width: 720px) {
+    .ip-counters { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .ip-counter-value { font-size: 22px; }
+    .ip-head-right { gap: 10px; }
+}
+
+/* MOTION-SPEC §8 — no count-up, no cycling, no creep, no shimmer. The JS honours this
+   too; these rules cover the purely-CSS transitions. */
+@media (prefers-reduced-motion: reduce) {
+    .ip-head-title,
+    .ip-cycle,
+    .ip-bar-fill { transition: none !important; }
+    .ip-head-title.fading { opacity: 1; }
+    .ip-cycle.hidden { opacity: 1; }
+}
+
+/* ── References skeleton (MOTION-SPEC §7) ────────────────────────────────────
+   A highlight wave travels top-to-bottom on a loop: one card group at full
+   opacity, the rest near-invisible. Staggered animation-delay makes the wave. */
+.ref-skeleton {
+    padding: 8px 0;
+}
+
+.ref-skeleton-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 32px;
+    border-bottom: 1px solid #F0F2F7;
+    opacity: 0.28;
+    animation: ref-skeleton-wave 1.6s linear infinite;
+}
+
+.ref-skeleton-bar {
+    display: block;
+    height: 9px;
+    border-radius: 999px;
+    background: #E7EBF2;
+    width: 100%;
+}
+
+.ref-skeleton-bar.short { width: 26%; }
+.ref-skeleton-bar.medium { width: 62%; }
+
+@keyframes ref-skeleton-wave {
+    0%   { opacity: 0.28; }
+    12%  { opacity: 1; }
+    34%  { opacity: 0.28; }
+    100% { opacity: 0.28; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ref-skeleton-card {
+        animation: none;
+        opacity: 1;
+    }
+}
+
+/* a finished retrieval probe */
+.ip-channel { color: #6B7A93; }
+.ip-channel.failed { color: #A8B3C6; }
+.ip-channel-hits { color: #A8B3C6; }

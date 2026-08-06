@@ -19,7 +19,6 @@ import {
     DeleteOutline as DeleteOutlineIcon,
     DriveFileRenameOutline as DriveFileRenameOutlineIcon,
     FileCopyOutlined as FileCopyOutlinedIcon,
-    FilterListOutlined as FilterListOutlinedIcon,
     FolderOutlined as FolderOutlinedIcon,
     FormatQuoteOutlined as FormatQuoteOutlinedIcon,
     KeyboardArrowDown as KeyboardArrowDownIcon,
@@ -34,15 +33,11 @@ import {
     DialogContent,
     DialogTitle,
     Drawer,
-    FormControl,
     IconButton,
     ListItemIcon,
     ListItemText,
     Menu,
     MenuItem,
-    Select,
-    Tab,
-    Tabs,
     TextField,
     Typography,
 } from '@mui/material';
@@ -425,7 +420,23 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
     const pmid = entry?.pmid || '';
     const journal = entry?.journal || '';
     const year = entry?.year || '';
-    const hasMetaRow = Boolean(journal || year);
+    const citationCount = entry?.citation_count;
+
+    // Figma renders one compact meta line: author · year · journal · PMID · citations.
+    const primaryAuthor = (() => {
+        const list = String(authors).split(',').map((name) => name.trim()).filter(Boolean);
+        if (list.length === 0) return '';
+        return list.length === 1 ? list[0] : `${list[0]} et al.`;
+    })();
+    const metaLine = [
+        primaryAuthor,
+        year,
+        journal,
+        pmid ? `PMID: ${pmid}` : '',
+        Number.isFinite(Number(citationCount))
+            ? `${Number(citationCount)} Citation${Number(citationCount) === 1 ? '' : 's'}`
+            : '',
+    ].filter(Boolean).join(' · ');
 
     const handleOpenMenu = (event) => {
         event.stopPropagation();
@@ -481,119 +492,24 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                     }
                 }}
             >
-                <Box className="history-item-content" sx={{ gap: '4px' }}>
-                    <Box sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: '12px',
-                        height: '21px',
-                    }}>
-                        {pmid ? (
-                            <Typography sx={{
-                                color: '#969696',
-                                fontSize: '14px',
-                                fontWeight: 500,
-                            }}>
-                                PubMed ID: {pmid}
-                            </Typography>
-                        ) : (
-                            <span />
-                        )}
-                        <IconButton
-                            size="small"
-                            className="history-item-more"
-                            onClick={handleOpenMenu}
-                            aria-label="Open reference menu"
-                            sx={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: '8px',
-                                color: '#164563',
-                            }}
-                        >
-                            <MoreHorizIcon sx={{ fontSize: 18 }} />
-                        </IconButton>
-                    </Box>
-                    <Typography sx={{
-                        color: '#323232',
-                        fontWeight: 600,
-                        fontSize: '16px',
-                        display: 'block',
-                        wordBreak: 'break-word',
-                    }}>
+                <Box className="library-entry-content">
+                    <span className="library-entry-title" title={entry?.title || ''}>
                         {entry?.title || 'Untitled reference'}
-                    </Typography>
-                    {authors && (
-                        <Box sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'flex-start',
-                            gap: '12px',
-                        }}>
-                            <Box sx={{
-                                display: 'flex',
-                                flexWrap: 'wrap',
-                                gap: '6px',
-                                fontSize: '14px',
-                                fontWeight: 400,
-                                fontStyle: 'italic',
-                                color: '#969696',
-                                lineHeight: '16px',
-                                flex: 1,
-                            }}>
-                                {authors}
-                            </Box>
-                            {entry?.citation_count !== undefined && entry?.citation_count !== null && (
-                                <Typography sx={{
-                                    fontSize: '14px',
-                                    fontWeight: 400,
-                                    color: '#646464',
-                                    lineHeight: '16px',
-                                    flexShrink: 0,
-                                }}>
-                                    Citations: {entry.citation_count}
-                                </Typography>
-                            )}
-                        </Box>
-                    )}
-                    {hasMetaRow && (
-                        <Box
-                            className="library-reference-meta"
-                            sx={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                gap: '12px',
-                            }}
-                        >
-                            <Typography sx={{
-                                fontSize: '14px',
-                                fontWeight: 400,
-                                color: '#323232',
-                                wordBreak: 'break-word',
-                                lineHeight: '16px',
-                                flex: 1,
-                            }} title="Journal">
-                                {journal}
-                            </Typography>
-                            {year && (
-                                <Typography
-                                    className="library-reference-year"
-                                    sx={{
-                                        fontSize: '14px',
-                                        fontWeight: 400,
-                                        color: '#323232',
-                                        lineHeight: '16px',
-                                        flexShrink: 0,
-                                    }}
-                                >
-                                    {year}
-                                </Typography>
-                            )}
-                        </Box>
+                    </span>
+                    {metaLine && (
+                        <span className="library-entry-meta" title={metaLine}>
+                            {metaLine}
+                        </span>
                     )}
                 </Box>
+                <IconButton
+                    size="small"
+                    className="library-entry-more"
+                    onClick={handleOpenMenu}
+                    aria-label="Open reference menu"
+                >
+                    <MoreHorizIcon sx={{ fontSize: 18 }} />
+                </IconButton>
             </div>
             <Menu
                 anchorEl={menuAnchorEl}
@@ -612,7 +528,7 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                         borderRadius: 2,
                         boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
                         '& .MuiMenuItem-root': {
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'Geist, sans-serif',
                             fontSize: '13px',
                             fontWeight: 500,
                             color: '#164563',
@@ -729,7 +645,7 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                         borderRadius: 2,
                         boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
                         '& .MuiMenuItem-root': {
-                            fontFamily: 'DM Sans, sans-serif',
+                            fontFamily: 'Geist, sans-serif',
                             fontSize: '13px',
                             fontWeight: 500,
                             color: '#164563',
@@ -785,7 +701,7 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                         primaryTypographyProps={{
                             sx: {
                                 color: '#B42318',
-                                fontFamily: 'DM Sans, sans-serif',
+                                fontFamily: 'Geist, sans-serif',
                                 fontSize: '13px',
                                 fontWeight: 500,
                             },
@@ -807,8 +723,9 @@ const Library = () => {
     const [graphBookmarks, setGraphBookmarks] = useState([]);
     const [folders, setFolders] = useState([]);
     const [folderDetail, setFolderDetail] = useState(null);
+    const [sortMenuAnchorEl, setSortMenuAnchorEl] = useState(null);
     const [folderDetailLoading, setFolderDetailLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState(ALL_TAB);
+    const [activeTab, setActiveTab] = useState(REFERENCES_TAB);
     const [citeDialogOpen, setCiteDialogOpen] = useState(false);
     const [selectedCitation, setSelectedCitation] = useState(null);
     const [folderDialogOpen, setFolderDialogOpen] = useState(false);
@@ -845,8 +762,9 @@ const Library = () => {
     }, []);
 
     useEffect(() => {
-        if (DEBUG_HIDE_EXPLORE && activeTab === GRAPHS_TAB) {
-            setActiveTab(ALL_TAB);
+        // Only Reference/Chat are selectable now; anything else falls back to Reference.
+        if (activeTab !== REFERENCES_TAB && activeTab !== CHATS_TAB) {
+            setActiveTab(REFERENCES_TAB);
         }
     }, [activeTab]);
 
@@ -1274,10 +1192,12 @@ const Library = () => {
             .filter(Boolean);
     }, [folderDetail, graphBookmarks, isFolderView]);
 
-    const shouldLimitPreviews = !isFolderView && activeTab === ALL_TAB;
-    const showChatsSection = activeTab === ALL_TAB || activeTab === CHATS_TAB;
-    const showReferencesSection = activeTab === ALL_TAB || activeTab === REFERENCES_TAB;
-    const showGraphsSection = !DEBUG_HIDE_EXPLORE && (activeTab === ALL_TAB || activeTab === GRAPHS_TAB);
+    // The segmented control shows exactly one section at a time, so previews are
+    // never truncated and only the selected section renders.
+    const shouldLimitPreviews = false;
+    const showChatsSection = activeTab === CHATS_TAB;
+    const showReferencesSection = activeTab === REFERENCES_TAB;
+    const showGraphsSection = false;
     const trimmedQuery = searchQuery.trim().toLowerCase();
     const isSearching = Boolean(trimmedQuery);
     const baseChats = isFolderView ? folderChats : conversationBookmarks;
@@ -1366,14 +1286,19 @@ const Library = () => {
         + (folder?.ref_count ?? 0)
         + (folder?.graph_count ?? 0)
     );
+    // Figma specs a 2-option segmented pill; "All"/"Explore" are no longer surfaced.
     const tabs = [
-        { id: ALL_TAB, label: 'All' },
         { id: REFERENCES_TAB, label: 'Reference' },
-        { id: CHATS_TAB, label: 'AI Chat' },
-        { id: GRAPHS_TAB, label: 'Explore' },
-    ].filter((tab) => !(DEBUG_HIDE_EXPLORE && tab.id === GRAPHS_TAB));
+        { id: CHATS_TAB, label: 'Chat' },
+    ];
 
     const isReferenceExportDisabled = displayedReferences.length === 0;
+
+    const sortOptionLabels = {
+        [SORT_AZ]: 'A-Z',
+        [SORT_ZA]: 'Z-A',
+        [SORT_DATE]: 'Date added',
+    };
 
     const handleExportReferences = () => {
         if (displayedReferences.length === 0) return;
@@ -1403,6 +1328,57 @@ const Library = () => {
         document.body.removeChild(a);
     };
 
+    // Figma puts the sort pill and the export button on the same row as the
+    // "All References (n)" heading, so both live in one shared fragment rather
+    // than being duplicated per breakpoint.
+    const librarySortControl = (
+        <>
+            <Box className="library-sort">
+                <span className="library-sort-label">Sort:</span>
+                <button
+                    type="button"
+                    className="library-sort-pill"
+                    onClick={(event) => setSortMenuAnchorEl(event.currentTarget)}
+                >
+                    <span>{sortOptionLabels[sortOption] || sortOptionLabels[SORT_DATE]}</span>
+                    <KeyboardArrowDownIcon className="library-sort-pill-icon" />
+                </button>
+                <Menu
+                    anchorEl={sortMenuAnchorEl}
+                    open={Boolean(sortMenuAnchorEl)}
+                    onClose={() => setSortMenuAnchorEl(null)}
+                    className="library-sort-menu"
+                >
+                    {[SORT_DATE, SORT_AZ, SORT_ZA].map((value) => (
+                        <MenuItem
+                            key={value}
+                            selected={sortOption === value}
+                            onClick={() => { setSortOption(value); setSortMenuAnchorEl(null); }}
+                        >
+                            {sortOptionLabels[value]}
+                        </MenuItem>
+                    ))}
+                </Menu>
+            </Box>
+            <IconButton
+                size="small"
+                onClick={handleExportReferences}
+                disabled={isReferenceExportDisabled}
+                title="Download references (.bib)"
+                className="library-sort-download"
+            >
+                <DownloadIcon
+                    aria-label="Download references"
+                    style={{
+                        width: 16,
+                        height: 16,
+                        color: isReferenceExportDisabled ? '#A8B3C8' : '#5E6E87',
+                    }}
+                />
+            </IconButton>
+        </>
+    );
+
     if (loading) {
         return null;
     }
@@ -1425,7 +1401,7 @@ const Library = () => {
                 maxWidth="xs"
             >
                 <DialogTitle sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: 'Geist, sans-serif',
                     fontWeight: 600,
                     fontSize: '18px',
                 }}>
@@ -1443,10 +1419,10 @@ const Library = () => {
                         inputProps={{ maxLength: 60 }}
                         sx={{
                             '& .MuiInputBase-input': {
-                                fontFamily: 'DM Sans, sans-serif',
+                                fontFamily: 'Geist, sans-serif',
                             },
                             '& .MuiInputLabel-root': {
-                                fontFamily: 'DM Sans, sans-serif',
+                                fontFamily: 'Geist, sans-serif',
                             },
                         }}
                     />
@@ -1471,7 +1447,7 @@ const Library = () => {
                 maxWidth="xs"
             >
                 <DialogTitle sx={{
-                    fontFamily: 'DM Sans, sans-serif',
+                    fontFamily: 'Geist, sans-serif',
                     fontWeight: 600,
                     fontSize: '18px',
                 }}>
@@ -1479,7 +1455,7 @@ const Library = () => {
                 </DialogTitle>
                 <DialogContent>
                     {folders.length === 0 ? (
-                        <Typography sx={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: '#646464' }}>
+                        <Typography sx={{ fontFamily: 'Geist, sans-serif', fontSize: '14px', color: '#646464' }}>
                             No folders yet. Create one to organize your bookmarks.
                         </Typography>
                     ) : (
@@ -1493,7 +1469,7 @@ const Library = () => {
                                     py: 0.5,
                                 }}
                             >
-                                <Typography sx={{ fontFamily: 'DM Sans, sans-serif', fontSize: '14px', color: '#164563' }}>
+                                <Typography sx={{ fontFamily: 'Geist, sans-serif', fontSize: '14px', color: '#164563' }}>
                                     {folder.name}
                                 </Typography>
                                 <Checkbox
@@ -1538,14 +1514,6 @@ const Library = () => {
                         <div className="library-folder-manager-section-header">
                             <span className="library-folder-manager-section-title">Folders</span>
                             <div className="library-folder-manager-actions">
-                                <IconButton
-                                    size="small"
-                                    aria-label="Filter folders"
-                                    className="library-folder-manager-action"
-                                    disabled
-                                >
-                                    <FilterListOutlinedIcon sx={{ fontSize: 18 }} />
-                                </IconButton>
                                 <IconButton
                                     size="small"
                                     aria-label="Add folder"
@@ -1654,28 +1622,51 @@ const Library = () => {
                     <Box className="library-header">
                         <Box className="library-title-bar">
                             <Box className="library-title-row">
-                                <BookIcon className="library-book-icon" style={{ width: 36, height: 36, color: '#164563' }} />
-                                <Typography sx={{
-                                    fontFamily: 'DM Sans, sans-serif',
-                                    fontWeight: 600,
-                                    fontSize: '32px',
-                                    color: '#164563',
-                                }}>
+                                <Typography className="library-title">
                                     {selectedFolderName || 'Library'}
                                 </Typography>
                             </Box>
                         </Box>
-                        <Typography sx={{
-                            marginTop: '8px',
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontWeight: 500,
-                            fontSize: '14px',
-                            color: '#646464',
-                            textAlign: 'left',
-                            width: '100%',
-                        }}>
+                        <Typography className="library-subtitle">
                             Your personal research workspace.
                         </Typography>
+                        {isPhoneDevice && (
+                            <Box className="library-folder-status-row">
+                                <span className="library-folder-status-label">{mobileFolderStatusLabel}</span>
+                                <button
+                                    type="button"
+                                    className="library-folder-status-button"
+                                    onClick={() => setMobileFolderDrawerOpen(true)}
+                                >
+                                    <span>{folders.length} folders</span>
+                                    <KeyboardArrowDownIcon sx={{ fontSize: 18 }} />
+                                </button>
+                            </Box>
+                        )}
+                        <Box className="library-tabs-row">
+                            <Typography className="library-count">
+                                {activeTab === REFERENCES_TAB
+                                    ? `All References (${visibleReferences.length})`
+                                    : `All Chats (${visibleChats.length})`}
+                            </Typography>
+                            <Box className="library-toolbar-actions">
+                                <div className="library-segmented" role="tablist">
+                                    {tabs.map((tab) => (
+                                        <button
+                                            key={tab.id}
+                                            type="button"
+                                            role="tab"
+                                            aria-selected={activeTab === tab.id}
+                                            className={`library-segmented-option${activeTab === tab.id ? ' is-active' : ''}`}
+                                            onClick={() => handleTabClick(tab.id)}
+                                        >
+                                            {tab.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                {!isPhoneDevice && librarySortControl}
+                            </Box>
+                        </Box>
                         <div className="library-search">
                             <input
                                 className="library-search-input"
@@ -1699,154 +1690,8 @@ const Library = () => {
                             )}
                         </div>
                         {isPhoneDevice && (
-                            <Box className="library-folder-status-row">
-                                <span className="library-folder-status-label">{mobileFolderStatusLabel}</span>
-                                <button
-                                    type="button"
-                                    className="library-folder-status-button"
-                                    onClick={() => setMobileFolderDrawerOpen(true)}
-                                >
-                                    <span>{folders.length} folders</span>
-                                    <KeyboardArrowDownIcon sx={{ fontSize: 18 }} />
-                                </button>
-                            </Box>
-                        )}
-                        <Box className="library-tabs-row">
-                            <Tabs
-                                className="library-tabs"
-                                value={activeTab}
-                                onChange={(_, value) => handleTabClick(value)}
-                                variant={isPhoneDevice ? 'fullWidth' : 'scrollable'}
-                                allowScrollButtonsMobile={!isPhoneDevice}
-                                TabIndicatorProps={{
-                                    sx: {
-                                        backgroundColor: '#155DFC',
-                                        height: 2,
-                                    },
-                                }}
-                                sx={{
-                                    minHeight: 0,
-                                    '& .MuiTabs-flexContainer': {
-                                        gap: isPhoneDevice ? 0 : '12px',
-                                    },
-                                    '& .MuiTab-root': {
-                                        textTransform: 'none',
-                                        fontFamily: 'DM Sans, sans-serif',
-                                        fontSize: '13px',
-                                        fontWeight: 600,
-                                        color: '#164563',
-                                        minHeight: 32,
-                                        minWidth: isPhoneDevice ? '25%' : 0,
-                                        maxWidth: isPhoneDevice ? 'none' : undefined,
-                                        flex: isPhoneDevice ? 1 : undefined,
-                                        padding: isPhoneDevice ? '12px 0' : '12px 24px',
-                                    },
-                                    '& .MuiTab-root.Mui-selected': {
-                                        color: '#155DFC',
-                                    },
-                                }}
-                            >
-                                {tabs.map((tab) => (
-                                    <Tab key={tab.id} value={tab.id} label={tab.label} />
-                                ))}
-                            </Tabs>
-                            {!isPhoneDevice && (
-                                <Box className="library-sort">
-                                    <span className="library-sort-label">Sort:</span>
-                                    <FormControl size="small">
-                                        <Select
-                                            value={sortOption}
-                                            onChange={(event) => setSortOption(event.target.value)}
-                                            displayEmpty
-                                            sx={{
-                                                fontFamily: 'DM Sans, sans-serif',
-                                                fontSize: '12px',
-                                                fontWeight: 600,
-                                                color: '#164563',
-                                                minWidth: 110,
-                                                height: 28,
-                                                backgroundColor: '#E7F1FF',
-                                                borderRadius: '16px',
-                                                '& .MuiSelect-select': {
-                                                    padding: '4px 8px',
-                                                },
-                                                '& fieldset': {
-                                                    border: 'none',
-                                                },
-                                            }}
-                                        >
-                                            <MenuItem value={SORT_AZ}>A-Z</MenuItem>
-                                            <MenuItem value={SORT_ZA}>Z-A</MenuItem>
-                                            <MenuItem value={SORT_DATE}>Date Added</MenuItem>
-                                        </Select>
-                                    </FormControl>
-                                    <IconButton
-                                        size="small"
-                                        onClick={handleExportReferences}
-                                        disabled={isReferenceExportDisabled}
-                                        title="Download references (.bib)"
-                                        className="library-sort-download"
-                                    >
-                                        <DownloadIcon
-                                            aria-label="Download references"
-                                            style={{
-                                                width: 20,
-                                                height: 20,
-                                                color: isReferenceExportDisabled ? '#B0B0B0' : '#164563',
-                                            }}
-                                        />
-                                    </IconButton>
-                                </Box>
-                            )}
-                        </Box>
-                        {isPhoneDevice && (
                             <Box className="library-mobile-sort-row">
-                                <Box className="library-sort">
-                                    <span className="library-sort-label">Sort:</span>
-                                    <FormControl size="small">
-                                        <Select
-                                            value={sortOption}
-                                            onChange={(event) => setSortOption(event.target.value)}
-                                            displayEmpty
-                                            sx={{
-                                                fontFamily: 'DM Sans, sans-serif',
-                                                fontSize: '12px',
-                                                fontWeight: 600,
-                                                color: '#164563',
-                                                minWidth: 110,
-                                                height: 28,
-                                                backgroundColor: '#E7F1FF',
-                                                borderRadius: '16px',
-                                                '& .MuiSelect-select': {
-                                                    padding: '4px 8px',
-                                                },
-                                                '& fieldset': {
-                                                    border: 'none',
-                                                },
-                                            }}
-                                        >
-                                            <MenuItem value={SORT_AZ}>A-Z</MenuItem>
-                                            <MenuItem value={SORT_ZA}>Z-A</MenuItem>
-                                            <MenuItem value={SORT_DATE}>Date Added</MenuItem>
-                                        </Select>
-                                    </FormControl>
-                                </Box>
-                                <IconButton
-                                    size="small"
-                                    onClick={handleExportReferences}
-                                    disabled={isReferenceExportDisabled}
-                                    title="Download references (.bib)"
-                                    className="library-sort-download"
-                                >
-                                    <DownloadIcon
-                                        aria-label="Download references"
-                                        style={{
-                                            width: 20,
-                                            height: 20,
-                                            color: isReferenceExportDisabled ? '#B0B0B0' : '#164563',
-                                        }}
-                                    />
-                                </IconButton>
+                                {librarySortControl}
                             </Box>
                         )}
                     </Box>
@@ -1859,9 +1704,6 @@ const Library = () => {
                         {!isSearching && canRenderList ? (
                             showReferencesSection && (
                                 <Box className="library-section">
-                                    <Typography className="library-section-title">
-                                        References
-                                    </Typography>
                                     <Box className="library-reference-list">
                                         {visibleReferences.length > 0 ? (
                                             <>
@@ -1900,9 +1742,6 @@ const Library = () => {
                         {!isSearching && canRenderList ? (
                             showChatsSection && (
                                 <Box className="library-section">
-                                    <Typography className="library-section-title">
-                                        Chats
-                                    </Typography>
                                     {visibleChats.length > 0 ? (
                                         <>
                                             <Box className="library-chat-list">
@@ -2012,7 +1851,7 @@ const Library = () => {
                                                                             </Box>
                                                                         ) : (
                                                                             <Typography className="history-title" sx={{
-                                                                                fontFamily: 'DM Sans, sans-serif',
+                                                                                fontFamily: 'Geist, sans-serif',
                                                                                 fontWeight: 600,
                                                                                 fontSize: '16px',
                                                                                 color: '#164563',
@@ -2069,9 +1908,6 @@ const Library = () => {
                             <>
                                 {showReferencesSection && visibleReferences.length > 0 && (
                                     <Box className="library-section">
-                                        <Typography className="library-section-title">
-                                            References
-                                        </Typography>
                                         <Box className="library-reference-list">
                                             {sortedReferences.map((entry) => (
                                                 <LibraryReferenceCard
@@ -2088,9 +1924,6 @@ const Library = () => {
                                 )}
                                 {showChatsSection && visibleChats.length > 0 && (
                                     <Box className="library-section">
-                                        <Typography className="library-section-title">
-                                            Chats
-                                        </Typography>
                                         <Box className="library-chat-list">
                                             {sortedChats.map((conversation) => (
                                                 <div
@@ -2176,7 +2009,7 @@ const Library = () => {
                                                                         </Box>
                                                                     ) : (
                                                                         <Typography className="history-title" sx={{
-                                                                            fontFamily: 'DM Sans, sans-serif',
+                                                                            fontFamily: 'Geist, sans-serif',
                                                                             fontWeight: 600,
                                                                             fontSize: '16px',
                                                                             color: '#164563',

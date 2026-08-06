@@ -29,14 +29,14 @@ import {
   Clear as ClearIcon,
   EditNote as EditNoteIcon,
   ExpandMore as ExpandMoreIcon,
-  Link as LinkIcon,
+  ScienceOutlined as ScienceOutlinedIcon,
   Star as StarIcon,
-  ThumbsUpDownOutlined as ThumbsUpDownOutlinedIcon,
 } from '@mui/icons-material';
 import {
   Alert,
   Box,
   Button as MuiButton,
+  Checkbox,
   CircularProgress,
   Container,
   Dialog,
@@ -44,8 +44,11 @@ import {
   DialogContent,
   DialogTitle,
   Drawer,
+  FormControlLabel,
   Grid,
   IconButton,
+  Radio,
+  RadioGroup,
   Snackbar,
   Stack,
   TextField,
@@ -54,15 +57,23 @@ import {
   Typography,
 } from '@mui/material';
 
-import contentCopyIcon from '../../img/llm/content_copy.svg';
+import { emptyFunnel, mergeFunnel } from './funnel';
+import InvestigateProgress, { formatElapsed } from './InvestigateProgress';
+import { resolveClarifyRound } from './clarifyRound';
+import { mintSessionId } from './sessionId';
+import { ReactComponent as ContentCopyIcon } from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
-import replayIcon from '../../img/llm/replay.svg';
-import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
-import {
-  ReactComponent as SidebarLeftIcon,
-} from '../../img/navbar/sidebar.left.svg';
+import { ReactComponent as ReferenceIcon } from '../../img/llm/reference.svg';
+import { ReactComponent as ReplayIcon } from '../../img/llm/replay.svg';
+import { ReactComponent as ThumbsUpDownIcon } from '../../img/llm/thumbs_up_down.svg';
 import { submitChatFeedback } from '../../service/Feedback';
-import { LLMAgentService } from '../../service/LLMAgent';
+import {
+  INVESTIGATE_PHASE_ORDER,
+  LLMAgentService,
+  PHASE_PERCENT_FLOOR,
+  inferInvestigatePhase,
+} from '../../service/LLMAgent';
+import { getCurrentUser } from '../../service/Auth';
 import {
   getGuestTier,
   getMyTier,
@@ -105,6 +116,386 @@ const formatDuration = (durationMs) => {
         return `${minutes}m ${seconds}s`;
     }
     return `${seconds}s`;
+};
+
+/**
+ * The "Investigated for m:ss" row shown once the run closes.
+ *
+ * Formatting is delegated to the live header clock's `formatElapsed` so the two can never drift
+ * apart — same shape, same truncation, same `Date.now()` origin. Returns '' for an unknown
+ * duration, which is also what gates the row's visibility.
+ */
+const formatInvestigatedDuration = (durationMs) => {
+    if (durationMs === null || durationMs === undefined) return '';
+    return formatElapsed(durationMs / 1000);
+};
+
+const mergeLiveKeywords = (prev, next) => {
+    if (!Array.isArray(next) || !next.length) return prev || [];
+    return Array.from(new Set([...(prev || []), ...next.map(String)]));
+};
+
+const mergeLivePapers = (prev, next) => {
+    if (!Array.isArray(next) || !next.length) return prev || [];
+    const map = new Map();
+    [...(prev || []), ...next].forEach((paper) => {
+        if (!paper) return;
+        const key = paper.pmid || paper.id || paper.title;
+        if (!key) return;
+        map.set(String(key), paper);
+    });
+    return Array.from(map.values());
+};
+
+/**
+ * Fold one progress frame's structured fields into the accumulated detail. Kept additive: a
+ * frame that omits `facets` must not blank the facets the analyzing step is displaying, and the
+ * writing frames only carry section/step/total. Keys are renamed to the shapes the panel reads.
+ */
+const mergeInvestigateDetail = (prev, next, label) => {
+    const out = { ...(prev || {}) };
+    if (Array.isArray(next.topic) && next.topic.length) out.topic = next.topic.map(String);
+    if (Array.isArray(next.facets) && next.facets.length) out.facets = next.facets.map(String);
+    // Retrieval channels reporting one by one. Accumulated (not replaced) and de-duplicated by
+    // name, because each frame carries the running list and a later frame must not drop an
+    // earlier probe's result.
+    if (Array.isArray(next.channels) && next.channels.length) {
+        const byName = new Map((out.channels || []).map((c) => [c.name, c]));
+        next.channels.forEach((c) => {
+            if (c && c.name) byName.set(String(c.name), { name: String(c.name), hits: Number(c.hits) || 0, ok: c.ok !== false });
+        });
+        out.channels = Array.from(byName.values());
+    }
+    // `facets` is capped for display; `n_facets` is the true count.
+    if (Number.isFinite(Number(next.n_facets))) out.nFacets = Number(next.n_facets);
+    if (Number.isFinite(Number(next.n_claims))) out.nClaims = Number(next.n_claims);
+    if (Number.isFinite(Number(next.n_conflicted))) out.nConflicted = Number(next.n_conflicted);
+    // `step`/`total` only mean "report section i of n" on the writing frames — the reading frame
+    // also carries a `total` (the paper count), which must not be read as a section count.
+    if (next.section) {
+        out.section = String(next.section);
+        if (Number.isFinite(Number(next.step))) out.step = Number(next.step);
+        if (Number.isFinite(Number(next.total))) out.totalSections = Number(next.total);
+    }
+    if (label) out.label = String(label);
+    return out;
+};
+
+/**
+ * Phases only ever move forward. A frame that names an earlier phase — a late-arriving event, a
+ * phase inferred from free text, or a stage that reports its own completion — must not rewind the
+ * header from "Reading..." back to "Searching...". Unknown phases are ignored rather than
+ * treated as a reset.
+ */
+const mergePhaseMonotonic = (prev, next) => {
+    if (!next) return prev;
+    if (!prev) return next;
+    const a = INVESTIGATE_PHASE_ORDER.indexOf(prev);
+    const b = INVESTIGATE_PHASE_ORDER.indexOf(next);
+    if (b < 0) return prev;
+    if (a < 0) return next;
+    return b >= a ? next : prev;
+};
+
+const mergePercentMonotonic = (prev, next) => {
+    if (!Number.isFinite(Number(next))) return prev;
+    const n = Math.max(0, Math.min(100, Math.round(Number(next))));
+    if (!Number.isFinite(Number(prev))) return n;
+    return Math.max(Number(prev), n);
+};
+
+const formatFunnelValue = (value) => {
+    if (value === null || value === undefined || value === '') return '—';
+    const num = Number(value);
+    if (!Number.isFinite(num)) return '—';
+    return num.toLocaleString();
+};
+
+const getUserNotifyEmail = () => {
+    try {
+        const user = (typeof getCurrentUser === 'function' ? getCurrentUser() : null)
+            || JSON.parse(localStorage.getItem('user') || 'null');
+        const email = user?.email || user?.mail || '';
+        return typeof email === 'string' ? email.trim() : '';
+    } catch {
+        return '';
+    }
+};
+
+/** Inline clarify panel (Figma "Asking Question") — not a modal. */
+const ClarifyPanel = ({
+    pendingClarification,
+    clarificationDrafts,
+    clarificationError,
+    clarificationSubmitting,
+    hasInvalidOtherSelection,
+    onUpdateDraft,
+    onSubmit,
+    onSkip,
+}) => {
+    if (!pendingClarification) return null;
+
+    return (
+        <Box className="clarify-inline-panel" role="region" aria-label="Clarifying questions">
+            <Box className="clarify-inline-head">
+                <Typography className="clarify-inline-kicker">Asking user question...</Typography>
+                <Typography className="clarify-inline-title">Clarify your research scope</Typography>
+                {pendingClarification.reason ? (
+                    <Typography className="clarify-inline-reason">{pendingClarification.reason}</Typography>
+                ) : (
+                    <Typography className="clarify-inline-reason">
+                        Answering these helps the agent narrow evidence and improve citation quality.
+                    </Typography>
+                )}
+            </Box>
+
+            <Stack spacing={1.5} className="clarify-inline-questions">
+                {(pendingClarification.questions || []).map((question, index) => {
+                    const questionKey = getClarificationQuestionKey(question, index);
+                    const draft = clarificationDrafts[questionKey] || { selected: [], text: '', otherSelected: false };
+                    const selected = Array.isArray(draft.selected) ? draft.selected : [];
+                    const otherText = typeof draft.text === 'string' ? draft.text : '';
+                    const responseType = String(question?.response_type || 'text').toLowerCase();
+                    const options = Array.isArray(question?.options) ? question.options : [];
+                    const radioValue = draft.otherSelected ? '__other__' : (selected[0] || '');
+
+                    return (
+                        <Box key={questionKey} className="clarify-inline-card">
+                            <Typography className="clarify-inline-header">
+                                {question?.header || `Question ${index + 1}`}
+                            </Typography>
+                            <Typography className="clarify-inline-question">
+                                {question?.question || ''}
+                            </Typography>
+
+                            {responseType === 'single' && (
+                                <>
+                                    <RadioGroup
+                                        value={radioValue}
+                                        onChange={(event) => {
+                                            const nextValue = event.target.value;
+                                            if (nextValue === '__other__') {
+                                                onUpdateDraft(questionKey, {
+                                                    selected: [],
+                                                    text: otherText,
+                                                    otherSelected: true,
+                                                });
+                                                return;
+                                            }
+                                            onUpdateDraft(questionKey, {
+                                                selected: nextValue ? [nextValue] : [],
+                                                text: '',
+                                                otherSelected: false,
+                                            });
+                                        }}
+                                    >
+                                        {options.map((option) => {
+                                            const optionLabel = String(option?.label || '').trim();
+                                            if (!optionLabel) return null;
+                                            return (
+                                                <FormControlLabel
+                                                    key={optionLabel}
+                                                    value={optionLabel}
+                                                    control={<Radio size="small" />}
+                                                    label={option?.description || optionLabel}
+                                                />
+                                            );
+                                        })}
+                                        <FormControlLabel value="__other__" control={<Radio size="small" />} label="Other" />
+                                    </RadioGroup>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        placeholder="Type your answer here"
+                                        value={otherText}
+                                        onChange={(event) => {
+                                            onUpdateDraft(questionKey, {
+                                                selected: [],
+                                                text: event.target.value,
+                                                otherSelected: true,
+                                            });
+                                        }}
+                                        sx={{ mt: 1 }}
+                                    />
+                                </>
+                            )}
+
+                            {responseType === 'multi' && (
+                                <>
+                                    <Stack spacing={0.5}>
+                                        {options.map((option) => {
+                                            const optionLabel = String(option?.label || '').trim();
+                                            if (!optionLabel) return null;
+                                            const checked = selected.includes(optionLabel);
+                                            return (
+                                                <FormControlLabel
+                                                    key={optionLabel}
+                                                    control={(
+                                                        <Checkbox
+                                                            size="small"
+                                                            checked={checked}
+                                                            onChange={(event) => {
+                                                                const nextSelected = event.target.checked
+                                                                    ? [...selected, optionLabel]
+                                                                    : selected.filter((item) => item !== optionLabel);
+                                                                onUpdateDraft(questionKey, {
+                                                                    selected: Array.from(new Set(nextSelected)),
+                                                                    text: otherText,
+                                                                });
+                                                            }}
+                                                        />
+                                                    )}
+                                                    label={option?.description || optionLabel}
+                                                />
+                                            );
+                                        })}
+                                    </Stack>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        placeholder="Optional additional context"
+                                        value={otherText}
+                                        onChange={(event) => {
+                                            onUpdateDraft(questionKey, {
+                                                selected,
+                                                text: event.target.value,
+                                            });
+                                        }}
+                                        sx={{ mt: 1 }}
+                                    />
+                                </>
+                            )}
+
+                            {responseType === 'text' && (
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    placeholder="Type your answer here"
+                                    value={otherText}
+                                    onChange={(event) => {
+                                        onUpdateDraft(questionKey, {
+                                            selected: [],
+                                            text: event.target.value,
+                                        });
+                                    }}
+                                />
+                            )}
+                        </Box>
+                    );
+                })}
+            </Stack>
+
+            {clarificationError && (
+                <Typography className="clarify-inline-error">{clarificationError}</Typography>
+            )}
+
+            <Box className="clarify-inline-actions">
+                <MuiButton
+                    disabled={clarificationSubmitting}
+                    onClick={() => onSkip?.()}
+                    className="clarify-inline-skip"
+                    sx={{
+                        borderRadius: '10px',
+                        border: '1px solid #CBD5E1',
+                        textTransform: 'none',
+                        fontFamily: 'DM Sans, sans-serif',
+                        color: '#46566C',
+                    }}
+                >
+                    Skip
+                </MuiButton>
+                <MuiButton
+                    disabled={clarificationSubmitting || hasInvalidOtherSelection}
+                    onClick={() => onSubmit?.()}
+                    sx={{
+                        borderRadius: '10px',
+                        border: '1px solid #155DFC',
+                        backgroundColor: '#155DFC',
+                        textTransform: 'none',
+                        fontFamily: 'DM Sans, sans-serif',
+                        color: '#FFFFFF',
+                        '&:hover': {
+                            backgroundColor: '#0A47D6',
+                            borderColor: '#0A47D6',
+                        },
+                    }}
+                >
+                    {clarificationSubmitting ? 'Submitting...' : 'Submit'}
+                </MuiButton>
+            </Box>
+        </Box>
+    );
+};
+
+const getClarificationQuestionKey = (question, index) => {
+    const raw = typeof question?.header === 'string' ? question.header.trim() : '';
+    return raw || `question-${index}`;
+};
+
+const buildClarificationDrafts = (questions) => {
+    if (!Array.isArray(questions)) return {};
+    return questions.reduce((acc, question, index) => {
+        const key = getClarificationQuestionKey(question, index);
+        const defaults = Array.isArray(question?.default)
+            ? question.default.map((item) => String(item || '').trim()).filter(Boolean)
+            : [];
+        acc[key] = {
+            selected: defaults,
+            text: '',
+            otherSelected: false,
+        };
+        return acc;
+    }, {});
+};
+
+const buildClarifyAnswers = (questions, drafts) => {
+    if (!Array.isArray(questions)) return [];
+
+    return questions.reduce((acc, question, index) => {
+        const key = getClarificationQuestionKey(question, index);
+        const draft = drafts?.[key] || { selected: [], text: '' };
+        const header = typeof question?.header === 'string' ? question.header.trim() : key;
+        const responseType = String(question?.response_type || 'text').toLowerCase();
+        const selected = Array.isArray(draft.selected)
+            ? draft.selected.map((item) => String(item || '').trim()).filter(Boolean)
+            : [];
+        const text = typeof draft.text === 'string' ? draft.text.trim() : '';
+
+        if (responseType === 'text') {
+            if (!text) return acc;
+            acc.push({ header, selected: [], text });
+            return acc;
+        }
+
+        if (responseType === 'single') {
+            if (text) {
+                acc.push({ header, selected: [], text });
+                return acc;
+            }
+            if (selected[0]) {
+                acc.push({ header, selected: [selected[0]], text: null });
+            }
+            return acc;
+        }
+
+        if (responseType === 'multi') {
+            if (selected.length === 0 && !text) return acc;
+            acc.push({
+                header,
+                selected,
+                text: text || null,
+            });
+            return acc;
+        }
+
+        if (!selected.length && !text) return acc;
+        acc.push({
+            header,
+            selected,
+            text: text || null,
+        });
+        return acc;
+    }, []);
 };
 
 const logDev = (...args) => {
@@ -176,6 +567,8 @@ const PLACEHOLDER_PMID_PREFIX = 'PMID ';
 const LEFT_MIN_PX = 360;
 const RIGHT_MIN_PX = 360;
 const DIVIDER_PX = 8;
+const PREFERRED_CHAT_COLUMN_MIN_PX = 680;
+const MIN_SPLIT_WIDTH_WITH_REFERENCES = PREFERRED_CHAT_COLUMN_MIN_PX + DIVIDER_PX + RIGHT_MIN_PX;
 const DEFAULT_LEFT_PERCENT = 66;
 const FALLBACK_MIN_LEFT_PERCENT = 45;
 const FALLBACK_MAX_LEFT_PERCENT = 80;
@@ -219,7 +612,54 @@ const areMessagesEqual = (left, right) => {
     return true;
 };
 
-const getStepLabel = (stepName) => STEP_LABELS[stepName] || stepName;
+const AGENT_STEP_LABEL = (action) => {
+    if (action === 'AGENT START' || action === 'AGENT INPUT') {
+        return STEP_LABELS.GLKBAgent || 'Agent is thinking';
+    }
+    if (action === 'AGENT OUTPUT') {
+        return STEP_LABELS.FinalAnswerAgent || 'Formulating the final answer';
+    }
+    return '';
+};
+
+// Anything that still carries a JSON payload or a pipe is a raw transport trace
+// rather than something worth showing a user.
+const looksLikeRawPayload = (value) => /[{}]|\bInput:|\bOutput:|\|/.test(String(value));
+
+const getStepLabel = (stepName) => {
+    if (!stepName) return '';
+    if (STEP_LABELS[stepName]) return STEP_LABELS[stepName];
+
+    // Raw traces ("[TOOL CALL] search_pubmed | Input: {…}") reach this function
+    // directly from progress frames, which bypass parseThinkingEntry. Only the
+    // token right after the bracket carries meaning; the payload is never shown.
+    const bracketMatch = String(stepName).match(/^\s*\[([^\]]+)\]\s*([\s\S]*)$/);
+    if (bracketMatch) {
+        const action = bracketMatch[1].trim().toUpperCase();
+        const token = bracketMatch[2].split('|')[0].trim();
+        if (token && STEP_LABELS[token]) return STEP_LABELS[token];
+        const agentLabel = AGENT_STEP_LABEL(action);
+        if (agentLabel) return agentLabel;
+        if (token && !looksLikeRawPayload(token)) return token.replace(/_/g, ' ');
+        return STEP_LABELS[bracketMatch[1].trim()] || STEP_LABELS.Processing || 'Working...';
+    }
+
+    const toolMatch = String(stepName).match(/^TOOL\s+(?:CALL|RESULT):\s*(.+)$/i);
+    if (toolMatch?.[1]) {
+        const toolName = toolMatch[1].split('|')[0].trim();
+        return STEP_LABELS[toolName] || toolName.replace(/_/g, ' ');
+    }
+
+    const agentLabel = AGENT_STEP_LABEL(String(stepName).toUpperCase());
+    if (agentLabel) return agentLabel;
+
+    // Never let an unmapped payload string become the visible step wording.
+    if (looksLikeRawPayload(stepName)) {
+        return STEP_LABELS.Processing || 'Working...';
+    }
+
+    return stepName;
+};
 
 const extractYearFromPubDate = (value) => {
     if (!value || typeof value !== 'string') return '';
@@ -324,7 +764,7 @@ const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '16px',
                             fontWeight: 400,
-                            color: '#5B5B5B',
+                            color: '#5E6E87',
                             whiteSpace: 'pre-wrap',
                             lineHeight: 1.5,
                         }}
@@ -353,7 +793,7 @@ const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '16px',
                             fontWeight: 400,
-                            color: '#5B5B5B',
+                            color: '#5E6E87',
                             whiteSpace: 'pre-wrap',
                             lineHeight: 1.5,
                         }}
@@ -371,7 +811,7 @@ const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '12px',
                 fontWeight: 400,
-                color: '#969696',
+                color: '#8090AB',
                 whiteSpace: 'pre-wrap',
             }}
             data-line-key={lineKey}
@@ -421,7 +861,7 @@ const ThoughtGroup = React.memo(
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '16px',
                         fontWeight: 400,
-                        color: '#5B5B5B',
+                        color: '#5E6E87',
                     }}>
                         {getStepLabel(group.name)}
                     </Typography>
@@ -495,15 +935,56 @@ const parseThinkingEntry = (entry) => {
         stepName = action || 'Step';
     }
 
-    if (stepFromEntry && STEP_LABELS[stepFromEntry]) {
-        stepName = stepFromEntry;
-    } else if (STEP_LABELS[stepName]) {
-        stepName = stepName;
-    } else if (stepFromEntry) {
-        stepName = stepFromEntry;
+    let derivedStepName = stepName;
+    const normalizedAction = action.toUpperCase();
+    if (normalizedAction) {
+        if (normalizedAction === 'TOOL CALL' || normalizedAction === 'TOOL RESULT') {
+            const toolName = stepName || 'Tool';
+            derivedStepName = `${normalizedAction}: ${toolName}`;
+        } else if (
+            normalizedAction === 'AGENT START'
+            || normalizedAction === 'AGENT INPUT'
+            || normalizedAction === 'AGENT OUTPUT'
+        ) {
+            derivedStepName = normalizedAction;
+        } else {
+            derivedStepName = action;
+        }
     }
 
-    return { stepName, line: raw };
+    const isGenericTransportStep = (
+        stepFromEntry === 'Processing'
+        || stepFromEntry === 'Started'
+        || stepFromEntry === 'Complete'
+    );
+
+    // Resolve to the human-facing wording from step.json. Grouping keys off this
+    // value, so "[TOOL CALL] search_pubmed" and its matching "[TOOL RESULT]"
+    // collapse into a single "Searching for relevant articles".
+    //
+    // The tool/agent name must win over `stepFromEntry`: the transport tags
+    // nearly every frame as "Processing", which would otherwise flatten every
+    // distinct tool into the generic "Working...".
+    const derivedLabel = derivedStepName ? getStepLabel(derivedStepName) : '';
+    const hasSpecificLabel = Boolean(derivedLabel) && derivedLabel !== derivedStepName;
+
+    if (hasSpecificLabel) {
+        stepName = derivedLabel;
+    } else if (stepFromEntry && STEP_LABELS[stepFromEntry] && !isGenericTransportStep) {
+        stepName = STEP_LABELS[stepFromEntry];
+    } else if (derivedStepName) {
+        stepName = derivedLabel || derivedStepName;
+    } else if (stepFromEntry) {
+        stepName = getStepLabel(stepFromEntry) || stepFromEntry;
+    } else {
+        stepName = 'Step';
+    }
+
+    // `[TOOL CALL] … | Input: {…}` / `[AGENT START] …` are internal debug traces.
+    // Users see only the mapped wording, never the raw payload.
+    const isInternalTrace = Boolean(action);
+
+    return { stepName, line: isInternalTrace ? '' : raw };
 };
 
 const groupThinkingSteps = (steps) => {
@@ -567,6 +1048,43 @@ const trajectoryToGroups = (trajectory) => {
         .filter((group) => group.name || group.lines.length > 0);
 };
 
+/**
+ * References placeholder shown while a run is streaming (MOTION-SPEC §7).
+ *
+ * A highlight wave travels top-to-bottom on a loop — at any instant one card group is at full
+ * opacity and the rest are near-invisible. This is deliberately a shimmer and NOT progressive
+ * loading: references only exist once the run completes, so an appearance of cards filling in
+ * would be a lie about what the panel knows.
+ */
+const REFERENCE_SKELETON_CARDS = 6;
+
+const ReferencesSkeleton = () => (
+    <div className="references-list ref-skeleton" aria-hidden="true">
+        {Array.from({ length: REFERENCE_SKELETON_CARDS }).map((_, i) => (
+            <div
+                className="ref-skeleton-card"
+                key={`ref-skeleton-${i}`}
+                style={{ animationDelay: `${(i * 1.6) / REFERENCE_SKELETON_CARDS}s` }}
+            >
+                <span className="ref-skeleton-bar short" />
+                <span className="ref-skeleton-bar" />
+                <span className="ref-skeleton-bar" />
+                <span className="ref-skeleton-bar medium" />
+            </div>
+        ))}
+    </div>
+);
+
+// The agent occasionally emits raw citation placeholders (`[[c1]]`, `[[c1, c2]]`)
+// that were never resolved into links. They carry no meaning for the reader, so
+// they are stripped rather than shown as literal text next to the real badges.
+const UNRESOLVED_CITATION_TOKEN = /\[\[\s*c\d+(?:\s*,\s*c\d+)*\s*\]\]/gi;
+
+const stripUnresolvedCitations = (content) => {
+    if (typeof content !== 'string' || !content.includes('[[')) return content;
+    return content.replace(UNRESOLVED_CITATION_TOKEN, '');
+};
+
 const MessageCard = React.memo(function MessageCard({
     index,
     message,
@@ -574,14 +1092,31 @@ const MessageCard = React.memo(function MessageCard({
     isProcessing,
     streamingGroups,
     streamingStepName,
-    selectedMessageIndex,
+    investigatePhase,
+    investigateFunnel,
+    investigateStartedAt,
+    investigatePercent,
+    investigateKeywords,
+    investigatePapers,
+    investigateDetail,
+    thinkingStepsVersion,
+    liveThinkingStepsRef,
+    notifyEmailEnabled,
+    onToggleNotifyEmail,
+    pendingClarification,
+    clarificationDrafts,
+    clarificationError,
+    clarificationSubmitting,
+    hasInvalidOtherSelection,
+    onUpdateClarificationDraft,
+    onSubmitClarification,
+    onSkipClarification,
     showReloadPrompt,
     onReloadLatest,
     onStop,
     refresh,
     copy,
     save,
-    goref,
     downloadConversation,
     onOpenFeedback,
 }) {
@@ -589,8 +1124,13 @@ const MessageCard = React.memo(function MessageCard({
     const isLastUserMessage = index === totalMessages - 1 && message.role === 'assistant';
     const isLoading = isProcessing && isLastUserMessage;
     const messageID = index;
-    const isSelected = index === selectedMessageIndex;
-    const hasReferences = Array.isArray(message.references) && message.references.length > 0;
+    const getReferenceNumber = (href) => {
+        const pmid = String(href || '').split('/').filter(Boolean).pop();
+        const referenceIndex = (message.references || []).findIndex(
+            (reference) => extractPmidFromReference(reference) === pmid
+        );
+        return referenceIndex >= 0 ? referenceIndex + 1 : null;
+    };
     const allowUserEdit = true;
     const [editContent, setEditContent] = useState('');
     const [isEditing, setIsEditing] = useState(false);
@@ -598,10 +1138,13 @@ const MessageCard = React.memo(function MessageCard({
     const [thoughtsExpanded, setThoughtsExpanded] = useState(() => isLoading);
     const [animatedStepLabel, setAnimatedStepLabel] = useState('');
     const [stepLabelPhase, setStepLabelPhase] = useState('idle');
+    const [investigateExpanded, setInvestigateExpanded] = useState(true);
     const allowResponseRefresh = true;
     const stepLabelTimersRef = useRef([]);
     const renderedStepLabelRef = useRef('');
     const thoughtDurationLabel = formatDuration(message.thoughtDurationMs);
+    const investigatedDurationLabel = formatInvestigatedDuration(message.thoughtDurationMs);
+    const isInvestigateMessage = Boolean(message.investigateMode);
     const groupedThoughts = useMemo(
         () => groupThinkingSteps(message.thinkingSteps),
         [message.thinkingSteps]
@@ -611,12 +1154,16 @@ const MessageCard = React.memo(function MessageCard({
         [message.trajectory]
     );
     const activeStreamingGroups = isLoading ? streamingGroups : [];
-    const staticGroups = !isLoading && trajectoryGroups.length
-        ? trajectoryGroups
+    const staticGroups = !isLoading
+        ? (
+            (isInvestigateMessage && groupedThoughts.length)
+                ? groupedThoughts
+                : (trajectoryGroups.length ? trajectoryGroups : groupedThoughts)
+        )
         : groupedThoughts;
     const displayGroups = isLoading ? activeStreamingGroups : staticGroups;
     const hasDisplayGroups = displayGroups.length > 0;
-    const isTrajectoryDisplay = !isLoading && trajectoryGroups.length > 0;
+    const isTrajectoryDisplay = !isLoading && !isInvestigateMessage && trajectoryGroups.length > 0;
     const loadingCurrentIndex = isLoading ? displayGroups.length - 1 : -1;
     const currentStepLabel = useMemo(() => {
         if (!isLoading) return '';
@@ -632,11 +1179,88 @@ const MessageCard = React.memo(function MessageCard({
     const thoughtHeaderText = isLoading
         ? (animatedStepLabel || loadingStepLabel)
         : (thoughtDurationLabel ? `Thought for ${thoughtDurationLabel}` : 'Thought summary');
-    const showThoughtHeader = isAssistant
-        && (isLoading || thoughtDurationLabel || hasDisplayGroups);
+    const showInvestigateProgress = isAssistant && isInvestigateMessage && isLoading;
+    // Once an investigation finishes its thinking collapses into this eyebrow —
+    // it should never vanish outright, so a missing duration still renders the row
+    // as long as there are thoughts behind it.
+    const showInvestigateSummary = isAssistant && isInvestigateMessage && !isLoading
+        && (Boolean(investigatedDurationLabel) || hasDisplayGroups);
+    const showThoughtHeader = isAssistant && (
+        !isInvestigateMessage && (isLoading || thoughtDurationLabel || hasDisplayGroups)
+    );
     const showReloadInMessage = showReloadPrompt && isLastUserMessage && isAssistant && !isLoading;
     const canToggleThoughts = !isLoading && hasDisplayGroups;
+    const investigateStageLabels = ['Retrieved', 'Screened', 'Extracted', 'Cited'];
+    const resolvedPhase = useMemo(() => {
+        if (!isInvestigateMessage) return null;
+        if (isLoading) {
+            // 'planning' is the pre-retrieval floor: the panel mounts at submit, before any frame
+            // has arrived, and must not claim to be searching yet.
+            return investigatePhase
+                || inferInvestigatePhase(streamingStepName, '')
+                || 'planning';
+        }
+        return message.investigatePhase || 'verifying';
+    }, [isInvestigateMessage, isLoading, investigatePhase, streamingStepName, message.investigatePhase]);
 
+    const resolvedFunnel = useMemo(() => {
+        const fromMessage = message.investigateFunnel || null;
+        if (!isLoading) return fromMessage || emptyFunnel();
+        // Structured fields only. This used to also regex-scrape numbers out of the raw tool-log
+        // lines and let THOSE win, which is how Retrieved could jump to 9,000 and then fall back
+        // to 3,000: any stray figure in a tool result that happened to sit near the word
+        // "retrieved" overwrote the agent's real count, and the merge was last-write-wins rather
+        // than monotonic. The agent now reports every funnel number on every phase, so the
+        // scraper has nothing to add and plenty to break.
+        return investigateFunnel || emptyFunnel();
+    }, [isLoading, message.investigateFunnel, investigateFunnel]);
+
+    // Figma: real % bar when agent sends percent; else phase floor (monotonic)
+    // After complete: prefer message.investigatePercent (persisted on final)
+    const displayPercent = useMemo(() => {
+        const live = Number.isFinite(Number(investigatePercent))
+            ? Math.max(0, Math.min(100, Math.round(Number(investigatePercent))))
+            : null;
+        const saved = Number.isFinite(Number(message.investigatePercent))
+            ? Math.max(0, Math.min(100, Math.round(Number(message.investigatePercent))))
+            : null;
+        if (showInvestigateProgress) {
+            if (live != null) return live;
+            return PHASE_PERCENT_FLOOR[resolvedPhase] ?? 8;
+        }
+        // completed card: show 100 if we have funnel/phase saved
+        if (showInvestigateSummary) return saved ?? (isInvestigateMessage ? 100 : null);
+        return null;
+    }, [
+        showInvestigateProgress,
+        showInvestigateSummary,
+        investigatePercent,
+        message.investigatePercent,
+        resolvedPhase,
+        isInvestigateMessage,
+    ]);
+
+    const resolvedKeywords = useMemo(() => {
+        if (isLoading && Array.isArray(investigateKeywords) && investigateKeywords.length) {
+            return investigateKeywords;
+        }
+        if (Array.isArray(message.investigateKeywords) && message.investigateKeywords.length) {
+            return message.investigateKeywords;
+        }
+        return Array.isArray(investigateKeywords) ? investigateKeywords : [];
+    }, [isLoading, investigateKeywords, message.investigateKeywords]);
+
+    const resolvedPapers = useMemo(() => {
+        if (isLoading && Array.isArray(investigatePapers) && investigatePapers.length) {
+            return investigatePapers;
+        }
+        if (Array.isArray(message.investigatePapers) && message.investigatePapers.length) {
+            return message.investigatePapers;
+        }
+        return Array.isArray(investigatePapers) ? investigatePapers : [];
+    }, [isLoading, investigatePapers, message.investigatePapers]);
+
+    // Tool call step icons — maps tool names and phase labels to MUI icons (per Figma)
     const toggleGroup = useCallback((nextIndex) => {
         setExpandedGroups((prev) => ({
             ...prev,
@@ -651,6 +1275,12 @@ const MessageCard = React.memo(function MessageCard({
         }
         setThoughtsExpanded(false);
     }, [isLoading]);
+
+    useEffect(() => {
+        if (showInvestigateProgress) {
+            setInvestigateExpanded(true);
+        }
+    }, [showInvestigateProgress]);
 
     useEffect(() => {
         const clearTimers = () => {
@@ -712,22 +1342,97 @@ const MessageCard = React.memo(function MessageCard({
             <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: "5px", justifyContent: "flex-end" }}>
                 <Box
                     sx={{
-                        bgcolor: isAssistant ? "transparent" : "#ffffff", // Different background colors
-                        boxShadow: isAssistant ? "none" : "0 4px 16px 0 rgba(0, 0, 0, 0.05)",
+                        bgcolor: isAssistant ? "transparent" : "#E5E9F0", // Different background colors
+                        boxShadow: "none",
                         maxWidth: isAssistant ? "100%" : "80%", // Adjust max width for assistant messages
                         width: isAssistant ? "100%" : "auto",
                         display: "flex",
                         alignItems: "flex-start",
-                        px: isAssistant ? "0px" : "24px",
-                        pt: isAssistant ? "12px" : "0px",
+                        // The user bubble keeps even padding on every side per the design spec.
+                        px: isAssistant ? "0px" : "16px",
+                        pt: isAssistant ? "12px" : "12px",
                         pb: isAssistant ? "24px" : "12px",
                         // border: isAssistant ? "1px solid" : "none",
                         borderColor: "divider",
-                        borderRadius: "24px",
+                        borderRadius: isAssistant ? "24px" : "16px",
                         flex: 1, // Occupy maximum width
                     }}
                 >
                     <Box sx={{ flex: 1, maxWidth: "100%" }}>
+                        {showInvestigateSummary && (
+                            <Box
+                                className={`investigate-summary-row${canToggleThoughts ? ' can-toggle' : ''}`}
+                                role={canToggleThoughts ? 'button' : undefined}
+                                tabIndex={canToggleThoughts ? 0 : -1}
+                                onClick={canToggleThoughts ? () => setThoughtsExpanded((prev) => !prev) : undefined}
+                                onKeyDown={(event) => {
+                                    if (!canToggleThoughts) return;
+                                    if (event.key === 'Enter' || event.key === ' ') {
+                                        event.preventDefault();
+                                        setThoughtsExpanded((prev) => !prev);
+                                    }
+                                }}
+                                aria-label={canToggleThoughts ? (thoughtsExpanded ? 'Collapse investigation thoughts' : 'Expand investigation thoughts') : undefined}
+                            >
+                                <ScienceOutlinedIcon className="investigate-summary-icon" />
+                                <span className="investigate-summary-text">
+                                    {investigatedDurationLabel ? `Investigated for ${investigatedDurationLabel}` : 'Investigation details'}
+                                </span>
+                                {canToggleThoughts && (
+                                    <ChevronRightIcon className={`investigate-summary-chevron${thoughtsExpanded ? ' expanded' : ''}`} />
+                                )}
+                            </Box>
+                        )}
+                        {showInvestigateSummary && (resolvedFunnel?.retrieved != null || resolvedFunnel?.cited != null) && (
+                            <Box className="investigate-funnel-summary" aria-label="Investigation funnel">
+                                {investigateStageLabels.map((label) => {
+                                    const key = label.toLowerCase();
+                                    return (
+                                        <span key={label} className="investigate-funnel-chip">
+                                            <strong>{formatFunnelValue(resolvedFunnel?.[key])}</strong> {label}
+                                        </span>
+                                    );
+                                })}
+                            </Box>
+                        )}
+
+                        {showInvestigateProgress && (
+                            <InvestigateProgress
+                                phase={resolvedPhase}
+                                funnel={resolvedFunnel}
+                                percent={displayPercent}
+                                keywords={resolvedKeywords}
+                                papers={resolvedPapers}
+                                detail={investigateDetail}
+                                label={investigateDetail?.label || streamingStepName || ''}
+                                /* Same `Date.now()` the final "Investigated for m:ss" is measured
+                                   from, so the live clock and the summary row cannot disagree. */
+                                startedAt={investigateStartedAt}
+                                /* The agent's `summary` frame lands just before the report itself,
+                                   so this is the brief terminal beat: bar at 100%, clock freezes,
+                                   title becomes "Report ready" — then the panel gives way to the
+                                   "Investigated for m:ss" summary row when the run closes. */
+                                done={resolvedPhase === 'summary'}
+                                expanded={investigateExpanded}
+                                onToggleExpanded={() => setInvestigateExpanded((prev) => !prev)}
+                                notifyEmailEnabled={notifyEmailEnabled}
+                                onToggleNotifyEmail={onToggleNotifyEmail}
+                            />
+                        )}
+
+                        {showInvestigateProgress && pendingClarification && (
+                            <ClarifyPanel
+                                pendingClarification={pendingClarification}
+                                clarificationDrafts={clarificationDrafts}
+                                clarificationError={clarificationError}
+                                clarificationSubmitting={clarificationSubmitting}
+                                hasInvalidOtherSelection={hasInvalidOtherSelection}
+                                onUpdateDraft={onUpdateClarificationDraft}
+                                onSubmit={() => onSubmitClarification?.({ useDefaults: false })}
+                                onSkip={() => onSkipClarification?.({ useDefaults: true })}
+                            />
+                        )}
+
                         {showThoughtHeader && (
                             <Box sx={{
                                 display: 'flex',
@@ -770,7 +1475,7 @@ const MessageCard = React.memo(function MessageCard({
                                             fontFamily: 'DM Sans, sans-serif',
                                             fontSize: '16px',
                                             fontWeight: isLoading ? 400 : 600,
-                                            color: isLoading ? 'transparent' : '#5B5B5B',
+                                            color: isLoading ? 'transparent' : '#5E6E87',
                                             WebkitTextFillColor: isLoading ? 'transparent' : undefined,
                                         }}
                                     >
@@ -780,7 +1485,7 @@ const MessageCard = React.memo(function MessageCard({
                                         <ExpandMoreIcon
                                             sx={{
                                                 fontSize: '16px',
-                                                color: '#646464',
+                                                color: '#5E6E87',
                                                 transform: thoughtsExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                                                 transition: 'transform 0.2s ease',
                                             }}
@@ -818,7 +1523,7 @@ const MessageCard = React.memo(function MessageCard({
                             {showReloadInMessage ? (
                                 <Box
                                     sx={{
-                                        backgroundColor: '#F4F4F4',
+                                        backgroundColor: '#F2F4F8',
                                         borderRadius: '8px',
                                         padding: '6px 8px',
                                         display: 'flex',
@@ -832,7 +1537,7 @@ const MessageCard = React.memo(function MessageCard({
                                             fontFamily: 'DM Sans, sans-serif',
                                             fontSize: '12px',
                                             fontWeight: 500,
-                                            color: '#646464',
+                                            color: '#5E6E87',
                                         }}
                                     >
                                         Response interrupted. Reload latest message.
@@ -849,11 +1554,11 @@ const MessageCard = React.memo(function MessageCard({
                                             minHeight: '28px',
                                             padding: '2px 8px',
                                             borderRadius: '8px',
-                                            borderColor: '#D0D0D0',
-                                            color: '#646464',
+                                            borderColor: '#CBD2E0',
+                                            color: '#5E6E87',
                                             '&:hover': {
-                                                borderColor: '#B8B8B8',
-                                                backgroundColor: '#EDEDED',
+                                                borderColor: '#A8B3C8',
+                                                backgroundColor: '#E5E9F0',
                                             },
                                         }}
                                     >
@@ -872,15 +1577,28 @@ const MessageCard = React.memo(function MessageCard({
                                         sx={{ flex: 1, width: "100%" }}
                                         onChange={(event) => setEditContent(event.target.value)}
                                     /> : (
-                                        <div className="markdown-body" style={{ fontFamily: 'Open Sans, sans-serif' }}>
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                                {message.content}
+                                        <div className="markdown-body" style={{ fontFamily: 'Geist, sans-serif' }}>
+                                            <ReactMarkdown
+                                                remarkPlugins={[remarkGfm]}
+                                                components={{
+                                                    a: ({ href, children, ...props }) => {
+                                                        const isPubMedReference = href?.includes('pubmed.ncbi.nlm.nih.gov');
+                                                        const referenceNumber = isPubMedReference ? getReferenceNumber(href) : null;
+                                                        return (
+                                                            <a href={href} {...props}>
+                                                                <span className="inline-citation-number">{referenceNumber || children}</span>
+                                                            </a>
+                                                        );
+                                                    },
+                                                }}
+                                            >
+                                                {stripUnresolvedCitations(message.content)}
                                             </ReactMarkdown>
                                         </div>
                                     )}
                         </Box>
 
-                        {isAssistant && <Box sx={{ justifyContent: "space-between", direction: "row", display: "flex", alignItems: "center", mt: "5px" }}>
+                        {isAssistant && (
                             <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
                                 {!isLoading && (
                                     <IconButton
@@ -889,11 +1607,7 @@ const MessageCard = React.memo(function MessageCard({
                                         title="Copy response"
                                         aria-label="Copy response"
                                     >
-                                        <img
-                                            src={contentCopyIcon}
-                                            alt="Copy"
-                                            style={{ width: '16px', height: '16px', display: 'block', objectFit: 'contain' }}
-                                        />
+                                        <ContentCopyIcon style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }} />
                                     </IconButton>
                                 )}
                                 {allowResponseRefresh && isLastUserMessage && !isLoading && (
@@ -902,17 +1616,13 @@ const MessageCard = React.memo(function MessageCard({
                                         onClick={() => refresh(null, index)}
                                         title="Regenerate response"
                                     >
-                                        <img
-                                            src={replayIcon}
-                                            alt="Refresh"
-                                            style={{ width: '16px', height: '16px', display: 'block', objectFit: 'contain' }}
-                                        />
+                                        <ReplayIcon style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }} />
                                     </IconButton>
                                 )}
                                 {!isLoading && <IconButton size="small" onClick={() => downloadConversation(messageID)} title="Download this Q&A">
                                     <DownloadIcon
                                         aria-label="Download"
-                                        style={{ width: '16px', height: '16px', display: 'block', color: '#646464' }}
+                                        style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }}
                                     />
                                 </IconButton>}
                                 {!isLoading && (
@@ -921,58 +1631,11 @@ const MessageCard = React.memo(function MessageCard({
                                         onClick={onOpenFeedback}
                                         title="Share feedback"
                                     >
-                                        <ThumbsUpDownOutlinedIcon sx={{ fontSize: 16, color: '#646464' }} />
+                                        <ThumbsUpDownIcon style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }} />
                                     </IconButton>
                                 )}
                             </Stack>
-                            <MuiButton
-                                variant='contained'
-                                startIcon={<LinkIcon />}
-                                size="small"
-                                onClick={() => goref(messageID)}
-                                disabled={isLoading || !hasReferences}
-                                sx={{
-                                    px: "10px",
-                                    fontFamily: 'Open Sans, sans-serif',
-                                    fontWeight: isSelected ? 600 : 500,
-                                    height: "34px",
-                                    borderRadius: "16px",
-                                    border: isSelected ? "1px solid #155DFC" : "none",
-                                    bgcolor: isSelected ? "#f7f8fa" : "#E7F1FF",
-                                    color: "#155DFC",
-                                    boxShadow: isSelected ? "0 1px 2px rgba(21, 93, 252, 0.12)" : "none",
-                                    "& .MuiButton-startIcon": {
-                                        color: "#155DFC",
-                                    },
-                                    "& .MuiSvgIcon-root": {
-                                        color: "#155DFC",
-                                    },
-                                    "&:hover": {
-                                        bgcolor: isSelected ? "#EEF1F6" : "#EEF6FF",
-                                        color: "#155DFC",
-                                        borderColor: "#155DFC",
-                                        boxShadow: isSelected ? "0 1px 2px rgba(21, 93, 252, 0.16)" : "none",
-                                    },
-                                    "&.Mui-disabled": {
-                                        color: "#A0A8B5",
-                                        backgroundColor: "#EFF3F8",
-                                        border: "none",
-                                        boxShadow: "none",
-                                        fontWeight: 500,
-                                    },
-                                    "&.Mui-disabled .MuiButton-startIcon": {
-                                        color: "#A0A8B5",
-                                    },
-                                    "&.Mui-disabled .MuiSvgIcon-root": {
-                                        color: "#A0A8B5",
-                                    },
-                                    mb: "2px"
-                                }}
-                            >
-                                References
-                            </MuiButton>
-
-                        </Box>}
+                        )}
 
                     </Box>
 
@@ -1006,11 +1669,7 @@ const MessageCard = React.memo(function MessageCard({
                                 title="Copy message"
                                 aria-label="Copy message"
                             >
-                                <img
-                                    src={contentCopyIcon}
-                                    alt="Copy"
-                                    style={{ width: '16px', height: '16px', display: 'block', objectFit: 'contain' }}
-                                />
+                                <ContentCopyIcon style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }} />
                             </IconButton>
                             {allowUserEdit && (
                                 <IconButton
@@ -1037,7 +1696,19 @@ const MessageCard = React.memo(function MessageCard({
 function LLMAgent() {
     const location = useLocation();
     const [userInput, setUserInput] = useState('');
-    const [chatHistory, setChatHistory] = useState(getStoredChatHistory);
+    const [chatHistory, setChatHistory] = useState(() => {
+        const initialQuery = location.state?.initialQuery;
+        if (initialQuery) {
+            return [{
+                role: 'user',
+                content: initialQuery,
+                references: [],
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                investigateMode: Boolean(location.state?.initialSearchOptions?.investigateEnabled),
+            }];
+        }
+        return getStoredChatHistory();
+    });
     const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [streamingGroups, setStreamingGroups] = useState([]);
@@ -1068,14 +1739,61 @@ function LLMAgent() {
     const [chatTitleDraft, setChatTitleDraft] = useState('');
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
     const [queryLimitTotal, setQueryLimitTotal] = useState(10);
+    const [pendingClarification, setPendingClarification] = useState(null);
+    const [clarificationDrafts, setClarificationDrafts] = useState({});
+    const [clarificationError, setClarificationError] = useState('');
+    const [clarificationSubmitting, setClarificationSubmitting] = useState(false);
+    const [investigatePhase, setInvestigatePhase] = useState('searching');
+    const [investigateFunnel, setInvestigateFunnel] = useState(() => emptyFunnel());
+    const [investigateStartedAt, setInvestigateStartedAt] = useState(null);
+    const [investigatePercent, setInvestigatePercent] = useState(null);
+    const [investigateKeywords, setInvestigateKeywords] = useState([]);
+    const [investigatePapers, setInvestigatePapers] = useState([]);
+    // The structured fields of the progress frames seen so far (topic, facets, n_claims,
+    // n_conflicted, section/step/total). Accumulated rather than replaced, so a later frame that
+    // omits a field does not blank the active step's detail block.
+    const [investigateDetail, setInvestigateDetail] = useState({});
+    const [thinkingStepsVersion, setThinkingStepsVersion] = useState(0);
+    const [notifyEmailEnabled, setNotifyEmailEnabled] = useState(() => {
+        try {
+            return localStorage.getItem('glkb_investigate_notify_email') === '1';
+        } catch {
+            return false;
+        }
+    });
+    const [chatInvestigateEnabled, setChatInvestigateEnabled] = useState(false);
+    const investigateFunnelRef = useRef(emptyFunnel());
+    const investigatePhaseRef = useRef('searching');
+    const investigatePercentRef = useRef(null);
+    const investigateKeywordsRef = useRef([]);
+    const investigatePapersRef = useRef([]);
+    const investigateDetailRef = useRef({});
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
     const abortControllerRef = useRef(null);
     const thinkingStepsRef = useRef([]);
     const prevSelectedMessageIndexRef = useRef(null);
     const lastAutoSelectedRef = useRef(null);
     const sessionIdRef = useRef(null);
+    const runIdRef = useRef(null);
+    // The clarify round's identifiers, mirrored out of React state.
+    //
+    // The panel is answered by POSTing to /clarify with (session_id, invocation_id, stage). Issue
+    // #12 captured a HAR where all three were plainly on the wire and Skip still produced
+    // "Clarification session has expired" with ZERO clarify requests — i.e. the submit handler read
+    // them as null. Every other live investigate value here is already mirrored into a ref for the
+    // same reason (funnel, phase, percent, papers, session id): a value the SSE handler writes and
+    // a click handler reads must not depend on which render each of them closed over.
+    const pendingClarificationRef = useRef(null);
+    // The ONLY way to set the pending round: the ref and the state must never disagree, or the
+    // panel would render one round while submit answers another.
+    const applyPendingClarification = useCallback((next) => {
+        pendingClarificationRef.current = next || null;
+        setPendingClarification(next || null);
+    }, []);
     const hasConsumedInitialQueryRef = useRef(false);
     const initialSearchOptionsRef = useRef(null);
+    const lastSearchOptionsRef = useRef(null);
     const activeConversationIdRef = useRef(getActiveConversationId());
     const loadingConversationIdRef = useRef(null);
     const activeStreamIdRef = useRef(null);
@@ -1085,7 +1803,7 @@ function LLMAgent() {
     const originalNavigatorMethodsRef = useRef({ push: null, replace: null });
     const navigate = useNavigate();
     const { navigator: routerNavigator } = useContext(UNSAFE_NavigationContext);
-    const { isAuthenticated, loading: authLoading } = useAuth();
+    const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
     const [pendingNavigation, setPendingNavigation] = useState(null);
     const useMobileReferencesDrawer = isPhoneDevice;
 
@@ -1355,6 +2073,11 @@ function LLMAgent() {
         setStreamingGroups([]);
         setStreamingStepName('');
         thinkingStepsRef.current = [];
+        setThinkingStepsVersion(v => v + 1);
+        applyPendingClarification(null);
+        setClarificationDrafts({});
+        setClarificationError('');
+        setClarificationSubmitting(false);
     }, []);
 
     useEffect(() => {
@@ -1400,15 +2123,22 @@ function LLMAgent() {
         };
     }, [isAuthenticated, location.state, cancelStreaming, llmService]);
 
-    const startNewConversation = useCallback(() => {
+    const startNewConversation = useCallback((options = {}) => {
         cancelStreaming();
-        setChatHistory([]);
+        if (!options.skipHistoryReset) {
+            setChatHistory([]);
+        }
         setSelectedMessageIndex(null);
         lastAutoSelectedRef.current = null;
         setHoveredPubmedId(null);
         sessionIdRef.current = null;
+        runIdRef.current = null;
         setStreamingStepName('');
         setShowReloadPrompt(false);
+        applyPendingClarification(null);
+        setClarificationDrafts({});
+        setClarificationError('');
+        setClarificationSubmitting(false);
         setIsConversationLoading(false);
         setLoadingConversationId(null);
         loadingConversationIdRef.current = null;
@@ -1425,11 +2155,6 @@ function LLMAgent() {
     const handleClick = (event, link) => {
         event.preventDefault();
         window.open(link, '_blank');
-    };
-
-    const handleReferenceEntryContainerClick = (event, link) => {
-        if (event.target.closest('.custom-div-url')) return;
-        handleClick(event, link);
     };
 
     useEffect(() => {
@@ -1461,10 +2186,17 @@ function LLMAgent() {
         if (location.state && location.state.initialQuery && !hasConsumedInitialQueryRef.current) {
             hasConsumedInitialQueryRef.current = true;
             const query = location.state.initialQuery;
-            initialSearchOptionsRef.current = location.state.initialSearchOptions || null;
+            const searchOptions = location.state.initialSearchOptions || null;
+            initialSearchOptionsRef.current = searchOptions;
+            if (searchOptions?.investigateEnabled) {
+                setChatInvestigateEnabled(true);
+            }
             if (!isLoading) {
-                startNewConversation();
-                handleSubmit(null, query, null, { forceNewConversation: true });
+                startNewConversation({ skipHistoryReset: true });
+                handleSubmit(null, query, null, {
+                    forceNewConversation: true,
+                    searchOptions,
+                });
             }
         }
     }, [location.state, isLoading, startNewConversation]);
@@ -1487,29 +2219,27 @@ function LLMAgent() {
 
     const collapseReferences = useCallback((widthToStore) => {
         if (isReferencesCollapsed) return;
-        const nextWidth = Number.isFinite(widthToStore) ? widthToStore : leftPaneWidth;
-        setLeftPaneWidth(100);
         setIsReferencesCollapsed(true);
-    }, [isReferencesCollapsed, leftPaneWidth]);
+    }, [isReferencesCollapsed]);
 
     const expandReferences = useCallback(() => {
-        let nextWidth = DEFAULT_LEFT_PERCENT;
-
-        if (splitContainerRef.current) {
-            const rect = splitContainerRef.current.getBoundingClientRect();
-            const availableWidth = Math.max(1, rect.width - DIVIDER_PX);
-            const minLeftPercent = Math.min(100, (LEFT_MIN_PX / availableWidth) * 100);
-            const maxLeftPercent = Math.max(0, 100 - (RIGHT_MIN_PX / availableWidth) * 100);
-            const safeMin = Math.min(minLeftPercent, maxLeftPercent);
-            const safeMax = Math.max(minLeftPercent, maxLeftPercent);
-            nextWidth = Math.min(safeMax, Math.max(safeMin, nextWidth));
-        } else {
-            nextWidth = Math.min(FALLBACK_MAX_LEFT_PERCENT, Math.max(FALLBACK_MIN_LEFT_PERCENT, nextWidth));
-        }
-
-        setLeftPaneWidth(nextWidth);
         setIsReferencesCollapsed(false);
     }, []);
+
+    useEffect(() => {
+        if (useMobileReferencesDrawer || !splitContainerRef.current) return undefined;
+
+        const updateReferenceLayout = () => {
+            setIsReferencesCollapsed(
+                splitContainerRef.current.getBoundingClientRect().width < MIN_SPLIT_WIDTH_WITH_REFERENCES
+            );
+        };
+
+        updateReferenceLayout();
+        const resizeObserver = new ResizeObserver(updateReferenceLayout);
+        resizeObserver.observe(splitContainerRef.current);
+        return () => resizeObserver.disconnect();
+    }, [useMobileReferencesDrawer]);
 
     const updateSplitWidth = useCallback((clientX) => {
         if (!splitContainerRef.current) return;
@@ -1696,12 +2426,32 @@ function LLMAgent() {
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const requestStartedAt = Date.now();
 
+        const requestSearchOptions = options.searchOptions || initialSearchOptionsRef.current || null;
+        initialSearchOptionsRef.current = null;
+        const investigateEnabled = Boolean(
+            requestSearchOptions?.investigateEnabled ?? chatInvestigateEnabled,
+        );
+        // Discard expired investigate session on explicit retry (clarify session expiry)
+        const resetInvestigateSession = Boolean(options.resetInvestigateSession);
+        // Keep latest non-expired query options for clarify retry (no session_id reuse)
+        lastSearchOptionsRef.current = {
+            investigateEnabled,
+            filters: Array.isArray(requestSearchOptions?.filters) ? requestSearchOptions.filters : undefined,
+            rankingMode: typeof requestSearchOptions?.rankingMode === 'string'
+                ? requestSearchOptions.rankingMode
+                : undefined,
+            maxArticles: Number.isFinite(Number(requestSearchOptions?.maxArticles))
+                ? Number(requestSearchOptions.maxArticles)
+                : undefined,
+        };
+
         // Create new user message
         const newMessage = {
             role: 'user',
             content: inputText,
             references: [],
-            timestamp: t || timestamp
+            timestamp: t || timestamp,
+            investigateMode: investigateEnabled,
         };
 
         let historyId = activeConversationIdRef.current;
@@ -1722,7 +2472,17 @@ function LLMAgent() {
                 logDev('[LLM] Failed to create conversation', error);
             }
         }
-        sessionIdRef.current = getStoredSessionId(historyId) || sessionIdRef.current;
+        if (resetInvestigateSession) {
+            sessionIdRef.current = null;
+            setStoredSessionId(historyId, null);
+        } else {
+            sessionIdRef.current = getStoredSessionId(historyId) || sessionIdRef.current;
+        }
+        // An investigate run must know its session id BEFORE the stream opens, because that id is
+        // the only address a clarify round can be answered at. See mintSessionId.
+        if (investigateEnabled && !sessionIdRef.current) {
+            sessionIdRef.current = mintSessionId();
+        }
 
         // Update chat history with user message
         setChatHistory([...baseHistory, newMessage]);
@@ -1731,7 +2491,28 @@ function LLMAgent() {
         setIsProcessing(true);
         setStreamingGroups([]);
         setStreamingStepName('');
+        applyPendingClarification(null);
+        setClarificationDrafts({});
+        setClarificationError('');
+        setClarificationSubmitting(false);
+        // Start at `planning`, not `searching`: the panel is mounted here, at submit, and must
+        // already be moving before the first SSE frame arrives (the agent's own T0 frame follows
+        // within milliseconds, but the network round-trip should not be a visible dead spot).
+        setInvestigatePhase('planning');
+        setInvestigateFunnel(emptyFunnel());
+        setInvestigateStartedAt(investigateEnabled ? requestStartedAt : null);
+        setInvestigatePercent(investigateEnabled ? PHASE_PERCENT_FLOOR.planning : null);
+        setInvestigateKeywords([]);
+        setInvestigatePapers([]);
+        setInvestigateDetail({});
+        investigateFunnelRef.current = emptyFunnel();
+        investigatePhaseRef.current = 'planning';
+        investigatePercentRef.current = investigateEnabled ? PHASE_PERCENT_FLOOR.planning : null;
+        investigateKeywordsRef.current = [];
+        investigatePapersRef.current = [];
+        investigateDetailRef.current = {};
         thinkingStepsRef.current = [];
+        setThinkingStepsVersion(v => v + 1);
 
         try {
             logDev('[LLM] submit', { input: inputText });
@@ -1745,6 +2526,7 @@ function LLMAgent() {
                 thinkingSteps: [],
                 thoughtDurationMs: null,
                 trajectory: null,
+                investigateMode: investigateEnabled,
             }]);
 
             if (abortControllerRef.current) {
@@ -1752,9 +2534,6 @@ function LLMAgent() {
             }
             const abortController = new AbortController();
             abortControllerRef.current = abortController;
-            const requestSearchOptions = options.searchOptions || initialSearchOptionsRef.current || null;
-            initialSearchOptionsRef.current = null;
-
             await llmService.chat(inputText, abortControllerRef.current, (update) => {
                 const isActiveStream = activeStreamIdRef.current === streamId;
                 if (!isActiveStream && update.type !== 'saved') {
@@ -1762,6 +2541,67 @@ function LLMAgent() {
                 }
                 logDev('[LLM] update', update);
                 switch (update.type) {
+                    case 'started':
+                        if (!isActiveStream) return;
+                        if (update.sessionId) {
+                            sessionIdRef.current = update.sessionId;
+                        }
+                        if (update.runId) {
+                            runIdRef.current = update.runId;
+                        }
+                        if (update.phase) {
+                            investigatePhaseRef.current = update.phase;
+                            setInvestigatePhase(update.phase);
+                        }
+                        if (update.funnel) {
+                            investigateFunnelRef.current = mergeFunnel(investigateFunnelRef.current, update.funnel);
+                            setInvestigateFunnel({ ...investigateFunnelRef.current });
+                        }
+                        {
+                            const nextPct = mergePercentMonotonic(investigatePercentRef.current, update.percent);
+                            investigatePercentRef.current = nextPct;
+                            setInvestigatePercent(nextPct);
+                            if (update.keywords) {
+                                investigateKeywordsRef.current = mergeLiveKeywords(
+                                    investigateKeywordsRef.current,
+                                    update.keywords,
+                                );
+                                setInvestigateKeywords([...investigateKeywordsRef.current]);
+                            }
+                            if (update.papers) {
+                                investigatePapersRef.current = mergeLivePapers(
+                                    investigatePapersRef.current,
+                                    update.papers,
+                                );
+                                setInvestigatePapers([...investigatePapersRef.current]);
+                            }
+                            if (update.label) {
+                                setStreamingStepName(update.label);
+                            }
+                        }
+                        break;
+                    case 'clarification':
+                        if (!isActiveStream) return;
+                        if (update.sessionId) {
+                            sessionIdRef.current = update.sessionId;
+                        }
+                        applyPendingClarification({
+                            invocationId: update.invocationId || null,
+                            stage: update.stage || null,
+                            sessionId: update.sessionId || sessionIdRef.current || null,
+                            reason: update.reason || '',
+                            questions: Array.isArray(update.questions) ? update.questions : [],
+                        });
+                        setClarificationDrafts(buildClarificationDrafts(update.questions));
+                        setClarificationError('');
+                        setClarificationSubmitting(false);
+                        // Figma Asking Question: hold bar + keep phase; do not advance percent
+                        if (update.funnel) {
+                            investigateFunnelRef.current = mergeFunnel(investigateFunnelRef.current, update.funnel);
+                            setInvestigateFunnel({ ...investigateFunnelRef.current });
+                        }
+                        setStreamingStepName('Asking user question...');
+                        break;
                     case 'step':
                         if (!isActiveStream) return;
                         {
@@ -1778,7 +2618,8 @@ function LLMAgent() {
                                         references: [],
                                         timestamp: timestamp,
                                         thinkingSteps: thinkingStepsRef.current,
-                                        thoughtDurationMs: Date.now() - requestStartedAt
+                                        thoughtDurationMs: Date.now() - requestStartedAt,
+                                        investigateMode: investigateEnabled,
                                     };
                                     newHistory[newHistory.length - 1] = assistantMessage;
 
@@ -1790,16 +2631,124 @@ function LLMAgent() {
                                 setSelectedMessageIndex(chatHistory.length + 1);
                                 break;
                             }
-                            if (hasContent) {
+
+                            // Apply live progress even when content is empty (agent progress frames)
+                            {
+                                const nextPhase = mergePhaseMonotonic(
+                                    investigatePhaseRef.current,
+                                    update.phase || inferInvestigatePhase(update.step, rawContent),
+                                );
+                                if (nextPhase && nextPhase !== investigatePhaseRef.current) {
+                                    investigatePhaseRef.current = nextPhase;
+                                    setInvestigatePhase(nextPhase);
+                                }
+                                if (update.funnel) {
+                                    investigateFunnelRef.current = mergeFunnel(
+                                        investigateFunnelRef.current,
+                                        update.funnel,
+                                    );
+                                    setInvestigateFunnel({ ...investigateFunnelRef.current });
+                                }
+                                const nextPct = mergePercentMonotonic(
+                                    investigatePercentRef.current,
+                                    update.percent ?? PHASE_PERCENT_FLOOR[nextPhase],
+                                );
+                                investigatePercentRef.current = nextPct;
+                                setInvestigatePercent(nextPct);
+                                if (update.keywords) {
+                                    investigateKeywordsRef.current = mergeLiveKeywords(
+                                        investigateKeywordsRef.current,
+                                        update.keywords,
+                                    );
+                                    setInvestigateKeywords([...investigateKeywordsRef.current]);
+                                }
+                                if (update.papers) {
+                                    investigatePapersRef.current = mergeLivePapers(
+                                        investigatePapersRef.current,
+                                        update.papers,
+                                    );
+                                    setInvestigatePapers([...investigatePapersRef.current]);
+                                }
+                                if (update.label || update.isProgress) {
+                                    setStreamingStepName(update.label || update.content || update.step);
+                                }
+                                if (update.detail && typeof update.detail === 'object') {
+                                    investigateDetailRef.current = mergeInvestigateDetail(
+                                        investigateDetailRef.current,
+                                        update.detail,
+                                        update.label,
+                                    );
+                                    setInvestigateDetail({ ...investigateDetailRef.current });
+                                }
+                                // Capture progress labels as rich phase markers
+                                if (update.isProgress && update.label && update.phase) {
+                                    thinkingStepsRef.current = [...thinkingStepsRef.current, {
+                                        step: update.step || update.phase,
+                                        content: update.label,
+                                        isProgress: true,
+                                        phase: update.phase,
+                                    }];
+                                    setThinkingStepsVersion(v => v + 1);
+                                }
+                            }
+
+                            if (hasContent && !update.isProgress) {
                                 const newEntry = { step: update.step, content: rawContent };
                                 thinkingStepsRef.current = [...thinkingStepsRef.current, newEntry];
+                                setThinkingStepsVersion(v => v + 1);
                                 const parsedEntry = parseThinkingEntry(newEntry);
                                 if (parsedEntry.stepName) {
                                     setStreamingStepName(parsedEntry.stepName);
                                 }
 
+                                const nextPhase = mergePhaseMonotonic(
+                                    investigatePhaseRef.current,
+                                    update.phase || inferInvestigatePhase(update.step, rawContent),
+                                );
+                                if (nextPhase && nextPhase !== investigatePhaseRef.current) {
+                                    investigatePhaseRef.current = nextPhase;
+                                    setInvestigatePhase(nextPhase);
+                                }
+                                // Structured funnel fields only — see mergeFunnel. Raw tool-log lines
+                                // used to be regex-scraped for numbers here, which wrote figures
+                                // pulled out of unrelated tool output straight into the counters.
+                                if (update.funnel) {
+                                    investigateFunnelRef.current = mergeFunnel(
+                                        investigateFunnelRef.current,
+                                        update.funnel,
+                                    );
+                                    setInvestigateFunnel({ ...investigateFunnelRef.current });
+                                }
+                                {
+                                    const nextPct = mergePercentMonotonic(
+                                        investigatePercentRef.current,
+                                        update.percent ?? PHASE_PERCENT_FLOOR[nextPhase],
+                                    );
+                                    investigatePercentRef.current = nextPct;
+                                    setInvestigatePercent(nextPct);
+                                    if (update.keywords) {
+                                        investigateKeywordsRef.current = mergeLiveKeywords(
+                                            investigateKeywordsRef.current,
+                                            update.keywords,
+                                        );
+                                        setInvestigateKeywords([...investigateKeywordsRef.current]);
+                                    }
+                                    if (update.papers) {
+                                        investigatePapersRef.current = mergeLivePapers(
+                                            investigatePapersRef.current,
+                                            update.papers,
+                                        );
+                                        setInvestigatePapers([...investigatePapersRef.current]);
+                                    }
+                                    if (update.label || update.isProgress) {
+                                        setStreamingStepName(update.label || update.content || update.step);
+                                    }
+                                }
+
+                                // Groups are keyed on the mapped step wording, so a step still
+                                // shows up while streaming even though its raw trace is withheld.
                                 setStreamingGroups((prev) => {
-                                    if (!parsedEntry.line.trim()) {
+                                    if (!parsedEntry.stepName) {
                                         return prev;
                                     }
 
@@ -1832,8 +2781,18 @@ function LLMAgent() {
                         if (update.sessionId) {
                             sessionIdRef.current = update.sessionId;
                         }
+                        applyPendingClarification(null);
+                        setClarificationDrafts({});
+                        setClarificationError('');
+                        setClarificationSubmitting(false);
                         setIsProcessing(false);
                         setStreamingStepName('');
+                        if (update.funnel) {
+                            investigateFunnelRef.current = mergeFunnel(
+                                investigateFunnelRef.current,
+                                update.funnel,
+                            );
+                        }
                         setChatHistory(prev => {
                             const newHistory = [...prev];
                             const assistantMessage = {
@@ -1844,6 +2803,15 @@ function LLMAgent() {
                                 thinkingSteps: thinkingStepsRef.current,
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 trajectory: update.trajectory || null,
+                                investigateMode: investigateEnabled,
+                                investigateFunnel: { ...investigateFunnelRef.current },
+                                investigatePhase: investigatePhaseRef.current || 'verifying',
+                                investigatePercent: mergePercentMonotonic(
+                                    investigatePercentRef.current,
+                                    update.percent ?? 100,
+                                ) ?? 100,
+                                investigateKeywords: [...(investigateKeywordsRef.current || [])],
+                                investigatePapers: [...(investigatePapersRef.current || [])],
                             };
                             newHistory[newHistory.length - 1] = assistantMessage;
 
@@ -1897,6 +2865,10 @@ function LLMAgent() {
                     }
                     case 'error': // unsure if this is used
                         if (!isActiveStream) return;
+                        applyPendingClarification(null);
+                        setClarificationDrafts({});
+                        setClarificationError('');
+                        setClarificationSubmitting(false);
                         setIsProcessing(false);
                         setStreamingStepName('');
                         setChatHistory(prev => {
@@ -1907,7 +2879,8 @@ function LLMAgent() {
                                 references: [],
                                 timestamp: timestamp,
                                 thinkingSteps: thinkingStepsRef.current,
-                                thoughtDurationMs: Date.now() - requestStartedAt
+                                thoughtDurationMs: Date.now() - requestStartedAt,
+                                investigateMode: investigateEnabled,
                             };
                             newHistory[newHistory.length - 1] = errorMessage;
                             return newHistory;
@@ -1919,9 +2892,59 @@ function LLMAgent() {
                 sessionId: sessionIdRef.current,
                 filters: Array.isArray(requestSearchOptions?.filters) ? requestSearchOptions.filters : undefined,
                 rankingMode: typeof requestSearchOptions?.rankingMode === 'string' ? requestSearchOptions.rankingMode : undefined,
+                investigateEnabled,
+                notifyEmail: (investigateEnabled && notifyEmailEnabled)
+                    ? (getUserNotifyEmail() || undefined)
+                    : undefined,
+                messagesOverride: [...baseHistory, newMessage].map((msg) => ({
+                    role: msg?.role,
+                    content: msg?.content,
+                })),
             });
         } catch (error) {
             console.error('Error in chat:', error);
+            // Deep Research disconnect recovery: poll GET /run/{run_id}
+            if (investigateEnabled && runIdRef.current && activeStreamIdRef.current === streamId) {
+                try {
+                    const run = await llmService.getRun({ runId: runIdRef.current });
+                    if (run && (run.status === 'complete' || run.response)) {
+                        applyPendingClarification(null);
+                        setIsProcessing(false);
+                        setStreamingStepName('');
+                        setChatHistory((prev) => {
+                            const newHistory = [...prev];
+                            newHistory[newHistory.length - 1] = {
+                                role: 'assistant',
+                                content: run.response || '',
+                                references: parseReferences(run.references),
+                                timestamp,
+                                thinkingSteps: thinkingStepsRef.current,
+                                thoughtDurationMs: Date.now() - requestStartedAt,
+                                trajectory: run.trajectory || null,
+                                investigateMode: true,
+                                investigateFunnel: { ...investigateFunnelRef.current },
+                                investigatePhase: 'verifying',
+                                investigatePercent: investigatePercentRef.current ?? 100,
+                                investigateKeywords: [...(investigateKeywordsRef.current || [])],
+                                investigatePapers: [...(investigatePapersRef.current || [])],
+                            };
+                            if (run.response) {
+                                llmService.updateMessages(run.response);
+                            }
+                            return newHistory;
+                        });
+                        refreshTierStatus();
+                        if (activeStreamIdRef.current === streamId) {
+                            setIsLoading(false);
+                            setIsProcessing(false);
+                            activeStreamIdRef.current = null;
+                        }
+                        return;
+                    }
+                } catch (recoverError) {
+                    logDev('[LLM] run recovery failed', recoverError);
+                }
+            }
             if (error?.response?.status === 429) {
                 setIsQueryLimitReached(true);
             }
@@ -1934,7 +2957,8 @@ function LLMAgent() {
                         references: [],
                         timestamp: timestamp,
                         thinkingSteps: thinkingStepsRef.current,
-                        thoughtDurationMs: Date.now() - requestStartedAt
+                        thoughtDurationMs: Date.now() - requestStartedAt,
+                        investigateMode: investigateEnabled,
                     };
                     newHistory[newHistory.length - 1] = errorMessage;
                     return newHistory;
@@ -1946,9 +2970,162 @@ function LLMAgent() {
                 setIsLoading(false);
                 setIsProcessing(false);
                 activeStreamIdRef.current = null;
+                applyPendingClarification(null);
+                setClarificationDrafts({});
+                setClarificationError('');
+                setClarificationSubmitting(false);
             }
         }
     };
+
+    const updateClarificationDraft = useCallback((questionKey, nextDraft) => {
+        setClarificationDrafts((prev) => ({
+            ...prev,
+            [questionKey]: {
+                selected: Array.isArray(nextDraft?.selected) ? nextDraft.selected : [],
+                text: typeof nextDraft?.text === 'string' ? nextDraft.text : '',
+                otherSelected: Boolean(nextDraft?.otherSelected),
+            },
+        }));
+    }, []);
+
+    const hasInvalidOtherSelection = useMemo(() => {
+        const questions = pendingClarification?.questions;
+        if (!Array.isArray(questions)) return false;
+        return questions.some((question, index) => {
+            const responseType = String(question?.response_type || 'text').toLowerCase();
+            if (responseType !== 'single') return false;
+            const questionKey = getClarificationQuestionKey(question, index);
+            const draft = clarificationDrafts[questionKey];
+            if (!draft?.otherSelected) return false;
+            return !String(draft.text || '').trim();
+        });
+    }, [pendingClarification, clarificationDrafts]);
+
+    const submitClarification = useCallback(async ({ useDefaults = false } = {}) => {
+        // Read the round from the ref FIRST. This handler is reached from a click deep inside a
+        // memoised MessageCard; the ref is written by the SSE handler the instant the frame lands
+        // and cannot be a render behind. State is kept as the fallback so the two can only
+        // disagree in the direction of "the ref is fresher".
+        const { questions, sessionId, invocationId, stage } = resolveClarifyRound(
+            pendingClarificationRef.current, pendingClarification, sessionIdRef.current,
+        );
+        // Last-resort guard. handleSubmit mints the session id before the stream opens and the
+        // agent puts invocation_id + stage on every clarification frame, so all three are present
+        // by construction. The old copy here said the session had "expired", which was a guess —
+        // nothing had timed out, we simply had no address to answer at — and it sent the user off
+        // to re-ask, which bills a second full run. Issue #12 asked for exactly this: "Missing
+        // session_id / invocation_id → fix client state, do not invent 'expired'."
+        if (!invocationId || !stage || !sessionId) {
+            logDev('[LLM] clarify: incomplete round', { invocationId, stage, sessionId });
+            // Deliberately does NOT promise the run will carry on: clarify.timeout_s is null, so a
+            // round nobody can answer leaves the run paused rather than proceeding on defaults.
+            setClarificationError(
+                'Could not identify this clarification round, so your answers cannot be sent and '
+                + 'this investigation cannot continue. Please ask your question again.',
+            );
+            return;
+        }
+
+        setClarificationSubmitting(true);
+        setClarificationError('');
+        try {
+            const answers = useDefaults
+                ? []
+                : buildClarifyAnswers(questions, clarificationDrafts);
+
+            const result = await llmService.clarify({
+                invocation_id: invocationId,
+                stage,
+                session_id: sessionId,
+                answers,
+            });
+
+            applyPendingClarification(null);
+            setClarificationDrafts({});
+            setClarificationError('');
+            setClarificationSubmitting(false);
+
+            if (result?.resolved === false) {
+                const retryQuestion = typeof result?.retry_question === 'string'
+                    ? result.retry_question.trim()
+                    : '';
+                if (retryQuestion) {
+                    message.info('Clarification session expired. Restarting with your answers applied.');
+                    const prior = lastSearchOptionsRef.current || {};
+                    handleSubmit(null, retryQuestion, null, {
+                        resetInvestigateSession: true,
+                        searchOptions: {
+                            investigateEnabled: true,
+                            filters: prior.filters,
+                            rankingMode: prior.rankingMode,
+                            maxArticles: prior.maxArticles,
+                        },
+                    });
+                } else {
+                    message.info('Clarification session not found. Continuing with default research scope.');
+                }
+            }
+        } catch (error) {
+            const detail = error?.response?.data?.detail || error?.message || 'Unable to submit clarification.';
+            setClarificationError(String(detail));
+            setClarificationSubmitting(false);
+        }
+    }, [clarificationDrafts, llmService, pendingClarification]);
+
+    // Resume completed DR runs if the tab was backgrounded / SSE dropped quietly
+    useEffect(() => {
+        if (!isLoading) return undefined;
+
+        const tryRecover = async () => {
+            if (!runIdRef.current) return;
+            try {
+                const run = await llmService.getRun({ runId: runIdRef.current });
+                if (!(run && (run.status === 'complete' || run.response))) return;
+                applyPendingClarification(null);
+                setIsProcessing(false);
+                setStreamingStepName('');
+                setIsLoading(false);
+                setChatHistory((prev) => {
+                    if (!prev.length) return prev;
+                    const newHistory = [...prev];
+                    const last = newHistory[newHistory.length - 1];
+                    if (!last || last.role !== 'assistant' || last.content) return prev;
+                    newHistory[newHistory.length - 1] = {
+                        ...last,
+                        content: run.response || '',
+                        references: parseReferences(run.references),
+                        thinkingSteps: thinkingStepsRef.current,
+                        thoughtDurationMs: last.thoughtDurationMs || null,
+                        trajectory: run.trajectory || null,
+                        investigateMode: true,
+                        investigateFunnel: { ...investigateFunnelRef.current },
+                        investigatePhase: 'verifying',
+                        investigatePercent: investigatePercentRef.current ?? 100,
+                        investigateKeywords: [...(investigateKeywordsRef.current || [])],
+                        investigatePapers: [...(investigatePapersRef.current || [])],
+                    };
+                    if (run.response) llmService.updateMessages(run.response);
+                    return newHistory;
+                });
+                activeStreamIdRef.current = null;
+            } catch (error) {
+                logDev('[LLM] visibility run recovery failed', error);
+            }
+        };
+
+        const onVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                tryRecover();
+            }
+        };
+        document.addEventListener('visibilitychange', onVisibility);
+        const intervalId = window.setInterval(tryRecover, 45000);
+        return () => {
+            document.removeEventListener('visibilitychange', onVisibility);
+            window.clearInterval(intervalId);
+        };
+    }, [isLoading, llmService]);
 
     useEffect(() => {
         return () => {
@@ -2013,7 +3190,7 @@ function LLMAgent() {
     const handleToggleConversationBookmark = async () => {
         if (authLoading) return;
         if (!isAuthenticated) {
-            navigate('/login');
+            openLoginModal();
             return;
         }
         const currentId = activeConversationIdRef.current || activeConversationId;
@@ -2035,7 +3212,7 @@ function LLMAgent() {
     const handleEditChatTitle = () => {
         if (authLoading) return;
         if (!isAuthenticated) {
-            navigate('/login');
+            openLoginModal();
             return;
         }
         const currentId = activeConversationIdRef.current || activeConversationId;
@@ -2052,7 +3229,7 @@ function LLMAgent() {
     const handleConfirmChatTitleEdit = async () => {
         if (authLoading) return;
         if (!isAuthenticated) {
-            navigate('/login');
+            openLoginModal();
             return;
         }
         const currentId = activeConversationIdRef.current || activeConversationId;
@@ -2104,6 +3281,44 @@ function LLMAgent() {
 
         lastAutoSelectedRef.current = lastAssistantIndex;
         setSelectedMessageIndex(lastAssistantIndex);
+    }, [chatHistory, isProcessing]);
+
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container || isProcessing) return undefined;
+
+        const updateSelectedResponse = () => {
+            const containerRect = container.getBoundingClientRect();
+            const anchorY = containerRect.top + (containerRect.height * 0.38);
+            const assistantCards = Array.from(container.querySelectorAll('.message-card[data-message-role="assistant"]'));
+            if (!assistantCards.length) return;
+
+            const visibleCards = assistantCards.filter((card) => {
+                const cardRect = card.getBoundingClientRect();
+                return cardRect.bottom > containerRect.top && cardRect.top < containerRect.bottom;
+            });
+            const candidates = visibleCards.length ? visibleCards : assistantCards;
+            const activeCard = candidates.reduce((closest, card) => {
+                const closestDistance = Math.abs(closest.getBoundingClientRect().top - anchorY);
+                const cardDistance = Math.abs(card.getBoundingClientRect().top - anchorY);
+                return cardDistance < closestDistance ? card : closest;
+            });
+            const nextIndex = Number(activeCard.dataset.messageIndex);
+            if (Number.isInteger(nextIndex)) {
+                setSelectedMessageIndex((currentIndex) => currentIndex === nextIndex ? currentIndex : nextIndex);
+            }
+        };
+
+        let animationFrameId = requestAnimationFrame(updateSelectedResponse);
+        const handleScroll = () => {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = requestAnimationFrame(updateSelectedResponse);
+        };
+        container.addEventListener('scroll', handleScroll, { passive: true });
+        return () => {
+            cancelAnimationFrame(animationFrameId);
+            container.removeEventListener('scroll', handleScroll);
+        };
     }, [chatHistory, isProcessing]);
 
     // useEffect(() => {
@@ -2199,11 +3414,40 @@ function LLMAgent() {
                 isProcessing={isProcessing}
                 streamingGroups={streamingGroups}
                 streamingStepName={streamingStepName}
-                selectedMessageIndex={selectedMessageIndex}
+                investigatePhase={investigatePhase}
+                investigateFunnel={investigateFunnel}
+                investigateStartedAt={investigateStartedAt}
+                investigatePercent={investigatePercent}
+                investigateKeywords={investigateKeywords}
+                investigatePapers={investigatePapers}
+                investigateDetail={investigateDetail}
+                thinkingStepsVersion={thinkingStepsVersion}
+                liveThinkingStepsRef={thinkingStepsRef}
+                notifyEmailEnabled={notifyEmailEnabled}
+                onToggleNotifyEmail={(enabled) => {
+                    setNotifyEmailEnabled(Boolean(enabled));
+                    try {
+                        localStorage.setItem('glkb_investigate_notify_email', enabled ? '1' : '0');
+                    } catch {
+                        /* ignore */
+                    }
+                    if (enabled && !getUserNotifyEmail()) {
+                        message.warning('Sign in with email to receive completion notifications.');
+                    } else if (enabled) {
+                        message.success('Will email you when this investigation finishes.');
+                    }
+                }}
+                pendingClarification={pendingClarification}
+                clarificationDrafts={clarificationDrafts}
+                clarificationError={clarificationError}
+                clarificationSubmitting={clarificationSubmitting}
+                hasInvalidOtherSelection={hasInvalidOtherSelection}
+                onUpdateClarificationDraft={updateClarificationDraft}
+                onSubmitClarification={submitClarification}
+                onSkipClarification={submitClarification}
                 refresh={handleRegenerateResponse}
                 copy={handleCopyMessage}
                 save={handleSaveEdit}
-                goref={handleMessageClick}
                 downloadConversation={handleDownloadConversation}
                 onOpenFeedback={handleOpenFeedback}
                 showReloadPrompt={showReloadPrompt}
@@ -2217,9 +3461,26 @@ function LLMAgent() {
     const [citeDialogOpen, setCiteDialogOpen] = useState(false);
     const [selectedCitation, setSelectedCitation] = useState(null);
     const [hoveredPubmedId, setHoveredPubmedId] = useState(null);
+    const [isReferenceScopeOpen, setIsReferenceScopeOpen] = useState(false);
     const referencesListRef = useRef(null);
-    const isNewChatDisabled = isLoading || chatHistory.length === 0;
-    const newChatColor = isNewChatDisabled ? '#B0B0B0' : '#155DFC';
+    const referenceSourceOptions = useMemo(() => chatHistory
+        .map((item, itemIndex) => {
+            const refs = Array.isArray(item?.references) ? item.references : [];
+            if (item?.role !== 'assistant' || refs.length === 0) return null;
+            const previousUserMessage = chatHistory
+                .slice(0, itemIndex)
+                .reverse()
+                .find((entry) => entry?.role === 'user' && entry?.content);
+            const label = previousUserMessage?.content || item?.content || `Response ${itemIndex + 1}`;
+            return {
+                index: itemIndex,
+                label: String(label).replace(/\s+/g, ' ').trim(),
+                count: refs.length,
+            };
+        })
+        .filter(Boolean), [chatHistory]);
+
+    const selectedReferenceSource = referenceSourceOptions.find((item) => item.index === selectedMessageIndex) || null;
 
     const references = selectedMessageIndex !== null
         ? chatHistory[selectedMessageIndex]?.references || []
@@ -2288,15 +3549,17 @@ function LLMAgent() {
     }, [hoveredPubmedId, enrichedReferences]);
 
     const sortedReferences = useMemo(() => {
-        const sorted = [...enrichedReferences];
+        const sorted = enrichedReferences.map((reference, originalIndex) => ({ reference, originalIndex }));
         const getCitationSortValue = (value) => {
             const num = Number(value);
             return Number.isFinite(num) ? num : -1;
         };
         if (sortOption === 'Citations') {
-            sorted.sort((a, b) => getCitationSortValue(b.citation_count) - getCitationSortValue(a.citation_count));
+            sorted.sort(({ reference: a }, { reference: b }) => (
+                getCitationSortValue(b.citation_count) - getCitationSortValue(a.citation_count)
+            ));
         } else {
-            sorted.sort((a, b) => (b.year || 0) - (a.year || 0));
+            sorted.sort(({ reference: a }, { reference: b }) => (a.year || 0) - (b.year || 0));
         }
         return sorted;
     }, [enrichedReferences, sortOption]);
@@ -2305,7 +3568,7 @@ function LLMAgent() {
     const handleExportReferences = () => {
         if (sortedReferences.length === 0) return;
 
-        const bibTexContent = sortedReferences.map((ref, index) => {
+        const bibTexContent = sortedReferences.map(({ reference: ref }) => {
             const pubmedId = ref.url.split('/').filter(Boolean).pop();
             const cleanTitle = ref.title.replace(/[{}]/g, '');
             const cleanAuthors = ref.authors.replace(/,/g, ' and');
@@ -2480,6 +3743,7 @@ function LLMAgent() {
         <>
             <Helmet>
                 <title>AI Chat - Genomic Literature Knowledge Base</title>
+                <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=forum" />
                 <meta name="description" content="Ask, Analyze, Cite. Start a chat now with GLKB, your scientific research AI assistant." />
                 <meta property="og:title" content="AI Chat - Genomic Literature Knowledge Base | AI-Powered Genomics Search" />
                 <meta property="og:description" content="Ask, Analyze, Cite. Start a chat now with GLKB, your scientific research AI assistant." />
@@ -2507,6 +3771,272 @@ function LLMAgent() {
                 </Alert>
             </Snackbar>
 
+            {/* Clarify is inline in the investigate message (Figma Asking Question). Modal kept disabled. */}
+            <Dialog
+                open={false}
+                onClose={() => {}}
+                disableEscapeKeyDown
+                fullWidth
+                maxWidth="sm"
+            >
+                <DialogTitle
+                    sx={{
+                        fontFamily: 'DM Sans, sans-serif',
+                        fontSize: '20px',
+                        fontWeight: 700,
+                        color: '#141B26',
+                    }}
+                >
+                    Clarify Your Research Scope
+                </DialogTitle>
+                <DialogContent>
+                    <Typography
+                        sx={{
+                            fontFamily: 'DM Sans, sans-serif',
+                            fontSize: '14px',
+                            color: '#5E6E87',
+                            lineHeight: 1.5,
+                            mb: 2,
+                        }}
+                    >
+                        Answering these helps the agent narrow evidence and improve citation quality.
+                    </Typography>
+
+                    {pendingClarification?.reason && (
+                        <Box
+                            sx={{
+                                borderRadius: '10px',
+                                backgroundColor: '#F7F9FF',
+                                border: '1px solid #D6E6FF',
+                                px: 1.5,
+                                py: 1,
+                                mb: 2,
+                            }}
+                        >
+                            <Typography
+                                sx={{
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontSize: '13px',
+                                    color: '#0836B0',
+                                    lineHeight: 1.45,
+                                }}
+                            >
+                                {pendingClarification.reason}
+                            </Typography>
+                        </Box>
+                    )}
+
+                    <Stack spacing={2}>
+                        {(pendingClarification?.questions || []).map((question, index) => {
+                            const questionKey = getClarificationQuestionKey(question, index);
+                            const draft = clarificationDrafts[questionKey] || { selected: [], text: '', otherSelected: false };
+                            const selected = Array.isArray(draft.selected) ? draft.selected : [];
+                            const otherText = typeof draft.text === 'string' ? draft.text : '';
+                            const responseType = String(question?.response_type || 'text').toLowerCase();
+                            const options = Array.isArray(question?.options) ? question.options : [];
+                            const radioValue = draft.otherSelected ? '__other__' : (selected[0] || '');
+
+                            return (
+                                <Box
+                                    key={questionKey}
+                                    sx={{
+                                        border: '1px solid #E6EDF8',
+                                        borderRadius: '12px',
+                                        p: 1.5,
+                                    }}
+                                >
+                                    <Typography
+                                        sx={{
+                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontSize: '12px',
+                                            fontWeight: 700,
+                                            color: '#5E6E87',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.03em',
+                                            mb: 0.5,
+                                        }}
+                                    >
+                                        {question?.header || `Question ${index + 1}`}
+                                    </Typography>
+
+                                    <Typography
+                                        sx={{
+                                            fontFamily: 'DM Sans, sans-serif',
+                                            fontSize: '15px',
+                                            fontWeight: 500,
+                                            color: '#222A38',
+                                            lineHeight: 1.45,
+                                            mb: 1,
+                                        }}
+                                    >
+                                        {question?.question || ''}
+                                    </Typography>
+
+                                    {responseType === 'single' && (
+                                        <>
+                                            <RadioGroup
+                                                value={radioValue}
+                                                onChange={(event) => {
+                                                    const nextValue = event.target.value;
+                                                    if (nextValue === '__other__') {
+                                                        updateClarificationDraft(questionKey, {
+                                                            selected: [],
+                                                            text: otherText,
+                                                            otherSelected: true,
+                                                        });
+                                                        return;
+                                                    }
+                                                    updateClarificationDraft(questionKey, {
+                                                        selected: nextValue ? [nextValue] : [],
+                                                        text: '',
+                                                        otherSelected: false,
+                                                    });
+                                                }}
+                                            >
+                                                {options.map((option) => {
+                                                    const optionLabel = String(option?.label || '').trim();
+                                                    if (!optionLabel) return null;
+                                                    return (
+                                                        <FormControlLabel
+                                                            key={optionLabel}
+                                                            value={optionLabel}
+                                                            control={<Radio size="small" />}
+                                                            label={option?.description || optionLabel}
+                                                        />
+                                                    );
+                                                })}
+                                                <FormControlLabel value="__other__" control={<Radio size="small" />} label="Other" />
+                                            </RadioGroup>
+                                            <TextField
+                                                fullWidth
+                                                size="small"
+                                                placeholder="Optional custom answer"
+                                                value={otherText}
+                                                onChange={(event) => {
+                                                    updateClarificationDraft(questionKey, {
+                                                        selected: [],
+                                                        text: event.target.value,
+                                                        otherSelected: true,
+                                                    });
+                                                }}
+                                                sx={{ mt: 1 }}
+                                            />
+                                        </>
+                                    )}
+
+                                    {responseType === 'multi' && (
+                                        <>
+                                            <Stack spacing={0.5}>
+                                                {options.map((option) => {
+                                                    const optionLabel = String(option?.label || '').trim();
+                                                    if (!optionLabel) return null;
+                                                    const checked = selected.includes(optionLabel);
+                                                    return (
+                                                        <FormControlLabel
+                                                            key={optionLabel}
+                                                            control={(
+                                                                <Checkbox
+                                                                    size="small"
+                                                                    checked={checked}
+                                                                    onChange={(event) => {
+                                                                        const nextSelected = event.target.checked
+                                                                            ? [...selected, optionLabel]
+                                                                            : selected.filter((item) => item !== optionLabel);
+                                                                        updateClarificationDraft(questionKey, {
+                                                                            selected: Array.from(new Set(nextSelected)),
+                                                                            text: otherText,
+                                                                        });
+                                                                    }}
+                                                                />
+                                                            )}
+                                                            label={option?.description || optionLabel}
+                                                        />
+                                                    );
+                                                })}
+                                            </Stack>
+                                            <TextField
+                                                fullWidth
+                                                size="small"
+                                                placeholder="Optional additional context"
+                                                value={otherText}
+                                                onChange={(event) => {
+                                                    updateClarificationDraft(questionKey, {
+                                                        selected,
+                                                        text: event.target.value,
+                                                    });
+                                                }}
+                                                sx={{ mt: 1 }}
+                                            />
+                                        </>
+                                    )}
+
+                                    {responseType === 'text' && (
+                                        <TextField
+                                            fullWidth
+                                            size="small"
+                                            placeholder="Type your answer"
+                                            value={otherText}
+                                            onChange={(event) => {
+                                                updateClarificationDraft(questionKey, {
+                                                    selected: [],
+                                                    text: event.target.value,
+                                                });
+                                            }}
+                                        />
+                                    )}
+                                </Box>
+                            );
+                        })}
+                    </Stack>
+
+                    {clarificationError && (
+                        <Typography
+                            sx={{
+                                mt: 2,
+                                fontFamily: 'DM Sans, sans-serif',
+                                fontSize: '13px',
+                                color: '#A10902',
+                            }}
+                        >
+                            {clarificationError}
+                        </Typography>
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2.5 }}>
+                    <MuiButton
+                        disabled={clarificationSubmitting}
+                        onClick={() => submitClarification({ useDefaults: true })}
+                        sx={{
+                            borderRadius: '10px',
+                            border: '1px solid #CBD5E1',
+                            textTransform: 'none',
+                            fontFamily: 'DM Sans, sans-serif',
+                            color: '#46566C',
+                        }}
+                    >
+                        Skip (Use Defaults)
+                    </MuiButton>
+                    <MuiButton
+                        disabled={clarificationSubmitting || hasInvalidOtherSelection}
+                        onClick={() => submitClarification({ useDefaults: false })}
+                        sx={{
+                            borderRadius: '10px',
+                            border: '1px solid #155DFC',
+                            backgroundColor: '#155DFC',
+                            textTransform: 'none',
+                            fontFamily: 'DM Sans, sans-serif',
+                            color: '#FFFFFF',
+                            '&:hover': {
+                                backgroundColor: '#0A47D6',
+                                borderColor: '#0A47D6',
+                            },
+                        }}
+                    >
+                        {clarificationSubmitting ? 'Submitting...' : 'Submit Answers'}
+                    </MuiButton>
+                </DialogActions>
+            </Dialog>
+
             <Dialog
                 open={showLeaveConfirmDialog}
                 onClose={handleLeaveDialogCancel}
@@ -2519,7 +4049,7 @@ function LLMAgent() {
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '20px',
                         fontWeight: 700,
-                        color: '#164563',
+                        color: '#141B26',
                         paddingBottom: '8px',
                     }}
                 >
@@ -2529,7 +4059,7 @@ function LLMAgent() {
                     sx={{
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '14px',
-                        color: '#5B5B5B',
+                        color: '#5E6E87',
                         lineHeight: 1.5,
                         paddingTop: '4px !important',
                     }}
@@ -2542,7 +4072,7 @@ function LLMAgent() {
                         sx={{
                             borderRadius: '12px',
                             border: '1px solid #D6DDE8',
-                            color: '#164563',
+                            color: '#141B26',
                             textTransform: 'none',
                             fontFamily: 'DM Sans, sans-serif',
                             fontWeight: 700,
@@ -2557,7 +4087,7 @@ function LLMAgent() {
                         sx={{
                             borderRadius: '12px',
                             border: '1px solid #DC2626',
-                            backgroundColor: '#DC2626',
+                            backgroundColor: '#FC2415',
                             color: '#ffffff',
                             textTransform: 'none',
                             fontFamily: 'DM Sans, sans-serif',
@@ -2565,8 +4095,8 @@ function LLMAgent() {
                             fontSize: '14px',
                             padding: '8px 16px',
                             '&:hover': {
-                                backgroundColor: '#B91C1C',
-                                borderColor: '#B91C1C',
+                                backgroundColor: '#A10902',
+                                borderColor: '#A10902',
                             },
                         }}
                     >
@@ -2597,13 +4127,13 @@ function LLMAgent() {
                                 fontSize: '24px',
                                 fontWeight: '700 !important',
                                 lineHeight: 1.3,
-                                color: '#333333',
+                                color: '#222A38',
                             }}
                         >
                             Share your feedback
                         </Typography>
                         <IconButton onClick={handleCloseFeedback} aria-label="Close feedback dialog">
-                            <ClearIcon sx={{ color: '#646464' }} />
+                            <ClearIcon sx={{ color: '#5E6E87' }} />
                         </IconButton>
                     </Box>
 
@@ -2614,7 +4144,7 @@ function LLMAgent() {
                                 fontSize: '16px',
                                 fontWeight: '400 !important',
                                 lineHeight: 1.5,
-                                color: '#323232',
+                                color: '#222A38',
                             }}
                         >
                             Your feedback helps us improve GLKB.
@@ -2651,13 +4181,13 @@ function LLMAgent() {
                                     fontFamily: 'DM Sans, sans-serif',
                                     fontSize: '16px',
                                     fontWeight: '400 !important',
-                                    color: '#323232',
+                                    color: '#222A38',
                                     '& fieldset': {
-                                        borderColor: '#969696',
+                                        borderColor: '#8090AB',
                                     },
                                 },
                                 '& .MuiInputBase-input::placeholder': {
-                                    color: '#969696',
+                                    color: '#8090AB',
                                     opacity: 1,
                                 },
                             }}
@@ -2670,7 +4200,7 @@ function LLMAgent() {
                             sx={{
                                 borderRadius: '8px',
                                 border: '1px solid #D8D8D8',
-                                color: '#323232',
+                                color: '#222A38',
                                 backgroundColor: '#FFFFFF',
                                 textTransform: 'none',
                                 fontFamily: 'DM Sans, sans-serif',
@@ -2700,10 +4230,10 @@ function LLMAgent() {
                                 py: '8px',
                                 minWidth: '170px',
                                 '&:hover': {
-                                    backgroundColor: '#0E4EDB',
+                                    backgroundColor: '#0A47D6',
                                 },
                                 '&.Mui-disabled': {
-                                    backgroundColor: '#9EBEFF',
+                                    backgroundColor: '#BBCFFE',
                                     color: '#FFFFFF',
                                 },
                             }}
@@ -2719,7 +4249,7 @@ function LLMAgent() {
                     <Grid item xs={12} className="llm-subgrid">
                         <div className="llm-main-content">
                             {/* <MuiButton variant="text" sx={{
-                                color: '#333333',
+                                color: '#222A38',
                                 fontFamily: 'Open Sans, sans-serif',
                                 alignSelf: 'flex-start',
                                 zIndex: 1,
@@ -2734,116 +4264,44 @@ function LLMAgent() {
                                 <div className="llm-agent-container">
                                     <div className="chat-and-references">
                                         <Box ref={splitContainerRef} className="llm-split" sx={{ display: 'flex', minHeight: 0, height: '100%' }}>
-                                            <Box className="llm-column" sx={{ flex: useMobileReferencesDrawer ? '1 1 auto' : `0 0 ${leftPaneWidth}%`, minWidth: useMobileReferencesDrawer ? 0 : `${LEFT_MIN_PX}px` }}>
+                                            <Box
+                                                className="llm-column"
+                                                sx={{
+                                                    flex: useMobileReferencesDrawer || isReferencesCollapsed
+                                                        ? '1 1 auto'
+                                                        : `0 0 ${leftPaneWidth}%`,
+                                                    minWidth: useMobileReferencesDrawer ? 0 : `${LEFT_MIN_PX}px`,
+                                                }}
+                                            >
                                                 <div className="chat-container">
                                                     <Box className="llm-header" sx={{
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'space-between',
-                                                        padding: '16px',
-                                                        height: '70px',
-                                                        borderBottom: '1px solid #E6E6E6',
-                                                        marginBottom: '1px',
+                                                        padding: '0 24px',
+                                                        height: '66px',
+                                                        backgroundColor: '#FFFFFF',
                                                     }}>
                                                         <Box sx={{
                                                             display: 'flex',
                                                             alignItems: 'center',
                                                             gap: '8px',
-                                                            paddingLeft: '16px',
                                                             minWidth: 0,
                                                             flex: 1,
                                                         }}>
-                                                            <Typography
-                                                                component="button"
-                                                                type="button"
-                                                                onClick={() => navigate('/')}
-                                                                aria-label="Go to home"
-                                                                sx={{
-                                                                    fontFamily: 'DM Sans, sans-serif',
-                                                                    fontSize: '16px',
-                                                                    fontWeight: 500,
-                                                                    color: '#164563',
-                                                                    textDecoration: 'underline',
-                                                                    background: 'none',
-                                                                    border: 'none',
-                                                                    padding: 0,
-                                                                    cursor: 'pointer',
-                                                                    whiteSpace: 'nowrap',
-                                                                    flexShrink: 0,
-                                                                }}>
-                                                                AI Chat
-                                                            </Typography>
                                                             <Typography sx={{
-                                                                fontFamily: 'DM Sans, sans-serif',
-                                                                fontSize: '16px',
-                                                                fontWeight: 500,
-                                                                color: '#8A8A8A',
+                                                                fontFamily: 'Geist, sans-serif',
+                                                                fontSize: '14px',
+                                                                fontWeight: 600,
+                                                                lineHeight: '18px',
+                                                                color: '#141B26',
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'nowrap',
+                                                                maxWidth: '420px',
                                                             }}>
-                                                                &gt;
+                                                                {chatTitle}
                                                             </Typography>
-                                                            {isEditingChatTitle ? (
-                                                                <TextField
-                                                                    value={chatTitleDraft}
-                                                                    onChange={(event) => setChatTitleDraft(event.target.value)}
-                                                                    size="small"
-                                                                    autoFocus
-                                                                    onKeyDown={(event) => {
-                                                                        if (event.key === 'Enter') {
-                                                                            event.preventDefault();
-                                                                            handleConfirmChatTitleEdit();
-                                                                        }
-                                                                        if (event.key === 'Escape') {
-                                                                            event.preventDefault();
-                                                                            handleCancelChatTitleEdit();
-                                                                        }
-                                                                    }}
-                                                                    sx={{
-                                                                        maxWidth: '280px',
-                                                                        '& .MuiInputBase-root': {
-                                                                            fontFamily: 'DM Sans, sans-serif',
-                                                                            fontSize: '14px',
-                                                                            fontWeight: 500,
-                                                                            color: '#164563',
-                                                                        },
-                                                                    }}
-                                                                />
-                                                            ) : (
-                                                                <Typography sx={{
-                                                                    fontFamily: 'DM Sans, sans-serif',
-                                                                    fontSize: '16px',
-                                                                    fontWeight: 600,
-                                                                    color: '#164563',
-                                                                    overflow: 'hidden',
-                                                                    textOverflow: 'ellipsis',
-                                                                    whiteSpace: 'nowrap',
-                                                                    maxWidth: '280px',
-                                                                }}>
-                                                                    {chatTitle}
-                                                                </Typography>
-                                                            )}
-                                                            <IconButton
-                                                                size="small"
-                                                                onClick={isEditingChatTitle ? handleConfirmChatTitleEdit : handleEditChatTitle}
-                                                                disabled={
-                                                                    authLoading
-                                                                    || !isAuthenticated
-                                                                    || (!activeConversationIdRef.current && !activeConversationId)
-                                                                }
-                                                                sx={{
-                                                                    padding: '4px',
-                                                                    color: isEditingChatTitle ? '#2c5cf3' : '#8A8A8A',
-                                                                    '&:hover': {
-                                                                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                                                                    },
-                                                                }}
-                                                                title={isEditingChatTitle ? 'Save chat title' : 'Edit chat title'}
-                                                            >
-                                                                {isEditingChatTitle ? (
-                                                                    <CheckIcon sx={{ fontSize: 18 }} />
-                                                                ) : (
-                                                                    <EditNoteIcon sx={{ fontSize: 18 }} />
-                                                                )}
-                                                            </IconButton>
                                                             <IconButton
                                                                 size="small"
                                                                 onClick={handleToggleConversationBookmark}
@@ -2854,61 +4312,45 @@ function LLMAgent() {
                                                                 }
                                                                 sx={{
                                                                     padding: '4px',
-                                                                    color: isConversationBookmarked ? '#2c5cf3' : '#8A8A8A',
+                                                                    color: isConversationBookmarked ? '#155DFC' : '#5E6E87',
                                                                     '&:hover': {
-                                                                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                                                        backgroundColor: '#F2F4F8',
                                                                     },
                                                                 }}
                                                                 title={isConversationBookmarked ? 'Remove bookmark' : 'Bookmark this chat'}
                                                             >
                                                                 {isConversationBookmarked ? (
-                                                                    <BookmarkIcon sx={{ fontSize: 18 }} />
+                                                                    <BookmarkIcon sx={{ fontSize: 16 }} />
                                                                 ) : (
-                                                                    <BookmarkBorderIcon sx={{ fontSize: 18 }} />
+                                                                    <BookmarkBorderIcon sx={{ fontSize: 16 }} />
                                                                 )}
                                                             </IconButton>
                                                         </Box>
-                                                        <MuiButton onClick={handleClear} disabled={isNewChatDisabled} sx={{
-                                                            display: useMobileReferencesDrawer ? 'none' : 'inline-flex',
-                                                            borderRadius: '16px',
-                                                            border: `1px solid ${newChatColor}`,
-                                                            backgroundColor: '#ffffff',
-                                                            color: newChatColor,
-                                                            fontFamily: 'DM Sans, sans-serif',
-                                                            fontSize: '14px',
-                                                            fontWeight: 700,
-                                                            padding: '8px',
-                                                            gap: '6px',
-                                                            textTransform: 'none',
-                                                            opacity: 1,
-                                                            '&.Mui-disabled': {
-                                                                color: newChatColor,
-                                                                border: `1px solid ${newChatColor}`,
-                                                                opacity: 1,
-                                                            },
-                                                            '&:hover': {
-                                                                backgroundColor: '#ffffff',
-                                                            },
-                                                        }}>
-                                                            <AddIcon style={{ width: '16px', height: '16px', color: newChatColor }} />
-                                                            New Chat
-                                                        </MuiButton>
+                                                        {!useMobileReferencesDrawer && isReferencesCollapsed && (
+                                                            <MuiButton
+                                                                className="llm-header-references-toggle"
+                                                                onClick={expandReferences}
+                                                                startIcon={<ReferenceIcon />}
+                                                            >
+                                                                References
+                                                            </MuiButton>
+                                                        )}
                                                     </Box>
                                                     {/* Add example queries section */}
                                                     {!isConversationLoading && chatHistory.length === 0 && (
                                                         <div className='empty-components-container'>
                                                             <div className="empty-page-title" style={{ paddingTop: '1rem' }}>
                                                                 <div style={{ gap: '1rem', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
-                                                                    <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '32px', fontWeight: '700', color: "#0169B0" }}>
+                                                                    <Typography sx={{ fontFamily: "Geist, sans-serif", fontSize: '32px', fontWeight: '700', color: "#141B26" }}>
                                                                         Explore Biomedical Literature
                                                                     </Typography>
-                                                                    <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '18px', fontWeight: '500', color: "#718096" }}>
+                                                                    <Typography sx={{ fontFamily: "Geist, sans-serif", fontSize: '18px', fontWeight: '500', color: "#5E6E87" }}>
                                                                         AI-powered Genomic Literature Knowledge Base
                                                                     </Typography>
                                                                 </div>
                                                             </div>
                                                             <div className="example-queries-header">
-                                                                <Typography sx={{ fontFamily: "Open Sans, sans-serif", fontSize: '16px', fontWeight: '400', color: "#888888", width: '100%', textAlign: 'left' }}>
+                                                                <Typography sx={{ fontFamily: "Geist, sans-serif", fontSize: '16px', fontWeight: '400', color: "#8090AB", width: '100%', textAlign: 'left' }}>
                                                                     Try these example queries:
                                                                 </Typography>
                                                                 <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '10px', minHeight: '80px' }}>
@@ -2927,18 +4369,18 @@ function LLMAgent() {
                                                         </div>
                                                     )}
 
-                                                    <div className="messages-container">
+                                                    <div ref={messagesContainerRef} className="messages-container">
                                                         {!isConversationLoading && renderMessages()}
                                                         <div ref={messagesEndRef} />
                                                     </div>
                                                     {isConversationLoading && loadingConversationId && (
                                                         <div className="chat-loading-overlay">
-                                                            <CircularProgress size={28} sx={{ color: '#164563' }} />
+                                                            <CircularProgress size={28} sx={{ color: '#141B26' }} />
                                                             <Typography sx={{
                                                                 fontFamily: 'Open Sans, sans-serif',
                                                                 fontSize: '14px',
                                                                 fontWeight: 400,
-                                                                color: '#646464',
+                                                                color: '#5E6E87',
                                                             }}>
                                                                 Loading chat history... This may take ~20 seconds
                                                             </Typography>
@@ -2999,7 +4441,13 @@ function LLMAgent() {
                                                         setUserInput={setUserInput}
                                                         isLoading={isLoading}
                                                         isQueryLimitReached={isLimitReachedEffective}
-                                                        onSubmit={handleSubmit}
+                                                        investigateEnabled={chatInvestigateEnabled}
+                                                        onSubmit={(event) => handleSubmit(event, null, null, {
+                                                            searchOptions: {
+                                                                investigateEnabled: chatInvestigateEnabled,
+                                                                ...(initialSearchOptionsRef.current || {}),
+                                                            },
+                                                        })}
                                                         onStop={handleStopStreaming}
                                                     />
                                                 </div>
@@ -3014,55 +4462,62 @@ function LLMAgent() {
                                                             />
                                                         )}
                                                     </div>
-                                                    <Box className="llm-column" sx={{ flex: 1, minWidth: `${RIGHT_MIN_PX}px` }}>
+                                                    <Box className="llm-column references-column" sx={{ flex: 1, minWidth: `${RIGHT_MIN_PX}px` }}>
+                                                        <IconButton
+                                                            size="small"
+                                                            className="references-collapse-toggle"
+                                                            onClick={collapseReferences}
+                                                            aria-label="Collapse references"
+                                                            title="Collapse references"
+                                                        >
+                                                            <ChevronRightIcon sx={{ fontSize: 20 }} />
+                                                        </IconButton>
                                                         <div style={{ height: '100%', width: '100%' }}>
                                                             <div className="references-container">
-                                                                <div style={{
-                                                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                                    height: '70px',
-                                                                    borderBottom: '1px solid #E6E6E6',
-                                                                    marginBottom: '1px',
-                                                                }}>
-                                                                    <h3 style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: '16px', color: '#164563', marginBottom: '0', paddingLeft: '32px' }}>References</h3>
-                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                        <ToggleButtonGroup
-                                                                            size="small"
-                                                                            exclusive
-                                                                            value={sortOption}
-                                                                            onChange={(event, value) => {
-                                                                                if (value !== null) {
-                                                                                    setSortOption(value);
-                                                                                }
-                                                                            }}
-                                                                            sx={{
-                                                                                border: '1px solid #E7F1FF',
-                                                                                borderRadius: '14px',
-                                                                                padding: '1px',
-                                                                                overflow: 'hidden',
-                                                                                '& .MuiToggleButton-root': {
-                                                                                    textTransform: 'none',
-                                                                                    fontFamily: 'DM Sans, sans-serif',
-                                                                                    fontSize: '12px',
-                                                                                    fontWeight: 700,
-                                                                                    color: '#164563',
-                                                                                    border: 'none',
-                                                                                    padding: '0 8px',
-                                                                                    height: '26px',
-                                                                                    minHeight: '26px',
-                                                                                    borderRadius: '13px',
-                                                                                },
-                                                                                '& .MuiToggleButton-root.Mui-selected': {
-                                                                                    backgroundColor: '#E7F1FF',
-                                                                                    color: '#164563',
-                                                                                },
-                                                                                '& .MuiToggleButton-root.Mui-selected:hover': {
-                                                                                    backgroundColor: '#E0EDFF',
-                                                                                },
-                                                                            }}
+                                                                <div className="references-header-row">
+                                                                    <div className="references-header-main">
+                                                                        <h3 className="references-title">References</h3>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="references-scope-trigger"
+                                                                            onClick={() => setIsReferenceScopeOpen((prev) => !prev)}
+                                                                            aria-expanded={isReferenceScopeOpen}
                                                                         >
-                                                                            <ToggleButton value="Citations">Citation</ToggleButton>
-                                                                            <ToggleButton value="Year">Year</ToggleButton>
-                                                                        </ToggleButtonGroup>
+                                                                            <span className="material-symbols-outlined references-scope-icon" aria-hidden="true">forum</span>
+                                                                            <span>{selectedReferenceSource?.label || 'Select a response'}</span>
+                                                                            <ChevronRightIcon className={`references-scope-chevron${isReferenceScopeOpen ? ' expanded' : ''}`} />
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                                {isReferenceScopeOpen && (
+                                                                    <div className="references-scope-panel">
+                                                                        {referenceSourceOptions.map((item, optionIndex) => (
+                                                                            <button
+                                                                                key={item.index}
+                                                                                type="button"
+                                                                                className="references-scope-option"
+                                                                                onClick={() => {
+                                                                                    setSelectedMessageIndex(item.index);
+                                                                                    setIsReferenceScopeOpen(false);
+                                                                                }}
+                                                                            >
+                                                                                <span className="references-scope-option-label">
+                                                                                    <span className="references-scope-option-number">{optionIndex + 1}.</span> {item.label}
+                                                                                </span>
+                                                                                <span className={`references-scope-radio${selectedMessageIndex === item.index ? ' selected' : ''}`} />
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                                <div className="references-toolbar-row">
+                                                                    {/* While a run is in flight the count is not yet knowable — "0 Citations"
+                                                                        reads as "this answer has no sources", so show nothing until it lands. */}
+                                                                    <span className="references-count-label">
+                                                                        {isProcessing && sortedReferences.length === 0
+                                                                            ? ''
+                                                                            : `${sortedReferences.length} Citations`}
+                                                                    </span>
+                                                                    <div className="references-toolbar-actions">
                                                                         <IconButton
                                                                             size="small"
                                                                             className="references-action-button"
@@ -3073,28 +4528,33 @@ function LLMAgent() {
                                                                             <DownloadIcon
                                                                                 aria-label="Download references"
                                                                                 style={{
-                                                                                    width: '20px',
-                                                                                    height: '20px',
+                                                                                    width: '16px',
+                                                                                    height: '16px',
                                                                                     display: 'block',
-                                                                                    color: isExportDisabled ? '#B0B0B0' : '#164563',
+                                                                                    color: isExportDisabled ? '#B0B7C3' : '#5E6E87',
                                                                                 }}
                                                                             />
                                                                         </IconButton>
-                                                                        <IconButton
+                                                                        <ToggleButtonGroup
                                                                             size="small"
-                                                                            className="references-action-button"
-                                                                            onClick={collapseReferences}
-                                                                            sx={{ marginRight: '8px' }}
-                                                                            title="Collapse references"
+                                                                            exclusive
+                                                                            value={sortOption}
+                                                                            onChange={(event, value) => {
+                                                                                if (value !== null) {
+                                                                                    setSortOption(value);
+                                                                                }
+                                                                            }}
+                                                                            className="references-sort-toggle"
                                                                         >
-                                                                            <ChevronRightIcon sx={{ color: '#164563' }} />
-                                                                        </IconButton>
+                                                                            <ToggleButton value="Citations">Citation</ToggleButton>
+                                                                            <ToggleButton value="Year">Year</ToggleButton>
+                                                                        </ToggleButtonGroup>
                                                                     </div>
                                                                 </div>
 
                                                                 {sortedReferences.length > 0 ? (
-                                                                    <div ref={referencesListRef} className="references-list" style={{ maxHeight: 'calc(100% - 70px)', overflowY: 'auto', paddingLeft: '2rem', paddingRight: '2rem' }}>
-                                                                        {sortedReferences.map((ref, index) => {
+                                                                    <div ref={referencesListRef} className="references-list" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+                                                                        {sortedReferences.map(({ reference: ref, originalIndex }) => {
                                                                             const url = [
                                                                                 ref.title,
                                                                                 ref.url,
@@ -3107,10 +4567,9 @@ function LLMAgent() {
                                                                             const isHighlighted = hoveredPubmedId === pubmedId;
                                                                             return (
                                                                                 <div
-                                                                                    key={index}
+                                                                                    key={`${pubmedId}-${originalIndex}`}
                                                                                     data-pubmed-id={pubmedId}
                                                                                     className={`reference-entry-wrapper${isHighlighted ? ' highlighted' : ''}`}
-                                                                                    onClick={(event) => handleReferenceEntryContainerClick(event, url[1])}
                                                                                 >
                                                                                     <ReferenceCard
                                                                                         url={url}
@@ -3119,11 +4578,14 @@ function LLMAgent() {
                                                                                         handleClick={handleClick}
                                                                                         onCiteClick={handleCiteClick}
                                                                                         isHighlighted={isHighlighted}
+                                                                                        index={originalIndex + 1}
                                                                                     />
                                                                                 </div>
                                                                             );
                                                                         })}
                                                                     </div>
+                                                                ) : isProcessing ? (
+                                                                    <ReferencesSkeleton />
                                                                 ) : (
                                                                     <p style={{ padding: '16px 32px' }}>No references available for this response.</p>
                                                                 )}
@@ -3133,19 +4595,6 @@ function LLMAgent() {
                                                 </>
                                             )}
                                         </Box>
-                                        {!useMobileReferencesDrawer && isReferencesCollapsed && (
-                                            <IconButton
-                                                className="references-collapse-button"
-                                                onClick={expandReferences}
-                                                aria-label="Open references"
-                                            >
-                                                <SidebarLeftIcon
-                                                    className="references-collapse-icon"
-                                                />
-                                                <span className="references-collapse-label">REFERENCES</span>
-                                            </IconButton>
-                                        )}
-
                                         {useMobileReferencesDrawer && (
                                             <Drawer
                                                 anchor="bottom"
@@ -3154,14 +4603,9 @@ function LLMAgent() {
                                                 PaperProps={{ className: 'llm-mobile-references-drawer' }}
                                             >
                                                 <div className="references-container llm-mobile-references-container">
-                                                    <div style={{
-                                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                        height: '70px',
-                                                        borderBottom: '1px solid #E6E6E6',
-                                                        marginBottom: '1px',
-                                                    }}>
-                                                        <h3 style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: '16px', color: '#164563', marginBottom: '0', paddingLeft: '20px' }}>References</h3>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingRight: '10px' }}>
+                                                    <div className="references-header-row">
+                                                        <h3 className="references-title">References</h3>
+                                                        <div className="references-toolbar-actions">
                                                             <ToggleButtonGroup
                                                                 size="small"
                                                                 exclusive
@@ -3171,31 +4615,7 @@ function LLMAgent() {
                                                                         setSortOption(value);
                                                                     }
                                                                 }}
-                                                                sx={{
-                                                                    border: '1px solid #E7F1FF',
-                                                                    borderRadius: '14px',
-                                                                    padding: '1px',
-                                                                    overflow: 'hidden',
-                                                                    '& .MuiToggleButton-root': {
-                                                                        textTransform: 'none',
-                                                                        fontFamily: 'DM Sans, sans-serif',
-                                                                        fontSize: '12px',
-                                                                        fontWeight: 700,
-                                                                        color: '#164563',
-                                                                        border: 'none',
-                                                                        padding: '0 8px',
-                                                                        height: '26px',
-                                                                        minHeight: '26px',
-                                                                        borderRadius: '13px',
-                                                                    },
-                                                                    '& .MuiToggleButton-root.Mui-selected': {
-                                                                        backgroundColor: '#E7F1FF',
-                                                                        color: '#164563',
-                                                                    },
-                                                                    '& .MuiToggleButton-root.Mui-selected:hover': {
-                                                                        backgroundColor: '#E0EDFF',
-                                                                    },
-                                                                }}
+                                                                className="references-sort-toggle"
                                                             >
                                                                 <ToggleButton value="Citations">Citation</ToggleButton>
                                                                 <ToggleButton value="Year">Year</ToggleButton>
@@ -3210,10 +4630,10 @@ function LLMAgent() {
                                                                 <DownloadIcon
                                                                     aria-label="Download references"
                                                                     style={{
-                                                                        width: '20px',
-                                                                        height: '20px',
+                                                                        width: '16px',
+                                                                        height: '16px',
                                                                         display: 'block',
-                                                                        color: isExportDisabled ? '#B0B0B0' : '#164563',
+                                                                        color: isExportDisabled ? '#B0B7C3' : '#5E6E87',
                                                                     }}
                                                                 />
                                                             </IconButton>
@@ -3223,14 +4643,14 @@ function LLMAgent() {
                                                                 onClick={() => setIsMobileReferencesDrawerOpen(false)}
                                                                 title="Close references"
                                                             >
-                                                                <ChevronRightIcon sx={{ color: '#164563', transform: 'rotate(90deg)' }} />
+                                                                <ChevronRightIcon sx={{ color: '#5E6E87', transform: 'rotate(90deg)' }} />
                                                             </IconButton>
                                                         </div>
                                                     </div>
 
                                                     {sortedReferences.length > 0 ? (
-                                                        <div ref={referencesListRef} className="references-list" style={{ maxHeight: 'calc(100% - 70px)', overflowY: 'auto', paddingLeft: '1rem', paddingRight: '1rem' }}>
-                                                            {sortedReferences.map((ref, index) => {
+                                                        <div ref={referencesListRef} className="references-list" style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingLeft: '1rem', paddingRight: '1rem' }}>
+                                                            {sortedReferences.map(({ reference: ref, originalIndex }) => {
                                                                 const url = [
                                                                     ref.title,
                                                                     ref.url,
@@ -3243,10 +4663,9 @@ function LLMAgent() {
                                                                 const isHighlighted = hoveredPubmedId === pubmedId;
                                                                 return (
                                                                     <div
-                                                                        key={index}
+                                                                        key={`${pubmedId}-${originalIndex}`}
                                                                         data-pubmed-id={pubmedId}
                                                                         className={`reference-entry-wrapper${isHighlighted ? ' highlighted' : ''}`}
-                                                                        onClick={(event) => handleReferenceEntryContainerClick(event, url[1])}
                                                                     >
                                                                         <ReferenceCard
                                                                             url={url}
@@ -3255,6 +4674,7 @@ function LLMAgent() {
                                                                             handleClick={handleClick}
                                                                             onCiteClick={handleCiteClick}
                                                                             isHighlighted={isHighlighted}
+                                                                            index={originalIndex + 1}
                                                                         />
                                                                     </div>
                                                                 );

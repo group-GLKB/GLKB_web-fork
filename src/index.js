@@ -18,11 +18,12 @@ import {
 
 import AboutPage from './components/AboutPage';
 import AccountPage from './components/AccountPage';
+import ApiDocsPage from './components/ApiDocs';
 import ApiPage from './components/ApiPage';
 // import SignupPage from './components/Auth/SignupPage';
 // import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './components/Auth/AuthContext';
-import LoginPage from './components/Auth/LoginPage';
+import LoginRedirect from './components/Auth/LoginRedirect';
 import VerifyCodePage from './components/Auth/VerifyCodePage';
 import DebugPage from './components/Debug';
 import History from './components/History';
@@ -33,6 +34,7 @@ import LLMAgent from './components/LLMAgent';
 import MaintenancePage from './components/MaintenancePage';
 import ResultPage from './components/ResultPage';
 import TestAuth from './components/TestAuth';
+import { SHOW_API_DOCS } from './config/features';
 
 const RESIZE_OBSERVER_NOISE = [
     'ResizeObserver loop limit exceeded',
@@ -135,7 +137,14 @@ function AppWithRoutes() {
             <RouteSeoControl />
             <Routes>
                 <Route path="/debug" element={<DebugPage />} />
-                <Route path="/api-docs/*" element={<Navigate to="/" replace />} />
+                {SHOW_API_DOCS ? (
+                    <>
+                        <Route path="/api-docs" element={<ApiDocsPage />} />
+                        <Route path="/api-docs/:slug" element={<ApiDocsPage />} />
+                    </>
+                ) : (
+                    <Route path="/api-docs/*" element={<Navigate to="/" replace />} />
+                )}
                 <Route element={<AppLayout />}>
                     <Route path='/search' element={<ResultPage />} />
                     <Route path="/" element={<HomePage />} />
@@ -148,7 +157,7 @@ function AppWithRoutes() {
                     <Route path="/test-auth" element={<TestAuth />} />
 
                     {/* Authentication routes */}
-                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/login" element={<LoginRedirect />} />
                     <Route path="/verify-code" element={<VerifyCodePage />} />
                     {/* <Route path="/signup" element={<SignupPage />} /> */}
                     <Route path="*" element={<Navigate to="/" replace />} />
