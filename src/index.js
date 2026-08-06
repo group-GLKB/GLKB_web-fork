@@ -34,6 +34,7 @@ import LLMAgent from './components/LLMAgent';
 import MaintenancePage from './components/MaintenancePage';
 import ResultPage from './components/ResultPage';
 import TestAuth from './components/TestAuth';
+import { SHOW_API_DOCS } from './config/features';
 
 const RESIZE_OBSERVER_NOISE = [
     'ResizeObserver loop limit exceeded',
@@ -136,8 +137,14 @@ function AppWithRoutes() {
             <RouteSeoControl />
             <Routes>
                 <Route path="/debug" element={<DebugPage />} />
-                <Route path="/api-docs" element={<ApiDocsPage />} />
-                <Route path="/api-docs/:slug" element={<ApiDocsPage />} />
+                {SHOW_API_DOCS ? (
+                    <>
+                        <Route path="/api-docs" element={<ApiDocsPage />} />
+                        <Route path="/api-docs/:slug" element={<ApiDocsPage />} />
+                    </>
+                ) : (
+                    <Route path="/api-docs/*" element={<Navigate to="/" replace />} />
+                )}
                 <Route element={<AppLayout />}>
                     <Route path='/search' element={<ResultPage />} />
                     <Route path="/" element={<HomePage />} />

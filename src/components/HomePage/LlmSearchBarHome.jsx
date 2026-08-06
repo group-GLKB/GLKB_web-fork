@@ -19,6 +19,7 @@ import {
   useMediaQuery,
 } from '@mui/material';
 
+import { INVESTIGATE_ENABLED } from '../../config/features';
 import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { ReactComponent as SearchOptionsIcon } from '../../img/llm/search_options.svg';
@@ -91,6 +92,13 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     );
 
     const buildSearchOptionsPayload = () => {
+        // Investigate ignores filters / ranking_mode (see the lock comment below), and its
+        // controls are not rendered, so send the defaults rather than whatever the user
+        // happened to pick before turning Investigate on.
+        if (investigateEnabled) {
+            return { filters: [], rankingMode: 'default', investigateEnabled: true };
+        }
+
         let rankingMode = 'default';
         if (sortBy === 'High impact first') rankingMode = 'high_impact';
         if (sortBy === 'Most recent first') rankingMode = 'recent';
@@ -152,11 +160,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     // Deep Research runs its own hybrid retrieval instead of the agent's search tools, and drops
     // `filters` / `ranking_mode` on the floor (see harness_runner.py's warning). Offering the
     // control while Investigate is on promises filtering that never happens, so it is locked.
+    // The control is hidden rather than greyed out while locked: a disabled button still reads
+    // as "these settings apply, you just can't change them", which is the opposite of the truth.
     const searchOptionsLocked = investigateEnabled;
-    const searchOptionsLockedReason = 'Search options don\u2019t apply to Investigate \u2014 it runs its own literature search';
-    // While locked, show the plain label rather than the current selection: rendering
-    // "Reviews only" would imply it is in effect.
-    const mobileChipLabel = (!searchOptionsLocked && mobileSelectedOptions.length > 0)
+    const mobileChipLabel = (mobileSelectedOptions.length > 0)
         ? mobileSelectedOptions.join(' + ')
         : 'Search Options';
 
@@ -179,11 +186,15 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         setDesktopOptionsOpen(true);
     };
 
-    // Turning Investigate on while the drawer is open must not leave an inert panel on screen.
+    // Turning Investigate on while the drawer is open must not leave an inert panel on screen,
+    // and the selections go back to their defaults so turning Investigate off again doesn't
+    // silently restore filters the user can no longer see.
     useEffect(() => {
         if (searchOptionsLocked) {
             setMobileOptionsOpen(false);
             setDesktopOptionsOpen(false);
+            setPaperType(defaultPaperType);
+            setSortBy(defaultSortBy);
         }
     }, [searchOptionsLocked]);
 
@@ -471,7 +482,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         >
                             <Box
                                 sx={{
-                                    display: 'inline-flex',
+                                    display: INVESTIGATE_ENABLED ? 'inline-flex' : 'none',
                                     alignItems: 'center',
                                     gap: { xs: '8px', sm: '12px' },
                                     minWidth: 0,
@@ -535,13 +546,13 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     alignItems: 'center',
                                     gap: { xs: '8px', sm: '16px' },
                                     minWidth: 0,
-                                    marginLeft: { xs: 0, sm: 'auto' },
+                                    // With Investigate hidden this is the row's only child, so
+                                    // `space-between` alone would park it on the left.
+                                    marginLeft: { xs: INVESTIGATE_ENABLED ? 0 : 'auto', sm: 'auto' },
                                     pointerEvents: 'auto',
                                 }}
                             >
                                 <Box
-                                    aria-disabled={searchOptionsLocked}
-                                    title={searchOptionsLocked ? searchOptionsLockedReason : undefined}
                                     onMouseDown={(event) => {
                                         event.preventDefault();
                                         event.stopPropagation();
@@ -552,15 +563,15 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         openSearchOptions();
                                     }}
                                     sx={{
-                                        display: { xs: 'inline-flex', sm: 'none' },
+                                        display: searchOptionsLocked ? 'none' : { xs: 'inline-flex', sm: 'none' },
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '4px',
                                         padding: '4px 8px',
                                         borderRadius: '8px',
                                         background: 'transparent',
-                                        color: searchOptionsLocked ? '#A8B3C8' : '#5E6E87',
-                                        cursor: searchOptionsLocked ? 'not-allowed' : 'pointer',
+                                        color: '#5E6E87',
+                                        cursor: 'pointer',
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 600,
                                         fontSize: '12px',
@@ -574,13 +585,13 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         pointerEvents: 'auto',
                                     }}
                                 >
-                                    <SearchOptionsIcon style={{ color: searchOptionsLocked ? '#A8B3C8' : '#5E6E87', width: '20px', height: '20px' }} />
+                                    <SearchOptionsIcon style={{ color: '#5E6E87', width: '20px', height: '20px' }} />
                                     {mobileChipLabel}
                                 </Box>
 
                                 <Button
                                     sx={{
-                                        display: { xs: 'none', sm: 'inline-flex' },
+                                        display: searchOptionsLocked ? 'none' : { xs: 'none', sm: 'inline-flex' },
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '4px',
@@ -588,8 +599,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         padding: '4px 8px',
                                         borderRadius: '8px',
                                         background: 'transparent',
-                                        color: searchOptionsLocked ? '#A8B3C8' : '#5E6E87',
-                                        cursor: searchOptionsLocked ? 'not-allowed' : 'pointer',
+                                        color: '#5E6E87',
+                                        cursor: 'pointer',
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 600,
                                         fontSize: '12px',
@@ -604,14 +615,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         '&:hover': {
                                             background: 'transparent',
                                         },
-                                        // MUI's `disabled` would drop the tooltip and the pointer
-                                        // cursor, so the locked state is styled rather than disabled.
-                                        '&.Mui-disabled': {
-                                            color: '#A8B3C8',
-                                        },
                                     }}
-                                    aria-disabled={searchOptionsLocked}
-                                    title={searchOptionsLocked ? searchOptionsLockedReason : undefined}
                                     onMouseDown={(event) => {
                                         event.preventDefault();
                                         event.stopPropagation();
@@ -622,7 +626,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         openSearchOptions();
                                     }}
                                 >
-                                    <SearchOptionsIcon style={{ color: searchOptionsLocked ? '#A8B3C8' : '#5E6E87', width: '20px', height: '20px' }} />
+                                    <SearchOptionsIcon style={{ color: '#5E6E87', width: '20px', height: '20px' }} />
                                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{mobileChipLabel}</span>
                                 </Button>
 
