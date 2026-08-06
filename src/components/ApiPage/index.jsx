@@ -34,6 +34,7 @@ import {
   Typography,
 } from '@mui/material';
 
+import { SHOW_API_DOCS } from '../../config/features';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import {
   createApiKey,
@@ -376,13 +377,15 @@ const ApiPage = () => {
                                     Manage keys and monitor usage for GLKB API access.
                                 </Typography>
                             </Box>
-                            <Button
-                                className="api-docs-button"
-                                onClick={() => navigate('/api-docs/overview')}
-                                startIcon={<OpenInNewIcon sx={{ fontSize: 16 }} />}
-                            >
-                                API Docs
-                            </Button>
+                            {SHOW_API_DOCS && (
+                                <Button
+                                    className="api-docs-button"
+                                    onClick={() => navigate('/api-docs/overview')}
+                                    startIcon={<OpenInNewIcon sx={{ fontSize: 16 }} />}
+                                >
+                                    API Docs
+                                </Button>
+                            )}
                         </Box>
                     </Box>
 
