@@ -1746,6 +1746,14 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
     padding: 14px 0 0 4px;
 }
 
+/* Collapsed means hidden, not unmounted — the counters keep their value and their count-up
+   history across a close/open instead of restarting from zero. `display: none` also takes the
+   subtree out of the tab order and the accessibility tree, so nothing inside is reachable while
+   the panel is shut. */
+.ip-body.collapsed {
+    display: none;
+}
+
 /* ── counters ───────────────────────────────────────────────────────────── */
 .ip-counters {
     display: grid;
