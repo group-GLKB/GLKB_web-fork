@@ -7,7 +7,7 @@
  * silently filters the NEXT ordinary chat turn in the same conversation.
  */
 import axios from '../utils/axiosConfig';
-import { LLMAgentService } from './LLMAgent';
+import { extractFunnelMetrics, LLMAgentService } from './LLMAgent';
 
 jest.mock('../utils/axiosConfig', () => ({ __esModule: true, default: { post: jest.fn() } }));
 
@@ -61,5 +61,47 @@ describe('investigate (deep research)', () => {
         expect(sentUrl()).toContain('deep-research');
         expect(sentPayload().question).toBe('does X help?');
         expect(sentPayload().max_articles).toBe(40);
+    });
+});
+
+// ── funnel field extraction ─────────────────────────────────────────────────────────────────
+/**
+ * The Cited counter reads `cited_provisional` off the agent frame, not `cited`.
+ *
+ * These also cover the alias fallback itself: `pick` used to bail out on the first key that was
+ * absent, so every alias after the first was unreachable unless the first happened to be there.
+ * That is why naming the right field was not enough on its own.
+ */
+describe('funnel metrics from an agent frame', () => {
+    it('reads Cited from cited_provisional', () => {
+        expect(extractFunnelMetrics({ cited_provisional: 17 }).cited).toBe(17);
+    });
+
+    it('prefers a plain cited when the agent sends both', () => {
+        expect(extractFunnelMetrics({ cited: 9, cited_provisional: 17 }).cited).toBe(9);
+    });
+
+    it('finds cited_provisional nested under funnel and detail too', () => {
+        expect(extractFunnelMetrics({ funnel: { cited_provisional: 4 } }).cited).toBe(4);
+        expect(extractFunnelMetrics({ detail: { cited_provisional: 6 } }).cited).toBe(6);
+    });
+
+    it('falls through an absent alias instead of giving up on the field', () => {
+        // `retrieved` missing, a later alias present — the whole point of the alias list.
+        expect(extractFunnelMetrics({ n_retrieved: 4472 }).retrieved).toBe(4472);
+        expect(extractFunnelMetrics({ n_screened: 53 }).screened).toBe(53);
+        expect(extractFunnelMetrics({ extracted_papers: 20 }).extracted).toBe(20);
+    });
+
+    it('keeps an explicit zero rather than treating it as missing', () => {
+        expect(extractFunnelMetrics({ cited_provisional: 0 }).cited).toBe(0);
+    });
+
+    it('leaves a counter null when no alias carries a number', () => {
+        expect(extractFunnelMetrics({ retrieved: 12 }).cited).toBeNull();
+    });
+
+    it('returns null when the frame has no funnel fields at all', () => {
+        expect(extractFunnelMetrics({ step: 'Processing', content: 'hello' })).toBeNull();
     });
 });

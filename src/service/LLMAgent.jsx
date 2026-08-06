@@ -46,13 +46,16 @@ export {
 // Do NOT use axios.create() — bare clients miss /reorg-api prefix and auth.
 
 /** Pull optional numeric funnel fields from an agent SSE payload. */
-const extractFunnelMetrics = (data = {}) => {
+export const extractFunnelMetrics = (data = {}) => {
     const detail = data.detail && typeof data.detail === 'object' ? data.detail : {};
     const source = { ...data, ...detail, ...(data.metrics || {}), ...(data.funnel || {}) };
     const pick = (...keys) => {
         for (const key of keys) {
             const value = source?.[key];
-            if (value === null || value === undefined || value === '' || value === '-') return null;
+            // An absent or blank field just means "not this alias" — keep looking. This used to
+            // `return null` here, which aborted the whole chain on the first missing key: every
+            // alias after the first was dead unless the first one happened to be present.
+            if (value === null || value === undefined || value === '' || value === '-') continue;
             const num = Number(value);
             if (Number.isFinite(num) && num >= 0) return num;
         }
@@ -68,7 +71,15 @@ const extractFunnelMetrics = (data = {}) => {
         'n_extracted',
         'Extracted',
     );
-    const cited = pick('cited', 'cited_count', 'n_cited', 'citations', 'Cited');
+    // The agent reports this one as `cited_provisional`; a plain `cited` still wins if it shows up.
+    const cited = pick(
+        'cited',
+        'cited_provisional',
+        'cited_count',
+        'n_cited',
+        'citations',
+        'Cited',
+    );
 
     if (
         retrieved === null &&
