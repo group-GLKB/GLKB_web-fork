@@ -480,9 +480,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 pointerEvents: 'none',
                             }}
                         >
+                            {INVESTIGATE_ENABLED && (
                             <Box
                                 sx={{
-                                    display: INVESTIGATE_ENABLED ? 'inline-flex' : 'none',
+                                    display: 'inline-flex',
                                     alignItems: 'center',
                                     gap: { xs: '8px', sm: '12px' },
                                     minWidth: 0,
@@ -539,6 +540,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     Investigate
                                 </Button>
                             </Box>
+                            )}
 
                             <Box
                                 sx={{
@@ -552,6 +554,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     pointerEvents: 'auto',
                                 }}
                             >
+                                {!searchOptionsLocked && (
                                 <Box
                                     onMouseDown={(event) => {
                                         event.preventDefault();
@@ -563,7 +566,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         openSearchOptions();
                                     }}
                                     sx={{
-                                        display: searchOptionsLocked ? 'none' : { xs: 'inline-flex', sm: 'none' },
+                                        display: { xs: 'inline-flex', sm: 'none' },
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '4px',
@@ -588,10 +591,12 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     <SearchOptionsIcon style={{ color: '#5E6E87', width: '20px', height: '20px' }} />
                                     {mobileChipLabel}
                                 </Box>
+                                )}
 
+                                {!searchOptionsLocked && (
                                 <Button
                                     sx={{
-                                        display: searchOptionsLocked ? 'none' : { xs: 'none', sm: 'inline-flex' },
+                                        display: { xs: 'none', sm: 'inline-flex' },
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '4px',
@@ -629,6 +634,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     <SearchOptionsIcon style={{ color: '#5E6E87', width: '20px', height: '20px' }} />
                                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{mobileChipLabel}</span>
                                 </Button>
+                                )}
 
                                 <Box
                                     role="button"
