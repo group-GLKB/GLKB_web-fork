@@ -33,13 +33,11 @@ import {
     DialogContent,
     DialogTitle,
     Drawer,
-    FormControl,
     IconButton,
     ListItemIcon,
     ListItemText,
     Menu,
     MenuItem,
-    Select,
     TextField,
     Typography,
 } from '@mui/material';
@@ -725,6 +723,7 @@ const Library = () => {
     const [graphBookmarks, setGraphBookmarks] = useState([]);
     const [folders, setFolders] = useState([]);
     const [folderDetail, setFolderDetail] = useState(null);
+    const [sortMenuAnchorEl, setSortMenuAnchorEl] = useState(null);
     const [folderDetailLoading, setFolderDetailLoading] = useState(false);
     const [activeTab, setActiveTab] = useState(REFERENCES_TAB);
     const [citeDialogOpen, setCiteDialogOpen] = useState(false);
@@ -1295,6 +1294,12 @@ const Library = () => {
 
     const isReferenceExportDisabled = displayedReferences.length === 0;
 
+    const sortOptionLabels = {
+        [SORT_AZ]: 'A-Z',
+        [SORT_ZA]: 'Z-A',
+        [SORT_DATE]: 'Date added',
+    };
+
     const handleExportReferences = () => {
         if (displayedReferences.length === 0) return;
 
@@ -1322,6 +1327,57 @@ const Library = () => {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
     };
+
+    // Figma puts the sort pill and the export button on the same row as the
+    // "All References (n)" heading, so both live in one shared fragment rather
+    // than being duplicated per breakpoint.
+    const librarySortControl = (
+        <>
+            <Box className="library-sort">
+                <span className="library-sort-label">Sort:</span>
+                <button
+                    type="button"
+                    className="library-sort-pill"
+                    onClick={(event) => setSortMenuAnchorEl(event.currentTarget)}
+                >
+                    <span>{sortOptionLabels[sortOption] || sortOptionLabels[SORT_DATE]}</span>
+                    <KeyboardArrowDownIcon className="library-sort-pill-icon" />
+                </button>
+                <Menu
+                    anchorEl={sortMenuAnchorEl}
+                    open={Boolean(sortMenuAnchorEl)}
+                    onClose={() => setSortMenuAnchorEl(null)}
+                    className="library-sort-menu"
+                >
+                    {[SORT_DATE, SORT_AZ, SORT_ZA].map((value) => (
+                        <MenuItem
+                            key={value}
+                            selected={sortOption === value}
+                            onClick={() => { setSortOption(value); setSortMenuAnchorEl(null); }}
+                        >
+                            {sortOptionLabels[value]}
+                        </MenuItem>
+                    ))}
+                </Menu>
+            </Box>
+            <IconButton
+                size="small"
+                onClick={handleExportReferences}
+                disabled={isReferenceExportDisabled}
+                title="Download references (.bib)"
+                className="library-sort-download"
+            >
+                <DownloadIcon
+                    aria-label="Download references"
+                    style={{
+                        width: 16,
+                        height: 16,
+                        color: isReferenceExportDisabled ? '#A8B3C8' : '#5E6E87',
+                    }}
+                />
+            </IconButton>
+        </>
+    );
 
     if (loading) {
         return null;
@@ -1566,28 +1622,51 @@ const Library = () => {
                     <Box className="library-header">
                         <Box className="library-title-bar">
                             <Box className="library-title-row">
-                                <BookIcon className="library-book-icon" style={{ width: 36, height: 36, color: '#164563' }} />
-                                <Typography sx={{
-                                    fontFamily: 'Geist, sans-serif',
-                                    fontWeight: 600,
-                                    fontSize: '32px',
-                                    color: '#164563',
-                                }}>
+                                <Typography className="library-title">
                                     {selectedFolderName || 'Library'}
                                 </Typography>
                             </Box>
                         </Box>
-                        <Typography sx={{
-                            marginTop: '8px',
-                            fontFamily: 'Geist, sans-serif',
-                            fontWeight: 500,
-                            fontSize: '14px',
-                            color: '#646464',
-                            textAlign: 'left',
-                            width: '100%',
-                        }}>
+                        <Typography className="library-subtitle">
                             Your personal research workspace.
                         </Typography>
+                        {isPhoneDevice && (
+                            <Box className="library-folder-status-row">
+                                <span className="library-folder-status-label">{mobileFolderStatusLabel}</span>
+                                <button
+                                    type="button"
+                                    className="library-folder-status-button"
+                                    onClick={() => setMobileFolderDrawerOpen(true)}
+                                >
+                                    <span>{folders.length} folders</span>
+                                    <KeyboardArrowDownIcon sx={{ fontSize: 18 }} />
+                                </button>
+                            </Box>
+                        )}
+                        <Box className="library-tabs-row">
+                            <Typography className="library-count">
+                                {activeTab === REFERENCES_TAB
+                                    ? `All References (${visibleReferences.length})`
+                                    : `All Chats (${visibleChats.length})`}
+                            </Typography>
+                            <Box className="library-toolbar-actions">
+                                <div className="library-segmented" role="tablist">
+                                    {tabs.map((tab) => (
+                                        <button
+                                            key={tab.id}
+                                            type="button"
+                                            role="tab"
+                                            aria-selected={activeTab === tab.id}
+                                            className={`library-segmented-option${activeTab === tab.id ? ' is-active' : ''}`}
+                                            onClick={() => handleTabClick(tab.id)}
+                                        >
+                                            {tab.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                {!isPhoneDevice && librarySortControl}
+                            </Box>
+                        </Box>
                         <div className="library-search">
                             <input
                                 className="library-search-input"
@@ -1611,130 +1690,8 @@ const Library = () => {
                             )}
                         </div>
                         {isPhoneDevice && (
-                            <Box className="library-folder-status-row">
-                                <span className="library-folder-status-label">{mobileFolderStatusLabel}</span>
-                                <button
-                                    type="button"
-                                    className="library-folder-status-button"
-                                    onClick={() => setMobileFolderDrawerOpen(true)}
-                                >
-                                    <span>{folders.length} folders</span>
-                                    <KeyboardArrowDownIcon sx={{ fontSize: 18 }} />
-                                </button>
-                            </Box>
-                        )}
-                        <Box className="library-tabs-row">
-                            <div className="library-segmented" role="tablist">
-                                {tabs.map((tab) => (
-                                    <button
-                                        key={tab.id}
-                                        type="button"
-                                        role="tab"
-                                        aria-selected={activeTab === tab.id}
-                                        className={`library-segmented-option${activeTab === tab.id ? ' is-active' : ''}`}
-                                        onClick={() => handleTabClick(tab.id)}
-                                    >
-                                        {tab.label}
-                                    </button>
-                                ))}
-                            </div>
-                            {!isPhoneDevice && (
-                                <Box className="library-sort">
-                                    <span className="library-sort-label">Sort:</span>
-                                    <FormControl size="small">
-                                        <Select
-                                            value={sortOption}
-                                            onChange={(event) => setSortOption(event.target.value)}
-                                            displayEmpty
-                                            sx={{
-                                                fontFamily: 'Geist, sans-serif',
-                                                fontSize: '12px',
-                                                fontWeight: 600,
-                                                color: '#164563',
-                                                minWidth: 110,
-                                                height: 28,
-                                                backgroundColor: '#E7F1FF',
-                                                borderRadius: '16px',
-                                                '& .MuiSelect-select': {
-                                                    padding: '4px 8px',
-                                                },
-                                                '& fieldset': {
-                                                    border: 'none',
-                                                },
-                                            }}
-                                        >
-                                            <MenuItem value={SORT_AZ}>A-Z</MenuItem>
-                                            <MenuItem value={SORT_ZA}>Z-A</MenuItem>
-                                            <MenuItem value={SORT_DATE}>Date Added</MenuItem>
-                                        </Select>
-                                    </FormControl>
-                                    <IconButton
-                                        size="small"
-                                        onClick={handleExportReferences}
-                                        disabled={isReferenceExportDisabled}
-                                        title="Download references (.bib)"
-                                        className="library-sort-download"
-                                    >
-                                        <DownloadIcon
-                                            aria-label="Download references"
-                                            style={{
-                                                width: 20,
-                                                height: 20,
-                                                color: isReferenceExportDisabled ? '#B0B0B0' : '#164563',
-                                            }}
-                                        />
-                                    </IconButton>
-                                </Box>
-                            )}
-                        </Box>
-                        {isPhoneDevice && (
                             <Box className="library-mobile-sort-row">
-                                <Box className="library-sort">
-                                    <span className="library-sort-label">Sort:</span>
-                                    <FormControl size="small">
-                                        <Select
-                                            value={sortOption}
-                                            onChange={(event) => setSortOption(event.target.value)}
-                                            displayEmpty
-                                            sx={{
-                                                fontFamily: 'Geist, sans-serif',
-                                                fontSize: '12px',
-                                                fontWeight: 600,
-                                                color: '#164563',
-                                                minWidth: 110,
-                                                height: 28,
-                                                backgroundColor: '#E7F1FF',
-                                                borderRadius: '16px',
-                                                '& .MuiSelect-select': {
-                                                    padding: '4px 8px',
-                                                },
-                                                '& fieldset': {
-                                                    border: 'none',
-                                                },
-                                            }}
-                                        >
-                                            <MenuItem value={SORT_AZ}>A-Z</MenuItem>
-                                            <MenuItem value={SORT_ZA}>Z-A</MenuItem>
-                                            <MenuItem value={SORT_DATE}>Date Added</MenuItem>
-                                        </Select>
-                                    </FormControl>
-                                </Box>
-                                <IconButton
-                                    size="small"
-                                    onClick={handleExportReferences}
-                                    disabled={isReferenceExportDisabled}
-                                    title="Download references (.bib)"
-                                    className="library-sort-download"
-                                >
-                                    <DownloadIcon
-                                        aria-label="Download references"
-                                        style={{
-                                            width: 20,
-                                            height: 20,
-                                            color: isReferenceExportDisabled ? '#B0B0B0' : '#164563',
-                                        }}
-                                    />
-                                </IconButton>
+                                {librarySortControl}
                             </Box>
                         )}
                     </Box>
@@ -1747,9 +1704,6 @@ const Library = () => {
                         {!isSearching && canRenderList ? (
                             showReferencesSection && (
                                 <Box className="library-section">
-                                    <Typography className="library-section-title">
-                                        References
-                                    </Typography>
                                     <Box className="library-reference-list">
                                         {visibleReferences.length > 0 ? (
                                             <>
@@ -1788,9 +1742,6 @@ const Library = () => {
                         {!isSearching && canRenderList ? (
                             showChatsSection && (
                                 <Box className="library-section">
-                                    <Typography className="library-section-title">
-                                        Chats
-                                    </Typography>
                                     {visibleChats.length > 0 ? (
                                         <>
                                             <Box className="library-chat-list">
@@ -1957,9 +1908,6 @@ const Library = () => {
                             <>
                                 {showReferencesSection && visibleReferences.length > 0 && (
                                     <Box className="library-section">
-                                        <Typography className="library-section-title">
-                                            References
-                                        </Typography>
                                         <Box className="library-reference-list">
                                             {sortedReferences.map((entry) => (
                                                 <LibraryReferenceCard
@@ -1976,9 +1924,6 @@ const Library = () => {
                                 )}
                                 {showChatsSection && visibleChats.length > 0 && (
                                     <Box className="library-section">
-                                        <Typography className="library-section-title">
-                                            Chats
-                                        </Typography>
                                         <Box className="library-chat-list">
                                             {sortedChats.map((conversation) => (
                                                 <div
