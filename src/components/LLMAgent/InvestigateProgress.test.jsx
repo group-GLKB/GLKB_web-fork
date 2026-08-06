@@ -373,7 +373,7 @@ describe('header', () => {
 /**
  * The body used to sit behind `{expanded && …}`, which UNMOUNTED every counter and the detail
  * list along with it. All of a counter's memory — the number it is showing, the fact that it has
- * already counted up once, where its ramp had got to — is state inside that subtree, so shutting
+ * already counted up once — is state inside that subtree, so shutting
  * the panel threw it away and reopening mid-run counted Cited up from zero again, as if seventeen
  * fresh citations had just landed.
  */
@@ -396,19 +396,18 @@ describe('collapsing and reopening mid-run', () => {
         expect(citedText()).toBe('17');          // straight away — no second count-up, no en dash
     });
 
-    it('does not restart a ramp that has not been given its real number yet', () => {
-        const ramping = { phase: 'searching' };
-        const retrieved = () => Number(document.querySelectorAll('.ip-counter-value')[0].textContent.replace(/,/g, ''));
-        const { rerender } = render(panel(ramping));
+    it('keeps a counter with no reading yet on its en dash', () => {
+        const noReading = { phase: 'searching' };
+        const retrieved = () => document.querySelectorAll('.ip-counter-value')[0].textContent;
+        const { rerender } = render(panel(noReading));
         act(() => { jest.advanceTimersByTime(20000); });
-        const reached = retrieved();
-        expect(reached).toBeGreaterThan(1);
+        expect(retrieved()).toBe('–');
 
-        rerender(panel({ ...ramping, expanded: false }));
+        rerender(panel({ ...noReading, expanded: false }));
         act(() => { jest.advanceTimersByTime(5000); });
-        rerender(panel({ ...ramping, expanded: true }));
+        rerender(panel({ ...noReading, expanded: true }));
 
-        expect(retrieved()).toBeGreaterThanOrEqual(reached);   // carried on, not back to 1
+        expect(retrieved()).toBe('–');
     });
 
     it('keeps the detail list open where the user left it', () => {
@@ -447,49 +446,27 @@ describe('progress bar', () => {
     });
 });
 
-// ── the fake ramp ───────────────────────────────────────────────────────────────────────────
-describe('the fake ramp shown before a real number arrives', () => {
+// ── measured values only ──────────────────────────────────────────────────────────
+/**
+ * The counters used to tick up on a synthetic ramp while a value was unknown, and Retrieved ADDED
+ * whatever the ramp had reached to the real count when it landed — so the figure the user ended on
+ * was the agent's number plus a random 2,500-3,000. These lock in that only measured values show.
+ */
+describe('funnel counters show measured values only', () => {
     const retrievedText = () => document.querySelectorAll('.ip-counter-value')[0].textContent;
     const screenedText = () => document.querySelectorAll('.ip-counter-value')[1].textContent;
     const num = (t) => Number(String(t).replace(/,/g, ''));
 
-    it('starts at 1, never at 0', () => {
+    it('holds an en dash before any reading arrives, however long the phase runs', () => {
         setup({ phase: 'searching' });
-        expect(retrievedText()).toBe('1');
+        expect(retrievedText()).toBe('–');
+        act(() => { jest.advanceTimersByTime(60000); });
+        expect(retrievedText()).toBe('–');
     });
 
-    it('climbs while the phase is in flight and stays inside its ceiling', () => {
-        setup({ phase: 'searching' });
-        act(() => { jest.advanceTimersByTime(30000); });
-        const v = num(retrievedText());
-        expect(v).toBeGreaterThan(1);
-        expect(v).toBeLessThanOrEqual(2000);   // RAMP_RANGE.retrieved.max
-    });
-
-    it('only moves forward', () => {
-        setup({ phase: 'searching' });
-        const seen = [];
-        for (let i = 0; i < 12; i += 1) {
-            act(() => { jest.advanceTimersByTime(900); });
-            seen.push(num(retrievedText()));
-        }
-        expect(seen).toEqual([...seen].sort((a, b) => a - b));
-    });
-
-    it('does not start for a counter whose phase has not begun', () => {
-        setup({ phase: 'searching' });
-        act(() => { jest.advanceTimersByTime(5000); });
-        expect(screenedText()).toBe('–');       // screening has not started yet
-    });
-
-    it('adds the ramp to the real number for Retrieved (product decision)', () => {
-        // Note what this means: the figure Retrieved settles on is NOT the number of records the
-        // run identified. It is that number plus wherever the ramp had got to. Flip
-        // RAMP_RANGE.retrieved.addsToReal to show the measured value alone.
+    it('shows the agent number exactly, with nothing added to Retrieved', () => {
         const { rerender } = setup({ phase: 'searching' });
         act(() => { jest.advanceTimersByTime(20000); });
-        const ramped = num(retrievedText());
-        expect(ramped).toBeGreaterThan(1);
 
         rerender(
             <InvestigateProgress
@@ -504,60 +481,21 @@ describe('the fake ramp shown before a real number arrives', () => {
             />,
         );
         act(() => { jest.advanceTimersByTime(3000); });
-        expect(num(retrievedText())).toBe(4472 + ramped);
+        expect(num(retrievedText())).toBe(4472);
     });
 
-    it('shows the measured value alone for every other counter', () => {
-        const { rerender } = setup({ phase: 'screening' });
-        act(() => { jest.advanceTimersByTime(20000); });
-        expect(num(screenedText())).toBeGreaterThan(1);      // ramping
-
-        rerender(
-            <InvestigateProgress
-                phase="reading"
-                funnel={{ retrieved: null, screened: 53, extracted: null, cited: null }}
-                percent={22}
-                keywords={[]}
-                papers={[]}
-                detail={{}}
-                label=""
-                expanded
-            />,
-        );
+    it('counts up from zero to the first reading, then snaps to later ones', () => {
+        const { rerender } = setup({
+            phase: 'screening',
+            funnel: { retrieved: null, screened: 53, extracted: null, cited: null },
+        });
         act(() => { jest.advanceTimersByTime(3000); });
         expect(screenedText()).toBe('53');
-    });
-
-    it('carries on from where the ramp got to instead of restarting at zero', () => {
-        const { rerender } = setup({ phase: 'searching' });
-        act(() => { jest.advanceTimersByTime(20000); });
-        const ramped = num(retrievedText());
-
-        rerender(
-            <InvestigateProgress
-                phase="screening"
-                funnel={{ retrieved: 4472, screened: null, extracted: null, cited: null }}
-                percent={14}
-                keywords={[]}
-                papers={[]}
-                detail={{}}
-                label=""
-                expanded
-            />,
-        );
-        act(() => { jest.advanceTimersByTime(60); });   // one frame into the count-up
-        expect(num(retrievedText())).toBeGreaterThanOrEqual(ramped);
-    });
-
-    it('discards the ramp for columns that do not opt in', () => {
-        const { rerender } = setup({ phase: 'screening' });
-        act(() => { jest.advanceTimersByTime(20000); });
-        expect(num(screenedText())).toBeGreaterThan(1);   // ramping
 
         rerender(
             <InvestigateProgress
                 phase="reading"
-                funnel={{ retrieved: null, screened: 53, extracted: null, cited: null }}
+                funnel={{ retrieved: null, screened: 61, extracted: null, cited: null }}
                 percent={22}
                 keywords={[]}
                 papers={[]}
@@ -566,17 +504,29 @@ describe('the fake ramp shown before a real number arrives', () => {
                 expanded
             />,
         );
-        act(() => { jest.advanceTimersByTime(3000); });
-        expect(screenedText()).toBe('53');                 // replaced, not added
+        act(() => { jest.advanceTimersByTime(60); });
+        expect(screenedText()).toBe('61');
     });
 
-    it('is skipped entirely under reduced motion', () => {
+    it('leaves counters the agent has not reported on an en dash', () => {
+        setup({
+            phase: 'screening',
+            funnel: { retrieved: 4472, screened: null, extracted: null, cited: null },
+        });
+        act(() => { jest.advanceTimersByTime(20000); });
+        expect(screenedText()).toBe('–');
+    });
+
+    it('shows the reading immediately under reduced motion', () => {
         const mql = window.matchMedia;
         window.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {} });
         try {
-            setup({ phase: 'searching' });
-            act(() => { jest.advanceTimersByTime(20000); });
-            expect(retrievedText()).toBe('–');
+            setup({
+                phase: 'screening',
+                funnel: { retrieved: 4472, screened: null, extracted: null, cited: null },
+            });
+            expect(num(retrievedText())).toBe(4472);
+            expect(screenedText()).toBe('–');
         } finally {
             window.matchMedia = mql;
         }
