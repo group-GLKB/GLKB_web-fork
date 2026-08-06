@@ -151,7 +151,7 @@
 }
 
 .library-search {
-    margin-top: 12px;
+    margin-top: 16px;
     width: 100%;
     position: relative;
 }
@@ -218,6 +218,44 @@
     gap: 8px;
 }
 
+/* Figma: h3 title, 4px gap, body subtitle — no leading icon. */
+.library-title {
+    font-family: 'Geist', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 24px !important;
+    line-height: 32px !important;
+    color: #0C1018;
+}
+
+.library-subtitle {
+    margin-top: 4px !important;
+    font-family: 'Geist', sans-serif !important;
+    font-weight: 400 !important;
+    font-size: 14px !important;
+    line-height: 20px !important;
+    color: #5E6E87;
+    text-align: left;
+    width: 100%;
+}
+
+/* Left side of the toolbar row; shares the row with the segmented control,
+   the sort pill and the export button. */
+.library-count {
+    font-family: 'Geist', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 20px !important;
+    line-height: 28px !important;
+    color: #222A38;
+    white-space: nowrap;
+}
+
+.library-toolbar-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+}
+
 .library-title-actions {
     display: flex;
     align-items: center;
@@ -229,9 +267,11 @@
     width: 100%;
 }
 
+/* Figma: 48px below the header block, 16px above the search field. */
 .library-tabs-row {
-    margin-top: 12px;
+    margin-top: 48px;
     width: 100%;
+    min-height: 28px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -332,28 +372,75 @@
     gap: 8px;
 }
 
-.library-sort-download {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    border: 1px solid #D7E3EA;
-    background-color: #ffffff;
-    color: #64748B;
-    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, transform 120ms ease;
+/* Figma: bare 24px icon button, no border or fill. */
+.library-sort-download.MuiIconButton-root {
+    width: 24px;
+    height: 24px;
+    padding: 4px;
+    border-radius: 4px;
+    border: none;
+    background-color: transparent;
+    color: #5E6E87;
+    transition: background-color 150ms ease, color 150ms ease;
 }
 
-.library-sort-download:hover {
-    background-color: #EEF6FF;
-    color: #155DFC;
-    border-color: #BFD6FF;
-    transform: translateY(-1px);
+.library-sort-download.MuiIconButton-root:hover {
+    background-color: #F2F4F8;
+    color: #222A38;
+    transform: none;
 }
 
 .library-sort-label {
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 500;
-    color: #164563;
+    line-height: 16px;
+    color: #222A38;
+}
+
+/* 28px pill on the subtle background, matching the segmented control. */
+.library-sort-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid #E5E9F0;
+    background: #F2F4F8;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    color: #222A38;
+    cursor: pointer;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+.library-sort-pill:hover {
+    background: #E5E9F0;
+}
+
+.library-sort-pill-icon.MuiSvgIcon-root {
+    width: 12px;
+    height: 12px;
+    font-size: 12px;
+    color: #5E6E87;
+}
+
+.library-sort-menu .MuiPaper-root {
+    border-radius: 8px;
+    border: 1px solid #E5E9F0;
+    box-shadow: 0 4px 16px rgba(12, 16, 24, 0.08);
+}
+
+.library-sort-menu .MuiMenuItem-root {
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    color: #222A38;
+    min-width: 120px;
 }
 
 .library-folder-status-row {

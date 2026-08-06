@@ -612,22 +612,50 @@ const areMessagesEqual = (left, right) => {
     return true;
 };
 
+const AGENT_STEP_LABEL = (action) => {
+    if (action === 'AGENT START' || action === 'AGENT INPUT') {
+        return STEP_LABELS.GLKBAgent || 'Agent is thinking';
+    }
+    if (action === 'AGENT OUTPUT') {
+        return STEP_LABELS.FinalAnswerAgent || 'Formulating the final answer';
+    }
+    return '';
+};
+
+// Anything that still carries a JSON payload or a pipe is a raw transport trace
+// rather than something worth showing a user.
+const looksLikeRawPayload = (value) => /[{}]|\bInput:|\bOutput:|\|/.test(String(value));
+
 const getStepLabel = (stepName) => {
     if (!stepName) return '';
     if (STEP_LABELS[stepName]) return STEP_LABELS[stepName];
 
+    // Raw traces ("[TOOL CALL] search_pubmed | Input: {…}") reach this function
+    // directly from progress frames, which bypass parseThinkingEntry. Only the
+    // token right after the bracket carries meaning; the payload is never shown.
+    const bracketMatch = String(stepName).match(/^\s*\[([^\]]+)\]\s*([\s\S]*)$/);
+    if (bracketMatch) {
+        const action = bracketMatch[1].trim().toUpperCase();
+        const token = bracketMatch[2].split('|')[0].trim();
+        if (token && STEP_LABELS[token]) return STEP_LABELS[token];
+        const agentLabel = AGENT_STEP_LABEL(action);
+        if (agentLabel) return agentLabel;
+        if (token && !looksLikeRawPayload(token)) return token.replace(/_/g, ' ');
+        return STEP_LABELS[bracketMatch[1].trim()] || STEP_LABELS.Processing || 'Working...';
+    }
+
     const toolMatch = String(stepName).match(/^TOOL\s+(?:CALL|RESULT):\s*(.+)$/i);
     if (toolMatch?.[1]) {
-        const toolName = toolMatch[1].trim();
+        const toolName = toolMatch[1].split('|')[0].trim();
         return STEP_LABELS[toolName] || toolName.replace(/_/g, ' ');
     }
 
-    const normalizedAgentStep = String(stepName).toUpperCase();
-    if (normalizedAgentStep === 'AGENT START' || normalizedAgentStep === 'AGENT INPUT') {
-        return STEP_LABELS.GLKBAgent || 'Agent is thinking';
-    }
-    if (normalizedAgentStep === 'AGENT OUTPUT') {
-        return STEP_LABELS.FinalAnswerAgent || 'Formulating the final answer';
+    const agentLabel = AGENT_STEP_LABEL(String(stepName).toUpperCase());
+    if (agentLabel) return agentLabel;
+
+    // Never let an unmapped payload string become the visible step wording.
+    if (looksLikeRawPayload(stepName)) {
+        return STEP_LABELS.Processing || 'Working...';
     }
 
     return stepName;
