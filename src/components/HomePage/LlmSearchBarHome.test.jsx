@@ -1,18 +1,28 @@
 /**
- * Search Options is locked while Investigate is on.
+ * Search Options is withdrawn while Investigate is on, and Investigate itself only exists
+ * when the deployment flag allows it.
  *
  * Deep Research runs its own hybrid retrieval and drops `filters` / `ranking_mode` entirely
- * (`service/harness_runner.py` logs a warning and discards them). Leaving the control live was
- * promising an article-type filter that never ran, so it is greyed out and unopenable.
+ * (`service/harness_runner.py` logs a warning and discards them). A greyed-out control still
+ * reads as "these settings apply, you just can't change them", so the trigger is removed and
+ * the payload falls back to the defaults.
  */
 import React from 'react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import LlmSearchBarHome from './LlmSearchBarHome';
 
-jest.mock('react-router-dom', () => ({ useNavigate: () => jest.fn() }));
+const mockNavigate = jest.fn();
+// A getter rather than a value: babel compiles the component's named import down to a property
+// read at each use site, so flipping this between tests is enough — no module reset needed
+// (resetting the registry would hand the component a second copy of React and kill its hooks).
+let mockInvestigateFlag = true;
+jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
 jest.mock('../../utils/gtag', () => ({ trackGtagEvent: jest.fn() }));
+jest.mock('../../config/features', () => ({
+    get INVESTIGATE_ENABLED() { return mockInvestigateFlag; },
+}));
 
 // MUI's useMediaQuery needs matchMedia; default to the desktop layout.
 beforeAll(() => {
@@ -23,20 +33,42 @@ beforeAll(() => {
     }));
 });
 
+beforeEach(() => {
+    mockNavigate.mockClear();
+    mockInvestigateFlag = true;
+});
+
 // `setOpen` is called from an effect on mount, so it is required even though the autocomplete
 // popup is irrelevant here.
 const setup = () => render(<LlmSearchBarHome setOpen={() => {}} autocompleteOptions={[]} />);
 
-// The desktop trigger is the one carrying the label; the mobile Box is display:none here.
-const optionsTrigger = () => screen.getAllByText(/Search Options|Reviews only|High impact/)
-    .map((n) => n.closest('[aria-disabled]'))
-    .filter(Boolean)[0];
+// Matched outside the drawers on purpose: the option chips inside them carry the very same
+// labels once the drawer has been opened, so a plain by-role query finds several elements.
+// The trigger's accessible name is the current selection, hence the alternation.
+const OPTIONS_LABEL = /Search Options|Reviews only|High impact|Most recent/;
+const optionsTrigger = () => {
+    const drawers = Array.from(document.querySelectorAll('.MuiDrawer-root'));
+    return Array.from(document.querySelectorAll('button')).find((node) => (
+        !drawers.some((drawer) => drawer.contains(node)) && OPTIONS_LABEL.test(node.textContent)
+    )) || null;
+};
 // `hidden: true` because an open drawer is a modal: MUI marks the rest of the page aria-hidden.
-const investigateButton = () => screen.getByRole('button', { name: /investigate/i, hidden: true });
+const investigateButton = () => screen.queryByRole('button', { name: /investigate/i, hidden: true });
 // The drawers use `keepMounted`, so their content is in the DOM whether open or closed —
 // presence of "Article Type" proves nothing. MUI marks a closed modal with `MuiModal-hidden`.
 const drawerIsOpen = () => Array.from(document.querySelectorAll('.MuiDrawer-root'))
     .some((n) => !n.classList.contains('MuiModal-hidden'));
+
+const chooseReviewsOnly = () => {
+    fireEvent.click(optionsTrigger());
+    fireEvent.click(screen.getAllByText('Reviews only')[0]);
+    fireEvent.click(screen.getAllByText('Done')[0]);
+};
+
+const submit = () => {
+    fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
+    return mockNavigate.mock.calls[0][1].state.initialSearchOptions;
+};
 
 describe('with Investigate off', () => {
     it('opens the drawer, showing Article Type and Sort by', () => {
@@ -48,32 +80,28 @@ describe('with Investigate off', () => {
         expect(screen.getAllByText('Reviews only').length).toBeGreaterThan(0);
     });
 
-    it('leaves the trigger enabled', () => {
+    it('sends the chosen filter', () => {
         setup();
-        expect(optionsTrigger()).toHaveAttribute('aria-disabled', 'false');
+        chooseReviewsOnly();
+        expect(submit()).toEqual({
+            filters: ['review'],
+            rankingMode: 'default',
+            investigateEnabled: false,
+        });
     });
 });
 
 describe('with Investigate on', () => {
-    it('marks the trigger disabled and explains why', () => {
+    it('removes the trigger entirely', () => {
         setup();
         fireEvent.click(investigateButton());
-        const trigger = optionsTrigger();
-        expect(trigger).toHaveAttribute('aria-disabled', 'true');
-        expect(trigger).toHaveAttribute('title', expect.stringMatching(/don.t apply to Investigate/i));
-    });
-
-    it('does not open the drawer when clicked', () => {
-        setup();
-        fireEvent.click(investigateButton());
-        fireEvent.click(optionsTrigger());
-        expect(drawerIsOpen()).toBe(false);
+        expect(optionsTrigger()).toBeNull();
     });
 
     it('closes the drawer if it was already open', async () => {
-        // Not reachable by pointer today — the open drawer is a modal, so Investigate is behind the
-        // backdrop. The guard exists so the panel cannot be left showing an inert drawer if the
-        // toggle ever moves outside it.
+        // Not reachable by pointer today — the open drawer is a modal, so Investigate is behind
+        // the backdrop. The guard exists so the panel cannot be left showing an inert drawer if
+        // the toggle ever moves outside it.
         setup();
         fireEvent.click(optionsTrigger());
         expect(drawerIsOpen()).toBe(true);
@@ -82,26 +110,38 @@ describe('with Investigate on', () => {
         await waitFor(() => expect(drawerIsOpen()).toBe(false));
     });
 
-    it('stops advertising a selection that is not in effect', () => {
-        // A greyed "Reviews only" would still read as "reviews only is applied".
+    it('sends the defaults even if a filter was chosen beforehand', () => {
         setup();
-        fireEvent.click(optionsTrigger());
-        fireEvent.click(within(screen.getAllByText('Reviews only')[0]).getByText?.('Reviews only')
-            || screen.getAllByText('Reviews only')[0]);
-        fireEvent.click(screen.getAllByText('Done')[0]);
-        expect(screen.getAllByText(/Reviews only/).length).toBeGreaterThan(0);   // shown while unlocked
-
+        chooseReviewsOnly();
         fireEvent.click(investigateButton());
-        expect(optionsTrigger()).toHaveTextContent('Search Options');
-        expect(optionsTrigger()).not.toHaveTextContent('Reviews only');
+        expect(submit()).toEqual({
+            filters: [],
+            rankingMode: 'default',
+            investigateEnabled: true,
+        });
     });
 
-    it('unlocks again when Investigate is switched back off', () => {
+    it('does not restore the old selection when switched back off', () => {
+        // Turning Investigate off must not silently reinstate a filter the user last saw
+        // before the control disappeared.
         setup();
+        chooseReviewsOnly();
         fireEvent.click(investigateButton());
-        expect(optionsTrigger()).toHaveAttribute('aria-disabled', 'true');
         fireEvent.click(investigateButton());
-        expect(optionsTrigger()).toHaveAttribute('aria-disabled', 'false');
+        expect(optionsTrigger()).toHaveTextContent('Search Options');
+        expect(submit()).toEqual({
+            filters: [],
+            rankingMode: 'default',
+            investigateEnabled: false,
+        });
+    });
+});
+
+describe('with INVESTIGATE_ENABLED off', () => {
+    it('drops the Investigate toggle and leaves Search Options live', () => {
+        mockInvestigateFlag = false;
+        setup();
+        expect(investigateButton()).toBeNull();
         fireEvent.click(optionsTrigger());
         expect(drawerIsOpen()).toBe(true);
     });
