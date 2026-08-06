@@ -55,13 +55,16 @@ body[data-sidebar-overlay="true"] .app-layout-content {
     padding: 24px 0 0;
 }
 
-.sidebar-recent-title {
+/* Scoped to the section so this outranks the MuiTypography-root reset, which
+   emotion injects into <head> at runtime and would otherwise win the
+   margin at equal specificity and flatten the gap below the label to 0. */
+.sidebar-recent-section .sidebar-recent-title {
     font-family: 'Geist', sans-serif;
     font-weight: 500;
     font-size: 12px;
     color: #8090AB;
     line-height: 16px;
-    margin: 0 0 32px;
+    margin: 0 0 24px;
     padding-left: 0;
 }
 
