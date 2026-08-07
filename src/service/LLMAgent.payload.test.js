@@ -7,7 +7,7 @@
  * silently filters the NEXT ordinary chat turn in the same conversation.
  */
 import axios from '../utils/axiosConfig';
-import { extractFunnelMetrics, LLMAgentService } from './LLMAgent';
+import { extractFunnelMetrics, INVESTIGATE_MAX_REFERENCES, LLMAgentService } from './LLMAgent';
 
 jest.mock('../utils/axiosConfig', () => ({ __esModule: true, default: { post: jest.fn() } }));
 
@@ -54,6 +54,27 @@ describe('investigate (deep research)', () => {
         // never consulted the filter at all.
         await run({ investigateEnabled: true, filters: [] });
         expect(sentPayload()).not.toHaveProperty('filters');
+    });
+
+    it('asks for enough references instead of falling through to the backend default', async () => {
+        // `max_articles` truncates the reference list the agent returns; nothing on this path sets
+        // it (the Search Options control that used to was removed under Investigate), so the
+        // request used to omit it and the backend's default of 20 capped every run at "20
+        // Citations" no matter how many papers the answer cited.
+        await run({ investigateEnabled: true });
+        expect(sentPayload().max_articles).toBe(INVESTIGATE_MAX_REFERENCES);
+        expect(INVESTIGATE_MAX_REFERENCES).toBeGreaterThan(20);
+        expect(INVESTIGATE_MAX_REFERENCES).toBeLessThanOrEqual(100);   // the backend's `le`
+    });
+
+    it('an explicit maxArticles still wins over that default', async () => {
+        await run({ investigateEnabled: true, maxArticles: 12 });
+        expect(sentPayload().max_articles).toBe(12);
+    });
+
+    it('ordinary chat is left alone — no reference cap is invented for it', async () => {
+        await run({ investigateEnabled: false });
+        expect(sentPayload()).not.toHaveProperty('max_articles');
     });
 
     it('still goes to the deep-research endpoint and keeps its own fields', async () => {
