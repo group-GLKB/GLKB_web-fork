@@ -99,8 +99,11 @@ const ReferenceHoverCard = ({
         .map((e) => (typeof e === 'string' ? e : e?.quote))
         .find((q) => q && String(q).trim());
     const authors = formatAuthors(reference.authors);
-    const source = formatSource(reference.date, reference.journal);
-    const citations = formatCitations(reference.n_citation);
+    // The app normalises references through `parseReferences`, which renames the agent's `date`
+    // and `n_citation` to `year` and `citation_count`. Read both: the normalised names are what
+    // actually arrives here, the raw ones keep this component usable with an unparsed reference.
+    const source = formatSource(reference.year ?? reference.date, reference.journal);
+    const citations = formatCitations(reference.citation_count ?? reference.n_citation);
     const meta = [pmid ? `PMID: ${pmid}` : '', citations].filter(Boolean).join(' · ');
 
     return (

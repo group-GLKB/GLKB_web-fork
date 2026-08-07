@@ -2293,6 +2293,10 @@ function LLMAgent() {
                 journal,
                 authors,
                 evidence,
+                // The PMC full text, where the paper has one. This function rebuilds references
+                // through a whitelist, so a field it does not name is silently dropped — which is
+                // what happened to this one: the agent sent it and nothing downstream ever saw it.
+                fulltext_url: ref?.fulltext_url || '',
             };
         });
     };
