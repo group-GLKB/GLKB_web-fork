@@ -1,4 +1,5 @@
 import axios from '../utils/axiosConfig';
+import { humanizeTrace } from './traceLabel';
 
 const DEFAULT_STREAM_ENDPOINT = '/api/v1/new-llm-agent/stream';
 const INVESTIGATE_STREAM_ENDPOINT = process.env.REACT_APP_INVESTIGATE_STREAM_ENDPOINT || '/api/v1/deep-research/stream';
@@ -258,7 +259,11 @@ export class LLMAgentService {
                         const percent = normalizePercent(
                             data.percent ?? data.progress_percent ?? detail.percent ?? null,
                         );
-                        const label = data.label || detail.label || data.message || data.content || '';
+                        // `data.content` on a tool frame is an internal trace
+                        // ("[TOOL CALL] article_search | Input: {…}"), so it is mapped to its
+                        // step.json wording before it can reach the panel as a label.
+                        const label = data.label || detail.label || data.message
+                            || humanizeTrace(data.content) || '';
                         const phase =
                             data.phase ||
                             detail.phase ||
