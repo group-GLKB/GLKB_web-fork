@@ -138,12 +138,13 @@
     z-index: 2;
 }
 
+/* Figma 44:4573 — 22x22 so it lines up with the 22px sort toggle beside it. */
 .references-action-button.MuiIconButton-root {
     padding: 4px;
     border-radius: 4px;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     overflow: hidden;
 }
 
@@ -193,17 +194,20 @@
     background-color: #ffffff;
 }
 
+/* Figma "Investigate Thinking" / References panel (node 44:4561): the 400px column insets the
+   384px card by space/4 on the right and space/6 at the bottom, flush left. */
 .references-column {
-    padding: 16px 14px 24px 0;
+    padding: 16px 16px 24px 0;
     box-sizing: border-box;
     position: relative;
 }
 
+/* Inside stroke, so the card's content box stays the full 384px the design lays out against. */
 .references-column .references-container {
-    border: 1px solid #E5E9F0;
+    border: none;
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 2px 10px rgba(12, 16, 24, 0.04);
+    box-shadow: inset 0 0 0 1px #E5E9F0, 0 2px 10px rgba(12, 16, 24, 0.04);
 }
 
 .references-collapse-toggle.MuiIconButton-root {
@@ -242,7 +246,7 @@
     justify-content: space-between;
     gap: 12px;
     padding: 20px 24px;
-    border-bottom: 1px solid #F2F4F8;
+    box-shadow: inset 0 -1px 0 #F2F4F8;
 }
 
 .references-header-main {
@@ -263,20 +267,22 @@
     flex-shrink: 0;
 }
 
+/* Figma 44:4566 — icon/label/chevron on space/1, divided from the title by space/3 either side.
+   Type is the `caption` style (Geist Regular 10/12) in color/text/tertiary. */
 .references-scope-trigger {
     min-width: 0;
     max-width: 218px;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     padding: 0 0 0 12px;
     border: none;
     border-left: 1px solid #F2F4F8;
     background: transparent;
-    color: #8090AB;
+    color: #5E6E87;
     font-family: 'Geist', sans-serif;
     font-size: 10px;
-    line-height: 14px;
+    line-height: 12px;
     cursor: pointer;
 }
 
@@ -290,7 +296,7 @@
 .references-scope-icon {
     width: 12px !important;
     height: 12px !important;
-    color: #8090AB;
+    color: #5E6E87;
     flex-shrink: 0;
 }
 
@@ -306,10 +312,11 @@
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
 }
 
+/* Figma 44:4569 — iconSize/xs. */
 .references-scope-chevron {
-    width: 14px !important;
-    height: 14px !important;
-    color: #8090AB;
+    width: 12px !important;
+    height: 12px !important;
+    color: #5E6E87;
     transform: rotate(90deg);
     transition: transform 0.16s ease;
     flex-shrink: 0;
@@ -377,7 +384,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 24px;
-    border-bottom: 1px solid #F2F4F8;
+    box-shadow: inset 0 -1px 0 #F2F4F8;
     background-color: #FCFDFE;
 }
 
@@ -385,14 +392,14 @@
     font-family: 'Geist', sans-serif;
     font-weight: 600;
     font-size: 12px;
-    line-height: 16px;
+    line-height: 20px;
     color: #0C1018;
 }
 
 .references-toolbar-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
 }
 
 .references-sort-toggle.MuiToggleButtonGroup-root {
@@ -402,16 +409,18 @@
     gap: 0;
 }
 
+/* Figma 44:4575/44:4577 — 20px segments in a 1px-padded track, so the group is 22px tall. */
 .references-sort-toggle .MuiToggleButton-root {
     text-transform: none;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-weight: 600;
     font-size: 12px;
+    line-height: 20px;
     color: #5E6E87;
     border: none;
     padding: 4px 8px;
-    height: 22px;
-    min-height: 22px;
+    height: 20px;
+    min-height: 20px;
     border-radius: 4px !important;
 }
 
@@ -895,9 +904,10 @@
     width: 100%;
 }
 
+/* Figma 44:4744 — each row is space/6 top and bottom inside a space/6 gutter. */
 .references-list>div {
     margin: 0;
-    padding: 16px 24px;
+    padding: 24px;
     border-radius: 8px;
     position: relative;
     box-sizing: border-box;
@@ -919,7 +929,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    border-bottom: 1px solid #F2F4F8;
+    border-bottom: 1px solid #E5E9F0;
 }
 
 .references-list>div:last-child::after {
@@ -927,7 +937,7 @@
 }
 
 .references-list>div:last-child {
-    padding-bottom: 16px;
+    padding-bottom: 24px;
 }
 
 .message-wrapper {
@@ -1960,30 +1970,45 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 /* ── References skeleton (MOTION-SPEC §7) ────────────────────────────────────
    A highlight wave travels top-to-bottom on a loop: one card group at full
    opacity, the rest near-invisible. Staggered animation-delay makes the wave. */
+/* Geometry is Figma 44:4788 / 44:4744: a space/6 gutter, rows of space/6 padding split by a
+   color/border/default rule, and five 12px bars on a space/1 x2 rhythm — 24 + (5*12 + 4*8) + 24
+   lands each row on the design's 140px exactly. The bar widths are the design's own (80/232/200/
+   180/160) rather than percentages, because they are what makes the block read as a citation;
+   max-width keeps them inside a panel dragged narrower than the 384px design width. */
 .ref-skeleton {
-    padding: 8px 0;
+    padding: 0 24px;
 }
 
-.ref-skeleton-card {
+/* Child of `.references-list` too, so these must out-specify `.references-list>div`, which would
+   otherwise add its own 24px side padding (indenting every bar by 48px) and its own ::after
+   hairline on top of this one. */
+.ref-skeleton>.ref-skeleton-card {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 16px 32px;
-    border-bottom: 1px solid #F0F2F7;
+    padding: 24px 0;
+    box-shadow: inset 0 -1px 0 #E5E9F0;
     opacity: 0.28;
     animation: ref-skeleton-wave 1.6s linear infinite;
 }
 
-.ref-skeleton-bar {
-    display: block;
-    height: 9px;
-    border-radius: 999px;
-    background: #E7EBF2;
-    width: 100%;
+.ref-skeleton>.ref-skeleton-card::after {
+    content: none;
 }
 
-.ref-skeleton-bar.short { width: 26%; }
-.ref-skeleton-bar.medium { width: 62%; }
+.ref-skeleton-bar {
+    display: block;
+    height: 12px;
+    border-radius: 4px;
+    background: #E5E9F0;
+    max-width: 100%;
+}
+
+.ref-skeleton-card .ref-skeleton-bar:nth-child(1) { width: 80px; }
+.ref-skeleton-card .ref-skeleton-bar:nth-child(2) { width: 232px; }
+.ref-skeleton-card .ref-skeleton-bar:nth-child(3) { width: 200px; }
+.ref-skeleton-card .ref-skeleton-bar:nth-child(4) { width: 180px; }
+.ref-skeleton-card .ref-skeleton-bar:nth-child(5) { width: 160px; }
 
 @keyframes ref-skeleton-wave {
     0%   { opacity: 0.28; }
