@@ -78,29 +78,22 @@ describe('rendering', () => {
     });
 });
 
-// The design shows Skip on the untouched panel (111:4438) and Submit once an answer exists
-// (111:4845) — one button, not two.
-describe('the footer button', () => {
-    it('is Skip while nothing is answered, and skips', () => {
+// The design's two frames show Skip on an untouched panel and Submit on an answered one; taken
+// literally that swaps them and removes the only way to decline a round the run is blocked on.
+describe('the footer', () => {
+    it('offers Skip whether or not anything is answered', () => {
         const { onSkip } = setup();
-        expect(screen.queryByRole('button', { name: /^submit/i })).not.toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
         expect(onSkip).toHaveBeenCalled();
+
+        setup({ clarificationDrafts: drafts(['Type 1 diabetes']) });
+        expect(screen.getAllByRole('button', { name: 'Skip' }).length).toBeGreaterThan(0);
     });
 
-    it('becomes Submit once an option is chosen, and submits', () => {
+    it('submits from the last question', () => {
         const { onSubmit } = setup({ clarificationDrafts: drafts(['Type 2 diabetes']) });
-        expect(screen.queryByRole('button', { name: 'Skip' })).not.toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: /submit/i }));
         expect(onSubmit).toHaveBeenCalled();
-    });
-
-    it('becomes Submit on typed Other text, but not on an empty Other tick', () => {
-        setup({ clarificationDrafts: drafts([], '', true) });
-        expect(screen.getByRole('button', { name: 'Skip' })).toBeInTheDocument();
-
-        setup({ clarificationDrafts: drafts([], 'gestational diabetes', true) });
-        expect(screen.getAllByRole('button', { name: /submit/i }).length).toBeGreaterThan(0);
     });
 
     it('disables the action while a submit is in flight', () => {
@@ -111,6 +104,67 @@ describe('the footer button', () => {
     it('blocks Submit when the container reports an unusable Other selection', () => {
         setup({ clarificationDrafts: drafts(['Type 1 diabetes']), hasInvalidOtherSelection: true });
         expect(screen.getByRole('button', { name: /submit/i })).toBeDisabled();
+    });
+});
+
+// A round can carry up to four questions. Stacked in one column the later ones were buried and
+// there was no sense of how many were left.
+describe('stepping through a multi-question round', () => {
+    const q2 = { ...QUESTION, header: 'Aspect', question: 'Which aspects?', response_type: 'multi' };
+    const two = { pendingClarification: { questions: [QUESTION, q2] } };
+
+    it('shows one question at a time, with its position', () => {
+        setup(two);
+        expect(screen.getByText('Which disease should the review focus on?')).toBeInTheDocument();
+        expect(screen.queryByText('Which aspects?')).not.toBeInTheDocument();
+        expect(screen.getByText('1 of 2')).toBeInTheDocument();
+    });
+
+    it('Next advances and Submit only appears on the last one', () => {
+        setup(two);
+        expect(screen.queryByRole('button', { name: /submit/i })).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /next/i }));
+
+        expect(screen.getByText('Which aspects?')).toBeInTheDocument();
+        expect(screen.getByText('2 of 2')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /next/i })).not.toBeInTheDocument();
+    });
+
+    it('Back returns to the previous question, and is absent on the first', () => {
+        setup(two);
+        expect(screen.queryByRole('button', { name: /back/i })).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /next/i }));
+        fireEvent.click(screen.getByRole('button', { name: /back/i }));
+        expect(screen.getByText('Which disease should the review focus on?')).toBeInTheDocument();
+    });
+
+    it('Next is allowed with nothing chosen — a blank answer takes the default', () => {
+        setup(two);
+        expect(screen.getByRole('button', { name: /next/i })).not.toBeDisabled();
+    });
+
+    it('a single question shows no counter and no Next', () => {
+        setup();
+        expect(screen.queryByText(/ of /)).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /next/i })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument();
+    });
+});
+
+// Nothing in the design distinguishes them, which leaves the user guessing whether a second click
+// adds to their choice or replaces it.
+describe('telling single from multi apart', () => {
+    it('pick-one gets a round selector and no hint', () => {
+        setup();
+        expect(document.querySelector('.clarify-option-mark.single')).toBeInTheDocument();
+        expect(screen.queryByText(/select all that apply/i)).not.toBeInTheDocument();
+    });
+
+    it('pick-any gets a square selector and says so', () => {
+        setup({ pendingClarification: { questions: [{ ...QUESTION, response_type: 'multi' }] } });
+        expect(document.querySelector('.clarify-option-mark.single')).not.toBeInTheDocument();
+        expect(screen.getByText(/select all that apply/i)).toBeInTheDocument();
     });
 });
 
@@ -178,13 +232,13 @@ describe('choosing answers', () => {
 });
 
 describe('the panel as a whole', () => {
-    it('renders every question of a multi-question round, with one close control', () => {
+    it('shows one question, with one close control', () => {
         setup({
             pendingClarification: {
                 questions: [QUESTION, { ...QUESTION, header: 'Population', question: 'Which population?' }],
             },
         });
-        expect(document.querySelectorAll('.clarify-question')).toHaveLength(2);
+        expect(document.querySelectorAll('.clarify-question')).toHaveLength(1);
         expect(screen.getAllByRole('button', { name: /skip these questions/i })).toHaveLength(1);
     });
 
