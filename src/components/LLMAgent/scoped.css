@@ -776,6 +776,9 @@
     /* it floats over the transcript, so it must not grow past the viewport */
     max-height: min(60vh, 560px);
     overflow-y: auto;
+    /* Once the panel is taller than that it scrolls inside this wrapper — and a square wrapper
+       clips the panel's 16px corners square. Matching the radius makes the clip follow them. */
+    border-radius: 16px;
 }
 
 @media (max-width: 700px) {
@@ -792,6 +795,10 @@
         left: 50%;
         right: auto;
         transform: translateX(-50%);
+        /* The design's 8px is to the INPUT BOX, and at this width the composer carries
+           `padding: 24px 0` — so measuring 8px off the dock's top left a 32px gap, with the
+           composer's own padding making up the difference. Pull back by that padding. */
+        bottom: calc(100% - 16px);
     }
 }
 
