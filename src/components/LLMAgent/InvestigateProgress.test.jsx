@@ -310,6 +310,30 @@ describe('detail block', () => {
         expect(first).toMatch(/180 hits/);
     });
 
+    it('shows a probe that is still running as running, not as a failure', () => {
+        // Probes are announced when they start and updated when they land. Without a pending
+        // state an in-flight probe renders with the same ✕ as a broken one — and on a real run
+        // the gap between one landing and the next is up to a minute.
+        setup({
+            ...searchingProps,
+            detail: {
+                topic: [],
+                channels: [
+                    { name: 'Vector search over abstracts', hits: 80, ok: true, pending: false },
+                    { name: 'Knowledge-graph expansion', hits: 0, ok: true, pending: true },
+                ],
+            },
+        });
+        fireEvent.click(screen.getByRole('button', { name: /show all/i }));
+        const running = document.querySelector('.ip-channel.pending');
+        expect(running).toBeInTheDocument();
+        expect(running.textContent).toMatch(/Knowledge-graph expansion/);
+        expect(running.textContent).toMatch(/searching…/);
+        expect(running.textContent).not.toMatch(/unavailable|✕/);
+        // the finished one still reads as finished
+        expect(document.querySelector('.ip-channel:not(.pending)').textContent).toMatch(/80 hits/);
+    });
+
     it('says so when a probe came back empty rather than hiding it', () => {
         setup({
             ...searchingProps,

@@ -164,7 +164,15 @@ const mergeInvestigateDetail = (prev, next, label) => {
     if (Array.isArray(next.channels) && next.channels.length) {
         const byName = new Map((out.channels || []).map((c) => [c.name, c]));
         next.channels.forEach((c) => {
-            if (c && c.name) byName.set(String(c.name), { name: String(c.name), hits: Number(c.hits) || 0, ok: c.ok !== false });
+            if (!c || !c.name) return;
+            // `pending` = announced but still running. Carried through so the panel can say
+            // "searching…" instead of showing an unfinished probe as a failure.
+            byName.set(String(c.name), {
+                name: String(c.name),
+                hits: Number(c.hits) || 0,
+                ok: c.ok !== false,
+                pending: c.pending === true,
+            });
         });
         out.channels = Array.from(byName.values());
     }
