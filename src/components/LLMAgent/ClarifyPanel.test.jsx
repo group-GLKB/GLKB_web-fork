@@ -10,6 +10,8 @@
  *     to /clarify keeps working.
  */
 import React from 'react';
+import fs from 'fs';
+import path from 'path';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
@@ -200,5 +202,55 @@ describe('the panel as a whole', () => {
     it('renders nothing without a pending round', () => {
         const { container } = setup({ pendingClarification: null });
         expect(container).toBeEmptyDOMElement();
+    });
+});
+
+/**
+ * e2e/scripts/measure-clarify-panel.mjs measures a committed snapshot of this component's output,
+ * because a browser is the only thing that can see heights and jsdom cannot render one. That
+ * snapshot is only trustworthy while it still matches what the component renders — so this test
+ * fails loudly the moment they diverge, with the command to refresh it.
+ */
+describe('the geometry fixture', () => {
+    const FIXTURE = path.join(__dirname, '../../../e2e/fixtures/clarify-panel.html');
+    const D1 = 'Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. ';
+    const D2 = 'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam.';
+    const D3 = 'Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos.';
+    const D4 = 'Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur?';
+
+    it('still matches what the component renders', () => {
+        const question = {
+            header: 'Q',
+            question: 'Example question lorem ipsum?',
+            response_type: 'single',
+            options: [
+                { label: 'Answer 1', description: D1 },
+                { label: 'Answer 2', description: D2 },
+                { label: 'Answer 3', description: D3 },
+                { label: 'Answer 4', description: D4 },
+            ],
+        };
+        const { container } = render(
+            <ClarifyPanel
+                pendingClarification={{ questions: [question] }}
+                clarificationDrafts={{ Q: { selected: ['Answer 1'], text: '', otherSelected: false } }}
+                clarificationError=""
+                clarificationSubmitting={false}
+                hasInvalidOtherSelection={false}
+                onUpdateDraft={() => {}}
+                onSubmit={() => {}}
+                onSkip={() => {}}
+            />,
+        );
+        const fixture = fs.readFileSync(FIXTURE, 'utf8');
+        if (container.innerHTML !== fixture) {
+            // Say what to do, not just that it differs — jest's expect carries no message.
+            throw new Error(
+                "ClarifyPanel's markup changed, so e2e/scripts/measure-clarify-panel.mjs is now "
+                + 'measuring a stale shape. Refresh it by writing this test\'s '
+                + `container.innerHTML to ${FIXTURE}, then re-run the measurement.`,
+            );
+        }
+        expect(container.innerHTML).toBe(fixture);
     });
 });
