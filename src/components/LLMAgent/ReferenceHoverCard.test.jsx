@@ -69,7 +69,15 @@ describe('what the card shows', () => {
         expect(document.querySelector('.ref-hover-badge').textContent).toBe('10');
     });
 
-    it('links Full Text to the reference url', () => {
+    it('links Full Text to the actual full text, not the PubMed record', () => {
+        // The body no longer carries inline "(full text)" links, so this is the only route to the
+        // paper — pointing it at PubMed would make the label a lie.
+        setup({ reference: { ...REFERENCE, fulltext_url: 'https://www.ncbi.nlm.nih.gov/pmc/articles/PMC123/' } });
+        expect(screen.getByRole('link', { name: /full text/i }))
+            .toHaveAttribute('href', 'https://www.ncbi.nlm.nih.gov/pmc/articles/PMC123/');
+    });
+
+    it('falls back to the PubMed record when there is no full text', () => {
         setup();
         expect(screen.getByRole('link', { name: /full text/i }))
             .toHaveAttribute('href', REFERENCE.url);
