@@ -63,6 +63,11 @@ const got = await page.evaluate(() => {
     };
     const card = document.querySelector('.ref-hover-card').getBoundingClientRect();
     const quote = document.querySelector('.ref-hover-quote').getBoundingClientRect();
+    // Every block's top/bottom relative to the card, which is how the design specifies them.
+    const at = (sel) => {
+        const r = document.querySelector(sel).getBoundingClientRect();
+        return `${Math.round(r.top - card.top)}..${Math.round(r.bottom - card.top)}`;
+    };
     return {
         card: box('.ref-hover-card'),
         head: box('.ref-hover-head'),
@@ -78,6 +83,14 @@ const got = await page.evaluate(() => {
         icon: box('.ref-hover-icon'),
         contentWidth: round(quote.width),
         cardInnerLeft: round(quote.left - card.left),
+        cardHeight: round(card.height),
+        y: {
+            title: at('.ref-hover-title'),
+            source: at('.ref-hover-source'),
+            quote: at('.ref-hover-quote'),
+            meta: at('.ref-hover-meta'),
+            actions: at('.ref-hover-actions'),
+        },
     };
 });
 
@@ -93,6 +106,15 @@ const check = (label, want, have) => {
 
 console.log('Reference hover card vs Figma 299:22085, measured in Chromium\n');
 check('card width', 240, got.card.w);
+// The design fixes where every block sits. Checking properties alone missed a 5px drift: the
+// PMID row rendered at its line-height 20 where the design pins it to 16, and the 1px divider
+// added a pixel the design's zero-height stroke does not.
+check('card height', 304, got.cardHeight);
+check('title      y', '16..76', got.y.title);
+check('source     y', '84..144', got.y.source);
+check('quote      y', '156..216', got.y.quote);
+check('PMID row   y', '228..244', got.y.meta);
+check('footer     y', '268..288', got.y.actions);
 check('card padding (space/4)', '16px', got.card.pad);
 check('card radius (radius/4)', '16px', got.card.radius);
 check('card children gap (space/3)', '12px', got.card.gap);
