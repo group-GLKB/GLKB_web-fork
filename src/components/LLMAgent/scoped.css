@@ -802,10 +802,15 @@
     white-space: nowrap;
 }
 
-/* Figma 299:22088 is 60px for two 20px lines — the authors line carries a 20px margin below it,
-   which is what separates it from the year/journal line. */
+/* DELIBERATE DEVIATION from Figma 299:22088.
+   The design's text node is 60px for two 20px lines, the extra 20 sitting between them — exactly
+   one line height, i.e. a blank line typed into the placeholder copy. Reproducing it pixel for
+   pixel (verified: every text row landed on the design's own row) left an empty line between the
+   authors and the journal, which reads as a layout bug rather than as spacing. Dropped, so the
+   metadata block is the 40px its two lines need. Restore `margin-bottom: 20px` for a literal
+   match. */
 .ref-hover-authors {
-    margin-bottom: 20px;
+    margin-bottom: 0;
 }
 
 /* The quote hangs off a rule, space/2 from it. The BLOCK is the design's fixed 60px (299:22089),
