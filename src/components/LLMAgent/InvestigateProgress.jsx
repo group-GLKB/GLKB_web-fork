@@ -642,50 +642,56 @@ const InvestigateProgress = ({
                 </Box>
             </Box>
 
-            {expanded && (
-                <Box className="ip-body">
-                    <Box className="ip-counters">
-                        {FUNNEL_COLUMNS.map((col) => (
-                            <FunnelCounter
-                                key={col.key}
-                                columnKey={col.key}
-                                label={col.label}
-                                value={safeFunnel[col.key] ?? null}
-                                ticking={!done && idx >= phaseIndex(col.filledFrom)}
-                                reduced={reduced}
-                            />
-                        ))}
-                    </Box>
-
-                    <Box className="ip-bar" role="progressbar" aria-valuenow={Math.round(barPct)}
-                         aria-valuemin={0} aria-valuemax={100}>
-                        <Box className="ip-bar-fill" style={{ width: `${barPct}%` }} />
-                    </Box>
-
-                    <Box className="ip-steps">
-                        {rows.map(({ row, isActive }) => {
-                            const Icon = row.icon;
-                            const text = isActive
-                                ? row.active(safeFunnel, phase, rowMeta)
-                                : row.done(safeFunnel, phase, rowMeta);
-                            const body = isActive ? detailFor(row.key) : null;
-                            return (
-                                <Box className={`ip-step${isActive ? ' active' : ' done'}`} key={row.key}>
-                                    <Box className="ip-step-head">
-                                        <Icon className="ip-step-icon" />
-                                        <span className="ip-step-label">{text}</span>
-                                    </Box>
-                                    {body ? (
-                                        <Box className={`ip-step-detail${detailExpanded ? ' expanded' : ''}`}>
-                                            {body}
-                                        </Box>
-                                    ) : null}
-                                </Box>
-                            );
-                        })}
-                    </Box>
+            {/* Hidden when collapsed, NOT unmounted. Every counter's memory — the value it is
+                showing, the fact that it has already counted up, and where its ramp had got to —
+                lives in component state inside this subtree. Unmounting it threw all of that away,
+                so reopening the panel mid-run counted Cited (and the rest) up from zero again as
+                if the numbers were new. Same for the cycling detail list's page and its "show all"
+                toggle. Keeping the subtree mounted also keeps the ramps advancing while the panel
+                is shut, so the number the user comes back to is the number the run is actually at
+                rather than the one they left. */}
+            <Box className={`ip-body${expanded ? '' : ' collapsed'}`}>
+                <Box className="ip-counters">
+                    {FUNNEL_COLUMNS.map((col) => (
+                        <FunnelCounter
+                            key={col.key}
+                            columnKey={col.key}
+                            label={col.label}
+                            value={safeFunnel[col.key] ?? null}
+                            ticking={!done && idx >= phaseIndex(col.filledFrom)}
+                            reduced={reduced}
+                        />
+                    ))}
                 </Box>
-            )}
+
+                <Box className="ip-bar" role="progressbar" aria-valuenow={Math.round(barPct)}
+                     aria-valuemin={0} aria-valuemax={100}>
+                    <Box className="ip-bar-fill" style={{ width: `${barPct}%` }} />
+                </Box>
+
+                <Box className="ip-steps">
+                    {rows.map(({ row, isActive }) => {
+                        const Icon = row.icon;
+                        const text = isActive
+                            ? row.active(safeFunnel, phase, rowMeta)
+                            : row.done(safeFunnel, phase, rowMeta);
+                        const body = isActive ? detailFor(row.key) : null;
+                        return (
+                            <Box className={`ip-step${isActive ? ' active' : ' done'}`} key={row.key}>
+                                <Box className="ip-step-head">
+                                    <Icon className="ip-step-icon" />
+                                    <span className="ip-step-label">{text}</span>
+                                </Box>
+                                {body ? (
+                                    <Box className={`ip-step-detail${detailExpanded ? ' expanded' : ''}`}>
+                                        {body}
+                                    </Box>
+                                ) : null}
+                            </Box>
+                        );
+                    })}
+                </Box>
+            </Box>
         </Box>
     );
 };

@@ -15,7 +15,7 @@ import '@testing-library/jest-dom';
 import InvestigateProgress, { formatElapsed } from './InvestigateProgress';
 import { PHASE_PERCENT_FLOOR } from '../../service/investigatePhases';
 
-const setup = (props = {}) => render(
+const panel = (props = {}) => (
     <InvestigateProgress
         phase="planning"
         funnel={{ retrieved: null, screened: null, extracted: null, cited: null }}
@@ -26,8 +26,10 @@ const setup = (props = {}) => render(
         label=""
         expanded
         {...props}
-    />,
+    />
 );
+
+const setup = (props = {}) => render(panel(props));
 
 const barWidth = () => parseFloat(document.querySelector('.ip-bar-fill').style.width);
 const stepTexts = () => Array.from(document.querySelectorAll('.ip-step-label')).map((n) => n.textContent);
@@ -361,7 +363,70 @@ describe('header', () => {
     it('collapses the body but keeps the header when not expanded', () => {
         setup({ expanded: false });
         expect(screen.getByText('Investigating...')).toBeInTheDocument();
-        expect(document.querySelector('.ip-body')).not.toBeInTheDocument();
+        // Hidden, not unmounted — see the collapse/reopen tests below.
+        expect(document.querySelector('.ip-body')).toHaveClass('collapsed');
+        expect(document.querySelector('.ip-counters')).toBeInTheDocument();
+    });
+});
+
+// ── collapse / reopen ───────────────────────────────────────────────────────────────────────
+/**
+ * The body used to sit behind `{expanded && …}`, which UNMOUNTED every counter and the detail
+ * list along with it. All of a counter's memory — the number it is showing, the fact that it has
+ * already counted up once, where its ramp had got to — is state inside that subtree, so shutting
+ * the panel threw it away and reopening mid-run counted Cited up from zero again, as if seventeen
+ * fresh citations had just landed.
+ */
+describe('collapsing and reopening mid-run', () => {
+    const running = {
+        phase: 'writing',
+        funnel: { retrieved: 1341, screened: 53, extracted: 20, cited: 17 },
+        percent: 70,
+    };
+    const citedText = () => document.querySelectorAll('.ip-counter-value')[3].textContent;
+
+    it('leaves the counters on their value instead of counting up again', () => {
+        const { rerender } = render(panel(running));
+        act(() => { jest.advanceTimersByTime(2000); });
+        expect(citedText()).toBe('17');
+
+        rerender(panel({ ...running, expanded: false }));
+        rerender(panel({ ...running, expanded: true }));
+
+        expect(citedText()).toBe('17');          // straight away — no second count-up, no en dash
+    });
+
+    it('does not restart a ramp that has not been given its real number yet', () => {
+        const ramping = { phase: 'searching' };
+        const retrieved = () => Number(document.querySelectorAll('.ip-counter-value')[0].textContent.replace(/,/g, ''));
+        const { rerender } = render(panel(ramping));
+        act(() => { jest.advanceTimersByTime(20000); });
+        const reached = retrieved();
+        expect(reached).toBeGreaterThan(1);
+
+        rerender(panel({ ...ramping, expanded: false }));
+        act(() => { jest.advanceTimersByTime(5000); });
+        rerender(panel({ ...ramping, expanded: true }));
+
+        expect(retrieved()).toBeGreaterThanOrEqual(reached);   // carried on, not back to 1
+    });
+
+    it('keeps the detail list open where the user left it', () => {
+        const reading = {
+            phase: 'searching',
+            detail: { topic: ['KRAS mutation frequency', 'TP53 loss-of-function'] },
+            keywords: ['SoupX', 'CellBender', 'DecontX', 'Scrublet', 'Harmony'],
+        };
+        const bullets = () => document.querySelectorAll('.ip-cycle .ip-detail-bullet').length;
+        const { rerender } = render(panel(reading));
+        fireEvent.click(screen.getByRole('button', { name: /show all 7 topics & searches/i }));
+        expect(bullets()).toBe(7);
+
+        rerender(panel({ ...reading, expanded: false }));
+        rerender(panel({ ...reading, expanded: true }));
+
+        expect(bullets()).toBe(7);
+        expect(screen.getByRole('button', { name: /show less/i })).toBeInTheDocument();
     });
 });
 
