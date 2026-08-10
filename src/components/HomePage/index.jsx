@@ -320,21 +320,21 @@ const HomePage = () => {
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 800,
                                         fontSize: isPhoneDevice ? '30px' : '40px',
-                                        lineHeight: 1.1,
+                                        lineHeight: isPhoneDevice ? 1.2 : '48px',
                                     }}
                                 >
-                                    <span style={{ color: '#141B26' }}>Ask.</span>{' '}
+                                    <span style={{ color: '#0C1018' }}>Ask.</span>{' '}
                                     <span style={{ color: '#155DFC' }}>Analyze</span>
-                                    <span style={{ color: '#141B26' }}>. Cite.</span>
+                                    <span style={{ color: '#0C1018' }}>. Cite.</span>
                                 </Typography>
                                 <Typography
                                     className="glkb-subtitle"
                                     sx={{
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 400,
-                                        fontSize: '18px',
+                                        fontSize: '14px',
                                         color: '#5E6E87',
-                                        lineHeight: '26.64px',
+                                        lineHeight: '22px',
                                     }}
                                 >
                                     Weeks of research, done in minutes.
@@ -443,16 +443,22 @@ const HomePage = () => {
                                         </Box>
                                     ))}
                                 </Box>
+                                <p className="homepage-research-notice">
+                                    FOR RESEARCH USE ONLY — not medical advice. AI-generated; verify all citations against primary sources.
+                                </p>
                             </Box>
                         </Box>
 
                         <div className="footer">
                             <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
-                                <p style={{ fontFamily: 'Geist, sans-serif', textAlign: 'center', color: '#A8B3C8', fontSize: '14px', margin: 0 }}>
+                                <p className="homepage-footer-line">
                                     © 2026 GLKB – Genomic Literature Knowledge Base | glkb.org
                                 </p>
-                                <p style={{ fontFamily: 'Geist, sans-serif', textAlign: 'center', color: '#A8B3C8', fontSize: '14px', margin: 0 }}>
+                                <p className="homepage-footer-line">
                                     Developed and maintained by the <a className="homepage-lab-link" href="https://jieliu6.github.io/" target="_blank" rel="noopener noreferrer">Jie Liu Lab</a>, Department of Computational Medicine and Bioinformatics, University of Michigan.
+                                </p>
+                                <p className="homepage-footer-line">
+                                    Includes data from PubMed®/MEDLINE® (NLM); GLKB is independent and not endorsed by NLM or the federal government.
                                 </p>
                             </div>
                         </div>

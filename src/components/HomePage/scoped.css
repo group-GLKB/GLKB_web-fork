@@ -67,7 +67,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 24px;
+    gap: 32px;
     padding: 9vh max(4vw, 24px) 6vh;
     text-align: center;
 }
@@ -75,16 +75,16 @@
 .homepage-hero-inner {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     max-width: 760px;
 }
 
 .glkb-title {
     font-family: "Geist", sans-serif;
     font-weight: 800;
-    font-size: 36px;
-    line-height: 1.2;
-    color: #141B26;
+    font-size: 40px;
+    line-height: 48px;
+    color: #0C1018;
     margin: 0;
 }
 
@@ -103,7 +103,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 24px;
+    gap: 20px;
     --example-item-gap: 12px;
     container-type: inline-size;
 }
@@ -162,7 +162,7 @@
     display: flex;
     flex-wrap: nowrap;
     justify-content: center;
-    gap: 12px;
+    gap: 16px;
     margin-top: 0;
     position: relative;
     z-index: 1;
@@ -170,6 +170,19 @@
     padding-left: var(--home-gutter);
     padding-right: var(--home-gutter);
     box-sizing: border-box;
+}
+
+/* Sits with the pills inside the 20px-gap column, so it moves with the ask box
+   as that grows rather than being pinned to the footer. */
+.homepage-research-notice {
+    margin: 0;
+    width: 100%;
+    font-family: "Geist", sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 20px;
+    color: #5E6E87;
+    text-align: center;
 }
 
 .homepage-pills.is-hidden {
@@ -430,6 +443,18 @@
     line-height: 150%;
 }
 
+/* The three legal lines read as one paragraph in the design: same 12/20 tertiary
+   text, no gap between them. */
+.footer .homepage-footer-line {
+    margin: 0;
+    font-family: "Geist", sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 20px;
+    color: #5E6E87;
+    text-align: center;
+}
+
 
 .footer-img {
     max-width: 200px;
@@ -440,7 +465,7 @@
 .homepage-lab-link:visited,
 .homepage-lab-link:hover,
 .homepage-lab-link:active {
-    color: #4B88FD !important;
+    color: #155DFC !important;
     font-weight: normal !important;
     text-decoration: none !important;
 }
