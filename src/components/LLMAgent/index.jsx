@@ -22,6 +22,7 @@ import {
 import remarkGfm from 'remark-gfm';
 
 import {
+  ArrowForward as ArrowForwardIcon,
   Bookmark as BookmarkIcon,
   BookmarkBorder as BookmarkBorderIcon,
   Check as CheckIcon,
@@ -222,7 +223,26 @@ const getUserNotifyEmail = () => {
     }
 };
 
-/** Inline clarify panel (Figma "Asking Question") — not a modal. */
+/**
+ * Inline clarify card (Figma "Asking User Question v2") — not a modal.
+ *
+ * The design draws a single question card; a round can carry up to four, so each
+ * question gets its own card, with the close button on the first and the action
+ * row on the last. With one question the result is the design as drawn.
+ *
+ * The marker to the right of each option is a number for single-choice questions
+ * and an empty box for multi-choice, exactly as designed, and turns into a filled
+ * blue check once picked. The numbers are a visual index only — there is no
+ * keyboard binding behind them.
+ */
+const ClarifyOptionMarker = ({ selected, index, showIndex }) => (
+    <span className={`clarify-marker${selected ? ' is-selected' : ''}`}>
+        {selected
+            ? <CheckIcon className="clarify-marker-check" />
+            : (showIndex ? index : null)}
+    </span>
+);
+
 const ClarifyPanel = ({
     pendingClarification,
     clarificationDrafts,
@@ -235,194 +255,160 @@ const ClarifyPanel = ({
 }) => {
     if (!pendingClarification) return null;
 
+    const questions = Array.isArray(pendingClarification.questions) ? pendingClarification.questions : [];
+    const total = questions.length;
+
+    // "Skip" only while the round is untouched; the moment anything is answered the
+    // action turns into Submit, which is the difference between the two design states.
+    const hasAnyAnswer = questions.some((question, index) => {
+        const draft = clarificationDrafts[getClarificationQuestionKey(question, index)];
+        if (!draft) return false;
+        const selected = Array.isArray(draft.selected) ? draft.selected : [];
+        return selected.length > 0 || Boolean(String(draft.text || '').trim());
+    });
+
     return (
-        <Box className="clarify-inline-panel" role="region" aria-label="Clarifying questions">
-            <Box className="clarify-inline-head">
-                <Typography className="clarify-inline-kicker">Asking user question...</Typography>
-                <Typography className="clarify-inline-title">Clarify your research scope</Typography>
-                {pendingClarification.reason ? (
-                    <Typography className="clarify-inline-reason">{pendingClarification.reason}</Typography>
-                ) : (
-                    <Typography className="clarify-inline-reason">
-                        Answering these helps the agent narrow evidence and improve citation quality.
-                    </Typography>
-                )}
-            </Box>
+        <Box className="clarify-panel" role="region" aria-label="Clarifying questions">
+            {questions.map((question, index) => {
+                const questionKey = getClarificationQuestionKey(question, index);
+                const draft = clarificationDrafts[questionKey] || { selected: [], text: '', otherSelected: false };
+                const selected = Array.isArray(draft.selected) ? draft.selected : [];
+                const otherText = typeof draft.text === 'string' ? draft.text : '';
+                const otherSelected = Boolean(draft.otherSelected);
+                const responseType = String(question?.response_type || 'text').toLowerCase();
+                const options = Array.isArray(question?.options) ? question.options : [];
+                const isSingle = responseType === 'single';
+                const isText = responseType === 'text';
+                const heading = question?.question || question?.header || `Question ${index + 1}`;
+                const isLast = index === total - 1;
 
-            <Stack spacing={1.5} className="clarify-inline-questions">
-                {(pendingClarification.questions || []).map((question, index) => {
-                    const questionKey = getClarificationQuestionKey(question, index);
-                    const draft = clarificationDrafts[questionKey] || { selected: [], text: '', otherSelected: false };
-                    const selected = Array.isArray(draft.selected) ? draft.selected : [];
-                    const otherText = typeof draft.text === 'string' ? draft.text : '';
-                    const responseType = String(question?.response_type || 'text').toLowerCase();
-                    const options = Array.isArray(question?.options) ? question.options : [];
-                    const radioValue = draft.otherSelected ? '__other__' : (selected[0] || '');
+                const toggleOption = (optionLabel) => {
+                    if (isSingle) {
+                        onUpdateDraft(questionKey, { selected: [optionLabel], text: '', otherSelected: false });
+                        return;
+                    }
+                    const next = selected.includes(optionLabel)
+                        ? selected.filter((item) => item !== optionLabel)
+                        : [...selected, optionLabel];
+                    onUpdateDraft(questionKey, {
+                        selected: Array.from(new Set(next)),
+                        text: otherText,
+                        otherSelected,
+                    });
+                };
 
-                    return (
-                        <Box key={questionKey} className="clarify-inline-card">
-                            <Typography className="clarify-inline-header">
-                                {question?.header || `Question ${index + 1}`}
+                const otherPicked = otherSelected || Boolean(isText && otherText);
+
+                return (
+                    <Box key={questionKey} className="clarify-card">
+                        <Box className="clarify-card-head">
+                            <Typography className="clarify-card-title">
+                                {total > 1 ? `${heading} (${index + 1}/${total})` : heading}
                             </Typography>
-                            <Typography className="clarify-inline-question">
-                                {question?.question || ''}
-                            </Typography>
+                            {index === 0 && (
+                                <IconButton
+                                    className="clarify-card-close"
+                                    aria-label="Dismiss clarifying questions"
+                                    disabled={clarificationSubmitting}
+                                    onClick={() => onSkip?.()}
+                                >
+                                    <ClearIcon />
+                                </IconButton>
+                            )}
+                        </Box>
 
-                            {responseType === 'single' && (
-                                <>
-                                    <RadioGroup
-                                        value={radioValue}
-                                        onChange={(event) => {
-                                            const nextValue = event.target.value;
-                                            if (nextValue === '__other__') {
-                                                onUpdateDraft(questionKey, {
-                                                    selected: [],
-                                                    text: otherText,
-                                                    otherSelected: true,
-                                                });
-                                                return;
+                        <Box className="clarify-options">
+                            {!isText && options.map((option, optionIndex) => {
+                                const optionLabel = String(option?.label || '').trim();
+                                if (!optionLabel) return null;
+                                const isChecked = selected.includes(optionLabel);
+                                const description = option?.description || '';
+                                return (
+                                    <Box
+                                        key={optionLabel}
+                                        role={isSingle ? 'radio' : 'checkbox'}
+                                        aria-checked={isChecked}
+                                        tabIndex={0}
+                                        className={`clarify-option${isChecked ? ' is-selected' : ''}`}
+                                        onClick={() => toggleOption(optionLabel)}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter' || event.key === ' ') {
+                                                event.preventDefault();
+                                                toggleOption(optionLabel);
                                             }
-                                            onUpdateDraft(questionKey, {
-                                                selected: nextValue ? [nextValue] : [],
-                                                text: '',
-                                                otherSelected: false,
-                                            });
                                         }}
                                     >
-                                        {options.map((option) => {
-                                            const optionLabel = String(option?.label || '').trim();
-                                            if (!optionLabel) return null;
-                                            return (
-                                                <FormControlLabel
-                                                    key={optionLabel}
-                                                    value={optionLabel}
-                                                    control={<Radio size="small" />}
-                                                    label={option?.description || optionLabel}
-                                                />
-                                            );
-                                        })}
-                                        <FormControlLabel value="__other__" control={<Radio size="small" />} label="Other" />
-                                    </RadioGroup>
-                                    <TextField
-                                        fullWidth
-                                        size="small"
-                                        placeholder="Type your answer here"
+                                        <Box className="clarify-option-body">
+                                            <span className="clarify-option-label">{optionLabel}</span>
+                                            {description && (
+                                                <span className="clarify-option-desc">{description}</span>
+                                            )}
+                                        </Box>
+                                        <ClarifyOptionMarker
+                                            selected={isChecked}
+                                            index={optionIndex + 1}
+                                            showIndex={isSingle}
+                                        />
+                                    </Box>
+                                );
+                            })}
+
+                            <Box className={`clarify-option clarify-option--other${otherPicked ? ' is-selected' : ''}`}>
+                                <Box className="clarify-option-body">
+                                    <span className="clarify-option-label">Other</span>
+                                    <input
+                                        className="clarify-other-input"
+                                        type="text"
+                                        placeholder="Type your own answer here"
                                         value={otherText}
                                         onChange={(event) => {
+                                            const text = event.target.value;
                                             onUpdateDraft(questionKey, {
-                                                selected: [],
-                                                text: event.target.value,
+                                                selected: isSingle || isText ? [] : selected,
+                                                text,
                                                 otherSelected: true,
                                             });
                                         }}
-                                        sx={{ mt: 1 }}
                                     />
-                                </>
-                            )}
-
-                            {responseType === 'multi' && (
-                                <>
-                                    <Stack spacing={0.5}>
-                                        {options.map((option) => {
-                                            const optionLabel = String(option?.label || '').trim();
-                                            if (!optionLabel) return null;
-                                            const checked = selected.includes(optionLabel);
-                                            return (
-                                                <FormControlLabel
-                                                    key={optionLabel}
-                                                    control={(
-                                                        <Checkbox
-                                                            size="small"
-                                                            checked={checked}
-                                                            onChange={(event) => {
-                                                                const nextSelected = event.target.checked
-                                                                    ? [...selected, optionLabel]
-                                                                    : selected.filter((item) => item !== optionLabel);
-                                                                onUpdateDraft(questionKey, {
-                                                                    selected: Array.from(new Set(nextSelected)),
-                                                                    text: otherText,
-                                                                });
-                                                            }}
-                                                        />
-                                                    )}
-                                                    label={option?.description || optionLabel}
-                                                />
-                                            );
-                                        })}
-                                    </Stack>
-                                    <TextField
-                                        fullWidth
-                                        size="small"
-                                        placeholder="Optional additional context"
-                                        value={otherText}
-                                        onChange={(event) => {
-                                            onUpdateDraft(questionKey, {
-                                                selected,
-                                                text: event.target.value,
-                                            });
-                                        }}
-                                        sx={{ mt: 1 }}
-                                    />
-                                </>
-                            )}
-
-                            {responseType === 'text' && (
-                                <TextField
-                                    fullWidth
-                                    size="small"
-                                    placeholder="Type your answer here"
-                                    value={otherText}
-                                    onChange={(event) => {
-                                        onUpdateDraft(questionKey, {
-                                            selected: [],
-                                            text: event.target.value,
-                                        });
-                                    }}
+                                </Box>
+                                <ClarifyOptionMarker
+                                    selected={otherPicked}
+                                    index={options.length + 1}
+                                    showIndex={isSingle}
                                 />
-                            )}
+                            </Box>
                         </Box>
-                    );
-                })}
-            </Stack>
 
-            {clarificationError && (
-                <Typography className="clarify-inline-error">{clarificationError}</Typography>
-            )}
-
-            <Box className="clarify-inline-actions">
-                <MuiButton
-                    disabled={clarificationSubmitting}
-                    onClick={() => onSkip?.()}
-                    className="clarify-inline-skip"
-                    sx={{
-                        borderRadius: '10px',
-                        border: '1px solid #CBD5E1',
-                        textTransform: 'none',
-                        fontFamily: 'DM Sans, sans-serif',
-                        color: '#46566C',
-                    }}
-                >
-                    Skip
-                </MuiButton>
-                <MuiButton
-                    disabled={clarificationSubmitting || hasInvalidOtherSelection}
-                    onClick={() => onSubmit?.()}
-                    sx={{
-                        borderRadius: '10px',
-                        border: '1px solid #155DFC',
-                        backgroundColor: '#155DFC',
-                        textTransform: 'none',
-                        fontFamily: 'DM Sans, sans-serif',
-                        color: '#FFFFFF',
-                        '&:hover': {
-                            backgroundColor: '#0A47D6',
-                            borderColor: '#0A47D6',
-                        },
-                    }}
-                >
-                    {clarificationSubmitting ? 'Submitting...' : 'Submit'}
-                </MuiButton>
-            </Box>
+                        {isLast && (
+                            <>
+                                {clarificationError && (
+                                    <Typography className="clarify-error">{clarificationError}</Typography>
+                                )}
+                                <Box className="clarify-actions">
+                                    {hasAnyAnswer ? (
+                                        <MuiButton
+                                            className="clarify-submit"
+                                            disabled={clarificationSubmitting || hasInvalidOtherSelection}
+                                            onClick={() => onSubmit?.()}
+                                            endIcon={<ArrowForwardIcon />}
+                                        >
+                                            {clarificationSubmitting ? 'Submitting...' : 'Submit'}
+                                        </MuiButton>
+                                    ) : (
+                                        <MuiButton
+                                            className="clarify-skip"
+                                            disabled={clarificationSubmitting}
+                                            onClick={() => onSkip?.()}
+                                        >
+                                            Skip
+                                        </MuiButton>
+                                    )}
+                                </Box>
+                            </>
+                        )}
+                    </Box>
+                );
+            })}
         </Box>
     );
 };

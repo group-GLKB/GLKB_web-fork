@@ -7,7 +7,7 @@
     "pills": [
         {
             "id": "insights",
-            "label": "Understand Genes & Diseases",
+            "label": "Entity Insights",
             "panelTitle": "Entity Insights",
             "icon": "lightbulb",
             "examples": [
@@ -19,7 +19,7 @@
         },
         {
             "id": "disease",
-            "label": "View Research Trends",
+            "label": "Research Trend",
             "panelTitle": "Research Trend",
             "icon": "chart",
             "examples": [
@@ -31,7 +31,7 @@
         },
         {
             "id": "literature",
-            "label": "Explore Relationships",
+            "label": "Mechanisms & Relationships",
             "panelTitle": "Mechanisms and Relationships",
             "icon": "book",
             "examples": [
@@ -42,7 +42,7 @@
         },
         {
             "id": "usecases",
-            "label": "Find Papers",
+            "label": "Literature Discovery",
             "panelTitle": "Literature Discovery",
             "icon": "knowledge",
             "examples": [

@@ -273,10 +273,10 @@
     border: none;
     border-left: 1px solid #F2F4F8;
     background: transparent;
-    color: #8090AB;
+    color: #5E6E87;
     font-family: 'Geist', sans-serif;
     font-size: 10px;
-    line-height: 14px;
+    line-height: 12px;
     cursor: pointer;
 }
 
@@ -290,7 +290,7 @@
 .references-scope-icon {
     width: 12px !important;
     height: 12px !important;
-    color: #8090AB;
+    color: #5E6E87;
     flex-shrink: 0;
 }
 
@@ -378,14 +378,13 @@
     justify-content: space-between;
     padding: 8px 24px;
     border-bottom: 1px solid #F2F4F8;
-    background-color: #FCFDFE;
 }
 
 .references-count-label {
     font-family: 'Geist', sans-serif;
     font-weight: 600;
     font-size: 12px;
-    line-height: 16px;
+    line-height: 20px;
     color: #0C1018;
 }
 
@@ -404,14 +403,15 @@
 
 .references-sort-toggle .MuiToggleButton-root {
     text-transform: none;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-weight: 600;
     font-size: 12px;
+    line-height: 20px;
     color: #5E6E87;
     border: none;
     padding: 4px 8px;
-    height: 22px;
-    min-height: 22px;
+    height: 20px;
+    min-height: 20px;
     border-radius: 4px !important;
 }
 
@@ -736,78 +736,234 @@
     color: #5E6E87;
 }
 
-/* Figma Asking Question — inline clarify */
-.clarify-inline-panel {
+/* Figma "Asking User Question v2" — inline clarify card */
+.clarify-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     margin: 12px 0 16px;
-    padding: 16px;
-    border: 1px solid #D9E6FE;
+}
+
+.clarify-card {
+    display: flex;
+    flex-direction: column;
+    padding: 16px 12px;
+    border: 1px solid #E5E9F0;
     border-radius: 16px;
-    background: #FDFEFF;
-    box-shadow: 0 4px 16px rgba(21, 93, 252, 0.06);
-}
-
-.clarify-inline-kicker {
-    font-family: 'Geist', 'DM Sans', sans-serif !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    color: #155DFC !important;
-    margin-bottom: 4px !important;
-}
-
-.clarify-inline-title {
-    font-family: 'Geist', 'DM Sans', sans-serif !important;
-    font-size: 18px !important;
-    font-weight: 700 !important;
-    color: #141B26 !important;
-    margin-bottom: 6px !important;
-}
-
-.clarify-inline-reason {
-    font-family: 'DM Sans', sans-serif !important;
-    font-size: 13px !important;
-    color: #5E6E87 !important;
-    line-height: 1.45 !important;
-    margin-bottom: 12px !important;
-}
-
-.clarify-inline-card {
-    border: 1px solid #E6EDF8;
-    border-radius: 12px;
-    padding: 12px;
     background: #FFFFFF;
+    overflow: hidden;
 }
 
-.clarify-inline-header {
-    font-family: 'DM Sans', sans-serif !important;
+.clarify-card-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 0 8px 12px;
+}
+
+.clarify-card-title {
+    flex: 1;
+    min-width: 0;
+    font-family: 'Geist', sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    line-height: 22px !important;
+    color: #0C1018 !important;
+}
+
+.clarify-card-close.MuiIconButton-root {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    color: #5E6E87;
+}
+
+.clarify-card-close.MuiIconButton-root:hover {
+    background-color: #F2F4F8;
+    color: #222A38;
+}
+
+.clarify-card-close .MuiSvgIcon-root {
+    font-size: 16px;
+}
+
+.clarify-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 8px;
+}
+
+.clarify-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    border-radius: 8px;
+    background: #F2F4F8;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.clarify-option:hover {
+    background: #EAEEF5;
+}
+
+.clarify-option.is-selected,
+.clarify-option.is-selected:hover {
+    background: #EEF3FF;
+}
+
+/* The Other row carries an input, so it is taller and its label sits above it. */
+.clarify-option--other {
+    align-items: center;
+    padding: 8px 20px 12px;
+    cursor: default;
+}
+
+.clarify-option--other:hover {
+    background: #F2F4F8;
+}
+
+.clarify-option--other.is-selected:hover {
+    background: #EEF3FF;
+}
+
+.clarify-option-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.clarify-option-label {
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    color: #222A38;
+}
+
+.clarify-option-desc {
+    padding-right: 20px;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    color: #5E6E87;
+}
+
+.clarify-other-input {
+    width: 100%;
+    height: 32px;
+    padding: 0 12px;
+    box-sizing: border-box;
+    border: 1px solid #E5E9F0;
+    border-radius: 8px;
+    background: #FFFFFF;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    line-height: 20px;
+    color: #222A38;
+    outline: none;
+}
+
+.clarify-other-input::placeholder {
+    color: #5E6E87;
+    opacity: 0.6;
+}
+
+.clarify-other-input:focus {
+    border-color: #155DFC;
+}
+
+.clarify-marker {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #CBD2E0;
+    border-radius: 4px;
+    background: #FFFFFF;
+    font-family: 'Geist', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    line-height: 12px;
+    color: #5E6E87;
+}
+
+.clarify-marker.is-selected {
+    border-color: #155DFC;
+    background: #155DFC;
+    color: #FFFFFF;
+}
+
+.clarify-marker-check.MuiSvgIcon-root {
+    font-size: 12px;
+}
+
+.clarify-error {
+    margin: 8px 8px 0 !important;
+    font-family: 'Geist', sans-serif !important;
     font-size: 12px !important;
-    font-weight: 700 !important;
-    color: #5E6E87 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    margin-bottom: 4px !important;
-}
-
-.clarify-inline-question {
-    font-family: 'DM Sans', sans-serif !important;
-    font-size: 15px !important;
-    font-weight: 500 !important;
-    color: #222A38 !important;
-    line-height: 1.45 !important;
-    margin-bottom: 8px !important;
-}
-
-.clarify-inline-error {
-    margin-top: 12px !important;
-    font-family: 'DM Sans', sans-serif !important;
-    font-size: 13px !important;
+    line-height: 20px !important;
     color: #A10902 !important;
 }
 
-.clarify-inline-actions {
+.clarify-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
-    margin-top: 16px;
+    gap: 8px;
+    padding: 8px 8px 0;
+}
+
+.clarify-skip.MuiButton-root,
+.clarify-submit.MuiButton-root {
+    min-width: 0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    text-transform: none;
+    box-shadow: none;
+}
+
+.clarify-skip.MuiButton-root {
+    background: #F2F4F8;
+    color: #222A38;
+}
+
+.clarify-skip.MuiButton-root:hover {
+    background: #E5E9F0;
+}
+
+.clarify-submit.MuiButton-root {
+    background: #155DFC;
+    color: #FFFFFF;
+}
+
+.clarify-submit.MuiButton-root:hover {
+    background: #0A47D6;
+}
+
+.clarify-submit.MuiButton-root.Mui-disabled {
+    background: #D9E6FE;
+    color: #FFFFFF;
+}
+
+.clarify-submit .MuiButton-endIcon {
+    margin-left: 4px;
+    margin-right: 0;
+}
+
+.clarify-submit .MuiButton-endIcon .MuiSvgIcon-root {
+    font-size: 14px;
 }
 
 .investigate-funnel-summary {
@@ -913,11 +1069,13 @@
     border-radius: 8px;
 }
 
+/* The rule sits under the text column only, so it starts past the 16px number
+   badge and the 12px gap that follow the row's 24px padding. */
 .references-list>div::after {
     content: '';
     position: absolute;
-    left: 0;
-    right: 0;
+    left: 52px;
+    right: 24px;
     bottom: 0;
     border-bottom: 1px solid #F2F4F8;
 }

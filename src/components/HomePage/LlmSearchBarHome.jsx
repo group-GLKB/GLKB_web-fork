@@ -525,7 +525,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         whiteSpace: 'nowrap',
                                         boxShadow: 'none !important',
                                         transition: 'background-color 0.18s ease, color 0.18s ease',
-                                        '& .MuiButton-startIcon': {
+                                        '& .MuiButton-startIcon, & .MuiButton-endIcon': {
                                             margin: 0,
                                         },
                                         '&:hover': {
@@ -535,6 +535,12 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         },
                                     }}
                                     startIcon={<InvestigateIcon style={{ width: '20px', height: '20px' }} />}
+                                    // The active chip carries a dismiss affordance in the design. It is
+                                    // decorative here — the whole chip already toggles, so a separate
+                                    // handler would just double-fire.
+                                    endIcon={investigateEnabled
+                                        ? <CloseIcon style={{ width: '16px', height: '16px' }} />
+                                        : null}
                                     title={investigateEnabled ? 'Investigate on' : 'Investigate off'}
                                 >
                                     Investigate

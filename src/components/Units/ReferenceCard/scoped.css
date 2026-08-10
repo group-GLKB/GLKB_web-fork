@@ -5,7 +5,7 @@
 .reference-card {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
+    gap: 12px;
     width: 100%;
     cursor: default;
     font-family: 'Geist', sans-serif;
@@ -29,15 +29,15 @@
     border-radius: 4px;
     background-color: #E5E9F0;
     color: #222A38;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 500;
-    line-height: 1;
+    line-height: 16px;
     transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .reference-card.is-highlighted .reference-card-index-badge {
     background-color: #155DFC;
-    color: #FFFFFF;
+    color: #F8F9FC;
 }
 
 .reference-card-body {
@@ -45,30 +45,30 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
 }
 
 .reference-card-head {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0;
 }
 
 .reference-card-title {
     color: #0C1018;
     text-decoration: none;
     font-weight: 600;
-    font-size: 15px;
-    line-height: 20px;
+    font-size: 14px;
+    line-height: 18px;
     word-break: break-word;
 }
 
 /* Author · year · journal always collapses to a single line. */
 .reference-card-meta {
     color: #5E6E87;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 400;
-    line-height: 16px;
+    line-height: 20px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -86,7 +86,7 @@
 
 .reference-card-quote-bar {
     flex-shrink: 0;
-    width: 2px;
+    width: 1px;
     align-self: stretch;
     background-color: #E5E9F0;
     border-radius: 1px;
@@ -103,9 +103,9 @@
     padding-right: 18px;
     color: #222A38;
     font-size: 12px;
-    line-height: 16px;
+    line-height: 20px;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -144,9 +144,9 @@
 }
 
 .reference-card-footer-meta {
-    color: #8090AB;
-    font-size: 10px;
-    line-height: 14px;
+    color: #5E6E87;
+    font-size: 12px;
+    line-height: 20px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -155,7 +155,7 @@
 .reference-card-actions {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
     flex-shrink: 0;
     opacity: 0;
     transition: opacity 0.15s ease;
