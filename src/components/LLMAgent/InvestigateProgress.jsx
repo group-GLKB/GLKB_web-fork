@@ -46,13 +46,54 @@ const BAR_CREEP_TAU = 55;        // seconds — the slow drift between targets, 
 const ELAPSED_TICK_MS = 500;     // twice a second, so the displayed second is never >0.5s stale
 
 /**
- * The funnel counters show measured values only.
+ * While a counter's real value is still unknown, the design has it "ticking up (fake)" rather
+ * than sitting on an en dash (content-mapping doc, T1–T6).
  *
- * They used to tick up on a synthetic ramp while a counter's true value was unknown, and for
- * Retrieved the value the ramp had reached was ADDED to the real count when it landed — so the
- * figure the user ended on was the agent's number plus a random 2,500-3,000, not a measurement.
- * That is gone: a counter with no reading yet shows an en dash and waits.
+ * The ramp climbs from 1 toward a per-run random ceiling, in random-sized steps at a random
+ * cadence, so no two runs count identically. Step size is a fraction of what is left, which makes
+ * it decelerate and settle rather than hit the ceiling and freeze.
+ *
+ * When the true number lands, `addsToReal` decides what happens to the ramp:
+ *   false - it is discarded and the counter animates onto the real value alone;
+ *   true  - the value the ramp reached is ADDED, so the counter settles on `real + ramp`.
+ * Retrieved is the one column with `addsToReal`, by product decision. Note what that means: the
+ * figure it ends on is NOT the number of records the run identified, it is that number plus a
+ * random 2,500-3,000. Every other counter shows only measured values.
+ *
+ * This was removed once (4bbe02a, "Show only measured funnel counts") on exactly that objection —
+ * a Retrieved reading 10k+ against an agent count of ~1.3k — and restored deliberately, because a
+ * counter frozen on an en dash for the minutes retrieval takes reads as a stalled run. Two knobs,
+ * so nobody has to unpick this again:
+ *   FAKE_TICK_ENABLED = false          — every unknown counter holds an en dash, no ramp at all.
+ *   retrieved.addsToReal = false       — keep the motion, but land on the agent's true count.
+ *                                        (Retrieved then visibly counts DOWN when the real value
+ *                                        arrives below where the ramp had climbed to.)
  */
+const FAKE_TICK_ENABLED = true;
+const RAMP_MIN_INTERVAL_MS = 70;
+const RAMP_MAX_INTERVAL_MS = 430;
+const RAMP_MIN_CATCHUP = 0.25;          // per tick, how much of the gap to the curve to close
+const RAMP_MAX_CATCHUP = 1.0;
+
+/**
+ * Per-counter ramp: a random ceiling and a random time constant.
+ *
+ * The pace is set by ELAPSED TIME, not by the distance left. An earlier version stepped by a
+ * fraction of what remained, which converges geometrically: it covered most of the range in the
+ * first half-minute and then crawled by ones for the rest of a multi-minute phase, which reads as
+ * stuck. Now the counter follows `ceiling * (1 - e^(-t/tau))`, so `tauMs` is roughly how long it
+ * takes to cover ~63% of the range and it is still visibly moving minutes in. Per-tick steps
+ * close a random share of the gap to that curve, so the motion stays irregular.
+ */
+const RAMP_RANGE = {
+    retrieved: { min: 2500, max: 3000, tauMin: 70000, tauMax: 110000, addsToReal: true },
+    screened: { min: 12, max: 40, tauMin: 20000, tauMax: 35000, addsToReal: false },
+    extracted: { min: 4, max: 16, tauMin: 15000, tauMax: 30000, addsToReal: false },
+    cited: { min: 3, max: 12, tauMin: 20000, tauMax: 40000, addsToReal: false },
+};
+
+const randomBetween = (min, max) => min + Math.random() * (max - min);
+
 const prefersReducedMotion = () => {
     try {
         return typeof window !== 'undefined'
@@ -168,24 +209,28 @@ const STEP_ROWS = [
 
 const rowForPhase = (phase) => STEP_ROWS.find((r) => r.phases.includes(phase)) || null;
 
-// Each counter fills in when the agent reports it; until then it holds an en dash. There is no
-// per-phase start any more — that only mattered for deciding when to run the synthetic ramp.
+// `filledFrom` is the phase at which a counter starts moving, per the content-mapping doc:
+// Retrieved from T1, Screened from T2, Extracted from T4 (the analyzing mark), Cited from T6.
+// Starting a counter earlier than its phase would show motion for a number nothing is producing.
 const FUNNEL_COLUMNS = [
-    { key: 'retrieved', label: 'Retrieved' },
-    { key: 'screened', label: 'Screened' },
-    { key: 'extracted', label: 'Extracted' },
-    { key: 'cited', label: 'Cited' },
+    { key: 'retrieved', label: 'Retrieved', filledFrom: 'searching' },
+    { key: 'screened', label: 'Screened', filledFrom: 'screening' },
+    { key: 'extracted', label: 'Extracted', filledFrom: 'analyzing' },
+    { key: 'cited', label: 'Cited', filledFrom: 'writing' },
 ];
 
 // ── counter ─────────────────────────────────────────────────────────────────────────────────
 /**
  * One funnel counter. Counts up from 0 on the FIRST real value (easeOutCubic), then applies
- * later changes instantly. With no reading yet it holds an en dash.
+ * later changes instantly. While the value is unknown but its phase has started, it shows the
+ * decelerating fake ramp described above.
  */
-const FunnelCounter = ({ value, label, reduced }) => {
+const FunnelCounter = ({ value, label, columnKey, ticking, reduced }) => {
     const [shown, setShown] = useState(null);
     const hasAnimatedRef = useRef(false);
     const rafRef = useRef(null);
+    const rampRef = useRef(null);          // { ceiling, value, nextAt } — survives re-renders
+    const config = RAMP_RANGE[columnKey] || RAMP_RANGE.cited;
 
     useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
 
@@ -193,22 +238,71 @@ const FunnelCounter = ({ value, label, reduced }) => {
     useEffect(() => {
         if (value === null || value === undefined) return undefined;
         if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        // Where the ramp got to before the truth arrived.
+        const reached = rampRef.current ? rampRef.current.value : 0;
+        const target = value + (config.addsToReal ? reached : 0);
         if (reduced || hasAnimatedRef.current) {
             hasAnimatedRef.current = true;
-            setShown(value);
+            setShown(target);
             return undefined;
         }
         hasAnimatedRef.current = true;
-        const from = 0;
+        // Animate from wherever the ramp left off — snapping back to 0 first would read as the
+        // counter losing its place. Works in both directions: the ramp may have overshot the
+        // truth (small pool) or fallen short of it (the usual case).
+        const from = reached;
         const start = performance.now();
         const step = (now) => {
             const t = Math.min(1, (now - start) / COUNT_UP_MS);
-            setShown(Math.round(from + (value - from) * easeOutCubic(t)));
+            setShown(Math.round(from + (target - from) * easeOutCubic(t)));
             if (t < 1) rafRef.current = requestAnimationFrame(step);
         };
         rafRef.current = requestAnimationFrame(step);
         return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-    }, [value, reduced]);
+    }, [value, reduced, config.addsToReal]);
+
+    // Unknown value, phase in flight: the random ramp.
+    useEffect(() => {
+        const shouldRamp = FAKE_TICK_ENABLED && !reduced && ticking
+            && (value === null || value === undefined);
+        if (!shouldRamp) return undefined;
+
+        if (!rampRef.current) {
+            rampRef.current = {
+                // one ceiling and one pace per run, so two runs never count the same way
+                ceiling: Math.round(randomBetween(config.min, config.max)),
+                tauMs: randomBetween(config.tauMin, config.tauMax),
+                startedAt: null,
+                value: 1,
+                nextAt: 0,
+            };
+            setShown(1);
+        }
+        let alive = true;
+        const step = (now) => {
+            if (!alive) return;
+            const r = rampRef.current;
+            if (r.startedAt === null) r.startedAt = now;
+            if (now >= r.nextAt) {
+                // where the curve says we should be by now
+                const ideal = r.ceiling * (1 - Math.exp(-(now - r.startedAt) / r.tauMs));
+                const gap = ideal - r.value;
+                if (gap > 0) {
+                    const jump = Math.max(1, Math.round(
+                        gap * randomBetween(RAMP_MIN_CATCHUP, RAMP_MAX_CATCHUP)));
+                    r.value = Math.min(r.ceiling, r.value + jump);
+                    setShown(r.value);
+                }
+                r.nextAt = now + randomBetween(RAMP_MIN_INTERVAL_MS, RAMP_MAX_INTERVAL_MS);
+            }
+            rafRef.current = requestAnimationFrame(step);
+        };
+        rafRef.current = requestAnimationFrame(step);
+        return () => {
+            alive = false;
+            if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        };
+    }, [ticking, value, reduced, config.min, config.max, config.tauMin, config.tauMax]);
 
     const text = (shown === null || shown === undefined) ? '–' : Number(shown).toLocaleString();
     return (
@@ -557,17 +651,22 @@ const InvestigateProgress = ({
             </Box>
 
             {/* Hidden when collapsed, NOT unmounted. Every counter's memory — the value it is
-                showing and the fact that it has already counted up — lives in component state
-                inside this subtree. Unmounting it threw all of that away, so reopening the panel
-                mid-run counted Cited (and the rest) up from zero again as if the numbers were
-                new. Same for the cycling detail list's page and its "show all" toggle. */}
+                showing, the fact that it has already counted up, and where its ramp had got to —
+                lives in component state inside this subtree. Unmounting it threw all of that away,
+                so reopening the panel mid-run counted Cited (and the rest) up from zero again as
+                if the numbers were new. Same for the cycling detail list's page and its "show all"
+                toggle. Keeping the subtree mounted also keeps the ramps advancing while the panel
+                is shut, so the number the user comes back to is the number the run is actually at
+                rather than the one they left. */}
             <Box className={`ip-body${expanded ? '' : ' collapsed'}`}>
                 <Box className="ip-counters">
                     {FUNNEL_COLUMNS.map((col) => (
                         <FunnelCounter
                             key={col.key}
+                            columnKey={col.key}
                             label={col.label}
                             value={safeFunnel[col.key] ?? null}
+                            ticking={!done && idx >= phaseIndex(col.filledFrom)}
                             reduced={reduced}
                         />
                     ))}
