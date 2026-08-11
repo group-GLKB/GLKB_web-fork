@@ -570,6 +570,32 @@ describe('the fake ramp shown before a real number arrives', () => {
         expect(screenedText()).toBe('53');                 // replaced, not added
     });
 
+    // A counter that visibly counts DOWN reads as a bug. Retrieved gets this free from
+    // `addsToReal` (real + reached >= reached); the other three needed the Math.max, because on a
+    // narrow question the agent's real number does land under the ramp — screening 2 papers
+    // against a ramp already at 22 used to snap backwards from 22 to 2.
+    it.each([
+        [0, 'searching', 'retrieved', 50],
+        [1, 'screening', 'screened', 2],
+        [2, 'analyzing', 'extracted', 1],
+        [3, 'writing', 'cited', 1],
+    ])('never counts down when the real value lands under the ramp (%s/%s)', (idx, phase, key, real) => {
+        const { rerender } = setup({ phase });
+        act(() => { jest.advanceTimersByTime(40000); });
+        const seen = [num(document.querySelectorAll('.ip-counter-value')[idx].textContent)];
+
+        const funnel = { retrieved: null, screened: null, extracted: null, cited: null };
+        funnel[key] = real;
+        rerender(panel({ phase, funnel }));
+        for (let i = 0; i < 40; i += 1) {
+            act(() => { jest.advanceTimersByTime(40); });
+            seen.push(num(document.querySelectorAll('.ip-counter-value')[idx].textContent));
+        }
+
+        expect(seen).toEqual([...seen].sort((a, b) => a - b));
+        expect(seen[seen.length - 1]).toBeGreaterThanOrEqual(seen[0]);
+    });
+
     it('is skipped entirely under reduced motion', () => {
         const mql = window.matchMedia;
         window.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {} });

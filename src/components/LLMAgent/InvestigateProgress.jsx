@@ -240,7 +240,12 @@ const FunnelCounter = ({ value, label, columnKey, ticking, reduced }) => {
         if (rafRef.current) cancelAnimationFrame(rafRef.current);
         // Where the ramp got to before the truth arrived.
         const reached = rampRef.current ? rampRef.current.value : 0;
-        const target = value + (config.addsToReal ? reached : 0);
+        // Never below the ramp: a counter that visibly counts DOWN reads as a bug, and on a
+        // narrow question the agent's real number does land under the ramp (a run screening 2
+        // papers against a ramp already at 22). `addsToReal` columns clear this on their own —
+        // real + reached >= reached — so this only bites the other three, and only in that case;
+        // when the real value is the larger one, as it usually is, the target is unchanged.
+        const target = Math.max(value + (config.addsToReal ? reached : 0), reached);
         if (reduced || hasAnimatedRef.current) {
             hasAnimatedRef.current = true;
             setShown(target);
