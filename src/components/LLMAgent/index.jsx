@@ -1057,6 +1057,9 @@ const trajectoryToGroups = (trajectory) => {
  * would be a lie about what the panel knows.
  */
 const REFERENCE_SKELETON_CARDS = 6;
+// Figma 44:4744 draws five bars per card; their widths are set positionally in scoped.css so the
+// markup stays a plain list and the design's 80/232/200/180/160 ladder lives in one place.
+const REFERENCE_SKELETON_BARS = 5;
 
 const ReferencesSkeleton = () => (
     <div className="references-list ref-skeleton" aria-hidden="true">
@@ -1066,10 +1069,9 @@ const ReferencesSkeleton = () => (
                 key={`ref-skeleton-${i}`}
                 style={{ animationDelay: `${(i * 1.6) / REFERENCE_SKELETON_CARDS}s` }}
             >
-                <span className="ref-skeleton-bar short" />
-                <span className="ref-skeleton-bar" />
-                <span className="ref-skeleton-bar" />
-                <span className="ref-skeleton-bar medium" />
+                {Array.from({ length: REFERENCE_SKELETON_BARS }).map((__, j) => (
+                    <span className="ref-skeleton-bar" key={`ref-skeleton-${i}-${j}`} />
+                ))}
             </div>
         ))}
     </div>
@@ -4528,8 +4530,8 @@ function LLMAgent() {
                                                                             <DownloadIcon
                                                                                 aria-label="Download references"
                                                                                 style={{
-                                                                                    width: '16px',
-                                                                                    height: '16px',
+                                                                                    width: '14px',
+                                                                                    height: '14px',
                                                                                     display: 'block',
                                                                                     color: isExportDisabled ? '#B0B7C3' : '#5E6E87',
                                                                                 }}
@@ -4630,8 +4632,8 @@ function LLMAgent() {
                                                                 <DownloadIcon
                                                                     aria-label="Download references"
                                                                     style={{
-                                                                        width: '16px',
-                                                                        height: '16px',
+                                                                        width: '14px',
+                                                                        height: '14px',
                                                                         display: 'block',
                                                                         color: isExportDisabled ? '#B0B7C3' : '#5E6E87',
                                                                     }}
