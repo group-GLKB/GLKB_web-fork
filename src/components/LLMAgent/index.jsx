@@ -1222,19 +1222,6 @@ const MessageCard = React.memo(function MessageCard({
                             />
                         )}
 
-                        {showInvestigateProgress && pendingClarification && (
-                            <ClarifyPanel
-                                pendingClarification={pendingClarification}
-                                clarificationDrafts={clarificationDrafts}
-                                clarificationError={clarificationError}
-                                clarificationSubmitting={clarificationSubmitting}
-                                hasInvalidOtherSelection={hasInvalidOtherSelection}
-                                onUpdateDraft={onUpdateClarificationDraft}
-                                onSubmit={() => onSubmitClarification?.({ useDefaults: false })}
-                                onSkip={() => onSkipClarification?.({ useDefaults: true })}
-                            />
-                        )}
-
                         {showThoughtHeader && (
                             <Box sx={{
                                 display: 'flex',
@@ -4238,6 +4225,27 @@ function LLMAgent() {
                                                             </button>
                                                         </div>
                                                     )}
+                                                    {/* Figma "Asking Question" hangs the panel off the
+                                                        composer (111:4385 sits at y=-502 inside the
+                                                        input bar frame), not in the message stream:
+                                                        it is a question to answer before the run can
+                                                        go on, so it belongs where the answer is typed
+                                                        and must not scroll away with the transcript. */}
+                                                    <div className="composer-dock">
+                                                        {pendingClarification && (
+                                                            <div className="clarify-float">
+                                                                <ClarifyPanel
+                                                                    pendingClarification={pendingClarification}
+                                                                    clarificationDrafts={clarificationDrafts}
+                                                                    clarificationError={clarificationError}
+                                                                    clarificationSubmitting={clarificationSubmitting}
+                                                                    hasInvalidOtherSelection={hasInvalidOtherSelection}
+                                                                    onUpdateDraft={updateClarificationDraft}
+                                                                    onSubmit={() => submitClarification({ useDefaults: false })}
+                                                                    onSkip={() => submitClarification({ useDefaults: true })}
+                                                                />
+                                                            </div>
+                                                        )}
                                                     <ChatSearchBar
                                                         userInput={userInput}
                                                         setUserInput={setUserInput}
@@ -4252,6 +4260,7 @@ function LLMAgent() {
                                                         })}
                                                         onStop={handleStopStreaming}
                                                     />
+                                                    </div>
                                                 </div>
                                             </Box>
                                             {!useMobileReferencesDrawer && !isReferencesCollapsed && (

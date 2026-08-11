@@ -745,6 +745,62 @@
     color: #5E6E87;
 }
 
+/* The panel hangs off the composer rather than sitting in the transcript, matching Figma
+   111:4385 (x=148, y=-502 inside the 976x112 input-bar frame — same width and x as the input row,
+   bottom edge 8px above it). `bottom: 100%` measures from the dock's top, which is the composer's
+   top, so the gap is the design's 8px whatever height the input grows to. Anchoring it here also
+   keeps an unanswered question on screen: in the message stream it scrolled away with the
+   transcript, and the run cannot continue until it is answered. */
+.composer-dock {
+    position: relative;
+    /* A flex column, because `.chat-container .chat-header` centres itself with `align-self`,
+       which only does anything to a flex item. Wrapping the composer in a plain block div
+       silently left-aligned it — at >=981px the bar is `width: calc(100% - 48px)`, so it shifted
+       24px. */
+    display: flex;
+    flex-direction: column;
+}
+
+.clarify-float {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 8px);
+    z-index: 5;
+    /* Mirrors .chat-header's horizontal padding so the panel's edges line up with the input box
+       rather than with the bar around it, which is the alignment the design draws (the panel and
+       the input row share an x and a width). That padding is responsive, so this tracks it at
+       each breakpoint below — spanning the bar instead left the panel 56px wider than the input
+       on a 980px viewport. */
+    padding: 0 56px;
+    /* it floats over the transcript, so it must not grow past the viewport */
+    max-height: min(60vh, 560px);
+    overflow-y: auto;
+}
+
+@media (max-width: 700px) {
+    .clarify-float { padding: 0 24px; }
+}
+
+@media (min-width: 981px) {
+    /* At this width the composer is not inset by padding but narrowed outright —
+       `.chat-container .chat-header { width: calc(100% - 48px) }`, centred by align-self. The
+       panel has to be narrowed the same way or it hangs 24px past the input on each side. */
+    .chat-container .clarify-float {
+        padding: 0;
+        width: calc(100% - 48px);
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+    }
+}
+
+/* inline spacing belongs to the inline placement it no longer has */
+.clarify-float .clarify-panel {
+    margin: 0;
+    box-shadow: inset 0 0 0 1px #E5E9F0, 0 12px 32px rgba(12, 16, 24, 0.10);
+}
+
 /* ── clarify panel — Figma "Asking Question", node 111:4385 ─────────────────
    Panel: radius/4 on a border/default hairline, space/4 block / space/3 inline padding.
    Rows: space/3 inline / space/2 block on radius/2, background/subtle at rest, background/muted
