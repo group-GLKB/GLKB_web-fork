@@ -14,14 +14,18 @@ import '@testing-library/jest-dom';
 
 import ReferenceHoverCard, { formatAuthors, formatCitations, formatSource } from './ReferenceHoverCard';
 
+// Exactly the shape `parseReferences` in index.jsx produces — that is what the app hands this
+// component. Testing the agent's raw shape instead is how `date`/`n_citation`/`fulltext_url` came
+// to be read here under names that never survive normalisation.
 const REFERENCE = {
     pmid: '38409439',
     title: 'Interferons are key cytokines acting on pancreatic islets in type 1 diabetes.',
-    authors: ['Coomans de Brachène A', 'Alvelos M', 'Szymczak F'],
-    date: '2024-03-01',
+    authors: 'Coomans de Brachène A, Alvelos M, Szymczak F',
+    year: '2024-03-01',
     journal: 'Diabetologia',
-    n_citation: 1,
+    citation_count: 1,
     url: 'https://pubmed.ncbi.nlm.nih.gov/38409439/',
+    fulltext_url: '',
     evidence: ['IFN-alpha induced HLA-I hyperexpression in human islets.'],
 };
 
@@ -81,6 +85,12 @@ describe('what the card shows', () => {
         setup();
         expect(screen.getByRole('link', { name: /full text/i }))
             .toHaveAttribute('href', REFERENCE.url);
+    });
+
+    it('still reads the agent\'s raw field names, for an unparsed reference', () => {
+        setup({ reference: { pmid: '9', title: 'T', date: '2019-06-02', journal: 'Nature', n_citation: 7 } });
+        expect(screen.getByText('2019 · Nature')).toBeInTheDocument();
+        expect(screen.getByText('PMID: 9 · 7 Citations')).toBeInTheDocument();
     });
 
     it('leaves out what the reference does not have, rather than printing empties', () => {
