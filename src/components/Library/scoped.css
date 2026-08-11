@@ -4,7 +4,7 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: #FAFCFF;
+    background-color: #FDFEFF;
     overflow: hidden;
 }
 
@@ -72,7 +72,7 @@
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    color: #164563;
+    color: #222A38;
 }
 
 .library-folder-manager-action.Mui-disabled {
@@ -159,7 +159,7 @@
 .library-folder-manager-empty {
     font-family: 'Geist', sans-serif;
     font-size: 12px;
-    color: #9A9A9A;
+    color: #5E6E87;
     padding: 4px 10px;
 }
 
@@ -209,8 +209,8 @@
     top: 50%;
     transform: translateY(-50%);
     border: none;
-    background: #EEF3FA;
-    color: #164563;
+    background: #F2F4F8;
+    color: #222A38;
     font-family: 'Geist';
     font-size: 12px;
     font-weight: 600;
@@ -475,16 +475,16 @@
     font-family: 'Geist', sans-serif;
     font-size: 14px;
     font-weight: 700;
-    color: #164563;
+    color: #222A38;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .library-folder-status-button {
-    border: 1px solid #D7E3EA;
+    border: 1px solid #E5E9F0;
     background: #ffffff;
-    color: #164563;
+    color: #222A38;
     border-radius: 16px;
     padding: 6px 10px;
     font-family: 'Geist', sans-serif;
@@ -517,7 +517,7 @@
 .library-mobile-folder-drawer {
     height: 100%;
     padding: 16px 12px;
-    background: #FAFCFF;
+    background: #FDFEFF;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -535,7 +535,7 @@
     font-family: 'Geist', sans-serif;
     font-size: 16px;
     font-weight: 700;
-    color: #164563;
+    color: #222A38;
 }
 
 .library-mobile-folder-drawer-header-actions {
@@ -550,7 +550,7 @@
     border: none;
     border-radius: 8px;
     background: transparent;
-    color: #646464;
+    color: #5E6E87;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -663,7 +663,7 @@
     font-family: 'Geist';
     font-weight: 700;
     font-size: 16px;
-    color: #164563;
+    color: #222A38;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -674,14 +674,14 @@
     font-family: 'Geist';
     font-weight: 400;
     font-size: 12px;
-    color: #969696;
+    color: #5E6E87;
 }
 
 .library-folder-page-title {
     font-family: 'Geist';
     font-weight: 700;
     font-size: 15px;
-    color: #164563;
+    color: #222A38;
 }
 
 .library-folder-menu {
@@ -798,12 +798,14 @@
     fill: currentColor;
 }
 
+/* Figma 176:8363 — the list shares the header's 768px column and sits 16px
+   under the search field; it used to be inset 4px and butt straight against it. */
 .library-scroll {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    margin: 0 -12px;
-    padding: 0 16px 4px;
+    margin: 16px 0 0;
+    padding: 0 0 4px;
     display: flex;
     flex-direction: column;
     gap: 24px;
@@ -815,7 +817,7 @@
     gap: 2px;
     align-items: stretch;
     width: 100%;
-    color: #164563;
+    color: #222A38;
 }
 
 .library-section+.library-section {
@@ -860,7 +862,7 @@
 .library-empty-text {
     font-family: 'Geist, sans-serif';
     font-size: 14px;
-    color: #646464;
+    color: #5E6E87;
 }
 
 .library-chat-list {
@@ -929,12 +931,12 @@
     gap: 8px;
     padding: 0 12px;
     border-radius: 16px;
-    border: 1px solid #E7F1FF;
+    border: 1px solid #E5E9F0;
     background-color: #ffffff;
     font-family: 'Geist', sans-serif;
     font-weight: 500;
     font-size: 14px;
-    color: #164563;
+    color: #222A38;
     height: 32px;
     box-sizing: border-box;
 }
@@ -979,7 +981,7 @@
     font-family: 'Geist, sans-serif';
     font-weight: 600;
     font-size: 14px;
-    color: #164563;
+    color: #222A38;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -989,7 +991,7 @@
     font-family: 'Geist, sans-serif';
     font-weight: 400;
     font-size: 12px;
-    color: #808080;
+    color: #5E6E87;
 }
 
 .library-list {
@@ -1012,11 +1014,11 @@
     left: 8px;
     right: 8px;
     bottom: 0;
-    border-bottom: 1px solid #D9D9D9;
+    border-bottom: 1px solid #E5E9F0;
 }
 
 .library-list>div:hover {
-    background-color: #E7F1FF;
+    background-color: #F2F4F8;
     border-radius: 12px;
     padding: 10px;
 }

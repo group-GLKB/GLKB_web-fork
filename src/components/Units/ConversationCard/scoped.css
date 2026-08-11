@@ -118,10 +118,12 @@
     width: 100%;
 }
 
+/* Figma 176:11678 / 176:10547 tint the hovered row with background/subtle;
+   the old fill was brand blue, which read as a selection rather than a hover. */
 .history-item-row:hover .history-item,
 .history-item:focus-visible {
-    background-color: #E7F1FF;
-    border-radius: 12px;
+    background-color: #F2F4F8;
+    border-radius: 8px;
 }
 
 .history-title {
