@@ -24,15 +24,16 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
-    gap: 12px;
-    padding: 24px 48px 36px;
+    gap: 0;
+    padding: 24px 96px;
+    box-sizing: border-box;
 }
 
 .library-folder-manager {
     width: 240px;
     min-width: 240px;
-    background-color: #FAFCFF;
-    border-right: 1px solid #E2E8F0;
+    background-color: #FFFFFF;
+    border-right: 1px solid #E5E9F0;
     padding: 24px 16px;
     display: flex;
     flex-direction: column;
@@ -55,11 +56,10 @@
 
 .library-folder-manager-section-title {
     font-family: 'Geist', sans-serif;
-    font-weight: 700;
+    font-weight: 500;
     font-size: 12px;
-    color: #7A7A7A;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    line-height: 16px;
+    color: #5E6E87;
 }
 
 .library-folder-manager-actions {
@@ -82,37 +82,55 @@
 .library-folder-manager-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
     max-height: calc(100vh - 260px);
     overflow-y: auto;
     padding-right: 4px;
 }
 
 .library-folder-manager-item {
+    box-sizing: border-box;
     border: none;
     background: transparent;
-    padding: 8px 10px;
-    border-radius: 10px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     cursor: pointer;
-    color: #164563;
+    color: #222A38;
     font-family: 'Geist', sans-serif;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 400;
+    line-height: 22px;
     text-align: left;
     width: 100%;
 }
 
 .library-folder-manager-item:hover {
-    background-color: #F2F6FF;
+    background-color: #F2F4F8;
 }
 
+/* The selected folder — and "All Items", which is the default selection —
+   takes the brand-soft fill with interactive/default in brand blue. */
 .library-folder-manager-item.is-active {
-    background-color: #E7F1FF;
+    background-color: #EEF3FF;
     color: #155DFC;
-    font-weight: 600;
+    font-weight: 500;
+    line-height: 18px;
+}
+
+.library-folder-manager-item.is-active .library-folder-manager-count {
+    color: #155DFC;
+    font-weight: 500;
+    line-height: 18px;
+}
+
+/* Trailing "Add new folder" row: same 32px box, tertiary text, no fill. */
+.library-folder-manager-add {
+    padding-right: 0;
+    color: #5E6E87;
 }
 
 .library-folder-manager-icon {
@@ -132,9 +150,10 @@
 
 .library-folder-manager-count {
     font-family: 'Geist', sans-serif;
-    font-weight: 600;
-    font-size: 12px;
-    color: inherit;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 22px;
+    color: #5E6E87;
 }
 
 .library-folder-manager-empty {
@@ -232,7 +251,7 @@
     font-family: 'Geist', sans-serif !important;
     font-weight: 400 !important;
     font-size: 14px !important;
-    line-height: 20px !important;
+    line-height: 22px !important;
     color: #5E6E87;
     text-align: left;
     width: 100%;

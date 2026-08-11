@@ -87,8 +87,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding: 61px 48px 0;
-    background: #FAFCFF;
+    padding: 48px 48px 0;
+    background: #FDFEFF;
     overflow: hidden;
 }
 
@@ -110,7 +110,7 @@
     font-weight: 600;
     line-height: 28px;
     color: #0C1018;
-    margin: 16px 0 0;
+    margin: 48px 0 0;
     padding: 8px 0;
     letter-spacing: 0;
 }
@@ -148,9 +148,25 @@
     font-family: 'Geist', sans-serif;
     font-size: 16px;
     font-weight: 500;
-    line-height: 28px;
+    line-height: 20px;
     color: #222A38;
     white-space: nowrap;
+}
+
+/* Second line of a row whose label has a value under it (Display Name). */
+.settings-row-sub {
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 22px;
+    color: #222A38;
+    white-space: nowrap;
+}
+
+.settings-row-labels {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
 }
 
 .settings-row-label.is-danger {
@@ -160,9 +176,9 @@
 .settings-row-value {
     font-family: 'Geist', sans-serif;
     font-size: 14px;
-    font-weight: 400;
-    line-height: 28px;
-    color: #5E6E87;
+    font-weight: 500;
+    line-height: 18px;
+    color: #222A38;
     text-align: right;
     word-break: break-word;
 }
@@ -194,15 +210,14 @@
 .settings-row-chip {
     display: inline-flex;
     align-items: center;
-    height: 28px;
-    padding: 0 8px;
+    padding: 4px 8px;
     border-radius: 8px;
-    background: #F2F4F8;
+    background: transparent;
     font-family: 'Geist', sans-serif;
     font-size: 14px;
-    font-weight: 400;
-    line-height: 20px;
-    color: #5E6E87;
+    font-weight: 500;
+    line-height: 18px;
+    color: #222A38;
     white-space: nowrap;
 }
 
@@ -376,26 +391,32 @@
 
 .subscription-progress {
     height: 8px;
-    border-radius: 999px;
-    background: #E8EAED;
+    border-radius: 256px;
+    background: #D9E6FE;
     overflow: hidden;
 }
 
 .subscription-progress-fill {
     height: 100%;
-    border-radius: 999px;
-    background: linear-gradient(90deg, #155DFC 0%, #3B82F6 100%);
+    border-radius: 256px;
+    background: #155DFC;
     transition: width 0.25s ease;
 }
 
+/* "used" is called out in brand blue against the plain "remaining". */
 .subscription-progress-footer {
-    margin-top: 8px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 11.5px;
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
     font-weight: 500;
-    color: #6B7A8D;
+    line-height: 18px;
+    color: #222A38;
+}
+
+.subscription-progress-used {
+    color: #155DFC;
 }
 
 .settings-inline-input {

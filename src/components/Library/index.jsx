@@ -1505,7 +1505,7 @@ const Library = () => {
                         onClick={() => handleSelectFolder(null)}
                     >
                         <span className="library-folder-manager-icon">
-                            <BookIcon style={{ width: 18, height: 18 }} />
+                            <BookIcon style={{ width: 16, height: 16 }} />
                         </span>
                         <span className="library-folder-manager-label">All Items</span>
                         <span className="library-folder-manager-count">{allItemsCount}</span>
@@ -1534,7 +1534,7 @@ const Library = () => {
                                         onClick={() => handleSelectFolder(folder.fid)}
                                     >
                                         <span className="library-folder-manager-icon">
-                                            <FolderOpenIcon style={{ width: 18, height: 18 }} />
+                                            <FolderOpenIcon style={{ width: 16, height: 16 }} />
                                         </span>
                                         <span className="library-folder-manager-label">{folder?.name || 'Untitled folder'}</span>
                                         <span className="library-folder-manager-count">{getFolderItemCount(folder)}</span>
@@ -1543,6 +1543,16 @@ const Library = () => {
                             ) : (
                                 <div className="library-folder-manager-empty">No folders yet.</div>
                             )}
+                            <button
+                                type="button"
+                                className="library-folder-manager-item library-folder-manager-add"
+                                onClick={() => handleOpenFolderDialog()}
+                            >
+                                <span className="library-folder-manager-icon">
+                                    <AddIcon style={{ width: 16, height: 16 }} />
+                                </span>
+                                <span className="library-folder-manager-label">Add new folder</span>
+                            </button>
                         </div>
                     </Box>
                     </Box>
@@ -1582,7 +1592,7 @@ const Library = () => {
                                 onClick={() => handleSelectFolder(null)}
                             >
                                 <span className="library-folder-manager-icon">
-                                    <BookIcon style={{ width: 18, height: 18 }} />
+                                    <BookIcon style={{ width: 16, height: 16 }} />
                                 </span>
                                 <span className="library-folder-manager-label">All Items</span>
                                 <span className="library-folder-manager-count">{allItemsCount}</span>
@@ -1597,7 +1607,7 @@ const Library = () => {
                                             onClick={() => handleSelectFolder(folder.fid)}
                                         >
                                             <span className="library-folder-manager-icon">
-                                                <FolderOpenIcon style={{ width: 18, height: 18 }} />
+                                                <FolderOpenIcon style={{ width: 16, height: 16 }} />
                                             </span>
                                             <span className="library-folder-manager-label">{folder?.name || 'Untitled folder'}</span>
                                             <span className="library-folder-manager-count">{getFolderItemCount(folder)}</span>
@@ -1675,7 +1685,7 @@ const Library = () => {
                                 name="librarySearch"
                                 value={searchQuery}
                                 onChange={(event) => setSearchQuery(event.target.value)}
-                                placeholder={isFolderView ? 'Search this folder' : 'Search library'}
+                                placeholder={isFolderView ? 'Search this folder...' : 'Search All Items...'}
                                 aria-label={isFolderView ? 'Search this folder' : 'Search library'}
                             />
                             {searchQuery.trim() && (
