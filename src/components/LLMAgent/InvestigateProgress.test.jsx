@@ -271,6 +271,27 @@ describe('detail block', () => {
         expect(document.querySelectorAll('.ip-cycle .ip-detail-bullet')).toHaveLength(1);
     });
 
+    it('keeps "Show less" reachable with a long list', () => {
+        // The control was always rendered, but `.ip-step-detail.expanded` used to be the scroll
+        // container, so with 30 items it sat below an inner scroll and could not be reached
+        // without scrolling to the bottom of it. The scroll now belongs to the list, leaving the
+        // toggle outside it. Asserted structurally: jsdom has no layout, so this pins the DOM
+        // relationship that made the button unreachable, not a pixel.
+        setup({
+            ...searchingProps,
+            keywords: Array.from({ length: 28 }, (_, i) => `query ${i + 1}`),
+        });
+        fireEvent.click(screen.getByRole('button', { name: /show all 30 topics & searches/i }));
+
+        const toggle = screen.getByRole('button', { name: /show less/i });
+        expect(toggle).toBeInTheDocument();
+        // the toggle is a sibling of the scrolling list, never inside it
+        expect(document.querySelector('.ip-cycle').contains(toggle)).toBe(false);
+
+        fireEvent.click(toggle);
+        expect(screen.getByRole('button', { name: /show all/i })).toBeInTheDocument();
+    });
+
     it('leads with the probes that have finished, newest information first', () => {
         // The stretch between the plan landing and the pool being fused is minutes long, and the
         // finished probes are the only thing that changes during it.

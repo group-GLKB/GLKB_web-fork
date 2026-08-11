@@ -1868,8 +1868,17 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
     overflow: hidden;
 }
 
-/* expanded: the whole list, scrollable, no clamping */
+/* Expanded: the whole list, scrollable, no clamping.
+   The scroll sits on the LIST, not on this block. When it was here, "Show less" — which renders
+   after the list — sat below 30 items' worth of scroll, so the only way back was to scroll to the
+   bottom of an inner scroll area. Scrolling the list instead keeps the label above it and the
+   toggle below it both permanently in view. */
 .ip-step-detail.expanded {
+    max-height: none;
+    overflow: visible;
+}
+
+.ip-step-detail.expanded .ip-cycle {
     max-height: 260px;
     overflow-y: auto;
 }
