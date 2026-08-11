@@ -61,6 +61,8 @@ import {
 import { emptyFunnel, mergeFunnel } from './funnel';
 import InvestigateProgress, { formatElapsed } from './InvestigateProgress';
 import ClarifyPanel, { getClarificationQuestionKey } from './ClarifyPanel';
+import ReferenceHoverCard from './ReferenceHoverCard';
+import { getBookmarks, toggleBookmark } from '../../utils/bookmarks';
 import { resolveClarifyRound } from './clarifyRound';
 import { mintSessionId } from './sessionId';
 import { ReactComponent as ContentCopyIcon } from '../../img/llm/content_copy.svg';
@@ -934,6 +936,60 @@ const MessageCard = React.memo(function MessageCard({
         return referenceIndex >= 0 ? referenceIndex + 1 : null;
     };
     const allowUserEdit = true;
+
+    /**
+     * Reference hover card (Figma "Reference - Hover Preview"). Replaces the browser's native
+     * `title` tooltip on a citation, which could only show one unstyled string and never said
+     * which paper the quote came from.
+     *
+     * The close is delayed because the card is a hover target itself — Full Text and the bookmark
+     * are only reachable if moving the pointer off the citation and onto the card does not dismiss
+     * it on the way across the gap.
+     */
+    const [hoverCard, setHoverCard] = useState(null);
+    const [bookmarkedPmids, setBookmarkedPmids] = useState(() => new Set());
+    const hoverCloseTimer = useRef(null);
+
+    const cancelHoverClose = () => {
+        if (hoverCloseTimer.current) {
+            clearTimeout(hoverCloseTimer.current);
+            hoverCloseTimer.current = null;
+        }
+    };
+
+    const showReferenceCard = (href, element) => {
+        cancelHoverClose();
+        const pmid = String(href || '').split('/').filter(Boolean).pop();
+        const reference = (message.references || []).find(
+            (item) => extractPmidFromReference(item) === pmid,
+        );
+        if (!reference || !element) return;
+        setHoverCard({
+            reference,
+            number: getReferenceNumber(href),
+            rect: element.getBoundingClientRect(),
+        });
+    };
+
+    const hideReferenceCard = () => {
+        cancelHoverClose();
+        hoverCloseTimer.current = setTimeout(() => setHoverCard(null), 160);
+    };
+
+    useEffect(() => () => cancelHoverClose(), []);
+
+    useEffect(() => {
+        const sync = (event) => {
+            const list = event?.detail || getBookmarks();
+            setBookmarkedPmids(new Set(
+                (Array.isArray(list) ? list : []).map((item) => String(item.id ?? item.pmid ?? '')),
+            ));
+        };
+        sync();
+        window.addEventListener('glkb-bookmarks-updated', sync);
+        return () => window.removeEventListener('glkb-bookmarks-updated', sync);
+    }, []);
+
     const [editContent, setEditContent] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [expandedGroups, setExpandedGroups] = useState({});
@@ -1370,11 +1426,25 @@ const MessageCard = React.memo(function MessageCard({
                                             <ReactMarkdown
                                                 remarkPlugins={[remarkGfm]}
                                                 components={{
-                                                    a: ({ href, children, ...props }) => {
+                                                    a: ({ href, children, title, ...props }) => {
                                                         const isPubMedReference = href?.includes('pubmed.ncbi.nlm.nih.gov');
                                                         const referenceNumber = isPubMedReference ? getReferenceNumber(href) : null;
+                                                        if (!isPubMedReference) {
+                                                            return <a href={href} title={title} {...props}>{children}</a>;
+                                                        }
+                                                        // `title` is dropped on purpose: the agent puts the evidence
+                                                        // sentence there, and leaving it would show the browser's own
+                                                        // tooltip on top of the card that now presents the same quote
+                                                        // with the paper it came from.
                                                         return (
-                                                            <a href={href} {...props}>
+                                                            <a
+                                                                href={href}
+                                                                {...props}
+                                                                onMouseEnter={(event) => showReferenceCard(href, event.currentTarget)}
+                                                                onMouseLeave={hideReferenceCard}
+                                                                onFocus={(event) => showReferenceCard(href, event.currentTarget)}
+                                                                onBlur={hideReferenceCard}
+                                                            >
                                                                 <span className="inline-citation-number">{referenceNumber || children}</span>
                                                             </a>
                                                         );
@@ -1383,6 +1453,35 @@ const MessageCard = React.memo(function MessageCard({
                                             >
                                                 {stripUnresolvedCitations(message.content)}
                                             </ReactMarkdown>
+                                            {hoverCard && (
+                                                <ReferenceHoverCard
+                                                    reference={hoverCard.reference}
+                                                    number={hoverCard.number}
+                                                    anchorRect={hoverCard.rect}
+                                                    isBookmarked={bookmarkedPmids.has(
+                                                        String(extractPmidFromReference(hoverCard.reference)),
+                                                    )}
+                                                    onMouseEnter={cancelHoverClose}
+                                                    onMouseLeave={hideReferenceCard}
+                                                    onBookmark={(event) => {
+                                                        event.preventDefault();
+                                                        event.stopPropagation();
+                                                        const pmid = extractPmidFromReference(hoverCard.reference);
+                                                        toggleBookmark({ ...hoverCard.reference, pmid })
+                                                            .then((next) => window.dispatchEvent(new CustomEvent(
+                                                                'glkb-bookmarks-updated', { detail: next },
+                                                            )))
+                                                            .catch(() => {});
+                                                    }}
+                                                    onCite={(event) => {
+                                                        event.preventDefault();
+                                                        event.stopPropagation();
+                                                        copy(`[${hoverCard.number}] ${hoverCard.reference.title || ''} `
+                                                            + `PMID: ${extractPmidFromReference(hoverCard.reference)}`);
+                                                    }}
+                                                    onFullText={() => setHoverCard(null)}
+                                                />
+                                            )}
                                         </div>
                                     )}
                         </Box>

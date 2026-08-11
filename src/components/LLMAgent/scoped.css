@@ -745,6 +745,178 @@
     color: #5E6E87;
 }
 
+/* ── reference hover card — Figma "Reference - Hover Preview", node 299:22085 ──────────────
+   240px wide (208 content + space/4 padding), radius/4 on a border/default hairline, children on
+   space/3. Fixed-positioned because it must escape the transcript's scroll container; the shadow
+   is not in the design but a floating card over text needs one to read as lifted. */
+.ref-hover-card {
+    position: fixed;
+    z-index: 1300;
+    width: 240px;
+    box-sizing: border-box;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-radius: 16px;
+    background: #FFFFFF;
+    /* Inside stroke, as Figma draws it: a real border would eat 2px of the 240 and push the
+       content column to 206 with a 17px inset. The lift shadow is not in the design, but a card
+       floating over body text needs one to read as lifted rather than as part of the paragraph. */
+    box-shadow: inset 0 0 0 1px #E5E9F0, 0 8px 24px rgba(12, 16, 24, 0.12);
+    font-family: 'Geist', sans-serif;
+    pointer-events: auto;
+}
+
+.ref-hover-head {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* `interactive/emphasized` */
+.ref-hover-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+    color: #0C1018;
+    overflow-wrap: anywhere;
+}
+
+/* `body-sm`; the design puts the authors and the year/journal on their own lines */
+.ref-hover-source {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    color: #5E6E87;
+}
+
+.ref-hover-authors,
+.ref-hover-year {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Figma 299:22088 is 60px for two 20px lines — the authors line carries a 20px margin below it,
+   which is what separates it from the year/journal line. */
+.ref-hover-authors {
+    margin-bottom: 20px;
+}
+
+/* The quote hangs off a rule, space/2 from it. The BLOCK is the design's fixed 60px (299:22089),
+   which is also how tall the rule beside it runs, whatever the quote's length. */
+.ref-hover-quote {
+    display: flex;
+    gap: 8px;
+    height: 60px;
+    border-left: 1px solid #E5E9F0;
+    padding-left: 8px;
+}
+
+/* `body`. The design's quote block is a fixed 60px (299:22091) whatever the quote's length, with
+   the rule beside it spanning the same 60 — so the height is set, not grown, and the text is
+   clamped to the two lines that fit and ellipsised, which is what the design's own render shows. */
+.ref-hover-quote-text {
+    margin: 0;
+    /* max-height, not height: an explicit height beats -webkit-line-clamp and let a third line
+       show through under the ellipsis. The 60px belongs to the block above, not to the text. */
+    max-height: 44px;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 22px;
+    color: #222A38;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+.ref-hover-meta {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    color: #5E6E87;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ref-hover-divider {
+    height: 1px;
+    background: #E5E9F0;
+}
+
+.ref-hover-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* the citation's own number, in brand/muted */
+.ref-hover-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background: #D9E6FE;
+    color: #155DFC;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+}
+
+.ref-hover-buttons {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ref-hover-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: #5E6E87;
+    cursor: pointer;
+}
+
+.ref-hover-icon:hover { background: #F2F4F8; }
+.ref-hover-quote-icon { width: 12px; height: 12px; display: block; }
+.ref-hover-bookmark { width: 14px !important; height: 14px !important; }
+.ref-hover-bookmark.active { color: #155DFC; }
+
+/* `interactive/sm` at 10/12, per the design's Full Text chip */
+.ref-hover-fulltext {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 4px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 12px;
+    color: #5E6E87;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.ref-hover-fulltext:hover { background: #F2F4F8; }
+.ref-hover-external { width: 12px !important; height: 12px !important; }
+
 /* The panel hangs off the composer rather than sitting in the transcript, matching Figma
    111:4385 (x=148, y=-502 inside the 976x112 input-bar frame — same width and x as the input row,
    bottom edge 8px above it). `bottom: 100%` measures from the dock's top, which is the composer's
