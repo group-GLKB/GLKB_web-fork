@@ -2210,5 +2210,6 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 
 /* a finished retrieval probe */
 .ip-channel { color: #6B7A93; }
+.ip-channel.pending { color: #8A97AC; }
 .ip-channel.failed { color: #A8B3C6; }
 .ip-channel-hits { color: #A8B3C6; }

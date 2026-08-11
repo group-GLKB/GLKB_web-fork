@@ -386,8 +386,12 @@ const SearchingDetail = ({ label, topic, keywords, channels, reduced, onExpandCh
     // the "show all" control out of sight — the feature was running, just underneath the fold.
     // Finished probes go FIRST: they are the newest information and the only thing that changes
     // during the long stretch between the plan landing and the pool being fused.
+    // Running probes lead: during retrieval they are the only thing that is actually changing,
+    // and the stretch between one landing and the next is up to a minute long.
     const items = [
-        ...(channels || []).map((c) => ({ kind: 'channel', text: c.name, hits: c.hits, ok: c.ok })),
+        ...(channels || []).map((c) => ({
+            kind: 'channel', text: c.name, hits: c.hits, ok: c.ok, pending: c.pending,
+        })),
         ...(topic || []).map((t) => ({ kind: 'topic', text: t })),
         ...(keywords || []).map((k) => ({ kind: 'query', text: k })),
     ];
@@ -404,9 +408,15 @@ const SearchingDetail = ({ label, topic, keywords, channels, reduced, onExpandCh
                 render={(item, key) => (
                     <p className="ip-detail-bullet" key={key}>
                         {item.kind === 'channel' && (
-                            <span className={`ip-channel${item.ok ? '' : ' failed'}`}>
-                                {item.ok ? '✓' : '✕'} {item.text}
-                                {item.ok ? <span className="ip-channel-hits"> — {item.hits} hits</span> : ' — unavailable'}
+                            <span className={`ip-channel${item.pending ? ' pending' : ''}${!item.pending && !item.ok ? ' failed' : ''}`}>
+                                {/* A probe is announced when it starts and updated when it lands,
+                                    so "still running" must not read as the ✕ of a failed one. */}
+                                {item.pending ? '⋯' : (item.ok ? '✓' : '✕')} {item.text}
+                                {item.pending
+                                    ? <span className="ip-channel-hits"> — searching…</span>
+                                    : (item.ok
+                                        ? <span className="ip-channel-hits"> — {item.hits} hits</span>
+                                        : ' — unavailable')}
                             </span>
                         )}
                         {item.kind === 'topic' && <>Topic: {item.text}</>}
