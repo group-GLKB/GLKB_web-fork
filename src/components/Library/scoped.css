@@ -710,10 +710,10 @@
     --history-row-gutter: 0px;
 }
 
-/* Figma row: fixed 80px tall, 16px side padding, hairline separator. */
-.library-reference-list .history-item,
-.library-chat-list .history-item,
-.library-graph-list .history-item {
+/* Reference rows are a fixed 80px box; chat and graph rows size to their text.
+   Scoped through .history-item-row so these outrank ConversationCard's own
+   .history-item-row-no-checkbox padding, which every library row carries. */
+.library-reference-list .history-item-row .history-item {
     grid-column: 1;
     display: flex;
     align-items: center;
@@ -721,6 +721,16 @@
     height: 80px;
     box-sizing: border-box;
     padding: 0 16px;
+}
+
+.library-chat-list .history-item-row .history-item,
+.library-graph-list .history-item-row .history-item {
+    grid-column: 1;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-sizing: border-box;
+    padding: 16px;
 }
 
 .library-reference-list .history-item-row::after,
@@ -865,56 +875,15 @@
     width: 100%;
 }
 
-.library-card-icon {
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10);
-    z-index: 2;
-    pointer-events: none;
-}
-
-.library-card-icon svg {
-    width: 24px;
-    height: 24px;
-    display: block;
-}
-
-.library-card-icon svg path {
-    stroke: currentColor;
-    fill: none;
-}
-
-.library-card-icon svg circle {
-    fill: currentColor;
-    stroke: currentColor;
-}
-
-.library-card-icon--chat {
-    background-color: #E7F1FF;
-    color: #2B3F6C;
-}
-
-.library-card-icon--graph {
-    background-color: #F0FDF4;
-    color: #16A34A;
-}
-
 .library-card-meta {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     font-family: 'Geist', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    color: #969696;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    color: #5E6E87;
 }
 
 .library-card-meta-icon {

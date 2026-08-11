@@ -114,6 +114,27 @@ await page.setContent(SHELL(LIBRARY_CSS + CARD_CSS, `
       </div>
       <div class="library-search"><input class="library-search-input" placeholder="Search All Items..."></div>
     </div>
+    <div class="library-chat-list">
+      <div class="history-item-row history-item-row-no-checkbox">
+        <div class="history-item">
+          <span class="history-item-icon"><svg viewBox="0 0 20 20"></svg></span>
+          <div class="history-item-content">
+            <div class="history-item-title-row"><span class="history-title">Interferons are key cytokines.</span></div>
+            <div class="library-card-meta"><span>Just now</span><span class="library-card-meta-sep">&middot;</span><span>5 Messages</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="library-reference-list">
+      <div class="history-item-row history-item-row-no-checkbox">
+        <div class="history-item">
+          <div class="library-entry-content">
+            <span class="library-entry-title">Interferons are key cytokines.</span>
+            <span class="library-entry-meta">Coomans de Brach&egrave;ne A et al. &middot; 2024</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>`));
 await page.waitForTimeout(1200);
@@ -136,6 +157,13 @@ for (const [k, sel] of Object.entries({
     segmented: '.library-segmented',
     sortPill: '.library-sort-pill',
     search: '.library-search-input',
+    chatRow: '.library-chat-list .history-item',
+    chatIcon: '.library-chat-list .history-item-icon',
+    chatTitle: '.library-chat-list .history-title',
+    chatMeta: '.library-card-meta',
+    refRow: '.library-reference-list .history-item',
+    refTitle: '.library-entry-title',
+    refMeta: '.library-entry-meta',
 })) lib[k] = await page.evaluate(new Function('sel', `return (${PROBE})(sel)`), sel);
 
 check('folder rail width', 240, lib.rail.w);
@@ -165,6 +193,20 @@ check('sort pill height', 28, lib.sortPill.h);
 check('sort pill radius (radius/2)', '8px', lib.sortPill.radius);
 check('search height', 36, lib.search.h);
 check('search radius (radius/2)', '8px', lib.search.radius);
+// Chat rows follow History's row, not the reference row's fixed 80px box.
+check('chat row padding (space/4)', '16px', lib.chatRow.pad);
+check('chat row gap (space/4)', '16px', lib.chatRow.gap);
+check('chat row height (2 lines + padding)', 72, lib.chatRow.h);
+check('chat row glyph size', '20 x 20', `${lib.chatIcon.w} x ${lib.chatIcon.h}`);
+check('chat row title (interactive/lg)', '500 16px/20px', lib.chatTitle.font);
+check('chat row title colour (text/primary)', '#0C1018', hex(lib.chatTitle.color));
+check('chat row meta (body-sm)', '400 12px/20px', lib.chatMeta.font);
+check('chat row meta colour (text/tertiary)', '#5E6E87', hex(lib.chatMeta.color));
+// Reference rows keep the design's fixed 80px box.
+check('reference row height', 80, lib.refRow.h);
+check('reference row padding', '0px 16px', lib.refRow.pad);
+check('reference title (h5)', '600 16px/20px', lib.refTitle.font);
+check('reference meta (body-sm)', '400 12px/20px', lib.refMeta.font);
 
 // ---------------------------------------------------------------- History
 await page.setContent(SHELL(HISTORY_CSS + CARD_CSS, `

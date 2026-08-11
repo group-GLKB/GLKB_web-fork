@@ -30,17 +30,11 @@ const getDefaultTitle = (conversation) => (
     conversation?.leadingTitle || conversation?.title || 'Untitled conversation'
 );
 
-const getDefaultSubtitle = (conversation) => {
-    const count = typeof conversation?.messageCount === 'number'
-        ? conversation.messageCount
-        : 0;
-    return `${count} ${count === 1 ? 'message' : 'messages'}`;
-};
-
 const ConversationCard = ({
     conversation,
     title,
     titleContent,
+    leadingIcon,
     subtitle,
     timestamp,
     footerContent,
@@ -63,10 +57,7 @@ const ConversationCard = ({
         () => (title !== undefined ? title : getDefaultTitle(conversation)),
         [conversation, title]
     );
-    const resolvedSubtitle = useMemo(
-        () => (subtitle !== undefined ? subtitle : getDefaultSubtitle(conversation)),
-        [conversation, subtitle]
-    );
+    const resolvedSubtitle = subtitle;
     const resolvedTitleLabel = typeof resolvedTitle === 'string'
         ? resolvedTitle
         : getDefaultTitle(conversation);
@@ -198,6 +189,9 @@ const ConversationCard = ({
                     }
                 }}
             >
+                {leadingIcon ? (
+                    <span className="history-item-icon" aria-hidden="true">{leadingIcon}</span>
+                ) : null}
                 <Box className="history-item-content">
                     <Box className="history-item-title-row">
                         {isEditing ? (
@@ -225,15 +219,7 @@ const ConversationCard = ({
                             titleContent ? (
                                 titleContent
                             ) : (
-                                <Typography className="history-title" sx={{
-                                    fontFamily: 'DM Sans, sans-serif',
-                                    fontWeight: 600,
-                                    fontSize: '16px',
-                                    color: '#164563',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                }}>
+                                <Typography className="history-title">
                                     {resolvedTitle}
                                 </Typography>
                             )
@@ -249,34 +235,22 @@ const ConversationCard = ({
                                     width: 28,
                                     height: 28,
                                     borderRadius: '8px',
-                                    color: '#164563',
+                                    color: '#5E6E87',
                                 }}
                             >
                                 <MoreHorizIcon sx={{ fontSize: 18 }} />
                             </IconButton>
                         )}
                     </Box>
-                    <Typography sx={{
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontWeight: 400,
-                        fontSize: '14px',
-                        color: '#646464',
-                        overflow: 'hidden',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                    }}>
-                        {resolvedSubtitle}
-                    </Typography>
+                    {resolvedSubtitle ? (
+                        <Typography className="history-subtitle">
+                            {resolvedSubtitle}
+                        </Typography>
+                    ) : null}
                     {footerContent !== undefined && footerContent !== null ? (
                         footerContent
                     ) : (timestamp !== undefined && timestamp !== null && (
-                        <Typography sx={{
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontWeight: 500,
-                            fontSize: '12px',
-                            color: '#808080',
-                        }}>
+                        <Typography className="history-timestamp">
                             {timestamp}
                         </Typography>
                     ))}
