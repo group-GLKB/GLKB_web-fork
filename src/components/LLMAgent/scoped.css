@@ -948,6 +948,12 @@
     cursor: pointer;
 }
 
+/* Pick-one is round, pick-any is square. The design draws one selector for both, which leaves the
+   user no way to know whether a second click adds to their choice or replaces it. */
+.clarify-option-mark.single {
+    border-radius: 50%;
+}
+
 .clarify-option.selected .clarify-option-mark {
     border-color: #155DFC;
     background: #155DFC;
@@ -1010,13 +1016,54 @@
     color: #A10902 !important;
 }
 
+/* "Select all that apply" — shown only for multi, where it is the difference between adding to a
+   choice and replacing it. */
+.clarify-hint {
+    margin: 0 8px 8px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+    color: #5E6E87;
+}
+
 .clarify-actions {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
     gap: 8px;
     padding: 8px 8px 0;
 }
+
+/* pushes everything after it to the right, so Skip stays on the left */
+.clarify-actions-spacer {
+    flex: 1 0 0;
+}
+
+.clarify-step {
+    font-size: 12px;
+    line-height: 16px;
+    color: #5E6E87;
+    white-space: nowrap;
+}
+
+.clarify-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    background: #F2F4F8;
+    color: #222A38;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    cursor: pointer;
+}
+
+.clarify-back:hover { background: #E5E9F0; }
+.clarify-back:disabled { opacity: 0.6; cursor: default; }
 
 /* Skip while nothing is answered (111:4438); Submit once something is (111:4845). */
 .clarify-skip,

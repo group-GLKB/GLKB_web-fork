@@ -124,7 +124,11 @@ check('index column width (space/5)', 20, got.indexWidth);
 check('description indent (space/5)', '0px 20px', got.descwrap.pad);
 check('description type (body-sm)', '400 12px/20px', got.desc.font);
 check('selector size', '16 x 16', `${got.mark.w} x ${got.mark.h}`);
-check('selector radius (radius/1)', '4px', got.mark.radius);
+// DELIBERATE DEVIATION. Figma draws radius/1 (4px) for both response types; the fixture is a
+// single-select question and its selectors are round on purpose, because the design gives the
+// user no way to tell whether a second click adds to their choice or replaces it. Multi-select
+// keeps the design's 4px square — `.clarify-option-mark` unchanged, `.single` overrides it.
+check('selector radius — single is round by decision (design: 4px)', '50%', got.mark.radius);
 check('selector fill selected (brand/primary)', '#155DFC', hex(got.markSel.bg));
 check('Other input height', 32, got.input.h);
 check('Other input radius (radius/2)', '8px', got.input.radius);
