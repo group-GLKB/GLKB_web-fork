@@ -60,6 +60,9 @@ import {
 
 import { emptyFunnel, mergeFunnel } from './funnel';
 import InvestigateProgress, { formatElapsed } from './InvestigateProgress';
+import ClarifyPanel, { getClarificationQuestionKey } from './ClarifyPanel';
+import ReferenceHoverCard from './ReferenceHoverCard';
+import { getBookmarks, toggleBookmark } from '../../utils/bookmarks';
 import { resolveClarifyRound } from './clarifyRound';
 import { mintSessionId } from './sessionId';
 import { ReactComponent as ContentCopyIcon } from '../../img/llm/content_copy.svg';
@@ -163,7 +166,15 @@ const mergeInvestigateDetail = (prev, next, label) => {
     if (Array.isArray(next.channels) && next.channels.length) {
         const byName = new Map((out.channels || []).map((c) => [c.name, c]));
         next.channels.forEach((c) => {
-            if (c && c.name) byName.set(String(c.name), { name: String(c.name), hits: Number(c.hits) || 0, ok: c.ok !== false });
+            if (!c || !c.name) return;
+            // `pending` = announced but still running. Carried through so the panel can say
+            // "searching…" instead of showing an unfinished probe as a failure.
+            byName.set(String(c.name), {
+                name: String(c.name),
+                hits: Number(c.hits) || 0,
+                ok: c.ok !== false,
+                pending: c.pending === true,
+            });
         });
         out.channels = Array.from(byName.values());
     }
@@ -221,201 +232,6 @@ const getUserNotifyEmail = () => {
     } catch {
         return '';
     }
-};
-
-/**
- * Inline clarify card (Figma "Asking User Question v2") — not a modal.
- *
- * The design draws a single question card; a round can carry up to four, so each
- * question gets its own card, with the close button on the first and the action
- * row on the last. With one question the result is the design as drawn.
- *
- * The marker to the right of each option is a number for single-choice questions
- * and an empty box for multi-choice, exactly as designed, and turns into a filled
- * blue check once picked. The numbers are a visual index only — there is no
- * keyboard binding behind them.
- */
-const ClarifyOptionMarker = ({ selected, index, showIndex }) => (
-    <span className={`clarify-marker${selected ? ' is-selected' : ''}`}>
-        {selected
-            ? <CheckIcon className="clarify-marker-check" />
-            : (showIndex ? index : null)}
-    </span>
-);
-
-const ClarifyPanel = ({
-    pendingClarification,
-    clarificationDrafts,
-    clarificationError,
-    clarificationSubmitting,
-    hasInvalidOtherSelection,
-    onUpdateDraft,
-    onSubmit,
-    onSkip,
-}) => {
-    if (!pendingClarification) return null;
-
-    const questions = Array.isArray(pendingClarification.questions) ? pendingClarification.questions : [];
-    const total = questions.length;
-
-    // "Skip" only while the round is untouched; the moment anything is answered the
-    // action turns into Submit, which is the difference between the two design states.
-    const hasAnyAnswer = questions.some((question, index) => {
-        const draft = clarificationDrafts[getClarificationQuestionKey(question, index)];
-        if (!draft) return false;
-        const selected = Array.isArray(draft.selected) ? draft.selected : [];
-        return selected.length > 0 || Boolean(String(draft.text || '').trim());
-    });
-
-    return (
-        <Box className="clarify-panel" role="region" aria-label="Clarifying questions">
-            {questions.map((question, index) => {
-                const questionKey = getClarificationQuestionKey(question, index);
-                const draft = clarificationDrafts[questionKey] || { selected: [], text: '', otherSelected: false };
-                const selected = Array.isArray(draft.selected) ? draft.selected : [];
-                const otherText = typeof draft.text === 'string' ? draft.text : '';
-                const otherSelected = Boolean(draft.otherSelected);
-                const responseType = String(question?.response_type || 'text').toLowerCase();
-                const options = Array.isArray(question?.options) ? question.options : [];
-                const isSingle = responseType === 'single';
-                const isText = responseType === 'text';
-                const heading = question?.question || question?.header || `Question ${index + 1}`;
-                const isLast = index === total - 1;
-
-                const toggleOption = (optionLabel) => {
-                    if (isSingle) {
-                        onUpdateDraft(questionKey, { selected: [optionLabel], text: '', otherSelected: false });
-                        return;
-                    }
-                    const next = selected.includes(optionLabel)
-                        ? selected.filter((item) => item !== optionLabel)
-                        : [...selected, optionLabel];
-                    onUpdateDraft(questionKey, {
-                        selected: Array.from(new Set(next)),
-                        text: otherText,
-                        otherSelected,
-                    });
-                };
-
-                const otherPicked = otherSelected || Boolean(isText && otherText);
-
-                return (
-                    <Box key={questionKey} className="clarify-card">
-                        <Box className="clarify-card-head">
-                            <Typography className="clarify-card-title">
-                                {total > 1 ? `${heading} (${index + 1}/${total})` : heading}
-                            </Typography>
-                            {index === 0 && (
-                                <IconButton
-                                    className="clarify-card-close"
-                                    aria-label="Dismiss clarifying questions"
-                                    disabled={clarificationSubmitting}
-                                    onClick={() => onSkip?.()}
-                                >
-                                    <ClearIcon />
-                                </IconButton>
-                            )}
-                        </Box>
-
-                        <Box className="clarify-options">
-                            {!isText && options.map((option, optionIndex) => {
-                                const optionLabel = String(option?.label || '').trim();
-                                if (!optionLabel) return null;
-                                const isChecked = selected.includes(optionLabel);
-                                const description = option?.description || '';
-                                return (
-                                    <Box
-                                        key={optionLabel}
-                                        role={isSingle ? 'radio' : 'checkbox'}
-                                        aria-checked={isChecked}
-                                        tabIndex={0}
-                                        className={`clarify-option${isChecked ? ' is-selected' : ''}`}
-                                        onClick={() => toggleOption(optionLabel)}
-                                        onKeyDown={(event) => {
-                                            if (event.key === 'Enter' || event.key === ' ') {
-                                                event.preventDefault();
-                                                toggleOption(optionLabel);
-                                            }
-                                        }}
-                                    >
-                                        <Box className="clarify-option-body">
-                                            <span className="clarify-option-label">{optionLabel}</span>
-                                            {description && (
-                                                <span className="clarify-option-desc">{description}</span>
-                                            )}
-                                        </Box>
-                                        <ClarifyOptionMarker
-                                            selected={isChecked}
-                                            index={optionIndex + 1}
-                                            showIndex={isSingle}
-                                        />
-                                    </Box>
-                                );
-                            })}
-
-                            <Box className={`clarify-option clarify-option--other${otherPicked ? ' is-selected' : ''}`}>
-                                <Box className="clarify-option-body">
-                                    <span className="clarify-option-label">Other</span>
-                                    <input
-                                        className="clarify-other-input"
-                                        type="text"
-                                        placeholder="Type your own answer here"
-                                        value={otherText}
-                                        onChange={(event) => {
-                                            const text = event.target.value;
-                                            onUpdateDraft(questionKey, {
-                                                selected: isSingle || isText ? [] : selected,
-                                                text,
-                                                otherSelected: true,
-                                            });
-                                        }}
-                                    />
-                                </Box>
-                                <ClarifyOptionMarker
-                                    selected={otherPicked}
-                                    index={options.length + 1}
-                                    showIndex={isSingle}
-                                />
-                            </Box>
-                        </Box>
-
-                        {isLast && (
-                            <>
-                                {clarificationError && (
-                                    <Typography className="clarify-error">{clarificationError}</Typography>
-                                )}
-                                <Box className="clarify-actions">
-                                    {hasAnyAnswer ? (
-                                        <MuiButton
-                                            className="clarify-submit"
-                                            disabled={clarificationSubmitting || hasInvalidOtherSelection}
-                                            onClick={() => onSubmit?.()}
-                                            endIcon={<ArrowForwardIcon />}
-                                        >
-                                            {clarificationSubmitting ? 'Submitting...' : 'Submit'}
-                                        </MuiButton>
-                                    ) : (
-                                        <MuiButton
-                                            className="clarify-skip"
-                                            disabled={clarificationSubmitting}
-                                            onClick={() => onSkip?.()}
-                                        >
-                                            Skip
-                                        </MuiButton>
-                                    )}
-                                </Box>
-                            </>
-                        )}
-                    </Box>
-                );
-            })}
-        </Box>
-    );
-};
-
-const getClarificationQuestionKey = (question, index) => {
-    const raw = typeof question?.header === 'string' ? question.header.trim() : '';
-    return raw || `question-${index}`;
 };
 
 const buildClarificationDrafts = (questions) => {
@@ -1043,6 +859,9 @@ const trajectoryToGroups = (trajectory) => {
  * would be a lie about what the panel knows.
  */
 const REFERENCE_SKELETON_CARDS = 6;
+// Figma 44:4744 draws five bars per card; their widths are set positionally in scoped.css so the
+// markup stays a plain list and the design's 80/232/200/180/160 ladder lives in one place.
+const REFERENCE_SKELETON_BARS = 5;
 
 const ReferencesSkeleton = () => (
     <div className="references-list ref-skeleton" aria-hidden="true">
@@ -1052,10 +871,9 @@ const ReferencesSkeleton = () => (
                 key={`ref-skeleton-${i}`}
                 style={{ animationDelay: `${(i * 1.6) / REFERENCE_SKELETON_CARDS}s` }}
             >
-                <span className="ref-skeleton-bar short" />
-                <span className="ref-skeleton-bar" />
-                <span className="ref-skeleton-bar" />
-                <span className="ref-skeleton-bar medium" />
+                {Array.from({ length: REFERENCE_SKELETON_BARS }).map((__, j) => (
+                    <span className="ref-skeleton-bar" key={`ref-skeleton-${i}-${j}`} />
+                ))}
             </div>
         ))}
     </div>
@@ -1118,6 +936,60 @@ const MessageCard = React.memo(function MessageCard({
         return referenceIndex >= 0 ? referenceIndex + 1 : null;
     };
     const allowUserEdit = true;
+
+    /**
+     * Reference hover card (Figma "Reference - Hover Preview"). Replaces the browser's native
+     * `title` tooltip on a citation, which could only show one unstyled string and never said
+     * which paper the quote came from.
+     *
+     * The close is delayed because the card is a hover target itself — Full Text and the bookmark
+     * are only reachable if moving the pointer off the citation and onto the card does not dismiss
+     * it on the way across the gap.
+     */
+    const [hoverCard, setHoverCard] = useState(null);
+    const [bookmarkedPmids, setBookmarkedPmids] = useState(() => new Set());
+    const hoverCloseTimer = useRef(null);
+
+    const cancelHoverClose = () => {
+        if (hoverCloseTimer.current) {
+            clearTimeout(hoverCloseTimer.current);
+            hoverCloseTimer.current = null;
+        }
+    };
+
+    const showReferenceCard = (href, element) => {
+        cancelHoverClose();
+        const pmid = String(href || '').split('/').filter(Boolean).pop();
+        const reference = (message.references || []).find(
+            (item) => extractPmidFromReference(item) === pmid,
+        );
+        if (!reference || !element) return;
+        setHoverCard({
+            reference,
+            number: getReferenceNumber(href),
+            rect: element.getBoundingClientRect(),
+        });
+    };
+
+    const hideReferenceCard = () => {
+        cancelHoverClose();
+        hoverCloseTimer.current = setTimeout(() => setHoverCard(null), 160);
+    };
+
+    useEffect(() => () => cancelHoverClose(), []);
+
+    useEffect(() => {
+        const sync = (event) => {
+            const list = event?.detail || getBookmarks();
+            setBookmarkedPmids(new Set(
+                (Array.isArray(list) ? list : []).map((item) => String(item.id ?? item.pmid ?? '')),
+            ));
+        };
+        sync();
+        window.addEventListener('glkb-bookmarks-updated', sync);
+        return () => window.removeEventListener('glkb-bookmarks-updated', sync);
+    }, []);
+
     const [editContent, setEditContent] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [expandedGroups, setExpandedGroups] = useState({});
@@ -1406,19 +1278,6 @@ const MessageCard = React.memo(function MessageCard({
                             />
                         )}
 
-                        {showInvestigateProgress && pendingClarification && (
-                            <ClarifyPanel
-                                pendingClarification={pendingClarification}
-                                clarificationDrafts={clarificationDrafts}
-                                clarificationError={clarificationError}
-                                clarificationSubmitting={clarificationSubmitting}
-                                hasInvalidOtherSelection={hasInvalidOtherSelection}
-                                onUpdateDraft={onUpdateClarificationDraft}
-                                onSubmit={() => onSubmitClarification?.({ useDefaults: false })}
-                                onSkip={() => onSkipClarification?.({ useDefaults: true })}
-                            />
-                        )}
-
                         {showThoughtHeader && (
                             <Box sx={{
                                 display: 'flex',
@@ -1567,11 +1426,25 @@ const MessageCard = React.memo(function MessageCard({
                                             <ReactMarkdown
                                                 remarkPlugins={[remarkGfm]}
                                                 components={{
-                                                    a: ({ href, children, ...props }) => {
+                                                    a: ({ href, children, title, ...props }) => {
                                                         const isPubMedReference = href?.includes('pubmed.ncbi.nlm.nih.gov');
                                                         const referenceNumber = isPubMedReference ? getReferenceNumber(href) : null;
+                                                        if (!isPubMedReference) {
+                                                            return <a href={href} title={title} {...props}>{children}</a>;
+                                                        }
+                                                        // `title` is dropped on purpose: the agent puts the evidence
+                                                        // sentence there, and leaving it would show the browser's own
+                                                        // tooltip on top of the card that now presents the same quote
+                                                        // with the paper it came from.
                                                         return (
-                                                            <a href={href} {...props}>
+                                                            <a
+                                                                href={href}
+                                                                {...props}
+                                                                onMouseEnter={(event) => showReferenceCard(href, event.currentTarget)}
+                                                                onMouseLeave={hideReferenceCard}
+                                                                onFocus={(event) => showReferenceCard(href, event.currentTarget)}
+                                                                onBlur={hideReferenceCard}
+                                                            >
                                                                 <span className="inline-citation-number">{referenceNumber || children}</span>
                                                             </a>
                                                         );
@@ -1580,6 +1453,35 @@ const MessageCard = React.memo(function MessageCard({
                                             >
                                                 {stripUnresolvedCitations(message.content)}
                                             </ReactMarkdown>
+                                            {hoverCard && (
+                                                <ReferenceHoverCard
+                                                    reference={hoverCard.reference}
+                                                    number={hoverCard.number}
+                                                    anchorRect={hoverCard.rect}
+                                                    isBookmarked={bookmarkedPmids.has(
+                                                        String(extractPmidFromReference(hoverCard.reference)),
+                                                    )}
+                                                    onMouseEnter={cancelHoverClose}
+                                                    onMouseLeave={hideReferenceCard}
+                                                    onBookmark={(event) => {
+                                                        event.preventDefault();
+                                                        event.stopPropagation();
+                                                        const pmid = extractPmidFromReference(hoverCard.reference);
+                                                        toggleBookmark({ ...hoverCard.reference, pmid })
+                                                            .then((next) => window.dispatchEvent(new CustomEvent(
+                                                                'glkb-bookmarks-updated', { detail: next },
+                                                            )))
+                                                            .catch(() => {});
+                                                    }}
+                                                    onCite={(event) => {
+                                                        event.preventDefault();
+                                                        event.stopPropagation();
+                                                        copy(`[${hoverCard.number}] ${hoverCard.reference.title || ''} `
+                                                            + `PMID: ${extractPmidFromReference(hoverCard.reference)}`);
+                                                    }}
+                                                    onFullText={() => setHoverCard(null)}
+                                                />
+                                            )}
                                         </div>
                                     )}
                         </Box>
@@ -2391,6 +2293,10 @@ function LLMAgent() {
                 journal,
                 authors,
                 evidence,
+                // The PMC full text, where the paper has one. This function rebuilds references
+                // through a whitelist, so a field it does not name is silently dropped — which is
+                // what happened to this one: the agent sent it and nothing downstream ever saw it.
+                fulltext_url: ref?.fulltext_url || '',
             };
         });
     };
@@ -4422,6 +4328,27 @@ function LLMAgent() {
                                                             </button>
                                                         </div>
                                                     )}
+                                                    {/* Figma "Asking Question" hangs the panel off the
+                                                        composer (111:4385 sits at y=-502 inside the
+                                                        input bar frame), not in the message stream:
+                                                        it is a question to answer before the run can
+                                                        go on, so it belongs where the answer is typed
+                                                        and must not scroll away with the transcript. */}
+                                                    <div className="composer-dock">
+                                                        {pendingClarification && (
+                                                            <div className="clarify-float">
+                                                                <ClarifyPanel
+                                                                    pendingClarification={pendingClarification}
+                                                                    clarificationDrafts={clarificationDrafts}
+                                                                    clarificationError={clarificationError}
+                                                                    clarificationSubmitting={clarificationSubmitting}
+                                                                    hasInvalidOtherSelection={hasInvalidOtherSelection}
+                                                                    onUpdateDraft={updateClarificationDraft}
+                                                                    onSubmit={() => submitClarification({ useDefaults: false })}
+                                                                    onSkip={() => submitClarification({ useDefaults: true })}
+                                                                />
+                                                            </div>
+                                                        )}
                                                     <ChatSearchBar
                                                         userInput={userInput}
                                                         setUserInput={setUserInput}
@@ -4436,6 +4363,7 @@ function LLMAgent() {
                                                         })}
                                                         onStop={handleStopStreaming}
                                                     />
+                                                    </div>
                                                 </div>
                                             </Box>
                                             {!useMobileReferencesDrawer && !isReferencesCollapsed && (
@@ -4514,8 +4442,8 @@ function LLMAgent() {
                                                                             <DownloadIcon
                                                                                 aria-label="Download references"
                                                                                 style={{
-                                                                                    width: '16px',
-                                                                                    height: '16px',
+                                                                                    width: '14px',
+                                                                                    height: '14px',
                                                                                     display: 'block',
                                                                                     color: isExportDisabled ? '#B0B7C3' : '#5E6E87',
                                                                                 }}
@@ -4547,7 +4475,9 @@ function LLMAgent() {
                                                                                 ref.citation_count,
                                                                                 ref.year,
                                                                                 ref.journal,
-                                                                                ref.authors
+                                                                                ref.authors,
+                                                                                // [6] the real full text, where the paper has one
+                                                                                ref.fulltext_url,
                                                                             ];
                                                                             const pubmedId = ref.url.split('/').filter(Boolean).pop();
                                                                             const isHighlighted = hoveredPubmedId === pubmedId;
@@ -4616,8 +4546,8 @@ function LLMAgent() {
                                                                 <DownloadIcon
                                                                     aria-label="Download references"
                                                                     style={{
-                                                                        width: '16px',
-                                                                        height: '16px',
+                                                                        width: '14px',
+                                                                        height: '14px',
                                                                         display: 'block',
                                                                         color: isExportDisabled ? '#B0B7C3' : '#5E6E87',
                                                                     }}
@@ -4643,7 +4573,8 @@ function LLMAgent() {
                                                                     ref.citation_count,
                                                                     ref.year,
                                                                     ref.journal,
-                                                                    ref.authors
+                                                                    ref.authors,
+                                                                    ref.fulltext_url,
                                                                 ];
                                                                 const pubmedId = ref.url.split('/').filter(Boolean).pop();
                                                                 const isHighlighted = hoveredPubmedId === pubmedId;
