@@ -4471,7 +4471,9 @@ function LLMAgent() {
                                                                                 ref.citation_count,
                                                                                 ref.year,
                                                                                 ref.journal,
-                                                                                ref.authors
+                                                                                ref.authors,
+                                                                                // [6] the real full text, where the paper has one
+                                                                                ref.fulltext_url,
                                                                             ];
                                                                             const pubmedId = ref.url.split('/').filter(Boolean).pop();
                                                                             const isHighlighted = hoveredPubmedId === pubmedId;
@@ -4567,7 +4569,8 @@ function LLMAgent() {
                                                                     ref.citation_count,
                                                                     ref.year,
                                                                     ref.journal,
-                                                                    ref.authors
+                                                                    ref.authors,
+                                                                    ref.fulltext_url,
                                                                 ];
                                                                 const pubmedId = ref.url.split('/').filter(Boolean).pop();
                                                                 const isHighlighted = hoveredPubmedId === pubmedId;

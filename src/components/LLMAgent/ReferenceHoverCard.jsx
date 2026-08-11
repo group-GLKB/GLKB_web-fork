@@ -162,9 +162,12 @@ const ReferenceHoverCard = ({
                             ? <BookmarkIcon className="ref-hover-bookmark active" />
                             : <BookmarkBorderIcon className="ref-hover-bookmark" />}
                     </button>
+                    {/* The real full text where the paper has one (PMC), which is what the
+                        label promises. `url` is the PubMed record — a fallback, not full text. */}
                     <a
                         className="ref-hover-fulltext"
-                        href={reference.url || (pmid ? `https://pubmed.ncbi.nlm.nih.gov/${pmid}/` : undefined)}
+                        href={reference.fulltext_url || reference.url
+                            || (pmid ? `https://pubmed.ncbi.nlm.nih.gov/${pmid}/` : undefined)}
                         target="_blank"
                         rel="noreferrer"
                         onClick={onFullText}
