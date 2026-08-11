@@ -19,7 +19,8 @@ import {
   Typography,
 } from '@mui/material';
 
-import { ReactComponent as MetaIcon } from '../../img/library/Icon.svg';
+import { ReactComponent as ChatIcon } from '../../img/library/Message square.svg';
+import { ReactComponent as MapIcon } from '../../img/library/Share.svg';
 import {
   fetchConversations,
   getConversations,
@@ -99,6 +100,11 @@ const formatRelativeTime = (value) => {
     if (months < 12) return `${months} month${months === 1 ? '' : 's'} ago`;
     const years = Math.floor(days / 365);
     return `${years} year${years === 1 ? '' : 's'} ago`;
+};
+
+const formatMessageCount = (conversation) => {
+    const count = typeof conversation?.messageCount === 'number' ? conversation.messageCount : 0;
+    return `${count} ${count === 1 ? 'Message' : 'Messages'}`;
 };
 
 const getConversationTitle = (conversation) => (
@@ -801,13 +807,13 @@ const History = () => {
                                         key={`chat-${item.id}`}
                                         conversation={item.conversation}
                                         title={item.title}
-                                        subtitle={item.subtitle}
+                                        leadingIcon={<ChatIcon />}
+                                        subtitle={undefined}
                                         footerContent={(
                                             <div className="history-card-meta">
-                                                <MetaIcon className="history-card-meta-icon" />
                                                 <span>{formatRelativeTime(item.conversation?.updatedAt || item.conversation?.createdAt)}</span>
                                                 <span className="history-card-meta-sep">·</span>
-                                                <span>Chat</span>
+                                                <span>{formatMessageCount(item.conversation)}</span>
                                             </div>
                                         )}
                                         timestamp={item.timestamp}
@@ -851,9 +857,9 @@ const History = () => {
                                         ) : null}
                                         title=""
                                         subtitle={item.subtitle}
+                                        leadingIcon={<MapIcon />}
                                         footerContent={(
                                             <div className="history-card-meta">
-                                                <MetaIcon className="history-card-meta-icon" />
                                                 <span>{formatRelativeTime(item.graphHistory?.createdAt || item.graphHistory?.updatedAt)}</span>
                                                 <span className="history-card-meta-sep">·</span>
                                                 <span>Map</span>

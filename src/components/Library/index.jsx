@@ -43,7 +43,6 @@ import {
 } from '@mui/material';
 
 import { ReactComponent as FolderOpenIcon } from '../../img/folder_open.svg';
-import { ReactComponent as MetaIcon } from '../../img/library/Icon.svg';
 import {
     ReactComponent as ChatIcon,
 } from '../../img/library/Message square.svg';
@@ -85,6 +84,11 @@ import { useAuth } from '../Auth/AuthContext';
 import nodeStyleColors from '../Graph/nodeStyleColors.json';
 import CiteDialog from '../Units/CiteDialog';
 import ConversationCard from '../Units/ConversationCard';
+
+const formatMessageCount = (conversation) => {
+    const count = typeof conversation?.messageCount === 'number' ? conversation.messageCount : 0;
+    return `${count} ${count === 1 ? 'Message' : 'Messages'}`;
+};
 
 const ALL_TAB = 'all';
 const REFERENCES_TAB = 'references';
@@ -1762,19 +1766,15 @@ const Library = () => {
                                                         onMouseEnter={(event) => handleLibraryWrapperHover(event, true)}
                                                         onMouseLeave={(event) => handleLibraryWrapperHover(event, false)}
                                                     >
-                                                        <span className="library-card-icon library-card-icon--chat" aria-hidden="true">
-                                                            <ChatIcon />
-                                                        </span>
                                                         <ConversationCard
                                                             conversation={conversation}
                                                             title={getConversationTitle(conversation)}
-                                                            subtitle={getConversationSubtitle(conversation)}
+                                                            leadingIcon={<ChatIcon />}
                                                             footerContent={(
                                                                 <div className="library-card-meta">
-                                                                    <MetaIcon className="library-card-meta-icon" />
                                                                     <span>{formatRelativeTime(conversation?.updatedAt || conversation?.createdAt)}</span>
-                                                                    <span className="library-card-meta-sep">|</span>
-                                                                    <span>Chat</span>
+                                                                    <span className="library-card-meta-sep">·</span>
+                                                                    <span>{formatMessageCount(conversation)}</span>
                                                                 </div>
                                                             )}
                                                             onOpen={(item) => handleOpenConversation(item.id)}
@@ -1828,11 +1828,9 @@ const Library = () => {
                                                             onMouseEnter={(event) => handleLibraryWrapperHover(event, true)}
                                                             onMouseLeave={(event) => handleLibraryWrapperHover(event, false)}
                                                         >
-                                                            <span className="library-card-icon library-card-icon--graph" aria-hidden="true">
-                                                                <ShareIcon />
-                                                            </span>
                                                             <ConversationCard
                                                                 conversation={graph}
+                                                                leadingIcon={<ShareIcon />}
                                                                 titleContent={(
                                                                     <Box sx={{ flex: 1, minWidth: 0 }}>
                                                                         {graph?.terms?.length ? (
@@ -1942,19 +1940,15 @@ const Library = () => {
                                                     onMouseEnter={(event) => handleLibraryWrapperHover(event, true)}
                                                     onMouseLeave={(event) => handleLibraryWrapperHover(event, false)}
                                                 >
-                                                    <span className="library-card-icon library-card-icon--chat" aria-hidden="true">
-                                                        <ChatIcon />
-                                                    </span>
                                                     <ConversationCard
                                                         conversation={conversation}
                                                         title={getConversationTitle(conversation)}
-                                                        subtitle={getConversationSubtitle(conversation)}
+                                                        leadingIcon={<ChatIcon />}
                                                         footerContent={(
                                                             <div className="library-card-meta">
-                                                                <MetaIcon className="library-card-meta-icon" />
                                                                 <span>{formatRelativeTime(conversation?.updatedAt || conversation?.createdAt)}</span>
-                                                                <span className="library-card-meta-sep">|</span>
-                                                                <span>Chat</span>
+                                                                <span className="library-card-meta-sep">·</span>
+                                                                <span>{formatMessageCount(conversation)}</span>
                                                             </div>
                                                         )}
                                                         onOpen={(item) => handleOpenConversation(item.id)}
@@ -1986,11 +1980,9 @@ const Library = () => {
                                                         onMouseEnter={(event) => handleLibraryWrapperHover(event, true)}
                                                         onMouseLeave={(event) => handleLibraryWrapperHover(event, false)}
                                                     >
-                                                        <span className="library-card-icon library-card-icon--graph" aria-hidden="true">
-                                                            <ShareIcon />
-                                                        </span>
                                                         <ConversationCard
                                                             conversation={graph}
+                                                            leadingIcon={<ShareIcon />}
                                                             titleContent={(
                                                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                                                     {graph?.terms?.length ? (

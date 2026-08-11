@@ -57,7 +57,9 @@
     box-sizing: border-box;
     cursor: pointer;
     position: relative;
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 16px;
     transition: background-color 0.2s ease, border-radius 0.2s ease;
 }
 
@@ -80,6 +82,22 @@
         opacity: 1;
         pointer-events: auto;
     }
+}
+
+/* Figma 176:10878 — the row is a 20px glyph and the text column, 16px apart. */
+.history-item-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #5E6E87;
+}
+
+.history-item-icon svg {
+    width: 20px;
+    height: 20px;
 }
 
 .history-item-content {
