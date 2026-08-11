@@ -138,12 +138,13 @@
     z-index: 2;
 }
 
+/* Figma 44:4573 — 22x22 so it lines up with the 22px sort toggle beside it. */
 .references-action-button.MuiIconButton-root {
     padding: 4px;
     border-radius: 4px;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     overflow: hidden;
 }
 
@@ -193,17 +194,20 @@
     background-color: #ffffff;
 }
 
+/* Figma "Investigate Thinking" / References panel (node 44:4561): the 400px column insets the
+   384px card by space/4 on the right and space/6 at the bottom, flush left. */
 .references-column {
-    padding: 16px 14px 24px 0;
+    padding: 16px 16px 24px 0;
     box-sizing: border-box;
     position: relative;
 }
 
+/* Inside stroke, so the card's content box stays the full 384px the design lays out against. */
 .references-column .references-container {
-    border: 1px solid #E5E9F0;
+    border: none;
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 2px 10px rgba(12, 16, 24, 0.04);
+    box-shadow: inset 0 0 0 1px #E5E9F0, 0 2px 10px rgba(12, 16, 24, 0.04);
 }
 
 .references-collapse-toggle.MuiIconButton-root {
@@ -242,7 +246,7 @@
     justify-content: space-between;
     gap: 12px;
     padding: 20px 24px;
-    border-bottom: 1px solid #F2F4F8;
+    box-shadow: inset 0 -1px 0 #F2F4F8;
 }
 
 .references-header-main {
@@ -263,12 +267,14 @@
     flex-shrink: 0;
 }
 
+/* Figma 44:4566 — icon/label/chevron on space/1, divided from the title by space/3 either side.
+   Type is the `caption` style (Geist Regular 10/12) in color/text/tertiary. */
 .references-scope-trigger {
     min-width: 0;
     max-width: 218px;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     padding: 0 0 0 12px;
     border: none;
     border-left: 1px solid #F2F4F8;
@@ -306,10 +312,11 @@
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
 }
 
+/* Figma 44:4569 — iconSize/xs. */
 .references-scope-chevron {
-    width: 14px !important;
-    height: 14px !important;
-    color: #8090AB;
+    width: 12px !important;
+    height: 12px !important;
+    color: #5E6E87;
     transform: rotate(90deg);
     transition: transform 0.16s ease;
     flex-shrink: 0;
@@ -377,7 +384,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 24px;
-    border-bottom: 1px solid #F2F4F8;
+    box-shadow: inset 0 -1px 0 #F2F4F8;
+    background-color: #FCFDFE;
 }
 
 .references-count-label {
@@ -391,7 +399,7 @@
 .references-toolbar-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
 }
 
 .references-sort-toggle.MuiToggleButtonGroup-root {
@@ -401,6 +409,7 @@
     gap: 0;
 }
 
+/* Figma 44:4575/44:4577 — 20px segments in a 1px-padded track, so the group is 22px tall. */
 .references-sort-toggle .MuiToggleButton-root {
     text-transform: none;
     font-family: 'Geist', sans-serif;
@@ -736,57 +745,307 @@
     color: #5E6E87;
 }
 
-/* Figma "Asking User Question v2" — inline clarify card */
-.clarify-panel {
+/* ── reference hover card — Figma "Reference - Hover Preview", node 299:22085 ──────────────
+   240px wide (208 content + space/4 padding), radius/4 on a border/default hairline, children on
+   space/3. Fixed-positioned because it must escape the transcript's scroll container; the shadow
+   is not in the design but a floating card over text needs one to read as lifted. */
+.ref-hover-card {
+    position: fixed;
+    z-index: 1300;
+    width: 240px;
+    box-sizing: border-box;
+    padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin: 12px 0 16px;
-}
-
-.clarify-card {
-    display: flex;
-    flex-direction: column;
-    padding: 16px 12px;
-    border: 1px solid #E5E9F0;
     border-radius: 16px;
     background: #FFFFFF;
-    overflow: hidden;
+    /* Inside stroke, as Figma draws it: a real border would eat 2px of the 240 and push the
+       content column to 206 with a 17px inset. The lift shadow is not in the design, but a card
+       floating over body text needs one to read as lifted rather than as part of the paragraph. */
+    box-shadow: inset 0 0 0 1px #E5E9F0, 0 8px 24px rgba(12, 16, 24, 0.12);
+    font-family: 'Geist', sans-serif;
+    pointer-events: auto;
 }
 
-.clarify-card-head {
+.ref-hover-head {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* `interactive/emphasized` */
+.ref-hover-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+    color: #0C1018;
+    overflow-wrap: anywhere;
+}
+
+/* `body-sm`; the design puts the authors and the year/journal on their own lines */
+.ref-hover-source {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    color: #5E6E87;
+}
+
+.ref-hover-authors,
+.ref-hover-year {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* DELIBERATE DEVIATION from Figma 299:22088.
+   The design's text node is 60px for two 20px lines, the extra 20 sitting between them — exactly
+   one line height, i.e. a blank line typed into the placeholder copy. Reproducing it pixel for
+   pixel (verified: every text row landed on the design's own row) left an empty line between the
+   authors and the journal, which reads as a layout bug rather than as spacing. Dropped, so the
+   metadata block is the 40px its two lines need. Restore `margin-bottom: 20px` for a literal
+   match. */
+.ref-hover-authors {
+    margin-bottom: 0;
+}
+
+/* The quote hangs off a rule, space/2 from it. The BLOCK is the design's fixed 60px (299:22089),
+   which is also how tall the rule beside it runs, whatever the quote's length. */
+.ref-hover-quote {
+    display: flex;
+    gap: 8px;
+    height: 60px;
+    border-left: 1px solid #E5E9F0;
+    padding-left: 8px;
+}
+
+/* `body`. The design's quote block is a fixed 60px (299:22091) whatever the quote's length, with
+   the rule beside it spanning the same 60 — so the height is set, not grown, and the text is
+   clamped to the two lines that fit and ellipsised, which is what the design's own render shows. */
+.ref-hover-quote-text {
+    margin: 0;
+    /* max-height, not height: an explicit height beats -webkit-line-clamp and let a third line
+       show through under the ellipsis. The 60px belongs to the block above, not to the text. */
+    max-height: 44px;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 22px;
+    color: #222A38;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+.ref-hover-meta {
+    margin: 0;
+    /* Figma 299:22092 fixes this row at 16px while its text runs at line-height 20 — the block is
+       shorter than its own line box. Letting it size to the text made it 20 and pushed the
+       divider, the footer and the card's own height 4-5px down. */
+    height: 16px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    color: #5E6E87;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ref-hover-divider {
+    height: 1px;
+    background: #E5E9F0;
+    /* Figma 299:22094 is a zero-height stroke — it is drawn at y=256 and costs the column no
+       space, so the 12px gaps either side of it meet at 24px. A 1px box adds its pixel to the
+       flow and pushed the footer, and the card's height, one down. */
+    margin-bottom: -1px;
+}
+
+.ref-hover-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* the citation's own number, in brand/muted */
+.ref-hover-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background: #D9E6FE;
+    color: #155DFC;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+}
+
+.ref-hover-buttons {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ref-hover-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: #5E6E87;
+    cursor: pointer;
+}
+
+.ref-hover-icon:hover { background: #F2F4F8; }
+.ref-hover-quote-icon { width: 12px; height: 12px; display: block; }
+.ref-hover-bookmark { width: 14px !important; height: 14px !important; }
+.ref-hover-bookmark.active { color: #155DFC; }
+
+/* `interactive/sm` at 10/12, per the design's Full Text chip */
+.ref-hover-fulltext {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 4px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 12px;
+    color: #5E6E87;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.ref-hover-fulltext:hover { background: #F2F4F8; }
+.ref-hover-external { width: 12px !important; height: 12px !important; }
+
+/* The panel hangs off the composer rather than sitting in the transcript, matching Figma
+   111:4385 (x=148, y=-502 inside the 976x112 input-bar frame — same width and x as the input row,
+   bottom edge 8px above it). `bottom: 100%` measures from the dock's top, which is the composer's
+   top, so the gap is the design's 8px whatever height the input grows to. Anchoring it here also
+   keeps an unanswered question on screen: in the message stream it scrolled away with the
+   transcript, and the run cannot continue until it is answered. */
+.composer-dock {
+    position: relative;
+    /* A flex column, because `.chat-container .chat-header` centres itself with `align-self`,
+       which only does anything to a flex item. Wrapping the composer in a plain block div
+       silently left-aligned it — at >=981px the bar is `width: calc(100% - 48px)`, so it shifted
+       24px. */
+    display: flex;
+    flex-direction: column;
+}
+
+.clarify-float {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 8px);
+    z-index: 5;
+    /* Mirrors .chat-header's horizontal padding so the panel's edges line up with the input box
+       rather than with the bar around it, which is the alignment the design draws (the panel and
+       the input row share an x and a width). That padding is responsive, so this tracks it at
+       each breakpoint below — spanning the bar instead left the panel 56px wider than the input
+       on a 980px viewport. */
+    padding: 0 56px;
+    /* it floats over the transcript, so it must not grow past the viewport */
+    max-height: min(60vh, 560px);
+    overflow-y: auto;
+    /* Once the panel is taller than that it scrolls inside this wrapper — and a square wrapper
+       clips the panel's 16px corners square. Matching the radius makes the clip follow them. */
+    border-radius: 16px;
+}
+
+@media (max-width: 700px) {
+    .clarify-float { padding: 0 24px; }
+}
+
+@media (min-width: 981px) {
+    /* At this width the composer is not inset by padding but narrowed outright —
+       `.chat-container .chat-header { width: calc(100% - 48px) }`, centred by align-self. The
+       panel has to be narrowed the same way or it hangs 24px past the input on each side. */
+    .chat-container .clarify-float {
+        padding: 0;
+        width: calc(100% - 48px);
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        /* The design's 8px is to the INPUT BOX, and at this width the composer carries
+           `padding: 24px 0` — so measuring 8px off the dock's top left a 32px gap, with the
+           composer's own padding making up the difference. Pull back by that padding. */
+        bottom: calc(100% - 16px);
+    }
+}
+
+/* inline spacing belongs to the inline placement it no longer has */
+.clarify-float .clarify-panel {
+    margin: 0;
+    box-shadow: inset 0 0 0 1px #E5E9F0, 0 12px 32px rgba(12, 16, 24, 0.10);
+}
+
+/* ── clarify panel — Figma "Asking Question", node 111:4385 ─────────────────
+   Panel: radius/4 on a border/default hairline, space/4 block / space/3 inline padding.
+   Rows: space/3 inline / space/2 block on radius/2, background/subtle at rest, background/muted
+   on hover, brand/soft when chosen. The 16px selector is a rounded square in both single- and
+   multi-select — the design draws them identically and lets the semantics differ. */
+.clarify-panel {
+    margin: 12px 0 16px;
+    padding: 16px 12px;
+    border-radius: 16px;
+    box-shadow: inset 0 0 0 1px #E5E9F0;
+    background: #FFFFFF;
+    font-family: 'Geist', sans-serif;
+}
+
+.clarify-question + .clarify-question {
+    margin-top: 16px;
+}
+
+.clarify-question-head {
     display: flex;
     align-items: flex-start;
     gap: 8px;
     padding: 0 8px 12px;
 }
 
-.clarify-card-title {
-    flex: 1;
+/* `body-emphasized` */
+.clarify-question-text {
+    flex: 1 0 0;
     min-width: 0;
-    font-family: 'Geist', sans-serif !important;
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    line-height: 22px !important;
-    color: #0C1018 !important;
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+    color: #0C1018;
+    overflow-wrap: anywhere;
 }
 
-.clarify-card-close.MuiIconButton-root {
+.clarify-close {
     flex-shrink: 0;
     width: 20px;
     height: 20px;
     padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
     color: #5E6E87;
+    cursor: pointer;
 }
 
-.clarify-card-close.MuiIconButton-root:hover {
-    background-color: #F2F4F8;
-    color: #222A38;
-}
-
-.clarify-card-close .MuiSvgIcon-root {
-    font-size: 16px;
-}
+.clarify-close:disabled { cursor: default; opacity: 0.5; }
+.clarify-close-icon { width: 20px !important; height: 20px !important; }
 
 .clarify-options {
     display: flex;
@@ -798,76 +1057,130 @@
 .clarify-option {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 20px;
+    gap: 4px;
+    padding: 8px 12px;
     border-radius: 8px;
     background: #F2F4F8;
     cursor: pointer;
     transition: background-color 0.15s ease;
 }
 
-.clarify-option:hover {
-    background: #EAEEF5;
-}
+.clarify-option:hover { background: #E5E9F0; }
+.clarify-option.selected { background: #EEF3FF; }
+.clarify-option[aria-disabled='true'] { cursor: default; }
 
-.clarify-option.is-selected,
-.clarify-option.is-selected:hover {
-    background: #EEF3FF;
-}
-
-/* The Other row carries an input, so it is taller and its label sits above it. */
-.clarify-option--other {
-    align-items: center;
-    padding: 8px 20px 12px;
-    cursor: default;
-}
-
-.clarify-option--other:hover {
-    background: #F2F4F8;
-}
-
-.clarify-option--other.is-selected:hover {
-    background: #EEF3FF;
+.clarify-option:focus-visible {
+    outline: 2px solid #155DFC;
+    outline-offset: 1px;
 }
 
 .clarify-option-body {
-    flex: 1;
+    flex: 1 0 0;
     min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 4px;
 }
 
-.clarify-option-label {
-    font-family: 'Geist', sans-serif;
+/* `interactive/sm` */
+.clarify-option-line {
+    display: flex;
+    align-items: center;
     font-size: 12px;
     font-weight: 500;
     line-height: 16px;
     color: #222A38;
 }
 
+.clarify-option-index {
+    flex-shrink: 0;
+    width: 20px;
+}
+
+.clarify-option-label {
+    flex: 1 0 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+/* the description hangs under the label, indented past the index by space/5 */
+.clarify-option-descwrap {
+    padding: 0 20px;
+}
+
+/* `body-sm` */
 .clarify-option-desc {
-    padding-right: 20px;
-    font-family: 'Geist', sans-serif;
+    margin: 0;
     font-size: 12px;
     font-weight: 400;
     line-height: 20px;
     color: #5E6E87;
+    overflow-wrap: anywhere;
 }
+
+.clarify-option-mark {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #CBD2E0;
+    border-radius: 4px;
+    background: #FFFFFF;
+    color: #FFFFFF;
+    cursor: pointer;
+}
+
+/* Pick-one is round, pick-any is square. The design draws one selector for both, which leaves the
+   user no way to know whether a second click adds to their choice or replaces it. */
+.clarify-option-mark.single {
+    border-radius: 50%;
+}
+
+.clarify-option.selected .clarify-option-mark {
+    border-color: #155DFC;
+    background: #155DFC;
+}
+
+.clarify-option-check { width: 12px !important; height: 12px !important; }
+
+/* Other: pencil + label, with the input where a description would sit */
+.clarify-other {
+    align-items: center;
+    padding: 8px 12px 12px;
+    cursor: default;
+}
+
+.clarify-other:hover { background: #F2F4F8; }
+.clarify-other.selected:hover { background: #EEF3FF; }
+
+.clarify-other-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #222A38;
+}
+
+.clarify-other-pencil { width: 12px !important; height: 12px !important; }
 
 .clarify-other-input {
     width: 100%;
     height: 32px;
-    padding: 0 12px;
     box-sizing: border-box;
+    padding: 0 12px;
     border: 1px solid #E5E9F0;
     border-radius: 8px;
     background: #FFFFFF;
     font-family: 'Geist', sans-serif;
     font-size: 12px;
+    font-weight: 400;
     line-height: 20px;
     color: #222A38;
-    outline: none;
 }
 
 .clarify-other-input::placeholder {
@@ -876,95 +1189,105 @@
 }
 
 .clarify-other-input:focus {
+    outline: none;
     border-color: #155DFC;
-}
-
-.clarify-marker {
-    flex-shrink: 0;
-    width: 16px;
-    height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #CBD2E0;
-    border-radius: 4px;
-    background: #FFFFFF;
-    font-family: 'Geist', sans-serif;
-    font-size: 10px;
-    font-weight: 400;
-    line-height: 12px;
-    color: #5E6E87;
-}
-
-.clarify-marker.is-selected {
-    border-color: #155DFC;
-    background: #155DFC;
-    color: #FFFFFF;
-}
-
-.clarify-marker-check.MuiSvgIcon-root {
-    font-size: 12px;
 }
 
 .clarify-error {
-    margin: 8px 8px 0 !important;
+    margin: 12px 8px 0 !important;
     font-family: 'Geist', sans-serif !important;
     font-size: 12px !important;
-    line-height: 20px !important;
+    line-height: 16px !important;
     color: #A10902 !important;
+}
+
+/* "Select all that apply" — shown only for multi, where it is the difference between adding to a
+   choice and replacing it. */
+.clarify-hint {
+    margin: 0 8px 8px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+    color: #5E6E87;
 }
 
 .clarify-actions {
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
     gap: 8px;
     padding: 8px 8px 0;
 }
 
-.clarify-skip.MuiButton-root,
-.clarify-submit.MuiButton-root {
-    min-width: 0;
+/* pushes everything after it to the right, so Skip stays on the left */
+.clarify-actions-spacer {
+    flex: 1 0 0;
+}
+
+.clarify-step {
+    font-size: 12px;
+    line-height: 16px;
+    color: #5E6E87;
+    white-space: nowrap;
+}
+
+.clarify-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
     padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    background: #F2F4F8;
+    color: #222A38;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    cursor: pointer;
+}
+
+.clarify-back:hover { background: #E5E9F0; }
+.clarify-back:disabled { opacity: 0.6; cursor: default; }
+
+/* Skip while nothing is answered (111:4438); Submit once something is (111:4845). */
+.clarify-skip,
+.clarify-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 12px;
+    border: none;
     border-radius: 8px;
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 500;
     line-height: 16px;
-    text-transform: none;
-    box-shadow: none;
+    cursor: pointer;
 }
 
-.clarify-skip.MuiButton-root {
+.clarify-skip {
     background: #F2F4F8;
     color: #222A38;
 }
 
-.clarify-skip.MuiButton-root:hover {
-    background: #E5E9F0;
-}
+.clarify-skip:hover { background: #E5E9F0; }
 
-.clarify-submit.MuiButton-root {
+.clarify-submit {
     background: #155DFC;
-    color: #FFFFFF;
+    color: #F8F9FC;
 }
 
-.clarify-submit.MuiButton-root:hover {
-    background: #0A47D6;
+.clarify-submit:hover { background: #0A47D6; }
+
+.clarify-submit:disabled,
+.clarify-skip:disabled {
+    opacity: 0.6;
+    cursor: default;
 }
 
-.clarify-submit.MuiButton-root.Mui-disabled {
-    background: #D9E6FE;
-    color: #FFFFFF;
-}
-
-.clarify-submit .MuiButton-endIcon {
-    margin-left: 4px;
-    margin-right: 0;
-}
-
-.clarify-submit .MuiButton-endIcon .MuiSvgIcon-root {
-    font-size: 14px;
-}
+.clarify-submit-icon { width: 16px !important; height: 16px !important; }
 
 .investigate-funnel-summary {
     display: flex;
@@ -1051,9 +1374,10 @@
     width: 100%;
 }
 
+/* Figma 44:4744 — each row is space/6 top and bottom inside a space/6 gutter. */
 .references-list>div {
     margin: 0;
-    padding: 16px 24px;
+    padding: 24px;
     border-radius: 8px;
     position: relative;
     box-sizing: border-box;
@@ -1069,15 +1393,13 @@
     border-radius: 8px;
 }
 
-/* The rule sits under the text column only, so it starts past the 16px number
-   badge and the 12px gap that follow the row's 24px padding. */
 .references-list>div::after {
     content: '';
     position: absolute;
-    left: 52px;
-    right: 24px;
+    left: 0;
+    right: 0;
     bottom: 0;
-    border-bottom: 1px solid #F2F4F8;
+    border-bottom: 1px solid #E5E9F0;
 }
 
 .references-list>div:last-child::after {
@@ -1085,7 +1407,7 @@
 }
 
 .references-list>div:last-child {
-    padding-bottom: 16px;
+    padding-bottom: 24px;
 }
 
 .message-wrapper {
@@ -2016,8 +2338,17 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
     overflow: hidden;
 }
 
-/* expanded: the whole list, scrollable, no clamping */
+/* Expanded: the whole list, scrollable, no clamping.
+   The scroll sits on the LIST, not on this block. When it was here, "Show less" — which renders
+   after the list — sat below 30 items' worth of scroll, so the only way back was to scroll to the
+   bottom of an inner scroll area. Scrolling the list instead keeps the label above it and the
+   toggle below it both permanently in view. */
 .ip-step-detail.expanded {
+    max-height: none;
+    overflow: visible;
+}
+
+.ip-step-detail.expanded .ip-cycle {
     max-height: 260px;
     overflow-y: auto;
 }
@@ -2118,30 +2449,45 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 /* ── References skeleton (MOTION-SPEC §7) ────────────────────────────────────
    A highlight wave travels top-to-bottom on a loop: one card group at full
    opacity, the rest near-invisible. Staggered animation-delay makes the wave. */
+/* Geometry is Figma 44:4788 / 44:4744: a space/6 gutter, rows of space/6 padding split by a
+   color/border/default rule, and five 12px bars on a space/1 x2 rhythm — 24 + (5*12 + 4*8) + 24
+   lands each row on the design's 140px exactly. The bar widths are the design's own (80/232/200/
+   180/160) rather than percentages, because they are what makes the block read as a citation;
+   max-width keeps them inside a panel dragged narrower than the 384px design width. */
 .ref-skeleton {
-    padding: 8px 0;
+    padding: 0 24px;
 }
 
-.ref-skeleton-card {
+/* Child of `.references-list` too, so these must out-specify `.references-list>div`, which would
+   otherwise add its own 24px side padding (indenting every bar by 48px) and its own ::after
+   hairline on top of this one. */
+.ref-skeleton>.ref-skeleton-card {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 16px 32px;
-    border-bottom: 1px solid #F0F2F7;
+    padding: 24px 0;
+    box-shadow: inset 0 -1px 0 #E5E9F0;
     opacity: 0.28;
     animation: ref-skeleton-wave 1.6s linear infinite;
 }
 
-.ref-skeleton-bar {
-    display: block;
-    height: 9px;
-    border-radius: 999px;
-    background: #E7EBF2;
-    width: 100%;
+.ref-skeleton>.ref-skeleton-card::after {
+    content: none;
 }
 
-.ref-skeleton-bar.short { width: 26%; }
-.ref-skeleton-bar.medium { width: 62%; }
+.ref-skeleton-bar {
+    display: block;
+    height: 12px;
+    border-radius: 4px;
+    background: #E5E9F0;
+    max-width: 100%;
+}
+
+.ref-skeleton-card .ref-skeleton-bar:nth-child(1) { width: 80px; }
+.ref-skeleton-card .ref-skeleton-bar:nth-child(2) { width: 232px; }
+.ref-skeleton-card .ref-skeleton-bar:nth-child(3) { width: 200px; }
+.ref-skeleton-card .ref-skeleton-bar:nth-child(4) { width: 180px; }
+.ref-skeleton-card .ref-skeleton-bar:nth-child(5) { width: 160px; }
 
 @keyframes ref-skeleton-wave {
     0%   { opacity: 0.28; }
@@ -2159,5 +2505,6 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 
 /* a finished retrieval probe */
 .ip-channel { color: #6B7A93; }
+.ip-channel.pending { color: #8A97AC; }
 .ip-channel.failed { color: #A8B3C6; }
 .ip-channel-hits { color: #A8B3C6; }

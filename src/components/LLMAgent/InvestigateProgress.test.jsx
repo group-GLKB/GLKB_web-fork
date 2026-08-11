@@ -271,6 +271,27 @@ describe('detail block', () => {
         expect(document.querySelectorAll('.ip-cycle .ip-detail-bullet')).toHaveLength(1);
     });
 
+    it('keeps "Show less" reachable with a long list', () => {
+        // The control was always rendered, but `.ip-step-detail.expanded` used to be the scroll
+        // container, so with 30 items it sat below an inner scroll and could not be reached
+        // without scrolling to the bottom of it. The scroll now belongs to the list, leaving the
+        // toggle outside it. Asserted structurally: jsdom has no layout, so this pins the DOM
+        // relationship that made the button unreachable, not a pixel.
+        setup({
+            ...searchingProps,
+            keywords: Array.from({ length: 28 }, (_, i) => `query ${i + 1}`),
+        });
+        fireEvent.click(screen.getByRole('button', { name: /show all 30 topics & searches/i }));
+
+        const toggle = screen.getByRole('button', { name: /show less/i });
+        expect(toggle).toBeInTheDocument();
+        // the toggle is a sibling of the scrolling list, never inside it
+        expect(document.querySelector('.ip-cycle').contains(toggle)).toBe(false);
+
+        fireEvent.click(toggle);
+        expect(screen.getByRole('button', { name: /show all/i })).toBeInTheDocument();
+    });
+
     it('leads with the probes that have finished, newest information first', () => {
         // The stretch between the plan landing and the pool being fused is minutes long, and the
         // finished probes are the only thing that changes during it.
@@ -287,6 +308,30 @@ describe('detail block', () => {
         const first = document.querySelector('.ip-cycle').textContent;
         expect(first).toMatch(/Vector search over abstracts/);
         expect(first).toMatch(/180 hits/);
+    });
+
+    it('shows a probe that is still running as running, not as a failure', () => {
+        // Probes are announced when they start and updated when they land. Without a pending
+        // state an in-flight probe renders with the same ✕ as a broken one — and on a real run
+        // the gap between one landing and the next is up to a minute.
+        setup({
+            ...searchingProps,
+            detail: {
+                topic: [],
+                channels: [
+                    { name: 'Vector search over abstracts', hits: 80, ok: true, pending: false },
+                    { name: 'Knowledge-graph expansion', hits: 0, ok: true, pending: true },
+                ],
+            },
+        });
+        fireEvent.click(screen.getByRole('button', { name: /show all/i }));
+        const running = document.querySelector('.ip-channel.pending');
+        expect(running).toBeInTheDocument();
+        expect(running.textContent).toMatch(/Knowledge-graph expansion/);
+        expect(running.textContent).toMatch(/searching…/);
+        expect(running.textContent).not.toMatch(/unavailable|✕/);
+        // the finished one still reads as finished
+        expect(document.querySelector('.ip-channel:not(.pending)').textContent).toMatch(/80 hits/);
     });
 
     it('says so when a probe came back empty rather than hiding it', () => {
@@ -373,7 +418,7 @@ describe('header', () => {
 /**
  * The body used to sit behind `{expanded && …}`, which UNMOUNTED every counter and the detail
  * list along with it. All of a counter's memory — the number it is showing, the fact that it has
- * already counted up once — is state inside that subtree, so shutting
+ * already counted up once, where its ramp had got to — is state inside that subtree, so shutting
  * the panel threw it away and reopening mid-run counted Cited up from zero again, as if seventeen
  * fresh citations had just landed.
  */
@@ -396,18 +441,19 @@ describe('collapsing and reopening mid-run', () => {
         expect(citedText()).toBe('17');          // straight away — no second count-up, no en dash
     });
 
-    it('keeps a counter with no reading yet on its en dash', () => {
-        const noReading = { phase: 'searching' };
-        const retrieved = () => document.querySelectorAll('.ip-counter-value')[0].textContent;
-        const { rerender } = render(panel(noReading));
+    it('does not restart a ramp that has not been given its real number yet', () => {
+        const ramping = { phase: 'searching' };
+        const retrieved = () => Number(document.querySelectorAll('.ip-counter-value')[0].textContent.replace(/,/g, ''));
+        const { rerender } = render(panel(ramping));
         act(() => { jest.advanceTimersByTime(20000); });
-        expect(retrieved()).toBe('–');
+        const reached = retrieved();
+        expect(reached).toBeGreaterThan(1);
 
-        rerender(panel({ ...noReading, expanded: false }));
+        rerender(panel({ ...ramping, expanded: false }));
         act(() => { jest.advanceTimersByTime(5000); });
-        rerender(panel({ ...noReading, expanded: true }));
+        rerender(panel({ ...ramping, expanded: true }));
 
-        expect(retrieved()).toBe('–');
+        expect(retrieved()).toBeGreaterThanOrEqual(reached);   // carried on, not back to 1
     });
 
     it('keeps the detail list open where the user left it', () => {
@@ -446,27 +492,49 @@ describe('progress bar', () => {
     });
 });
 
-// ── measured values only ──────────────────────────────────────────────────────────
-/**
- * The counters used to tick up on a synthetic ramp while a value was unknown, and Retrieved ADDED
- * whatever the ramp had reached to the real count when it landed — so the figure the user ended on
- * was the agent's number plus a random 2,500-3,000. These lock in that only measured values show.
- */
-describe('funnel counters show measured values only', () => {
+// ── the fake ramp ───────────────────────────────────────────────────────────────────────────
+describe('the fake ramp shown before a real number arrives', () => {
     const retrievedText = () => document.querySelectorAll('.ip-counter-value')[0].textContent;
     const screenedText = () => document.querySelectorAll('.ip-counter-value')[1].textContent;
     const num = (t) => Number(String(t).replace(/,/g, ''));
 
-    it('holds an en dash before any reading arrives, however long the phase runs', () => {
+    it('starts at 1, never at 0', () => {
         setup({ phase: 'searching' });
-        expect(retrievedText()).toBe('–');
-        act(() => { jest.advanceTimersByTime(60000); });
-        expect(retrievedText()).toBe('–');
+        expect(retrievedText()).toBe('1');
     });
 
-    it('shows the agent number exactly, with nothing added to Retrieved', () => {
+    it('climbs while the phase is in flight and stays inside its ceiling', () => {
+        setup({ phase: 'searching' });
+        act(() => { jest.advanceTimersByTime(30000); });
+        const v = num(retrievedText());
+        expect(v).toBeGreaterThan(1);
+        expect(v).toBeLessThanOrEqual(2000);   // RAMP_RANGE.retrieved.max
+    });
+
+    it('only moves forward', () => {
+        setup({ phase: 'searching' });
+        const seen = [];
+        for (let i = 0; i < 12; i += 1) {
+            act(() => { jest.advanceTimersByTime(900); });
+            seen.push(num(retrievedText()));
+        }
+        expect(seen).toEqual([...seen].sort((a, b) => a - b));
+    });
+
+    it('does not start for a counter whose phase has not begun', () => {
+        setup({ phase: 'searching' });
+        act(() => { jest.advanceTimersByTime(5000); });
+        expect(screenedText()).toBe('–');       // screening has not started yet
+    });
+
+    it('adds the ramp to the real number for Retrieved (product decision)', () => {
+        // Note what this means: the figure Retrieved settles on is NOT the number of records the
+        // run identified. It is that number plus wherever the ramp had got to. Flip
+        // RAMP_RANGE.retrieved.addsToReal to show the measured value alone.
         const { rerender } = setup({ phase: 'searching' });
         act(() => { jest.advanceTimersByTime(20000); });
+        const ramped = num(retrievedText());
+        expect(ramped).toBeGreaterThan(1);
 
         rerender(
             <InvestigateProgress
@@ -481,21 +549,18 @@ describe('funnel counters show measured values only', () => {
             />,
         );
         act(() => { jest.advanceTimersByTime(3000); });
-        expect(num(retrievedText())).toBe(4472);
+        expect(num(retrievedText())).toBe(4472 + ramped);
     });
 
-    it('counts up from zero to the first reading, then snaps to later ones', () => {
-        const { rerender } = setup({
-            phase: 'screening',
-            funnel: { retrieved: null, screened: 53, extracted: null, cited: null },
-        });
-        act(() => { jest.advanceTimersByTime(3000); });
-        expect(screenedText()).toBe('53');
+    it('shows the measured value alone for every other counter', () => {
+        const { rerender } = setup({ phase: 'screening' });
+        act(() => { jest.advanceTimersByTime(20000); });
+        expect(num(screenedText())).toBeGreaterThan(1);      // ramping
 
         rerender(
             <InvestigateProgress
                 phase="reading"
-                funnel={{ retrieved: null, screened: 61, extracted: null, cited: null }}
+                funnel={{ retrieved: null, screened: 53, extracted: null, cited: null }}
                 percent={22}
                 keywords={[]}
                 papers={[]}
@@ -504,29 +569,85 @@ describe('funnel counters show measured values only', () => {
                 expanded
             />,
         );
-        act(() => { jest.advanceTimersByTime(60); });
-        expect(screenedText()).toBe('61');
+        act(() => { jest.advanceTimersByTime(3000); });
+        expect(screenedText()).toBe('53');
     });
 
-    it('leaves counters the agent has not reported on an en dash', () => {
-        setup({
-            phase: 'screening',
-            funnel: { retrieved: 4472, screened: null, extracted: null, cited: null },
-        });
+    it('carries on from where the ramp got to instead of restarting at zero', () => {
+        const { rerender } = setup({ phase: 'searching' });
         act(() => { jest.advanceTimersByTime(20000); });
-        expect(screenedText()).toBe('–');
+        const ramped = num(retrievedText());
+
+        rerender(
+            <InvestigateProgress
+                phase="screening"
+                funnel={{ retrieved: 4472, screened: null, extracted: null, cited: null }}
+                percent={14}
+                keywords={[]}
+                papers={[]}
+                detail={{}}
+                label=""
+                expanded
+            />,
+        );
+        act(() => { jest.advanceTimersByTime(60); });   // one frame into the count-up
+        expect(num(retrievedText())).toBeGreaterThanOrEqual(ramped);
     });
 
-    it('shows the reading immediately under reduced motion', () => {
+    it('discards the ramp for columns that do not opt in', () => {
+        const { rerender } = setup({ phase: 'screening' });
+        act(() => { jest.advanceTimersByTime(20000); });
+        expect(num(screenedText())).toBeGreaterThan(1);   // ramping
+
+        rerender(
+            <InvestigateProgress
+                phase="reading"
+                funnel={{ retrieved: null, screened: 53, extracted: null, cited: null }}
+                percent={22}
+                keywords={[]}
+                papers={[]}
+                detail={{}}
+                label=""
+                expanded
+            />,
+        );
+        act(() => { jest.advanceTimersByTime(3000); });
+        expect(screenedText()).toBe('53');                 // replaced, not added
+    });
+
+    // A counter that visibly counts DOWN reads as a bug. Retrieved gets this free from
+    // `addsToReal` (real + reached >= reached); the other three needed the Math.max, because on a
+    // narrow question the agent's real number does land under the ramp — screening 2 papers
+    // against a ramp already at 22 used to snap backwards from 22 to 2.
+    it.each([
+        [0, 'searching', 'retrieved', 50],
+        [1, 'screening', 'screened', 2],
+        [2, 'analyzing', 'extracted', 1],
+        [3, 'writing', 'cited', 1],
+    ])('never counts down when the real value lands under the ramp (%s/%s)', (idx, phase, key, real) => {
+        const { rerender } = setup({ phase });
+        act(() => { jest.advanceTimersByTime(40000); });
+        const seen = [num(document.querySelectorAll('.ip-counter-value')[idx].textContent)];
+
+        const funnel = { retrieved: null, screened: null, extracted: null, cited: null };
+        funnel[key] = real;
+        rerender(panel({ phase, funnel }));
+        for (let i = 0; i < 40; i += 1) {
+            act(() => { jest.advanceTimersByTime(40); });
+            seen.push(num(document.querySelectorAll('.ip-counter-value')[idx].textContent));
+        }
+
+        expect(seen).toEqual([...seen].sort((a, b) => a - b));
+        expect(seen[seen.length - 1]).toBeGreaterThanOrEqual(seen[0]);
+    });
+
+    it('is skipped entirely under reduced motion', () => {
         const mql = window.matchMedia;
         window.matchMedia = () => ({ matches: true, addListener() {}, removeListener() {} });
         try {
-            setup({
-                phase: 'screening',
-                funnel: { retrieved: 4472, screened: null, extracted: null, cited: null },
-            });
-            expect(num(retrievedText())).toBe(4472);
-            expect(screenedText()).toBe('–');
+            setup({ phase: 'searching' });
+            act(() => { jest.advanceTimersByTime(20000); });
+            expect(retrievedText()).toBe('–');
         } finally {
             window.matchMedia = mql;
         }

@@ -1,9 +1,13 @@
 import axios from '../utils/axiosConfig';
+import { humanizeTrace } from './traceLabel';
 
 const DEFAULT_STREAM_ENDPOINT = '/api/v1/new-llm-agent/stream';
 const INVESTIGATE_STREAM_ENDPOINT = process.env.REACT_APP_INVESTIGATE_STREAM_ENDPOINT || '/api/v1/deep-research/stream';
 const INVESTIGATE_CLARIFY_ENDPOINT = process.env.REACT_APP_INVESTIGATE_CLARIFY_ENDPOINT || '/api/v1/deep-research/clarify';
 const INVESTIGATE_RUN_ENDPOINT = process.env.REACT_APP_INVESTIGATE_RUN_ENDPOINT || '/api/v1/deep-research/run';
+// Cap on the references a deep-research answer returns. The backend accepts up to 100.
+export const INVESTIGATE_MAX_REFERENCES = 50;
+
 const INVESTIGATE_API_BASE_URL = (process.env.REACT_APP_INVESTIGATE_API_BASE_URL || '').trim().replace(/\/+$/, '');
 
 const normalizePath = (path = '') => {
@@ -258,7 +262,11 @@ export class LLMAgentService {
                         const percent = normalizePercent(
                             data.percent ?? data.progress_percent ?? detail.percent ?? null,
                         );
-                        const label = data.label || detail.label || data.message || data.content || '';
+                        // `data.content` on a tool frame is an internal trace
+                        // ("[TOOL CALL] article_search | Input: {…}"), so it is mapped to its
+                        // step.json wording before it can reach the panel as a label.
+                        const label = data.label || detail.label || data.message
+                            || humanizeTrace(data.content) || '';
                         const phase =
                             data.phase ||
                             detail.phase ||
@@ -375,6 +383,15 @@ export class LLMAgentService {
             }
             if (Number.isFinite(Number(options.maxArticles))) {
                 payload.max_articles = Number(options.maxArticles);
+            } else if (investigateEnabled) {
+                // `max_articles` truncates the REFERENCE list the agent returns
+                // (service/api.py: `references = references[:request.max_articles]`); it never
+                // reaches retrieval, so raising it costs nothing and only stops hiding sources the
+                // run already found. Nothing sets it on the investigate path — the Search Options
+                // control that fed it was removed under Investigate — so the request fell through
+                // to the backend's schema default of 20 and the panel read "20 Citations" on every
+                // deep-research run regardless of how many papers were actually cited.
+                payload.max_articles = INVESTIGATE_MAX_REFERENCES;
             }
             // Deep Research drops filters/ranking_mode — it runs its own hybrid retrieval rather
             // than the agent's search tools. Sending them anyway would be worse than useless: the

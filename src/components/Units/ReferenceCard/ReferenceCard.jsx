@@ -232,12 +232,14 @@ const ReferenceCard = ({
                                 />
                             </IconButton>
                         </Tooltip>
+                        {/* url[6] is the PMC full text where the paper has one; url[1] is the
+                            PubMed record, which is a fallback and not what this label promises. */}
                         <a
-                            href={url[1]}
+                            href={url[6] || url[1]}
                             className="reference-card-fulltext"
                             onClick={(event) => {
                                 event.stopPropagation();
-                                handleClick(event, url[1]);
+                                handleClick(event, url[6] || url[1]);
                             }}
                         >
                             Full Text
