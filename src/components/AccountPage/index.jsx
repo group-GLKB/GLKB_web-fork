@@ -306,18 +306,21 @@ const AccountPage = () => {
                                     </div>
                                 </div>
 
-                                <h2 className="settings-title">Account</h2>
+                                <h2 className="settings-title settings-title-first">Account</h2>
 
                                 <div className="settings-row">
-                                    <span className="settings-row-label">Display Name</span>
-                                    <button type="button" className="settings-row-action" onClick={openNameModal}>
-                                        Edit
-                                    </button>
+                                    <span className="settings-row-label">Email</span>
+                                    <span className="settings-row-value">{email}</span>
                                 </div>
 
                                 <div className="settings-row settings-row-last">
-                                    <span className="settings-row-label">Email</span>
-                                    <span className="settings-row-value">{email}</span>
+                                    <span className="settings-row-labels">
+                                        <span className="settings-row-label">Display Name</span>
+                                        <span className="settings-row-sub">{displayName}</span>
+                                    </span>
+                                    <button type="button" className="settings-row-action" onClick={openNameModal}>
+                                        Edit
+                                    </button>
                                 </div>
 
                                 <h2 className="settings-title">Usage &amp; Balance</h2>
@@ -342,7 +345,9 @@ const AccountPage = () => {
                                         />
                                     </div>
                                     <div className="subscription-progress-footer">
-                                        <span>{tierLoading ? '-- used' : `${quotaUsed} used`}</span>
+                                        <span className="subscription-progress-used">
+                                            {tierLoading ? '-- used' : `${quotaUsed} used`}
+                                        </span>
                                         <span>{tierLoading ? '-- remaining' : `${quotaRemaining} remaining`}</span>
                                     </div>
                                 </div>

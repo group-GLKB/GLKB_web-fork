@@ -620,7 +620,7 @@ const History = () => {
                                     fontFamily: 'Geist, sans-serif',
                                     fontWeight: 400,
                                     fontSize: '14px',
-                                    lineHeight: '20px',
+                                    lineHeight: '22px',
                                     color: '#5E6E87',
                                     textAlign: 'left',
                                 }}>
@@ -634,7 +634,7 @@ const History = () => {
                                         name="historySearch"
                                         value={searchQuery}
                                         onChange={(event) => setSearchQuery(event.target.value)}
-                                        placeholder="Search conversations"
+                                        placeholder="Search conversations..."
                                         aria-label="Search conversations"
                                     />
                                     {searchQuery.trim() && (
@@ -806,7 +806,7 @@ const History = () => {
                                             <div className="history-card-meta">
                                                 <MetaIcon className="history-card-meta-icon" />
                                                 <span>{formatRelativeTime(item.conversation?.updatedAt || item.conversation?.createdAt)}</span>
-                                                <span className="history-card-meta-sep">|</span>
+                                                <span className="history-card-meta-sep">·</span>
                                                 <span>Chat</span>
                                             </div>
                                         )}
@@ -855,7 +855,7 @@ const History = () => {
                                             <div className="history-card-meta">
                                                 <MetaIcon className="history-card-meta-icon" />
                                                 <span>{formatRelativeTime(item.graphHistory?.createdAt || item.graphHistory?.updatedAt)}</span>
-                                                <span className="history-card-meta-sep">|</span>
+                                                <span className="history-card-meta-sep">·</span>
                                                 <span>Map</span>
                                             </div>
                                         )}
