@@ -114,6 +114,7 @@ await page.setContent(SHELL(LIBRARY_CSS + CARD_CSS, `
       </div>
       <div class="library-search"><input class="library-search-input" placeholder="Search All Items..."></div>
     </div>
+    <div class="library-scroll"></div>
     <div class="library-chat-list">
       <div class="history-item-row history-item-row-no-checkbox">
         <div class="history-item">
@@ -193,6 +194,22 @@ check('sort pill height', 28, lib.sortPill.h);
 check('sort pill radius (radius/2)', '8px', lib.sortPill.radius);
 check('search height', 36, lib.search.h);
 check('search radius (radius/2)', '8px', lib.search.radius);
+// Vertical rhythm of the content column: header 58, +48 to the toolbar,
+// +16 to the search, +16 to the list — Figma 176:8339 / 176:8347 / 176:8363.
+const libGaps = await page.evaluate(() => {
+    const r = (s) => document.querySelector(s).getBoundingClientRect();
+    const round = (n) => Math.round(n * 100) / 100;
+    return {
+        headerToToolbar: round(r('.library-tabs-row').top - r('.library-subtitle').bottom),
+        toolbarToSearch: round(r('.library-search').top - r('.library-tabs-row').bottom),
+        searchToList: round(r('.library-scroll').top - r('.library-search').bottom),
+        listInset: round(r('.library-scroll').left - r('.library-search').left),
+    };
+});
+check('header block to toolbar (space/12)', 48, libGaps.headerToToolbar);
+check('toolbar to search (space/4)', 16, libGaps.toolbarToSearch);
+check('search to list (space/4)', 16, libGaps.searchToList);
+check('list shares the header column', 0, libGaps.listInset);
 // Chat rows follow History's row, not the reference row's fixed 80px box.
 check('chat row padding (space/4)', '16px', lib.chatRow.pad);
 check('chat row gap (space/4)', '16px', lib.chatRow.gap);
@@ -217,13 +234,18 @@ await page.setContent(SHELL(HISTORY_CSS + CARD_CSS, `
       <div class="history-search"><input class="history-search-input" placeholder="Search conversations..."></div>
     </div>
     <div class="history-meta-row">
-      <p class="history-meta-text MuiTypography-root">4 search history records with GLKB</p>
+      <div class="history-select-toolbar history-select-toolbar-empty">
+        <div class="history-select-toolbar-content">
+          <p class="history-meta-text MuiTypography-root">4 search history records with GLKB</p>
+        </div>
+      </div>
       <button class="history-select-toggle">Select</button>
     </div>
   </div>
   <div class="history-list">
     <div class="history-item-row history-item-row-no-checkbox">
       <button class="history-item">
+        <span class="history-item-icon"><svg viewBox="0 0 20 20"></svg></span>
         <div class="history-item-content">
           <div class="history-item-title-row"><span class="history-title">Interferons are key cytokines.</span></div>
           <div class="history-card-meta"><span>Just now</span><span class="history-card-meta-sep">&middot;</span><span>5 Messages</span></div>
@@ -252,10 +274,16 @@ for (const [k, sel] of Object.entries({
 const gaps = await page.evaluate(() => {
     const r = (s) => document.querySelector(s).getBoundingClientRect();
     const round = (n) => Math.round(n * 100) / 100;
+    const row = r('.history-meta-row');
     return {
         headerToSearch: round(r('.history-search').top - r('.history-title-row').bottom),
         searchToMeta: round(r('.history-meta-row').top - r('.history-search').bottom),
         metaToList: round(r('.history-list').top - r('.history-meta-row').bottom),
+        // Figma 176:12005 is justify-between inside a 4px inset: the count is
+        // flush left, Select is flush right.
+        countInset: round(r('.history-meta-text').left - row.left),
+        selectInset: round(row.right - r('.history-select-toggle').right),
+        rowIcon: round(r('.history-item-icon').left - r('.history-item').left),
     };
 });
 
@@ -271,6 +299,11 @@ check('meta row inset (space/1)', '0px 4px', his.metaRow.pad);
 check('meta text (body-sm on secondary)', '400 12px/20px', his.metaText.font);
 check('meta text colour', '#222A38', hex(his.metaText.color));
 check('Select control (interactive/sm)', '500 12px/16px', his.select.font);
+check('Select control height', 24, his.select.h);
+check('Select control inset (space/2)', '0px 8px', his.select.pad);
+check('count sits flush left in the 4px inset', 4, gaps.countInset);
+check('Select sits flush right in the 4px inset', 4, gaps.selectInset);
+check('row glyph starts after the 16px padding', 16, gaps.rowIcon);
 check('header block to search (space/12)', 48, gaps.headerToSearch);
 check('search to meta row (space/4)', 16, gaps.searchToMeta);
 check('meta row to list (space/2)', 8, gaps.metaToList);

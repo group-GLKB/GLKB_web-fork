@@ -675,10 +675,10 @@ const History = () => {
                                         componentsProps={{
                                             tooltip: {
                                                 sx: {
-                                                    backgroundColor: '#E7F1FF',
-                                                    color: '#164563',
+                                                    backgroundColor: '#F2F4F8',
+                                                    color: '#222A38',
                                                     fontFamily: 'Geist, sans-serif',
-                                                    fontSize: '14px',
+                                                    fontSize: '12px',
                                                     fontWeight: 500,
                                                     padding: '4px 12px',
                                                     borderRadius: '8px',
@@ -728,10 +728,10 @@ const History = () => {
                                             componentsProps={{
                                                 tooltip: {
                                                     sx: {
-                                                        backgroundColor: '#E7F1FF',
-                                                        color: '#164563',
+                                                        backgroundColor: '#F2F4F8',
+                                                        color: '#222A38',
                                                         fontFamily: 'Geist, sans-serif',
-                                                        fontSize: '14px',
+                                                        fontSize: '12px',
                                                         fontWeight: 500,
                                                         padding: '4px 12px',
                                                         borderRadius: '8px',
@@ -882,7 +882,8 @@ const History = () => {
                             <Typography sx={{
                                 fontFamily: 'Geist, sans-serif',
                                 fontSize: '14px',
-                                color: '#646464',
+                                lineHeight: '22px',
+                                color: '#5E6E87',
                             }}>
                                 {searchQuery.trim() ? 'No matches found.' : 'No history yet.'}
                             </Typography>

@@ -1,7 +1,7 @@
 .account-page {
     min-height: 100vh;
     width: 100%;
-    background: #FAFCFF;
+    background: #FDFEFF;
     display: flex;
 }
 
@@ -15,7 +15,7 @@
 .settings-nav {
     width: 280px;
     background: #ffffff;
-    border-right: 1px solid #E2E8F0;
+    border-right: 1px solid #E5E9F0;
     padding: 28px 0;
     flex-shrink: 0;
 }
@@ -30,7 +30,7 @@
     font-size: 13px;
     font-weight: 500;
     transition: color 0.15s;
-    border-bottom: 1px solid #E2E8F0;
+    border-bottom: 1px solid #E5E9F0;
     margin-bottom: 10px;
     letter-spacing: 0.1px;
     background: transparent;
@@ -72,12 +72,12 @@
 
 .settings-nav-item:hover {
     color: #1A2332;
-    background: #FAFCFF;
+    background: #FDFEFF;
 }
 
 .settings-nav-item.active {
     color: #1A2332;
-    background: #FAFCFF;
+    background: #FDFEFF;
     font-weight: 500;
 }
 
@@ -94,7 +94,7 @@
 
 .settings-mobile-tabs-row {
     width: 100%;
-    border-bottom: 1px solid #D9D9D9;
+    border-bottom: 1px solid #E5E9F0;
     margin-bottom: 20px;
 }
 
@@ -227,7 +227,7 @@
 
 .settings-divider {
     height: 1px;
-    background: #E8EAED;
+    background: #E5E9F0;
 }
 
 .flat-row {
@@ -236,7 +236,7 @@
     justify-content: space-between;
     gap: 32px;
     padding: 22px 0;
-    border-bottom: 1px solid #E8EAED;
+    border-bottom: 1px solid #E5E9F0;
     transition: background 0.1s;
 }
 
@@ -311,7 +311,7 @@
 .flat-btn {
     padding: 7px 16px;
     border-radius: 8px;
-    border: 1px solid #E8EAED;
+    border: 1px solid #E5E9F0;
     background: #ffffff;
     font-family: 'Geist', sans-serif;
     font-size: 13px;
@@ -422,7 +422,7 @@
 .settings-inline-input {
     width: 100%;
     margin-top: 8px;
-    border: 1px solid #E8EAED;
+    border: 1px solid #E5E9F0;
     border-radius: 8px;
     padding: 9px 12px;
     font-family: 'Geist', sans-serif;
@@ -506,7 +506,7 @@
     box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06);
     transform: translateY(12px) scale(0.97);
     transition: transform 0.22s ease;
-    border: 1px solid #E8EAED;
+    border: 1px solid #E5E9F0;
     max-width: calc(100vw - 32px);
 }
 
@@ -557,12 +557,12 @@
 .modal-input {
     width: 100%;
     padding: 10px 14px;
-    border: 1.5px solid #E8EAED;
+    border: 1.5px solid #E5E9F0;
     border-radius: 8px;
     font-family: 'Geist', sans-serif;
     font-size: 14px;
     color: #1A2332;
-    background: #FAFCFF;
+    background: #FDFEFF;
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -633,7 +633,7 @@
     font-size: 26px;
     overflow: hidden;
     flex-shrink: 0;
-    border: 3px solid #E8EAED;
+    border: 3px solid #E5E9F0;
     transition: border-color 0.15s ease;
     cursor: pointer;
     padding: 0;

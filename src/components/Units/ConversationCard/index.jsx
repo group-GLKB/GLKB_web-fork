@@ -12,7 +12,7 @@ import {
   DeleteOutline as DeleteOutlineIcon,
   DriveFileRenameOutline as DriveFileRenameOutlineIcon,
   FolderOutlined as FolderOutlinedIcon,
-  MoreHoriz as MoreHorizIcon,
+  MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -232,13 +232,13 @@ const ConversationCard = ({
                                 aria-label="Open conversation menu"
                                 disabled={menuDisabled || isEditing}
                                 sx={{
-                                    width: 28,
-                                    height: 28,
-                                    borderRadius: '8px',
+                                    width: 24,
+                                    height: 24,
+                                    borderRadius: '4px',
                                     color: '#5E6E87',
                                 }}
                             >
-                                <MoreHorizIcon sx={{ fontSize: 18 }} />
+                                <MoreVertIcon sx={{ fontSize: 18 }} />
                             </IconButton>
                         )}
                     </Box>
@@ -274,11 +274,13 @@ const ConversationCard = ({
                             minWidth: 176,
                             borderRadius: 2,
                             boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
+                            border: '1px solid #E5E9F0',
                             '& .MuiMenuItem-root': {
-                                fontFamily: 'DM Sans, sans-serif',
-                                fontSize: '13px',
+                                fontFamily: 'Geist, sans-serif',
+                                fontSize: '12px',
+                                lineHeight: '16px',
                                 fontWeight: 500,
-                                color: '#164563',
+                                color: '#222A38',
                                 py: 0.75,
                                 px: 1.25,
                             },
@@ -287,20 +289,20 @@ const ConversationCard = ({
                 >
                     {onRename && (
                         <MenuItem onClick={handleStartRename}>
-                            <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
+                            <ListItemIcon sx={{ minWidth: 24, color: '#5E6E87' }}>
                                 <DriveFileRenameOutlineIcon sx={{ fontSize: 18 }} />
                             </ListItemIcon>
-                            <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
+                            <ListItemText primaryTypographyProps={{ fontSize: '12px', fontWeight: 500 }}>
                                 Rename
                             </ListItemText>
                         </MenuItem>
                     )}
                     {onBookmark && (
                         <MenuItem onClick={handleBookmark}>
-                            <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
+                            <ListItemIcon sx={{ minWidth: 24, color: '#5E6E87' }}>
                                 <BookmarkMenuIcon sx={{ fontSize: 18 }} />
                             </ListItemIcon>
-                            <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
+                            <ListItemText primaryTypographyProps={{ fontSize: '12px', fontWeight: 500 }}>
                                 {resolvedBookmarkLabel}
                             </ListItemText>
                         </MenuItem>
@@ -310,10 +312,10 @@ const ConversationCard = ({
                             handleCloseMenu();
                             onManageFolders(conversation);
                         }}>
-                            <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
+                            <ListItemIcon sx={{ minWidth: 24, color: '#5E6E87' }}>
                                 <FolderOutlinedIcon sx={{ fontSize: 18 }} />
                             </ListItemIcon>
-                            <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
+                            <ListItemText primaryTypographyProps={{ fontSize: '12px', fontWeight: 500 }}>
                                 {folderLabel}
                             </ListItemText>
                         </MenuItem>
@@ -321,16 +323,17 @@ const ConversationCard = ({
                     {onDelete && (
                         <>
                             {(onRename || onBookmark || onManageFolders) && <Divider />}
-                            <MenuItem onClick={handleDelete} sx={{ color: '#B42318 !important' }}>
-                                <ListItemIcon sx={{ minWidth: 26, color: '#B42318' }}>
+                            <MenuItem onClick={handleDelete} sx={{ color: '#A10902 !important' }}>
+                                <ListItemIcon sx={{ minWidth: 24, color: '#A10902' }}>
                                     <DeleteOutlineIcon sx={{ fontSize: 18 }} />
                                 </ListItemIcon>
                                 <ListItemText
                                     primaryTypographyProps={{
                                         sx: {
-                                            color: '#B42318',
-                                            fontFamily: 'DM Sans, sans-serif',
-                                            fontSize: '13px',
+                                            color: '#A10902',
+                                            fontFamily: 'Geist, sans-serif',
+                                            fontSize: '12px',
+                                            lineHeight: '16px',
                                             fontWeight: 500,
                                         },
                                     }}

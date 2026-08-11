@@ -1459,7 +1459,7 @@ const Library = () => {
                 </DialogTitle>
                 <DialogContent>
                     {folders.length === 0 ? (
-                        <Typography sx={{ fontFamily: 'Geist, sans-serif', fontSize: '14px', color: '#646464' }}>
+                        <Typography sx={{ fontFamily: 'Geist, sans-serif', fontSize: '14px', lineHeight: '22px', color: '#5E6E87' }}>
                             No folders yet. Create one to organize your bookmarks.
                         </Typography>
                     ) : (
