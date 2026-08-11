@@ -159,7 +159,7 @@ describe('formatters', () => {
 describe('the geometry fixture', () => {
     it('still matches what the component renders', () => {
         const FIXTURE = path.join(__dirname, '../../../e2e/fixtures/reference-hover-card.html');
-        const { container } = render(
+        render(
             <ReferenceHoverCard
                 number={1}
                 anchorRect={{ left: 400, top: 500, bottom: 516, width: 20, height: 16 }}
@@ -181,14 +181,19 @@ describe('the geometry fixture', () => {
                 onMouseLeave={() => {}}
             />,
         );
+        // The card portals to <body>, so it is not in the render's own container.
+        const html = document.querySelector('.ref-hover-card').outerHTML;
+        if (process.env.UPDATE_FIXTURES) {
+            fs.writeFileSync(FIXTURE, html);
+        }
         const fixture = fs.readFileSync(FIXTURE, 'utf8');
-        if (container.innerHTML !== fixture) {
+        if (html !== fixture) {
             throw new Error(
                 "ReferenceHoverCard's markup changed, so e2e/scripts/measure-reference-hover-card.mjs "
-                + `is measuring a stale shape. Write this test's container.innerHTML to ${FIXTURE} `
-                + 'and re-run the measurement.',
+                + `is measuring a stale shape. Refresh ${FIXTURE} by re-running this test with `
+                + 'UPDATE_FIXTURES=1, then re-run the measurement.',
             );
         }
-        expect(container.innerHTML).toBe(fixture);
+        expect(html).toBe(fixture);
     });
 });
