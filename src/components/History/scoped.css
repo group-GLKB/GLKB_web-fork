@@ -193,7 +193,7 @@
 
 /* Same gutter as the row checkboxes below, so the control and the column it
    drives share a left edge. */
-.history-select-all-checkbox {
+.history-meta-row .history-select-all-checkbox {
     position: absolute;
     left: -32px;
     top: 50%;
