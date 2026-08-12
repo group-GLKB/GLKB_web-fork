@@ -53,7 +53,9 @@
     text-align: left;
     background: transparent;
     border: none;
-    margin: 0 -12px;
+    /* Only the right side bleeds. The left bleed pulled the hover fill back to
+       24px, two pixels off the checkbox glyph, so the two looked welded. */
+    margin: 0 -12px 0 0;
     padding: 16px;
     border-radius: 10px;
     box-sizing: border-box;
