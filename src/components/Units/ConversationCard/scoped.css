@@ -23,7 +23,7 @@
    the row's text sits on the same baseline as the header and search above. The
    list reserves the gutter as padding (see .history-list) — without that the
    scroll container would clip this, which it did when the inset was a margin. */
-.history-row-checkbox {
+.history-item-row .history-row-checkbox {
     position: absolute;
     left: -32px;
     top: 50%;
@@ -119,7 +119,10 @@
     border-radius: 8px;
 }
 
-.history-title {
+/* Scoped through the row: these are MUI Typography, and .MuiTypography-body1
+   (400 16/24) is injected after this stylesheet, so at equal specificity it took
+   the type back off the design's interactive/lg. */
+.history-item-row .history-title {
     flex: 1;
     min-width: 0;
     font-family: 'Geist', sans-serif;
@@ -179,7 +182,7 @@
     border-radius: 8px;
 }
 
-.history-subtitle {
+.history-item-row .history-subtitle {
     font-family: 'Geist', sans-serif;
     font-weight: 400;
     font-size: 12px;
@@ -192,7 +195,7 @@
     -webkit-box-orient: vertical;
 }
 
-.history-timestamp {
+.history-item-row .history-timestamp {
     font-family: 'Geist', sans-serif;
     font-weight: 400;
     font-size: 12px;

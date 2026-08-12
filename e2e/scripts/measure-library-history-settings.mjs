@@ -27,6 +27,25 @@ const HISTORY_CSS = css('src/components/History/scoped.css');
 const CARD_CSS = css('src/components/Units/ConversationCard/scoped.css');
 const SETTINGS_CSS = css('src/components/AccountPage/scoped.css');
 
+/**
+ * A real rendered History row, markup and the emotion rules MUI generates for it,
+ * captured by ConversationCard.test.jsx. Hand-written stand-in markup measured a
+ * shape the component does not produce: with no `.MuiButtonBase-root { position:
+ * relative }` to compete with, the checkbox measured as absolutely positioned
+ * while the real one dropped into flow and stacked above the row.
+ *
+ * Emotion is appended after the project stylesheet because that is where MUI puts
+ * it at runtime — the browser resolves ties in its favour, and that tie is the bug.
+ */
+const HISTORY_ROW_FIXTURE = fs.readFileSync(path.join(ROOT, 'e2e/fixtures/history-row.html'), 'utf8');
+const [FIXTURE_EMOTION, FIXTURE_MARKUP] = (() => {
+    const end = HISTORY_ROW_FIXTURE.indexOf('</style>');
+    return [
+        HISTORY_ROW_FIXTURE.slice(HISTORY_ROW_FIXTURE.indexOf('>') + 1, end),
+        HISTORY_ROW_FIXTURE.slice(end + '</style>'.length),
+    ];
+})();
+
 const SHELL = (style, body) => `<!doctype html><html><head>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap">
 <style>
@@ -226,7 +245,7 @@ check('reference title (h5)', '600 16px/20px', lib.refTitle.font);
 check('reference meta (body-sm)', '400 12px/20px', lib.refMeta.font);
 
 // ---------------------------------------------------------------- History
-await page.setContent(SHELL(HISTORY_CSS + CARD_CSS, `
+await page.setContent(SHELL(HISTORY_CSS + CARD_CSS + FIXTURE_EMOTION, `
 <div class="history-content" style="width:1200px">
   <div class="history-top">
     <div class="history-header">
@@ -243,10 +262,7 @@ await page.setContent(SHELL(HISTORY_CSS + CARD_CSS, `
     </div>
   </div>
   <div class="history-list">
-    <div class="history-item-row history-item-row-select-mode">
-      <span class="history-row-checkbox MuiCheckbox-root" style="padding:4px;display:inline-flex"><svg style="width:18px;height:18px"></svg></span>
-      <button class="history-item"><div class="history-item-content"><div class="history-item-title-row"><span class="history-title">Selectable row</span></div></div></button>
-    </div>
+    ${FIXTURE_MARKUP}
     <div class="history-item-row">
       <button class="history-item">
         <span class="history-item-icon"><svg viewBox="0 0 20 20"></svg></span>
@@ -300,9 +316,16 @@ const gaps = await page.evaluate(() => {
         // .history-list scrolls, so anything left of its padding box is clipped —
         // the row checkbox used to hang 12px past it and lose its left half.
         checkboxOverhang: Math.max(0, round(r('.history-list').left - r('.history-row-checkbox').left)),
-        rowTextInset: round(r('.history-item-row-select-mode .history-title').left - r('.history-list').left
+        // The row's first content, not its title — the title trails the 20px glyph
+        // and the 16px gap after it.
+        rowContentInset: round(r('.history-item-row-select-mode .history-item-icon').left - r('.history-list').left
             - parseFloat(getComputedStyle(document.querySelector('.history-list')).paddingLeft)),
         checkboxHang: round(r('.history-item-row-select-mode').left - r('.history-row-checkbox').left),
+        checkboxPosition: getComputedStyle(document.querySelector('.history-row-checkbox')).position,
+        checkboxVerticalSkew: round(
+            (r('.history-row-checkbox').top + r('.history-row-checkbox').height / 2)
+            - (r('.history-item-row-select-mode').top + r('.history-item-row-select-mode').height / 2),
+        ),
         selectAllHang: round(r('#select-mode-row').left - r('.history-select-all-checkbox').left),
         // The select-all sits in the same column as the row checkboxes it drives,
         // and the hover fill clears the glyph rather than butting against it.
@@ -329,8 +352,10 @@ check('Select sits flush right in the 4px inset', 4, gaps.selectInset);
 check('row glyph starts after the 16px padding', 16, gaps.rowIcon);
 check('row checkbox never overhangs the scroll box', 0, gaps.checkboxOverhang);
 check('select-all shares the row checkbox column', 0, gaps.checkboxColumnSkew);
-check('row text sits on the column baseline (space/4)', 16, gaps.rowTextInset);
+check('row content sits on the column baseline (space/4)', 16, gaps.rowContentInset);
+check('row checkbox is out of flow', 'absolute', gaps.checkboxPosition);
 check('row checkbox hangs in the gutter', 32, gaps.checkboxHang);
+check('row checkbox is vertically centred in the row', 0, gaps.checkboxVerticalSkew);
 check('select-all hangs in the same gutter', 32, gaps.selectAllHang);
 check('header block to search (space/12)', 48, gaps.headerToSearch);
 check('search to meta row (space/4)', 16, gaps.searchToMeta);
