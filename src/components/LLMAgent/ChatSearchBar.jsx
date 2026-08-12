@@ -121,7 +121,9 @@ const ChatSearchBar = ({
                                         width: 32,
                                         height: 32,
                                         borderRadius: '8px',
-                                        backgroundColor: '#222A38',
+                                        // Same brand-muted square as the idle send button — the
+                                        // near-black fill it used to have belonged to no palette here.
+                                        backgroundColor: '#D9E6FE',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -129,7 +131,7 @@ const ChatSearchBar = ({
                                     }}
                                     title="Stop"
                                 >
-                                    <Box sx={{ width: 12, height: 12, backgroundColor: '#fff', borderRadius: '2px' }} />
+                                    <Box sx={{ width: 12, height: 12, backgroundColor: '#155DFC', borderRadius: '2px' }} />
                                 </Box>
                             ) : (
                                 <Box

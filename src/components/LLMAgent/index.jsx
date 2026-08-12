@@ -1213,7 +1213,9 @@ const MessageCard = React.memo(function MessageCard({
                         // border: isAssistant ? "1px solid" : "none",
                         borderColor: "divider",
                         borderRadius: isAssistant ? "24px" : "16px",
-                        flex: 1, // Occupy maximum width
+                        // The assistant fills the column; the user bubble hugs its
+                        // text, so a one-line question is a one-line-wide box.
+                        flex: isAssistant ? 1 : "0 1 auto",
                     }}
                 >
                     <Box sx={{ flex: 1, maxWidth: "100%" }}>
