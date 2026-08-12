@@ -74,8 +74,11 @@
     text-overflow: ellipsis;
 }
 
+/* Not italicised. The journal is the third run of one `body-sm` line in the design (573:6063) and
+   carries no emphasis of its own; the italic came from citation-style habit, and at 12px it was
+   the only slanted text in the panel. */
 .reference-card-journal {
-    font-style: italic;
+    font-style: normal;
 }
 
 .reference-card-quote {
@@ -166,8 +169,12 @@
     opacity: 1;
 }
 
+/* iconSize/md — the design's action buttons are a flat 20 square (573:6072), which MUI's own
+   padding scale cannot land on. */
 .reference-card-icon-btn.MuiIconButton-root {
-    padding: 3px;
+    width: 20px;
+    height: 20px;
+    padding: 0;
     color: #5E6E87;
 }
 
@@ -176,14 +183,17 @@
     color: #155DFC;
 }
 
+/* `caption` at 10/12 in a chip that stands the same 20px as the two icon buttons beside it
+   (573:6074): space/1 inline padding, space/1 gap, 4px block padding to make the 20. */
 .reference-card-fulltext {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
-    padding: 3px 6px;
+    gap: 4px;
+    padding: 4px;
     color: #5E6E87;
     font-size: 10px;
     font-weight: 600;
+    line-height: 12px;
     text-decoration: none;
     white-space: nowrap;
     border-radius: 4px;

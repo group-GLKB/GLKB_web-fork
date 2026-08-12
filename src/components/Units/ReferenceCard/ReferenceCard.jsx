@@ -213,9 +213,9 @@ const ReferenceCard = ({
                                 className="reference-card-icon-btn"
                             >
                                 {isBookmarked ? (
-                                    <BookmarkIcon sx={{ fontSize: 13, color: '#155DFC' }} />
+                                    <BookmarkIcon sx={{ fontSize: 14, color: '#155DFC' }} />
                                 ) : (
-                                    <BookmarkBorderIcon sx={{ fontSize: 13 }} />
+                                    <BookmarkBorderIcon sx={{ fontSize: 14 }} />
                                 )}
                             </IconButton>
                         </Tooltip>
@@ -228,7 +228,7 @@ const ReferenceCard = ({
                                 <img
                                     src={formatQuoteIcon}
                                     alt="Quote"
-                                    style={{ width: 14, height: 14, display: 'block' }}
+                                    style={{ width: 13, height: 13, display: 'block' }}
                                 />
                             </IconButton>
                         </Tooltip>

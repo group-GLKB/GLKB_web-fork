@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import BookmarkIcon from '@mui/icons-material/Bookmark';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
@@ -106,7 +107,7 @@ const ReferenceHoverCard = ({
     const citations = formatCitations(reference.citation_count ?? reference.n_citation);
     const meta = [pmid ? `PMID: ${pmid}` : '', citations].filter(Boolean).join(' · ');
 
-    return (
+    const card = (
         <div
             ref={ref}
             className="ref-hover-card"
@@ -182,6 +183,14 @@ const ReferenceHoverCard = ({
             </div>
         </div>
     );
+
+    // Portalled to <body>, not left where it is written. Rendered inline it is the last child of
+    // the answer's own `.markdown-body`, and inserting a node there while the transcript sits at
+    // the bottom lets the browser's scroll anchoring re-pick its anchor — which is the jump the
+    // user sees on hovering a citation near the end of an answer. `position: fixed` does not save
+    // it either: any ancestor with a transform/filter/contain becomes its containing block, so the
+    // card would be positioned — and clipped — inside the answer rather than the viewport.
+    return typeof document === 'undefined' ? card : createPortal(card, document.body);
 };
 
 export default ReferenceHoverCard;
