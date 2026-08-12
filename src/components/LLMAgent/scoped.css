@@ -774,14 +774,22 @@
     gap: 8px;
 }
 
-/* `interactive/emphasized` */
+/* `interactive/emphasized` — 14/18, the design's own leading (299:22087). It was set at 20 here,
+   which opened the title's own lines and pushed everything under it down. */
 .ref-hover-title {
     margin: 0;
     font-size: 14px;
     font-weight: 600;
-    line-height: 20px;
+    line-height: 18px;
     color: #0C1018;
     overflow-wrap: anywhere;
+    /* The design's title is three lines; a real one can run five or six, and every extra line goes
+       into a card that floats over the answer. Clamped so the card's height is bounded by its
+       design shape rather than by the longest title PubMed happens to hold. */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 /* `body-sm`; the design puts the authors and the year/journal on their own lines */
@@ -813,23 +821,24 @@
     margin-bottom: 0;
 }
 
-/* The quote hangs off a rule, space/2 from it. The BLOCK is the design's fixed 60px (299:22089),
-   which is also how tall the rule beside it runs, whatever the quote's length. */
+/* The quote hangs off a rule, space/2 from it, and the rule runs the height of the block.
+   DELIBERATE DEVIATION from the design's fixed 60px (299:22089): the text inside is clamped to two
+   22px lines, so 16 of those 60 were dead space under the last line — and this card floats over the
+   answer, where every row it does not need is a row of text it covers. 44 is the two lines. */
 .ref-hover-quote {
     display: flex;
     gap: 8px;
-    height: 60px;
+    height: 44px;
     border-left: 1px solid #E5E9F0;
     padding-left: 8px;
 }
 
-/* `body`. The design's quote block is a fixed 60px (299:22091) whatever the quote's length, with
-   the rule beside it spanning the same 60 — so the height is set, not grown, and the text is
-   clamped to the two lines that fit and ellipsised, which is what the design's own render shows. */
+/* `body`. Two lines, clamped and ellipsised — which is what the design's own render shows
+   (299:22091), and what the block above is now sized to. */
 .ref-hover-quote-text {
     margin: 0;
     /* max-height, not height: an explicit height beats -webkit-line-clamp and let a third line
-       show through under the ellipsis. The 60px belongs to the block above, not to the text. */
+       show through under the ellipsis. */
     max-height: 44px;
     font-size: 14px;
     font-weight: 400;
@@ -993,11 +1002,12 @@
     box-shadow: inset 0 0 0 1px #E5E9F0, 0 12px 32px rgba(12, 16, 24, 0.10);
 }
 
-/* ── clarify panel — Figma "Asking Question", node 111:4385 ─────────────────
+/* ── clarify panel — Figma "Asking User Question v2", node 581:7642 ─────────
    Panel: radius/4 on a border/default hairline, space/4 block / space/3 inline padding.
-   Rows: space/3 inline / space/2 block on radius/2, background/subtle at rest, background/muted
-   on hover, brand/soft when chosen. The 16px selector is a rounded square in both single- and
-   multi-select — the design draws them identically and lets the semantics differ. */
+   Rows: space/5 inline / space/2 block on radius/2, background/subtle at rest, background/muted
+   on hover, brand/soft when chosen. The 16px marker is a rounded square in both modes; it carries
+   the option's number in pick-one and is empty in pick-any, and fills with brand/primary and a
+   check once chosen. */
 .clarify-panel {
     margin: 12px 0 16px;
     padding: 16px 12px;
@@ -1030,6 +1040,12 @@
     overflow-wrap: anywhere;
 }
 
+/* "(1/3)" — the design writes it in the title's own weight and colour (577:6733); it is set apart
+   only so it never breaks onto a line by itself. */
+.clarify-question-step {
+    white-space: nowrap;
+}
+
 .clarify-close {
     flex-shrink: 0;
     width: 20px;
@@ -1054,11 +1070,14 @@
     padding: 0 8px;
 }
 
+/* No gap: the design butts the body column against the marker (577:6737 is 584 wide and 577:6744
+   starts at 604 in a 640 row, with space/5 of padding either side) and keeps the text off it with
+   the inset below instead. */
 .clarify-option {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 8px 12px;
+    gap: 0;
+    padding: 8px 20px;
     border-radius: 8px;
     background: #F2F4F8;
     cursor: pointer;
@@ -1082,19 +1101,17 @@
     gap: 4px;
 }
 
-/* `interactive/sm` */
+/* `interactive/sm`. The design runs this row to the marker's edge (577:6738 is the full 584) and
+   only insets the description; a label long enough to wrap would then end flush against the
+   marker, so it takes the same space/5 inset as the line below it. */
 .clarify-option-line {
     display: flex;
     align-items: center;
+    padding-right: 20px;
     font-size: 12px;
     font-weight: 500;
     line-height: 16px;
     color: #222A38;
-}
-
-.clarify-option-index {
-    flex-shrink: 0;
-    width: 20px;
 }
 
 .clarify-option-label {
@@ -1103,9 +1120,10 @@
     overflow-wrap: anywhere;
 }
 
-/* the description hangs under the label, indented past the index by space/5 */
+/* The description runs to space/5 short of the label's right edge (577:6741), so it wraps clear of
+   the marker instead of running under it. */
 .clarify-option-descwrap {
-    padding: 0 20px;
+    padding-right: 20px;
 }
 
 /* `body-sm` */
@@ -1133,12 +1151,15 @@
     cursor: pointer;
 }
 
-/* Pick-one is round, pick-any is square. The design draws one selector for both, which leaves the
-   user no way to know whether a second click adds to their choice or replaces it. */
-.clarify-option-mark.single {
-    border-radius: 50%;
+/* `caption` — the option's number at rest, in pick-one only */
+.clarify-option-marknum {
+    font-size: 10px;
+    font-weight: 400;
+    line-height: 12px;
+    color: #5E6E87;
 }
 
+.clarify-option-mark.selected,
 .clarify-option.selected .clarify-option-mark {
     border-color: #155DFC;
     background: #155DFC;
@@ -1149,7 +1170,7 @@
 /* Other: pencil + label, with the input where a description would sit */
 .clarify-other {
     align-items: center;
-    padding: 8px 12px 12px;
+    padding: 8px 20px 12px;
     cursor: default;
 }
 
@@ -1201,33 +1222,12 @@
     color: #A10902 !important;
 }
 
-/* "Select all that apply" — shown only for multi, where it is the difference between adding to a
-   choice and replacing it. */
-.clarify-hint {
-    margin: 0 8px 8px;
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 16px;
-    color: #5E6E87;
-}
-
 .clarify-actions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 8px;
     padding: 8px 8px 0;
-}
-
-/* pushes everything after it to the right, so Skip stays on the left */
-.clarify-actions-spacer {
-    flex: 1 0 0;
-}
-
-.clarify-step {
-    font-size: 12px;
-    line-height: 16px;
-    color: #5E6E87;
-    white-space: nowrap;
 }
 
 .clarify-back {
@@ -1250,7 +1250,7 @@
 .clarify-back:hover { background: #E5E9F0; }
 .clarify-back:disabled { opacity: 0.6; cursor: default; }
 
-/* Skip while nothing is answered (111:4438); Submit once something is (111:4845). */
+/* Skip while nothing is answered (577:6784); Submit once something is (577:7462). */
 .clarify-skip,
 .clarify-submit {
     display: inline-flex;
@@ -1374,10 +1374,11 @@
     width: 100%;
 }
 
-/* Figma 44:4744 — each row is space/6 top and bottom inside a space/6 gutter. */
+/* Figma 573:6056 — space/6 gutter, space/4 top and bottom. (It was 24 all round, which made every
+   row 16px taller than the design's 156.) */
 .references-list>div {
     margin: 0;
-    padding: 24px;
+    padding: 16px 24px;
     border-radius: 8px;
     position: relative;
     box-sizing: border-box;
@@ -1393,21 +1394,22 @@
     border-radius: 8px;
 }
 
+/* The rule belongs to the card's text column, not to the row: in the design it is the body frame's
+   own bottom border (573:6060), so it starts past the number badge — 24 of gutter, 16 of badge, 12
+   of gap — and stops at the gutter on the right. Running it full-bleed underlined the badge column
+   too, which read as a table rule rather than as the end of an entry. border/subtle, not
+   border/default: it sits inside a card, where the stronger grey was heavier than the design's. */
 .references-list>div::after {
     content: '';
     position: absolute;
-    left: 0;
-    right: 0;
+    left: 52px;
+    right: 24px;
     bottom: 0;
-    border-bottom: 1px solid #E5E9F0;
+    border-bottom: 1px solid #F2F4F8;
 }
 
 .references-list>div:last-child::after {
     border-bottom: none;
-}
-
-.references-list>div:last-child {
-    padding-bottom: 24px;
 }
 
 .message-wrapper {

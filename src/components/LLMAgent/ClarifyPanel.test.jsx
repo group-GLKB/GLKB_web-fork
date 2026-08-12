@@ -1,10 +1,10 @@
 /**
- * Clarify panel behaviour — Figma "Asking Question" (node 111:4385).
+ * Clarify panel behaviour — Figma "Asking User Question v2" (node 581:7642).
  *
  * The properties worth pinning are the ones a redesign can quietly break:
- *   * the footer is Skip until something is answered and Submit after (the design's own two
- *     state frames), and both still reach their handlers;
- *   * single-select replaces, multi-select accumulates;
+ *   * the footer is one action, reading Skip until something is answered and Submit after (the
+ *     design's own state frames), and each still reaches its handler;
+ *   * single-select replaces, multi-select accumulates, and the marker says which is which;
  *   * "Other" is always offered and typing in it counts as an answer;
  *   * the draft shape handed back to the container is unchanged, so the submit path that talks
  *     to /clarify keeps working.
@@ -57,10 +57,14 @@ describe('rendering', () => {
         expect(screen.getByText('Which disease should the review focus on?')).toBeInTheDocument();
         const rows = document.querySelectorAll('.clarify-option:not(.clarify-other)');
         expect(rows).toHaveLength(2);
-        expect(within(rows[0]).getByText('1.')).toBeInTheDocument();
+        // The number lives in the row's marker, which is where the design puts it.
+        expect(within(rows[0]).getByText('1')).toHaveClass('clarify-option-marknum');
         expect(within(rows[0]).getByText('Type 1 diabetes')).toBeInTheDocument();
         expect(within(rows[0]).getByText(/Autoimmune beta-cell destruction/)).toBeInTheDocument();
-        expect(within(rows[1]).getByText('2.')).toBeInTheDocument();
+        expect(within(rows[1]).getByText('2')).toHaveClass('clarify-option-marknum');
+        // ...and Other carries the number after them.
+        expect(within(document.querySelector('.clarify-other')).getByText('3'))
+            .toHaveClass('clarify-option-marknum');
     });
 
     it('always offers Other with a free-text input', () => {
@@ -78,16 +82,20 @@ describe('rendering', () => {
     });
 });
 
-// The design's two frames show Skip on an untouched panel and Submit on an answered one; taken
-// literally that swaps them and removes the only way to decline a round the run is blocked on.
+// One action, swapping between Skip and Submit. Declining a round the run is blocked on stays
+// available whatever is answered — through the header's ✕, which is where the design puts it.
 describe('the footer', () => {
-    it('offers Skip whether or not anything is answered', () => {
+    it('is Skip while nothing is answered, and skips the round', () => {
         const { onSkip } = setup();
+        expect(screen.queryByRole('button', { name: /submit/i })).not.toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
         expect(onSkip).toHaveBeenCalled();
+    });
 
+    it('becomes Submit once something is answered', () => {
         setup({ clarificationDrafts: drafts(['Type 1 diabetes']) });
-        expect(screen.getAllByRole('button', { name: 'Skip' }).length).toBeGreaterThan(0);
+        expect(screen.queryByRole('button', { name: 'Skip' })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument();
     });
 
     it('submits from the last question', () => {
@@ -108,63 +116,77 @@ describe('the footer', () => {
 });
 
 // A round can carry up to four questions. Stacked in one column the later ones were buried and
-// there was no sense of how many were left.
+// there was no sense of how many were left; the design's own title carries "(1/3)".
 describe('stepping through a multi-question round', () => {
     const q2 = { ...QUESTION, header: 'Aspect', question: 'Which aspects?', response_type: 'multi' };
     const two = { pendingClarification: { questions: [QUESTION, q2] } };
+    const title = () => document.querySelector('.clarify-question-text').textContent;
 
-    it('shows one question at a time, with its position', () => {
+    it('shows one question at a time, with its position in the title', () => {
         setup(two);
-        expect(screen.getByText('Which disease should the review focus on?')).toBeInTheDocument();
+        expect(title()).toBe('Which disease should the review focus on? (1/2)');
         expect(screen.queryByText('Which aspects?')).not.toBeInTheDocument();
-        expect(screen.getByText('1 of 2')).toBeInTheDocument();
     });
 
-    it('Next advances and Submit only appears on the last one', () => {
-        setup(two);
+    it('the action advances until the last question, then submits', () => {
+        setup({ ...two, clarificationDrafts: drafts(['Type 1 diabetes']) });
         expect(screen.queryByRole('button', { name: /submit/i })).not.toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: /next/i }));
 
-        expect(screen.getByText('Which aspects?')).toBeInTheDocument();
-        expect(screen.getByText('2 of 2')).toBeInTheDocument();
+        expect(title()).toBe('Which aspects? (2/2)');
+        // Answered on question 1, so the round has something to submit even though this one is blank.
         expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /next/i })).not.toBeInTheDocument();
+    });
+
+    it('Skip on an unanswered question steps past it rather than declining the round', () => {
+        const { onSkip } = setup(two);
+        fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+        expect(onSkip).not.toHaveBeenCalled();
+        expect(title()).toBe('Which aspects? (2/2)');
     });
 
     it('Back returns to the previous question, and is absent on the first', () => {
         setup(two);
         expect(screen.queryByRole('button', { name: /back/i })).not.toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: /next/i }));
+        fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
         fireEvent.click(screen.getByRole('button', { name: /back/i }));
-        expect(screen.getByText('Which disease should the review focus on?')).toBeInTheDocument();
+        expect(title()).toBe('Which disease should the review focus on? (1/2)');
     });
 
-    it('Next is allowed with nothing chosen — a blank answer takes the default', () => {
+    it('advancing is allowed with nothing chosen — a blank answer takes the default', () => {
         setup(two);
-        expect(screen.getByRole('button', { name: /next/i })).not.toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Skip' })).not.toBeDisabled();
     });
 
     it('a single question shows no counter and no Next', () => {
-        setup();
-        expect(screen.queryByText(/ of /)).not.toBeInTheDocument();
+        setup({ clarificationDrafts: drafts(['Type 1 diabetes']) });
+        expect(title()).toBe('Which disease should the review focus on?');
         expect(screen.queryByRole('button', { name: /next/i })).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument();
     });
 });
 
-// Nothing in the design distinguishes them, which leaves the user guessing whether a second click
-// adds to their choice or replaces it.
+// The marker is the only thing that says whether a second click adds to a choice or replaces it,
+// so it is worth pinning that the two modes do not render the same.
 describe('telling single from multi apart', () => {
-    it('pick-one gets a round selector and no hint', () => {
+    it('pick-one numbers every marker, Other included', () => {
         setup();
-        expect(document.querySelector('.clarify-option-mark.single')).toBeInTheDocument();
-        expect(screen.queryByText(/select all that apply/i)).not.toBeInTheDocument();
+        expect(document.querySelectorAll('.clarify-option-marknum')).toHaveLength(3);
     });
 
-    it('pick-any gets a square selector and says so', () => {
+    it('pick-any leaves them empty', () => {
         setup({ pendingClarification: { questions: [{ ...QUESTION, response_type: 'multi' }] } });
-        expect(document.querySelector('.clarify-option-mark.single')).not.toBeInTheDocument();
-        expect(screen.getByText(/select all that apply/i)).toBeInTheDocument();
+        expect(document.querySelectorAll('.clarify-option-mark')).toHaveLength(3);
+        expect(document.querySelectorAll('.clarify-option-marknum')).toHaveLength(0);
+    });
+
+    it('a chosen row is marked selected in either mode', () => {
+        setup({ clarificationDrafts: drafts(['Type 1 diabetes']) });
+        const rows = document.querySelectorAll('.clarify-option:not(.clarify-other)');
+        expect(rows[0].querySelector('.clarify-option-mark')).toHaveClass('selected');
+        expect(rows[0].querySelector('.clarify-option-marknum')).not.toBeInTheDocument();
+        expect(rows[1].querySelector('.clarify-option-mark')).not.toHaveClass('selected');
     });
 });
 
@@ -296,13 +318,16 @@ describe('the geometry fixture', () => {
                 onSkip={() => {}}
             />,
         );
+        if (process.env.UPDATE_FIXTURES) {
+            fs.writeFileSync(FIXTURE, container.innerHTML);
+        }
         const fixture = fs.readFileSync(FIXTURE, 'utf8');
         if (container.innerHTML !== fixture) {
             // Say what to do, not just that it differs — jest's expect carries no message.
             throw new Error(
                 "ClarifyPanel's markup changed, so e2e/scripts/measure-clarify-panel.mjs is now "
-                + 'measuring a stale shape. Refresh it by writing this test\'s '
-                + `container.innerHTML to ${FIXTURE}, then re-run the measurement.`,
+                + `measuring a stale shape. Refresh ${FIXTURE} by re-running this test with `
+                + 'UPDATE_FIXTURES=1, then re-run the measurement.',
             );
         }
         expect(container.innerHTML).toBe(fixture);
