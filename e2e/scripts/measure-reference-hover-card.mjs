@@ -109,12 +109,15 @@ check('card width', 240, got.card.w);
 // The design fixes where every block sits. Checking properties alone missed a 5px drift: the
 // PMID row rendered at its line-height 20 where the design pins it to 16, and the 1px divider
 // added a pixel the design's zero-height stroke does not.
-check('card height', 304, got.cardHeight);
+// 304 in the design; 284 here. The 20px difference is the blank line in the design's placeholder
+// copy between the authors and the journal — see .ref-hover-authors in scoped.css. Everything
+// below the head therefore sits 20px higher than the design's own y, and nothing else moves.
+check('card height (design 304, less the blank line)', 284, got.cardHeight);
 check('title      y', '16..76', got.y.title);
-check('source     y', '84..144', got.y.source);
-check('quote      y', '156..216', got.y.quote);
-check('PMID row   y', '228..244', got.y.meta);
-check('footer     y', '268..288', got.y.actions);
+check('source     y (design 84..144)', '84..124', got.y.source);
+check('quote      y (design 156..216)', '136..196', got.y.quote);
+check('PMID row   y (design 228..244)', '208..224', got.y.meta);
+check('footer     y (design 268..288)', '248..268', got.y.actions);
 check('card padding (space/4)', '16px', got.card.pad);
 check('card radius (radius/4)', '16px', got.card.radius);
 check('card children gap (space/3)', '12px', got.card.gap);
@@ -133,7 +136,7 @@ check('quote type (body)', '400 14px/22px', got.quoteText.font);
 check('quote colour (text/secondary)', '#222A38', hex(got.quoteText.color));
 check('quote block height (fixed 60px)', 60, got.quote.h);
 check('quote text clamped to 2 lines', 44, got.quoteText.h);
-check('authors line margin (design 20px)', '20px', got.authors.marginBottom);
+check('authors line margin (deviation: design 20px)', '0px', got.authors.marginBottom);
 check('meta type (body-sm)', '400 12px/20px', got.meta.font);
 check('divider height', 1, got.divider.h);
 check('badge size', '16 x 16', `${got.badge.w} x ${got.badge.h}`);
