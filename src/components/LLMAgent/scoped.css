@@ -839,6 +839,10 @@
 
 .ref-hover-meta {
     margin: 0;
+    /* Figma 299:22092 fixes this row at 16px while its text runs at line-height 20 — the block is
+       shorter than its own line box. Letting it size to the text made it 20 and pushed the
+       divider, the footer and the card's own height 4-5px down. */
+    height: 16px;
     font-size: 12px;
     font-weight: 400;
     line-height: 20px;
@@ -851,6 +855,10 @@
 .ref-hover-divider {
     height: 1px;
     background: #E5E9F0;
+    /* Figma 299:22094 is a zero-height stroke — it is drawn at y=256 and costs the column no
+       space, so the 12px gaps either side of it meet at 24px. A 1px box adds its pixel to the
+       flow and pushed the footer, and the card's height, one down. */
+    margin-bottom: -1px;
 }
 
 .ref-hover-actions {
