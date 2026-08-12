@@ -712,7 +712,7 @@
 
 /* Reference rows are a fixed 80px box; chat and graph rows size to their text.
    Scoped through .history-item-row so these outrank ConversationCard's own
-   .history-item-row-no-checkbox padding, which every library row carries. */
+   .history-item padding. */
 .library-reference-list .history-item-row .history-item {
     grid-column: 1;
     display: flex;
