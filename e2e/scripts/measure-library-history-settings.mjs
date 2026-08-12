@@ -235,7 +235,6 @@ await page.setContent(SHELL(HISTORY_CSS + CARD_CSS, `
     </div>
     <div class="history-meta-row">
       <div class="history-select-toolbar history-select-toolbar-empty">
-        <span class="history-select-all-checkbox" style="padding:4px;display:inline-flex"><svg style="width:18px;height:18px"></svg></span>
         <div class="history-select-toolbar-content">
           <p class="history-meta-text MuiTypography-root">4 search history records with GLKB</p>
         </div>
@@ -258,6 +257,15 @@ await page.setContent(SHELL(HISTORY_CSS + CARD_CSS, `
       </button>
     </div>
   </div>
+    <div class="history-meta-row" id="select-mode-row">
+      <div class="history-select-toolbar">
+        <span class="history-select-all-checkbox" style="padding:4px;display:inline-flex"><svg style="width:18px;height:18px"></svg></span>
+        <div class="history-select-toolbar-content">
+          <p class="history-meta-text MuiTypography-root">0 selected</p>
+        </div>
+      </div>
+      <button class="history-select-toggle">Cancel</button>
+    </div>
 </div>`));
 await page.waitForTimeout(1200);
 
@@ -292,7 +300,14 @@ const gaps = await page.evaluate(() => {
         // .history-list scrolls, so anything left of its padding box is clipped —
         // the row checkbox used to hang 12px past it and lose its left half.
         checkboxOverhang: Math.max(0, round(r('.history-list').left - r('.history-row-checkbox').left)),
-        selectAllOverhang: Math.max(0, round(r('.history-meta-row').left - r('.history-select-all-checkbox').left)),
+        selectAllOverhang: Math.max(0, round(r('#select-mode-row').left - r('.history-select-all-checkbox').left)),
+        // The select-all sits in the same column as the row checkboxes it drives,
+        // and the hover fill clears the glyph rather than butting against it.
+        checkboxColumnSkew: round(r('.history-select-all-checkbox').left - r('.history-row-checkbox').left),
+        hoverFillClearance: round(
+            r('.history-item-row-select-mode .history-item').left
+            - (r('.history-row-checkbox').left + r('.history-row-checkbox').width),
+        ),
     };
 });
 
@@ -315,6 +330,8 @@ check('Select sits flush right in the 4px inset', 4, gaps.selectInset);
 check('row glyph starts after the 16px padding', 16, gaps.rowIcon);
 check('row checkbox never overhangs the scroll box', 0, gaps.checkboxOverhang);
 check('select-all never overhangs the meta row', 0, gaps.selectAllOverhang);
+check('select-all shares the row checkbox column', 0, gaps.checkboxColumnSkew);
+check('hover fill clears the checkbox box', 10, gaps.hoverFillClearance);
 check('header block to search (space/12)', 48, gaps.headerToSearch);
 check('search to meta row (space/4)', 16, gaps.searchToMeta);
 check('meta row to list (space/2)', 8, gaps.metaToList);

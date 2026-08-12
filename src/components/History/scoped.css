@@ -186,6 +186,13 @@
     min-height: 24px;
 }
 
+/* The meta row carries the design's 4px inset, but the rows below it do not,
+   so the select-all would sit 4px right of the column it controls. Only the
+   variant that actually has a checkbox pulls back. */
+.history-select-toolbar:not(.history-select-toolbar-empty) {
+    margin-left: -4px;
+}
+
 .history-select-toolbar-empty {
     grid-template-columns: minmax(0, 1fr);
 }
