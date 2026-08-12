@@ -235,6 +235,7 @@ await page.setContent(SHELL(HISTORY_CSS + CARD_CSS, `
     </div>
     <div class="history-meta-row">
       <div class="history-select-toolbar history-select-toolbar-empty">
+        <span class="history-select-all-checkbox" style="padding:4px;display:inline-flex"><svg style="width:18px;height:18px"></svg></span>
         <div class="history-select-toolbar-content">
           <p class="history-meta-text MuiTypography-root">4 search history records with GLKB</p>
         </div>
@@ -243,6 +244,10 @@ await page.setContent(SHELL(HISTORY_CSS + CARD_CSS, `
     </div>
   </div>
   <div class="history-list">
+    <div class="history-item-row history-item-row-select-mode">
+      <span class="history-row-checkbox MuiCheckbox-root" style="padding:4px;display:inline-flex"><svg style="width:18px;height:18px"></svg></span>
+      <button class="history-item"><div class="history-item-content"><div class="history-item-title-row"><span class="history-title">Selectable row</span></div></div></button>
+    </div>
     <div class="history-item-row history-item-row-no-checkbox">
       <button class="history-item">
         <span class="history-item-icon"><svg viewBox="0 0 20 20"></svg></span>
@@ -283,7 +288,11 @@ const gaps = await page.evaluate(() => {
         // flush left, Select is flush right.
         countInset: round(r('.history-meta-text').left - row.left),
         selectInset: round(row.right - r('.history-select-toggle').right),
-        rowIcon: round(r('.history-item-icon').left - r('.history-item').left),
+        rowIcon: round(r('.history-item-icon').left - r('.history-item-row-no-checkbox .history-item').left),
+        // .history-list scrolls, so anything left of its padding box is clipped —
+        // the row checkbox used to hang 12px past it and lose its left half.
+        checkboxOverhang: Math.max(0, round(r('.history-list').left - r('.history-row-checkbox').left)),
+        selectAllOverhang: Math.max(0, round(r('.history-meta-row').left - r('.history-select-all-checkbox').left)),
     };
 });
 
@@ -304,6 +313,8 @@ check('Select control inset (space/2)', '0px 8px', his.select.pad);
 check('count sits flush left in the 4px inset', 4, gaps.countInset);
 check('Select sits flush right in the 4px inset', 4, gaps.selectInset);
 check('row glyph starts after the 16px padding', 16, gaps.rowIcon);
+check('row checkbox never overhangs the scroll box', 0, gaps.checkboxOverhang);
+check('select-all never overhangs the meta row', 0, gaps.selectAllOverhang);
 check('header block to search (space/12)', 48, gaps.headerToSearch);
 check('search to meta row (space/4)', 16, gaps.searchToMeta);
 check('meta row to list (space/2)', 8, gaps.metaToList);

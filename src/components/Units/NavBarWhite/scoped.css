@@ -55,23 +55,24 @@ body[data-sidebar-overlay="true"] .app-layout-content {
     padding: 24px 0 0;
 }
 
-/* Scoped to the section so this outranks the MuiTypography-root reset, which
-   emotion injects into <head> at runtime and would otherwise win the
-   margin at equal specificity and flatten the gap below the label to 0. */
+/* Figma 500:2409 — label and entries are one space/2 column, and the label is
+   body-sm-emphasized on tertiary. Scoped to the section so the margin outranks
+   the MuiTypography-root reset, which emotion injects at runtime and would
+   otherwise win at equal specificity and flatten the gap to 0. */
 .sidebar-recent-section .sidebar-recent-title {
     font-family: 'Geist', sans-serif;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 12px;
-    color: #8090AB;
-    line-height: 16px;
-    margin: 0 0 24px;
+    color: #5E6E87;
+    line-height: 20px;
+    margin: 0 0 8px;
     padding-left: 0;
 }
 
 .sidebar-recent-list {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
     padding-right: 0;
 }
 
@@ -96,7 +97,7 @@ body[data-sidebar-overlay="true"] .app-layout-content {
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 400;
-    line-height: 16px;
+    line-height: 20px;
     color: #222A38;
     text-align: left;
     cursor: pointer;

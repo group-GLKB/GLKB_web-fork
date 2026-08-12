@@ -25,11 +25,13 @@
     border-bottom: 1px solid #E5E9F0;
 }
 
+/* No negative inset: .history-list scrolls, so anything left of the row's own
+   left edge lands outside the scroll container's padding box and is clipped. */
 .history-row-checkbox {
     grid-column: 1;
     justify-self: start;
     align-self: center;
-    margin-left: -12px !important;
+    margin-left: 0 !important;
     margin-top: 0;
     opacity: 0;
     visibility: hidden;
