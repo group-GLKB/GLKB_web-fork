@@ -1,38 +1,34 @@
 .history-item-row {
     position: relative;
     display: grid;
-    grid-template-columns: 36px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
     width: 100%;
     box-sizing: border-box;
-    padding-right: 36px;
     --history-hover-bleed: 4px;
     --history-hover-radius: 12px;
-    --history-row-gutter: 36px;
-}
-
-.history-item-row-no-checkbox {
-    grid-template-columns: minmax(0, 1fr);
     --history-row-gutter: 0px;
 }
 
 .history-item-row::before {
     content: '';
     position: absolute;
-    left: calc(var(--history-row-gutter) - var(--history-hover-bleed) - 14px);
-    right: calc(var(--history-row-gutter) - var(--history-hover-bleed));
+    left: 0;
+    right: 0;
     bottom: 0;
     border-bottom: 1px solid #E5E9F0;
 }
 
-/* No negative inset: .history-list scrolls, so anything left of the row's own
-   left edge lands outside the scroll container's padding box and is clipped. */
+/* Hangs in the gutter beside the row rather than taking a column inside it, so
+   the row's text sits on the same baseline as the header and search above. The
+   list reserves the gutter as padding (see .history-list) — without that the
+   scroll container would clip this, which it did when the inset was a margin. */
 .history-row-checkbox {
-    grid-column: 1;
-    justify-self: start;
-    align-self: center;
-    margin-left: 0 !important;
-    margin-top: 0;
+    position: absolute;
+    left: -32px;
+    top: 50%;
+    transform: translateY(-50%);
+    margin: 0 !important;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -48,14 +44,12 @@
 }
 
 .history-item {
-    grid-column: 2;
+    grid-column: 1;
     width: 100%;
     text-align: left;
     background: transparent;
     border: none;
-    /* Only the right side bleeds. The left bleed pulled the hover fill back to
-       24px, two pixels off the checkbox glyph, so the two looked welded. */
-    margin: 0 -12px 0 0;
+    margin: 0;
     padding: 16px;
     border-radius: 10px;
     box-sizing: border-box;
@@ -67,11 +61,6 @@
     transition: background-color 0.2s ease, border-radius 0.2s ease;
 }
 
-.history-item-row-no-checkbox .history-item {
-    grid-column: 1;
-    margin: 0;
-    padding: 16px;
-}
 
 @media (max-width: 767px) {
     .history-item-row {

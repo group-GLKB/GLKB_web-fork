@@ -116,7 +116,7 @@ await page.setContent(SHELL(LIBRARY_CSS + CARD_CSS, `
     </div>
     <div class="library-scroll"></div>
     <div class="library-chat-list">
-      <div class="history-item-row history-item-row-no-checkbox">
+      <div class="history-item-row">
         <div class="history-item">
           <span class="history-item-icon"><svg viewBox="0 0 20 20"></svg></span>
           <div class="history-item-content">
@@ -127,7 +127,7 @@ await page.setContent(SHELL(LIBRARY_CSS + CARD_CSS, `
       </div>
     </div>
     <div class="library-reference-list">
-      <div class="history-item-row history-item-row-no-checkbox">
+      <div class="history-item-row">
         <div class="history-item">
           <div class="library-entry-content">
             <span class="library-entry-title">Interferons are key cytokines.</span>
@@ -247,7 +247,7 @@ await page.setContent(SHELL(HISTORY_CSS + CARD_CSS, `
       <span class="history-row-checkbox MuiCheckbox-root" style="padding:4px;display:inline-flex"><svg style="width:18px;height:18px"></svg></span>
       <button class="history-item"><div class="history-item-content"><div class="history-item-title-row"><span class="history-title">Selectable row</span></div></div></button>
     </div>
-    <div class="history-item-row history-item-row-no-checkbox">
+    <div class="history-item-row">
       <button class="history-item">
         <span class="history-item-icon"><svg viewBox="0 0 20 20"></svg></span>
         <div class="history-item-content">
@@ -296,18 +296,17 @@ const gaps = await page.evaluate(() => {
         // flush left, Select is flush right.
         countInset: round(r('.history-meta-text').left - row.left),
         selectInset: round(row.right - r('.history-select-toggle').right),
-        rowIcon: round(r('.history-item-icon').left - r('.history-item-row-no-checkbox .history-item').left),
+        rowIcon: round(r('.history-item-icon').left - r('.history-list .history-item-row:not(.history-item-row-select-mode) .history-item').left),
         // .history-list scrolls, so anything left of its padding box is clipped —
         // the row checkbox used to hang 12px past it and lose its left half.
         checkboxOverhang: Math.max(0, round(r('.history-list').left - r('.history-row-checkbox').left)),
-        selectAllOverhang: Math.max(0, round(r('#select-mode-row').left - r('.history-select-all-checkbox').left)),
+        rowTextInset: round(r('.history-item-row-select-mode .history-title').left - r('.history-list').left
+            - parseFloat(getComputedStyle(document.querySelector('.history-list')).paddingLeft)),
+        checkboxHang: round(r('.history-item-row-select-mode').left - r('.history-row-checkbox').left),
+        selectAllHang: round(r('#select-mode-row').left - r('.history-select-all-checkbox').left),
         // The select-all sits in the same column as the row checkboxes it drives,
         // and the hover fill clears the glyph rather than butting against it.
         checkboxColumnSkew: round(r('.history-select-all-checkbox').left - r('.history-row-checkbox').left),
-        hoverFillClearance: round(
-            r('.history-item-row-select-mode .history-item').left
-            - (r('.history-row-checkbox').left + r('.history-row-checkbox').width),
-        ),
     };
 });
 
@@ -329,9 +328,10 @@ check('count sits flush left in the 4px inset', 4, gaps.countInset);
 check('Select sits flush right in the 4px inset', 4, gaps.selectInset);
 check('row glyph starts after the 16px padding', 16, gaps.rowIcon);
 check('row checkbox never overhangs the scroll box', 0, gaps.checkboxOverhang);
-check('select-all never overhangs the meta row', 0, gaps.selectAllOverhang);
 check('select-all shares the row checkbox column', 0, gaps.checkboxColumnSkew);
-check('hover fill clears the checkbox box', 10, gaps.hoverFillClearance);
+check('row text sits on the column baseline (space/4)', 16, gaps.rowTextInset);
+check('row checkbox hangs in the gutter', 32, gaps.checkboxHang);
+check('select-all hangs in the same gutter', 32, gaps.selectAllHang);
 check('header block to search (space/12)', 48, gaps.headerToSearch);
 check('search to meta row (space/4)', 16, gaps.searchToMeta);
 check('meta row to list (space/2)', 8, gaps.metaToList);

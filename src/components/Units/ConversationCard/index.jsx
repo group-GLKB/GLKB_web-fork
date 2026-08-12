@@ -156,7 +156,7 @@ const ConversationCard = ({
     const shouldRenderCheckbox = selectMode || showCheckboxOnHover;
 
     return (
-        <Box className={`history-item-row${selectMode ? ' history-item-row-select-mode' : ''}${!shouldRenderCheckbox ? ' history-item-row-no-checkbox' : ''}`}>
+        <Box className={`history-item-row${selectMode ? ' history-item-row-select-mode' : ''}`}>
             {shouldRenderCheckbox && (
                 <Checkbox
                     className="history-row-checkbox"
