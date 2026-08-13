@@ -921,7 +921,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                         },
                                                     }}
                                                 >
-                                                    <MoreHorizIcon sx={{ fontSize: 18 }} />
+                                                    <MoreHorizIcon sx={{ fontSize: 12 }} />
                                                 </IconButton>
                                             </Box>
                                         );
@@ -1066,8 +1066,9 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                         boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
                         '& .MuiMenuItem-root': {
                             fontFamily: 'DM Sans, sans-serif',
-                            fontSize: '13px',
-                            fontWeight: 500,
+                            fontSize: '10px',
+                            lineHeight: '12px',
+                            fontWeight: 400,
                             color: '#141B26',
                             py: 0.75,
                             px: 1.25,
@@ -1077,34 +1078,35 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
             >
                 <MenuItem onClick={handleRenameRecent}>
                     <ListItemIcon sx={{ minWidth: 26, color: '#141B26' }}>
-                        <DriveFileRenameOutlineIcon sx={{ fontSize: 18 }} />
+                        <DriveFileRenameOutlineIcon sx={{ fontSize: 12 }} />
                     </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>Rename</ListItemText>
+                    <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>Rename</ListItemText>
                 </MenuItem>
                 <MenuItem onClick={handleBookmarkRecent}>
                     <ListItemIcon sx={{ minWidth: 26, color: '#141B26' }}>
                         {isRecentBookmarked ? (
-                            <BookmarkIcon sx={{ fontSize: 18 }} />
+                            <BookmarkIcon sx={{ fontSize: 12 }} />
                         ) : (
-                            <BookmarkBorderIcon sx={{ fontSize: 18 }} />
+                            <BookmarkBorderIcon sx={{ fontSize: 12 }} />
                         )}
                     </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
+                    <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
                         {isRecentBookmarked ? 'Remove bookmark' : 'Bookmark'}
                     </ListItemText>
                 </MenuItem>
                 <Divider sx={{ borderColor: '#E5E9F0' }} />
                 <MenuItem onClick={handleDeleteRecent} sx={{ color: '#A10902 !important' }}>
                     <ListItemIcon sx={{ minWidth: 26, color: '#A10902' }}>
-                        <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+                        <DeleteOutlineIcon sx={{ fontSize: 12 }} />
                     </ListItemIcon>
                     <ListItemText
                         primaryTypographyProps={{
                             sx: {
                                 color: '#A10902',
                                 fontFamily: 'DM Sans, sans-serif',
-                                fontSize: '13px',
-                                fontWeight: 500,
+                                fontSize: '10px',
+                                lineHeight: '12px',
+                                fontWeight: 400,
                             },
                         }}
                     >
