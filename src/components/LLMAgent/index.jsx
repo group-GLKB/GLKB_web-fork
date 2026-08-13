@@ -1366,7 +1366,11 @@ const MessageCard = React.memo(function MessageCard({
                             </Box>
                         )}
 
-                        <Box mt={1}>
+                        {/* Separates the body from the investigate summary and thinking rows
+                            above it. The user bubble has none of those, so on that side the
+                            margin was just 8px of dead space above the text — 20px above it
+                            against 12px below, inside padding that is 12px on both sides. */}
+                        <Box mt={isAssistant ? 1 : 0}>
                             {showReloadInMessage ? (
                                 <Box
                                     sx={{
