@@ -132,7 +132,7 @@
     transform: translate(-50%, -50%);
     border-radius: 8px;
     background-color: #EEF3FF;
-    border: 1px solid #B7D3FF;
+    border: 1px solid #D9E6FE;
     box-shadow: 0 6px 16px rgba(22, 69, 99, 0.18);
     pointer-events: none;
     z-index: 2;
@@ -481,7 +481,7 @@
 }
 
 .reference-item a {
-    color: #1890ff;
+    color: #155DFC;
     text-decoration: none;
     font-size: 12px;
     display: block;
@@ -489,7 +489,7 @@
 }
 
 .reference-item a:hover {
-    color: #40a9ff;
+    color: #0A47D6;
 }
 
 .message {
@@ -1471,7 +1471,7 @@
 
 .message.selected {
     border-radius: 6px;
-    outline: 1px solid #4096ff;
+    outline: 1px solid #155DFC;
 }
 
 .system-icon {
@@ -1482,7 +1482,7 @@
     object-fit: contain;
     flex-shrink: 0;
     align-self: flex-start;
-    border: 1px solid #4B6B8C;
+    border: 1px solid #E5E9F0;
     padding: 2px;
 }
 
@@ -2179,7 +2179,7 @@ button.ip-head-left {
 
 .ip-head-icon {
     font-size: 16px !important;
-    color: #4B88FD;
+    color: #155DFC;
 }
 
 /* Title transition is fade-out-to-blank then fade-in — NOT a crossfade

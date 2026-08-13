@@ -18,6 +18,7 @@ import '@testing-library/jest-dom';
 import fs from 'fs';
 import path from 'path';
 
+import { ReactComponent as ChatIcon } from '../../../img/llm/chat_message.svg';
 import ConversationCard from './index';
 
 const FIXTURE = path.join(__dirname, '../../../../e2e/fixtures/history-row.html');
@@ -45,7 +46,7 @@ describe('ConversationCard geometry fixture', () => {
                 <ConversationCard
                     conversation={conversation}
                     title={conversation.leadingTitle}
-                    leadingIcon={<svg viewBox="0 0 20 20" />}
+                    leadingIcon={<ChatIcon />}
                     selectMode
                     isSelected={false}
                     onToggleSelect={() => {}}

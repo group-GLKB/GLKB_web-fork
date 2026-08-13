@@ -679,8 +679,9 @@
 
 .library-folder-page-title {
     font-family: 'Geist';
-    font-weight: 700;
-    font-size: 15px;
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 20px;
     color: #222A38;
 }
 
@@ -843,7 +844,8 @@
     background: transparent;
     color: #155DFC;
     font-family: 'Geist';
-    font-size: 13px;
+    font-size: 12px;
+    line-height: 16px;
     font-weight: 600;
     text-decoration: underline;
     text-underline-offset: 3px;
@@ -1049,4 +1051,38 @@
     .library-sort {
         gap: 6px;
     }
+}
+/* Figma 176:10342 / 176:10344 — dialog actions are a muted pair, not MUI's
+   default contained blue: Cancel on background/muted, the primary on
+   brand/muted carrying brand text. */
+.library-dialog-action.MuiButton-root {
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: #E5E9F0;
+    color: #222A38;
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 18px;
+    text-transform: none;
+    box-shadow: none;
+}
+
+.library-dialog-action.MuiButton-root:hover {
+    background: #CBD2E0;
+    box-shadow: none;
+}
+
+.library-dialog-action--primary.MuiButton-root {
+    background: #D9E6FE;
+    color: #155DFC;
+}
+
+.library-dialog-action--primary.MuiButton-root:hover {
+    background: #BBCFFE;
+}
+
+.library-dialog-action.MuiButton-root.Mui-disabled {
+    background: #F2F4F8;
+    color: #A8B3C8;
 }

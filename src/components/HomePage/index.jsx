@@ -75,7 +75,7 @@ const HomePage = () => {
         lightbulb: '#FBBF7A',
         chart: '#08B046',
         book: '#BD7AFB',
-        knowledge: '#4B88FD',
+        knowledge: '#155DFC',
     };
     const pills = (exampleSchema.pills || []).map((pill) => ({
         ...pill,
@@ -477,7 +477,7 @@ const HomePage = () => {
                             height: '56px',
                             fontSize: '24px',
                             borderRadius: '50%',
-                            backgroundColor: '#E7F1FF',
+                            backgroundColor: '#EEF3FF',
                             color: '#155DFC',
                             border: 'none',
                             fontFamily: 'Geist, sans-serif',

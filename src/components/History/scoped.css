@@ -212,11 +212,11 @@
 .history-delete-action {
     border: none;
     background: transparent;
-    color: #B42318;
+    color: #A10902;
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
-    line-height: 1.4;
+    line-height: 16px;
     text-decoration: underline;
     text-underline-offset: 2px;
     display: inline-flex;

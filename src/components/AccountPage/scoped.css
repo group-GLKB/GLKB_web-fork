@@ -354,12 +354,13 @@
     display: inline-flex;
     align-items: center;
     padding: 2px 8px;
-    background: #EFF6FF;
+    background: #EEF3FF;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: 12px;
+    line-height: 16px;
     font-weight: 600;
-    color: #3B82F6;
-    border: 1px solid #BFDBFE;
+    color: #155DFC;
+    border: 1px solid #D9E6FE;
 }
 
 

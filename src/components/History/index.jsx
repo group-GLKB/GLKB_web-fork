@@ -19,8 +19,8 @@ import {
   Typography,
 } from '@mui/material';
 
-import { ReactComponent as ChatIcon } from '../../img/library/Message square.svg';
-import { ReactComponent as MapIcon } from '../../img/library/Share.svg';
+import { ReactComponent as ChatIcon } from '../../img/llm/chat_message.svg';
+import { ReactComponent as MapIcon } from '../../img/llm/graph_share.svg';
 import {
   fetchConversations,
   getConversations,

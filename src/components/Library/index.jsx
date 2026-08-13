@@ -43,10 +43,8 @@ import {
 } from '@mui/material';
 
 import { ReactComponent as FolderOpenIcon } from '../../img/folder_open.svg';
-import {
-    ReactComponent as ChatIcon,
-} from '../../img/library/Message square.svg';
-import { ReactComponent as ShareIcon } from '../../img/library/Share.svg';
+import { ReactComponent as ChatIcon } from '../../img/llm/chat_message.svg';
+import { ReactComponent as ShareIcon } from '../../img/llm/graph_share.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import { ReactComponent as BookIcon } from '../../img/navbar/book_4.svg';
@@ -512,7 +510,7 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                     onClick={handleOpenMenu}
                     aria-label="Open reference menu"
                 >
-                    <MoreHorizIcon sx={{ fontSize: 18 }} />
+                    <MoreHorizIcon sx={{ fontSize: 12 }} />
                 </IconButton>
             </div>
             <Menu
@@ -533,8 +531,9 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                         boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
                         '& .MuiMenuItem-root': {
                             fontFamily: 'Geist, sans-serif',
-                            fontSize: '13px',
-                            fontWeight: 500,
+                            fontSize: '10px',
+                            lineHeight: '12px',
+                            fontWeight: 400,
                             color: '#164563',
                             py: 0.75,
                             px: 1.25,
@@ -544,27 +543,27 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
             >
                 <MenuItem onClick={handleRemoveBookmark}>
                     <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
-                        <BookmarkIcon sx={{ fontSize: 18 }} />
+                        <BookmarkIcon sx={{ fontSize: 12 }} />
                     </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
+                    <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
                         Remove bookmark
                     </ListItemText>
                 </MenuItem>
                 {onManageFolders && (
                     <MenuItem onClick={handleManageFolders}>
                         <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
-                            <FolderOutlinedIcon sx={{ fontSize: 18 }} />
+                            <FolderOutlinedIcon sx={{ fontSize: 12 }} />
                         </ListItemIcon>
-                        <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
+                        <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
                             Add to folder
                         </ListItemText>
                     </MenuItem>
                 )}
                 <MenuItem onClick={handleCite}>
                     <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
-                        <FormatQuoteOutlinedIcon sx={{ fontSize: 18 }} />
+                        <FormatQuoteOutlinedIcon sx={{ fontSize: 12 }} />
                     </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
+                    <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
                         Cite
                     </ListItemText>
                 </MenuItem>
@@ -622,7 +621,7 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                             color: '#164563',
                         }}
                     >
-                        <MoreHorizIcon sx={{ fontSize: 18 }} />
+                        <MoreHorizIcon sx={{ fontSize: 12 }} />
                     </IconButton>
                 </div>
             </div>
@@ -650,8 +649,9 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                         boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
                         '& .MuiMenuItem-root': {
                             fontFamily: 'Geist, sans-serif',
-                            fontSize: '13px',
-                            fontWeight: 500,
+                            fontSize: '10px',
+                            lineHeight: '12px',
+                            fontWeight: 400,
                             color: '#164563',
                             py: 0.75,
                             px: 1.25,
@@ -668,9 +668,9 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                     }}
                 >
                     <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
-                        <DriveFileRenameOutlineIcon sx={{ fontSize: 18 }} />
+                        <DriveFileRenameOutlineIcon sx={{ fontSize: 12 }} />
                     </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
+                    <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
                         Rename
                     </ListItemText>
                 </MenuItem>
@@ -683,9 +683,9 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                     }}
                 >
                     <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
-                        <FileCopyOutlinedIcon sx={{ fontSize: 18 }} />
+                        <FileCopyOutlinedIcon sx={{ fontSize: 12 }} />
                     </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
+                    <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
                         Duplicate
                     </ListItemText>
                 </MenuItem>
@@ -699,15 +699,16 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                     sx={{ color: '#B42318 !important' }}
                 >
                     <ListItemIcon sx={{ minWidth: 26, color: '#B42318' }}>
-                        <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+                        <DeleteOutlineIcon sx={{ fontSize: 12 }} />
                     </ListItemIcon>
                     <ListItemText
                         primaryTypographyProps={{
                             sx: {
                                 color: '#B42318',
                                 fontFamily: 'Geist, sans-serif',
-                                fontSize: '13px',
-                                fontWeight: 500,
+                                fontSize: '10px',
+                                lineHeight: '12px',
+                                fontWeight: 400,
                             },
                         }}
                     >
@@ -1407,7 +1408,9 @@ const Library = () => {
                 <DialogTitle sx={{
                     fontFamily: 'Geist, sans-serif',
                     fontWeight: 600,
-                    fontSize: '18px',
+                    fontSize: '16px',
+                    lineHeight: '26px',
+                    color: '#0C1018',
                 }}>
                     {folderRenameTarget ? 'Rename Folder' : 'New Folder'}
                 </DialogTitle>
@@ -1432,13 +1435,13 @@ const Library = () => {
                     />
                 </DialogContent>
                 <DialogActions>
-                    <MuiButton onClick={handleCloseFolderDialog}>
+                    <MuiButton className="library-dialog-action" onClick={handleCloseFolderDialog}>
                         Cancel
                     </MuiButton>
                     <MuiButton
                         onClick={handleSaveFolderDialog}
                         disabled={folderRenameTarget ? !folderDialogName.trim() : false}
-                        variant="contained"
+                        className="library-dialog-action library-dialog-action--primary"
                     >
                         Save
                     </MuiButton>
@@ -1453,7 +1456,9 @@ const Library = () => {
                 <DialogTitle sx={{
                     fontFamily: 'Geist, sans-serif',
                     fontWeight: 600,
-                    fontSize: '18px',
+                    fontSize: '16px',
+                    lineHeight: '26px',
+                    color: '#0C1018',
                 }}>
                     Manage folders
                 </DialogTitle>
@@ -1488,12 +1493,12 @@ const Library = () => {
                     )}
                 </DialogContent>
                 <DialogActions>
-                    <MuiButton onClick={handleCloseFolderPicker}>
+                    <MuiButton className="library-dialog-action" onClick={handleCloseFolderPicker}>
                         Cancel
                     </MuiButton>
                     <MuiButton
                         onClick={handleSaveFolderAssignments}
-                        variant="contained"
+                        className="library-dialog-action library-dialog-action--primary"
                         disabled={folderPickerLoading || folders.length === 0}
                     >
                         Save
@@ -1653,7 +1658,7 @@ const Library = () => {
                                     onClick={() => setMobileFolderDrawerOpen(true)}
                                 >
                                     <span>{folders.length} folders</span>
-                                    <KeyboardArrowDownIcon sx={{ fontSize: 18 }} />
+                                    <KeyboardArrowDownIcon sx={{ fontSize: 12 }} />
                                 </button>
                             </Box>
                         )}
