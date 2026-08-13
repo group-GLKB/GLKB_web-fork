@@ -26,8 +26,8 @@
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    color: #9AA3AE;
-    font-size: 13px;
+    color: #8090AB;
+    font-size: 12px;
     font-weight: 500;
     transition: color 0.15s;
     border-bottom: 1px solid #E5E9F0;
@@ -42,7 +42,7 @@
 }
 
 .settings-nav-header:hover {
-    color: #6B7A8D;
+    color: #5E6E87;
 }
 
 .settings-nav-header svg,
@@ -56,9 +56,9 @@
     align-items: center;
     gap: 9px;
     padding: 9px 20px;
-    font-size: 13.5px;
+    font-size: 14px;
     font-weight: 400;
-    color: #6B7A8D;
+    color: #5E6E87;
     cursor: pointer;
     transition: all 0.12s;
     position: relative;
@@ -71,12 +71,12 @@
 }
 
 .settings-nav-item:hover {
-    color: #1A2332;
+    color: #0C1018;
     background: #FDFEFF;
 }
 
 .settings-nav-item.active {
-    color: #1A2332;
+    color: #0C1018;
     background: #FDFEFF;
     font-weight: 500;
 }
@@ -271,7 +271,7 @@
 .flat-label {
     font-size: 14px;
     font-weight: 500;
-    color: #1A2332;
+    color: #0C1018;
     margin-bottom: 3px;
     letter-spacing: -0.1px;
 }
@@ -289,21 +289,21 @@
 }
 
 .flat-name {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
-    color: #1A2332;
+    color: #0C1018;
     letter-spacing: -0.2px;
 }
 
 .flat-value {
-    font-size: 13.5px;
-    color: #6B7A8D;
+    font-size: 14px;
+    color: #5E6E87;
     margin-top: 2px;
 }
 
 .flat-sub {
-    font-size: 13px;
-    color: #9AA3AE;
+    font-size: 12px;
+    color: #8090AB;
     margin-top: 3px;
     line-height: 1.5;
 }
@@ -314,9 +314,9 @@
     border: 1px solid #E5E9F0;
     background: #ffffff;
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
-    color: #6B7A8D;
+    color: #5E6E87;
     cursor: pointer;
     white-space: nowrap;
     transition: background 0.12s, border-color 0.12s, color 0.12s;
@@ -325,9 +325,9 @@
 }
 
 .flat-btn:hover {
-    background: #F4F6F8;
-    border-color: #C9CDD3;
-    color: #1A2332;
+    background: #F2F4F8;
+    border-color: #CBD2E0;
+    color: #0C1018;
 }
 
 .flat-btn.dark {
@@ -338,15 +338,15 @@
 }
 
 .flat-btn.dark:hover {
-    background: #0D4DE0;
-    border-color: #0D4DE0;
+    background: #0A47D6;
+    border-color: #0A47D6;
 }
 
 .flat-btn:disabled,
 .flat-btn.dark:disabled {
-    background: #D7DEE8;
-    border-color: #D7DEE8;
-    color: #7F8EA3;
+    background: #CBD2E0;
+    border-color: #CBD2E0;
+    color: #8090AB;
     cursor: not-allowed;
 }
 
@@ -384,7 +384,7 @@
 
 .subscription-inline-value {
     margin-top: 0;
-    color: #1A2332;
+    color: #0C1018;
     font-weight: 500;
     margin-left: auto;
     text-align: right;
@@ -427,8 +427,8 @@
     border-radius: 8px;
     padding: 9px 12px;
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
-    color: #1A2332;
+    font-size: 12px;
+    color: #0C1018;
     background: #ffffff;
     outline: none;
 }
@@ -443,7 +443,7 @@
 }
 
 .settings-inline-error {
-    color: #C0392B;
+    color: #A10902;
 }
 
 .card-avatar {
@@ -452,15 +452,15 @@
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
-    background: #E9F1FE;
+    background: #F2F4F8;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #2C5CF3;
+    color: #155DFC;
 }
 
 .card-avatar-icon {
-    font-size: 22px;
+    font-size: 20px;
 }
 
 .card-avatar-image {
@@ -529,14 +529,14 @@
 
 .modal-title {
     font-family: 'Geist', sans-serif;
-    font-size: 22px;
-    color: #1A2332;
+    font-size: 20px;
+    color: #0C1018;
     margin-bottom: 6px;
 }
 
 .modal-desc {
-    font-size: 13.5px;
-    color: #6B7A8D;
+    font-size: 14px;
+    color: #5E6E87;
     margin-bottom: 24px;
     line-height: 1.5;
 }
@@ -548,7 +548,7 @@
 .modal-label {
     font-size: 12px;
     font-weight: 600;
-    color: #6B7A8D;
+    color: #5E6E87;
     letter-spacing: 0.4px;
     text-transform: uppercase;
     margin-bottom: 7px;
@@ -562,14 +562,14 @@
     border-radius: 8px;
     font-family: 'Geist', sans-serif;
     font-size: 14px;
-    color: #1A2332;
+    color: #0C1018;
     background: #FDFEFF;
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .modal-input:focus {
-    border-color: #2563EB;
+    border-color: #155DFC;
     background: #ffffff;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
@@ -584,19 +584,19 @@
 .modal-close {
     border: none;
     background: transparent;
-    color: #9AA3AE;
+    color: #8090AB;
     cursor: pointer;
     padding: 2px;
     transition: color 0.15s ease;
 }
 
 .modal-close:hover {
-    color: #1A2332;
+    color: #0C1018;
 }
 
 .modal-text {
     font-size: 14px;
-    color: #6B7A8D;
+    color: #5E6E87;
     line-height: 1.65;
     margin-bottom: 16px;
 }
@@ -607,7 +607,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    color: #6B7A8D;
+    color: #5E6E87;
     font-size: 14px;
 }
 
@@ -626,12 +626,12 @@
     width: 72px;
     height: 72px;
     border-radius: 50%;
-    background: #E9F1FE;
+    background: #F2F4F8;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #2C5CF3;
-    font-size: 26px;
+    color: #155DFC;
+    font-size: 24px;
     overflow: hidden;
     flex-shrink: 0;
     border: 3px solid #E5E9F0;
@@ -641,7 +641,7 @@
 }
 
 .avatar-preview:hover {
-    border-color: #2563EB;
+    border-color: #155DFC;
 }
 
 .avatar-preview img {
@@ -656,20 +656,20 @@
 
 .avatar-hint {
     font-size: 12px;
-    color: #9AA3AE;
+    color: #8090AB;
     line-height: 1.4;
     margin-top: 8px;
 }
 
 .flat-btn.danger {
-    background: #9F1239;
-    border-color: #9F1239;
+    background: #A10902;
+    border-color: #A10902;
     color: #ffffff;
 }
 
 .flat-btn.danger:hover:not(:disabled) {
-    background: #881337;
-    border-color: #881337;
+    background: #A10902;
+    border-color: #A10902;
 }
 
 .flat-btn:disabled {
@@ -682,11 +682,11 @@
     bottom: 24px;
     left: 50%;
     transform: translateX(-50%);
-    background: #1A2332;
+    background: #0C1018;
     color: #ffffff;
     padding: 12px 20px;
     border-radius: 999px;
-    font-size: 13.5px;
+    font-size: 14px;
     font-weight: 500;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
     z-index: 400;

@@ -74,7 +74,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             borderRadius: (isOpen && llmQuery?.trim() === '') ? '30px 30px 0px 0px' : '30px',
             borderWidth: (isOpen && llmQuery?.trim() === '') ? '0px 1px 1px 1px' : '1px',
             borderStyle: 'solid',
-            borderColor: '#E6F0FC',
+            borderColor: '#F2F4F8',
             boxShadow: '0px 2px 3px -1px #00000026',
         }}>
             <Autocomplete
@@ -122,7 +122,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             ...params.InputProps,
                             startAdornment: (
                                 <>
-                                    <ChatBubbleOutlineIcon sx={{ color: '#a1a1a1', marginLeft: '20px', fontSize: '20px' }} />
+                                    <ChatBubbleOutlineIcon sx={{ color: '#8090AB', marginLeft: '20px', fontSize: '20px' }} />
                                     {params.InputProps.startAdornment}
                                 </>
                             ),
@@ -162,17 +162,17 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             borderRadius: '0px 0px 30px 30px',
                             borderWidth: '0px 1px 1px 1px',
                             borderStyle: 'solid',
-                            borderColor: '#E6F0FC',
+                            borderColor: '#F2F4F8',
                             boxShadow: '0px 2px 3px -1px #00000026',
                             marginBottom: '5px',
                             paddingTop: '0px',
                             overflow: 'hidden',
                             fontFamily: 'Open Sans, sans-serif',
                             "& .MuiAutocomplete-option.Mui-focused": {
-                                backgroundColor: '#EDF5FE !important',
+                                backgroundColor: '#F2F4F8 !important',
                             },
                             "& .MuiAutocomplete-option.Mui-focused span.highlight-arrow": {
-                                color: '#196ED8 !important',
+                                color: '#155DFC !important',
                             },
                             "& .MuiAutocomplete-listbox": {
                                 paddingTop: '0px'
@@ -197,7 +197,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             paddingLeft: '26px',
                             borderRadius: '0px 18px 18px 0px',
                             '& .MuiAutocomplete-option.Mui-focused': {
-                                backgroundColor: '#F3F5FF !important',
+                                backgroundColor: '#F8F9FC !important',
                             },
                         }}
                     >

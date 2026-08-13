@@ -171,7 +171,7 @@ const ConversationCard = ({
                     }}
                     inputProps={{ 'aria-label': `Select ${resolvedTitleLabel}` }}
                     sx={{
-                        color: '#D9D9D9',
+                        color: '#CBD2E0',
                         padding: '4px',
                         '&.Mui-checked': { color: '#155DFC' },
                     }}

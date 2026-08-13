@@ -57,7 +57,7 @@
 .login-subtitle {
     margin: 0 0 20px;
     text-align: center;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 400;
     line-height: 16px;
     color: #5E6E87;
@@ -87,7 +87,7 @@
     background: #FFFFFF;
     color: #222A38;
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
     transition: background-color 0.15s ease;
@@ -108,7 +108,7 @@
 }
 
 .google-fallback-subtitle {
-    font-size: 11px;
+    font-size: 12px;
     color: #5E6E87;
     text-align: center;
 }
@@ -124,7 +124,7 @@
     gap: 12px;
     margin: 16px 0;
     color: #8090AB;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .divider::before,
@@ -144,7 +144,7 @@
     border: 1px solid #CBD2E0;
     background: #FFFFFF;
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     color: #0C1018;
     outline: none;
 }
@@ -167,7 +167,7 @@
     background: #D9E6FE;
     color: #155DFC;
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.15s ease, color 0.15s ease;
@@ -185,7 +185,7 @@
 
 .error-message {
     margin-top: 8px;
-    font-size: 11px;
+    font-size: 12px;
     color: #A10902;
     text-align: center;
 }

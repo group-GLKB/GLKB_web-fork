@@ -228,7 +228,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         fontWeight: isActive ? 900 : 600,
         fontSize: '14px',
         lineHeight: '16px',
-        color: isActive ? '#155DFC' : '#646464',
+        color: isActive ? '#155DFC' : '#46566C',
         textTransform: 'none',
         cursor: 'pointer',
         '&:hover': {
@@ -249,22 +249,22 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     py: 2,
                 }}
             >
-                <Box sx={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 900, fontSize: '20px', lineHeight: '24px', color: '#333333' }}>
+                <Box sx={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 900, fontSize: '20px', lineHeight: '24px', color: '#222A38' }}>
                     Search Options
                 </Box>
-                <IconButton onClick={closeSearchOptions} size="small" sx={{ color: '#646464' }}>
+                <IconButton onClick={closeSearchOptions} size="small" sx={{ color: '#46566C' }}>
                     <CloseIcon fontSize="small" />
                 </IconButton>
             </Box>
 
-            <Box sx={{ borderTop: '1px solid #EDEDED', mx: '-24px' }} />
+            <Box sx={{ borderTop: '1px solid #E5E9F0', mx: '-24px' }} />
 
             <Box sx={{ pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2.25 }}>
                 <Box>
-                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#333333' }}>
+                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#222A38' }}>
                         Article Type
                     </Box>
-                    <Box sx={{ backgroundColor: '#F4F4F4', borderRadius: '10px', p: '4px', display: 'flex', gap: 0, justifyContent: 'space-between' }}>
+                    <Box sx={{ backgroundColor: '#F2F4F8', borderRadius: '10px', p: '4px', display: 'flex', gap: 0, justifyContent: 'space-between' }}>
                         {paperTypeOptions.map((option) => (
                             <Box
                                 key={option.value}
@@ -281,18 +281,18 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             </Box>
                         ))}
                     </Box>
-                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: '#969696' }}>
+                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: '#8090AB' }}>
                         Search every article
                     </Box>
                 </Box>
 
-                <Box sx={{ borderTop: '1px solid #EDEDED', mx: '-24px' }} />
+                <Box sx={{ borderTop: '1px solid #E5E9F0', mx: '-24px' }} />
 
                 <Box>
-                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#333333' }}>
+                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#222A38' }}>
                         Sort by
                     </Box>
-                    <Box sx={{ backgroundColor: '#F4F4F4', borderRadius: '10px', p: '4px', display: 'flex', gap: 0, justifyContent: 'space-between' }}>
+                    <Box sx={{ backgroundColor: '#F2F4F8', borderRadius: '10px', p: '4px', display: 'flex', gap: 0, justifyContent: 'space-between' }}>
                         {sortOptions.map((option) => (
                             <Box
                                 key={option.value}
@@ -309,7 +309,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             </Box>
                         ))}
                     </Box>
-                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: '#969696' }}>
+                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: '#8090AB' }}>
                         Best matches for your query
                     </Box>
                 </Box>
@@ -324,7 +324,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         fontWeight: 900,
                         fontSize: '14px',
                         lineHeight: '16px',
-                        color: '#646464',
+                        color: '#46566C',
                         cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -694,7 +694,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             }}
                         >
                             <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
-                                <Box sx={{ width: '44px', height: '4px', borderRadius: '4px', backgroundColor: '#D8D8D8' }} />
+                                <Box sx={{ width: '44px', height: '4px', borderRadius: '4px', backgroundColor: '#CBD2E0' }} />
                             </Box>
                             {searchOptionsPanel}
                         </Drawer>

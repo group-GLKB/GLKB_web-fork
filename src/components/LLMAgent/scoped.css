@@ -154,7 +154,7 @@
 
 .references-action-button.MuiIconButton-root.Mui-disabled {
     background-color: transparent;
-    color: #B0B0B0;
+    color: #A8B3C8;
 }
 
 .llm-column {
@@ -403,7 +403,7 @@
     justify-content: space-between;
     padding: 8px 24px;
     box-shadow: inset 0 -1px 0 #F2F4F8;
-    background-color: #FCFDFE;
+    background-color: #FDFEFF;
 }
 
 .references-count-label {
@@ -453,7 +453,7 @@
 
 .reference-item {
     padding: 12px 0;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid #F2F4F8;
 }
 
 .reference-item:last-child {
@@ -537,7 +537,7 @@
     flex-grow: 1;
     padding: 12px;
     height: 42px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid #E5E9F0;
     border-radius: 4px;
     font-size: 1rem;
     outline: none;
@@ -546,8 +546,8 @@
 
 .clear-button {
     padding: 0.8rem 1.5rem;
-    background-color: #EDF0FE;
-    border: 1px solid #e0e0e0;
+    background-color: #F2F4F8;
+    border: 1px solid #E5E9F0;
     border-radius: 4px;
     cursor: pointer;
     font-size: 1rem;
@@ -572,7 +572,7 @@
 }
 
 .clear-button:hover {
-    background-color: #e0e0e0;
+    background-color: #E5E9F0;
     color: #666;
 }
 
@@ -632,25 +632,25 @@
     border-radius: 999px;
     padding: 6px 14px;
     font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     cursor: pointer;
     white-space: nowrap;
 }
 
 .llm-limit-warning-button:hover {
-    background: #F3F8FF;
+    background: #F8F9FC;
 }
 
 .llm-limit-warning-button:disabled {
-    border-color: #cbd5e1;
-    background: #f1f5f9;
-    color: #94a3b8;
+    border-color: #CBD2E0;
+    background: #F2F4F8;
+    color: #A8B3C8;
     cursor: not-allowed;
 }
 
 .clear-button {
-    border: 1px solid #e0e0e0;
+    border: 1px solid #E5E9F0;
     white-space: nowrap;
 }
 
@@ -696,7 +696,7 @@
 
 .loading-step-label {
     display: inline-block;
-    background-image: linear-gradient(90deg, #5B5B5B 0%, #B6C0CB 10%, #5B5B5B 20%);
+    background-image: linear-gradient(90deg, #46566C 0%, #A8B3C8 10%, #46566C 20%);
     background-size: 420% 100%;
     background-position: 200% 50%;
     color: transparent;
@@ -1330,7 +1330,7 @@
 .investigate-funnel-chip strong {
     color: #222A38;
     font-weight: 700;
-    font-size: 13px;
+    font-size: 12px;
 }
 
 @keyframes llm-step-label-out {
@@ -1497,7 +1497,7 @@
     padding: 4px 12px;
     height: auto;
     background: transparent;
-    border: 1px solid #e0e0e0;
+    border: 1px solid #E5E9F0;
     color: #666;
     display: flex;
     align-items: center;
@@ -1505,15 +1505,15 @@
 }
 
 .reference-button:hover {
-    background: #f5f5f5;
-    border-color: #d0d0d0;
+    background: #F2F4F8;
+    border-color: #CBD2E0;
     color: #444;
 }
 
 .reference-button.selected {
-    background: #e6f4ff;
-    border-color: #91caff;
-    color: #1677ff;
+    background: #F2F4F8;
+    border-color: #BBCFFE;
+    color: #155DFC;
 }
 
 .reference-button .anticon {
@@ -1527,7 +1527,7 @@
 }
 
 .message.streaming {
-    background-color: #f5f5f5;
+    background-color: #F2F4F8;
     border-radius: 8px;
     padding: 12px;
     margin-bottom: 8px;
@@ -1553,7 +1553,7 @@
 
 .reasoning-section,
 .response-section {
-    background-color: #f8f9fa;
+    background-color: #F8F9FC;
     border-radius: 8px;
     margin-bottom: 16px;
     overflow: hidden;
@@ -1564,15 +1564,15 @@
     display: flex;
     align-items: center;
     padding: 12px 16px;
-    background-color: #f0f2f5;
-    border-bottom: 1px solid #e4e6eb;
+    background-color: #F2F4F8;
+    border-bottom: 1px solid #E5E9F0;
 }
 
 .reasoning-header span,
 .response-header span {
     margin-left: 8px;
     font-weight: 500;
-    color: #1a1a1a;
+    color: #141B26;
 }
 
 .reasoning-content,
@@ -1614,11 +1614,11 @@
 }
 
 .input-form {
-    border-top: 1px solid #e4e6eb;
+    border-top: 1px solid #E5E9F0;
 }
 
 .message-input:disabled {
-    background-color: #f5f5f5;
+    background-color: #F2F4F8;
     cursor: not-allowed;
 }
 
@@ -1669,7 +1669,7 @@
 
 .reasoning-content {
     padding: 12px;
-    background: #f9f9f9;
+    background: #F8F9FC;
     border-radius: 8px;
     margin-top: 8px;
 }
@@ -1745,15 +1745,15 @@
 
 .example-query {
     align-items: flex-start;
-    background-color: #F4F9FE;
+    background-color: #F8F9FC;
     border-radius: 8px;
-    border: 1.5px solid #e2e8f0;
+    border: 1.5px solid #E5E9F0;
     color: #333;
-    color: #4A5568;
+    color: #46566C;
     cursor: pointer;
     display: flex;
     flex: 1 1 0;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     height: auto;
     line-height: 150%;
@@ -1788,8 +1788,8 @@
 }
 
 .example-query:hover {
-    background-color: #f8f9fa;
-    border-color: #d0d0d0;
+    background-color: #F8F9FC;
+    border-color: #CBD2E0;
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
@@ -1820,14 +1820,14 @@
 }
 
 .response-content code {
-    background-color: #f5f5f5;
+    background-color: #F2F4F8;
     padding: 2px 4px;
     border-radius: 4px;
     font-family: monospace;
 }
 
 .response-content pre {
-    background-color: #f5f5f5;
+    background-color: #F2F4F8;
     padding: 1em;
     border-radius: 4px;
     overflow-x: auto;
@@ -1882,7 +1882,7 @@
 /* 消息操作按钮样式 */
 .message-action-button {
     background-color: rgba(255, 255, 255, 0.8);
-    border: 1px solid #e0e0e0;
+    border: 1px solid #E5E9F0;
     border-radius: 4px;
     width: 28px;
     height: 28px;
@@ -1895,7 +1895,7 @@
 }
 
 .message-action-button:hover {
-    background-color: #f0f0f0;
+    background-color: #F2F4F8;
     color: #333;
 }
 
@@ -1911,7 +1911,7 @@
 }
 
 .regenerate-button:hover {
-    color: #1677ff;
+    color: #155DFC;
 }
 
 /* 编辑按钮特定样式 */
@@ -1927,7 +1927,7 @@
 
 /* 编辑状态的消息样式 */
 .message-wrapper.editing .message {
-    background-color: #f9f9f9;
+    background-color: #F8F9FC;
     border: 1px dashed #ccc;
     padding: 12px;
 }
@@ -1936,7 +1936,7 @@
 .edit-message-input {
     width: 100%;
     padding: 10px;
-    border: 1px solid #d9d9d9;
+    border: 1px solid #CBD2E0;
     border-radius: 4px;
     font-size: 1rem;
     font-family: inherit;
@@ -1974,13 +1974,13 @@
 }
 
 .cancel-edit-button {
-    background-color: #f5f5f5;
+    background-color: #F2F4F8;
     color: #666;
-    border: 1px solid #e0e0e0;
+    border: 1px solid #E5E9F0;
 }
 
 .cancel-edit-button:hover {
-    background-color: #e0e0e0;
+    background-color: #E5E9F0;
 }
 
 /* 复制成功提示样式 */
@@ -2127,7 +2127,7 @@
     border: 1px solid #155DFC;
     box-shadow: none;
     color: #155DFC;
-    background-color: #f7f8fa;
+    background-color: #F8F9FC;
     border-radius: 4px;
     height: 40px;
     padding: 0 10px;
@@ -2144,7 +2144,7 @@
 .llm-reference-button.MuiButtonBase-root:hover {
     color: #155DFC;
     border-color: #155DFC;
-    background-color: #e1e2e4;
+    background-color: #E5E9F0;
 }
 /* ============================================================================
    Investigate progress panel (Figma `Inverstigate` + MOTION-SPEC.md)
@@ -2267,10 +2267,10 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 
 .ip-counter-value {
     font-family: 'DM Sans', sans-serif;
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 700;
     line-height: 1.2;
-    color: #1B2A41;
+    color: #0C1018;
     /* tabular figures so a counting number does not jitter its own column */
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum' 1;
@@ -2278,9 +2278,9 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 
 .ip-counter-label {
     font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 400;
-    color: #7B8AA1;
+    color: #8090AB;
 }
 
 /* ── bar ────────────────────────────────────────────────────────────────── */
@@ -2289,7 +2289,7 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
     width: min(100%, 460px);
     height: 6px;
     border-radius: 999px;
-    background: #E4E9F2;
+    background: #E5E9F0;
     overflow: hidden;
 }
 
@@ -2304,7 +2304,7 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 .ip-steps {
     margin-top: 16px;
     padding-top: 14px;
-    border-top: 1px solid #EDF0F6;
+    border-top: 1px solid #F2F4F8;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -2317,7 +2317,7 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 }
 
 .ip-step-icon {
-    font-size: 17px !important;
+    font-size: 16px !important;
     color: #5E6E87;
     flex-shrink: 0;
 }
@@ -2327,12 +2327,12 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
     font-size: 14px;
     font-weight: 500;
     line-height: 1.5;
-    color: #34435C;
+    color: #46566C;
 }
 
 /* completed rows dim one step (MOTION-SPEC §5) */
-.ip-step.done .ip-step-label { color: #6B7A93; }
-.ip-step.done .ip-step-icon { color: #8A97AC; }
+.ip-step.done .ip-step-label { color: #5E6E87; }
+.ip-step.done .ip-step-icon { color: #8090AB; }
 
 /* ── detail block ───────────────────────────────────────────────────────── */
 /* Indented under the active row with a 1px rail aligned to the row icon, and a
@@ -2343,7 +2343,7 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 .ip-step-detail {
     margin: 6px 0 0 8px;
     padding: 2px 0 0 18px;
-    border-left: 1px solid #E4E9F2;
+    border-left: 1px solid #E5E9F0;
 }
 
 /* at most two lines per item, so a long topic cannot push the rest out of view */
@@ -2381,10 +2381,10 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 .ip-detail-bullet {
     margin: 0 0 6px;
     font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 400;
     line-height: 1.55;
-    color: #8A97AC;
+    color: #8090AB;
 }
 
 .ip-detail-bullet { position: relative; padding-left: 12px; }
@@ -2393,7 +2393,7 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
     content: '•';
     position: absolute;
     left: 0;
-    color: #A8B3C6;
+    color: #A8B3C8;
 }
 
 .ip-detail-bullet-title {
@@ -2401,7 +2401,7 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
     margin-bottom: 6px;
 }
 
-.ip-detail-para a { color: #6B7A93; text-decoration: none; }
+.ip-detail-para a { color: #5E6E87; text-decoration: none; }
 .ip-detail-para a:hover { color: #155DFC; text-decoration: underline; }
 
 .ip-chips {
@@ -2415,14 +2415,14 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
     align-items: center;
     padding: 3px 10px;
     border-radius: 6px;
-    background: #F1F4F9;
+    background: #F2F4F8;
     font-family: 'DM Sans', sans-serif;
     font-size: 12px;
     color: #5E6E87;
     white-space: nowrap;
 }
 
-.ip-chip-more { background: transparent; color: #8A97AC; }
+.ip-chip-more { background: transparent; color: #8090AB; }
 
 /* cycling detail: a slice at a time, crossfading (MOTION-SPEC §6) */
 .ip-cycle {
@@ -2442,14 +2442,14 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
     font-family: 'DM Sans', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    color: #A8B3C6;
+    color: #A8B3C8;
 }
 
 .ip-cycle-toggle:hover { color: #155DFC; text-decoration: underline; }
 
 @media (max-width: 720px) {
     .ip-counters { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .ip-counter-value { font-size: 22px; }
+    .ip-counter-value { font-size: 20px; }
     .ip-head-right { gap: 10px; }
 }
 
@@ -2521,7 +2521,7 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 }
 
 /* a finished retrieval probe */
-.ip-channel { color: #6B7A93; }
-.ip-channel.pending { color: #8A97AC; }
-.ip-channel.failed { color: #A8B3C6; }
-.ip-channel-hits { color: #A8B3C6; }
+.ip-channel { color: #5E6E87; }
+.ip-channel.pending { color: #8090AB; }
+.ip-channel.failed { color: #A8B3C8; }
+.ip-channel-hits { color: #A8B3C8; }

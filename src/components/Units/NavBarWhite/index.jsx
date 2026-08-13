@@ -327,7 +327,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
             {
                 label: 'New Chat',
                 to: '/',
-                icon: <AddIcon style={{ width: 22, height: 22 }} />,
+                icon: <AddIcon style={{ width: 20, height: 20 }} />,
                 exact: true,
             },
         ]
@@ -335,10 +335,10 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const middleItems = useMemo(() => (
         [
-            { label: 'Explore', to: '/search', icon: <CategorySearchIcon style={{ width: 22, height: 22 }} /> },
-            { label: 'API', to: '/api-page', icon: <CodeBlocksIcon style={{ width: 22, height: 22 }} /> },
-            { label: 'Library', to: '/library', icon: <BookIcon className="sidebar-book-icon" style={{ width: 22, height: 22 }} /> },
-            { label: 'History', to: '/history', icon: <HistoryIcon className="sidebar-history-icon" style={{ width: 22, height: 22 }} /> },
+            { label: 'Explore', to: '/search', icon: <CategorySearchIcon style={{ width: 20, height: 20 }} /> },
+            { label: 'API', to: '/api-page', icon: <CodeBlocksIcon style={{ width: 20, height: 20 }} /> },
+            { label: 'Library', to: '/library', icon: <BookIcon className="sidebar-book-icon" style={{ width: 20, height: 20 }} /> },
+            { label: 'History', to: '/history', icon: <HistoryIcon className="sidebar-history-icon" style={{ width: 20, height: 20 }} /> },
         ].filter((item) => !(DEBUG_HIDE_EXPLORE && item.label === 'Explore'))
     ), []);
 
@@ -353,10 +353,11 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
             label: 'Log in',
             // Opens the sign-in overlay instead of navigating to a page.
             onClick: () => openLoginModal(),
-            icon: <PersonIcon sx={{ fontSize: 22 }} />,
+            icon: <PersonIcon sx={{ fontSize: 20 }} />,
             iconBoxSx: {
-                backgroundColor: '#155DFC',
-                color: '#ffffff',
+                backgroundColor: '#E5E9F0',
+                color: '#5E6E87',
+                borderRadius: '256px',
             },
         }
     ), [openLoginModal]);
@@ -558,7 +559,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                         },
                     },
                     '&:hover': {
-                        backgroundColor: 'rgba(1, 105, 176, 0.04)',
+                        backgroundColor: '#F2F4F8',
                     },
                 }}
             >
@@ -577,7 +578,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                             height: 36,
                             borderRadius: '4px',
                             backgroundColor: 'transparent',
-                            color: '#8090AB',
+                            color: '#5E6E87',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -1002,7 +1003,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                 height: 40,
                                 borderRadius: '12px',
                                 backgroundColor: isHomeRoute ? 'transparent' : '#E5E9F0',
-                                color: '#646464',
+                                color: '#46566C',
                                 '&:hover': {
                                     backgroundColor: isHomeRoute ? 'transparent' : '#CBD2E0',
                                 },
