@@ -154,7 +154,7 @@ const toRgba = (hex, alpha) => {
 };
 
 const getPillColors = (label) => {
-    const base = nodeStyleColors[label] || nodeStyleColors.default || '#E5E5E5';
+    const base = nodeStyleColors[label] || nodeStyleColors.default || '#E5E9F0';
     return {
         base,
         background: mixHex(base, '#ffffff', 0.75),
@@ -695,7 +695,7 @@ const History = () => {
                                                 onChange={handleToggleSelectAllFiltered}
                                                 inputProps={{ 'aria-label': 'Select all conversations' }}
                                                 sx={{
-                                                    color: '#D9D9D9',
+                                                    color: '#CBD2E0',
                                                     padding: '4px',
                                                     '&.Mui-checked': { color: '#155DFC' },
                                                     '&.MuiCheckbox-indeterminate': { color: '#155DFC' },
@@ -748,7 +748,7 @@ const History = () => {
                                                     onChange={handleToggleSelectAllFiltered}
                                                     inputProps={{ 'aria-label': 'Select all conversations' }}
                                                     sx={{
-                                                        color: '#D9D9D9',
+                                                        color: '#CBD2E0',
                                                         padding: '4px',
                                                         '&.Mui-checked': { color: '#155DFC' },
                                                         '&.MuiCheckbox-indeterminate': { color: '#155DFC' },

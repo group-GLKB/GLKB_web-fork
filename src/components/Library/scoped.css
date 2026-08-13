@@ -76,7 +76,7 @@
 }
 
 .library-folder-manager-action.Mui-disabled {
-    color: #C4C4C4;
+    color: #CBD2E0;
 }
 
 .library-folder-manager-list {
@@ -220,7 +220,7 @@
 }
 
 .library-search-clear:hover {
-    background: #E2E9F4;
+    background: #E5E9F0;
 }
 
 .library-title-bar {
@@ -580,7 +580,7 @@
 }
 
 .library-mobile-folder-new-button:hover {
-    background: #F2F6FF;
+    background: #F2F4F8;
 }
 
 .library-new-folder-button {
@@ -612,7 +612,7 @@
 .library-folder-card {
     position: relative;
     background: #ffffff;
-    border: 1px solid #D8D8D8;
+    border: 1px solid #CBD2E0;
     border-radius: 8px;
     padding: 8px;
     display: flex;
@@ -624,8 +624,8 @@
 }
 
 .library-folder-card:hover {
-    background-color: #F2F6FF;
-    border-color: #C7D8FF;
+    background-color: #F2F4F8;
+    border-color: #CBD2E0;
 }
 
 .library-folder-top {
@@ -640,7 +640,7 @@
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background-color: #DBEAFE;
+    background-color: #E5E9F0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -954,7 +954,7 @@
     width: 100%;
     text-align: left;
     background: #ffffff;
-    border: 1px solid #E5E7EB;
+    border: 1px solid #E5E9F0;
     padding: 12px 14px;
     border-radius: 12px;
     cursor: pointer;
@@ -966,8 +966,8 @@
 }
 
 .library-chat-item:hover {
-    background-color: #F2F6FF;
-    border-color: #C7D8FF;
+    background-color: #F2F4F8;
+    border-color: #CBD2E0;
     border-radius: 12px;
     padding: 12px 16px;
 }

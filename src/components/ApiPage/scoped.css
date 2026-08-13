@@ -143,7 +143,7 @@
     background: #FDDDD8;
     color: #A10902;
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
 }
 
 .api-keys-error-close {
@@ -218,7 +218,7 @@
     padding: 14px 20px;
     border-bottom: 1px solid #F2F4F8;
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     color: #222A38;
 }
 
@@ -239,7 +239,7 @@
     top: 0;
     z-index: 2;
     background: #F8F9FC;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     color: #5E6E87;
     text-transform: uppercase;
@@ -264,7 +264,7 @@
 .api-keys-col--key-name {
     font-family: 'Geist', sans-serif;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 12px;
     color: #0C1018;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -286,13 +286,13 @@
 
 .api-usage-metric {
     font-family: 'Geist Mono', 'Menlo', 'SFMono-Regular', 'Consolas', monospace;
-    font-size: 13px;
+    font-size: 12px;
     color: #222A38;
 }
 
 .api-usage-metric-empty {
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     color: #A8B3C8;
 }
 
@@ -320,7 +320,7 @@
 
 .api-keys-row-menu .MuiMenuItem-root {
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     color: #222A38;
     min-width: 140px;
 }
@@ -387,14 +387,14 @@
 .api-usage-stat-label {
     font-family: 'Geist', sans-serif;
     font-weight: 500;
-    font-size: 13px;
+    font-size: 12px;
     color: #5E6E87;
 }
 
 .api-usage-stat-value {
     font-family: 'Geist', sans-serif;
     font-weight: 700;
-    font-size: 28px;
+    font-size: 24px;
     color: #0C1018;
 }
 
@@ -437,7 +437,7 @@
 
 .api-keys-mobile-name {
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: #0C1018;
     overflow: hidden;
@@ -470,7 +470,7 @@
 }
 
 .api-keys-mobile-chevron {
-    font-size: 18px !important;
+    font-size: 16px !important;
     color: #A8B3C8;
     margin-top: 4px;
 }
@@ -503,7 +503,7 @@
 
 .api-keys-mobile-page-drawer-title {
     font-family: 'Geist', sans-serif;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     color: #0C1018;
     overflow: hidden;
@@ -531,7 +531,7 @@
 .api-keys-mobile-value {
     display: block;
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
     color: #222A38;
 }
@@ -563,7 +563,7 @@
     background: #ffffff;
     color: #222A38;
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     padding: 6px 10px;
@@ -595,7 +595,7 @@
     padding: 16px 0;
     text-align: center;
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     color: #5E6E87;
 }
 
@@ -609,7 +609,7 @@
     background: #F7F9FF;
     color: #222A38;
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
 }
 
 .api-keys-notice-label {
@@ -681,7 +681,7 @@
     justify-content: space-between;
     font-family: 'Geist', sans-serif;
     font-weight: 700;
-    font-size: 18px;
+    font-size: 16px;
     color: #0C1018;
 }
 
@@ -721,7 +721,7 @@
 
 .api-keys-field-label {
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: #222A38;
 }
@@ -779,7 +779,7 @@
     padding: 8px 16px !important;
     min-height: 36px;
     font-family: 'Geist', sans-serif !important;
-    font-size: 13px !important;
+    font-size: 12px !important;
     font-weight: 600 !important;
     text-transform: none !important;
     color: #222A38 !important;
@@ -858,7 +858,7 @@
     flex: 1;
     padding: 10px 14px;
     font-family: 'Geist Mono', 'Menlo', 'SFMono-Regular', monospace;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 400;
     color: #222A38;
     white-space: nowrap;
@@ -885,7 +885,7 @@
     background: #155DFC;
     color: #ffffff;
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.15s ease;
@@ -903,14 +903,14 @@
 
 .api-keys-created-permissions-label {
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     color: #222A38;
 }
 
 .api-keys-created-permissions-value {
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 400;
     color: #5E6E87;
 }
