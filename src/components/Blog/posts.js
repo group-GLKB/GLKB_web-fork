@@ -25,7 +25,7 @@ import inv09 from '../../img/blog/inv-09-search-mode.png';
 
 const glkbPost = {
     slug: 'glkb-knowledge-graph',
-    kicker: 'GLKB Blog',
+    kicker: "GLKB · KDD '26 paper article",
     date: 'Aug 11, 2026',
     title: 'GLKB: Turning 33 Million PubMed Abstracts Into a Graph You Can Query',
     lede: 'GLKB links the biomedical literature to nine curated repositories through a shared '
@@ -36,6 +36,32 @@ const glkbPost = {
         + 'abstracts and reconciles them against biomedical ontologies — 14.6M relationships '
         + 'between 3.28M terms, in one queryable property graph.',
     readNext: 'investigate-auditable-research',
+    toc: [
+        [{ id: 'at-a-glance', label: 'At a Glance' }],
+        [
+            { id: 'overview', label: 'Overview' },
+            { id: 'the-gap', label: 'The Gap', child: true },
+            { id: 'what-glkb-is', label: 'What GLKB Is', child: true },
+        ],
+        [
+            { id: 'construction', label: 'Construction' },
+            { id: 'how-it-was-built', label: 'How It Was Built', child: true },
+            { id: 'the-graph', label: 'The Graph', child: true },
+            { id: 'three-ways-in', label: 'Three Ways In', child: true },
+        ],
+        [
+            { id: 'use-cases', label: 'Use Cases' },
+            { id: 'grounding-llms', label: 'Grounding LLMs', child: true },
+            { id: 'hypothesis-generation', label: 'Hypothesis Generation', child: true },
+            { id: 'embeddings-for-ml', label: 'Embeddings for ML', child: true },
+        ],
+        [
+            { id: 'downstream', label: 'Downstream' },
+            { id: 'powering-investigate', label: 'Powering Investigate', child: true },
+            { id: 'limitations', label: 'Limitations', child: true },
+        ],
+        [{ id: 'getting-access', label: 'Getting Access' }],
+    ],
     blocks: [
         { kind: 'h2', id: 'at-a-glance', nav: 'At a Glance', text: 'At a Glance' },
         { kind: 'p', text: 'PubMed is the largest repository of biomedical knowledge in existence, and almost all of it is prose. Curated knowledge graphs are machine-readable but cover a tiny, hand-picked slice of what is known. Neither can answer a question that spans both.' },
@@ -206,6 +232,36 @@ const investigatePost = {
         + 'fail closed — 3,604 papers screened down to 33 cited, with every sentence traceable '
         + 'to a sentence in a paper.',
     readNext: 'glkb-knowledge-graph',
+    toc: [
+        [{ id: 'at-a-glance', label: 'At a Glance' }],
+        [
+            { id: 'three-failures', label: 'Three Failures' },
+            { id: 'confidently-wrong', label: 'Confidently Wrong', child: true },
+            { id: 'silently-incomplete', label: 'Silently Incomplete', child: true },
+            { id: 'blandly-averaged', label: 'Blandly Averaged', child: true },
+        ],
+        [
+            { id: 'six-phases', label: 'Six Phases' },
+            { id: 'full-architecture', label: 'Full Architecture', child: true },
+            { id: 'six-searches', label: 'Six Searches', child: true },
+            { id: 'the-funnel', label: 'The Funnel', child: true },
+            { id: 'group-by-claim', label: 'Group by Claim', child: true },
+            { id: 'five-gates', label: 'Five Gates', child: true },
+            { id: 'the-report', label: 'The Report', child: true },
+        ],
+        [
+            { id: 'the-proof', label: 'The Proof' },
+            { id: 'sample-run', label: 'Sample Run', child: true },
+            { id: 'how-it-compares', label: 'How It Compares', child: true },
+        ],
+        [{ id: 'search-mode', label: 'Search Mode' }],
+        [
+            { id: 'guarantees', label: 'Guarantees' },
+            { id: 'grounded-by-construction', label: 'Grounded by Construction', child: true },
+            { id: 'recall-first', label: 'Recall-First by Design', child: true },
+            { id: 'real-graph', label: 'Built on a Real Graph', child: true },
+        ],
+    ],
     blocks: [
         { kind: 'h2', id: 'at-a-glance', nav: 'At a Glance', text: 'At a Glance' },
         { kind: 'p', text: 'Investigate reads the literature the way a careful reviewer does — searching six ways at once, quoting papers verbatim, putting contradictory studies side by side, and re-checking every conclusion against its own evidence before you ever see it.' },

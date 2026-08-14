@@ -3,6 +3,7 @@ import './scoped.css';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 
 import { BlogCard, BlogFooter, BlogNav } from './BlogChrome';
 import { getPost, posts } from './posts';
@@ -12,9 +13,10 @@ const findScrollParent = (node) => {
     let el = node?.parentElement;
     while (el && el !== document.body) {
         const { overflowY } = window.getComputedStyle(el);
-        if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) {
-            return el;
-        }
+        // Deliberately not gated on scrollHeight > clientHeight: on mount the
+        // images have not loaded, the wrapper is not yet overflowing, and the
+        // listener would silently attach to a window that never scrolls.
+        if (overflowY === 'auto' || overflowY === 'scroll') return el;
         el = el.parentElement;
     }
     return window;
@@ -97,11 +99,10 @@ const BlogPost = () => {
     const post = getPost(slug);
     const [activeId, setActiveId] = useState('');
 
-    // Only the blocks that asked for a nav entry appear in the rail.
-    const tocItems = useMemo(
-        () => (post ? post.blocks.filter((block) => block.nav && block.id) : []),
-        [post],
-    );
+    // Figma declares the rail's groups explicitly (data-name="ToC Group …"), and
+    // they do not follow the body's h2/h3 nesting, so posts.js carries them.
+    const tocGroups = useMemo(() => (post?.toc ? post.toc : []), [post]);
+    const tocItems = useMemo(() => tocGroups.flat(), [tocGroups]);
 
     // AppLayout scrolls an inner wrapper rather than the window, so both the
     // reset and the scroll-spy have to attach to that element — on the window
@@ -125,12 +126,19 @@ const BlogPost = () => {
             });
             setActiveId(current);
         };
+
         onScroll();
         scroller.addEventListener('scroll', onScroll, { passive: true });
         return () => scroller.removeEventListener('scroll', onScroll);
     }, [tocItems]);
 
     if (!post) return <Navigate to="/blog" replace />;
+
+    // Labels that name a passage rather than a heading land on their group's anchor.
+    const scrollToSection = (id, fallbackId) => {
+        const target = document.getElementById(id) || document.getElementById(fallbackId);
+        target?.scrollIntoView({ behavior: 'smooth' });
+    };
 
     const next = posts.find((entry) => entry.slug === post.readNext);
     const openPost = (nextSlug) => navigate(`/blog/${nextSlug}`);
@@ -144,44 +152,54 @@ const BlogPost = () => {
 
             <BlogNav active="blog" />
 
-            <section className="blog-hero">
-                <div className="blog-hero-inner">
-                    <p className="blog-kicker">
-                        {post.kicker}
-                        <span className="blog-kicker-date">{post.date}</span>
-                    </p>
-                    <h1 className="blog-title">{post.title}</h1>
-                    <p className="blog-lede">{post.lede}</p>
-                    <button
-                        type="button"
-                        className="blog-hero-cta"
-                        onClick={() => navigate(post.cta.to)}
-                    >
-                        {post.cta.label}
-                    </button>
-                </div>
-            </section>
-
             <div className="blog-body">
                 <nav className="blog-toc" aria-label="On this page">
-                    <p className="blog-toc-title">On this page</p>
-                    {tocItems.map((item) => (
-                        <button
-                            key={item.id}
-                            type="button"
-                            className={`blog-toc-link${activeId === item.id ? ' is-active' : ''}`}
-                            onClick={() => document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth' })}
-                        >
-                            {item.nav}
-                        </button>
+                    <p className="blog-toc-brand">
+                        <MenuBookIcon className="blog-toc-brand-icon" />
+                        GLKB Blog
+                    </p>
+                    {tocGroups.map((group) => (
+                        <div className="blog-toc-group" key={group[0].id}>
+                            {group.map((item) => (
+                                <button
+                                    key={item.id}
+                                    type="button"
+                                    className={
+                                        `blog-toc-link${item.child ? ' is-child' : ''}`
+                                        + `${activeId === item.id ? ' is-active' : ''}`
+                                    }
+                                    onClick={() => scrollToSection(item.id, group[0].id)}
+                                >
+                                    {item.label}
+                                </button>
+                            ))}
+                        </div>
                     ))}
                 </nav>
 
-                <article className="blog-article">
-                    {post.blocks.map((block, index) => (
-                        <Block key={`${block.kind}-${block.id || block.text || index}`} block={block} />
-                    ))}
-                </article>
+                <div className="blog-content">
+                    <header className="blog-hero">
+                        <div className="blog-meta">
+                            <span>{post.kicker}</span>
+                            <span>{post.date}</span>
+                        </div>
+                        <h1 className="blog-title">{post.title}</h1>
+                        <p className="blog-lede">{post.lede}</p>
+                        <button
+                            type="button"
+                            className="blog-hero-cta"
+                            onClick={() => navigate(post.cta.to)}
+                        >
+                            {post.cta.label}
+                        </button>
+                    </header>
+
+                    <article className="blog-article">
+                        {post.blocks.map((block, index) => (
+                            <Block key={`${block.kind}-${block.id || block.text || index}`} block={block} />
+                        ))}
+                    </article>
+                </div>
             </div>
 
             {next && (

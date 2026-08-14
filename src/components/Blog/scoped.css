@@ -78,109 +78,66 @@
     background-color: #0A47D6;
 }
 
-/* ---------------------------------------------------------------- hero */
-.blog-hero {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 80px 48px;
-    border-bottom: 1px solid #E5E9F0;
-}
-
-.blog-hero-inner {
-    width: 100%;
-    max-width: 800px;
-}
-
-.blog-kicker {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0 0 16px;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 20px;
-    color: #155DFC;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-.blog-kicker-date {
-    color: #5E6E87;
-    font-weight: 400;
-    text-transform: none;
-    letter-spacing: 0;
-}
-
-.blog-title {
-    margin: 0;
-    font-size: 40px;
-    font-weight: 800;
-    line-height: 48px;
-    color: #0C1018;
-}
-
-.blog-lede {
-    margin: 20px 0 0;
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 26px;
-    color: #5E6E87;
-}
-
-.blog-hero-cta {
-    display: inline-flex;
-    align-items: center;
-    height: 40px;
-    margin-top: 32px;
-    padding: 0 20px;
-    border: none;
-    border-radius: 8px;
-    background-color: #155DFC;
-    color: #FFFFFF;
-    font-family: 'Geist', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.blog-hero-cta:hover {
-    background-color: #0A47D6;
-}
-
-/* ---------------------------------------------------------------- body */
+/* ---------------------------------------------------------------- body
+   Figma 707:2732 — an 800px content column holding a 640px text measure, with
+   the sticky rail beside it. The hero lives inside that column, not in a band
+   of its own above it. */
 .blog-body {
     display: flex;
     justify-content: center;
-    gap: 48px;
-    padding: 64px 48px 96px;
+    align-items: flex-start;
+    border-bottom: 1px solid #E5E9F0;
 }
 
 .blog-toc {
     position: sticky;
-    top: 32px;
+    top: 0;
     align-self: flex-start;
-    width: 200px;
-    flex-shrink: 0;
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    max-height: calc(100vh - 64px);
+    align-items: flex-end;
+    padding: 64px 16px 0 0;
+    box-sizing: border-box;
+    max-height: 100vh;
     overflow-y: auto;
 }
 
-.blog-toc-title {
-    margin: 0 0 4px;
-    font-size: 12px;
+/* 707:2715 — the rail is headed by the blog's own name in brand blue. */
+.blog-toc-brand {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 160px;
+    margin: 0;
+    padding-top: 4px;
+    font-size: 14px;
     font-weight: 600;
-    line-height: 20px;
-    color: #5E6E87;
+    line-height: 22px;
+    color: #155DFC;
+}
+
+.blog-toc-brand-icon.MuiSvgIcon-root {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
+
+/* 944:2595 — groups are separated by 16px; items inside them by their own 4px. */
+.blog-toc-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 160px;
+    padding-bottom: 16px;
 }
 
 .blog-toc-link {
+    width: 100%;
+    padding: 4px 0;
     border: none;
     background: none;
-    padding: 0;
     text-align: left;
     font-family: 'Geist', sans-serif;
     font-size: 12px;
@@ -190,14 +147,97 @@
     cursor: pointer;
 }
 
-.blog-toc-link:hover,
-.blog-toc-link.is-active {
+/* Children are indented by space/2 and drop to tertiary — the hierarchy is
+   carried by indent and colour, not by size. */
+.blog-toc-link.is-child {
+    padding-left: 8px;
+    color: #5E6E87;
+}
+
+.blog-toc-link:hover {
     color: #155DFC;
+}
+
+.blog-toc-link.is-active {
+    color: #0C1018;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.blog-content {
+    width: 800px;
+    max-width: 800px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 64px 0 40px;
+    box-sizing: border-box;
+}
+
+/* ---------------------------------------------------------------- hero */
+.blog-hero {
+    width: 100%;
+    max-width: 640px;
+    padding-bottom: 48px;
+}
+
+/* 732:9059 — tag and date on one line, pushed to opposite ends. */
+.blog-meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 16px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+    color: #5E6E87;
+    white-space: nowrap;
+}
+
+.blog-title {
+    margin: 0;
+    padding-bottom: 16px;
+    font-size: 40px;
+    font-weight: 800;
+    line-height: 48px;
+    color: #0C1018;
+}
+
+.blog-lede {
+    margin: 0;
+    padding-bottom: 16px;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 26px;
+    color: #0C1018;
+}
+
+.blog-hero-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 0 16px;
+    border: none;
+    border-radius: 8px;
+    background-color: #155DFC;
+    color: #F8F9FC;
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+    cursor: pointer;
+}
+
+.blog-hero-cta:hover {
+    background-color: #0A47D6;
 }
 
 .blog-article {
     width: 100%;
-    max-width: 800px;
+    max-width: 640px;
     min-width: 0;
 }
 
@@ -421,7 +461,7 @@
 
 .blog-read-next-inner {
     width: 100%;
-    max-width: 800px;
+    max-width: 640px;
     padding: 80px 0;
 }
 
@@ -509,7 +549,7 @@
 
 .blog-index-head-inner {
     width: 100%;
-    max-width: 800px;
+    max-width: 640px;
 }
 
 .blog-index-title {
@@ -537,7 +577,7 @@
 
 .blog-index-list-inner {
     width: 100%;
-    max-width: 800px;
+    max-width: 640px;
 }
 
 /* ---------------------------------------------------------------- footer CTA */
