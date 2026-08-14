@@ -3,7 +3,7 @@ import './scoped.css';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import MenuBookIcon from '@mui/icons-material/MenuBook';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 
 import { BlogCard, BlogFooter, BlogNav } from './BlogChrome';
 import { getPost, posts } from './posts';
@@ -154,10 +154,10 @@ const BlogPost = () => {
 
             <div className="blog-body">
                 <nav className="blog-toc" aria-label="On this page">
-                    <p className="blog-toc-brand">
-                        <MenuBookIcon className="blog-toc-brand-icon" />
+                    <button type="button" className="blog-toc-brand" onClick={() => navigate('/blog')}>
+                        <ChevronLeftIcon className="blog-toc-brand-icon" />
                         GLKB Blog
-                    </p>
+                    </button>
                     {tocGroups.map((group) => (
                         <div className="blog-toc-group" key={group[0].id}>
                             {group.map((item) => (
