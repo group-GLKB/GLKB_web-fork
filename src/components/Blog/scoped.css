@@ -89,12 +89,22 @@
     border-bottom: 1px solid #E5E9F0;
 }
 
+/* The 800px column is centred on the page and the rail occupies the left
+   gutter, right-aligned against it — so on a 1440 frame the rail's 160px block
+   lands at 144 and the article starts at 400. Giving the rail flex:1 with
+   nothing to balance it on the right instead pinned the article to the right
+   edge and dragged the rail across to meet it. */
+.blog-body::after {
+    content: '';
+    flex: 0 1 320px;
+}
+
 .blog-toc {
     position: sticky;
     top: 0;
     align-self: flex-start;
-    flex: 1;
-    min-width: 0;
+    flex: 0 1 320px;
+    min-width: 176px;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
@@ -106,6 +116,10 @@
 
 /* 707:2715 — the rail is headed by the blog's own name in brand blue. */
 .blog-toc-brand {
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -241,8 +255,12 @@
     min-width: 0;
 }
 
+/* Each section opens with a hairline across the measure and closes its heading
+   with a short brand rule (both visible in 707:2713). */
 .blog-h2 {
-    margin: 48px 0 16px;
+    margin: 0 0 28px;
+    padding-top: 64px;
+    border-top: 1px solid #E5E9F0;
     font-size: 24px;
     font-weight: 600;
     line-height: 32px;
@@ -250,8 +268,17 @@
     scroll-margin-top: 24px;
 }
 
+.blog-h2::after {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 2px;
+    margin-top: 12px;
+    background-color: #155DFC;
+}
+
 .blog-article > .blog-h2:first-child {
-    margin-top: 0;
+    padding-top: 40px;
 }
 
 .blog-h3 {
@@ -667,8 +694,15 @@
 }
 
 @media (max-width: 1100px) {
-    .blog-toc {
+    .blog-toc,
+    .blog-body::after {
         display: none;
+    }
+
+    .blog-content {
+        width: 100%;
+        padding-left: 24px;
+        padding-right: 24px;
     }
 }
 
