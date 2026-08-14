@@ -72,7 +72,12 @@ export const BlogCard = ({ post, onOpen }) => (
         <span className="blog-card-thumb">
             {post.thumb ? <img src={post.thumb} alt="" /> : null}
         </span>
-        <span className="blog-card-title" title={post.title}>{post.title}</span>
-        <span className="blog-card-excerpt">{post.excerpt}</span>
+        {/* Figma gives the Investigate post a card headline of its own; the other
+            post has no card in the design, so its article title stands. Neither
+            card has a summary line beyond that, so the lede does the work. */}
+        <span className="blog-card-title" title={post.cardTitle || post.title}>
+            {post.cardTitle || post.title}
+        </span>
+        <span className="blog-card-excerpt">{post.lede}</span>
     </button>
 );

@@ -32,9 +32,6 @@ const glkbPost = {
         + 'controlled vocabulary — so a question like “what has been published about RFX6 and '
         + 'beta-cell function” becomes a database query with provenance back to the sentence.',
     cta: { label: 'Try GLKB →', to: '/' },
-    excerpt: 'A construction pipeline that extracts entities and relationships from 33.4M PubMed '
-        + 'abstracts and reconciles them against biomedical ontologies — 14.6M relationships '
-        + 'between 3.28M terms, in one queryable property graph.',
     readNext: 'investigate-auditable-research',
     toc: [
         [{ id: 'at-a-glance', label: 'At a Glance' }],
@@ -84,7 +81,7 @@ const glkbPost = {
         { kind: 'p', text: 'Or you can search PubMed. Thirty-three million abstracts is far more knowledge than any curated resource holds, and it is current. But it is unstructured text. You cannot ask it for all genes reported to interact with RFX6, ranked by how much evidence exists. You can only ask for documents, then read them.' },
         { kind: 'p', text: 'The problem is not that the knowledge is missing. It is that the largest store of it has no structure, and the structured stores are not the largest.' },
         { kind: 'p', text: 'GLKB closes that gap by extracting entities and relationships from PubMed, normalizing them against the same ontologies the curated databases use, and loading both into one graph. Because the two halves share a vocabulary, a single query can cross from a curated gene–pathway edge to the literature evidence supporting a gene–disease claim, and land on the PMIDs.' },
-        { kind: 'figure', src: glkb01, alt: 'The two kinds of biomedical knowledge and the vocabulary that joins them', caption: 'GLKB’s three parts. The controlled vocabulary is the join: the literature-derived half attaches on one side, the curated half on the other.' },
+        { kind: 'figure', src: glkb01, caption: 'GLKB’s three parts. The controlled vocabulary is not a convenience — it is the mechanism. Because extracted entities and curated records resolve to the same term identifiers, the literature half and the expert half become one traversable graph.' },
 
         { kind: 'h3', id: 'what-glkb-is', nav: 'What GLKB Is', text: 'What GLKB Is' },
         { kind: 'p', text: 'GLKB is a Neo4j property graph with three parts. A controlled vocabulary forms the backbone. A semantic network extracted from PubMed attaches to it on one side. A curated network from nine expert-maintained repositories attaches on the other.' },
@@ -103,7 +100,7 @@ const glkbPost = {
         { kind: 'h3', text: '4. Summarize relationships, not co-occurrences' },
         { kind: 'p', text: 'For each co-occurring term pair, sentences are reranked by a BGE model; up to 100 with normalized score ≥ 0.6 are summarized by GPT-4 into one of eight BioRED relationship types — positive correlation, negative correlation, association, binding, drug interaction, cotreatment, comparison, conversion. Pairs with no sentence supporting a direct relationship do not get an edge.' },
         { kind: 'p', text: 'The attrition is the interesting part. Of 432 million raw entity mentions, 60% survive to become graph annotations. Of 19.4 million term pairs that co-occur at least five times, fewer than half turn out to have any sentence actually asserting a relationship between them.' },
-        { kind: 'figure', src: glkb02, alt: 'The construction funnel', caption: 'The construction funnel. Roughly 40% of raw entity mentions never become graph annotations, and more than half of frequently co-occurring term pairs never become edges. Both are deliberate: co-occurrence is not a relationship, and a tagger’s confidence is not evidence.' },
+        { kind: 'figure', src: glkb02, caption: 'The construction funnel. Roughly 40% of raw entity mentions never become graph annotations, and more than half of frequently co-occurring term pairs never become edges. Both are deliberate: co-occurrence is not a relationship, and a tagger’s confidence is not evidence.' },
         {
             kind: 'callout',
             title: 'Why this matters if you use the graph',
@@ -122,7 +119,7 @@ const glkbPost = {
                 ['Bibliographic (the document layer)', 'Article, Journal'],
             ],
         },
-        { kind: 'figure', src: glkb03, alt: 'The GLKB schema', caption: 'The schema. The source property on every association edge is what lets you separate expert-curated claims from literature-extracted ones inside a single query — and the Cooccur edge, weighted by supporting article count, is what makes statistical association testing possible directly on the graph.' },
+        { kind: 'figure', src: glkb03, caption: 'The schema. The source property on every association edge is what lets you separate expert-curated claims from literature-extracted ones inside a single query — and the Cooccur edge, weighted by supporting article count, is what makes statistical association testing possible directly on the graph.' },
         {
             kind: 'table',
             head: ['Component', 'Scale', 'What it gives you'],
@@ -140,7 +137,7 @@ const glkbPost = {
 
         { kind: 'h2', id: 'three-ways-in', nav: 'Three Ways In', text: 'Three Ways to Retrieve From It' },
         { kind: 'p', text: 'The same graph supports three retrieval modalities, and which one you want depends on how well-formed your question is.' },
-        { kind: 'figure', src: glkb04, alt: 'Three retrieval modes', caption: 'The three retrieval modes are complementary, not alternatives. A well-built agent uses all three: textual to resolve what you named, semantic to find what you did not, structural to ask questions that involve more than one entity at a time.' },
+        { kind: 'figure', src: glkb04, caption: 'The three retrieval modes are complementary, not alternatives. A well-built agent uses all three: textual to resolve what you named, semantic to find what you did not, structural to ask questions that involve more than one entity at a time.' },
         { kind: 'p', text: 'All three are reachable from a web interface with interactive graph visualization, from RESTful APIs, and — for the embeddings — as a downloadable data dump you can load into any model.' },
 
         { kind: 'h2', id: 'use-cases', nav: 'Use Cases', text: 'Use Cases' },
@@ -165,12 +162,12 @@ const glkbPost = {
         { kind: 'h3', id: 'hypothesis-generation', nav: 'Hypothesis Generation', text: '2. Hypothesis Generation From Your Own Data' },
         { kind: 'p', text: 'This is the use case most bench scientists will recognize. You have a differential-expression list with a few thousand genes on it. Somewhere in that list are the genes that matter, and finding them means reading a great deal of literature you do not have time to read.' },
         { kind: 'p', text: 'RFX6 had recently been identified as a hub gene for beta-cell function, but its relationship to other type 2 diabetes genes was unclear. Here is what the graph query looks like end to end.' },
-        { kind: 'figure', src: glkb05, alt: 'The RFX6 workflow', caption: 'The RFX6 workflow. Two chi-square screens against literature co-occurrence reduce ~9,700 differentially expressed genes to 72 candidates. As an unprompted check, 19 of the 36 curated T2D causal genes from the Type 2 Diabetes Knowledge Portal fall inside that set.' },
+        { kind: 'figure', src: glkb05, caption: 'The RFX6 workflow. Two chi-square screens against literature co-occurrence reduce ~9,700 differentially expressed genes to 72 candidates. As an unprompted check, 19 of the 36 curated T2D causal genes from the Type 2 Diabetes Knowledge Portal fall inside that set.' },
         { kind: 'p', text: 'The result that makes this more than a filtering exercise is the negative one. Of the 17 T2D causal genes that did not come out of the RFX6 screen, 15 also sit far from RFX6 in the co-occurrence clustering — which is a specific, falsifiable statement: RFX6 acts through insulin secretion and beta-cell development, and not through the other established T2D mechanisms.' },
         {
             kind: 'callout',
             title: 'What this is and is not',
-            text: 'This is hypothesis generation, not validation. The screen tells you which genes the literature has already connected to your hub gene and how strongly — it does not tell you the connection is causal in your system. What it buys you is a ranked, evidence-backed shortlist and a route back to every paper behind it.',
+            text: 'Co-occurrence in the literature is not evidence of shared biological function, and the paper says so directly — only two of the functional groups were statistically significant under DBSCAN. This is a hypothesis-narrowing tool. It turns "read 2,675 genes’ worth of literature" into "look closely at these 72, in these four groups," which is a different and much more tractable task.',
         },
 
         { kind: 'h3', id: 'embeddings-for-ml', nav: 'Embeddings for ML', text: '3. Literature as a Feature for ML' },
@@ -193,17 +190,17 @@ const glkbPost = {
 
         { kind: 'h2', id: 'downstream', nav: 'Powering Investigate', text: 'What the Graph Makes Possible Downstream' },
         { kind: 'p', text: 'GLKB is infrastructure, and the clearest way to see what infrastructure is worth is to look at what gets built on it. Investigate, our deep-research agent, uses the graph in four distinct places — and none of them would exist without it.' },
-        { kind: 'figure', src: glkb06, alt: 'How Investigate uses GLKB', caption: 'Investigate treats GLKB as four capabilities at once. The graph walk is the one with no substitute: it reaches mechanism papers that share no keywords with the question, by following curated relationships between the entities involved.' },
+        { kind: 'figure', src: glkb06, caption: 'Investigate treats GLKB as four capabilities at once. The graph walk is the one with no substitute: it reaches mechanism papers that share no keywords with the question, by following curated relationships between the entities involved.' },
         { kind: 'p', text: 'The last row is the one we did not anticipate. Because GLKB holds expert-curated edges alongside literature-extracted ones, an agent can check the relations it pulled out of a paper against relations that were independently curated. The knowledge base becomes not just the source but the auditor.' },
 
         { kind: 'h2', id: 'limitations', nav: 'Limitations', text: 'Limitations Worth Stating Plainly' },
         {
             kind: 'list',
             items: [
-                ['An edge is an assertion, not a fact.', 'It means a sentence somewhere claimed this relationship and a model typed the claim. Replication, effect size and contest are not encoded.'],
-                ['Coverage is abstracts, not full text.', 'Methods and results buried in full text are out of reach; what an abstract omits, the graph omits.'],
-                ['Extraction errors survive at a rate.', 'The GPT-4 audit removes terms whose mappings fail a sample, not every bad mapping to a term that passes.'],
-                ['Updates are annual,', 'so the most recent literature lags the graph by up to a release cycle.'],
+                ['An edge is an assertion, not a fact.', 'The semantic network says a sentence somewhere claims a relationship and a model typed it. Replication, effect size, and contradiction live in the articles, which is why the PMIDs matter more than the edges.'],
+                ['Coverage is abstracts, not full text.', 'Most quantitative results — the effect sizes, the confidence intervals, the caveats — live in Results sections and figure captions that the extraction pipeline does not see.'],
+                ['Extraction errors survive at a rate.', 'The LLM audit removed 20,049 terms, but it audits terms, not individual mappings. Rare terms below the frequency threshold were never sampled.'],
+                ['Updates are annual,', 'tracking the PubMed annual release. For fast-moving questions, pair the graph with a live PubMed query — which is exactly what the retrieval stack downstream does.'],
             ],
         },
         { kind: 'p', text: 'The right mental model: GLKB is a map of what the literature says, with a route back to every source. It is not a substitute for reading the sources.' },
@@ -221,16 +218,14 @@ const glkbPost = {
 
 const investigatePost = {
     slug: 'investigate-auditable-research',
-    kicker: 'GLKB — product article',
+    kicker: 'GLKB · product article',
     date: 'Aug 11, 2026',
-    title: 'Literature Research You Can Audit Line by Line',
+    title: 'GLKB Investigate: Literature Research You Can Audit Line by Line',
     lede: 'Investigate reads the literature the way a careful reviewer does — searching six ways '
         + 'at once, quoting papers verbatim, putting contradictory studies side by side, and '
         + 're-checking every conclusion against its own evidence before you ever see it.',
     cta: { label: 'Try Investigate →', to: '/' },
-    excerpt: 'Six retrieval channels, claim-centric grouping, and five verification gates that '
-        + 'fail closed — 3,604 papers screened down to 33 cited, with every sentence traceable '
-        + 'to a sentence in a paper.',
+    cardTitle: 'How Investigate turns this graph into an auditable research report',
     readNext: 'glkb-knowledge-graph',
     toc: [
         [{ id: 'at-a-glance', label: 'At a Glance' }],
@@ -281,41 +276,41 @@ const investigatePost = {
         {
             kind: 'list',
             items: [
-                ['Confidently wrong.', 'A citation that does not say what the summary claims it says is worse than no citation, because it survives a spot check.'],
-                ['Silently incomplete.', 'One search is one point of failure. The paper that contradicts you is usually the one phrased differently from your question.'],
-                ['Blandly averaged.', 'Summarising paper by paper turns a live disagreement into four correct paragraphs that never meet.'],
+                ['Confidently wrong.', 'An invented effect size reads exactly like a real one. In a grant or a manuscript, that is not an inconvenience — it is a career event.'],
+                ['Silently incomplete.', 'One search returns one neighbourhood of the literature. The trial that settles your question is titled empagliflozin, not SGLT2 inhibitors.'],
+                ['Blandly averaged.', 'Studies disagree constantly, and that disagreement is the finding. A tool that smooths it into consensus has destroyed the information you needed.'],
             ],
         },
         { kind: 'p', text: 'Investigate is built around one commitment: every sentence in the report is traceable to a sentence in a paper, and the system checks that itself before it hands you anything.' },
 
         { kind: 'h2', id: 'six-phases', nav: 'Six Phases', text: 'Six Phases, One Question' },
         { kind: 'p', text: 'Investigate is a fixed pipeline, not an agent improvising. Every run does the same things in the same order — which is what makes the output comparable, reproducible, and possible to audit.' },
-        { kind: 'figure', src: inv01, alt: 'The Investigate pipeline', caption: 'The pipeline. Deterministic code does the work that must be reproducible — retrieval fusion, claim grouping, citation checking. Models are used where judgement is genuinely required, and the expensive one only three times.' },
+        { kind: 'figure', src: inv01, caption: 'The pipeline. Deterministic code does the work that must be reproducible — retrieval fusion, claim grouping, citation checking. Models are used where judgement is genuinely required, and the expensive one only three times.' },
 
         { kind: 'h3', id: 'full-architecture', nav: 'Full Architecture', text: 'The Same Thing, at Full Resolution' },
         { kind: 'p', text: 'For readers who want the system diagram rather than the story: every module, every data path, and where each one sits on the cost/determinism spectrum.' },
-        { kind: 'figure', src: inv02, alt: 'Full system architecture', caption: 'Full system architecture. Note the shape of the compute allocation: the frontier model appears in exactly three places (planning, ranking, synthesis) plus one escalation path, while every step whose job is to constrain the output — fusion, the verbatim check, claim projection, the citation guard, the structural checklist, the polish rollback — is deterministic code. That asymmetry is the design.' },
+        { kind: 'figure', src: inv02, caption: 'Full system architecture. Note the shape of the compute allocation: the frontier model appears in exactly three places (planning, ranking, synthesis) plus one escalation path, while every step whose job is to constrain the output — fusion, the verbatim check, claim projection, the citation guard, the structural checklist, the polish rollback — is deterministic code. That asymmetry is the design.' },
 
         { kind: 'h2', id: 'six-searches', nav: 'Six Searches', text: 'Because One Search Is One Point of Failure' },
-        { kind: 'figure', src: inv03, alt: 'Six retrieval channels feeding one pool', caption: 'Six retrieval channels feeding one pool. Fusion is round-robin, not score-truncation — so the paper that only one specific probe ever found still makes it through. After ranking, a deterministic safety net re-inserts a first-hand paper for every drug, trial or assay your question named, so the ranker cannot quietly drop one.' },
+        { kind: 'figure', src: inv03, caption: 'Six retrieval channels feeding one pool. Fusion is round-robin, not score-truncation — so the paper that only one specific probe ever found still makes it through. After ranking, a deterministic safety net re-inserts a first-hand paper for every drug, trial or assay your question named, so the ranker cannot quietly drop one.' },
         { kind: 'p', text: 'The knowledge-graph channel is the one competitors cannot copy: it walks 14.6M literature-derived relationships to reach mechanism papers that share no keywords with your question.' },
 
         { kind: 'h2', id: 'the-funnel', nav: 'The Funnel', text: 'You See the Whole Funnel, Not Just the Answer' },
         { kind: 'p', text: 'Every run reports what it found, what it screened, what actually yielded evidence, and what it cited — the same accounting a systematic review is expected to publish.' },
-        { kind: 'figure', src: inv04, alt: 'The paper funnel from a real run', caption: 'The paper funnel from a real Investigate run. Every number is emitted by the pipeline itself — you can check the arithmetic of your own report.' },
+        { kind: 'figure', src: inv04, caption: 'The paper funnel from a real Investigate run. Every number is emitted by the pipeline itself — you can check the arithmetic of your own report.' },
 
         { kind: 'h2', id: 'group-by-claim', nav: 'Group by Claim', text: 'Disagreement Only Surfaces if You Group by Claim' },
         { kind: 'p', text: 'Summarise paper by paper and four studies that contradict each other become four correct paragraphs in four different places. Investigate makes the claim the unit and the paper an attribute — so opposing results end up inside the same object and collide.' },
-        { kind: 'figure', src: inv05, alt: 'Claim-centric grouping', caption: 'Claim-centric grouping. The claim is the unit; the paper is an attribute of the claim.' },
+        { kind: 'figure', src: inv05 },
         { kind: 'p', text: 'The grouping is done in plain code, with no model call. That matters: a model cannot decide an inconvenient contradiction is unimportant, because by the time any model sees the material, both sides are already inside the same object. A “disagreement” where both sides cite the same paper is rejected automatically.' },
 
         { kind: 'h2', id: 'five-gates', nav: 'Five Gates', text: 'Five Gates, Every One of Them Fails Closed' },
         { kind: 'p', text: 'Asking a model to cite its sources is a prompt. This is a pipeline. Three of the five gates are ordinary code — they cannot be talked into approving their own output.' },
-        { kind: 'figure', src: inv06, alt: 'Five verification gates', caption: 'Claims fall through five sieves. When a conclusion cannot be cleared, the report does not quietly drop it — it opens with a plain-language note that the evidence is insufficient or conflicting, and still shows you the best-supported synthesis and its sources.' },
+        { kind: 'figure', src: inv06, caption: 'Claims fall through five sieves. When a conclusion cannot be cleared, the report does not quietly drop it — it opens with a plain-language note that the evidence is insufficient or conflicting, and still shows you the best-supported synthesis and its sources.' },
 
         { kind: 'h2', id: 'the-report', nav: 'The Report', text: 'A Report, Not a Paragraph' },
         { kind: 'p', text: 'The sections are computed evidence-first and then reordered for reading. Your bottom line is written last, from the judgment — so it is derived from the evidence rather than asserted and then justified.' },
-        { kind: 'figure', src: inv07, alt: 'Writing order versus reading order', caption: 'Writing order versus reading order. Producing the direct answer fourth, from the finished judgment, is what stops the report from picking a conclusion and then shopping for support.' },
+        { kind: 'figure', src: inv07, caption: 'Writing order versus reading order. Producing the direct answer fourth, from the finished judgment, is what stops the report from picking a conclusion and then shopping for support.' },
 
         { kind: 'h2', id: 'the-proof', nav: 'Sample Run', text: 'What It Actually Looks Like' },
         { kind: 'p', text: 'Excerpts from an unedited run on a genuinely hard methods question — bridging statistical association to biological mechanism in in silico cell models.' },
@@ -338,7 +333,23 @@ const investigatePost = {
                 },
                 {
                     heading: 'Conflict analysis — the part nothing else does',
-                    body: 'Whether strict GWAS–eQTL colocalization should be treated as the primary linkage criterion. Source of disagreement: assay and threshold. → Better supported: Side B',
+                    body: 'Whether strict GWAS–eQTL colocalization should be treated as the primary linkage criterion:',
+                },
+                {
+                    heading: null,
+                    body: 'Side A: eQTL resources and statistical colocalization are valuable for mapping GWAS loci to candidate causal genes. PMID 35643189',
+                },
+                {
+                    heading: null,
+                    body: 'Side B: Large-scale integration results show that relying on strict colocalization alone can miss biologically relevant links. PMID 39173627',
+                },
+                {
+                    heading: null,
+                    body: 'Source of disagreement: Side A emphasises colocalization\'s utility as a mapping tool; Side B emphasises the practical limits of treating it as the sole gate for gene nomination.',
+                },
+                {
+                    heading: null,
+                    body: '→ Better supported: Side B — consistent with the judgment that moving beyond strict GWAS–QTL colocalization is often necessary in practice, with strict colocalization better viewed as a high-specificity subset within broader integration.',
                 },
             ],
             footer: 'retrieved 3,604 · screened in 55 · yielded evidence 48 · cited 33 · run time 436 s · figures embedded from PMC 2',
@@ -347,7 +358,7 @@ const investigatePost = {
 
         { kind: 'h2', id: 'how-it-compares', nav: 'How It Compares', text: 'Depth Is Common. Auditability Is Not.' },
         { kind: 'p', text: 'Plenty of tools will read a lot of papers for you. The question a researcher actually has to answer is whether they can defend the output in a lab meeting.' },
-        { kind: 'figure', src: inv08, alt: 'Positioning by depth and auditability', caption: 'Categories, not vendors. The top-right quadrant requires two things at once: retrieval that unions many independent channels, and verification that runs as code rather than as instructions to a model.' },
+        { kind: 'figure', src: inv08, caption: 'Categories, not vendors. The top-right quadrant requires two things at once: retrieval that unions many independent channels, and verification that runs as code rather than as instructions to a model.' },
         {
             kind: 'table',
             head: ['What researchers ask', 'What Investigate does about it'],
@@ -362,16 +373,16 @@ const investigatePost = {
 
         { kind: 'h2', id: 'search-mode', nav: 'Search Mode', text: 'Search Mode, for When You Already Know What You Want' },
         { kind: 'p', text: 'Investigate is for open questions and takes minutes. Search Mode answers a scoped ask in seconds, with two independent dials over the corpus.' },
-        { kind: 'figure', src: inv09, alt: 'Search Mode dials', caption: 'The two dials are independent, so they compose: reviews + high impact to orient in a new field, primary + recent to see what was actually observed this year. “Reviews only” is fail-closed — a primary study titled “Kinase inhibitors: an overview” is read and rejected rather than passed through on its title.' },
+        { kind: 'figure', src: inv09, caption: 'The two dials are independent, so they compose: reviews + high impact to orient in a new field, primary + recent to see what was actually observed this year. “Reviews only” is fail-closed — a primary study titled “Kinase inhibitors: an overview” is read and rejected rather than passed through on its title.' },
 
         { kind: 'h2', id: 'guarantees', nav: 'Guarantees', text: 'Every Sentence Traces Back to a Sentence in a Paper' },
         { kind: 'p', text: 'Investigate takes eight to fifteen minutes and costs a few tens of cents, because the alternative — an answer you have to verify yourself — costs an afternoon. You get a six-section report, a paper funnel you can audit, the verbatim source sentence behind every citation, an explicit account of what the field disagrees about, and an honest note when the evidence would not carry the conclusion.' },
         {
             kind: 'list',
             items: [
-                ['Grounded by construction.', 'Every quote is checked as a literal substring of its source before it can be cited.'],
-                ['Recall-first by design.', 'Six channels fused round-robin, so a paper only one probe found still reaches the pool.'],
-                ['Built on a real graph.', '14.6M literature-derived relationships reach mechanism papers keyword search never sees.'],
+                ['Grounded by construction.', 'Papers are compressed to verbatim evidence before any reasoning happens. Nothing enters the report un-quoted.'],
+                ['Recall-first by design.', 'Six channels, round-robin fusion and named-entity pinning, measured at 0.891 recall of decisive papers.'],
+                ['Built on a real graph.', '33.4M PubMed abstracts and 14.6M relationships between 3.3M terms, used for retrieval, figures and fact cross-checking.'],
             ],
         },
     ],

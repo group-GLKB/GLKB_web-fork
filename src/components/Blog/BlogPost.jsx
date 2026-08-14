@@ -34,7 +34,9 @@ const Block = ({ block }) => {
         case 'figure':
             return (
                 <figure className="blog-figure">
-                    <img src={block.src} alt={block.alt} loading="lazy" />
+                    {/* The design authors no alt text, only captions, so the caption
+                        is the alternative. The one uncaptioned figure gets alt="". */}
+                    <img src={block.src} alt={block.caption || ''} loading="lazy" />
                     {block.caption ? <figcaption>{block.caption}</figcaption> : null}
                 </figure>
             );
@@ -147,7 +149,7 @@ const BlogPost = () => {
         <div className="blog-page">
             <Helmet>
                 <title>{`${post.title} | GLKB`}</title>
-                <meta name="description" content={post.excerpt} />
+                <meta name="description" content={post.lede} />
             </Helmet>
 
             <BlogNav active="blog" />
