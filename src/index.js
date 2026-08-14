@@ -17,6 +17,8 @@ import {
 } from 'react-router-dom';
 
 import AboutPage from './components/AboutPage';
+import BlogIndex from './components/Blog';
+import BlogPost from './components/Blog/BlogPost';
 import AccountPage from './components/AccountPage';
 import ApiDocsPage from './components/ApiDocs';
 import ApiPage from './components/ApiPage';
@@ -93,7 +95,7 @@ const initState = {
     searchType: ''
 }
 
-const INDEXABLE_PATHS = new Set(['/', '/about', '/chat', '/search', '/api-page']);
+const INDEXABLE_PATHS = new Set(['/', '/about', '/blog', '/chat', '/search', '/api-page']);
 const MAINTENANCE_MODE = false;
 
 const normalizePathname = (pathname) => {
@@ -149,6 +151,8 @@ function AppWithRoutes() {
                     <Route path='/search' element={<ResultPage />} />
                     <Route path="/" element={<HomePage />} />
                     <Route path="/about" element={<AboutPage />} />
+                    <Route path="/blog" element={<BlogIndex />} />
+                    <Route path="/blog/:slug" element={<BlogPost />} />
                     <Route path="/api-page" element={<ApiPage />} />
                     <Route path="/chat" element={<LLMAgent />} />
                     <Route path="/history" element={<History />} />

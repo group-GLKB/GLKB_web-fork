@@ -118,6 +118,13 @@ const AboutPage = () => {
                         <button
                             className="about-nav-text"
                             type="button"
+                            onClick={() => navigate('/blog')}
+                        >
+                            Our Blog
+                        </button>
+                        <button
+                            className="about-nav-text"
+                            type="button"
                             onClick={handleGoToDataDump}
                         >
                             Data Dump

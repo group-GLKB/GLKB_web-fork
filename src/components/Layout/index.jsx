@@ -34,6 +34,7 @@ const getPageTitleByPath = (pathname) => {
     if (pathname.startsWith('/api-page')) return 'API | GLKB';
     if (pathname.startsWith('/account')) return 'Settings | GLKB';
     if (pathname.startsWith('/about')) return 'About | GLKB';
+    if (pathname.startsWith('/blog')) return 'Our Blog | GLKB';
     if (pathname.startsWith('/search')) return 'Search | GLKB';
     if (pathname.startsWith('/history')) return 'History | GLKB';
     if (pathname.startsWith('/library')) return 'Library | GLKB';
@@ -48,10 +49,11 @@ const AppLayout = () => {
     const [isPhoneDevice, setIsPhoneDevice] = useState(false);
     const [isMobileHeaderHidden, setIsMobileHeaderHidden] = useState(false);
     const isAboutPage = location.pathname.startsWith('/about');
+    const isBlogPage = location.pathname.startsWith('/blog');
     const isAccountPage = location.pathname.startsWith('/account');
     const isChatPage = location.pathname.startsWith('/chat');
-    const hideSidebar = isAboutPage || (isAccountPage && !isPhoneDevice);
-    const showMobileHeader = isPhoneDevice && !isAboutPage && !isMobileHeaderHidden;
+    const hideSidebar = isAboutPage || isBlogPage || (isAccountPage && !isPhoneDevice);
+    const showMobileHeader = isPhoneDevice && !isAboutPage && !isBlogPage && !isMobileHeaderHidden;
 
     useLayoutEffect(() => {
         document.title = getPageTitleByPath(location.pathname);
