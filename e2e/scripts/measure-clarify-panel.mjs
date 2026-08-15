@@ -1,9 +1,9 @@
 /**
  * Measure the clarify panel against its Figma spec.
  *
- * Source of truth: GLKB-Tokenized, "Asking Question" → node 111:4385 (Options), with the state
- * variants 111:4593 (hover), 111:4796 (selected) and the footer 111:4845 (Submit).
- * https://www.figma.com/design/ezxZxpCFzjN95UD2ZMaRqZ/GLKB-Tokenized?node-id=111-4006
+ * Source of truth: GLKB-Tokenized, "Asking User Question v2" → node 581:7642, whose four frames
+ * are the card in pick-one (577:6731) and pick-any (577:6961), each unanswered and answered.
+ * https://www.figma.com/design/ezxZxpCFzjN95UD2ZMaRqZ/GLKB-Tokenized?node-id=581-7642
  *
  * Behaviour is covered by ClarifyPanel.test.jsx; this covers what jsdom cannot see, because it
  * has no layout engine — heights, paddings and the resting/hover/selected fills.
@@ -87,7 +87,7 @@ const got = await page.evaluate(() => {
         actions: box('.clarify-actions'),
         rowGap: round(rowRects[1].top - rowRects[0].bottom),
         panelWidth: round(panel.width),
-        indexWidth: round(document.querySelector('.clarify-option-index').getBoundingClientRect().width),
+        markNum: box('.clarify-option-marknum'),
     };
 });
 
@@ -101,34 +101,33 @@ const check = (label, want, have) => {
     console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${label.padEnd(38)} want ${String(want).padStart(18)}  got ${have}`);
 };
 
-console.log('Clarify panel vs Figma 111:4385, measured in Chromium\n');
+console.log('Clarify panel vs Figma 581:7642, measured in Chromium\n');
 check('panel width', 680, got.panelWidth);
-check('panel height', 518, got.panel.h);
+// 514 in the design's pick-one frame, which draws "Other" with no pencil; the pencil sits in a
+// 20px box, so the row — and the card — run 4 taller. Kept in both modes, as the pick-any frames
+// draw it, because a bare "Other" over an input reads as a heading rather than as a choice.
+check('panel height (design 514, +4 for the Other pencil)', 518, got.panel.h);
 check('question head height', 34, got.head.h);
 check('options block height', 412, got.options.h);
 check('answer row height', 76, got.rowUnsel.h);
 check('Other row height', 76, got.other.h);
 check('actions height', 40, got.actions.h);
-check('description column width', 556, got.desc.w);
+check('description column width', 564, got.desc.w);
 check('panel padding (space/4 x space/3)', '16px 12px', got.panel.pad);
 check('panel radius (radius/4)', '16px', got.panel.radius);
 check('question head padding', '0px 8px 12px', got.head.pad);
 check('question type (body-emphasized)', '600 14px/22px', got.qtext.font);
 check('options gap (space/2)', 8, got.rowGap);
 check('options inline padding (space/2)', '0px 8px', got.options.pad);
-check('row padding (space/2 x space/3)', '8px 12px', got.rowUnsel.pad);
+check('row padding (space/2 x space/5)', '8px 20px', got.rowUnsel.pad);
 check('row radius (radius/2)', '8px', got.rowUnsel.radius);
 check('row fill at rest (background/subtle)', '#F2F4F8', hex(got.rowUnsel.bg));
 check('row fill selected (brand/soft)', '#EEF3FF', hex(got.rowSel.bg));
-check('index column width (space/5)', 20, got.indexWidth);
-check('description indent (space/5)', '0px 20px', got.descwrap.pad);
+check('description inset (space/5)', '0px 20px 0px 0px', got.descwrap.pad);
 check('description type (body-sm)', '400 12px/20px', got.desc.font);
 check('selector size', '16 x 16', `${got.mark.w} x ${got.mark.h}`);
-// DELIBERATE DEVIATION. Figma draws radius/1 (4px) for both response types; the fixture is a
-// single-select question and its selectors are round on purpose, because the design gives the
-// user no way to tell whether a second click adds to their choice or replaces it. Multi-select
-// keeps the design's 4px square — `.clarify-option-mark` unchanged, `.single` overrides it.
-check('selector radius — single is round by decision (design: 4px)', '50%', got.mark.radius);
+check('selector radius (radius/1)', '4px', got.mark.radius);
+check('selector number type (caption)', '400 10px/12px', got.markNum.font);
 check('selector fill selected (brand/primary)', '#155DFC', hex(got.markSel.bg));
 check('Other input height', 32, got.input.h);
 check('Other input radius (radius/2)', '8px', got.input.radius);

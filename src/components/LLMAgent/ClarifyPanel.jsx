@@ -13,23 +13,41 @@ export const getClarificationQuestionKey = (question, index) => {
 };
 
 /**
- * Inline clarify panel — Figma "Asking Question" (node 111:4385), shown one question at a time.
+ * The row's right-hand marker — Figma "Asking User Question v2" (577:6744 for pick-one, 577:6961
+ * for pick-any). One 16px rounded square in both modes, filling with brand/primary and a check
+ * once the row is chosen; what differs at rest is what it holds. Pick-one numbers its options,
+ * pick-any leaves the box empty, and that is the whole of the design's answer to "does a second
+ * click add to my choice or replace it" — so the number is not decoration and does not move into
+ * the label, where it was before this design.
+ */
+const ClarifyMark = ({ number, selected, multi }) => (
+    <>
+        {selected
+            ? <CheckIcon className="clarify-option-check" />
+            : (multi ? null : <span className="clarify-option-marknum">{number}</span>)}
+    </>
+);
+
+/**
+ * Inline clarify panel — Figma "Asking User Question v2" (node 581:7642), one question at a time.
  *
- * Three things here deliberately go past the design's mockups, because those show a single
- * question in a single state and a real round carries up to four:
+ * Where this goes past the design's four frames, it is because they draw one question in one state
+ * and a real round carries up to four:
  *
- *  1. ONE QUESTION AT A TIME, with Next/Back and an "i of n" counter. Stacking every question in
- *     one scrolling column buried the later ones and gave no sense of how many were left.
- *  2. SKIP IS ALWAYS AVAILABLE. The design's two frames show Skip on an untouched panel (111:4438)
- *     and Submit on an answered one (111:4845), so reading them literally swaps one for the other
- *     — which removes the escape hatch the moment you pick anything. The run cannot continue until
- *     the round is resolved, so there must always be a way to decline it.
- *  3. SINGLE AND MULTI LOOK DIFFERENT. The design draws the same selector for both. That is fine
- *     in a mockup and wrong in use: nothing tells you whether choosing a second option replaces
- *     your first. Pick-one gets a round radio, pick-any a square box plus "Select all that apply".
- *     Which one applies is the agent's `response_type` — rival readings of an ambiguous term
- *     ("T1" = T1-weighted MRI vs type 1 diabetes vs a T1 cell) are single, since a term means one
- *     thing; aspects that combine (mechanism, treatment, diagnosis) are multi.
+ *  1. ONE QUESTION AT A TIME. The design's own title carries "(1/3)", so it means the same thing;
+ *     the counter is rendered there rather than in the footer, which the design keeps to a single
+ *     action. Stacking every question in one scrolling column buried the later ones.
+ *  2. BACK. Nothing in the design offers a way back to question 1 after leaving it, which is fine
+ *     for a mockup of a single frame and not for a round you step through.
+ *  3. SKIP MEANS "DON'T ANSWER", AT WHATEVER SCOPE IS LEFT. The design swaps one action between
+ *     Skip and Submit. Mid-round that action still has somewhere to go, so Skip advances past the
+ *     question; on the last one, with nothing answered anywhere, it declines the round. Declining
+ *     outright is always available from the header's ✕, so nothing traps a user who has picked
+ *     something and changed their mind.
+ *
+ * Which mode applies is the agent's `response_type` — rival readings of an ambiguous term ("T1" =
+ * T1-weighted MRI vs type 1 diabetes vs a T1 cell) are single, since a term means one thing;
+ * aspects that combine (mechanism, treatment, diagnosis) are multi.
  *
  * MUI's Radio/Checkbox/FormControlLabel are not used: their layout cannot be pushed into this row
  * shape without overriding nearly every internal rule, and row-as-target is not theirs to give.
@@ -52,7 +70,6 @@ const ClarifyOptionRow = ({ index, label, description, selected, multi, disabled
     >
         <div className="clarify-option-body">
             <div className="clarify-option-line">
-                <span className="clarify-option-index" aria-hidden="true">{index}.</span>
                 <span className="clarify-option-label">{label}</span>
             </div>
             {description ? (
@@ -61,8 +78,8 @@ const ClarifyOptionRow = ({ index, label, description, selected, multi, disabled
                 </div>
             ) : null}
         </div>
-        <span className={`clarify-option-mark${multi ? '' : ' single'}`} aria-hidden="true">
-            {selected ? <CheckIcon className="clarify-option-check" /> : null}
+        <span className={`clarify-option-mark${selected ? ' selected' : ''}`} aria-hidden="true">
+            <ClarifyMark number={index} selected={selected} multi={multi} />
         </span>
     </div>
 );
@@ -105,6 +122,15 @@ export const ClarifyPanel = ({
     const otherSelected = Boolean(draft.otherSelected) || responseType === 'text';
     const isLast = index === questions.length - 1;
 
+    const isAnswered = (entry) => (Array.isArray(entry?.selected) && entry.selected.length > 0)
+        || (Boolean(entry?.otherSelected) && Boolean(String(entry?.text || '').trim()));
+    // Read over this round's own question keys rather than every key in `clarificationDrafts`: the
+    // container carries drafts across rounds, so a stale key from the last one would otherwise
+    // count as an answer here and turn the final Skip into a Submit of nothing.
+    const anyAnswered = questions.some(
+        (item, itemIndex) => isAnswered(clarificationDrafts[getClarificationQuestionKey(item, itemIndex)]),
+    );
+
     const toggleOption = (optionLabel) => {
         if (multi) {
             const next = selected.includes(optionLabel)
@@ -140,6 +166,13 @@ export const ClarifyPanel = ({
                 <div className="clarify-question-head">
                     <p className="clarify-question-text">
                         {question?.question || question?.header || `Question ${index + 1}`}
+                        {/* "Example question lorem ipsum? (1/3)" — the design puts the round's
+                            position in the title, which is why the footer needs no counter. */}
+                        {questions.length > 1 ? (
+                            <span className="clarify-question-step">
+                                {` (${index + 1}/${questions.length})`}
+                            </span>
+                        ) : null}
                     </p>
                     <button
                         type="button"
@@ -152,10 +185,6 @@ export const ClarifyPanel = ({
                         <ClearIcon className="clarify-close-icon" />
                     </button>
                 </div>
-
-                {multi && (
-                    <p className="clarify-hint">Select all that apply</p>
-                )}
 
                 <div
                     className="clarify-options"
@@ -209,14 +238,19 @@ export const ClarifyPanel = ({
                         </div>
                         <button
                             type="button"
-                            className={`clarify-option-mark${multi ? '' : ' single'}`}
+                            className={`clarify-option-mark${otherSelected ? ' selected' : ''}`}
                             role={multi ? 'checkbox' : 'radio'}
                             aria-checked={otherSelected}
                             aria-label="Use my own answer"
                             disabled={clarificationSubmitting}
                             onClick={toggleOther}
                         >
-                            {otherSelected ? <CheckIcon className="clarify-option-check" /> : null}
+                            {/* Other is the last option, and carries the number after them. */}
+                            <ClarifyMark
+                                number={options.length + 1}
+                                selected={otherSelected}
+                                multi={multi}
+                            />
                         </button>
                     </div>
                 </div>
@@ -226,21 +260,10 @@ export const ClarifyPanel = ({
                 <Typography className="clarify-error">{clarificationError}</Typography>
             )}
 
+            {/* One action, right-aligned, as the design draws it — reading Skip until something is
+                answered and Submit after. Back is the only addition, and only once there is
+                somewhere to go back to. */}
             <Box className="clarify-actions">
-                <button
-                    type="button"
-                    className="clarify-skip"
-                    disabled={clarificationSubmitting}
-                    onClick={() => onSkip?.()}
-                >
-                    Skip
-                </button>
-                <span className="clarify-actions-spacer" />
-                {questions.length > 1 && (
-                    <span className="clarify-step" aria-live="polite">
-                        {index + 1} of {questions.length}
-                    </span>
-                )}
                 {index > 0 && (
                     <button
                         type="button"
@@ -252,7 +275,20 @@ export const ClarifyPanel = ({
                         Back
                     </button>
                 )}
-                {isLast ? (
+                {!isLast ? (
+                    // Advancing is never blocked on an answer: leaving one blank is a valid choice,
+                    // and the agent falls back to that question's own `default`. The label says
+                    // which of the two is happening.
+                    <button
+                        type="button"
+                        className={isAnswered(draft) ? 'clarify-submit' : 'clarify-skip'}
+                        disabled={clarificationSubmitting}
+                        onClick={() => setStep(index + 1)}
+                    >
+                        {isAnswered(draft) ? 'Next' : 'Skip'}
+                        {isAnswered(draft) ? <ArrowForwardIcon className="clarify-submit-icon" /> : null}
+                    </button>
+                ) : anyAnswered ? (
                     <button
                         type="button"
                         className="clarify-submit"
@@ -263,16 +299,15 @@ export const ClarifyPanel = ({
                         <ArrowForwardIcon className="clarify-submit-icon" />
                     </button>
                 ) : (
-                    // Next is never blocked on an answer: leaving one blank is a valid choice, and
-                    // the agent falls back to that question's own `default`.
+                    // Nothing answered anywhere in the round, and nowhere left to advance to —
+                    // here Skip is the round itself, which is what the design's Skip frame shows.
                     <button
                         type="button"
-                        className="clarify-submit"
+                        className="clarify-skip"
                         disabled={clarificationSubmitting}
-                        onClick={() => setStep(index + 1)}
+                        onClick={() => onSkip?.()}
                     >
-                        Next
-                        <ArrowForwardIcon className="clarify-submit-icon" />
+                        Skip
                     </button>
                 )}
             </Box>

@@ -109,15 +109,19 @@ check('card width', 240, got.card.w);
 // The design fixes where every block sits. Checking properties alone missed a 5px drift: the
 // PMID row rendered at its line-height 20 where the design pins it to 16, and the 1px divider
 // added a pixel the design's zero-height stroke does not.
-// 304 in the design; 284 here. The 20px difference is the blank line in the design's placeholder
-// copy between the authors and the journal — see .ref-hover-authors in scoped.css. Everything
-// below the head therefore sits 20px higher than the design's own y, and nothing else moves.
-check('card height (design 304, less the blank line)', 284, got.cardHeight);
-check('title      y', '16..76', got.y.title);
-check('source     y (design 84..144)', '84..124', got.y.source);
-check('quote      y (design 156..216)', '136..196', got.y.quote);
-check('PMID row   y (design 228..244)', '208..224', got.y.meta);
-check('footer     y (design 268..288)', '248..268', got.y.actions);
+// 304 in the design; 262 here, from two subtractions the design's own render does not need:
+//   -20  the blank line in the placeholder copy between the authors and the journal
+//        (see .ref-hover-authors in scoped.css);
+//   -16  the dead space under the quote's second clamped line, which the design leaves in a fixed
+//        60px block. This card floats over the answer, so a row it does not need is a row of text
+//        it covers.
+// Everything below the head therefore sits above the design's own y, and nothing else moves.
+check('card height (design 304, less blank line + quote slack)', 262, got.cardHeight);
+check('title      y', '16..70', got.y.title);
+check('source     y (design 84..144)', '78..118', got.y.source);
+check('quote      y (design 156..216)', '130..174', got.y.quote);
+check('PMID row   y (design 228..244)', '186..202', got.y.meta);
+check('footer     y (design 268..288)', '214..234', got.y.actions);
 check('card padding (space/4)', '16px', got.card.pad);
 check('card radius (radius/4)', '16px', got.card.radius);
 check('card children gap (space/3)', '12px', got.card.gap);
@@ -128,13 +132,13 @@ check('card hairline is an inset 1px border/default', true,
 check('content column width', 208, got.contentWidth);
 check('content inset from card edge', 16, got.cardInnerLeft);
 check('head gap (space/2)', '8px', got.head.gap);
-check('title type (interactive/emphasized)', '600 14px/20px', got.title.font);
+check('title type (interactive/emphasized)', '600 14px/18px', got.title.font);
 check('title colour (text/primary)', '#0C1018', hex(got.title.color));
 check('source type (body-sm)', '400 12px/20px', got.source.font);
 check('source colour (text/tertiary)', '#5E6E87', hex(got.source.color));
 check('quote type (body)', '400 14px/22px', got.quoteText.font);
 check('quote colour (text/secondary)', '#222A38', hex(got.quoteText.color));
-check('quote block height (fixed 60px)', 60, got.quote.h);
+check('quote block height (design 60, less its slack)', 44, got.quote.h);
 check('quote text clamped to 2 lines', 44, got.quoteText.h);
 check('authors line margin (deviation: design 20px)', '0px', got.authors.marginBottom);
 check('meta type (body-sm)', '400 12px/20px', got.meta.font);
