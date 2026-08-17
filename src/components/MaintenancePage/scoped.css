@@ -41,7 +41,7 @@
 .maintenance-days {
     font-size: 24px;
     font-weight: 700;
-    color: #155DFC;
+    color: var(--color-brand-primary);
 }
 
 .maintenance-contact-button {
@@ -53,8 +53,8 @@
     font-size: 16px;
     font-weight: 500;
     cursor: pointer;
-    background: #155DFC;
-    color: #ffffff;
+    background: var(--color-brand-primary);
+    color: var(--color-neutral-white);
     text-transform: none !important;
     min-width: 0 !important;
 }

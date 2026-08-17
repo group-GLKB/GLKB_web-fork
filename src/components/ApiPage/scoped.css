@@ -4,7 +4,7 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: #FDFEFF;
+    background-color: var(--color-background-page);
     overflow: hidden;
 }
 
@@ -59,7 +59,7 @@
     font-weight: 600 !important;
     font-size: 24px !important;
     line-height: 32px !important;
-    color: #0C1018;
+    color: var(--color-text-primary);
 }
 
 .api-subtitle {
@@ -67,15 +67,15 @@
     font-weight: 400 !important;
     font-size: 14px !important;
     line-height: 20px !important;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
 }
 
 .api-docs-button.MuiButton-root {
     flex-shrink: 0;
     border-radius: 8px;
     border: none;
-    background: #F2F4F8;
-    color: #222A38;
+    background: var(--color-background-subtle);
+    color: var(--color-text-secondary);
     text-transform: none;
     font-family: 'Geist', sans-serif;
     font-size: 14px;
@@ -85,11 +85,11 @@
 }
 
 .api-docs-button.MuiButton-root .MuiButton-startIcon {
-    color: #155DFC;
+    color: var(--color-brand-primary);
 }
 
 .api-docs-button.MuiButton-root:hover {
-    background: #E5E9F0;
+    background: var(--color-background-muted);
     box-shadow: none;
 }
 
@@ -104,7 +104,7 @@
     font-weight: 600 !important;
     font-size: 20px !important;
     line-height: 28px !important;
-    color: #0C1018;
+    color: var(--color-text-primary);
 }
 
 .api-keys-toolbar {
@@ -125,11 +125,11 @@
     align-items: center;
     padding: 4px 10px;
     border-radius: 999px;
-    background: #F2F4F8;
+    background: var(--color-background-subtle);
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 500;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
 }
 
 .api-keys-error {
@@ -139,9 +139,9 @@
     gap: 12px;
     padding: 12px 16px;
     border-radius: 8px;
-    border: 1px solid #FDDDD8;
-    background: #FDDDD8;
-    color: #A10902;
+    border: 1px solid var(--color-red-100);
+    background: var(--color-red-100);
+    color: var(--color-status-error-text);
     font-family: 'Geist', sans-serif;
     font-size: 12px;
 }
@@ -155,12 +155,12 @@
     padding: 0;
     border: none;
     background: transparent;
-    color: #A10902;
+    color: var(--color-status-error-text);
     cursor: pointer;
 }
 
 .api-keys-error-close:hover {
-    color: #400100;
+    color: var(--color-red-900);
 }
 
 /* Figma specs this as a text action with a blue glyph, not a filled button. */
@@ -172,7 +172,7 @@
     border-radius: 8px;
     border: none;
     background: transparent;
-    color: #222A38;
+    color: var(--color-text-secondary);
     font-family: 'Geist', sans-serif;
     font-size: 14px;
     font-weight: 500;
@@ -180,13 +180,13 @@
 }
 
 .api-keys-create:hover {
-    background: #F2F4F8;
+    background: var(--color-background-subtle);
 }
 
 .api-keys-create-icon {
     width: 20px;
     height: 20px;
-    color: #155DFC;
+    color: var(--color-brand-primary);
 }
 
 .api-keys-create-icon path {
@@ -200,8 +200,8 @@
     overflow-y: auto;
     overflow-x: auto;
     border-radius: 12px;
-    background: #ffffff;
-    border: 1px solid #E5E9F0;
+    background: var(--color-background-surface);
+    border: 1px solid var(--color-border-default);
 }
 
 .api-keys-table {
@@ -216,17 +216,17 @@
     align-items: center;
     gap: 16px;
     padding: 14px 20px;
-    border-bottom: 1px solid #F2F4F8;
+    border-bottom: 1px solid var(--color-border-subtle);
     font-family: 'Geist', sans-serif;
     font-size: 12px;
-    color: #222A38;
+    color: var(--color-text-secondary);
 }
 
 .api-keys-table-row.api-keys-table-empty {
     grid-template-columns: 1fr;
     justify-content: center;
     text-align: center;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     padding: 24px 20px;
 }
 
@@ -238,10 +238,10 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    background: #F8F9FC;
+    background: var(--color-grey-25);
     font-size: 12px;
     font-weight: 600;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     text-transform: uppercase;
     letter-spacing: 0.03em;
     padding: 10px 20px;
@@ -265,7 +265,7 @@
     font-family: 'Geist', sans-serif;
     font-weight: 600;
     font-size: 12px;
-    color: #0C1018;
+    color: var(--color-text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -274,7 +274,7 @@
 .api-keys-col--key-value {
     font-family: 'Geist Mono', 'Menlo', 'SFMono-Regular', 'Consolas', monospace;
     font-size: 12px;
-    color: #8090AB;
+    color: var(--color-grey-400);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -287,13 +287,13 @@
 .api-usage-metric {
     font-family: 'Geist Mono', 'Menlo', 'SFMono-Regular', 'Consolas', monospace;
     font-size: 12px;
-    color: #222A38;
+    color: var(--color-text-secondary);
 }
 
 .api-usage-metric-empty {
     font-family: 'Geist', sans-serif;
     font-size: 12px;
-    color: #A8B3C8;
+    color: var(--color-grey-300);
 }
 
 .api-keys-col--actions {
@@ -303,30 +303,30 @@
 }
 
 .api-keys-row-menu-button.MuiIconButton-root {
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     padding: 4px;
 }
 
 .api-keys-row-menu-button.MuiIconButton-root:hover {
-    background: #F2F4F8;
-    color: #222A38;
+    background: var(--color-background-subtle);
+    color: var(--color-text-secondary);
 }
 
 .api-keys-row-menu .MuiPaper-root {
     border-radius: 8px;
-    border: 1px solid #E5E9F0;
+    border: 1px solid var(--color-border-default);
     box-shadow: 0 4px 16px rgba(12, 16, 24, 0.08);
 }
 
 .api-keys-row-menu .MuiMenuItem-root {
     font-family: 'Geist', sans-serif;
     font-size: 12px;
-    color: #222A38;
+    color: var(--color-text-secondary);
     min-width: 140px;
 }
 
 .api-keys-row-menu .MuiMenuItem-root.is-danger {
-    color: #A10902;
+    color: var(--color-status-error-text);
 }
 
 .api-keys-status {
@@ -337,8 +337,8 @@
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    background: #F2F4F8;
-    color: #5E6E87;
+    background: var(--color-background-subtle);
+    color: var(--color-text-tertiary);
     gap: 6px;
     white-space: nowrap;
 }
@@ -348,17 +348,17 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #A8B3C8;
+    background: var(--color-grey-300);
     flex-shrink: 0;
 }
 
 .api-keys-status.is-active {
-    background: #D1EFD4;
-    color: #03722C;
+    background: var(--color-status-active-bg);
+    color: var(--color-status-active-text);
 }
 
 .api-keys-status.is-active::before {
-    background: #45B960;
+    background: var(--color-status-active);
 }
 
 .api-usage-toolbar {
@@ -380,35 +380,35 @@
     gap: 8px;
     padding: 16px 20px;
     border-radius: 12px;
-    border: 1px solid #E5E9F0;
-    background: #FFFFFF;
+    border: 1px solid var(--color-border-default);
+    background: var(--color-background-surface);
 }
 
 .api-usage-stat-label {
     font-family: 'Geist', sans-serif;
     font-weight: 500;
     font-size: 12px;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
 }
 
 .api-usage-stat-value {
     font-family: 'Geist', sans-serif;
     font-weight: 700;
     font-size: 24px;
-    color: #0C1018;
+    color: var(--color-text-primary);
 }
 
 .api-keys-mobile-list {
     width: 100%;
-    border-top: 1px solid #F2F4F8;
-    border-bottom: 1px solid #F2F4F8;
-    background: #ffffff;
+    border-top: 1px solid var(--color-border-subtle);
+    border-bottom: 1px solid var(--color-border-subtle);
+    background: var(--color-background-surface);
     border-radius: 12px;
     overflow: hidden;
 }
 
 .api-keys-mobile-item {
-    border-bottom: 1px solid #F2F4F8;
+    border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .api-keys-mobile-item:last-child {
@@ -439,7 +439,7 @@
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    color: #0C1018;
+    color: var(--color-text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -449,7 +449,7 @@
     font-family: 'Geist Mono', 'Menlo', 'SFMono-Regular', monospace;
     font-size: 12px;
     font-weight: 400;
-    color: #8090AB;
+    color: var(--color-grey-400);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -466,12 +466,12 @@
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 500;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
 }
 
 .api-keys-mobile-chevron {
     font-size: 16px !important;
-    color: #A8B3C8;
+    color: var(--color-grey-300);
     margin-top: 4px;
 }
 
@@ -484,7 +484,7 @@
 
 .api-keys-mobile-page-drawer-body {
     padding: 16px 16px 20px;
-    background: #ffffff;
+    background: var(--color-background-surface);
 }
 
 .api-keys-mobile-page-drawer-header {
@@ -505,7 +505,7 @@
     font-family: 'Geist', sans-serif;
     font-size: 14px;
     font-weight: 700;
-    color: #0C1018;
+    color: var(--color-text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -522,7 +522,7 @@
     font-family: 'Geist', sans-serif;
     font-size: 10px;
     font-weight: 600;
-    color: #8090AB;
+    color: var(--color-grey-400);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-bottom: 4px;
@@ -533,7 +533,7 @@
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 500;
-    color: #222A38;
+    color: var(--color-text-secondary);
 }
 
 .api-keys-mobile-value-key {
@@ -559,9 +559,9 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    border: 1px solid #E5E9F0;
-    background: #ffffff;
-    color: #222A38;
+    border: 1px solid var(--color-border-default);
+    background: var(--color-background-surface);
+    color: var(--color-text-secondary);
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 600;
@@ -583,12 +583,12 @@
 }
 
 .api-keys-action.is-danger {
-    color: #A10902;
-    border-color: #FDDDD8;
+    color: var(--color-status-error-text);
+    border-color: var(--color-red-100);
 }
 
 .api-keys-action:hover {
-    background: #F2F4F8;
+    background: var(--color-background-subtle);
 }
 
 .api-keys-mobile-empty {
@@ -596,7 +596,7 @@
     text-align: center;
     font-family: 'Geist', sans-serif;
     font-size: 12px;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
 }
 
 .api-keys-notice {
@@ -605,9 +605,9 @@
     gap: 12px;
     padding: 14px 20px;
     border-radius: 10px;
-    border: 1px solid #E5E9F0;
-    background: #F7F9FF;
-    color: #222A38;
+    border: 1px solid var(--color-border-default);
+    background: var(--color-brand-subtle);
+    color: var(--color-text-secondary);
     font-family: 'Geist', sans-serif;
     font-size: 12px;
 }
@@ -620,12 +620,12 @@
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    background: #ffffff;
+    background: var(--color-background-surface);
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 1px 2px rgba(12, 16, 24, 0.06);
-    color: #155DFC;
+    color: var(--color-brand-primary);
     flex-shrink: 0;
 }
 
@@ -682,7 +682,7 @@
     font-family: 'Geist', sans-serif;
     font-weight: 700;
     font-size: 16px;
-    color: #0C1018;
+    color: var(--color-text-primary);
 }
 
 .api-keys-dialog-close {
@@ -690,7 +690,7 @@
     height: 24px;
     border: none;
     background: transparent;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     cursor: pointer;
     padding: 0;
     display: inline-flex;
@@ -699,7 +699,7 @@
 }
 
 .api-keys-dialog-close:hover {
-    color: #222A38;
+    color: var(--color-text-secondary);
 }
 
 .api-keys-dialog .MuiDialogContent-root {
@@ -710,7 +710,7 @@
     font-family: 'Geist', sans-serif !important;
     font-size: 14px !important;
     line-height: 1.6 !important;
-    color: #222A38;
+    color: var(--color-text-secondary);
 }
 
 .api-keys-field {
@@ -723,33 +723,33 @@
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    color: #222A38;
+    color: var(--color-text-secondary);
 }
 
 .api-keys-input {
     height: 44px;
     border-radius: 8px;
-    background: #ffffff;
+    background: var(--color-background-surface);
 }
 
 .api-keys-input .MuiInputBase-input {
     padding: 10px 14px;
     font-family: 'Geist', sans-serif;
     font-size: 14px;
-    color: #0C1018;
+    color: var(--color-text-primary);
 }
 
 .api-keys-input .MuiInputBase-input::placeholder {
-    color: #A8B3C8;
+    color: var(--color-grey-300);
     opacity: 1;
 }
 
 .api-keys-input.MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline {
-    border-color: #E5E9F0;
+    border-color: var(--color-border-default);
 }
 
 .api-keys-input.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-    border-color: #155DFC;
+    border-color: var(--color-brand-primary);
     box-shadow: 0 0 0 2px rgba(21, 93, 252, 0.12);
 }
 
@@ -757,7 +757,7 @@
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 500;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
 }
 
 .api-keys-field-error {
@@ -782,28 +782,28 @@
     font-size: 12px !important;
     font-weight: 600 !important;
     text-transform: none !important;
-    color: #222A38 !important;
-    border: 1px solid #E5E9F0 !important;
-    background: #ffffff !important;
+    color: var(--color-text-secondary) !important;
+    border: 1px solid var(--color-border-default) !important;
+    background: var(--color-background-surface) !important;
     box-shadow: none !important;
     transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .api-keys-dialog-button:hover,
 .api-keys-dialog-button.MuiButton-root:hover {
-    background: #F2F4F8 !important;
+    background: var(--color-background-subtle) !important;
     box-shadow: none !important;
 }
 
 .api-keys-dialog-button.is-primary {
-    background: #155DFC !important;
-    color: #ffffff !important;
+    background: var(--color-brand-primary) !important;
+    color: var(--color-neutral-white) !important;
     border: none !important;
 }
 
 .api-keys-dialog-button.is-primary:hover,
 .api-keys-dialog-button.is-primary.MuiButton-root:hover {
-    background: #0A47D6 !important;
+    background: var(--color-blue-600) !important;
 }
 
 .api-keys-dialog-button.is-primary.Mui-disabled {
@@ -813,20 +813,20 @@
 .api-keys-dialog-button.is-danger,
 .api-keys-dialog-button.is-danger:hover,
 .api-keys-dialog-button.is-danger.MuiButton-root:hover {
-    color: #ffffff !important;
-    background: #A10902 !important;
-    border-color: #A10902 !important;
+    color: var(--color-neutral-white) !important;
+    background: var(--color-red-700) !important;
+    border-color: var(--color-red-700) !important;
 }
 
 .api-keys-dialog-button.is-secondary {
-    background: #F2F4F8 !important;
-    color: #222A38 !important;
+    background: var(--color-background-subtle) !important;
+    color: var(--color-text-secondary) !important;
     border: none !important;
 }
 
 .api-keys-dialog-button.is-secondary:hover,
 .api-keys-dialog-button.is-secondary.MuiButton-root:hover {
-    background: #E5E9F0 !important;
+    background: var(--color-background-muted) !important;
 }
 
 .api-keys-created {
@@ -839,7 +839,7 @@
     margin: 0;
     font-family: 'Geist', sans-serif;
     font-size: 14px;
-    color: #222A38;
+    color: var(--color-text-secondary);
     line-height: 1.6;
 }
 
@@ -849,8 +849,8 @@
     gap: 0;
     padding: 0;
     border-radius: 10px;
-    border: 1px solid #155DFC;
-    background: #ffffff;
+    border: 1px solid var(--color-brand-primary);
+    background: var(--color-background-surface);
     overflow: hidden;
 }
 
@@ -860,7 +860,7 @@
     font-family: 'Geist Mono', 'Menlo', 'SFMono-Regular', monospace;
     font-size: 12px;
     font-weight: 400;
-    color: #222A38;
+    color: var(--color-text-secondary);
     white-space: nowrap;
     overflow-x: auto;
     overflow-y: hidden;
@@ -882,8 +882,8 @@
     padding: 8px 14px;
     border-radius: 0 9px 9px 0;
     border: none;
-    background: #155DFC;
-    color: #ffffff;
+    background: var(--color-brand-primary);
+    color: var(--color-neutral-white);
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 600;
@@ -892,7 +892,7 @@
 }
 
 .api-keys-copy-button:hover {
-    background: #0A47D6;
+    background: var(--color-blue-600);
 }
 
 .api-keys-created-permissions {
@@ -905,14 +905,14 @@
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 700;
-    color: #222A38;
+    color: var(--color-text-secondary);
 }
 
 .api-keys-created-permissions-value {
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 400;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
 }
 
 @media (max-width: 1600px) {

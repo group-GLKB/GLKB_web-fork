@@ -987,7 +987,7 @@ const ResultPage = () => {
     const LegendButton = ({ label, size, color, explanation }) => {
         return (
             <MuiButton variant="contained" onClick={(e) => { /*onChangeNode(e, label, boolValues[label])*/ }} sx={{
-                backgroundColor: boolValues[label] ? color : '#fff',
+                backgroundColor: boolValues[label] ? color : 'var(--color-neutral-white)',
                 boxShadow: "none",
                 ":hover": {
                     backgroundColor: boolValues[label] ? color : '#f0f0f0',
@@ -1417,7 +1417,7 @@ const ResultPage = () => {
                                     <Box sx={{
                                         borderRadius: 0,
                                         height: "100%",
-                                        background: '#ffffff',
+                                        background: 'var(--color-background-surface)',
                                         transition: 'background-color 0.3s ease',
                                         paddingBottom: 0,
                                         borderLeft: '1px solid #F4F4F4',
@@ -1541,7 +1541,7 @@ const ResultPage = () => {
                         fontSize: '24px',
                         borderRadius: '50%',
                         backgroundColor: '#E7F1FF',
-                        color: '#155DFC',
+                        color: 'var(--color-brand-primary)',
                         boxShadow: '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',
                         border: 'none',
                         fontFamily: 'DM Sans, sans-serif',

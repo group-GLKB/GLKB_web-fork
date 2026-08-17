@@ -22,6 +22,10 @@ import { fileURLToPath } from 'url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const css = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
+// The stylesheets reference design tokens, so the shell has to carry the same
+// :root layer the app loads through index.css or every colour resolves to its
+// initial value and the colour checks below measure nothing.
+const TOKENS_CSS = css('src/styles/tokens.css');
 const LIBRARY_CSS = css('src/components/Library/scoped.css');
 const HISTORY_CSS = css('src/components/History/scoped.css');
 const CARD_CSS = css('src/components/Units/ConversationCard/scoped.css');
@@ -49,6 +53,7 @@ const [FIXTURE_EMOTION, FIXTURE_MARKUP] = (() => {
 const SHELL = (style, body) => `<!doctype html><html><head>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap">
 <style>
+${TOKENS_CSS}
 *{box-sizing:border-box} body{margin:0;font-family:Geist,sans-serif}
 .MuiSvgIcon-root{width:1em;height:1em;display:inline-block;fill:currentColor;flex-shrink:0}
 .MuiTypography-root{margin:0}

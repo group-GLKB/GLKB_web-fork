@@ -534,7 +534,7 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                             fontSize: '10px',
                             lineHeight: '12px',
                             fontWeight: 400,
-                            color: '#222A38',
+                            color: 'var(--color-text-secondary)',
                             py: 0.75,
                             px: 1.25,
                         },
@@ -542,7 +542,7 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                 }}
             >
                 <MenuItem onClick={handleRemoveBookmark}>
-                    <ListItemIcon sx={{ minWidth: 26, color: '#222A38' }}>
+                    <ListItemIcon sx={{ minWidth: 26, color: 'var(--color-text-secondary)' }}>
                         <BookmarkIcon sx={{ fontSize: 12 }} />
                     </ListItemIcon>
                     <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
@@ -551,7 +551,7 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                 </MenuItem>
                 {onManageFolders && (
                     <MenuItem onClick={handleManageFolders}>
-                        <ListItemIcon sx={{ minWidth: 26, color: '#222A38' }}>
+                        <ListItemIcon sx={{ minWidth: 26, color: 'var(--color-text-secondary)' }}>
                             <FolderOutlinedIcon sx={{ fontSize: 12 }} />
                         </ListItemIcon>
                         <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
@@ -560,7 +560,7 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                     </MenuItem>
                 )}
                 <MenuItem onClick={handleCite}>
-                    <ListItemIcon sx={{ minWidth: 26, color: '#222A38' }}>
+                    <ListItemIcon sx={{ minWidth: 26, color: 'var(--color-text-secondary)' }}>
                         <FormatQuoteOutlinedIcon sx={{ fontSize: 12 }} />
                     </ListItemIcon>
                     <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
@@ -618,7 +618,7 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                             width: 28,
                             height: 28,
                             borderRadius: '8px',
-                            color: '#222A38',
+                            color: 'var(--color-text-secondary)',
                         }}
                     >
                         <MoreHorizIcon sx={{ fontSize: 12 }} />
@@ -652,7 +652,7 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                             fontSize: '10px',
                             lineHeight: '12px',
                             fontWeight: 400,
-                            color: '#222A38',
+                            color: 'var(--color-text-secondary)',
                             py: 0.75,
                             px: 1.25,
                         },
@@ -667,7 +667,7 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                         }
                     }}
                 >
-                    <ListItemIcon sx={{ minWidth: 26, color: '#222A38' }}>
+                    <ListItemIcon sx={{ minWidth: 26, color: 'var(--color-text-secondary)' }}>
                         <DriveFileRenameOutlineIcon sx={{ fontSize: 12 }} />
                     </ListItemIcon>
                     <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
@@ -682,7 +682,7 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                         }
                     }}
                 >
-                    <ListItemIcon sx={{ minWidth: 26, color: '#222A38' }}>
+                    <ListItemIcon sx={{ minWidth: 26, color: 'var(--color-text-secondary)' }}>
                         <FileCopyOutlinedIcon sx={{ fontSize: 12 }} />
                     </ListItemIcon>
                     <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
@@ -696,15 +696,15 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                             onDelete(folder);
                         }
                     }}
-                    sx={{ color: '#A10902 !important' }}
+                    sx={{ color: 'var(--color-status-error-text) !important' }}
                 >
-                    <ListItemIcon sx={{ minWidth: 26, color: '#A10902' }}>
+                    <ListItemIcon sx={{ minWidth: 26, color: 'var(--color-status-error-text)' }}>
                         <DeleteOutlineIcon sx={{ fontSize: 12 }} />
                     </ListItemIcon>
                     <ListItemText
                         primaryTypographyProps={{
                             sx: {
-                                color: '#A10902',
+                                color: 'var(--color-status-error-text)',
                                 fontFamily: 'Geist, sans-serif',
                                 fontSize: '10px',
                                 lineHeight: '12px',
@@ -1377,7 +1377,7 @@ const Library = () => {
                     style={{
                         width: 16,
                         height: 16,
-                        color: isReferenceExportDisabled ? '#A8B3C8' : '#5E6E87',
+                        color: isReferenceExportDisabled ? 'var(--color-grey-300)' : 'var(--color-text-tertiary)',
                     }}
                 />
             </IconButton>
@@ -1410,7 +1410,7 @@ const Library = () => {
                     fontWeight: 600,
                     fontSize: '16px',
                     lineHeight: '26px',
-                    color: '#0C1018',
+                    color: 'var(--color-text-primary)',
                 }}>
                     {folderRenameTarget ? 'Rename Folder' : 'New Folder'}
                 </DialogTitle>
@@ -1458,13 +1458,13 @@ const Library = () => {
                     fontWeight: 600,
                     fontSize: '16px',
                     lineHeight: '26px',
-                    color: '#0C1018',
+                    color: 'var(--color-text-primary)',
                 }}>
                     Manage folders
                 </DialogTitle>
                 <DialogContent>
                     {folders.length === 0 ? (
-                        <Typography sx={{ fontFamily: 'Geist, sans-serif', fontSize: '14px', lineHeight: '22px', color: '#5E6E87' }}>
+                        <Typography sx={{ fontFamily: 'Geist, sans-serif', fontSize: '14px', lineHeight: '22px', color: 'var(--color-text-tertiary)' }}>
                             No folders yet. Create one to organize your bookmarks.
                         </Typography>
                     ) : (
@@ -1478,7 +1478,7 @@ const Library = () => {
                                     py: 0.5,
                                 }}
                             >
-                                <Typography sx={{ fontFamily: 'Geist, sans-serif', fontSize: '14px', color: '#222A38' }}>
+                                <Typography sx={{ fontFamily: 'Geist, sans-serif', fontSize: '14px', color: 'var(--color-text-secondary)' }}>
                                     {folder.name}
                                 </Typography>
                                 <Checkbox
@@ -1486,7 +1486,7 @@ const Library = () => {
                                     checked={Boolean(folderPickerSelections?.[folder.fid])}
                                     disabled={folderPickerLoading}
                                     onChange={() => handleToggleFolderSelection(folder.fid)}
-                                    sx={{ color: '#155DFC', '&.Mui-checked': { color: '#155DFC' } }}
+                                    sx={{ color: 'var(--color-brand-primary)', '&.Mui-checked': { color: 'var(--color-brand-primary)' } }}
                                 />
                             </Box>
                         ))
@@ -1867,7 +1867,7 @@ const Library = () => {
                                                                                 fontFamily: 'Geist, sans-serif',
                                                                                 fontWeight: 600,
                                                                                 fontSize: '16px',
-                                                                                color: '#222A38',
+                                                                                color: 'var(--color-text-secondary)',
                                                                                 whiteSpace: 'nowrap',
                                                                                 overflow: 'hidden',
                                                                                 textOverflow: 'ellipsis',
@@ -2019,7 +2019,7 @@ const Library = () => {
                                                                             fontFamily: 'Geist, sans-serif',
                                                                             fontWeight: 600,
                                                                             fontSize: '16px',
-                                                                            color: '#222A38',
+                                                                            color: 'var(--color-text-secondary)',
                                                                             whiteSpace: 'nowrap',
                                                                             overflow: 'hidden',
                                                                             textOverflow: 'ellipsis',

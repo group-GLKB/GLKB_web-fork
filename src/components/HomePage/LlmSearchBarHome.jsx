@@ -222,17 +222,17 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         minWidth: equalWidth ? 0 : `${fixedWidth || 72}px`,
         padding: '0 8px',
         borderRadius: '8px',
-        backgroundColor: isActive ? '#FFFFFF' : 'transparent',
+        backgroundColor: isActive ? 'var(--color-background-surface)' : 'transparent',
         boxShadow: isActive ? '0px 2px 2px rgba(0, 0, 0, 0.10)' : 'none',
         fontFamily: 'DM Sans, sans-serif',
         fontWeight: isActive ? 900 : 600,
         fontSize: '14px',
         lineHeight: '16px',
-        color: isActive ? '#155DFC' : '#46566C',
+        color: isActive ? 'var(--color-brand-primary)' : 'var(--color-grey-600)',
         textTransform: 'none',
         cursor: 'pointer',
         '&:hover': {
-            backgroundColor: isActive ? '#FFFFFF' : 'rgba(255, 255, 255, 0.35)',
+            backgroundColor: isActive ? 'var(--color-background-surface)' : 'rgba(255, 255, 255, 0.35)',
             boxShadow: isActive ? '0px 2px 2px rgba(0, 0, 0, 0.10)' : 'none',
         },
         whiteSpace: 'nowrap',
@@ -249,22 +249,22 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     py: 2,
                 }}
             >
-                <Box sx={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 900, fontSize: '20px', lineHeight: '24px', color: '#222A38' }}>
+                <Box sx={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 900, fontSize: '20px', lineHeight: '24px', color: 'var(--color-text-secondary)' }}>
                     Search Options
                 </Box>
-                <IconButton onClick={closeSearchOptions} size="small" sx={{ color: '#46566C' }}>
+                <IconButton onClick={closeSearchOptions} size="small" sx={{ color: 'var(--color-grey-600)' }}>
                     <CloseIcon fontSize="small" />
                 </IconButton>
             </Box>
 
-            <Box sx={{ borderTop: '1px solid #E5E9F0', mx: '-24px' }} />
+            <Box sx={{ borderTop: '1px solid var(--color-border-default)', mx: '-24px' }} />
 
             <Box sx={{ pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2.25 }}>
                 <Box>
-                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#222A38' }}>
+                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: 'var(--color-text-secondary)' }}>
                         Article Type
                     </Box>
-                    <Box sx={{ backgroundColor: '#F2F4F8', borderRadius: '10px', p: '4px', display: 'flex', gap: 0, justifyContent: 'space-between' }}>
+                    <Box sx={{ backgroundColor: 'var(--color-background-subtle)', borderRadius: '10px', p: '4px', display: 'flex', gap: 0, justifyContent: 'space-between' }}>
                         {paperTypeOptions.map((option) => (
                             <Box
                                 key={option.value}
@@ -281,18 +281,18 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             </Box>
                         ))}
                     </Box>
-                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: '#8090AB' }}>
+                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: 'var(--color-grey-400)' }}>
                         Search every article
                     </Box>
                 </Box>
 
-                <Box sx={{ borderTop: '1px solid #E5E9F0', mx: '-24px' }} />
+                <Box sx={{ borderTop: '1px solid var(--color-border-default)', mx: '-24px' }} />
 
                 <Box>
-                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: '#222A38' }}>
+                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: 'var(--color-text-secondary)' }}>
                         Sort by
                     </Box>
-                    <Box sx={{ backgroundColor: '#F2F4F8', borderRadius: '10px', p: '4px', display: 'flex', gap: 0, justifyContent: 'space-between' }}>
+                    <Box sx={{ backgroundColor: 'var(--color-background-subtle)', borderRadius: '10px', p: '4px', display: 'flex', gap: 0, justifyContent: 'space-between' }}>
                         {sortOptions.map((option) => (
                             <Box
                                 key={option.value}
@@ -309,7 +309,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             </Box>
                         ))}
                     </Box>
-                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: '#8090AB' }}>
+                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: 'var(--color-grey-400)' }}>
                         Best matches for your query
                     </Box>
                 </Box>
@@ -324,7 +324,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         fontWeight: 900,
                         fontSize: '14px',
                         lineHeight: '16px',
-                        color: '#46566C',
+                        color: 'var(--color-grey-600)',
                         cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -340,8 +340,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         minWidth: '140px',
                         height: '40px',
                         borderRadius: '999px',
-                        backgroundColor: '#155DFC',
-                        color: '#FFFFFF',
+                        backgroundColor: 'var(--color-brand-primary)',
+                        color: 'var(--color-neutral-white)',
                         fontFamily: 'DM Sans, sans-serif',
                         fontWeight: 900,
                         fontSize: '14px',
@@ -368,11 +368,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 margin: '0 auto',
                 fontFamily: 'Geist, sans-serif',
                 fontSize: '16px',
-                backgroundColor: '#F2F4F8',
+                backgroundColor: 'var(--color-background-subtle)',
                 borderRadius: '16px',
                 borderWidth: '1px',
                 borderStyle: 'solid',
-                borderColor: '#E5E9F0',
+                borderColor: 'var(--color-border-default)',
                 boxShadow: 'none',
             }}>
             <Autocomplete
@@ -435,7 +435,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 '& .MuiInputBase-root': {
                                     borderRadius: '16px',
                                     minHeight: { xs: '148px', sm: '152px' },
-                                    backgroundColor: '#F2F4F8',
+                                    backgroundColor: 'var(--color-background-subtle)',
                                     alignItems: 'flex-start',
                                     paddingLeft: '20px',
                                     paddingRight: '20px !important',
@@ -443,7 +443,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     paddingBottom: '58px',
                                     fontFamily: 'Geist, sans-serif',
                                     fontSize: '16px',
-                                    color: '#0C1018',
+                                    color: 'var(--color-text-primary)',
                                     '& fieldset': {
                                         border: 'none',
                                     },
@@ -453,7 +453,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     padding: '0 !important',
                                 },
                                 '& .MuiInputBase-input::placeholder': {
-                                    color: '#A8B3C8',
+                                    color: 'var(--color-grey-300)',
                                     opacity: 1,
                                 },
                                 '& .MuiOutlinedInput-notchedOutline': {
@@ -514,8 +514,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         padding: '4px 8px',
                                         borderRadius: '8px',
                                         border: 'none',
-                                        background: investigateEnabled ? '#D9E6FE' : 'transparent',
-                                        color: investigateEnabled ? '#155DFC' : '#5E6E87',
+                                        background: investigateEnabled ? 'var(--color-brand-muted)' : 'transparent',
+                                        color: investigateEnabled ? 'var(--color-brand-primary)' : 'var(--color-text-tertiary)',
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 600,
                                         fontSize: '12px',
@@ -530,8 +530,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         },
                                         '&:hover': {
                                             border: 'none',
-                                            background: investigateEnabled ? '#BBCFFE' : '#F2F4F8',
-                                            color: investigateEnabled ? '#0A47D6' : '#46566C',
+                                            background: investigateEnabled ? 'var(--color-blue-200)' : 'var(--color-background-subtle)',
+                                            color: investigateEnabled ? 'var(--color-blue-600)' : 'var(--color-grey-600)',
                                         },
                                     }}
                                     startIcon={<InvestigateIcon style={{ width: '20px', height: '20px' }} />}
@@ -579,7 +579,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         padding: '4px 8px',
                                         borderRadius: '8px',
                                         background: 'transparent',
-                                        color: '#5E6E87',
+                                        color: 'var(--color-text-tertiary)',
                                         cursor: 'pointer',
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 600,
@@ -594,7 +594,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         pointerEvents: 'auto',
                                     }}
                                 >
-                                    <SearchOptionsIcon style={{ color: '#5E6E87', width: '20px', height: '20px' }} />
+                                    <SearchOptionsIcon style={{ color: 'var(--color-text-tertiary)', width: '20px', height: '20px' }} />
                                     {mobileChipLabel}
                                 </Box>
                                 )}
@@ -610,7 +610,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         padding: '4px 8px',
                                         borderRadius: '8px',
                                         background: 'transparent',
-                                        color: '#5E6E87',
+                                        color: 'var(--color-text-tertiary)',
                                         cursor: 'pointer',
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 600,
@@ -637,7 +637,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         openSearchOptions();
                                     }}
                                 >
-                                    <SearchOptionsIcon style={{ color: '#5E6E87', width: '20px', height: '20px' }} />
+                                    <SearchOptionsIcon style={{ color: 'var(--color-text-tertiary)', width: '20px', height: '20px' }} />
                                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{mobileChipLabel}</span>
                                 </Button>
                                 )}
@@ -651,7 +651,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         height: { xs: '32px', sm: '32px' },
                                         width: { xs: '32px', sm: '32px' },
                                         borderRadius: '8px',
-                                        backgroundColor: llmQuery.trim() && !isQueryLimitReached ? '#155DFC' : '#D9E6FE',
+                                        backgroundColor: llmQuery.trim() && !isQueryLimitReached ? 'var(--color-brand-primary)' : 'var(--color-brand-muted)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -666,7 +666,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 >
                                     <SearchArrowIcon
                                         style={{
-                                            color: llmQuery.trim() && !isQueryLimitReached ? '#FFFFFF' : '#155DFC',
+                                            color: llmQuery.trim() && !isQueryLimitReached ? 'var(--color-neutral-white)' : 'var(--color-brand-primary)',
                                             width: '16px',
                                             height: '16px',
                                         }}
@@ -683,7 +683,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 sx: {
                                     borderTopLeftRadius: '24px',
                                     borderTopRightRadius: '24px',
-                                    backgroundColor: '#FFFFFF',
+                                    backgroundColor: 'var(--color-background-surface)',
                                     px: 3,
                                     pb: 2,
                                     pt: 0,
@@ -694,7 +694,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             }}
                         >
                             <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
-                                <Box sx={{ width: '44px', height: '4px', borderRadius: '4px', backgroundColor: '#CBD2E0' }} />
+                                <Box sx={{ width: '44px', height: '4px', borderRadius: '4px', backgroundColor: 'var(--color-background-normal)' }} />
                             </Box>
                             {searchOptionsPanel}
                         </Drawer>
@@ -710,7 +710,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 sx: {
                                     width: '369px',
                                     maxWidth: '92vw',
-                                    backgroundColor: '#FFFFFF',
+                                    backgroundColor: 'var(--color-background-surface)',
                                     px: 3,
                                     pb: 3,
                                     pt: 0,

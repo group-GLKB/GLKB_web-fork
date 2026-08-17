@@ -616,7 +616,7 @@ const History = () => {
                                         fontWeight: 600,
                                         fontSize: '24px',
                                         lineHeight: '32px',
-                                        color: '#0C1018',
+                                        color: 'var(--color-text-primary)',
                                     }}>
                                         History
                                     </Typography>
@@ -627,7 +627,7 @@ const History = () => {
                                     fontWeight: 400,
                                     fontSize: '14px',
                                     lineHeight: '22px',
-                                    color: '#5E6E87',
+                                    color: 'var(--color-text-tertiary)',
                                     textAlign: 'left',
                                 }}>
                                     Revisit your past searches and conversations.
@@ -675,8 +675,8 @@ const History = () => {
                                         componentsProps={{
                                             tooltip: {
                                                 sx: {
-                                                    backgroundColor: '#F2F4F8',
-                                                    color: '#222A38',
+                                                    backgroundColor: 'var(--color-background-subtle)',
+                                                    color: 'var(--color-text-secondary)',
                                                     fontFamily: 'Geist, sans-serif',
                                                     fontSize: '12px',
                                                     fontWeight: 500,
@@ -695,10 +695,10 @@ const History = () => {
                                                 onChange={handleToggleSelectAllFiltered}
                                                 inputProps={{ 'aria-label': 'Select all conversations' }}
                                                 sx={{
-                                                    color: '#CBD2E0',
+                                                    color: 'var(--color-grey-200)',
                                                     padding: '4px',
-                                                    '&.Mui-checked': { color: '#155DFC' },
-                                                    '&.MuiCheckbox-indeterminate': { color: '#155DFC' },
+                                                    '&.Mui-checked': { color: 'var(--color-brand-primary)' },
+                                                    '&.MuiCheckbox-indeterminate': { color: 'var(--color-brand-primary)' },
                                                 }}
                                             />
                                         </span>
@@ -728,8 +728,8 @@ const History = () => {
                                             componentsProps={{
                                                 tooltip: {
                                                     sx: {
-                                                        backgroundColor: '#F2F4F8',
-                                                        color: '#222A38',
+                                                        backgroundColor: 'var(--color-background-subtle)',
+                                                        color: 'var(--color-text-secondary)',
                                                         fontFamily: 'Geist, sans-serif',
                                                         fontSize: '12px',
                                                         fontWeight: 500,
@@ -748,10 +748,10 @@ const History = () => {
                                                     onChange={handleToggleSelectAllFiltered}
                                                     inputProps={{ 'aria-label': 'Select all conversations' }}
                                                     sx={{
-                                                        color: '#CBD2E0',
+                                                        color: 'var(--color-grey-200)',
                                                         padding: '4px',
-                                                        '&.Mui-checked': { color: '#155DFC' },
-                                                        '&.MuiCheckbox-indeterminate': { color: '#155DFC' },
+                                                        '&.Mui-checked': { color: 'var(--color-brand-primary)' },
+                                                        '&.MuiCheckbox-indeterminate': { color: 'var(--color-brand-primary)' },
                                                     }}
                                                 />
                                             </span>
@@ -883,7 +883,7 @@ const History = () => {
                                 fontFamily: 'Geist, sans-serif',
                                 fontSize: '14px',
                                 lineHeight: '22px',
-                                color: '#5E6E87',
+                                color: 'var(--color-text-tertiary)',
                             }}>
                                 {searchQuery.trim() ? 'No matches found.' : 'No history yet.'}
                             </Typography>

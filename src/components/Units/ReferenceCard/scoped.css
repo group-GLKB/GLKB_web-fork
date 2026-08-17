@@ -27,8 +27,8 @@
     height: 16px;
     padding: 0 4px;
     border-radius: 4px;
-    background-color: #E5E9F0;
-    color: #222A38;
+    background-color: var(--color-background-muted);
+    color: var(--color-text-secondary);
     font-size: 12px;
     font-weight: 500;
     line-height: 16px;
@@ -36,8 +36,8 @@
 }
 
 .reference-card.is-highlighted .reference-card-index-badge {
-    background-color: #155DFC;
-    color: #F8F9FC;
+    background-color: var(--color-brand-primary);
+    color: var(--color-text-inverse);
 }
 
 .reference-card-body {
@@ -55,7 +55,7 @@
 }
 
 .reference-card-title {
-    color: #0C1018;
+    color: var(--color-text-primary);
     text-decoration: none;
     font-weight: 600;
     font-size: 14px;
@@ -65,7 +65,7 @@
 
 /* Author · year · journal always collapses to a single line. */
 .reference-card-meta {
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     font-size: 12px;
     font-weight: 400;
     line-height: 20px;
@@ -91,7 +91,7 @@
     flex-shrink: 0;
     width: 1px;
     align-self: stretch;
-    background-color: #E5E9F0;
+    background-color: var(--color-background-muted);
     border-radius: 1px;
 }
 
@@ -104,7 +104,7 @@
 .reference-card-quote-text {
     margin: 0;
     padding-right: 18px;
-    color: #222A38;
+    color: var(--color-text-secondary);
     font-size: 12px;
     line-height: 20px;
     display: -webkit-box;
@@ -130,13 +130,13 @@
     width: 16px;
     height: 16px;
     padding: 1px;
-    color: #5E6E87;
-    background-color: #FFFFFF;
+    color: var(--color-text-tertiary);
+    background-color: var(--color-background-surface);
 }
 
 .reference-card-evidence-toggle.MuiIconButton-root:hover {
-    color: #155DFC;
-    background-color: #F2F4F8;
+    color: var(--color-brand-primary);
+    background-color: var(--color-background-subtle);
 }
 
 .reference-card-footer {
@@ -147,7 +147,7 @@
 }
 
 .reference-card-footer-meta {
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     font-size: 12px;
     line-height: 20px;
     white-space: nowrap;
@@ -175,12 +175,12 @@
     width: 20px;
     height: 20px;
     padding: 0;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
 }
 
 .reference-card-icon-btn.MuiIconButton-root:hover {
-    background-color: #F2F4F8;
-    color: #155DFC;
+    background-color: var(--color-background-subtle);
+    color: var(--color-brand-primary);
 }
 
 /* `caption` at 10/12 in a chip that stands the same 20px as the two icon buttons beside it
@@ -190,7 +190,7 @@
     align-items: center;
     gap: 4px;
     padding: 4px;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     font-size: 10px;
     font-weight: 600;
     line-height: 12px;
@@ -200,8 +200,8 @@
 }
 
 .reference-card-fulltext:hover {
-    background-color: #F2F4F8;
-    color: #155DFC;
+    background-color: var(--color-background-subtle);
+    color: var(--color-brand-primary);
 }
 
 .reference-card-more-toggle {
@@ -215,6 +215,6 @@
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    color: #155DFC;
+    color: var(--color-brand-primary);
     cursor: pointer;
 }

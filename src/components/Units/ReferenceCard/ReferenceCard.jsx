@@ -213,7 +213,7 @@ const ReferenceCard = ({
                                 className="reference-card-icon-btn"
                             >
                                 {isBookmarked ? (
-                                    <BookmarkIcon sx={{ fontSize: 14, color: '#155DFC' }} />
+                                    <BookmarkIcon sx={{ fontSize: 14, color: 'var(--color-brand-primary)' }} />
                                 ) : (
                                     <BookmarkBorderIcon sx={{ fontSize: 14 }} />
                                 )}

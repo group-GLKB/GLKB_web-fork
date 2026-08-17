@@ -4,7 +4,7 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: #FDFEFF;
+    background-color: var(--color-background-page);
     overflow: hidden;
 }
 
@@ -78,7 +78,7 @@
     font-family: 'Geist', sans-serif;
     font-weight: 700;
     font-size: 14px;
-    color: #222A38;
+    color: var(--color-text-secondary);
     margin-top: 16px;
 }
 
@@ -93,11 +93,11 @@
     height: 36px;
     padding: 0 64px 0 12px;
     border-radius: 8px;
-    border: 1px solid #CBD2E0;
-    background-color: #ffffff;
+    border: 1px solid var(--color-border-strong);
+    background-color: var(--color-background-surface);
     font-family: 'Geist', sans-serif;
     font-size: 12px;
-    color: #0C1018;
+    color: var(--color-text-primary);
     outline: none;
     box-shadow: none;
 }
@@ -107,12 +107,12 @@
 .history-search-input::-moz-placeholder,
 .history-search-input:-ms-input-placeholder,
 .history-search-input::-ms-input-placeholder {
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     font-family: 'Geist, sans-serif';
 }
 
 .history-search-input:focus {
-    border-color: #155DFC;
+    border-color: var(--color-brand-primary);
     box-shadow: 0 0 0 2px rgba(21, 93, 252, 0.15);
 }
 
@@ -122,8 +122,8 @@
     top: 50%;
     transform: translateY(-50%);
     border: none;
-    background: #F2F4F8;
-    color: #222A38;
+    background: var(--color-background-subtle);
+    color: var(--color-text-secondary);
     font-family: 'Geist';
     font-size: 12px;
     font-weight: 600;
@@ -133,7 +133,7 @@
 }
 
 .history-search-clear:hover {
-    background: #E5E9F0;
+    background: var(--color-background-muted);
 }
 
 .history-meta-row {
@@ -154,7 +154,7 @@
     font-weight: 400;
     font-size: 12px;
     line-height: 20px;
-    color: #222A38;
+    color: var(--color-text-secondary);
     text-align: left;
 }
 
@@ -167,7 +167,7 @@
     border: none;
     border-radius: 8px;
     background: transparent;
-    color: #222A38;
+    color: var(--color-text-secondary);
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 500;
@@ -178,7 +178,7 @@
 }
 
 .history-select-toggle:hover {
-    background: #F2F4F8;
+    background: var(--color-background-subtle);
 }
 
 /* One column: the checkbox no longer takes space in the row, so the label
@@ -212,7 +212,7 @@
 .history-delete-action {
     border: none;
     background: transparent;
-    color: #A10902;
+    color: var(--color-status-error-text);
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 500;
@@ -228,11 +228,11 @@
 }
 
 .history-delete-action:hover:not(:disabled) {
-    background: #F2F4F8;
+    background: var(--color-background-subtle);
 }
 
 .history-delete-action:disabled {
-    color: #A8B3C8;
+    color: var(--color-grey-300);
     cursor: not-allowed;
 }
 
@@ -251,12 +251,12 @@
     gap: 8px;
     padding: 0 12px;
     border-radius: 16px;
-    border: 1px solid #E5E9F0;
-    background-color: #ffffff;
+    border: 1px solid var(--color-border-default);
+    background-color: var(--color-background-surface);
     font-family: 'Geist', sans-serif;
     font-weight: 500;
     font-size: 14px;
-    color: #222A38;
+    color: var(--color-text-secondary);
     height: 32px;
     box-sizing: border-box;
 }
@@ -276,7 +276,7 @@
     font-size: 12px;
     font-weight: 400;
     line-height: 20px;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
 }
 
 .history-card-meta-icon {
@@ -294,8 +294,8 @@
     align-items: center;
     justify-content: space-between;
     min-height: 40px;
-    background: #ffffff;
-    border-bottom: 1px solid #E5E9F0;
+    background: var(--color-background-surface);
+    border-bottom: 1px solid var(--color-border-default);
     padding: 0 0 8px;
 }
 
@@ -303,7 +303,7 @@
     font-family: 'Geist', sans-serif !important;
     font-size: 16px !important;
     font-weight: 700 !important;
-    color: #222A38;
+    color: var(--color-text-secondary);
 }
 
 @media (max-width: 767px) {

@@ -30,11 +30,11 @@ const ChatSearchBar = ({
             display: 'flex',
             gap: 2,
             margin: '0 auto',
-            backgroundColor: '#F2F4F8',
+            backgroundColor: 'var(--color-background-subtle)',
             borderRadius: '16px',
             borderWidth: '1px',
             borderStyle: 'solid',
-            borderColor: '#E5E9F0',
+            borderColor: 'var(--color-border-default)',
             boxShadow: 'none',
             flexDirection: 'column',
         }}>
@@ -70,7 +70,7 @@ const ChatSearchBar = ({
                         paddingBottom: { xs: '8px', sm: '10px' },
                         fontFamily: 'Geist, sans-serif',
                         fontSize: '14px',
-                        color: '#0C1018',
+                        color: 'var(--color-text-primary)',
                         '& fieldset': {
                             border: 'none',
                         },
@@ -79,7 +79,7 @@ const ChatSearchBar = ({
                         lineHeight: '24px',
                     },
                     '& .MuiInputBase-input::placeholder': {
-                        color: '#A8B3C8',
+                        color: 'var(--color-grey-300)',
                         opacity: 1,
                     },
                 }}
@@ -123,7 +123,7 @@ const ChatSearchBar = ({
                                         borderRadius: '8px',
                                         // Same brand-muted square as the idle send button — the
                                         // near-black fill it used to have belonged to no palette here.
-                                        backgroundColor: '#D9E6FE',
+                                        backgroundColor: 'var(--color-brand-muted)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -131,7 +131,7 @@ const ChatSearchBar = ({
                                     }}
                                     title="Stop"
                                 >
-                                    <Box sx={{ width: 12, height: 12, backgroundColor: '#155DFC', borderRadius: '2px' }} />
+                                    <Box sx={{ width: 12, height: 12, backgroundColor: 'var(--color-brand-primary)', borderRadius: '2px' }} />
                                 </Box>
                             ) : (
                                 <Box
@@ -147,7 +147,7 @@ const ChatSearchBar = ({
                                         width: 32,
                                         height: 32,
                                         borderRadius: '8px',
-                                        backgroundColor: userInput.trim() && !isQueryLimitReached ? '#155DFC' : '#D9E6FE',
+                                        backgroundColor: userInput.trim() && !isQueryLimitReached ? 'var(--color-brand-primary)' : 'var(--color-brand-muted)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -159,7 +159,7 @@ const ChatSearchBar = ({
                                         style={{
                                             width: 16,
                                             height: 16,
-                                            color: userInput.trim() && !isQueryLimitReached ? '#FFFFFF' : '#155DFC',
+                                            color: userInput.trim() && !isQueryLimitReached ? 'var(--color-neutral-white)' : 'var(--color-brand-primary)',
                                         }}
                                     />
                                 </Box>
