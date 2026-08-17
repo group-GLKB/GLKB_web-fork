@@ -131,6 +131,59 @@ const PermanentDrawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !=
     })
 );
 
+const HINT_TOOLTIP_PROPS = {
+    placement: 'right',
+    componentsProps: {
+        tooltip: {
+            sx: {
+                backgroundColor: 'var(--color-brand-soft)',
+                color: 'var(--color-grey-900)',
+                fontFamily: 'DM Sans, sans-serif',
+                fontWeight: 500,
+                fontSize: '14px',
+                padding: '4px 12px',
+                borderRadius: '8px',
+                boxShadow: 'none',
+            },
+        },
+    },
+};
+
+/**
+ * A hint that goes away when you click the thing it is describing.
+ *
+ * Every one of these labels a button that changes the sidebar, and MUI's own
+ * open state does not survive that. It only attaches onMouseLeave while the
+ * hover listener is enabled (Tooltip.js), so a trigger that blanks its title
+ * or disables hovering on click keeps its internal state set to open: the
+ * pointer's departure is never heard. The tooltip stays hidden while the title
+ * is empty, then reappears — with the pointer nowhere near it — the moment the
+ * title comes back. Owning the state here and clearing it on click closes that
+ * hole, and covers the case where the pointer never moves because the panel
+ * opened underneath it.
+ */
+const HintTooltip = ({ children, title, ...props }) => {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <Tooltip
+            {...HINT_TOOLTIP_PROPS}
+            {...props}
+            title={title}
+            open={open && Boolean(title)}
+            onOpen={() => setOpen(true)}
+            onClose={() => setOpen(false)}
+        >
+            {React.cloneElement(children, {
+                onClick: (event) => {
+                    setOpen(false);
+                    children.props.onClick?.(event);
+                },
+            })}
+        </Tooltip>
+    );
+};
+
 function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
     const { isAuthenticated, user, logout, openLoginModal } = useAuth();
     const location = useLocation();
@@ -497,24 +550,6 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
         return String(conversation.id) === String(activeConversationId || '');
     };
 
-    const tooltipProps = {
-        placement: 'right',
-        componentsProps: {
-            tooltip: {
-                sx: {
-                    backgroundColor: 'var(--color-brand-soft)',
-                    color: 'var(--color-grey-900)',
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontWeight: 500,
-                    fontSize: '14px',
-                    padding: '4px 12px',
-                    borderRadius: '8px',
-                    boxShadow: 'none',
-                },
-            },
-        },
-    };
-
     const renderNavItem = (item) => {
         const linkProps = item.onClick
             ? { component: 'button', type: 'button' }
@@ -617,9 +652,9 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
         }
 
         return (
-            <Tooltip key={item.label} title={item.label} {...tooltipProps}>
+            <HintTooltip key={item.label} title={item.label}>
                 {button}
-            </Tooltip>
+            </HintTooltip>
         );
     };
 
@@ -644,10 +679,9 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                 pl: 0,
                             }}
                         >
-                            <Tooltip
+                            <HintTooltip
                                 title={open ? '' : 'Open sidebar'}
                                 disableHoverListener={open}
-                                {...tooltipProps}
                                 PopperProps={{
                                     modifiers: [
                                         {
@@ -732,7 +766,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                         />
                                     </Box>
                                 </IconButton>
-                            </Tooltip>
+                            </HintTooltip>
                             <Box
                                 component={Link}
                                 to="/"
@@ -762,7 +796,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                 />
                             </Box>
                             {open && (
-                                <Tooltip title="Collapse sidebar" {...tooltipProps}>
+                                <HintTooltip title="Collapse sidebar">
                                     <IconButton
                                         aria-label="Collapse sidebar"
                                         onClick={() => {
@@ -784,7 +818,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                     >
                                         <SidebarLeftIcon style={{ width: 20, height: 20 }} />
                                     </IconButton>
-                                </Tooltip>
+                                </HintTooltip>
                             )}
                         </Box>
                     )}
@@ -990,7 +1024,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                         borderRight: 'none',
                     }}
                 >
-                    <Tooltip title="Open sidebar" {...tooltipProps}>
+                    <HintTooltip title="Open sidebar">
                         <IconButton
                             aria-label="Expand sidebar"
                             onClick={() => {
@@ -1011,7 +1045,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                         >
                             <MenuIcon sx={{ fontSize: 22 }} />
                         </IconButton>
-                    </Tooltip>
+                    </HintTooltip>
                 </Box>
             )}
 
