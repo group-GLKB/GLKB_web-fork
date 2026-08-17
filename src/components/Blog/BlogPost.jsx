@@ -2,11 +2,14 @@ import './scoped.css';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
+import ReactMarkdown from 'react-markdown';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import remarkGfm from 'remark-gfm';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 
 import { BlogCard, BlogFooter, BlogNav } from './BlogChrome';
-import { getPost, posts } from './posts';
+import { HEADING_ID } from './markdown';
+import { getPost, IMAGES, posts } from './posts';
 
 /** The nearest scrolling ancestor, or the window if nothing else scrolls. */
 const findScrollParent = (node) => {
@@ -22,76 +25,115 @@ const findScrollParent = (node) => {
     return window;
 };
 
-/** One content block. The kinds are documented on posts.js. */
-const Block = ({ block }) => {
-    switch (block.kind) {
-        case 'h2':
-            return <h2 className="blog-h2" id={block.id}>{block.text}</h2>;
-        case 'h3':
-            return <h3 className="blog-h3" id={block.id}>{block.text}</h3>;
-        case 'p':
-            return <p className="blog-p">{block.text}</p>;
-        case 'figure':
-            return (
-                <figure className="blog-figure">
-                    {/* The design authors no alt text, only captions, so the caption
-                        is the alternative. The one uncaptioned figure gets alt="". */}
-                    <img src={block.src} alt={block.caption || ''} loading="lazy" />
-                    {block.caption ? <figcaption>{block.caption}</figcaption> : null}
-                </figure>
-            );
-        case 'table':
-            return (
-                <div className="blog-table-wrap">
-                    <table className="blog-table">
-                        <thead>
-                            <tr>{block.head.map((cell) => <th key={cell}>{cell}</th>)}</tr>
-                        </thead>
-                        <tbody>
-                            {block.rows.map((row) => (
-                                <tr key={row.join('|')}>
-                                    {row.map((cell, index) => <td key={`${row[0]}-${index}`}>{cell}</td>)}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            );
+/** Flattened text of a hast node — headings carry no inline markup. */
+const nodeText = (node) => (node?.children || [])
+    .map((child) => (child.type === 'text' ? child.value : nodeText(child)))
+    .join('');
+
+/** `## Text {#anchor}` renders as a heading the rail can scroll to. */
+const heading = (Tag, className) => function Heading({ node }) {
+    const raw = nodeText(node);
+    const match = HEADING_ID.exec(raw);
+    return (
+        <Tag className={className} id={match ? match[1] : undefined}>
+            {match ? raw.slice(0, match.index) : raw}
+        </Tag>
+    );
+};
+
+/** An image alone in a paragraph is a figure, and its alt text the caption. */
+const isLoneImage = (node) => {
+    const children = (node?.children || [])
+        .filter((child) => child.type !== 'text' || child.value.trim());
+    return children.length === 1 && children[0].tagName === 'img' ? children[0] : null;
+};
+
+const Paragraph = function Paragraph({ node, children }) {
+    const image = isLoneImage(node);
+    if (!image) return <p className="blog-p">{children}</p>;
+
+    const { src, alt } = image.properties;
+    return (
+        <figure className="blog-figure">
+            {/* The design authors captions, not alt text, so the caption is the
+                alternative. The one uncaptioned figure gets alt="". */}
+            <img src={IMAGES[src] || src} alt={alt || ''} loading="lazy" />
+            {alt ? <figcaption>{alt}</figcaption> : null}
+        </figure>
+    );
+};
+
+const articleComponents = {
+    h2: heading('h2', 'blog-h2'),
+    h3: heading('h3', 'blog-h3'),
+    p: Paragraph,
+    ul: function List({ children }) { return <ul className="blog-list">{children}</ul>; },
+    table: function Table({ children }) {
+        return (
+            <div className="blog-table-wrap">
+                <table className="blog-table">{children}</table>
+            </div>
+        );
+    },
+};
+
+/** Inside the sample excerpt the paragraph styles differ from the article's. */
+const sampleComponents = {
+    h4: function SampleHeading({ children }) {
+        return <p className="blog-sample-heading">{children}</p>;
+    },
+    p: function SampleText({ children }) {
+        return <p className="blog-sample-text">{children}</p>;
+    },
+};
+
+/** The label strips: one line of text in a div, so no paragraph wrapper. */
+const bareComponents = {
+    p: function Bare({ children }) { return <>{children}</>; },
+};
+
+const Markdown = ({ children, components }) => (
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+        {children}
+    </ReactMarkdown>
+);
+
+/** One segment of an article — see markdown.js for what the dialect allows. */
+const Segment = ({ segment }) => {
+    switch (segment.type) {
         case 'callout':
             return (
                 <aside className="blog-callout">
-                    <p className="blog-callout-title">{block.title}</p>
-                    <p className="blog-callout-text">{block.text}</p>
+                    <p className="blog-callout-title">{segment.title}</p>
+                    <Markdown components={{ p: function CalloutText({ children }) {
+                        return <p className="blog-callout-text">{children}</p>;
+                    } }}
+                    >
+                        {segment.content}
+                    </Markdown>
                 </aside>
-            );
-        case 'list':
-            return (
-                <ul className="blog-list">
-                    {block.items.map(([lead, rest]) => (
-                        <li key={lead}><strong>{lead}</strong> {rest}</li>
-                    ))}
-                </ul>
             );
         case 'sample':
             return (
                 <div className="blog-sample">
-                    <div className="blog-sample-label">{block.label}</div>
-                    {block.note ? <div className="blog-sample-note">{block.note}</div> : null}
+                    <div className="blog-sample-label">{segment.label}</div>
+                    {segment.note ? (
+                        <div className="blog-sample-note">
+                            <Markdown components={bareComponents}>{segment.note}</Markdown>
+                        </div>
+                    ) : null}
                     <div className="blog-sample-body">
-                        {block.sections.map((section, index) => (
-                            <React.Fragment key={section.heading || `s-${index}`}>
-                                {section.heading
-                                    ? <p className="blog-sample-heading">{section.heading}</p>
-                                    : null}
-                                <p className="blog-sample-text">{section.body}</p>
-                            </React.Fragment>
-                        ))}
+                        <Markdown components={sampleComponents}>{segment.body}</Markdown>
                     </div>
-                    {block.footer ? <div className="blog-sample-footer">{block.footer}</div> : null}
+                    {segment.footer ? (
+                        <div className="blog-sample-footer">
+                            <Markdown components={bareComponents}>{segment.footer}</Markdown>
+                        </div>
+                    ) : null}
                 </div>
             );
         default:
-            return null;
+            return <Markdown components={articleComponents}>{segment.content}</Markdown>;
     }
 };
 
@@ -101,8 +143,8 @@ const BlogPost = () => {
     const post = getPost(slug);
     const [activeId, setActiveId] = useState('');
 
-    // Figma declares the rail's groups explicitly (data-name="ToC Group …"), and
-    // they do not follow the body's h2/h3 nesting, so posts.js carries them.
+    // Figma declares the rail's groups explicitly and they do not follow the
+    // body's h2/h3 nesting, so the markdown's front matter carries them.
     const tocGroups = useMemo(() => (post?.toc ? post.toc : []), [post]);
     const tocItems = useMemo(() => tocGroups.flat(), [tocGroups]);
 
@@ -197,8 +239,8 @@ const BlogPost = () => {
                     </header>
 
                     <article className="blog-article">
-                        {post.blocks.map((block, index) => (
-                            <Block key={`${block.kind}-${block.id || block.text || index}`} block={block} />
+                        {post.segments.map((segment, index) => (
+                            <Segment key={`${segment.type}-${index}`} segment={segment} />
                         ))}
                     </article>
                 </div>
