@@ -68,7 +68,10 @@ describe('ConversationCard geometry fixture', () => {
             fs.mkdirSync(path.dirname(FIXTURE), { recursive: true });
             fs.writeFileSync(FIXTURE, dump);
         }
-        const fixture = fs.readFileSync(FIXTURE, 'utf8');
+        // Line endings are git's business, not the markup's — .gitattributes keeps
+        // this file LF, and normalising here means a checkout that ignores it still
+        // reports real changes rather than every line at once.
+        const fixture = fs.readFileSync(FIXTURE, 'utf8').replace(/\r\n/g, '\n');
         if (dump !== fixture) {
             throw new Error(
                 'The rendered History row changed, so measure-library-history-settings.mjs is '

@@ -1,0 +1,5 @@
+# These are byte-for-byte captures of rendered markup, compared against a fresh
+# render by ConversationCard.test.jsx and BlogPost.test.jsx. Letting git rewrite
+# their line endings on a Windows checkout makes every line read as changed.
+e2e/fixtures/*.html -text
+src/components/Blog/__fixtures__/*.html -text
