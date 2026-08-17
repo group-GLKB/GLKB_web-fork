@@ -260,7 +260,7 @@ const AccountPage = () => {
                                 variant="fullWidth"
                                 TabIndicatorProps={{
                                     sx: {
-                                        backgroundColor: '#155DFC',
+                                        backgroundColor: 'var(--color-brand-primary)',
                                         height: 2,
                                     },
                                 }}
@@ -274,7 +274,7 @@ const AccountPage = () => {
                                         fontFamily: 'Geist, sans-serif',
                                         fontSize: '12px',
                                         fontWeight: 600,
-                                        color: '#222A38',
+                                        color: 'var(--color-text-secondary)',
                                         minHeight: 32,
                                         minWidth: '50%',
                                         maxWidth: 'none',
@@ -282,7 +282,7 @@ const AccountPage = () => {
                                         padding: '12px 0',
                                     },
                                     '& .MuiTab-root.Mui-selected': {
-                                        color: '#155DFC',
+                                        color: 'var(--color-brand-primary)',
                                     },
                                 }}
                             >

@@ -237,9 +237,9 @@ all {
     min-width: 36px !important;
     height: 36px;
     border-radius: 10px !important;
-    border: 1px solid #155DFC !important;
+    border: 1px solid var(--color-brand-primary) !important;
     background: #E7F1FF !important;
-    color: #155DFC !important;
+    color: var(--color-brand-primary) !important;
     padding: 0 !important;
     box-shadow: 0 1px 3px rgba(21, 93, 252, 0.18) !important;
 }
@@ -435,7 +435,7 @@ all {
 
 .example-card {
     border: 1px solid #E6F0FC;
-    background: #ffffff;
+    background: var(--color-background-surface);
     border-radius: 16px;
     padding: 12px 14px;
     text-align: left;

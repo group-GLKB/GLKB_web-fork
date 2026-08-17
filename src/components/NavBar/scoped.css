@@ -92,7 +92,7 @@
     align-items: center;
     cursor: text;
     width: 400px;
-    background-color: #FFFFFF;
+    background-color: var(--color-background-surface);
     height: 3.2rem;
 }
 

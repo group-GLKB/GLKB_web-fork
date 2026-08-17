@@ -35,7 +35,11 @@ describe('rendered article markup', () => {
                 return;
             }
 
-            expect(actual).toEqual(fs.readFileSync(fixture, 'utf8').trimEnd());
+            // Line endings are git's business, not the markup's: a Windows
+            // checkout materialises the fixture as CRLF and every line would
+            // otherwise read as changed.
+            const committed = fs.readFileSync(fixture, 'utf8').replace(/\r\n/g, '\n').trimEnd();
+            expect(actual).toEqual(committed);
         });
     });
 });

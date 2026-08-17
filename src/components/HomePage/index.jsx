@@ -75,12 +75,12 @@ const HomePage = () => {
         lightbulb: '#FBBF7A',
         chart: '#08B046',
         book: '#BD7AFB',
-        knowledge: '#155DFC',
+        knowledge: 'var(--color-brand-primary)',
     };
     const pills = (exampleSchema.pills || []).map((pill) => ({
         ...pill,
         icon: iconMap[pill.icon] || <PillEntityInsightsIcon />,
-        iconColor: iconColorMap[pill.icon] || '#222A38',
+        iconColor: iconColorMap[pill.icon] || 'var(--color-grey-800)',
     }));
     const activePill = pills.find((pill) => pill.id === showExamples);
     const isHomeLimitReachedEffective = isQueryLimitReached || DEBUG_FORCE_LIMIT_WARNING;
@@ -268,7 +268,7 @@ const HomePage = () => {
             <div className={`HomePageRoot${isPhoneDevice ? ' is-phone-device' : ''}`}>
                 <div className="HomePageContainer">
                     <div className="HomePageInner" style={{
-                        backgroundColor: '#FFFFFF',
+                        backgroundColor: 'var(--color-background-surface)',
                         transition: 'background-color 0.3s ease',
                     }}>
                         <Joyride
@@ -280,7 +280,7 @@ const HomePage = () => {
                             callback={handleJoyrideCallback}
                             styles={{
                                 options: {
-                                    primaryColor: '#155DFC',
+                                    primaryColor: 'var(--color-brand-primary)',
                                     zIndex: 10000
                                 },
                                 tooltip: {
@@ -323,9 +323,9 @@ const HomePage = () => {
                                         lineHeight: isPhoneDevice ? 1.2 : '48px',
                                     }}
                                 >
-                                    <span style={{ color: '#0C1018' }}>Ask.</span>{' '}
-                                    <span style={{ color: '#155DFC' }}>Analyze</span>
-                                    <span style={{ color: '#0C1018' }}>. Cite.</span>
+                                    <span style={{ color: 'var(--color-text-primary)' }}>Ask.</span>{' '}
+                                    <span style={{ color: 'var(--color-brand-primary)' }}>Analyze</span>
+                                    <span style={{ color: 'var(--color-text-primary)' }}>. Cite.</span>
                                 </Typography>
                                 <Typography
                                     className="glkb-subtitle"
@@ -333,7 +333,7 @@ const HomePage = () => {
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 400,
                                         fontSize: '14px',
-                                        color: '#5E6E87',
+                                        color: 'var(--color-text-tertiary)',
                                         lineHeight: '22px',
                                     }}
                                 >
@@ -477,8 +477,8 @@ const HomePage = () => {
                             height: '56px',
                             fontSize: '24px',
                             borderRadius: '50%',
-                            backgroundColor: '#EEF3FF',
-                            color: '#155DFC',
+                            backgroundColor: 'var(--color-brand-soft)',
+                            color: 'var(--color-brand-primary)',
                             border: 'none',
                             fontFamily: 'Geist, sans-serif',
                             boxShadow: '0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10)',

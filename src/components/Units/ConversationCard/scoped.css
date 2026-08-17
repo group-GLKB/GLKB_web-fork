@@ -16,7 +16,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    border-bottom: 1px solid #E5E9F0;
+    border-bottom: 1px solid var(--color-border-default);
 }
 
 /* Hangs in the gutter beside the row rather than taking a column inside it, so
@@ -85,7 +85,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
 }
 
 .history-item-icon svg {
@@ -115,7 +115,7 @@
    the old fill was brand blue, which read as a selection rather than a hover. */
 .history-item-row:hover .history-item,
 .history-item:focus-visible {
-    background-color: #F2F4F8;
+    background-color: var(--color-background-subtle);
     border-radius: 8px;
 }
 
@@ -129,7 +129,7 @@
     font-weight: 500;
     font-size: 16px;
     line-height: 20px;
-    color: #0C1018;
+    color: var(--color-text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -138,19 +138,19 @@
 .history-title-input {
     flex: 1;
     min-width: 0;
-    border: 1px solid #E5E9F0;
+    border: 1px solid var(--color-border-default);
     border-radius: 8px;
     padding: 4px 8px;
     font-family: 'Geist', sans-serif;
     font-weight: 500;
     font-size: 16px;
-    color: #0C1018;
-    background-color: #ffffff;
+    color: var(--color-text-primary);
+    background-color: var(--color-background-surface);
     outline: none;
 }
 
 .history-title-input:focus {
-    border-color: #155DFC;
+    border-color: var(--color-brand-primary);
     box-shadow: 0 0 0 2px rgba(21, 93, 252, 0.12);
 }
 
@@ -177,7 +177,7 @@
 }
 
 .history-item:focus-visible {
-    outline: 2px solid #155DFC;
+    outline: 2px solid var(--color-brand-primary);
     outline-offset: 4px;
     border-radius: 8px;
 }
@@ -187,7 +187,7 @@
     font-weight: 400;
     font-size: 12px;
     line-height: 20px;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     overflow: hidden;
     display: -webkit-box;
     line-clamp: 2;
@@ -200,5 +200,5 @@
     font-weight: 400;
     font-size: 12px;
     line-height: 20px;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
 }

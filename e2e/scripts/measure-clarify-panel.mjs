@@ -18,6 +18,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+// The stylesheets reference design tokens, so the shell has to carry the same
+// :root layer the app loads through index.css or every colour resolves to its
+// initial value and the colour checks below measure nothing.
+const TOKENS_CSS = fs.readFileSync(path.join(ROOT, 'src/styles/tokens.css'), 'utf8');
 const CSS = fs.readFileSync(path.join(ROOT, 'src/components/LLMAgent/scoped.css'), 'utf8');
 
 const shotFlag = process.argv.indexOf('--screenshot');
@@ -33,6 +37,7 @@ const BODY = fs.readFileSync(path.join(ROOT, 'e2e/fixtures/clarify-panel.html'),
 const HTML = `<!doctype html><html><head>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap">
 <style>
+${TOKENS_CSS}
 *{box-sizing:border-box} body{margin:0;font-family:Geist,sans-serif}
 /* MUI's own base rules for what the panel renders; scoped.css only overrides them. */
 .MuiSvgIcon-root{width:1em;height:1em;display:inline-block;fill:currentColor;flex-shrink:0;font-size:1.5rem}

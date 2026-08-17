@@ -171,9 +171,9 @@ const ConversationCard = ({
                     }}
                     inputProps={{ 'aria-label': `Select ${resolvedTitleLabel}` }}
                     sx={{
-                        color: '#CBD2E0',
+                        color: 'var(--color-grey-200)',
                         padding: '4px',
-                        '&.Mui-checked': { color: '#155DFC' },
+                        '&.Mui-checked': { color: 'var(--color-brand-primary)' },
                     }}
                 />
             )}
@@ -235,7 +235,7 @@ const ConversationCard = ({
                                     width: 24,
                                     height: 24,
                                     borderRadius: '4px',
-                                    color: '#5E6E87',
+                                    color: 'var(--color-text-tertiary)',
                                 }}
                             >
                                 <MoreVertIcon sx={{ fontSize: 12 }} />
@@ -274,14 +274,14 @@ const ConversationCard = ({
                             minWidth: 176,
                             borderRadius: 2,
                             boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
-                            border: '1px solid #E5E9F0',
+                            border: '1px solid var(--color-border-default)',
                             padding: '4px',
                             '& .MuiMenuItem-root': {
                                 fontFamily: 'Geist, sans-serif',
                                 fontSize: '10px',
                                 lineHeight: '12px',
                                 fontWeight: 400,
-                                color: '#222A38',
+                                color: 'var(--color-text-secondary)',
                                 minHeight: 20,
                                 height: 20,
                                 borderRadius: '4px',
@@ -294,7 +294,7 @@ const ConversationCard = ({
                 >
                     {onRename && (
                         <MenuItem onClick={handleStartRename}>
-                            <ListItemIcon sx={{ minWidth: 0, color: '#5E6E87' }}>
+                            <ListItemIcon sx={{ minWidth: 0, color: 'var(--color-text-tertiary)' }}>
                                 <DriveFileRenameOutlineIcon sx={{ fontSize: 12 }} />
                             </ListItemIcon>
                             <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
@@ -304,7 +304,7 @@ const ConversationCard = ({
                     )}
                     {onBookmark && (
                         <MenuItem onClick={handleBookmark}>
-                            <ListItemIcon sx={{ minWidth: 0, color: '#5E6E87' }}>
+                            <ListItemIcon sx={{ minWidth: 0, color: 'var(--color-text-tertiary)' }}>
                                 <BookmarkMenuIcon sx={{ fontSize: 12 }} />
                             </ListItemIcon>
                             <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
@@ -317,7 +317,7 @@ const ConversationCard = ({
                             handleCloseMenu();
                             onManageFolders(conversation);
                         }}>
-                            <ListItemIcon sx={{ minWidth: 0, color: '#5E6E87' }}>
+                            <ListItemIcon sx={{ minWidth: 0, color: 'var(--color-text-tertiary)' }}>
                                 <FolderOutlinedIcon sx={{ fontSize: 12 }} />
                             </ListItemIcon>
                             <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
@@ -328,14 +328,14 @@ const ConversationCard = ({
                     {onDelete && (
                         <>
                             {(onRename || onBookmark || onManageFolders) && <Divider />}
-                            <MenuItem onClick={handleDelete} sx={{ color: '#A10902 !important' }}>
-                                <ListItemIcon sx={{ minWidth: 0, color: '#A10902' }}>
+                            <MenuItem onClick={handleDelete} sx={{ color: 'var(--color-status-error-text) !important' }}>
+                                <ListItemIcon sx={{ minWidth: 0, color: 'var(--color-status-error-text)' }}>
                                     <DeleteOutlineIcon sx={{ fontSize: 12 }} />
                                 </ListItemIcon>
                                 <ListItemText
                                     primaryTypographyProps={{
                                         sx: {
-                                            color: '#A10902',
+                                            color: 'var(--color-status-error-text)',
                                             fontFamily: 'Geist, sans-serif',
                                             fontSize: '10px',
                                             lineHeight: '12px',

@@ -23,7 +23,7 @@
   --color-blue-50: #EEF3FF;
   --color-blue-100: #D9E6FE;
   --color-blue-200: #BBCFFE;
-  --color-blue-300: #7AADF8;
+  --color-blue-300: #7AADFB;
   --color-blue-400: #4B88FD;
   --color-blue-500: #155DFC;
   --color-blue-600: #0A47D6;
@@ -35,7 +35,7 @@
   /* color / red */
   --color-red-100: #FDDDD8;
   --color-red-300: #FE9989;
-  --color-red-500: #FC2415;
+  --color-red-500: #F21303;
   --color-red-700: #A10902;
   --color-red-900: #400100;
 
@@ -84,7 +84,7 @@
   /* color / text (also used for icons) */
   --color-text-primary: var(--color-grey-950);
   --color-text-secondary: var(--color-grey-800);
-  --color-text-default: var(--color-grey-500);
+  --color-text-tertiary: var(--color-grey-500);
   --color-text-inverse: var(--color-grey-25);
 
   /* color / border */
@@ -95,20 +95,26 @@
   /* color / background */
   --color-background-page: var(--color-blue-5);
   --color-background-surface: var(--color-neutral-white);
-  --color-background-subtle: var(--color-grey-50);
+  --color-background-normal: var(--color-grey-200);
   --color-background-muted: var(--color-grey-100);
+  --color-background-subtle: var(--color-grey-50);
   --color-background-inverse: var(--color-grey-800);
 
   /* color / brand */
-  --color-brand-subtle: var(--color-blue-25);
-  --color-brand-muted: var(--color-blue-100);
   --color-brand-primary: var(--color-blue-500);
+  --color-brand-muted: var(--color-blue-100);
+  --color-brand-soft: var(--color-blue-50);
+  --color-brand-subtle: var(--color-blue-25);
 
   /* color / status */
   --color-status-error: var(--color-red-500);
+  --color-status-error-text: var(--color-red-700);
   --color-status-success: var(--color-blue-500);
-  --color-status-pending: var(--color-orange-500);
-  --color-status-attention: var(--color-purple-500);
+  --color-status-pending: var(--color-cyan-500);
+  --color-status-attention: var(--color-yellow-500);
+  --color-status-active: var(--color-green-500);
+  --color-status-active-bg: var(--color-green-100);
+  --color-status-active-text: var(--color-green-700);
 
   /* color / accent */
   --color-accent-red: var(--color-red-500);
@@ -119,11 +125,76 @@
   --color-accent-purple: var(--color-purple-500);
   --color-accent-pink: var(--color-pink-500);
 
+  /* color / overlay */
+  --color-overlay-32: rgba(0, 0, 0, 0.32);
+
+  /* color / node (knowledge graph entity types; ring is border color applied at 0.3 opacity) */
+  --color-node-gene-fill: #DDE8FA;
+  --color-node-gene-border: #4A80D4;
+  --color-node-gene-text: #0F2E70;
+  --color-node-gene-ring: #4A80D44D;
+
+  --color-node-phenotype-fill: #FEEED8;
+  --color-node-phenotype-border: #E8A44A;
+  --color-node-phenotype-text: #7A4010;
+  --color-node-phenotype-ring: #E8A44A4D;
+
+  --color-node-chemical-fill: #D4F5EC;
+  --color-node-chemical-border: #3DBFA0;
+  --color-node-chemical-text: #0A5040;
+  --color-node-chemical-ring: #3DBFA04D;
+
+  --color-node-variant-fill: #F2E8F8;
+  --color-node-variant-border: #C090D0;
+  --color-node-variant-text: #5A1E6A;
+  --color-node-variant-ring: #C090D04D;
+
+  --color-node-mesh-term-fill: #EFEDE7;
+  --color-node-mesh-term-border: #A89880;
+  --color-node-mesh-term-text: #4A3D2C;
+  --color-node-mesh-term-ring: #A898804D;
+
+  --color-node-go-biological-process-fill: #E2F1DC;
+  --color-node-go-biological-process-border: #72B860;
+  --color-node-go-biological-process-text: #2A5A19;
+  --color-node-go-biological-process-ring: #72B8604D;
+
+  --color-node-go-molecular-function-fill: #F8EEC0;
+  --color-node-go-molecular-function-border: #C89400;
+  --color-node-go-molecular-function-text: #4A3001;
+  --color-node-go-molecular-function-ring: #C894004D;
+
+  --color-node-go-cellular-component-fill: #DAF4F8;
+  --color-node-go-cellular-component-border: #40B8CC;
+  --color-node-go-cellular-component-text: #094A58;
+  --color-node-go-cellular-component-ring: #40B8CC4D;
+
+  --color-node-pathway-fill: #FAE4F0;
+  --color-node-pathway-border: #C83880;
+  --color-node-pathway-text: #6A0840;
+  --color-node-pathway-ring: #C838804D;
+
+  --color-node-anatomy-fill: #E8ECF2;
+  --color-node-anatomy-border: #6890D0;
+  --color-node-anatomy-text: #1E3A5A;
+  --color-node-anatomy-ring: #6890D04D;
+
+  --color-node-organism-fill: #F5E7E0;
+  --color-node-organism-border: #C86030;
+  --color-node-organism-text: #5A2810;
+  --color-node-organism-ring: #C860304D;
+
+  --color-node-literature-content-fill: var(--color-background-surface);
+  --color-node-literature-content-border: #7A8FA8;
+  --color-node-literature-content-text: #3A4A58;
+  --color-node-literature-content-ring: #7A8FA84D;
+
   /* font family */
   --font-family-sans: "Geist", sans-serif;
   --font-family-mono: "Geist Mono", monospace;
 
   /* space */
+  --space-half: 2px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -150,6 +221,8 @@
   /* border width */
   --border-width-hairline: 0.5px;
   --border-width-default: 1px;
+  --border-width-node: 0.8px;
+  --border-width-relationship: 2px;
 
   /* icon size */
   --icon-size-xs: 12px;
@@ -206,42 +279,42 @@
 .text-body-lg {
   font-family: var(--font-family-sans);
   font-size: 16px;
-  line-height: 28px;
+  line-height: 26px;
   font-weight: 400;
 }
 
 .text-body-lg-emphasized {
   font-family: var(--font-family-sans);
   font-size: 16px;
-  line-height: 28px;
+  line-height: 26px;
   font-weight: 600;
 }
 
 .text-body {
   font-family: var(--font-family-sans);
   font-size: 14px;
-  line-height: 20px;
+  line-height: 22px;
   font-weight: 400;
 }
 
 .text-body-emphasized {
   font-family: var(--font-family-sans);
   font-size: 14px;
-  line-height: 20px;
+  line-height: 22px;
   font-weight: 600;
 }
 
 .text-body-sm {
   font-family: var(--font-family-sans);
   font-size: 12px;
-  line-height: 16px;
+  line-height: 20px;
   font-weight: 400;
 }
 
 .text-body-sm-emphasized {
   font-family: var(--font-family-sans);
   font-size: 12px;
-  line-height: 16px;
+  line-height: 20px;
   font-weight: 600;
 }
 
@@ -262,7 +335,7 @@
 .text-micro {
   font-family: var(--font-family-sans);
   font-size: 8px;
-  line-height: 12px;
+  line-height: 10px;
   font-weight: 400;
 }
 
@@ -277,28 +350,28 @@
 .text-interactive-lg {
   font-family: var(--font-family-sans);
   font-size: 16px;
-  line-height: 28px;
+  line-height: 20px;
   font-weight: 500;
 }
 
 .text-interactive-lg-emphasized {
   font-family: var(--font-family-sans);
   font-size: 16px;
-  line-height: 28px;
+  line-height: 20px;
   font-weight: 600;
 }
 
 .text-interactive {
   font-family: var(--font-family-sans);
   font-size: 14px;
-  line-height: 20px;
+  line-height: 18px;
   font-weight: 500;
 }
 
 .text-interactive-emphasized {
   font-family: var(--font-family-sans);
   font-size: 14px;
-  line-height: 20px;
+  line-height: 18px;
   font-weight: 600;
 }
 
