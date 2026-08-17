@@ -3,14 +3,22 @@
  * has to come from the Figma frame — an invented sentence in an article about
  * verifiable citations is exactly the failure the articles describe.
  *
- * So: walk both post objects, and assert every string appears in the design.
+ * So: render both posts and assert every line of text appears in the design.
  */
 import fs from 'fs';
 import path from 'path';
 
 import { posts } from './posts';
+import renderArticle from './__fixtures__/renderArticle';
 
 const DIVIDER = '#####';
+
+/** Every element that holds a line of the article's own text. */
+const TEXT_NODES = [
+    'h1', 'h2', 'h3', 'h4', 'p', 'li', 'td', 'th', 'figcaption',
+    '.blog-meta span', '.blog-hero-cta', '.blog-toc-link',
+    '.blog-sample-label', '.blog-sample-note', '.blog-sample-footer',
+].join(',');
 
 /** Punctuation Figma and the source spell differently, plus whitespace. */
 const normalize = (value) => value
@@ -37,25 +45,6 @@ const designText = () => {
     };
 };
 
-/** Every string a reader would see, ignoring keys that hold ids and paths. */
-const visibleStrings = (post) => {
-    const skip = new Set(['slug', 'readNext', 'id', 'kind', 'src', 'to']);
-    const found = [];
-    const walk = (value) => {
-        if (typeof value === 'string') {
-            if (value.length > 3) found.push(value);
-        } else if (Array.isArray(value)) {
-            value.forEach(walk);
-        } else if (value && typeof value === 'object') {
-            Object.entries(value).forEach(([key, child]) => {
-                if (!skip.has(key)) walk(child);
-            });
-        }
-    };
-    walk(post);
-    return found;
-};
-
 describe('blog post content', () => {
     const design = designText();
 
@@ -64,10 +53,20 @@ describe('blog post content', () => {
             const haystack = design[post.slug];
             expect(haystack).toBeTruthy();
 
-            const invented = visibleStrings(post)
-                .filter((value) => !haystack.includes(normalize(value)));
+            const container = renderArticle(post.slug);
+            const scope = [
+                ...container.querySelectorAll('.blog-content'),
+                ...container.querySelectorAll('.blog-toc'),
+            ];
+            expect(scope.length).toBe(2);
 
-            expect(invented).toEqual([]);
+            const lines = scope
+                .flatMap((root) => [...root.querySelectorAll(TEXT_NODES)])
+                .map((node) => node.textContent)
+                .filter((text) => text && text.trim().length > 3);
+
+            expect(lines.length).toBeGreaterThan(60);
+            expect(lines.filter((line) => !haystack.includes(normalize(line)))).toEqual([]);
         });
     });
 

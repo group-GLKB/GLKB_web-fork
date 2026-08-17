@@ -1,0 +1,165 @@
+<nav class="blog-toc" aria-label="On this page">
+<button type="button" class="blog-toc-brand">
+<svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium blog-toc-brand-icon css-i4bv87-MuiSvgIcon-root" focusable="false" aria-hidden="true" viewBox="0 0 24 24" data-testid="ChevronLeftIcon">
+<path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path></svg>GLKB Blog</button>
+<div class="blog-toc-group">
+<button type="button" class="blog-toc-link">At a Glance</button></div>
+<div class="blog-toc-group">
+<button type="button" class="blog-toc-link">Three Failures</button>
+<button type="button" class="blog-toc-link is-child">Confidently Wrong</button>
+<button type="button" class="blog-toc-link is-child">Silently Incomplete</button>
+<button type="button" class="blog-toc-link is-child">Blandly Averaged</button></div>
+<div class="blog-toc-group">
+<button type="button" class="blog-toc-link">Six Phases</button>
+<button type="button" class="blog-toc-link is-child">Full Architecture</button>
+<button type="button" class="blog-toc-link is-child">Six Searches</button>
+<button type="button" class="blog-toc-link is-child">The Funnel</button>
+<button type="button" class="blog-toc-link is-child">Group by Claim</button>
+<button type="button" class="blog-toc-link is-child">Five Gates</button>
+<button type="button" class="blog-toc-link is-child">The Report</button></div>
+<div class="blog-toc-group">
+<button type="button" class="blog-toc-link">The Proof</button>
+<button type="button" class="blog-toc-link is-child">Sample Run</button>
+<button type="button" class="blog-toc-link is-child">How It Compares</button></div>
+<div class="blog-toc-group">
+<button type="button" class="blog-toc-link">Search Mode</button></div>
+<div class="blog-toc-group">
+<button type="button" class="blog-toc-link is-active">Guarantees</button>
+<button type="button" class="blog-toc-link is-child">Grounded by Construction</button>
+<button type="button" class="blog-toc-link is-child">Recall-First by Design</button>
+<button type="button" class="blog-toc-link is-child">Built on a Real Graph</button></div></nav>
+<div class="blog-content">
+<header class="blog-hero">
+<div class="blog-meta">
+<span>GLKB · product article</span>
+<span>Aug 11, 2026</span></div>
+<h1 class="blog-title">GLKB Investigate: Literature Research You Can Audit Line by Line</h1>
+<p class="blog-lede">Investigate reads the literature the way a careful reviewer does — searching six ways at once, quoting papers verbatim, putting contradictory studies side by side, and re-checking every conclusion against its own evidence before you ever see it.</p>
+<button type="button" class="blog-hero-cta">Try Investigate →</button></header>
+<article class="blog-article">
+<h2 class="blog-h2" id="at-a-glance">At a Glance</h2>
+<p class="blog-p">Investigate reads the literature the way a careful reviewer does — searching six ways at once, quoting papers verbatim, putting contradictory studies side by side, and re-checking every conclusion against its own evidence before you ever see it.</p>
+<div class="blog-table-wrap">
+<table class="blog-table">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Value</th></tr></thead>
+<tbody>
+<tr>
+<td>Papers screened → papers cited, on one real question</td>
+<td>3,604 → 33</td></tr>
+<tr>
+<td>Recall of the decisive papers (vs. 0.547 for single-search retrieval)</td>
+<td>0.891</td></tr>
+<tr>
+<td>Fabricated citations across the evaluation set</td>
+<td>0</td></tr>
+<tr>
+<td>Time for a full six-section report with figures and provenance</td>
+<td>~7 min</td></tr></tbody></table></div>
+<h2 class="blog-h2" id="three-failures">Three Failures That Make Literature AI Unusable for Real Research</h2>
+<p class="blog-p">Not because the writing is bad. Because the writing is good, and you cannot tell which parts are true.</p>
+<ul class="blog-list">
+<li>
+<strong>Confidently wrong.</strong> An invented effect size reads exactly like a real one. In a grant or a manuscript, that is not an inconvenience — it is a career event.</li>
+<li>
+<strong>Silently incomplete.</strong> One search returns one neighbourhood of the literature. The trial that settles your question is titled empagliflozin, not SGLT2 inhibitors.</li>
+<li>
+<strong>Blandly averaged.</strong> Studies disagree constantly, and that disagreement is the finding. A tool that smooths it into consensus has destroyed the information you needed.</li></ul>
+<p class="blog-p">Investigate is built around one commitment: every sentence in the report is traceable to a sentence in a paper, and the system checks that itself before it hands you anything.</p>
+<h2 class="blog-h2" id="six-phases">Six Phases, One Question</h2>
+<p class="blog-p">Investigate is a fixed pipeline, not an agent improvising. Every run does the same things in the same order — which is what makes the output comparable, reproducible, and possible to audit.</p>
+<figure class="blog-figure">
+<img src="inv-01-pipeline.png" alt="The pipeline. Deterministic code does the work that must be reproducible — retrieval fusion, claim grouping, citation checking. Models are used where judgement is genuinely required, and the expensive one only three times." loading="lazy">
+<figcaption>The pipeline. Deterministic code does the work that must be reproducible — retrieval fusion, claim grouping, citation checking. Models are used where judgement is genuinely required, and the expensive one only three times.</figcaption></figure>
+<h3 class="blog-h3" id="full-architecture">The Same Thing, at Full Resolution</h3>
+<p class="blog-p">For readers who want the system diagram rather than the story: every module, every data path, and where each one sits on the cost/determinism spectrum.</p>
+<figure class="blog-figure">
+<img src="inv-02-architecture.png" alt="Full system architecture. Note the shape of the compute allocation: the frontier model appears in exactly three places (planning, ranking, synthesis) plus one escalation path, while every step whose job is to constrain the output — fusion, the verbatim check, claim projection, the citation guard, the structural checklist, the polish rollback — is deterministic code. That asymmetry is the design." loading="lazy">
+<figcaption>Full system architecture. Note the shape of the compute allocation: the frontier model appears in exactly three places (planning, ranking, synthesis) plus one escalation path, while every step whose job is to constrain the output — fusion, the verbatim check, claim projection, the citation guard, the structural checklist, the polish rollback — is deterministic code. That asymmetry is the design.</figcaption></figure>
+<h2 class="blog-h2" id="six-searches">Because One Search Is One Point of Failure</h2>
+<figure class="blog-figure">
+<img src="inv-03-retrieval.png" alt="Six retrieval channels feeding one pool. Fusion is round-robin, not score-truncation — so the paper that only one specific probe ever found still makes it through. After ranking, a deterministic safety net re-inserts a first-hand paper for every drug, trial or assay your question named, so the ranker cannot quietly drop one." loading="lazy">
+<figcaption>Six retrieval channels feeding one pool. Fusion is round-robin, not score-truncation — so the paper that only one specific probe ever found still makes it through. After ranking, a deterministic safety net re-inserts a first-hand paper for every drug, trial or assay your question named, so the ranker cannot quietly drop one.</figcaption></figure>
+<p class="blog-p">The knowledge-graph channel is the one competitors cannot copy: it walks 14.6M literature-derived relationships to reach mechanism papers that share no keywords with your question.</p>
+<h2 class="blog-h2" id="the-funnel">You See the Whole Funnel, Not Just the Answer</h2>
+<p class="blog-p">Every run reports what it found, what it screened, what actually yielded evidence, and what it cited — the same accounting a systematic review is expected to publish.</p>
+<figure class="blog-figure">
+<img src="inv-04-funnel.png" alt="The paper funnel from a real Investigate run. Every number is emitted by the pipeline itself — you can check the arithmetic of your own report." loading="lazy">
+<figcaption>The paper funnel from a real Investigate run. Every number is emitted by the pipeline itself — you can check the arithmetic of your own report.</figcaption></figure>
+<h2 class="blog-h2" id="group-by-claim">Disagreement Only Surfaces if You Group by Claim</h2>
+<p class="blog-p">Summarise paper by paper and four studies that contradict each other become four correct paragraphs in four different places. Investigate makes the claim the unit and the paper an attribute — so opposing results end up inside the same object and collide.</p>
+<figure class="blog-figure">
+<img src="inv-05-claim-centric.png" alt="" loading="lazy"></figure>
+<p class="blog-p">The grouping is done in plain code, with no model call. That matters: a model cannot decide an inconvenient contradiction is unimportant, because by the time any model sees the material, both sides are already inside the same object. A “disagreement” where both sides cite the same paper is rejected automatically.</p>
+<h2 class="blog-h2" id="five-gates">Five Gates, Every One of Them Fails Closed</h2>
+<p class="blog-p">Asking a model to cite its sources is a prompt. This is a pipeline. Three of the five gates are ordinary code — they cannot be talked into approving their own output.</p>
+<figure class="blog-figure">
+<img src="inv-06-verification.png" alt="Claims fall through five sieves. When a conclusion cannot be cleared, the report does not quietly drop it — it opens with a plain-language note that the evidence is insufficient or conflicting, and still shows you the best-supported synthesis and its sources." loading="lazy">
+<figcaption>Claims fall through five sieves. When a conclusion cannot be cleared, the report does not quietly drop it — it opens with a plain-language note that the evidence is insufficient or conflicting, and still shows you the best-supported synthesis and its sources.</figcaption></figure>
+<h2 class="blog-h2" id="the-report">A Report, Not a Paragraph</h2>
+<p class="blog-p">The sections are computed evidence-first and then reordered for reading. Your bottom line is written last, from the judgment — so it is derived from the evidence rather than asserted and then justified.</p>
+<figure class="blog-figure">
+<img src="inv-07-report-anatomy.png" alt="Writing order versus reading order. Producing the direct answer fourth, from the finished judgment, is what stops the report from picking a conclusion and then shopping for support." loading="lazy">
+<figcaption>Writing order versus reading order. Producing the direct answer fourth, from the finished judgment, is what stops the report from picking a conclusion and then shopping for support.</figcaption></figure>
+<h2 class="blog-h2" id="the-proof">What It Actually Looks Like</h2>
+<p class="blog-p">Excerpts from an unedited run on a genuinely hard methods question — bridging statistical association to biological mechanism in in silico cell models.</p>
+<div class="blog-sample">
+<div class="blog-sample-label">SAMPLE OUTPUT — INVESTIGATE · RUN 436S · 33 PAPERS CITED</div>
+<div class="blog-sample-note">The system flagged this itself. It is the faithfulness gate refusing to let a clean-looking answer stand on evidence that did not fully support it.</div>
+<div class="blog-sample-body">
+<p class="blog-sample-heading">Direct answer</p>
+<p class="blog-sample-text">Current evidence supports the integration of fine-mapping-informed linking and probabilistic approaches as the most effective strategies for bridging statistical association to biological mechanisms in cell modeling. This approach appears to yield more directly testable gene hypotheses and better accommodates the complexities of allelic heterogeneity compared to strict GWAS–QTL colocalization. However, the role of regulatory network propagation remains uncertain, as it lacks the causal anchoring necessary for robust gene prioritization.</p>
+<p class="blog-sample-heading">Evidence analysis — quoted, with numbers</p>
+<p class="blog-sample-text">In evaluations of evidence-integration for gene mapping, FABIO was reported to reduce causal gene set size by 27.9%–36.9% versus existing approaches across traits; in simulations, FABIO also showed lower average false inclusion, with 0.22 false genes per 95% credible set for FABIO vs 0.35 for FOCUS. PMID 39621803</p>
+<p class="blog-sample-text">In analyses of colocalization that model multiple signals, non-primary eQTL signals accounted for 17% of all colocalizations, and conditional signal isolation prior to coloc yielded 37% more colocalizations than using marginal data. The most plausible reading is that accounting for secondary signals recovers biologically relevant overlaps that single-signal colocalization systematically misses. PMID 39606410, PMID 39711576</p>
+<p class="blog-sample-heading">Conflict analysis — the part nothing else does</p>
+<p class="blog-sample-text">Whether strict GWAS–eQTL colocalization should be treated as the primary linkage criterion:</p>
+<p class="blog-sample-text">Side A: eQTL resources and statistical colocalization are valuable for mapping GWAS loci to candidate causal genes. PMID 35643189</p>
+<p class="blog-sample-text">Side B: Large-scale integration results show that relying on strict colocalization alone can miss biologically relevant links. PMID 39173627</p>
+<p class="blog-sample-text">Source of disagreement: Side A emphasises colocalization's utility as a mapping tool; Side B emphasises the practical limits of treating it as the sole gate for gene nomination.</p>
+<p class="blog-sample-text">→ Better supported: Side B — consistent with the judgment that moving beyond strict GWAS–QTL colocalization is often necessary in practice, with strict colocalization better viewed as a high-specificity subset within broader integration.</p></div>
+<div class="blog-sample-footer">retrieved 3,604 · screened in 55 · yielded evidence 48 · cited 33 · run time 436 s · figures embedded from PMC 2</div></div>
+<p class="blog-p">Notice what the system was willing to say: the evidence was insufficient, one method family is weaker than the others, and three separate disagreements remain unresolved. That is what a colleague tells you. It is not what a demo tells you.</p>
+<h2 class="blog-h2" id="how-it-compares">Depth Is Common. Auditability Is Not.</h2>
+<p class="blog-p">Plenty of tools will read a lot of papers for you. The question a researcher actually has to answer is whether they can defend the output in a lab meeting.</p>
+<figure class="blog-figure">
+<img src="inv-08-positioning.png" alt="Categories, not vendors. The top-right quadrant requires two things at once: retrieval that unions many independent channels, and verification that runs as code rather than as instructions to a model." loading="lazy">
+<figcaption>Categories, not vendors. The top-right quadrant requires two things at once: retrieval that unions many independent channels, and verification that runs as code rather than as instructions to a model.</figcaption></figure>
+<div class="blog-table-wrap">
+<table class="blog-table">
+<thead>
+<tr>
+<th>What researchers ask</th>
+<th>What Investigate does about it</th></tr></thead>
+<tbody>
+<tr>
+<td>“Did it miss the paper that contradicts me?”</td>
+<td>Six independent retrieval channels, a second feedback round, and a rule that every drug, trial or assay named in the question keeps a first-hand paper in the final set.</td></tr>
+<tr>
+<td>“Is this number real?”</td>
+<td>Every quote is verified as a literal substring of the source before it can be cited, and each citation carries its source sentence and the section it came from.</td></tr>
+<tr>
+<td>“What does the field actually disagree about?”</td>
+<td>A dedicated conflict section where the two sides must cite different papers and the write-up must name the source of disagreement — species, assay, threshold, population, sample size.</td></tr>
+<tr>
+<td>“Can I trust the confidence?”</td>
+<td>Every conclusion is inference-checked against its own cited evidence. Failures are surfaced at the top of the report, not hidden.</td></tr>
+<tr>
+<td>“Can I reproduce this?”</td>
+<td>A fixed pipeline, a published paper funnel, and a stated cost and runtime per report.</td></tr></tbody></table></div>
+<h2 class="blog-h2" id="search-mode">Search Mode, for When You Already Know What You Want</h2>
+<p class="blog-p">Investigate is for open questions and takes minutes. Search Mode answers a scoped ask in seconds, with two independent dials over the corpus.</p>
+<figure class="blog-figure">
+<img src="inv-09-search-mode.png" alt="The two dials are independent, so they compose: reviews + high impact to orient in a new field, primary + recent to see what was actually observed this year. “Reviews only” is fail-closed — a primary study titled “Kinase inhibitors: an overview” is read and rejected rather than passed through on its title." loading="lazy">
+<figcaption>The two dials are independent, so they compose: reviews + high impact to orient in a new field, primary + recent to see what was actually observed this year. “Reviews only” is fail-closed — a primary study titled “Kinase inhibitors: an overview” is read and rejected rather than passed through on its title.</figcaption></figure>
+<h2 class="blog-h2" id="guarantees">Every Sentence Traces Back to a Sentence in a Paper</h2>
+<p class="blog-p">Investigate takes eight to fifteen minutes and costs a few tens of cents, because the alternative — an answer you have to verify yourself — costs an afternoon. You get a six-section report, a paper funnel you can audit, the verbatim source sentence behind every citation, an explicit account of what the field disagrees about, and an honest note when the evidence would not carry the conclusion.</p>
+<ul class="blog-list">
+<li>
+<strong>Grounded by construction.</strong> Papers are compressed to verbatim evidence before any reasoning happens. Nothing enters the report un-quoted.</li>
+<li>
+<strong>Recall-first by design.</strong> Six channels, round-robin fusion and named-entity pinning, measured at 0.891 recall of decisive papers.</li>
+<li>
+<strong>Built on a real graph.</strong> 33.4M PubMed abstracts and 14.6M relationships between 3.3M terms, used for retrieval, figures and fact cross-checking.</li></ul></article></div>
