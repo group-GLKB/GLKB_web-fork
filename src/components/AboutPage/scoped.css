@@ -94,12 +94,17 @@
     min-width: 0;
     align-self: stretch;
     display: flex;
-    align-items: flex-end;
+    /* The frame hangs from 56px below the top of the band and runs past its
+       bottom edge, so its chrome is on screen and its footer is not. Aligning
+       to the end instead pushes the chrome above the fold. */
+    align-items: flex-start;
     padding-top: 56px;
 }
 
-/* Figma 604:7250 — the Chrome frame. Only the top of it is on screen. */
+/* Figma 1088:28340 — the Chrome frame. 79px of chrome over the app screenshot,
+   everything inside it placed at the offsets the component specifies. */
 .about-browser {
+    position: relative;
     width: 100%;
     min-width: 806px;
     height: 583px;
@@ -110,59 +115,137 @@
         0 20px 30px 0 rgba(0, 0, 0, 0.1),
         0 10px 50px 0 rgba(0, 0, 0, 0.05);
     overflow: hidden;
+    font-family: -apple-system, 'SF Pro Text', 'Segoe UI', sans-serif;
 }
 
-.about-browser-bar {
+.about-browser-tabs {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 37px;
+    background-color: #dfe1e5;
+}
+
+.about-browser-lights {
+    position: absolute;
+    left: 13px;
+    top: 16px;
     display: flex;
-    align-items: center;
     gap: 8px;
-    height: 40px;
-    padding: 0 12px;
-    background-color: #dee1e6;
 }
 
-.about-browser-light {
+.about-browser-lights i {
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    background-color: #b9bcc0;
 }
 
-.about-browser-light:nth-child(1) { background-color: #ec6a5f; }
-.about-browser-light:nth-child(2) { background-color: #f4bf50; }
-.about-browser-light:nth-child(3) { background-color: #61c454; }
+.about-browser-lights i:nth-child(1) { background-color: #ed6a5e; }
+.about-browser-lights i:nth-child(2) { background-color: #f4bf4f; }
+.about-browser-lights i:nth-child(3) { background-color: #61c454; }
 
 .about-browser-tab {
-    margin-left: 12px;
-    padding: 6px 16px;
-    border-radius: 8px 8px 0 0;
-    background-color: var(--color-background-surface);
+    position: absolute;
+    left: 70px;
+    top: 8px;
+    width: 256px;
+    height: 34px;
+}
+
+.about-browser-tab-shape {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.about-browser-favicon {
+    position: absolute;
+    left: 19px;
+    top: 9px;
+    width: 18px;
+    height: 16px;
+    object-fit: contain;
+}
+
+.about-browser-tab-title {
+    position: absolute;
+    left: 44px;
+    top: 0;
+    height: 34px;
+    display: flex;
+    align-items: center;
     font-size: 12px;
-    line-height: 20px;
-    color: var(--color-text-secondary);
+    color: #3c4043;
+}
+
+.about-browser-tab-close {
+    position: absolute;
+    left: 228px;
+    top: 13px;
+    width: 7.93px;
+    height: 7.93px;
+}
+
+.about-browser-newtab {
+    position: absolute;
+    left: 334px;
+    top: 19px;
+    width: 12px;
+    height: 12px;
+}
+
+.about-browser-toolbar {
+    position: absolute;
+    inset: 37px 0 auto 0;
+    height: 42px;
+    background-color: var(--color-background-surface);
+    border-bottom: 1px solid #b6b6b6;
+}
+
+.about-browser-actions {
+    position: absolute;
+    left: 15.5px;
+    top: 16.5px;
+    width: 77.5px;
+    height: 13px;
 }
 
 .about-browser-address {
+    position: absolute;
+    left: 108px;
+    right: 44px;
+    top: 9px;
+    height: 28px;
     display: flex;
     align-items: center;
-    height: 40px;
-    padding: 0 16px;
-    background-color: var(--color-background-surface);
+    gap: 6px;
+    padding: 0 14px;
+    border-radius: 14px;
+    background-color: #f1f3f4;
+}
+
+.about-browser-secure {
+    width: 8px;
+    height: 10.5px;
+    flex: 0 0 auto;
 }
 
 .about-browser-url {
-    display: flex;
-    align-items: center;
-    height: 28px;
-    padding: 0 16px;
-    border-radius: 14px;
-    background-color: var(--color-grey-50);
     font-size: 12px;
-    line-height: 20px;
-    color: var(--color-text-tertiary);
+    color: #3c4043;
+}
+
+.about-browser-menu {
+    position: absolute;
+    right: 20.5px;
+    top: 16.6px;
+    width: 3px;
+    height: 13px;
 }
 
 .about-browser-body {
+    position: absolute;
+    inset: 79px 0 0 0;
     display: block;
     width: 100%;
     height: auto;
@@ -200,7 +283,6 @@
     height: 40px;
     object-fit: contain;
     opacity: 0.9;
-    filter: grayscale(1);
 }
 
 /* ---------------------------------------------------------------- from the lab

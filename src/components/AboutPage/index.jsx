@@ -23,30 +23,39 @@ import AddIcon from '@mui/icons-material/Add';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import RemoveIcon from '@mui/icons-material/Remove';
 
-import heroLogo27 from '../../img/about/frame1/image 27.png';
-import heroLogo29 from '../../img/about/frame1/image 29.png';
-import heroLogo30 from '../../img/about/frame1/image 30.png';
-import heroLogo31 from '../../img/about/frame1/image 31.png';
-import heroLogo32 from '../../img/about/frame1/image 32.png';
-import heroLogo1 from '../../img/about/frame1/logo 1.png';
 import teamLogo from '../../img/about/frame11/logo 1.png';
+import logoHarvard from '../../img/about/v2/trusted/harvard.png';
+import logoMichigan from '../../img/about/v2/trusted/michigan-medicine.png';
+import logoMit from '../../img/about/v2/trusted/mit.png';
+import logoUcSanDiego from '../../img/about/v2/trusted/uc-san-diego.png';
+import logoVanderbilt from '../../img/about/v2/trusted/vanderbilt.png';
+import logoWeillCornell from '../../img/about/v2/trusted/weill-cornell.png';
 import evidenceImage from '../../img/about/v2/evidence-references.png';
 import heroAppImage from '../../img/about/v2/hero-app.png';
 import knowledgeGraphImage from '../../img/about/v2/knowledge-graph.png';
+import browserMenu from '../../img/about/v2/browser/menu.svg';
+import browserNewTab from '../../img/about/v2/browser/new-tab.svg';
+import browserSecure from '../../img/about/v2/browser/secure.svg';
+import browserTabShape from '../../img/about/v2/browser/tab.svg';
+import browserTabClose from '../../img/about/v2/browser/tab-close.svg';
+import browserActions from '../../img/about/v2/browser/toolbar-actions.svg';
+import browserFavicon from '../../img/GLKB_logo_icon.png';
 import { useAuth } from '../Auth/AuthContext';
 import { posts } from '../Blog/posts';
 import { PostCard, SiteFooter, SiteNav } from '../SiteChrome';
 import faqData from './faqData.json';
 import { USE_CASES } from './useCases';
 
-/* Figma 604:7257 — the six logos, in the design's order. */
+/* Figma 604:7257 — the six, in the design's order and at its widths. These are
+   the frame's own exports: the repo's older logo files are cropped differently,
+   so at a shared height they come out visibly smaller. */
 const TRUSTED_LOGOS = [
-    { src: heroLogo27, name: 'Weill Cornell Medicine', width: 177 },
-    { src: heroLogo1, name: 'Michigan Medicine', width: 63 },
-    { src: heroLogo32, name: 'Harvard University', width: 158 },
-    { src: heroLogo29, name: 'Massachusetts Institute of Technology', width: 176 },
-    { src: heroLogo30, name: 'Vanderbilt University', width: 158 },
-    { src: heroLogo31, name: 'UC San Diego', width: 137 },
+    { src: logoWeillCornell, name: 'Weill Cornell Medicine', width: 177 },
+    { src: logoMichigan, name: 'Michigan Medicine', width: 63 },
+    { src: logoHarvard, name: 'Harvard University', width: 158 },
+    { src: logoMit, name: 'Massachusetts Institute of Technology', width: 161 },
+    { src: logoVanderbilt, name: 'Vanderbilt University', width: 184 },
+    { src: logoUcSanDiego, name: 'UC San Diego', width: 205 },
 ];
 
 /* Figma 604:7362 */
@@ -152,16 +161,28 @@ const AboutPage = () => {
                         </div>
                     </div>
                     <div className="about-hero-media">
-                        {/* Figma 604:7250 — a browser frame that runs off the right edge. */}
+                        {/* Figma 1088:28340 — the Chrome frame, 79px of chrome over the
+                            app, running off the right edge of the band. */}
                         <div className="about-browser">
-                            <div className="about-browser-bar">
-                                <span className="about-browser-light" />
-                                <span className="about-browser-light" />
-                                <span className="about-browser-light" />
-                                <span className="about-browser-tab">GLKB API Docs</span>
+                            <div className="about-browser-tabs">
+                                <span className="about-browser-lights" aria-hidden="true">
+                                    <i /><i /><i />
+                                </span>
+                                <span className="about-browser-tab">
+                                    <img className="about-browser-tab-shape" src={browserTabShape} alt="" />
+                                    <img className="about-browser-favicon" src={browserFavicon} alt="" />
+                                    <span className="about-browser-tab-title">GLKB API Docs</span>
+                                    <img className="about-browser-tab-close" src={browserTabClose} alt="" />
+                                </span>
+                                <img className="about-browser-newtab" src={browserNewTab} alt="" />
                             </div>
-                            <div className="about-browser-address">
-                                <span className="about-browser-url">https://glkb.org/</span>
+                            <div className="about-browser-toolbar">
+                                <img className="about-browser-actions" src={browserActions} alt="" />
+                                <span className="about-browser-address">
+                                    <img className="about-browser-secure" src={browserSecure} alt="" />
+                                    <span className="about-browser-url">https://glkb.org/</span>
+                                </span>
+                                <img className="about-browser-menu" src={browserMenu} alt="" />
                             </div>
                             <img className="about-browser-body" src={heroAppImage} alt="A GLKB answer with its citations" />
                         </div>
