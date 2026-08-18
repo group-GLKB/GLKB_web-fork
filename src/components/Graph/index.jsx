@@ -15,7 +15,7 @@ import fcose from 'cytoscape-fcose';
 import { debounce } from 'lodash';
 import CytoscapeComponent from 'react-cytoscapejs';
 
-import nodeStyleColors from './nodeStyleColors.json';
+import { nodeStyle } from './nodeStyle';
 
 Cytoscape.use(fcose);
 Cytoscape.use(cola);
@@ -275,7 +275,9 @@ const Graph = forwardRef(function Graph(props, ref) {
     ];
 
     const nodeStyles = id.map(nodeId => {
-      const labelColor = nodeStyleColors[nodeId[5]] || nodeStyleColors.default;
+      // The design gives each entity type a fill, a border and a text colour
+      // rather than one colour to shade at render time.
+      const entity = nodeStyle(nodeId[5]);
       const size = nodeId[2] >= 60 ? 40 : nodeId[2] >= 30 ? 30 : 20;
       // const borderWidth = nodeId[4] === "true" ? '1px' : 0;
       // const borderColor = nodeId[4] === "true" ? 'red' : 'transparent';
@@ -283,8 +285,11 @@ const Graph = forwardRef(function Graph(props, ref) {
       return {
         selector: `node[id = "${nodeId[0]}"]`,
         style: {
-          backgroundColor: labelColor,
-          backgroundOpacity: 0.9,
+          backgroundColor: entity.fill,
+          backgroundOpacity: 1,
+          // --border-width-node; cytoscape parses this itself, so no var().
+          borderWidth: 0.8,
+          borderColor: entity.border,
           shape: 'roundrectangle',
           // 'corner-radius': '40',
           // borderWidth,
@@ -295,7 +300,7 @@ const Graph = forwardRef(function Graph(props, ref) {
           'text-halign': 'center',
           'text-valign': 'center',
           // 'text-margin-x': 0,
-          'color': '#000000',
+          'color': entity.text,
           // 'text-wrap': 'wrap',
           // 'text-max-width': '100%',
         },

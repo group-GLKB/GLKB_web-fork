@@ -44,7 +44,7 @@ import {
   removeGraphHistory,
 } from '../../utils/graphHistory';
 import { useAuth } from '../Auth/AuthContext';
-import nodeStyleColors from '../Graph/nodeStyleColors.json';
+import { nodeStyle } from '../Graph/nodeStyle';
 import ConversationCard from '../Units/ConversationCard';
 
 const DEBUG_HIDE_EXPLORE = true;
@@ -118,48 +118,13 @@ const getConversationSubtitle = (conversation) => {
     return `${count} ${count === 1 ? 'message' : 'messages'}`;
 };
 
-const hexToRgb = (hex) => {
-    if (!hex) return { r: 0, g: 0, b: 0 };
-    const cleaned = hex.replace('#', '');
-    const normalized = cleaned.length === 3
-        ? cleaned.split('').map((char) => `${char}${char}`).join('')
-        : cleaned;
-    const value = parseInt(normalized, 16);
-    if (Number.isNaN(value)) return { r: 0, g: 0, b: 0 };
-    return {
-        r: (value >> 16) & 255,
-        g: (value >> 8) & 255,
-        b: value & 255,
-    };
-};
-
-const rgbToHex = (r, g, b) => {
-    const toHex = (value) => value.toString(16).padStart(2, '0');
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-};
-
-const mixHex = (baseHex, mixHexValue, amount) => {
-    const base = hexToRgb(baseHex);
-    const mix = hexToRgb(mixHexValue);
-    const ratio = Math.min(Math.max(amount, 0), 1);
-    const r = Math.round(base.r * (1 - ratio) + mix.r * ratio);
-    const g = Math.round(base.g * (1 - ratio) + mix.g * ratio);
-    const b = Math.round(base.b * (1 - ratio) + mix.b * ratio);
-    return rgbToHex(r, g, b);
-};
-
-const toRgba = (hex, alpha) => {
-    const { r, g, b } = hexToRgb(hex);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
-
 const getPillColors = (label) => {
-    const base = nodeStyleColors[label] || nodeStyleColors.default || '#E5E9F0';
+    const style = nodeStyle(label);
     return {
-        base,
-        background: mixHex(base, '#ffffff', 0.75),
-        text: mixHex(base, '#000000', 0.35),
-        shadow: toRgba(base, 0.3),
+        base: style.border,
+        background: style.fill,
+        text: style.text,
+        shadow: style.ring,
     };
 };
 
