@@ -1,83 +1,12 @@
 /**
- * The shared blog shell — the navigation bar and footer from Figma 707:2705,
- * which both the article and the index render inside.
+ * The articles' shell. About and the blog are one site now — the list of
+ * articles lives on About under "From the Lab" — so both ends of the page come
+ * from SiteChrome and this module only re-exports them under the names the
+ * article code already uses.
  */
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-
-import blogLogo from '../../img/GLKB_logo_icon.png';
-
-export const BlogNav = ({ active }) => {
-    const navigate = useNavigate();
-    return (
-        <header className="blog-nav">
-            <button type="button" className="blog-nav-logo" onClick={() => navigate('/about')} aria-label="GLKB">
-                <img src={blogLogo} alt="GLKB" />
-            </button>
-            <div className="blog-nav-actions">
-                <button type="button" className="blog-nav-link" onClick={() => navigate('/about')}>
-                    Home
-                </button>
-                <button
-                    type="button"
-                    className={`blog-nav-link${active === 'blog' ? ' is-active' : ''}`}
-                    onClick={() => navigate('/blog')}
-                >
-                    Our Blog
-                </button>
-                <button type="button" className="blog-nav-link" onClick={() => navigate('/about#data-dump')}>
-                    License the Dataset
-                </button>
-                <button type="button" className="blog-nav-cta" onClick={() => navigate('/')}>
-                    Get Started
-                </button>
-            </div>
-        </header>
-    );
-};
-
-export const BlogFooter = () => {
-    const navigate = useNavigate();
-    return (
-        <>
-            <section className="blog-footer-cta">
-                <div className="blog-footer-cta-inner">
-                    <h2 className="blog-footer-cta-title">Get Started</h2>
-                    <p className="blog-footer-cta-sub">Start your literature review in minutes.</p>
-                    <div className="blog-footer-cta-actions">
-                        <button type="button" className="blog-nav-cta" onClick={() => navigate('/')}>
-                            Try GLKB
-                        </button>
-                        <button type="button" className="blog-footer-secondary" onClick={() => navigate('/about')}>
-                            View Demo
-                        </button>
-                    </div>
-                </div>
-            </section>
-            <footer className="blog-footer">
-                <div className="blog-footer-links">
-                    <button type="button">Terms of Use</button>
-                    <button type="button">Privacy Policy</button>
-                    <button type="button">Contact Us</button>
-                </div>
-                <span>© 2026 Liu Lab</span>
-            </footer>
-        </>
-    );
-};
-
-/** Figma 707:2812 — the card the Read Next row and the index page both use. */
-export const BlogCard = ({ post, onOpen }) => (
-    <button type="button" className="blog-card" onClick={() => onOpen(post.slug)}>
-        <span className="blog-card-thumb">
-            {post.thumb ? <img src={post.thumb} alt="" /> : null}
-        </span>
-        {/* Figma gives the Investigate post a card headline of its own; the other
-            post has no card in the design, so its article title stands. Neither
-            card has a summary line beyond that, so the lede does the work. */}
-        <span className="blog-card-title" title={post.cardTitle || post.title}>
-            {post.cardTitle || post.title}
-        </span>
-        <span className="blog-card-excerpt">{post.lede}</span>
-    </button>
-);
+export {
+  BLOG_LIST_PATH,
+  PostCard as BlogCard,
+  SiteFooter as BlogFooter,
+  SiteNav as BlogNav,
+} from '../SiteChrome';

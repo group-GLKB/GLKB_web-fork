@@ -17,7 +17,6 @@ import {
 } from 'react-router-dom';
 
 import AboutPage from './components/AboutPage';
-import BlogIndex from './components/Blog';
 import BlogPost from './components/Blog/BlogPost';
 import AccountPage from './components/AccountPage';
 import ApiDocsPage from './components/ApiDocs';
@@ -151,7 +150,8 @@ function AppWithRoutes() {
                     <Route path='/search' element={<ResultPage />} />
                     <Route path="/" element={<HomePage />} />
                     <Route path="/about" element={<AboutPage />} />
-                    <Route path="/blog" element={<BlogIndex />} />
+                    {/* The article list lives on About under "From the Lab". */}
+                    <Route path="/blog" element={<Navigate to="/about#from-the-lab" replace />} />
                     <Route path="/blog/:slug" element={<BlogPost />} />
                     <Route path="/api-page" element={<ApiPage />} />
                     <Route path="/chat" element={<LLMAgent />} />

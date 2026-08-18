@@ -7,7 +7,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 
-import { BlogCard, BlogFooter, BlogNav } from './BlogChrome';
+import { BLOG_LIST_PATH, BlogCard, BlogFooter, BlogNav } from './BlogChrome';
 import { HEADING_ID } from './markdown';
 import { getPost, IMAGES, posts } from './posts';
 
@@ -176,7 +176,7 @@ const BlogPost = () => {
         return () => scroller.removeEventListener('scroll', onScroll);
     }, [tocItems]);
 
-    if (!post) return <Navigate to="/blog" replace />;
+    if (!post) return <Navigate to={BLOG_LIST_PATH} replace />;
 
     // Labels that name a passage rather than a heading land on their group's anchor.
     const scrollToSection = (id, fallbackId) => {
@@ -198,7 +198,7 @@ const BlogPost = () => {
 
             <div className="blog-body">
                 <nav className="blog-toc" aria-label="On this page">
-                    <button type="button" className="blog-toc-brand" onClick={() => navigate('/blog')}>
+                    <button type="button" className="blog-toc-brand" onClick={() => navigate(BLOG_LIST_PATH)}>
                         <ChevronLeftIcon className="blog-toc-brand-icon" />
                         GLKB Blog
                     </button>
