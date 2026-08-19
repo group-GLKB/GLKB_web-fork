@@ -1043,10 +1043,6 @@
         padding: 16px 24px;
     }
 
-    .library-title-bar {
-        justify-content: flex-start;
-    }
-
     .library-tabs-row {
         margin-top: 0;
         margin-bottom: 16px;
