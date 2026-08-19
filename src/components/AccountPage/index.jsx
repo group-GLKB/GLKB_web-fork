@@ -66,6 +66,21 @@ const formatTierLabel = (tier) => {
     return `${tier}`.charAt(0).toUpperCase() + `${tier}`.slice(1);
 };
 
+/**
+ * Choosing a picture is off for now: the sixteen presets are placeholder art and
+ * PUT /email-auth/avatar is not deployed. The row still shows a preset — one
+ * derived from the account, so it is stable — and the picker below is built and
+ * waiting. Turning this on is the whole switch.
+ */
+const ALLOW_AVATAR_CHANGE = false;
+
+/** A stable preset for an account that has not chosen one. */
+const presetFor = (user) => {
+    const seed = user?.id ?? user?.email ?? '';
+    const hash = String(seed).split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+    return (hash % AVATARS.length) + 1;
+};
+
 /** The chosen preset, or the default when the user has not picked one. */
 const AvatarMark = ({ id, className }) => {
     const preset = avatarById(id);
@@ -100,14 +115,16 @@ const AccountPage = () => {
         () => (location.state?.tab === 'testing' ? 'testing' : 'account')
     );
 
-    // null until the user picks one; the row renders a default in that case.
-    const avatarId = user?.avatar_id ?? null;
+    // What the account holds, or the preset that belongs to it while choosing
+    // is off — so the row shows a picture either way.
+    const avatarId = user?.avatar_id ?? presetFor(user);
 
     // A picture chosen on another device is not in the cached login payload, so
     // read the user back once on arrival.
+    // Only worth re-reading once a picture can differ from the cached payload.
     const readUserOnce = useRef(false);
     useEffect(() => {
-        if (readUserOnce.current || !user) return;
+        if (!ALLOW_AVATAR_CHANGE || readUserOnce.current || !user) return;
         readUserOnce.current = true;
         refreshUser();
     }, [user, refreshUser]);
@@ -367,14 +384,18 @@ const AccountPage = () => {
                                     own row, and opens the preset picker. */}
                                 <div className="settings-row settings-row-last">
                                     <span className="settings-row-label">Avatar</span>
-                                    <button
-                                        type="button"
-                                        className="settings-avatar-button"
-                                        onClick={() => { setAvatarError(''); setPickedAvatar(avatarId); setShowAvatarModal(true); }}
-                                        aria-label="Change your profile picture"
-                                    >
+                                    {ALLOW_AVATAR_CHANGE ? (
+                                        <button
+                                            type="button"
+                                            className="settings-avatar-button"
+                                            onClick={() => { setAvatarError(''); setPickedAvatar(avatarId); setShowAvatarModal(true); }}
+                                            aria-label="Change your profile picture"
+                                        >
+                                            <AvatarMark id={avatarId} className="settings-avatar" />
+                                        </button>
+                                    ) : (
                                         <AvatarMark id={avatarId} className="settings-avatar" />
-                                    </button>
+                                    )}
                                 </div>
 
                                 <h2 className="settings-title">Usage &amp; Balance</h2>
@@ -471,7 +492,7 @@ const AccountPage = () => {
                 </div>
             </div>
 
-            {showAvatarModal && (
+            {ALLOW_AVATAR_CHANGE && showAvatarModal && (
                 <div
                     className="modal-backdrop visible"
                     onClick={(event) => handleBackdropClick(event, () => setShowAvatarModal(false))}
