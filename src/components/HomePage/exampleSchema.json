@@ -31,7 +31,7 @@
         },
         {
             "id": "literature",
-            "label": "Mechanisms & Relationships",
+            "label": "Mechanism Links",
             "panelTitle": "Mechanisms and Relationships",
             "icon": "book",
             "examples": [

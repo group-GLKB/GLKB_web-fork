@@ -22,6 +22,9 @@
 .history-content {
     width: 100%;
     margin: 0 auto;
+    /* The reading column is capped at 1200px; the 96px gutters sit outside it,
+       so the border-box cap is 1200 + 2 x 96. */
+    max-width: calc(1200px + 192px);
     display: flex;
     flex-direction: column;
     flex: 1;

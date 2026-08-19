@@ -424,7 +424,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     <Box sx={{ position: 'relative', width: '100%' }}>
                         <TextField
                             {...params}
-                            placeholder="Ask a question about the biomedical literature..."
+                            /* Figma 800:22889 shortens this on a phone, where the
+                               long form wraps to two lines. */
+                            placeholder={isMobileLayout
+                                ? 'Ask about the biomedical literature...'
+                                : 'Ask a question about the biomedical literature...'}
                             multiline
                             minRows={3}
                             maxRows={9}
