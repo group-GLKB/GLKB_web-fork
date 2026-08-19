@@ -36,6 +36,11 @@ export const SiteNav = ({ active, onGetStarted }) => {
                 <img src={siteLogo} alt="GLKB" />
             </button>
             <nav className="site-nav-actions">
+                {active === 'home' ? null : (
+                    <button type="button" className="site-nav-link" onClick={() => navigate('/about')}>
+                        Home
+                    </button>
+                )}
                 <button
                     type="button"
                     className={`site-nav-link${active === 'blog' ? ' is-active' : ''}`}
@@ -62,11 +67,12 @@ export const SiteNav = ({ active, onGetStarted }) => {
     );
 };
 
-export const SiteFooter = () => {
+export const SiteFooter = ({ withCta = true }) => {
     const navigate = useNavigate();
 
     return (
         <>
+            {withCta && (
             <section className="site-cta">
                 <p className="site-cta-eyebrow">Get Started</p>
                 <h2 className="site-cta-title">Start your literature review in minutes.</h2>
@@ -79,12 +85,13 @@ export const SiteFooter = () => {
                     </button>
                 </div>
             </section>
+            )}
             <footer className="site-footer">
                 <img className="site-footer-logo" src={siteLogo} alt="GLKB" />
                 <div className="site-footer-row">
                     <div className="site-footer-links">
                         <button type="button">Terms of Use</button>
-                        <button type="button">Privacy Policy</button>
+                        <button type="button" onClick={() => navigate('/privacy')}>Privacy Policy</button>
                         <button type="button">Refund &amp; Cancellation</button>
                         <button type="button">Contact Us</button>
                     </div>

@@ -136,7 +136,7 @@ const AboutPage = () => {
             </Helmet>
 
             <div className="about-page">
-                <SiteNav onGetStarted={openLoginModal} />
+                <SiteNav active="home" onGetStarted={openLoginModal} />
 
                 <section className="about-hero" id="top">
                     <div className="about-hero-copy">

@@ -34,6 +34,7 @@ const getPageTitleByPath = (pathname) => {
     if (pathname.startsWith('/api-page')) return 'API | GLKB';
     if (pathname.startsWith('/account')) return 'Settings | GLKB';
     if (pathname.startsWith('/about')) return 'About | GLKB';
+    if (pathname.startsWith('/privacy')) return 'Privacy Policy | GLKB';
     if (pathname.startsWith('/blog')) return 'Our Blog | GLKB';
     if (pathname.startsWith('/search')) return 'Search | GLKB';
     if (pathname.startsWith('/history')) return 'History | GLKB';
@@ -50,13 +51,15 @@ const AppLayout = () => {
     const [isMobileHeaderHidden, setIsMobileHeaderHidden] = useState(false);
     const isAboutPage = location.pathname.startsWith('/about');
     const isBlogPage = location.pathname.startsWith('/blog');
+    const isPrivacyPage = location.pathname.startsWith('/privacy');
     const isAccountPage = location.pathname.startsWith('/account');
     const isChatPage = location.pathname.startsWith('/chat');
     // Settings keeps the app's sidebar and puts its own section nav beside it as
     // a secondary rail, per Figma 244:5280 — About and the blog are the only
     // pages that stand on their own.
-    const hideSidebar = isAboutPage || isBlogPage;
-    const showMobileHeader = isPhoneDevice && !isAboutPage && !isBlogPage && !isMobileHeaderHidden;
+    const hideSidebar = isAboutPage || isBlogPage || isPrivacyPage;
+    const showMobileHeader = isPhoneDevice && !isAboutPage && !isBlogPage && !isPrivacyPage
+        && !isMobileHeaderHidden;
 
     useLayoutEffect(() => {
         document.title = getPageTitleByPath(location.pathname);

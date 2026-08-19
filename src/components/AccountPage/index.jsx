@@ -117,8 +117,18 @@ const AccountPage = () => {
     }, [user, refreshUser]);
 
     const saveAvatar = async () => {
-        if (pickedAvatar == null || pickedAvatar === avatarId) {
+        if (pickedAvatar === avatarId) {
             setShowAvatarModal(false);
+            return;
+        }
+        // The contract takes 1..16 and has no way to say "none", so clearing a
+        // picture that was already saved is not something this can do yet.
+        if (pickedAvatar === null) {
+            if (avatarId === null) {
+                setShowAvatarModal(false);
+                return;
+            }
+            setAvatarError('Removing a picture once it is saved is not supported yet.');
             return;
         }
         setSavingAvatar(true);
@@ -487,6 +497,21 @@ const AccountPage = () => {
                     <div className="modal">
                         <div className="modal-title">Choose a profile picture</div>
                         <div className="avatar-grid" role="radiogroup" aria-label="Profile picture">
+                            {/* Having no picture is a choice, and the row falls back
+                                to the default when it is the one made. */}
+                            <button
+                                type="button"
+                                role="radio"
+                                aria-checked={pickedAvatar === null}
+                                aria-label="No picture"
+                                title="No picture"
+                                className={`avatar-option${pickedAvatar === null ? ' is-picked' : ''}`}
+                                onClick={() => setPickedAvatar(null)}
+                            >
+                                <span className="avatar-option-mark settings-avatar-default">
+                                    <PersonIcon />
+                                </span>
+                            </button>
                             {AVATARS.map((avatar) => (
                                 <button
                                     key={avatar.id}

@@ -1,0 +1,98 @@
+/* Privacy notice, from Figma 1186:3618 — a left-aligned measure under the site
+   nav, closing on the footer alone rather than the call to action. */
+
+.privacy-page {
+    box-sizing: border-box;
+    min-height: 100%;
+    background-color: var(--color-background-surface);
+    font-family: 'Geist', sans-serif;
+    color: var(--color-text-secondary);
+}
+
+.privacy-page *,
+.privacy-page *::before,
+.privacy-page *::after {
+    box-sizing: border-box;
+}
+
+.privacy-body {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 64px 24px 96px;
+}
+
+.privacy-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 32px;
+    color: var(--color-text-primary);
+}
+
+.privacy-updated {
+    margin: 8px 0 0;
+    font-size: 12px;
+    line-height: 20px;
+    color: var(--color-brand-primary);
+}
+
+.privacy-heading {
+    margin: 40px 0 0;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 24px;
+    color: var(--color-text-primary);
+}
+
+.privacy-p {
+    margin: 12px 0 0;
+    font-size: 13px;
+    line-height: 22px;
+    color: var(--color-text-tertiary);
+}
+
+.privacy-list {
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* The frame marks bullets with an en dash rather than a disc. */
+.privacy-item {
+    position: relative;
+    padding-left: 16px;
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 22px;
+    color: var(--color-text-tertiary);
+}
+
+.privacy-item::before {
+    content: '–';
+    position: absolute;
+    left: 0;
+    color: var(--color-text-tertiary);
+}
+
+.privacy-item--nested {
+    padding-left: 32px;
+}
+
+.privacy-item--nested::before {
+    left: 16px;
+}
+
+.privacy-body a {
+    color: var(--color-brand-primary);
+    text-decoration: none;
+}
+
+.privacy-body a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 767px) {
+    .privacy-body {
+        padding: 40px 20px 64px;
+    }
+}
