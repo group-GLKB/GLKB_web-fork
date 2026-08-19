@@ -1416,7 +1416,15 @@ const MessageCard = React.memo(function MessageCard({
                                         Reload
                                     </MuiButton>
                                 </Box>
-                            ) : isLoading ? null :
+                            ) : (
+                                /* While loading the body is normally hidden and only the thinking
+                                   indicator shows. `message.streaming` is the exception: once
+                                   `Delta` frames start arriving there IS answer text to show, and
+                                   hiding it would leave the streaming doing nothing visible. With
+                                   streaming off no message ever carries the flag, so this reduces
+                                   to the previous `isLoading ? null` exactly. */
+                                isLoading && !message.streaming
+                            ) ? null :
                                 isEditing ?
                                     <TextField
                                         hiddenLabel
@@ -1666,6 +1674,13 @@ function LLMAgent() {
     const messagesContainerRef = useRef(null);
     const abortControllerRef = useRef(null);
     const thinkingStepsRef = useRef([]);
+    // Streamed answer text, accumulated from `Delta` frames. Kept in refs, not state: they are
+    // written on every frame and only the setChatHistory call below needs to trigger a render.
+    // `streamedBlockRef` is the block those characters belong to — when the agent calls a tool the
+    // server bumps the block, and everything streamed so far was pre-tool narration, not the
+    // answer, so the buffer resets instead of accumulating it.
+    const streamedTextRef = useRef('');
+    const streamedBlockRef = useRef(0);
     const prevSelectedMessageIndexRef = useRef(null);
     const lastAutoSelectedRef = useRef(null);
     const sessionIdRef = useRef(null);
@@ -1967,6 +1982,8 @@ function LLMAgent() {
         setStreamingGroups([]);
         setStreamingStepName('');
         thinkingStepsRef.current = [];
+        streamedTextRef.current = '';
+        streamedBlockRef.current = 0;
         setThinkingStepsVersion(v => v + 1);
         applyPendingClarification(null);
         setClarificationDrafts({});
@@ -2674,6 +2691,38 @@ function LLMAgent() {
                             }
                         }
                         break;
+                    case 'delta': {
+                        if (!isActiveStream) return;
+                        // A higher block means the agent called a tool since the last chunk, so
+                        // everything buffered was narration leading up to that call. Drop it and
+                        // start the new run of text — the block that is still open when the run
+                        // ends is the answer.
+                        if (update.block > streamedBlockRef.current) {
+                            streamedBlockRef.current = update.block;
+                            streamedTextRef.current = '';
+                        } else if (update.block < streamedBlockRef.current) {
+                            return; // a late frame from a block we already moved past
+                        }
+                        streamedTextRef.current += update.delta;
+                        const streamedSoFar = streamedTextRef.current;
+                        setChatHistory(prev => {
+                            if (!prev.length) return prev;
+                            const last = prev[prev.length - 1];
+                            if (last?.role !== 'assistant') return prev;
+                            const newHistory = [...prev];
+                            // `streaming: true` marks this as provisional text. The `final` case
+                            // overwrites content with the server's authoritative answer — the one
+                            // that has been through citation binding and reference extraction —
+                            // so nothing rendered here is what ultimately ships.
+                            newHistory[newHistory.length - 1] = {
+                                ...last,
+                                content: streamedSoFar,
+                                streaming: true,
+                            };
+                            return newHistory;
+                        });
+                        break;
+                    }
                     case 'final':
                         if (!isActiveStream) return;
                         if (update.sessionId) {

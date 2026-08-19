@@ -305,6 +305,22 @@ export class LLMAgentService {
                                 keywords,
                                 papers,
                             });
+                        } else if (data.step === 'Delta') {
+                            // Streamed answer chunk. `delta` is an INCREMENT to append, never the
+                            // running total. `block` rises each time the agent calls a tool: in a
+                            // ReAct loop the model narrates before each call ("I'll search PubMed
+                            // for..."), so only the newest block is the answer and earlier blocks
+                            // must be discarded rather than concatenated.
+                            //
+                            // Must stay ABOVE the generic `data.step` progress branch below, which
+                            // would otherwise swallow these as ordinary step frames.
+                            onUpdate({
+                                type: 'delta',
+                                delta: data.delta || '',
+                                block: Number(data.block) || 0,
+                                phase,
+                                percent,
+                            });
                         } else if (data.step === 'Complete') {
                             onUpdate({
                                 type: 'final',
