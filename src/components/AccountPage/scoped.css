@@ -715,8 +715,8 @@
     }
 }
 /* ------------------------------------------------- profile picture
-   Figma 244:5280 — the Avatar row carries the picture on its right; the
-   picker follows the frame's modal: title, body, Cancel then Save. */
+   Figma 244:5280 for the row, 589:7071 for the set. Each preset is a glyph on
+   a tile filled with one of the node colours. */
 .settings-avatar-button {
     border: none;
     background: none;
@@ -724,6 +724,7 @@
     cursor: pointer;
     line-height: 0;
     border-radius: 50%;
+    flex: 0 0 auto;
 }
 
 .settings-avatar-button:hover .settings-avatar,
@@ -731,18 +732,33 @@
     box-shadow: 0 0 0 2px var(--color-brand-muted);
 }
 
+/* The tile itself, wherever a preset is drawn. Sizing lives here rather than in
+   avatars.js so the glyph can never outgrow the circle it sits in. */
+.settings-avatar,
+.avatar-option-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    overflow: hidden;
+    flex: 0 0 auto;
+}
+
+.settings-avatar > img,
+.avatar-option-mark > img {
+    display: block;
+    width: 62.5%;
+    height: 62.5%;
+    object-fit: contain;
+}
+
 .settings-avatar {
     width: 52px;
     height: 52px;
-    border-radius: 50%;
-    display: block;
     transition: box-shadow 0.15s ease;
 }
 
 .settings-avatar-default {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     background: var(--color-background-muted);
     color: var(--color-text-tertiary);
 }
@@ -752,14 +768,18 @@
     height: 28px;
 }
 
+/* Four columns, and the grid is what sets the tile size — the tiles follow the
+   cell instead of a fixed width that could overrun the modal. */
 .avatar-grid {
     display: grid;
-    grid-template-columns: repeat(8, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 12px;
     margin: 8px 0 4px;
+    justify-items: center;
 }
 
 .avatar-option {
+    display: block;
     padding: 3px;
     border: none;
     border-radius: 50%;
@@ -779,10 +799,8 @@
 }
 
 .avatar-option-mark {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    display: block;
+    width: 56px;
+    height: 56px;
 }
 
 .modal-error {
@@ -793,7 +811,13 @@
 }
 
 @media (max-width: 767px) {
+    /* Thumb-sized targets, and the grid gets narrower rather than the tiles. */
     .avatar-grid {
-        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+    }
+
+    .avatar-option-mark {
+        width: 48px;
+        height: 48px;
     }
 }

@@ -66,20 +66,8 @@ const formatTierLabel = (tier) => {
     return `${tier}`.charAt(0).toUpperCase() + `${tier}`.slice(1);
 };
 
-/**
- * Choosing a picture is off for now: the sixteen presets are placeholder art and
- * PUT /email-auth/avatar is not deployed. The row still shows a preset — one
- * derived from the account, so it is stable — and the picker below is built and
- * waiting. Turning this on is the whole switch.
- */
-const ALLOW_AVATAR_CHANGE = false;
-
-/** A stable preset for an account that has not chosen one. */
-const presetFor = (user) => {
-    const seed = user?.id ?? user?.email ?? '';
-    const hash = String(seed).split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
-    return (hash % AVATARS.length) + 1;
-};
+/** The presets are the design's now, so choosing one is on. */
+const ALLOW_AVATAR_CHANGE = true;
 
 /** The chosen preset, or the default when the user has not picked one. */
 const AvatarMark = ({ id, className }) => {
@@ -115,9 +103,8 @@ const AccountPage = () => {
         () => (location.state?.tab === 'testing' ? 'testing' : 'account')
     );
 
-    // What the account holds, or the preset that belongs to it while choosing
-    // is off — so the row shows a picture either way.
-    const avatarId = user?.avatar_id ?? presetFor(user);
+    // null until the user picks one; the row renders the default in that case.
+    const avatarId = user?.avatar_id ?? null;
 
     // A picture chosen on another device is not in the cached login payload, so
     // read the user back once on arrival.
