@@ -2,6 +2,7 @@ import './scoped.css';
 
 import React, {
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -24,6 +25,7 @@ import {
   upgradeToPro,
 } from '../../service/Tier';
 import { useAuth } from '../Auth/AuthContext';
+import { AVATARS, avatarById } from './avatars';
 
 const getSessionValue = (key) => {
     if (typeof window === 'undefined') return '';
@@ -64,14 +66,31 @@ const formatTierLabel = (tier) => {
     return `${tier}`.charAt(0).toUpperCase() + `${tier}`.slice(1);
 };
 
+/** The chosen preset, or the default when the user has not picked one. */
+const AvatarMark = ({ id, className }) => {
+    const preset = avatarById(id);
+    if (!preset) {
+        return (
+            <span className={`${className} settings-avatar-default`}>
+                <PersonIcon />
+            </span>
+        );
+    }
+    return preset.render({ className });
+};
+
 const AccountPage = () => {
-    const { user, logout, updateUsername } = useAuth();
+    const { user, logout, updateUsername, updateAvatar, refreshUser } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     const [displayName, setDisplayName] = useState(() => getSessionValue('account_display_name'));
     const [email, setEmail] = useState(() => getSessionValue('account_email'));
     const [nameDraft, setNameDraft] = useState('');
     const [showNameModal, setShowNameModal] = useState(false);
+    const [showAvatarModal, setShowAvatarModal] = useState(false);
+    const [pickedAvatar, setPickedAvatar] = useState(null);
+    const [savingAvatar, setSavingAvatar] = useState(false);
+    const [avatarError, setAvatarError] = useState('');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showSignoutModal, setShowSignoutModal] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
@@ -80,6 +99,39 @@ const AccountPage = () => {
     const [activeTab, setActiveTab] = useState(
         () => (location.state?.tab === 'testing' ? 'testing' : 'account')
     );
+
+    // null until the user picks one; the row renders a default in that case.
+    const avatarId = user?.avatar_id ?? null;
+
+    // A picture chosen on another device is not in the cached login payload, so
+    // read the user back once on arrival.
+    const readUserOnce = useRef(false);
+    useEffect(() => {
+        if (readUserOnce.current || !user) return;
+        readUserOnce.current = true;
+        refreshUser();
+    }, [user, refreshUser]);
+
+    const saveAvatar = async () => {
+        if (pickedAvatar == null || pickedAvatar === avatarId) {
+            setShowAvatarModal(false);
+            return;
+        }
+        setSavingAvatar(true);
+        setAvatarError('');
+        const result = await updateAvatar(pickedAvatar);
+        setSavingAvatar(false);
+
+        if (result.success) {
+            setShowAvatarModal(false);
+            setToastMessage('Profile picture updated');
+            return;
+        }
+        // The endpoint ships on its own branch; say so rather than blaming the user.
+        setAvatarError(result.status === 404
+            ? 'Profile pictures are not available on this server yet.'
+            : result.message);
+    };
     const [proPasscode, setProPasscode] = useState('');
     const [proActionLoading, setProActionLoading] = useState(false);
     const [proActionMessage, setProActionMessage] = useState('');
@@ -294,18 +346,6 @@ const AccountPage = () => {
                     <div className="settings-inner">
                         {activeTab === 'account' ? (
                             <>
-                                <div className="flat-row">
-                                    <div className="flat-row-main">
-                                        <div className="card-avatar" aria-hidden="true">
-                                            <PersonIcon className="card-avatar-icon" />
-                                        </div>
-                                        <div>
-                                            <div className="flat-name">{displayName}</div>
-                                            <div className="flat-sub">{email}</div>
-                                        </div>
-                                    </div>
-                                </div>
-
                                 <h2 className="settings-title settings-title-first">Account</h2>
 
                                 <div className="settings-row">
@@ -313,13 +353,27 @@ const AccountPage = () => {
                                     <span className="settings-row-value">{email}</span>
                                 </div>
 
-                                <div className="settings-row settings-row-last">
+                                <div className="settings-row">
                                     <span className="settings-row-labels">
                                         <span className="settings-row-label">Display Name</span>
                                         <span className="settings-row-sub">{displayName}</span>
                                     </span>
                                     <button type="button" className="settings-row-action" onClick={openNameModal}>
                                         Edit
+                                    </button>
+                                </div>
+
+                                {/* Figma 244:5280 — the picture sits on the right of its
+                                    own row, and opens the preset picker. */}
+                                <div className="settings-row settings-row-last">
+                                    <span className="settings-row-label">Avatar</span>
+                                    <button
+                                        type="button"
+                                        className="settings-avatar-button"
+                                        onClick={() => { setAvatarError(''); setPickedAvatar(avatarId); setShowAvatarModal(true); }}
+                                        aria-label="Change your profile picture"
+                                    >
+                                        <AvatarMark id={avatarId} className="settings-avatar" />
                                     </button>
                                 </div>
 
@@ -416,6 +470,50 @@ const AccountPage = () => {
                     </div>
                 </div>
             </div>
+
+            {showAvatarModal && (
+                <div
+                    className="modal-backdrop visible"
+                    onClick={(event) => handleBackdropClick(event, () => setShowAvatarModal(false))}
+                >
+                    <div className="modal">
+                        <div className="modal-title">Choose a profile picture</div>
+                        <div className="avatar-grid" role="radiogroup" aria-label="Profile picture">
+                            {AVATARS.map((avatar) => (
+                                <button
+                                    key={avatar.id}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={pickedAvatar === avatar.id}
+                                    aria-label={`Profile picture ${avatar.id}`}
+                                    className={`avatar-option${pickedAvatar === avatar.id ? ' is-picked' : ''}`}
+                                    onClick={() => setPickedAvatar(avatar.id)}
+                                >
+                                    {avatar.render({ className: 'avatar-option-mark' })}
+                                </button>
+                            ))}
+                        </div>
+                        {avatarError ? <div className="modal-error">{avatarError}</div> : null}
+                        <div className="modal-actions">
+                            <button
+                                type="button"
+                                className="flat-btn"
+                                onClick={() => setShowAvatarModal(false)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className="flat-btn dark"
+                                onClick={saveAvatar}
+                                disabled={savingAvatar}
+                            >
+                                {savingAvatar ? 'Saving…' : 'Save'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {showNameModal && (
                 <div

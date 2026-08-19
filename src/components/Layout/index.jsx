@@ -52,7 +52,10 @@ const AppLayout = () => {
     const isBlogPage = location.pathname.startsWith('/blog');
     const isAccountPage = location.pathname.startsWith('/account');
     const isChatPage = location.pathname.startsWith('/chat');
-    const hideSidebar = isAboutPage || isBlogPage || (isAccountPage && !isPhoneDevice);
+    // Settings keeps the app's sidebar and puts its own section nav beside it as
+    // a secondary rail, per Figma 244:5280 — About and the blog are the only
+    // pages that stand on their own.
+    const hideSidebar = isAboutPage || isBlogPage;
     const showMobileHeader = isPhoneDevice && !isAboutPage && !isBlogPage && !isMobileHeaderHidden;
 
     useLayoutEffect(() => {

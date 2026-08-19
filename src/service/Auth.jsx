@@ -180,6 +180,59 @@ export const loginWithGoogle = async (credential) => {
 };
 
 // Update username (email auth)
+/**
+ * Save which preset profile picture the user picked.
+ *
+ * The images are ours; the backend only stores the index, 1..16. See
+ * components/AccountPage/avatars.js for the mapping — renumbering it silently
+ * changes the picture of everyone who already chose.
+ */
+export const updateAvatar = async (avatarId) => {
+  try {
+    const response = await axios.put(`${EMAIL_AUTH_BASE_URL}/avatar`, {
+      avatar_id: avatarId
+    });
+
+    const { user, message } = response.data;
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    }
+
+    return {
+      success: true,
+      message: message || 'Avatar updated successfully',
+      user: user
+    };
+  } catch (error) {
+    return {
+      success: false,
+      status: error.response?.status,
+      message: error.response?.data?.detail || 'Failed to update avatar. Please try again.'
+    };
+  }
+};
+
+/**
+ * The authoritative read of the current user. A picture chosen on one device is
+ * invisible to another until that device re-reads, and the cached login payload
+ * predates the choice.
+ */
+export const fetchCurrentUser = async () => {
+  try {
+    const response = await axios.get(`${EMAIL_AUTH_BASE_URL}/me`);
+    if (response.data) {
+      localStorage.setItem('user', JSON.stringify(response.data));
+    }
+    return { success: true, user: response.data };
+  } catch (error) {
+    return {
+      success: false,
+      status: error.response?.status,
+      message: error.response?.data?.detail || 'Failed to load your account.'
+    };
+  }
+};
+
 export const updateUsername = async (newUsername) => {
   try {
     const response = await axios.put(`${EMAIL_AUTH_BASE_URL}/username`, {

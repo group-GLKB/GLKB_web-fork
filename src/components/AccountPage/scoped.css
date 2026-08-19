@@ -1,5 +1,7 @@
 .account-page {
-    min-height: 100vh;
+    /* The app sidebar is outside this page now, so height comes from the layout
+       rather than the viewport — 100vh here would overflow it by the header. */
+    min-height: 100%;
     width: 100%;
     background: var(--color-background-page);
     display: flex;
@@ -8,10 +10,11 @@
 .settings-wrapper {
     display: flex;
     width: 100%;
-    min-height: 100vh;
+    min-height: 100%;
     overflow: hidden;
 }
 
+/* The secondary rail: the app's own sidebar sits to its left. */
 .settings-nav {
     width: 280px;
     background: var(--color-background-surface);
@@ -709,5 +712,88 @@
 
     .settings-mobile-tabs-row {
         margin-bottom: 16px;
+    }
+}
+/* ------------------------------------------------- profile picture
+   Figma 244:5280 — the Avatar row carries the picture on its right; the
+   picker follows the frame's modal: title, body, Cancel then Save. */
+.settings-avatar-button {
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    line-height: 0;
+    border-radius: 50%;
+}
+
+.settings-avatar-button:hover .settings-avatar,
+.settings-avatar-button:focus-visible .settings-avatar {
+    box-shadow: 0 0 0 2px var(--color-brand-muted);
+}
+
+.settings-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: block;
+    transition: box-shadow 0.15s ease;
+}
+
+.settings-avatar-default {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-background-muted);
+    color: var(--color-text-tertiary);
+}
+
+.settings-avatar-default svg {
+    width: 28px;
+    height: 28px;
+}
+
+.avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 12px;
+    margin: 8px 0 4px;
+}
+
+.avatar-option {
+    padding: 3px;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    cursor: pointer;
+    line-height: 0;
+    box-shadow: 0 0 0 1px var(--color-border-default);
+    transition: box-shadow 0.15s ease;
+}
+
+.avatar-option:hover {
+    box-shadow: 0 0 0 2px var(--color-border-strong);
+}
+
+.avatar-option.is-picked {
+    box-shadow: 0 0 0 2px var(--color-brand-primary);
+}
+
+.avatar-option-mark {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: block;
+}
+
+.modal-error {
+    margin-top: 12px;
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--color-status-error-text);
+}
+
+@media (max-width: 767px) {
+    .avatar-grid {
+        grid-template-columns: repeat(4, 1fr);
     }
 }
