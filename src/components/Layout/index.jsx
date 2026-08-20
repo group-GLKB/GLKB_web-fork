@@ -17,6 +17,7 @@ import { Menu as MenuIcon } from '@mui/icons-material';
 
 import logoIcon from '../../img/GLKB_logo_icon.png';
 import logoWordmark from '../../img/navbar/logo.png';
+import { isRunActive } from '../../service/activeRun';
 import { trackGtagEvent } from '../../utils/gtag';
 import LoginModal from '../Auth/LoginModal';
 import NavBarWhite from '../Units/NavBarWhite';
@@ -67,6 +68,23 @@ const AppLayout = () => {
     useLayoutEffect(() => {
         document.title = getPageTitleByPath(location.pathname);
     }, [location.pathname]);
+
+    /**
+     * A conversation keeps running while the reader moves around the app, so
+     * nothing warns on navigation any more. Closing the tab does end it, and
+     * that can be done from any page — which is why this lives here rather than
+     * in the chat, which is mounted on one route only.
+     */
+    useEffect(() => {
+        const onBeforeUnload = (event) => {
+            if (!isRunActive()) return undefined;
+            event.preventDefault();
+            event.returnValue = '';
+            return '';
+        };
+        window.addEventListener('beforeunload', onBeforeUnload);
+        return () => window.removeEventListener('beforeunload', onBeforeUnload);
+    }, []);
 
     useEffect(() => {
         const evaluateIsPhone = () => {
