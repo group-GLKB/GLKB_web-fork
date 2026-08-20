@@ -202,3 +202,15 @@
     line-height: 20px;
     color: var(--color-text-tertiary);
 }
+@media (max-width: 767px) {
+    /* Figma 800:22889 wraps a row's title over two or three lines. Cutting it
+       at one, as the wide layout does, leaves a phone row saying almost
+       nothing — every title here starts the same way. */
+    .history-item-row .history-title {
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+}

@@ -267,6 +267,30 @@
         padding-right: 20px;
     }
 
+    /* The bar wants 548px: a 213px logo beside four actions. On a phone that
+       put Get Started off the right edge, unreachable. The logo keeps its row
+       and the actions take the next one. */
+    .site-nav {
+        flex-wrap: wrap;
+        gap: 12px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+
+    .site-nav-logo img {
+        height: 36px;
+    }
+
+    .site-nav-actions {
+        width: 100%;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .site-nav-link {
+        font-size: 13px;
+    }
+
     .site-cta {
         padding-top: 64px;
         padding-bottom: 64px;

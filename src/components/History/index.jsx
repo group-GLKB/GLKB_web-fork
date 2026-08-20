@@ -594,7 +594,9 @@ const History = () => {
                                     lineHeight: '22px',
                                     color: 'var(--color-text-tertiary)',
                                     textAlign: 'left',
-                                }}>
+                                }}
+                                    className="history-subtitle"
+                                >
                                     Revisit your past searches and conversations.
                                 </Typography>
                                 <div className="history-search">
@@ -605,7 +607,7 @@ const History = () => {
                                         name="historySearch"
                                         value={searchQuery}
                                         onChange={(event) => setSearchQuery(event.target.value)}
-                                        placeholder="Search conversations..."
+                                        placeholder="Search All Items..."
                                         aria-label="Search conversations"
                                     />
                                     {searchQuery.trim() && (

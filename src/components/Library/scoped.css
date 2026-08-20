@@ -1039,6 +1039,11 @@
 }
 
 @media (max-width: 767px) {
+    /* Figma 800:22889 has no line under the title on a phone. */
+    .library-subtitle {
+        display: none;
+    }
+
     .library-content {
         padding: 16px 24px;
     }
