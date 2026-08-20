@@ -16,6 +16,7 @@ import {
   Person as PersonIcon,
 } from '@mui/icons-material';
 import {
+  Switch,
   Tab,
   Tabs,
 } from '@mui/material';
@@ -25,6 +26,15 @@ import {
   upgradeToPro,
 } from '../../service/Tier';
 import { useAuth } from '../Auth/AuthContext';
+import {
+    browserNotifyPermission,
+    getNotifyPrefs,
+    NOTIFY_BROWSER_KEY,
+    NOTIFY_EMAIL_KEY,
+    requestBrowserNotifyPermission,
+    setNotifyPref,
+    subscribeToNotifyPrefs,
+} from '../../service/notifications';
 import { AVATARS, avatarById } from './avatars';
 
 const getSessionValue = (key) => {
@@ -90,6 +100,8 @@ const AccountPage = () => {
     const [email, setEmail] = useState(() => getSessionValue('account_email'));
     const [nameDraft, setNameDraft] = useState('');
     const [showNameModal, setShowNameModal] = useState(false);
+    const [notifyPrefs, setNotifyPrefs] = useState(() => getNotifyPrefs());
+    const [notifyNote, setNotifyNote] = useState('');
     const [showAvatarModal, setShowAvatarModal] = useState(false);
     const [pickedAvatar, setPickedAvatar] = useState(null);
     const [savingAvatar, setSavingAvatar] = useState(false);
@@ -108,6 +120,29 @@ const AccountPage = () => {
 
     // A picture chosen on another device is not in the cached login payload, so
     // read the user back once on arrival.
+    useEffect(() => subscribeToNotifyPrefs(setNotifyPrefs), []);
+
+    /**
+     * Browser notifications need permission, and the prompt only opens from a
+     * gesture — so it is asked for here, on the toggle, rather than on load.
+     */
+    const toggleBrowserNotify = async (enabled) => {
+        setNotifyNote('');
+        if (!enabled) {
+            setNotifyPref(NOTIFY_BROWSER_KEY, false);
+            return;
+        }
+        const permission = await requestBrowserNotifyPermission();
+        if (permission !== 'granted') {
+            setNotifyPref(NOTIFY_BROWSER_KEY, false);
+            setNotifyNote(permission === 'denied'
+                ? 'Your browser is blocking notifications for this site. Allow them in its site settings first.'
+                : 'Your browser did not allow notifications.');
+            return;
+        }
+        setNotifyPref(NOTIFY_BROWSER_KEY, true);
+    };
+
     // Only worth re-reading once a picture can differ from the cached payload.
     const readUserOnce = useRef(false);
     useEffect(() => {
@@ -379,7 +414,7 @@ const AccountPage = () => {
 
                                 {/* Figma 244:5280 — the picture sits on the right of its
                                     own row, and opens the preset picker. */}
-                                <div className="settings-row settings-row-last">
+                                <div className="settings-row">
                                     <span className="settings-row-label">Avatar</span>
                                     {ALLOW_AVATAR_CHANGE ? (
                                         <button
@@ -394,6 +429,38 @@ const AccountPage = () => {
                                         <AvatarMark id={avatarId} className="settings-avatar" />
                                     )}
                                 </div>
+
+                                {/* Figma 244:5280 — one label, two switches. Email is the
+                                    server's job and survives a closed tab; Browser is ours
+                                    and needs the reader's permission. */}
+                                <div className="settings-row settings-row-last settings-row-notify">
+                                    <span className="settings-row-label">
+                                        Notify me when Investigate finishes
+                                    </span>
+                                    <span className="settings-notify-toggles">
+                                        <span className="settings-notify-option">
+                                            <span className="settings-notify-name">Browser</span>
+                                            <Switch
+                                                size="small"
+                                                checked={notifyPrefs.browser}
+                                                onChange={(event) => toggleBrowserNotify(event.target.checked)}
+                                                inputProps={{ 'aria-label': 'Notify me in this browser' }}
+                                            />
+                                        </span>
+                                        <span className="settings-notify-option">
+                                            <span className="settings-notify-name">Email</span>
+                                            <Switch
+                                                size="small"
+                                                checked={notifyPrefs.email}
+                                                onChange={(event) => setNotifyPref(NOTIFY_EMAIL_KEY, event.target.checked)}
+                                                inputProps={{ 'aria-label': 'Email me when Investigate finishes' }}
+                                            />
+                                        </span>
+                                    </span>
+                                </div>
+                                {notifyNote ? (
+                                    <p className="settings-notify-note">{notifyNote}</p>
+                                ) : null}
 
                                 <h2 className="settings-title">Usage &amp; Balance</h2>
 

@@ -101,6 +101,13 @@ import {
   toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
 import { useAuth } from '../Auth/AuthContext';
+import {
+    getNotifyPrefs,
+    notifyRunComplete,
+    NOTIFY_EMAIL_KEY,
+    setNotifyPref,
+    subscribeToNotifyPrefs,
+} from '../../service/notifications';
 import CiteDialog from '../Units/CiteDialog';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import ChatSearchBar from './ChatSearchBar';
@@ -1648,13 +1655,13 @@ function LLMAgent() {
     // omits a field does not blank the active step's detail block.
     const [investigateDetail, setInvestigateDetail] = useState({});
     const [thinkingStepsVersion, setThinkingStepsVersion] = useState(0);
-    const [notifyEmailEnabled, setNotifyEmailEnabled] = useState(() => {
-        try {
-            return localStorage.getItem('glkb_investigate_notify_email') === '1';
-        } catch {
-            return false;
-        }
-    });
+    const [notifyEmailEnabled, setNotifyEmailEnabled] = useState(() => getNotifyPrefs().email);
+
+    // The same preference has a row in Settings and a toggle here; either can
+    // move it, including from another tab.
+    useEffect(() => subscribeToNotifyPrefs(
+        (prefs) => setNotifyEmailEnabled(prefs.email),
+    ), []);
     const [chatInvestigateEnabled, setChatInvestigateEnabled] = useState(false);
     const investigateFunnelRef = useRef(emptyFunnel());
     const investigatePhaseRef = useRef('searching');
@@ -1696,6 +1703,22 @@ function LLMAgent() {
     const navigationBypassRef = useRef(false);
     const originalNavigatorMethodsRef = useRef({ push: null, replace: null });
     const navigate = useNavigate();
+
+    /**
+     * Tell the reader their report landed. Both completion paths call this, and
+     * a run can finish through either, so it fires at most once per run.
+     */
+    const announcedRunRef = useRef(null);
+    const announceInvestigateComplete = useCallback(() => {
+        const runId = runIdRef.current || 'current';
+        if (announcedRunRef.current === runId) return;
+        announcedRunRef.current = runId;
+        notifyRunComplete({
+            title: 'Investigate finished',
+            body: 'Your report is ready to read.',
+            onClick: () => navigate('/chat'),
+        });
+    }, [navigate]);
     const { navigator: routerNavigator } = useContext(UNSAFE_NavigationContext);
     const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
     const [pendingNavigation, setPendingNavigation] = useState(null);
@@ -2806,6 +2829,7 @@ function LLMAgent() {
                 try {
                     const run = await llmService.getRun({ runId: runIdRef.current });
                     if (run && (run.status === 'complete' || run.response)) {
+                        announceInvestigateComplete();
                         applyPendingClarification(null);
                         setIsProcessing(false);
                         setStreamingStepName('');
@@ -2980,6 +3004,7 @@ function LLMAgent() {
             try {
                 const run = await llmService.getRun({ runId: runIdRef.current });
                 if (!(run && (run.status === 'complete' || run.response))) return;
+                announceInvestigateComplete();
                 applyPendingClarification(null);
                 setIsProcessing(false);
                 setStreamingStepName('');
@@ -3325,7 +3350,7 @@ function LLMAgent() {
                 onToggleNotifyEmail={(enabled) => {
                     setNotifyEmailEnabled(Boolean(enabled));
                     try {
-                        localStorage.setItem('glkb_investigate_notify_email', enabled ? '1' : '0');
+                        setNotifyPref(NOTIFY_EMAIL_KEY, enabled);
                     } catch {
                         /* ignore */
                     }

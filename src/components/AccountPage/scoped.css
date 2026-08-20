@@ -821,3 +821,46 @@
         height: 48px;
     }
 }
+
+/* ------------------------------------------------- notifications
+   Figma 244:5280 — one label with a named switch for each channel. */
+.settings-row-notify {
+    align-items: center;
+}
+
+.settings-notify-toggles {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 0 0 auto;
+}
+
+.settings-notify-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-notify-name {
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 18px;
+    color: var(--color-text-secondary);
+}
+
+/* Only shown when the browser refuses; it explains what to do about it. */
+.settings-notify-note {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--color-status-error-text);
+}
+
+@media (max-width: 767px) {
+    .settings-row-notify {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+}
