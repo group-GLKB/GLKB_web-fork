@@ -90,7 +90,7 @@ export const SiteFooter = ({ withCta = true }) => {
                 <img className="site-footer-logo" src={siteLogo} alt="GLKB" />
                 <div className="site-footer-row">
                     <div className="site-footer-links">
-                        <button type="button">Terms of Use</button>
+                        <button type="button" onClick={() => navigate('/terms')}>Terms of Use</button>
                         <button type="button" onClick={() => navigate('/privacy')}>Privacy Policy</button>
                         <button type="button">Refund &amp; Cancellation</button>
                         <button type="button">Contact Us</button>

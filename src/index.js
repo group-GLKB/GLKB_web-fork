@@ -19,6 +19,7 @@ import {
 import AboutPage from './components/AboutPage';
 import BlogPost from './components/Blog/BlogPost';
 import PrivacyPolicy from './components/PrivacyPolicy';
+import TermsOfService from './components/TermsOfService';
 import AccountPage from './components/AccountPage';
 import ApiDocsPage from './components/ApiDocs';
 import ApiPage from './components/ApiPage';
@@ -95,7 +96,7 @@ const initState = {
     searchType: ''
 }
 
-const INDEXABLE_PATHS = new Set(['/', '/about', '/blog', '/chat', '/search', '/api-page', '/privacy']);
+const INDEXABLE_PATHS = new Set(['/', '/about', '/blog', '/chat', '/search', '/api-page', '/privacy', '/terms']);
 const MAINTENANCE_MODE = false;
 
 const normalizePathname = (pathname) => {
@@ -155,6 +156,7 @@ function AppWithRoutes() {
                     <Route path="/blog" element={<Navigate to="/about#from-the-lab" replace />} />
                     <Route path="/blog/:slug" element={<BlogPost />} />
                     <Route path="/privacy" element={<PrivacyPolicy />} />
+                    <Route path="/terms" element={<TermsOfService />} />
                     <Route path="/api-page" element={<ApiPage />} />
                     <Route path="/chat" element={<LLMAgent />} />
                     <Route path="/history" element={<History />} />

@@ -35,6 +35,7 @@ const getPageTitleByPath = (pathname) => {
     if (pathname.startsWith('/account')) return 'Settings | GLKB';
     if (pathname.startsWith('/about')) return 'About | GLKB';
     if (pathname.startsWith('/privacy')) return 'Privacy Policy | GLKB';
+    if (pathname.startsWith('/terms')) return 'Terms of Service | GLKB';
     if (pathname.startsWith('/blog')) return 'Our Blog | GLKB';
     if (pathname.startsWith('/search')) return 'Search | GLKB';
     if (pathname.startsWith('/history')) return 'History | GLKB';
@@ -51,14 +52,16 @@ const AppLayout = () => {
     const [isMobileHeaderHidden, setIsMobileHeaderHidden] = useState(false);
     const isAboutPage = location.pathname.startsWith('/about');
     const isBlogPage = location.pathname.startsWith('/blog');
-    const isPrivacyPage = location.pathname.startsWith('/privacy');
+    // the legal notices stand on their own, as About and the blog do
+    const isLegalPage = location.pathname.startsWith('/privacy')
+        || location.pathname.startsWith('/terms');
     const isAccountPage = location.pathname.startsWith('/account');
     const isChatPage = location.pathname.startsWith('/chat');
     // Settings keeps the app's sidebar and puts its own section nav beside it as
     // a secondary rail, per Figma 244:5280 — About and the blog are the only
     // pages that stand on their own.
-    const hideSidebar = isAboutPage || isBlogPage || isPrivacyPage;
-    const showMobileHeader = isPhoneDevice && !isAboutPage && !isBlogPage && !isPrivacyPage
+    const hideSidebar = isAboutPage || isBlogPage || isLegalPage;
+    const showMobileHeader = isPhoneDevice && !isAboutPage && !isBlogPage && !isLegalPage
         && !isMobileHeaderHidden;
 
     useLayoutEffect(() => {

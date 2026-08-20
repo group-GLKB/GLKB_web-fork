@@ -1,7 +1,8 @@
-/* Privacy notice, from Figma 1186:3618 — a left-aligned measure under the site
-   nav, closing on the footer alone rather than the call to action. */
+/* The legal pages — the privacy notice and the terms — from Figma 1186:3618:
+   a left-aligned measure under the site nav, closing on the footer alone
+   rather than the call to action. */
 
-.privacy-page {
+.legal-page {
     box-sizing: border-box;
     min-height: 100%;
     background-color: var(--color-background-surface);
@@ -9,19 +10,19 @@
     color: var(--color-text-secondary);
 }
 
-.privacy-page *,
-.privacy-page *::before,
-.privacy-page *::after {
+.legal-page *,
+.legal-page *::before,
+.legal-page *::after {
     box-sizing: border-box;
 }
 
-.privacy-body {
+.legal-body {
     max-width: 800px;
     margin: 0 auto;
     padding: 64px 24px 96px;
 }
 
-.privacy-title {
+.legal-title {
     margin: 0;
     font-size: 24px;
     font-weight: 700;
@@ -29,14 +30,21 @@
     color: var(--color-text-primary);
 }
 
-.privacy-updated {
+.legal-subtitle {
     margin: 8px 0 0;
+    font-size: 12px;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+}
+
+.legal-updated {
+    margin: 4px 0 0;
     font-size: 12px;
     line-height: 20px;
     color: var(--color-brand-primary);
 }
 
-.privacy-heading {
+.legal-heading {
     margin: 40px 0 0;
     font-size: 16px;
     font-weight: 600;
@@ -44,21 +52,21 @@
     color: var(--color-text-primary);
 }
 
-.privacy-p {
+.legal-p {
     margin: 12px 0 0;
     font-size: 13px;
     line-height: 22px;
     color: var(--color-text-tertiary);
 }
 
-.privacy-list {
+.legal-list {
     margin: 8px 0 0;
     padding: 0;
     list-style: none;
 }
 
 /* The frame marks bullets with an en dash rather than a disc. */
-.privacy-item {
+.legal-item {
     position: relative;
     padding-left: 16px;
     margin-top: 6px;
@@ -67,32 +75,32 @@
     color: var(--color-text-tertiary);
 }
 
-.privacy-item::before {
+.legal-item::before {
     content: '–';
     position: absolute;
     left: 0;
     color: var(--color-text-tertiary);
 }
 
-.privacy-item--nested {
+.legal-item--nested {
     padding-left: 32px;
 }
 
-.privacy-item--nested::before {
+.legal-item--nested::before {
     left: 16px;
 }
 
-.privacy-body a {
+.legal-body a {
     color: var(--color-brand-primary);
     text-decoration: none;
 }
 
-.privacy-body a:hover {
+.legal-body a:hover {
     text-decoration: underline;
 }
 
 @media (max-width: 767px) {
-    .privacy-body {
+    .legal-body {
         padding: 40px 20px 64px;
     }
 }
