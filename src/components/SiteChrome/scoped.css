@@ -15,16 +15,26 @@
 .site-nav-logo {
     display: inline-flex;
     align-items: center;
+    gap: 8px;
     border: none;
     background: none;
     padding: 0;
     cursor: pointer;
 }
 
-.site-nav-logo img {
-    height: 48px;
+/* Mark then wordmark, at the heights the app's own sidebar gives them. */
+.site-logo-mark,
+.site-logo-wordmark {
+    height: 36px;
     width: auto;
     object-fit: contain;
+    display: block;
+}
+
+/* The wordmark's glyphs sit a hair high against the mark in the source art —
+   the app corrects for it in the sidebar and so does this. */
+.site-logo-wordmark {
+    transform: translateY(1px);
 }
 
 .site-nav-actions {
@@ -152,9 +162,9 @@
 }
 
 .site-footer-logo {
-    height: 48px;
-    width: auto;
-    object-fit: contain;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     align-self: flex-start;
 }
 
@@ -277,8 +287,9 @@
         padding-bottom: 12px;
     }
 
-    .site-nav-logo img {
-        height: 36px;
+    .site-logo-mark,
+    .site-logo-wordmark {
+        height: 28px;
     }
 
     .site-nav-actions {
