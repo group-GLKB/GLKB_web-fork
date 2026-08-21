@@ -106,3 +106,23 @@ export const notifyRunComplete = ({ title, body, onClick } = {}) => {
         return false;
     }
 };
+
+/**
+ * The address a completion email would go to, or '' when there is none.
+ *
+ * Lives here rather than beside the chat because both places that offer the email choice need
+ * to know whether it can be honoured: turning it on for an account with no address is a switch
+ * that will never fire.
+ */
+export const getUserNotifyEmail = () => {
+    try {
+        // Read straight from storage rather than through service/Auth's getCurrentUser, which
+        // does exactly this and nothing more — importing it would pull axios, and the whole auth
+        // stack behind it, into every module that only wants to know an address.
+        const user = JSON.parse(window.localStorage.getItem('user') || 'null');
+        const email = user?.email || user?.mail || '';
+        return typeof email === 'string' ? email.trim() : '';
+    } catch (error) {
+        return '';
+    }
+};

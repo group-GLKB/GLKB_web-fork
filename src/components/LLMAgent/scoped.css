@@ -2524,3 +2524,134 @@ button.ip-notify.active { background: var(--color-brand-muted); color: var(--col
 .ip-channel.pending { color: var(--color-grey-400); }
 .ip-channel.failed { color: var(--color-grey-300); }
 .ip-channel-hits { color: var(--color-grey-300); }
+
+/* ---------------------------------------------------------------- notify popover
+   Figma 44:5967 — the choice behind Notify me on the investigate panel. */
+.notify-pop-layer {
+    z-index: 1400;
+}
+
+.notify-pop {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    /* 20 around the top and sides, 12 under — the actions carry their own height. */
+    padding: 20px 20px 12px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-3, 12px);
+    background-color: var(--color-background-surface);
+    font-family: 'Geist', sans-serif;
+}
+
+.notify-pop-head {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.notify-pop-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+
+.notify-pop-subtitle {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+    white-space: nowrap;
+}
+
+.notify-pop-rows {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    padding-top: 4px;
+}
+
+.notify-pop-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 6px 0;
+    border-radius: var(--radius-1, 4px);
+    gap: 24px;
+}
+
+.notify-pop-row-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+
+.notify-pop-row-icon {
+    display: inline-flex;
+    color: var(--color-text-secondary);
+}
+
+.notify-pop-row-icon .MuiSvgIcon-root {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
+
+.notify-pop-error {
+    margin: 0;
+    font-size: 12px;
+    line-height: 20px;
+    color: var(--color-status-error-text);
+}
+
+.notify-pop-actions {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 8px;
+    width: 100%;
+}
+
+.notify-pop-dismiss,
+.notify-pop-confirm {
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 0 12px 12px;
+    border: none;
+    border-radius: var(--radius-1, 4px);
+    background: none;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    line-height: 16px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.notify-pop-dismiss {
+    font-weight: 500;
+    color: var(--color-text-tertiary);
+}
+
+.notify-pop-confirm {
+    font-weight: 600;
+    color: var(--color-brand-primary);
+}
+
+.notify-pop-dismiss:hover,
+.notify-pop-confirm:hover {
+    text-decoration: underline;
+}

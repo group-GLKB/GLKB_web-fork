@@ -33,6 +33,8 @@ import {
     phaseIndex,
     phasePercentCap,
 } from '../../service/investigatePhases';
+import { getNotifyPrefs, subscribeToNotifyPrefs } from '../../service/notifications';
+import NotifyPopover from './NotifyPopover';
 
 // ── tuning ──────────────────────────────────────────────────────────────────────────────────
 const COUNT_UP_MS = 1100;        // measured: Retrieved 1.30s, Screened 1.87s, Extracted 0.77s, Cited 1.03s
@@ -488,9 +490,16 @@ const InvestigateProgress = ({
     done = false,
     expanded = true,
     onToggleExpanded,
-    notifyEmailEnabled = false,
-    onToggleNotifyEmail,
 }) => {
+    /* Notify me opens the choice from 44:5967. Which of the two is on is read from the stored
+       preferences rather than passed in, so the button agrees with Settings — they are two
+       views of one setting, and the panel used to know only about email. */
+    const notifyAnchorRef = useRef(null);
+    const [notifyOpen, setNotifyOpen] = useState(false);
+    const [notifyPrefs, setNotifyPrefs] = useState(() => getNotifyPrefs());
+    useEffect(() => subscribeToNotifyPrefs(setNotifyPrefs), []);
+    const notifyAnyEnabled = notifyPrefs.email || notifyPrefs.browser;
+
     const reduced = useMemo(prefersReducedMotion, []);
     const safeFunnel = funnel || {};
     const meta = INVESTIGATE_PHASE_META[phase] || INVESTIGATE_PHASE_META.planning;
@@ -648,20 +657,28 @@ const InvestigateProgress = ({
                     <span className="ip-elapsed" title="Time spent investigating">
                         <AccessTimeOutlinedIcon fontSize="inherit" />{formatElapsed(elapsedSeconds)}
                     </span>
+                    {/* Opens the choice from 44:5967 rather than toggling email on the spot.
+                        The panel is a click target itself, so the press must not reach it. */}
                     <button
                         type="button"
-                        className={`ip-notify${notifyEmailEnabled ? ' active' : ''}`}
+                        ref={notifyAnchorRef}
+                        className={`ip-notify${notifyAnyEnabled ? ' active' : ''}`}
                         onClick={(e) => {
                             e.stopPropagation();
-                            if (typeof onToggleNotifyEmail === 'function') onToggleNotifyEmail(!notifyEmailEnabled);
+                            setNotifyOpen((wasOpen) => !wasOpen);
                         }}
-                        title={notifyEmailEnabled
-                            ? 'Email notification on — click to turn off'
-                            : 'Email me when research completes'}
+                        title={notifyAnyEnabled
+                            ? 'You will be notified when this finishes'
+                            : 'Get notified when this finishes'}
                     >
                         <NotificationsNoneOutlinedIcon fontSize="inherit" />
-                        {notifyEmailEnabled ? 'Notify on' : 'Notify me'}
+                        {notifyAnyEnabled ? 'Notify on' : 'Notify me'}
                     </button>
+                    <NotifyPopover
+                        anchorEl={notifyAnchorRef.current}
+                        open={notifyOpen}
+                        onClose={() => setNotifyOpen(false)}
+                    />
                 </Box>
             </Box>
 

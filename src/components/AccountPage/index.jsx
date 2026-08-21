@@ -16,10 +16,11 @@ import {
   Person as PersonIcon,
 } from '@mui/icons-material';
 import {
-  Switch,
   Tab,
   Tabs,
 } from '@mui/material';
+
+import { Switch } from '../Units/Switch';
 
 import {
   getMyTier,
@@ -438,7 +439,6 @@ const AccountPage = () => {
                                         <span className="settings-notify-option">
                                             <span className="settings-notify-name">Browser</span>
                                             <Switch
-                                                size="small"
                                                 checked={notifyPrefs.browser}
                                                 onChange={(event) => toggleBrowserNotify(event.target.checked)}
                                                 inputProps={{ 'aria-label': 'Notify me in this browser' }}
@@ -447,7 +447,6 @@ const AccountPage = () => {
                                         <span className="settings-notify-option">
                                             <span className="settings-notify-name">Email</span>
                                             <Switch
-                                                size="small"
                                                 checked={notifyPrefs.email}
                                                 onChange={(event) => setNotifyPref(NOTIFY_EMAIL_KEY, event.target.checked)}
                                                 inputProps={{ 'aria-label': 'Email me when Investigate finishes' }}

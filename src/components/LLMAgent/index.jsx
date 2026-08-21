@@ -102,9 +102,10 @@ import {
 } from '../../utils/conversationBookmarks';
 import { useAuth } from '../Auth/AuthContext';
 import {
-    getNotifyPrefs,
-    notifyRunComplete,
     NOTIFY_EMAIL_KEY,
+    getNotifyPrefs,
+    getUserNotifyEmail,
+    notifyRunComplete,
     setNotifyPref,
     subscribeToNotifyPrefs,
 } from '../../service/notifications';
@@ -240,17 +241,6 @@ const formatFunnelValue = (value) => {
     const num = Number(value);
     if (!Number.isFinite(num)) return '—';
     return num.toLocaleString();
-};
-
-const getUserNotifyEmail = () => {
-    try {
-        const user = (typeof getCurrentUser === 'function' ? getCurrentUser() : null)
-            || JSON.parse(localStorage.getItem('user') || 'null');
-        const email = user?.email || user?.mail || '';
-        return typeof email === 'string' ? email.trim() : '';
-    } catch {
-        return '';
-    }
 };
 
 const buildClarificationDrafts = (questions) => {
@@ -924,8 +914,6 @@ const MessageCard = React.memo(function MessageCard({
     investigateDetail,
     thinkingStepsVersion,
     liveThinkingStepsRef,
-    notifyEmailEnabled,
-    onToggleNotifyEmail,
     pendingClarification,
     clarificationDrafts,
     clarificationError,
@@ -1308,8 +1296,6 @@ const MessageCard = React.memo(function MessageCard({
                                 done={resolvedPhase === 'summary'}
                                 expanded={investigateExpanded}
                                 onToggleExpanded={() => setInvestigateExpanded((prev) => !prev)}
-                                notifyEmailEnabled={notifyEmailEnabled}
-                                onToggleNotifyEmail={onToggleNotifyEmail}
                             />
                         )}
 
@@ -3319,20 +3305,6 @@ function LLMAgent() {
                 investigateDetail={investigateDetail}
                 thinkingStepsVersion={thinkingStepsVersion}
                 liveThinkingStepsRef={thinkingStepsRef}
-                notifyEmailEnabled={notifyEmailEnabled}
-                onToggleNotifyEmail={(enabled) => {
-                    setNotifyEmailEnabled(Boolean(enabled));
-                    try {
-                        setNotifyPref(NOTIFY_EMAIL_KEY, enabled);
-                    } catch {
-                        /* ignore */
-                    }
-                    if (enabled && !getUserNotifyEmail()) {
-                        message.warning('Sign in with email to receive completion notifications.');
-                    } else if (enabled) {
-                        message.success('Will email you when this investigation finishes.');
-                    }
-                }}
                 pendingClarification={pendingClarification}
                 clarificationDrafts={clarificationDrafts}
                 clarificationError={clarificationError}
