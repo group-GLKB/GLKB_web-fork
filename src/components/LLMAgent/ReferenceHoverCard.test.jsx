@@ -197,3 +197,62 @@ describe('the geometry fixture', () => {
         expect(html).toBe(fixture);
     });
 });
+
+/**
+ * The card lives over the answer while the references panel scrolls itself to the entry the
+ * hover just asked for. Both of those are scrolls; only one of them means "the citation moved".
+ */
+describe('scrolling', () => {
+    const scroll = (node) => fireEvent.scroll(node, {});
+
+    it('stays open when the references panel scrolls to the hovered entry', () => {
+        const { onMouseLeave } = setup();
+        const panel = document.createElement('div');
+        panel.className = 'references-list';
+        document.body.appendChild(panel);
+
+        scroll(panel);
+
+        expect(onMouseLeave).not.toHaveBeenCalled();
+        panel.remove();
+    });
+
+    it('stays open when the pointer scrolls the card itself', () => {
+        const { onMouseLeave } = setup();
+
+        scroll(document.querySelector('.ref-hover-card'));
+
+        expect(onMouseLeave).not.toHaveBeenCalled();
+    });
+
+    it('closes when the column the citation lives in scrolls', () => {
+        const { onMouseLeave } = setup();
+        const column = document.createElement('div');
+        document.body.appendChild(column);
+
+        scroll(column);
+
+        expect(onMouseLeave).toHaveBeenCalled();
+        column.remove();
+    });
+
+    /**
+     * It used to re-place itself against the citation on every scroll. Opening the card
+     * re-renders the answer and replaces the citation's node, so that measured a detached
+     * element: an all-zero rect, which `place` reads as the top-left corner.
+     */
+    it('does not move when the panel scrolls', () => {
+        setup();
+        const card = document.querySelector('.ref-hover-card');
+        const before = { top: card.style.top, left: card.style.left };
+        const panel = document.createElement('div');
+        panel.className = 'references-list';
+        document.body.appendChild(panel);
+
+        scroll(panel);
+
+        expect({ top: card.style.top, left: card.style.left }).toEqual(before);
+        expect(card.style.top).not.toBe('8px');
+        panel.remove();
+    });
+});

@@ -977,9 +977,6 @@ const MessageCard = React.memo(function MessageCard({
             reference,
             number: getReferenceNumber(href),
             rect: element.getBoundingClientRect(),
-            // kept as well as the rect so the card can re-measure and follow the
-            // citation when something scrolls, rather than closing
-            element,
         });
     };
 
@@ -1476,7 +1473,6 @@ const MessageCard = React.memo(function MessageCard({
                                                     reference={hoverCard.reference}
                                                     number={hoverCard.number}
                                                     anchorRect={hoverCard.rect}
-                                                    anchorEl={hoverCard.element}
                                                     isBookmarked={bookmarkedPmids.has(
                                                         String(extractPmidFromReference(hoverCard.reference)),
                                                     )}
