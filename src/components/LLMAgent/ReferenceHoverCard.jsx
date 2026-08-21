@@ -9,6 +9,9 @@ export const CARD_WIDTH = 240;   // Figma 299:22085
 const GAP = 8;                   // between the citation and the card
 const MARGIN = 8;                // keep-inside-viewport margin
 
+/** Scrolling here moves the reference entry, not the citation, so the card stays open. */
+const IGNORE_SCROLL_WITHIN = '.references-list, .ref-hover-card';
+
 /**
  * "Coomans de Brachène A et al." — first author, then et al. for any co-authors, matching the
  * design's own line. Authors arrive either as an array or as one pre-joined string.
@@ -83,12 +86,28 @@ const ReferenceHoverCard = ({
         setPos(place(anchorRect, ref.current.offsetHeight));
     }, [anchorRect, reference]);
 
+    // The card is fixed-positioned against the citation's rect, so it cannot ride along when
+    // something scrolls — it closes instead. That was right, except it closed on *any* scroll
+    // anywhere in the document, and the references panel scrolling to the hovered entry is
+    // something this very hover sets off. The card blinked away exactly as the panel arrived.
+    //
+    // A scroll inside the panel is therefore ignored: it moves the entry, never the citation.
+    //
+    // Following the citation instead of closing is not on offer. Opening the card re-renders the
+    // answer, which replaces the citation's DOM node — by the time the card is up, the element it
+    // was opened from is already detached and measures 0x0. Placing against that rect is what put
+    // the card in the top-left corner.
     useEffect(() => {
         const close = () => onMouseLeave?.();
-        window.addEventListener('scroll', close, true);
+        const onScroll = (event) => {
+            const target = event.target;
+            if (target?.closest?.(IGNORE_SCROLL_WITHIN)) return;
+            close();
+        };
+        window.addEventListener('scroll', onScroll, true);
         window.addEventListener('resize', close);
         return () => {
-            window.removeEventListener('scroll', close, true);
+            window.removeEventListener('scroll', onScroll, true);
             window.removeEventListener('resize', close);
         };
     }, [onMouseLeave]);

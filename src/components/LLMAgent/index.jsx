@@ -101,6 +101,15 @@ import {
   toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
 import { useAuth } from '../Auth/AuthContext';
+import {
+    getNotifyPrefs,
+    notifyRunComplete,
+    NOTIFY_EMAIL_KEY,
+    setNotifyPref,
+    subscribeToNotifyPrefs,
+} from '../../service/notifications';
+import { clearActiveRun, setActiveRun } from '../../service/activeRun';
+import { markInvestigateConversation } from '../../utils/investigateConversations';
 import CiteDialog from '../Units/CiteDialog';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import ChatSearchBar from './ChatSearchBar';
@@ -1622,7 +1631,6 @@ function LLMAgent() {
     const [showReloadPrompt, setShowReloadPrompt] = useState(
         () => getStoredProcessingFlag() || getStoredIncompleteFlag()
     );
-    const [showLeaveConfirmDialog, setShowLeaveConfirmDialog] = useState(false);
     const [feedbackOpen, setFeedbackOpen] = useState(false);
     const [feedbackRating, setFeedbackRating] = useState(0);
     const [feedbackText, setFeedbackText] = useState('');
@@ -1648,13 +1656,13 @@ function LLMAgent() {
     // omits a field does not blank the active step's detail block.
     const [investigateDetail, setInvestigateDetail] = useState({});
     const [thinkingStepsVersion, setThinkingStepsVersion] = useState(0);
-    const [notifyEmailEnabled, setNotifyEmailEnabled] = useState(() => {
-        try {
-            return localStorage.getItem('glkb_investigate_notify_email') === '1';
-        } catch {
-            return false;
-        }
-    });
+    const [notifyEmailEnabled, setNotifyEmailEnabled] = useState(() => getNotifyPrefs().email);
+
+    // The same preference has a row in Settings and a toggle here; either can
+    // move it, including from another tab.
+    useEffect(() => subscribeToNotifyPrefs(
+        (prefs) => setNotifyEmailEnabled(prefs.email),
+    ), []);
     const [chatInvestigateEnabled, setChatInvestigateEnabled] = useState(false);
     const investigateFunnelRef = useRef(emptyFunnel());
     const investigatePhaseRef = useRef('searching');
@@ -1696,9 +1704,23 @@ function LLMAgent() {
     const navigationBypassRef = useRef(false);
     const originalNavigatorMethodsRef = useRef({ push: null, replace: null });
     const navigate = useNavigate();
-    const { navigator: routerNavigator } = useContext(UNSAFE_NavigationContext);
+
+    /**
+     * Tell the reader their report landed. Both completion paths call this, and
+     * a run can finish through either, so it fires at most once per run.
+     */
+    const announcedRunRef = useRef(null);
+    const announceInvestigateComplete = useCallback(() => {
+        const runId = runIdRef.current || 'current';
+        if (announcedRunRef.current === runId) return;
+        announcedRunRef.current = runId;
+        notifyRunComplete({
+            title: 'Investigate finished',
+            body: 'Your report is ready to read.',
+            onClick: () => navigate('/chat'),
+        });
+    }, [navigate]);
     const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
-    const [pendingNavigation, setPendingNavigation] = useState(null);
     const useMobileReferencesDrawer = isPhoneDevice;
 
     useEffect(() => {
@@ -1719,96 +1741,30 @@ function LLMAgent() {
         }
     }, [useMobileReferencesDrawer]);
 
+// Nothing guards in-app navigation any more: a run survives the route change,
+    // so a dialog asking whether to abandon it would be describing something that
+    // no longer happens.
+
+    // Closing the tab is the one exit that does end a run, and it needs warning
+    // about from whichever page the reader is on — so the handler lives in the
+    // layout and reads this registry instead of this component's state.
+    const isLoadingRef = useRef(false);
     useEffect(() => {
-        if (!routerNavigator) return undefined;
-
-        if (!originalNavigatorMethodsRef.current.push && typeof routerNavigator.push === 'function') {
-            originalNavigatorMethodsRef.current.push = routerNavigator.push.bind(routerNavigator);
-        }
-        if (!originalNavigatorMethodsRef.current.replace && typeof routerNavigator.replace === 'function') {
-            originalNavigatorMethodsRef.current.replace = routerNavigator.replace.bind(routerNavigator);
-        }
-
+        isLoadingRef.current = isLoading;
         if (!isLoading) {
-            if (originalNavigatorMethodsRef.current.push) {
-                routerNavigator.push = originalNavigatorMethodsRef.current.push;
-            }
-            if (originalNavigatorMethodsRef.current.replace) {
-                routerNavigator.replace = originalNavigatorMethodsRef.current.replace;
-            }
-            return undefined;
+            clearActiveRun();
+            return;
         }
-
-        const guardedPush = (...args) => {
-            if (navigationBypassRef.current && originalNavigatorMethodsRef.current.push) {
-                originalNavigatorMethodsRef.current.push(...args);
-                return;
-            }
-            setPendingNavigation({ method: 'push', args });
-            setShowLeaveConfirmDialog(true);
-        };
-
-        const guardedReplace = (...args) => {
-            if (navigationBypassRef.current && originalNavigatorMethodsRef.current.replace) {
-                originalNavigatorMethodsRef.current.replace(...args);
-                return;
-            }
-            setPendingNavigation({ method: 'replace', args });
-            setShowLeaveConfirmDialog(true);
-        };
-
-        routerNavigator.push = guardedPush;
-        routerNavigator.replace = guardedReplace;
-
-        return () => {
-            if (originalNavigatorMethodsRef.current.push) {
-                routerNavigator.push = originalNavigatorMethodsRef.current.push;
-            }
-            if (originalNavigatorMethodsRef.current.replace) {
-                routerNavigator.replace = originalNavigatorMethodsRef.current.replace;
-            }
-        };
-    }, [isLoading, routerNavigator]);
-
-    useEffect(() => {
-        if (isLoading) return;
-        setShowLeaveConfirmDialog(false);
-        setPendingNavigation(null);
+        // A run id means an investigate run, which the server can be asked about
+        // later; a plain answer is only saved against its history id.
+        setActiveRun({ kind: runIdRef.current ? 'investigate' : 'chat', runId: runIdRef.current || null });
     }, [isLoading]);
 
-    useEffect(() => {
-        if (!isLoading) return undefined;
-
-        const handleBeforeUnload = (event) => {
-            event.preventDefault();
-            event.returnValue = '';
-        };
-
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-        };
-    }, [isLoading]);
-
-    const handleLeaveDialogCancel = () => {
-        setShowLeaveConfirmDialog(false);
-        setPendingNavigation(null);
-    };
-
-    const handleLeaveDialogConfirm = () => {
-        setShowLeaveConfirmDialog(false);
-        if (pendingNavigation) {
-            const method = pendingNavigation.method;
-            const args = pendingNavigation.args || [];
-            const fn = originalNavigatorMethodsRef.current[method];
-            if (typeof fn === 'function') {
-                navigationBypassRef.current = true;
-                fn(...args);
-                navigationBypassRef.current = false;
-            }
-        }
-        setPendingNavigation(null);
-    };
+    useEffect(() => () => {
+        // Leaving the route does not end the run, so the registry is left alone
+        // unless the run had already finished.
+        if (!isLoadingRef.current) clearActiveRun();
+    }, []);
 
     const refreshTierStatus = useCallback(async () => {
         if (authLoading) {
@@ -2370,6 +2326,12 @@ function LLMAgent() {
                 logDev('[LLM] Failed to create conversation', error);
             }
         }
+        // History tells an investigate conversation from a chat by its icon, and the
+        // conversation list the API returns carries no such flag — so note it here,
+        // where the app is the one deciding.
+        if (investigateEnabled && historyId) {
+            markInvestigateConversation(historyId);
+        }
         if (resetInvestigateSession) {
             sessionIdRef.current = null;
             setStoredSessionId(historyId, null);
@@ -2806,6 +2768,7 @@ function LLMAgent() {
                 try {
                     const run = await llmService.getRun({ runId: runIdRef.current });
                     if (run && (run.status === 'complete' || run.response)) {
+                        announceInvestigateComplete();
                         applyPendingClarification(null);
                         setIsProcessing(false);
                         setStreamingStepName('');
@@ -2980,6 +2943,7 @@ function LLMAgent() {
             try {
                 const run = await llmService.getRun({ runId: runIdRef.current });
                 if (!(run && (run.status === 'complete' || run.response))) return;
+                announceInvestigateComplete();
                 applyPendingClarification(null);
                 setIsProcessing(false);
                 setStreamingStepName('');
@@ -3025,11 +2989,12 @@ function LLMAgent() {
         };
     }, [isLoading, llmService]);
 
-    useEffect(() => {
-        return () => {
-            if (abortControllerRef.current) abortControllerRef.current.abort();
-        };
-    }, []);
+    // Deliberately no abort on unmount. Changing page used to cancel the
+    // request, which is the one thing that actually loses the work: the server
+    // keeps going, a plain answer is saved against its history id and an
+    // investigate run can be re-read by its run id, so leaving the route is
+    // survivable. Aborting was not.
+    useEffect(() => () => {}, []);
 
     const handleSaveEdit = async (e, index, content) => {
         if (content.trim() === '' || isLoading) return;
@@ -3325,7 +3290,7 @@ function LLMAgent() {
                 onToggleNotifyEmail={(enabled) => {
                     setNotifyEmailEnabled(Boolean(enabled));
                     try {
-                        localStorage.setItem('glkb_investigate_notify_email', enabled ? '1' : '0');
+                        setNotifyPref(NOTIFY_EMAIL_KEY, enabled);
                     } catch {
                         /* ignore */
                     }
@@ -3578,16 +3543,30 @@ function LLMAgent() {
         setSelectedCitation(null);
     };
 
+    // Hovering a citation brings its entry into view in the references panel.
+    //
+    // Deliberately not scrollIntoView: that scrolls *every* scrollable ancestor
+    // of the target, not just the list, so bringing an entry to the middle of
+    // the panel also nudged the column the citation itself lives in. The chip
+    // slid out from under the pointer, which is a mouseout, which closed the
+    // card the hover had just opened — the card blinked away exactly as the
+    // scroll arrived. Scrolling the list and nothing else leaves the chip where
+    // the pointer left it.
     useEffect(() => {
-        if (!hoveredPubmedId || !referencesListRef.current) return;
+        const list = referencesListRef.current;
+        if (!hoveredPubmedId || !list) return;
 
-        const targetElement = document.querySelector(`[data-pubmed-id="${hoveredPubmedId}"]`);
-        if (targetElement) {
-            targetElement.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center'
-            });
-        }
+        // Scoped to the list for the same reason: both the desktop panel and the
+        // mobile drawer mark their entries, and a document-wide query answers
+        // with whichever is first in the DOM rather than the one on screen.
+        const target = list.querySelector(`[data-pubmed-id="${hoveredPubmedId}"]`);
+        if (!target) return;
+
+        // Rects rather than offsetTop: offsetTop is measured from the nearest
+        // positioned ancestor, which is not necessarily this list.
+        const offset = target.getBoundingClientRect().top - list.getBoundingClientRect().top;
+        const centred = offset - (list.clientHeight - target.offsetHeight) / 2;
+        list.scrollTo({ top: Math.max(0, list.scrollTop + centred), behavior: 'smooth' });
     }, [hoveredPubmedId]);
 
     const handleDownloadConversation = (messageIndex) => {
@@ -3935,73 +3914,7 @@ function LLMAgent() {
                 </DialogActions>
             </Dialog>
 
-            <Dialog
-                open={showLeaveConfirmDialog}
-                onClose={handleLeaveDialogCancel}
-                className="api-keys-dialog-root"
-                fullWidth
-                maxWidth="xs"
-            >
-                <DialogTitle
-                    sx={{
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontSize: '20px',
-                        fontWeight: 700,
-                        color: 'var(--color-grey-900)',
-                        paddingBottom: '8px',
-                    }}
-                >
-                    Leave this page?
-                </DialogTitle>
-                <DialogContent
-                    sx={{
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontSize: '14px',
-                        color: 'var(--color-text-tertiary)',
-                        lineHeight: 1.5,
-                        paddingTop: '4px !important',
-                    }}
-                >
-                    Leaving this page will interrupt the current LLM response loading.
-                </DialogContent>
-                <DialogActions sx={{ padding: '16px 24px 24px' }}>
-                    <MuiButton
-                        onClick={handleLeaveDialogCancel}
-                        sx={{
-                            borderRadius: '12px',
-                            border: '1px solid var(--color-border-strong)',
-                            color: 'var(--color-grey-900)',
-                            textTransform: 'none',
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontWeight: 700,
-                            fontSize: '14px',
-                            padding: '8px 16px',
-                        }}
-                    >
-                        Stay
-                    </MuiButton>
-                    <MuiButton
-                        onClick={handleLeaveDialogConfirm}
-                        sx={{
-                            borderRadius: '12px',
-                            border: '1px solid var(--color-red-700)',
-                            backgroundColor: 'var(--color-status-error)',
-                            color: 'var(--color-neutral-white)',
-                            textTransform: 'none',
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontWeight: 700,
-                            fontSize: '14px',
-                            padding: '8px 16px',
-                            '&:hover': {
-                                backgroundColor: 'var(--color-red-700)',
-                                borderColor: 'var(--color-red-700)',
-                            },
-                        }}
-                    >
-                        Leave
-                    </MuiButton>
-                </DialogActions>
-            </Dialog>
+            {/* The leave-while-running dialog is gone with the guard that raised it. */}
 
             <Dialog
                 open={feedbackOpen}

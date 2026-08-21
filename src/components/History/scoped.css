@@ -310,6 +310,11 @@
 }
 
 @media (max-width: 767px) {
+    /* Figma 800:22889 has no line under the title on a phone. */
+    .history-subtitle {
+        display: none;
+    }
+
     .history-content {
         max-width: none;
         padding: 16px 24px;

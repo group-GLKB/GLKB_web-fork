@@ -840,30 +840,30 @@
 }
 
 /* The quote hangs off a rule, space/2 from it, and the rule runs the height of the block.
-   DELIBERATE DEVIATION from the design's fixed 60px (299:22089): the text inside is clamped to two
-   22px lines, so 16 of those 60 were dead space under the last line — and this card floats over the
-   answer, where every row it does not need is a row of text it covers. 44 is the two lines. */
+   The design draws 60px here (299:22089). It used to be 44 — two 22px lines, on the reasoning that
+   the remaining 16 were dead space over the answer. The card is bigger now, and the honest way to
+   spend the height is a third line of the quote rather than padding under a second: 66 is three
+   lines, and the extra six over the design's 60 all carry text. */
 .ref-hover-quote {
     display: flex;
     gap: 8px;
-    height: 44px;
+    height: 66px;
     border-left: 1px solid var(--color-border-default);
     padding-left: 8px;
 }
 
-/* `body`. Two lines, clamped and ellipsised — which is what the design's own render shows
-   (299:22091), and what the block above is now sized to. */
+/* `body`. Three lines, clamped and ellipsised, matching the block above. */
 .ref-hover-quote-text {
     margin: 0;
-    /* max-height, not height: an explicit height beats -webkit-line-clamp and let a third line
-       show through under the ellipsis. */
-    max-height: 44px;
+    /* max-height, not height: an explicit height beats -webkit-line-clamp and let one line more
+       than the clamp show through under the ellipsis. */
+    max-height: 66px;
     font-size: 14px;
     font-weight: 400;
     line-height: 22px;
     color: var(--color-text-secondary);
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
     overflow-wrap: anywhere;

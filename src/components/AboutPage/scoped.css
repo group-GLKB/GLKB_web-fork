@@ -795,7 +795,10 @@
 
     .about-sample-body {
         flex-direction: column;
-        max-height: none;
+        /* Stacked, the excerpt and its references run to some 3,300px. The wide
+           layout shows a clipped sample on purpose; releasing the clip here
+           turned one illustration into most of the page. */
+        max-height: 620px;
     }
 
     .about-sample-references {
