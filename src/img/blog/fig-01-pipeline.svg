@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1200 330" xmlns="http://www.w3.org/2000/svg" font-family="Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+          <defs>
+            <linearGradient id="p1rib" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#22C7DE" stop-opacity=".30"/>
+              <stop offset="45%" stop-color="#0B8FA8" stop-opacity=".26"/>
+              <stop offset="100%" stop-color="#0E9F6E" stop-opacity=".32"/>
+            </linearGradient>
+            <filter id="p1sh" x="-40%" y="-40%" width="180%" height="200%">
+              <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#0A1628" flood-opacity=".13"/>
+            </filter>
+          </defs>
+
+          <!-- tapering ribbon -->
+          <path d="M70 88 C 300 88, 420 104, 600 112 C 800 121, 980 128, 1140 132
+                   L1140 176 C 980 180, 800 187, 600 196 C 420 204, 300 220, 70 220 Z"
+                fill="url(#p1rib)"/>
+
+          <!-- nodes -->
+          <g filter="url(#p1sh)">
+            <circle cx="130" cy="154" r="40" fill="#fff"/>
+            <circle cx="344" cy="154" r="40" fill="#fff"/>
+            <circle cx="558" cy="154" r="40" fill="#fff"/>
+            <circle cx="772" cy="154" r="40" fill="#fff"/>
+            <circle cx="986" cy="154" r="40" fill="#fff"/>
+            <circle cx="1146" cy="154" r="34" fill="#0A1628"/>
+          </g>
+          <circle cx="130" cy="154" r="40" fill="none" stroke="#7A5AF8" stroke-width="2.2"/>
+          <circle cx="344" cy="154" r="40" fill="none" stroke="#2C7BE5" stroke-width="2.2"/>
+          <circle cx="558" cy="154" r="40" fill="none" stroke="#0E9F6E" stroke-width="2.2"/>
+          <circle cx="772" cy="154" r="40" fill="none" stroke="#E5484D" stroke-width="2.2"/>
+          <circle cx="986" cy="154" r="40" fill="none" stroke="#E08A0B" stroke-width="2.2"/>
+
+          <!-- glyph 1: crosshair -->
+          <g stroke="#7A5AF8" stroke-width="2.2" fill="none" stroke-linecap="round">
+            <circle cx="130" cy="154" r="12"/><path d="M130 136v-7M130 179v-7M112 154h-7M155 154h-7"/>
+          </g>
+          <!-- glyph 2: fan -->
+          <g stroke="#2C7BE5" stroke-width="2.2" fill="none" stroke-linecap="round">
+            <path d="M330 168c8-14 20-22 32-24M330 168c4-16 12-27 22-33M330 168c12-9 26-12 38-11"/>
+            <circle cx="330" cy="168" r="3.2" fill="#2C7BE5" stroke="none"/>
+          </g>
+          <!-- glyph 3: quote bracket -->
+          <g stroke="#0E9F6E" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M548 140h-10v28h10M568 140h10v28h-10"/><path d="M552 154h12"/>
+          </g>
+          <!-- glyph 4: cluster -->
+          <g fill="#E5484D">
+            <circle cx="762" cy="144" r="4.4"/><circle cx="782" cy="150" r="4.4"/>
+            <circle cx="764" cy="164" r="4.4"/><circle cx="784" cy="168" r="4.4"/>
+            <path d="M762 144 782 150 764 164 784 168" stroke="#E5484D" stroke-width="1.4" fill="none" opacity=".45"/>
+          </g>
+          <!-- glyph 5: doc lines -->
+          <g stroke="#E08A0B" stroke-width="2.2" fill="none" stroke-linecap="round">
+            <rect x="972" y="138" width="28" height="33" rx="4"/><path d="M979 148h14M979 155h14M979 162h9"/>
+          </g>
+          <!-- glyph 6: check -->
+          <path d="M1134 154.5 1143 163 1159 146" stroke="#5EE7F5" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+          <!-- tier dots -->
+          <g>
+            <circle cx="130" cy="72" r="4" fill="#0B8FA8"/>
+            <circle cx="336" cy="72" r="4" fill="#6B7C93"/><circle cx="352" cy="72" r="4" fill="#E08A0B"/>
+            <circle cx="550" cy="72" r="4" fill="#6B7C93"/><circle cx="566" cy="72" r="4" fill="#0B8FA8"/>
+            <circle cx="764" cy="72" r="4" fill="#6B7C93"/><circle cx="780" cy="72" r="4" fill="#0B8FA8"/>
+            <circle cx="986" cy="72" r="4" fill="#E08A0B"/>
+            <circle cx="1138" cy="72" r="4" fill="#0B8FA8"/><circle cx="1154" cy="72" r="4" fill="#E08A0B"/>
+          </g>
+
+          <!-- labels -->
+          <g text-anchor="middle">
+            <text x="130" y="244" font-size="16" font-weight="700" fill="#0A1628">Scope</text>
+            <text x="130" y="266" font-size="12.5" fill="#6B7C93">ask if ambiguous</text>
+            <text x="344" y="244" font-size="16" font-weight="700" fill="#0A1628">Retrieve</text>
+            <text x="344" y="266" font-size="12.5" fill="#6B7C93">six channels</text>
+            <text x="558" y="244" font-size="16" font-weight="700" fill="#0A1628">Ground</text>
+            <text x="558" y="266" font-size="12.5" fill="#6B7C93">verbatim only</text>
+            <text x="772" y="244" font-size="16" font-weight="700" fill="#0A1628">Organize</text>
+            <text x="772" y="266" font-size="12.5" fill="#6B7C93">by claim, not paper</text>
+            <text x="986" y="244" font-size="16" font-weight="700" fill="#0A1628">Write</text>
+            <text x="986" y="266" font-size="12.5" fill="#6B7C93">six sections</text>
+            <text x="1146" y="238" font-size="16" font-weight="700" fill="#0A1628">Verify</text>
+            <text x="1146" y="260" font-size="12.5" fill="#6B7C93">five gates</text>
+          </g>
+
+          <!-- legend -->
+          <g transform="translate(70,308)">
+            <circle cx="4" cy="-4" r="4" fill="#6B7C93"/><text x="16" y="0" font-size="12" fill="#6B7C93">deterministic code</text>
+            <circle cx="164" cy="-4" r="4" fill="#0B8FA8"/><text x="176" y="0" font-size="12" fill="#6B7C93">small model</text>
+            <circle cx="294" cy="-4" r="4" fill="#E08A0B"/><text x="306" y="0" font-size="12" fill="#6B7C93">frontier model</text>
+          </g>
+          <text x="1130" y="308" font-size="12" fill="#9AA9BC" text-anchor="end">the expensive model is used in three places, not everywhere</text>
+        </svg>

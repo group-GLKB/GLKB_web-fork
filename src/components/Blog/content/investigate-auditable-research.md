@@ -57,17 +57,17 @@ Investigate is built around one commitment: every sentence in the report is trac
 
 Investigate is a fixed pipeline, not an agent improvising. Every run does the same things in the same order — which is what makes the output comparable, reproducible, and possible to audit.
 
-![The pipeline. Deterministic code does the work that must be reproducible — retrieval fusion, claim grouping, citation checking. Models are used where judgement is genuinely required, and the expensive one only three times.](inv-01-pipeline.png)
+![The pipeline. Deterministic code does the work that must be reproducible — retrieval fusion, claim grouping, citation checking. Models are used where judgement is genuinely required, and the expensive one only three times.](fig-01-pipeline.svg)
 
 ### The Same Thing, at Full Resolution {#full-architecture}
 
 For readers who want the system diagram rather than the story: every module, every data path, and where each one sits on the cost/determinism spectrum.
 
-![Full system architecture. Note the shape of the compute allocation: the frontier model appears in exactly three places (planning, ranking, synthesis) plus one escalation path, while every step whose job is to constrain the output — fusion, the verbatim check, claim projection, the citation guard, the structural checklist, the polish rollback — is deterministic code. That asymmetry is the design.](inv-02-architecture.png)
+![Full system architecture. Note the shape of the compute allocation: the frontier model appears in exactly three places (planning, ranking, synthesis) plus one escalation path, while every step whose job is to constrain the output — fusion, the verbatim check, claim projection, the citation guard, the structural checklist, the polish rollback — is deterministic code. That asymmetry is the design.](fig-02-architecture.svg)
 
 ## Because One Search Is One Point of Failure {#six-searches}
 
-![Six retrieval channels feeding one pool. Fusion is round-robin, not score-truncation — so the paper that only one specific probe ever found still makes it through. After ranking, a deterministic safety net re-inserts a first-hand paper for every drug, trial or assay your question named, so the ranker cannot quietly drop one.](inv-03-retrieval.png)
+![Six retrieval channels feeding one pool. Fusion is round-robin, not score-truncation — so the paper that only one specific probe ever found still makes it through. After ranking, a deterministic safety net re-inserts a first-hand paper for every drug, trial or assay your question named, so the ranker cannot quietly drop one.](fig-03-retrieval.svg)
 
 The knowledge-graph channel is the one competitors cannot copy: it walks 14.6M literature-derived relationships to reach mechanism papers that share no keywords with your question.
 
@@ -75,13 +75,13 @@ The knowledge-graph channel is the one competitors cannot copy: it walks 14.6M l
 
 Every run reports what it found, what it screened, what actually yielded evidence, and what it cited — the same accounting a systematic review is expected to publish.
 
-![The paper funnel from a real Investigate run. Every number is emitted by the pipeline itself — you can check the arithmetic of your own report.](inv-04-funnel.png)
+![The paper funnel from a real Investigate run. Every number is emitted by the pipeline itself — you can check the arithmetic of your own report.](fig-04-funnel.svg)
 
 ## Disagreement Only Surfaces if You Group by Claim {#group-by-claim}
 
 Summarise paper by paper and four studies that contradict each other become four correct paragraphs in four different places. Investigate makes the claim the unit and the paper an attribute — so opposing results end up inside the same object and collide.
 
-![](inv-05-claim-centric.png)
+![](fig-05-claim-centric.svg)
 
 The grouping is done in plain code, with no model call. That matters: a model cannot decide an inconvenient contradiction is unimportant, because by the time any model sees the material, both sides are already inside the same object. A “disagreement” where both sides cite the same paper is rejected automatically.
 
@@ -89,13 +89,13 @@ The grouping is done in plain code, with no model call. That matters: a model ca
 
 Asking a model to cite its sources is a prompt. This is a pipeline. Three of the five gates are ordinary code — they cannot be talked into approving their own output.
 
-![Claims fall through five sieves. When a conclusion cannot be cleared, the report does not quietly drop it — it opens with a plain-language note that the evidence is insufficient or conflicting, and still shows you the best-supported synthesis and its sources.](inv-06-verification.png)
+![Claims fall through five sieves. When a conclusion cannot be cleared, the report does not quietly drop it — it opens with a plain-language note that the evidence is insufficient or conflicting, and still shows you the best-supported synthesis and its sources.](fig-06-verification.svg)
 
 ## A Report, Not a Paragraph {#the-report}
 
 The sections are computed evidence-first and then reordered for reading. Your bottom line is written last, from the judgment — so it is derived from the evidence rather than asserted and then justified.
 
-![Writing order versus reading order. Producing the direct answer fourth, from the finished judgment, is what stops the report from picking a conclusion and then shopping for support.](inv-07-report-anatomy.png)
+![Writing order versus reading order. Producing the direct answer fourth, from the finished judgment, is what stops the report from picking a conclusion and then shopping for support.](fig-07-report-anatomy.svg)
 
 ## What It Actually Looks Like {#the-proof}
 
@@ -138,7 +138,7 @@ Notice what the system was willing to say: the evidence was insufficient, one me
 
 Plenty of tools will read a lot of papers for you. The question a researcher actually has to answer is whether they can defend the output in a lab meeting.
 
-![Categories, not vendors. The top-right quadrant requires two things at once: retrieval that unions many independent channels, and verification that runs as code rather than as instructions to a model.](inv-08-positioning.png)
+![Categories, not vendors. The top-right quadrant requires two things at once: retrieval that unions many independent channels, and verification that runs as code rather than as instructions to a model.](fig-08-positioning.svg)
 
 | What researchers ask | What Investigate does about it |
 | --- | --- |
@@ -152,7 +152,7 @@ Plenty of tools will read a lot of papers for you. The question a researcher act
 
 Investigate is for open questions and takes minutes. Search Mode answers a scoped ask in seconds, with two independent dials over the corpus.
 
-![The two dials are independent, so they compose: reviews + high impact to orient in a new field, primary + recent to see what was actually observed this year. “Reviews only” is fail-closed — a primary study titled “Kinase inhibitors: an overview” is read and rejected rather than passed through on its title.](inv-09-search-mode.png)
+![The two dials are independent, so they compose: reviews + high impact to orient in a new field, primary + recent to see what was actually observed this year. “Reviews only” is fail-closed — a primary study titled “Kinase inhibitors: an overview” is read and rejected rather than passed through on its title.](fig-09-search-mode.svg)
 
 ## Every Sentence Traces Back to a Sentence in a Paper {#guarantees}
 

@@ -63,7 +63,8 @@
 <p class="blog-p">The problem is not that the knowledge is missing. It is that the largest store of it has no structure, and the structured stores are not the largest.</p>
 <p class="blog-p">GLKB closes that gap by extracting entities and relationships from PubMed, normalizing them against the same ontologies the curated databases use, and loading both into one graph. Because the two halves share a vocabulary, a single query can cross from a curated gene–pathway edge to the literature evidence supporting a gene–disease claim, and land on the PMIDs.</p>
 <figure class="blog-figure">
-<img src="glkb-01-two-kinds.png" alt="GLKB’s three parts. The controlled vocabulary is not a convenience — it is the mechanism. Because extracted entities and curated records resolve to the same term identifiers, the literature half and the expert half become one traversable graph." loading="lazy">
+<span class="blog-figure-plate">
+<img src="glkb-01-layers.svg" alt="GLKB’s three parts. The controlled vocabulary is not a convenience — it is the mechanism. Because extracted entities and curated records resolve to the same term identifiers, the literature half and the expert half become one traversable graph." loading="lazy"></span>
 <figcaption>GLKB’s three parts. The controlled vocabulary is not a convenience — it is the mechanism. Because extracted entities and curated records resolve to the same term identifiers, the literature half and the expert half become one traversable graph.</figcaption></figure>
 <h3 class="blog-h3" id="what-glkb-is">What GLKB Is</h3>
 <p class="blog-p">GLKB is a Neo4j property graph with three parts. A controlled vocabulary forms the backbone. A semantic network extracted from PubMed attaches to it on one side. A curated network from nine expert-maintained repositories attaches on the other.</p>
@@ -82,7 +83,8 @@
 <p class="blog-p">For each co-occurring term pair, sentences are reranked by a BGE model; up to 100 with normalized score ≥ 0.6 are summarized by GPT-4 into one of eight BioRED relationship types — positive correlation, negative correlation, association, binding, drug interaction, cotreatment, comparison, conversion. Pairs with no sentence supporting a direct relationship do not get an edge.</p>
 <p class="blog-p">The attrition is the interesting part. Of 432 million raw entity mentions, 60% survive to become graph annotations. Of 19.4 million term pairs that co-occur at least five times, fewer than half turn out to have any sentence actually asserting a relationship between them.</p>
 <figure class="blog-figure">
-<img src="glkb-02-funnel.png" alt="The construction funnel. Roughly 40% of raw entity mentions never become graph annotations, and more than half of frequently co-occurring term pairs never become edges. Both are deliberate: co-occurrence is not a relationship, and a tagger’s confidence is not evidence." loading="lazy">
+<span class="blog-figure-plate">
+<img src="glkb-02-funnel.svg" alt="The construction funnel. Roughly 40% of raw entity mentions never become graph annotations, and more than half of frequently co-occurring term pairs never become edges. Both are deliberate: co-occurrence is not a relationship, and a tagger’s confidence is not evidence." loading="lazy"></span>
 <figcaption>The construction funnel. Roughly 40% of raw entity mentions never become graph annotations, and more than half of frequently co-occurring term pairs never become edges. Both are deliberate: co-occurrence is not a relationship, and a tagger’s confidence is not evidence.</figcaption></figure>
 <aside class="blog-callout">
 <p class="blog-callout-title">Why this matters if you use the graph</p>
@@ -107,7 +109,8 @@
 <td>Bibliographic (the document layer)</td>
 <td>Article, Journal</td></tr></tbody></table></div>
 <figure class="blog-figure">
-<img src="glkb-03-schema.png" alt="The schema. The source property on every association edge is what lets you separate expert-curated claims from literature-extracted ones inside a single query — and the Cooccur edge, weighted by supporting article count, is what makes statistical association testing possible directly on the graph." loading="lazy">
+<span class="blog-figure-plate">
+<img src="glkb-03-schema.svg" alt="The schema. The source property on every association edge is what lets you separate expert-curated claims from literature-extracted ones inside a single query — and the Cooccur edge, weighted by supporting article count, is what makes statistical association testing possible directly on the graph." loading="lazy"></span>
 <figcaption>The schema. The source property on every association edge is what lets you separate expert-curated claims from literature-extracted ones inside a single query — and the Cooccur edge, weighted by supporting article count, is what makes statistical association testing possible directly on the graph.</figcaption></figure>
 <div class="blog-table-wrap">
 <table class="blog-table">
@@ -152,7 +155,8 @@
 <h2 class="blog-h2" id="three-ways-in">Three Ways to Retrieve From It</h2>
 <p class="blog-p">The same graph supports three retrieval modalities, and which one you want depends on how well-formed your question is.</p>
 <figure class="blog-figure">
-<img src="glkb-04-retrieval.png" alt="The three retrieval modes are complementary, not alternatives. A well-built agent uses all three: textual to resolve what you named, semantic to find what you did not, structural to ask questions that involve more than one entity at a time." loading="lazy">
+<span class="blog-figure-plate">
+<img src="glkb-04-retrieval.svg" alt="The three retrieval modes are complementary, not alternatives. A well-built agent uses all three: textual to resolve what you named, semantic to find what you did not, structural to ask questions that involve more than one entity at a time." loading="lazy"></span>
 <figcaption>The three retrieval modes are complementary, not alternatives. A well-built agent uses all three: textual to resolve what you named, semantic to find what you did not, structural to ask questions that involve more than one entity at a time.</figcaption></figure>
 <p class="blog-p">All three are reachable from a web interface with interactive graph visualization, from RESTful APIs, and — for the embeddings — as a downloadable data dump you can load into any model.</p>
 <h2 class="blog-h2" id="use-cases">Use Cases</h2>
@@ -196,7 +200,8 @@
 <p class="blog-p">This is the use case most bench scientists will recognize. You have a differential-expression list with a few thousand genes on it. Somewhere in that list are the genes that matter, and finding them means reading a great deal of literature you do not have time to read.</p>
 <p class="blog-p">RFX6 had recently been identified as a hub gene for beta-cell function, but its relationship to other type 2 diabetes genes was unclear. Here is what the graph query looks like end to end.</p>
 <figure class="blog-figure">
-<img src="glkb-05-rfx6.png" alt="The RFX6 workflow. Two chi-square screens against literature co-occurrence reduce ~9,700 differentially expressed genes to 72 candidates. As an unprompted check, 19 of the 36 curated T2D causal genes from the Type 2 Diabetes Knowledge Portal fall inside that set." loading="lazy">
+<span class="blog-figure-plate">
+<img src="glkb-05-rfx6.svg" alt="The RFX6 workflow. Two chi-square screens against literature co-occurrence reduce ~9,700 differentially expressed genes to 72 candidates. As an unprompted check, 19 of the 36 curated T2D causal genes from the Type 2 Diabetes Knowledge Portal fall inside that set." loading="lazy"></span>
 <figcaption>The RFX6 workflow. Two chi-square screens against literature co-occurrence reduce ~9,700 differentially expressed genes to 72 candidates. As an unprompted check, 19 of the 36 curated T2D causal genes from the Type 2 Diabetes Knowledge Portal fall inside that set.</figcaption></figure>
 <p class="blog-p">The result that makes this more than a filtering exercise is the negative one. Of the 17 T2D causal genes that did not come out of the RFX6 screen, 15 also sit far from RFX6 in the co-occurrence clustering — which is a specific, falsifiable statement: RFX6 acts through insulin secretion and beta-cell development, and not through the other established T2D mechanisms.</p>
 <aside class="blog-callout">
@@ -227,7 +232,8 @@
 <h2 class="blog-h2" id="downstream">What the Graph Makes Possible Downstream</h2>
 <p class="blog-p">GLKB is infrastructure, and the clearest way to see what infrastructure is worth is to look at what gets built on it. Investigate, our deep-research agent, uses the graph in four distinct places — and none of them would exist without it.</p>
 <figure class="blog-figure">
-<img src="glkb-06-investigate.png" alt="Investigate treats GLKB as four capabilities at once. The graph walk is the one with no substitute: it reaches mechanism papers that share no keywords with the question, by following curated relationships between the entities involved." loading="lazy">
+<span class="blog-figure-plate">
+<img src="glkb-06-investigate.svg" alt="Investigate treats GLKB as four capabilities at once. The graph walk is the one with no substitute: it reaches mechanism papers that share no keywords with the question, by following curated relationships between the entities involved." loading="lazy"></span>
 <figcaption>Investigate treats GLKB as four capabilities at once. The graph walk is the one with no substitute: it reaches mechanism papers that share no keywords with the question, by following curated relationships between the entities involved.</figcaption></figure>
 <p class="blog-p">The last row is the one we did not anticipate. Because GLKB holds expert-curated edges alongside literature-extracted ones, an agent can check the relations it pulled out of a paper against relations that were independently curated. The knowledge base becomes not just the source but the auditor.</p>
 <h2 class="blog-h2" id="limitations">Limitations Worth Stating Plainly</h2>

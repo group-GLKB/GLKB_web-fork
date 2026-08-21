@@ -110,6 +110,16 @@ import {
 } from '../../service/notifications';
 import { clearActiveRun, setActiveRun } from '../../service/activeRun';
 import { markInvestigateConversation } from '../../utils/investigateConversations';
+import {
+    bindMarkersToLinks,
+    citationsFor,
+    hrefWithoutMarker,
+    indexByMarker,
+    markerFromHref,
+    parseDirectCitations,
+    pmidFromHref,
+    stripCitationsBlock,
+} from '../../utils/directCitations';
 import CiteDialog from '../Units/CiteDialog';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import ChatSearchBar from './ChatSearchBar';
@@ -937,8 +947,18 @@ const MessageCard = React.memo(function MessageCard({
     const isLastUserMessage = index === totalMessages - 1 && message.role === 'assistant';
     const isLoading = isProcessing && isLastUserMessage;
     const messageID = index;
+    /* Each chip is bound to one passage, so a paper cited twice for two different sentences
+       shows two different quotes. The binding rides on the link as a `#cN` fragment — see
+       utils/directCitations — which is why every read of a citation href goes through
+       pmidFromHref rather than splitting on '/'. */
+    const directCitations = useMemo(
+        () => citationsFor(message.directCitations, message.content),
+        [message.directCitations, message.content],
+    );
+    const citationsByMarker = useMemo(() => indexByMarker(directCitations), [directCitations]);
+
     const getReferenceNumber = (href) => {
-        const pmid = String(href || '').split('/').filter(Boolean).pop();
+        const pmid = pmidFromHref(href);
         const referenceIndex = (message.references || []).findIndex(
             (reference) => extractPmidFromReference(reference) === pmid
         );
@@ -968,7 +988,7 @@ const MessageCard = React.memo(function MessageCard({
 
     const showReferenceCard = (href, element) => {
         cancelHoverClose();
-        const pmid = String(href || '').split('/').filter(Boolean).pop();
+        const pmid = pmidFromHref(href);
         const reference = (message.references || []).find(
             (item) => extractPmidFromReference(item) === pmid,
         );
@@ -977,6 +997,10 @@ const MessageCard = React.memo(function MessageCard({
             reference,
             number: getReferenceNumber(href),
             rect: element.getBoundingClientRect(),
+            // The passage this particular chip rests on, when the answer bound one.
+            // Without it the card falls back to the reference's own evidence, which is
+            // the same blob for every chip that cites the paper.
+            citation: citationsByMarker.get(markerFromHref(href)) || null,
         });
     };
 
@@ -1447,13 +1471,15 @@ const MessageCard = React.memo(function MessageCard({
                                                         if (!isPubMedReference) {
                                                             return <a href={href} title={title} {...props}>{children}</a>;
                                                         }
+                                                        // The marker is ours; PubMed should not be sent it.
+                                                        const linkHref = hrefWithoutMarker(href);
                                                         // `title` is dropped on purpose: the agent puts the evidence
                                                         // sentence there, and leaving it would show the browser's own
                                                         // tooltip on top of the card that now presents the same quote
                                                         // with the paper it came from.
                                                         return (
                                                             <a
-                                                                href={href}
+                                                                href={linkHref}
                                                                 {...props}
                                                                 onMouseEnter={(event) => showReferenceCard(href, event.currentTarget)}
                                                                 onMouseLeave={hideReferenceCard}
@@ -1466,11 +1492,17 @@ const MessageCard = React.memo(function MessageCard({
                                                     },
                                                 }}
                                             >
-                                                {stripUnresolvedCitations(message.content)}
+                                                {stripUnresolvedCitations(
+                                                    bindMarkersToLinks(
+                                                        stripCitationsBlock(message.content),
+                                                        citationsByMarker,
+                                                    ),
+                                                )}
                                             </ReactMarkdown>
                                             {hoverCard && (
                                                 <ReferenceHoverCard
                                                     reference={hoverCard.reference}
+                                                    citation={hoverCard.citation}
                                                     number={hoverCard.number}
                                                     anchorRect={hoverCard.rect}
                                                     isBookmarked={bookmarkedPmids.has(
@@ -2659,6 +2691,7 @@ function LLMAgent() {
                                 role: 'assistant',
                                 content: update.answer,
                                 references: parseReferences(update.references),
+                                directCitations: parseDirectCitations(update.directCitations),
                                 timestamp: timestamp,
                                 thinkingSteps: thinkingStepsRef.current,
                                 thoughtDurationMs: Date.now() - requestStartedAt,

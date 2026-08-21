@@ -71,37 +71,44 @@
 <h2 class="blog-h2" id="six-phases">Six Phases, One Question</h2>
 <p class="blog-p">Investigate is a fixed pipeline, not an agent improvising. Every run does the same things in the same order — which is what makes the output comparable, reproducible, and possible to audit.</p>
 <figure class="blog-figure">
-<img src="inv-01-pipeline.png" alt="The pipeline. Deterministic code does the work that must be reproducible — retrieval fusion, claim grouping, citation checking. Models are used where judgement is genuinely required, and the expensive one only three times." loading="lazy">
+<span class="blog-figure-plate">
+<img src="fig-01-pipeline.svg" alt="The pipeline. Deterministic code does the work that must be reproducible — retrieval fusion, claim grouping, citation checking. Models are used where judgement is genuinely required, and the expensive one only three times." loading="lazy"></span>
 <figcaption>The pipeline. Deterministic code does the work that must be reproducible — retrieval fusion, claim grouping, citation checking. Models are used where judgement is genuinely required, and the expensive one only three times.</figcaption></figure>
 <h3 class="blog-h3" id="full-architecture">The Same Thing, at Full Resolution</h3>
 <p class="blog-p">For readers who want the system diagram rather than the story: every module, every data path, and where each one sits on the cost/determinism spectrum.</p>
 <figure class="blog-figure">
-<img src="inv-02-architecture.png" alt="Full system architecture. Note the shape of the compute allocation: the frontier model appears in exactly three places (planning, ranking, synthesis) plus one escalation path, while every step whose job is to constrain the output — fusion, the verbatim check, claim projection, the citation guard, the structural checklist, the polish rollback — is deterministic code. That asymmetry is the design." loading="lazy">
+<span class="blog-figure-plate">
+<img src="fig-02-architecture.svg" alt="Full system architecture. Note the shape of the compute allocation: the frontier model appears in exactly three places (planning, ranking, synthesis) plus one escalation path, while every step whose job is to constrain the output — fusion, the verbatim check, claim projection, the citation guard, the structural checklist, the polish rollback — is deterministic code. That asymmetry is the design." loading="lazy"></span>
 <figcaption>Full system architecture. Note the shape of the compute allocation: the frontier model appears in exactly three places (planning, ranking, synthesis) plus one escalation path, while every step whose job is to constrain the output — fusion, the verbatim check, claim projection, the citation guard, the structural checklist, the polish rollback — is deterministic code. That asymmetry is the design.</figcaption></figure>
 <h2 class="blog-h2" id="six-searches">Because One Search Is One Point of Failure</h2>
 <figure class="blog-figure">
-<img src="inv-03-retrieval.png" alt="Six retrieval channels feeding one pool. Fusion is round-robin, not score-truncation — so the paper that only one specific probe ever found still makes it through. After ranking, a deterministic safety net re-inserts a first-hand paper for every drug, trial or assay your question named, so the ranker cannot quietly drop one." loading="lazy">
+<span class="blog-figure-plate">
+<img src="fig-03-retrieval.svg" alt="Six retrieval channels feeding one pool. Fusion is round-robin, not score-truncation — so the paper that only one specific probe ever found still makes it through. After ranking, a deterministic safety net re-inserts a first-hand paper for every drug, trial or assay your question named, so the ranker cannot quietly drop one." loading="lazy"></span>
 <figcaption>Six retrieval channels feeding one pool. Fusion is round-robin, not score-truncation — so the paper that only one specific probe ever found still makes it through. After ranking, a deterministic safety net re-inserts a first-hand paper for every drug, trial or assay your question named, so the ranker cannot quietly drop one.</figcaption></figure>
 <p class="blog-p">The knowledge-graph channel is the one competitors cannot copy: it walks 14.6M literature-derived relationships to reach mechanism papers that share no keywords with your question.</p>
 <h2 class="blog-h2" id="the-funnel">You See the Whole Funnel, Not Just the Answer</h2>
 <p class="blog-p">Every run reports what it found, what it screened, what actually yielded evidence, and what it cited — the same accounting a systematic review is expected to publish.</p>
 <figure class="blog-figure">
-<img src="inv-04-funnel.png" alt="The paper funnel from a real Investigate run. Every number is emitted by the pipeline itself — you can check the arithmetic of your own report." loading="lazy">
+<span class="blog-figure-plate">
+<img src="fig-04-funnel.svg" alt="The paper funnel from a real Investigate run. Every number is emitted by the pipeline itself — you can check the arithmetic of your own report." loading="lazy"></span>
 <figcaption>The paper funnel from a real Investigate run. Every number is emitted by the pipeline itself — you can check the arithmetic of your own report.</figcaption></figure>
 <h2 class="blog-h2" id="group-by-claim">Disagreement Only Surfaces if You Group by Claim</h2>
 <p class="blog-p">Summarise paper by paper and four studies that contradict each other become four correct paragraphs in four different places. Investigate makes the claim the unit and the paper an attribute — so opposing results end up inside the same object and collide.</p>
 <figure class="blog-figure">
-<img src="inv-05-claim-centric.png" alt="" loading="lazy"></figure>
+<span class="blog-figure-plate">
+<img src="fig-05-claim-centric.svg" alt="" loading="lazy"></span></figure>
 <p class="blog-p">The grouping is done in plain code, with no model call. That matters: a model cannot decide an inconvenient contradiction is unimportant, because by the time any model sees the material, both sides are already inside the same object. A “disagreement” where both sides cite the same paper is rejected automatically.</p>
 <h2 class="blog-h2" id="five-gates">Five Gates, Every One of Them Fails Closed</h2>
 <p class="blog-p">Asking a model to cite its sources is a prompt. This is a pipeline. Three of the five gates are ordinary code — they cannot be talked into approving their own output.</p>
 <figure class="blog-figure">
-<img src="inv-06-verification.png" alt="Claims fall through five sieves. When a conclusion cannot be cleared, the report does not quietly drop it — it opens with a plain-language note that the evidence is insufficient or conflicting, and still shows you the best-supported synthesis and its sources." loading="lazy">
+<span class="blog-figure-plate">
+<img src="fig-06-verification.svg" alt="Claims fall through five sieves. When a conclusion cannot be cleared, the report does not quietly drop it — it opens with a plain-language note that the evidence is insufficient or conflicting, and still shows you the best-supported synthesis and its sources." loading="lazy"></span>
 <figcaption>Claims fall through five sieves. When a conclusion cannot be cleared, the report does not quietly drop it — it opens with a plain-language note that the evidence is insufficient or conflicting, and still shows you the best-supported synthesis and its sources.</figcaption></figure>
 <h2 class="blog-h2" id="the-report">A Report, Not a Paragraph</h2>
 <p class="blog-p">The sections are computed evidence-first and then reordered for reading. Your bottom line is written last, from the judgment — so it is derived from the evidence rather than asserted and then justified.</p>
 <figure class="blog-figure">
-<img src="inv-07-report-anatomy.png" alt="Writing order versus reading order. Producing the direct answer fourth, from the finished judgment, is what stops the report from picking a conclusion and then shopping for support." loading="lazy">
+<span class="blog-figure-plate">
+<img src="fig-07-report-anatomy.svg" alt="Writing order versus reading order. Producing the direct answer fourth, from the finished judgment, is what stops the report from picking a conclusion and then shopping for support." loading="lazy"></span>
 <figcaption>Writing order versus reading order. Producing the direct answer fourth, from the finished judgment, is what stops the report from picking a conclusion and then shopping for support.</figcaption></figure>
 <h2 class="blog-h2" id="the-proof">What It Actually Looks Like</h2>
 <p class="blog-p">Excerpts from an unedited run on a genuinely hard methods question — bridging statistical association to biological mechanism in in silico cell models.</p>
@@ -125,7 +132,8 @@
 <h2 class="blog-h2" id="how-it-compares">Depth Is Common. Auditability Is Not.</h2>
 <p class="blog-p">Plenty of tools will read a lot of papers for you. The question a researcher actually has to answer is whether they can defend the output in a lab meeting.</p>
 <figure class="blog-figure">
-<img src="inv-08-positioning.png" alt="Categories, not vendors. The top-right quadrant requires two things at once: retrieval that unions many independent channels, and verification that runs as code rather than as instructions to a model." loading="lazy">
+<span class="blog-figure-plate">
+<img src="fig-08-positioning.svg" alt="Categories, not vendors. The top-right quadrant requires two things at once: retrieval that unions many independent channels, and verification that runs as code rather than as instructions to a model." loading="lazy"></span>
 <figcaption>Categories, not vendors. The top-right quadrant requires two things at once: retrieval that unions many independent channels, and verification that runs as code rather than as instructions to a model.</figcaption></figure>
 <div class="blog-table-wrap">
 <table class="blog-table">
@@ -152,7 +160,8 @@
 <h2 class="blog-h2" id="search-mode">Search Mode, for When You Already Know What You Want</h2>
 <p class="blog-p">Investigate is for open questions and takes minutes. Search Mode answers a scoped ask in seconds, with two independent dials over the corpus.</p>
 <figure class="blog-figure">
-<img src="inv-09-search-mode.png" alt="The two dials are independent, so they compose: reviews + high impact to orient in a new field, primary + recent to see what was actually observed this year. “Reviews only” is fail-closed — a primary study titled “Kinase inhibitors: an overview” is read and rejected rather than passed through on its title." loading="lazy">
+<span class="blog-figure-plate">
+<img src="fig-09-search-mode.svg" alt="The two dials are independent, so they compose: reviews + high impact to orient in a new field, primary + recent to see what was actually observed this year. “Reviews only” is fail-closed — a primary study titled “Kinase inhibitors: an overview” is read and rejected rather than passed through on its title." loading="lazy"></span>
 <figcaption>The two dials are independent, so they compose: reviews + high impact to orient in a new field, primary + recent to see what was actually observed this year. “Reviews only” is fail-closed — a primary study titled “Kinase inhibitors: an overview” is read and rejected rather than passed through on its title.</figcaption></figure>
 <h2 class="blog-h2" id="guarantees">Every Sentence Traces Back to a Sentence in a Paper</h2>
 <p class="blog-p">Investigate takes eight to fifteen minutes and costs a few tens of cents, because the alternative — an answer you have to verify yourself — costs an afternoon. You get a six-section report, a paper funnel you can audit, the verbatim source sentence behind every citation, an explicit account of what the field disagrees about, and an honest note when the evidence would not carry the conclusion.</p>

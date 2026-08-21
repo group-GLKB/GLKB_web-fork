@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1200 760" xmlns="http://www.w3.org/2000/svg" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif">
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill="#334155"/>
+            </marker>
+            <marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill="#C0392F"/>
+            </marker>
+            <marker id="ahd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill="#94A3B8"/>
+            </marker>
+            <style>
+              .bx{fill:#fff;stroke:#334155;stroke-width:1.1}
+              .lb{font-size:10.5px;font-weight:700;fill:#0F172A}
+              .sb{font-size:8.6px;fill:#64748B}
+              .pn{fill:none;stroke:#A9B6C6;stroke-width:1.1;stroke-dasharray:5 4}
+              .tab{font-size:9.6px;font-weight:750;fill:#334155;letter-spacing:.4px}
+              .ar{fill:none;stroke:#334155;stroke-width:1.2;marker-end:url(#ah)}
+              .sym{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:11.5px}
+              .ann{font-size:9px;fill:#8494A8}
+            </style>
+          </defs>
+
+          <rect width="1200" height="760" fill="#FCFDFE"/>
+
+          <!-- input -->
+          <rect x="158" y="42" width="142" height="26" rx="4" class="bx"/>
+          <text x="176" y="59" class="lb">input query   <tspan class="sym">q</tspan></text>
+          <path d="M229 68 V 94" class="ar"/>
+
+          <!-- ===================== PANELS ===================== -->
+          <rect x="40"  y="96" width="210" height="406" rx="7" class="pn"/>
+          <rect x="274" y="96" width="338" height="406" rx="7" class="pn"/>
+          <rect x="636" y="96" width="236" height="406" rx="7" class="pn"/>
+          <rect x="896" y="96" width="264" height="406" rx="7" class="pn"/>
+
+          <g>
+            <rect x="52"  y="86" width="140" height="19" rx="3" fill="#FCFDFE" stroke="#A9B6C6" stroke-width=".9"/>
+            <text x="60" y="99.5" class="tab">(a) Query understanding</text>
+            <rect x="286" y="86" width="146" height="19" rx="3" fill="#FCFDFE" stroke="#A9B6C6" stroke-width=".9"/>
+            <text x="294" y="99.5" class="tab">(b) Recall-first retrieval</text>
+            <rect x="648" y="86" width="140" height="19" rx="3" fill="#FCFDFE" stroke="#A9B6C6" stroke-width=".9"/>
+            <text x="656" y="99.5" class="tab">(c) Evidence &amp; claims</text>
+            <rect x="908" y="86" width="166" height="19" rx="3" fill="#FCFDFE" stroke="#A9B6C6" stroke-width=".9"/>
+            <text x="916" y="99.5" class="tab">(d) Synthesis &amp; verification</text>
+          </g>
+
+          <!-- inter-panel flow -->
+          <path d="M250 300 H 272" class="ar"/><text x="261" y="292" class="sym" text-anchor="middle">E</text>
+          <path d="M612 300 H 634" class="ar"/><text x="623" y="292" class="sym" text-anchor="middle">C</text>
+          <path d="M872 300 H 894" class="ar"/><text x="883" y="292" class="sym" text-anchor="middle">B, C</text>
+
+          <!-- ===================== (a) ===================== -->
+          <g>
+            <rect x="52" y="118" width="186" height="34" rx="4" class="bx"/>
+            <rect x="228" y="122" width="6" height="6" fill="#0B8FA8"/>
+            <text x="62" y="134" class="lb">Follow-up resolution</text>
+            <text x="62" y="146" class="sb">rewrite against history H</text>
+            <path d="M145 152 V 166" class="ar"/>
+
+            <rect x="52" y="166" width="186" height="34" rx="4" class="bx"/>
+            <rect x="228" y="170" width="6" height="6" fill="#0B8FA8"/>
+            <text x="62" y="182" class="lb">Ambiguity gate</text>
+            <text x="62" y="194" class="sb">materiality test · default: no ask</text>
+            <path d="M145 200 V 214" class="ar"/>
+
+            <rect x="52" y="214" width="186" height="30" rx="4" fill="#F5F3FF" stroke="#7A5AF8" stroke-width="1.1" stroke-dasharray="4 3"/>
+            <text x="62" y="226" class="lb" fill="#5B3FD1">User clarification</text>
+            <text x="62" y="237" class="sb" fill="#7A5AF8">1–4 questions · skippable</text>
+            <path d="M145 244 V 258" class="ar"/>
+
+            <rect x="52" y="258" width="186" height="34" rx="4" class="bx"/>
+            <rect x="228" y="262" width="6" height="6" fill="#E08A0B"/>
+            <text x="62" y="274" class="lb">Query planner</text>
+            <text x="62" y="286" class="sb">frontier LM · one call</text>
+            <path d="M145 292 V 306" class="ar"/>
+
+            <rect x="52" y="306" width="186" height="64" rx="4" fill="#F1F5FA" stroke="#334155" stroke-width="1.1"/>
+            <text x="62" y="320" class="lb"><tspan class="sym">E</tspan> = expansion set</text>
+            <text x="62" y="334" class="sb">12–25 named specifics (drugs, trials)</text>
+            <text x="62" y="346" class="sb">12–24 short lexical queries · HyDE doc</text>
+            <text x="62" y="358" class="sb">step-back query · sub-questions · facets</text>
+
+            <rect x="52" y="392" width="186" height="44" rx="4" fill="#FFFDF5" stroke="#E3C98A" stroke-width="1"/>
+            <text x="62" y="406" class="sb" fill="#8A6212" font-weight="700">INVARIANT</text>
+            <text x="62" y="418" class="sb" fill="#8A6212">Conversation history is consumed here</text>
+            <text x="62" y="429" class="sb" fill="#8A6212">and nowhere else in the pipeline.</text>
+          </g>
+
+          <!-- ===================== (b) ===================== -->
+          <g>
+            <text x="286" y="117" class="ann">six independent channels, executed concurrently</text>
+
+            <rect x="286" y="122" width="150" height="34" rx="4" class="bx"/><rect x="426" y="126" width="6" height="6" fill="#64748B"/>
+            <text x="294" y="136" class="lb">Dense vector</text><text x="294" y="148" class="sb">query + HyDE → GLKB index</text>
+
+            <rect x="450" y="122" width="150" height="34" rx="4" class="bx"/><rect x="590" y="126" width="6" height="6" fill="#64748B"/>
+            <text x="458" y="136" class="lb">Lexical</text><text x="458" y="148" class="sb">BM25 + PubMed, per specific</text>
+
+            <rect x="286" y="164" width="150" height="34" rx="4" fill="#F7F4FF" stroke="#7A5AF8" stroke-width="1.1"/><rect x="426" y="168" width="6" height="6" fill="#64748B"/>
+            <text x="294" y="178" class="lb" fill="#5B3FD1">KG PageRank</text><text x="294" y="190" class="sb" fill="#7A5AF8">personalized PPR on subgraph</text>
+
+            <rect x="450" y="164" width="150" height="34" rx="4" class="bx"/><rect x="590" y="168" width="6" height="6" fill="#64748B"/>
+            <text x="458" y="178" class="lb">Seed expansion</text><text x="458" y="190" class="sb">similar + citing articles</text>
+
+            <rect x="286" y="206" width="150" height="34" rx="4" class="bx"/><rect x="426" y="210" width="6" height="6" fill="#0B8FA8"/>
+            <text x="294" y="220" class="lb">Relevance feedback</text><text x="294" y="232" class="sb">round-2 queries from titles</text>
+
+            <rect x="450" y="206" width="150" height="34" rx="4" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.1" stroke-dasharray="4 3"/>
+            <text x="458" y="220" class="lb" fill="#64748B">Agentic (optional)</text><text x="458" y="232" class="sb">ReAct loop per sub-question</text>
+
+            <path d="M361 240 V 254" class="ar"/><path d="M525 240 V 254" class="ar"/>
+
+            <rect x="286" y="254" width="314" height="30" rx="4" fill="#F1F5FA" stroke="#334155" stroke-width="1.1"/>
+            <rect x="590" y="258" width="6" height="6" fill="#64748B"/>
+            <text x="294" y="266" class="lb">Round-robin interleaved fusion</text>
+            <text x="294" y="278" class="sb">each list's top-k guaranteed · deterministic · no truncation by score</text>
+            <text x="294" y="299" class="ann">fused pool  |<tspan class="sym">P</tspan>| ≈ 300–900</text>
+
+            <path d="M443 284 V 306" class="ar"/>
+
+            <rect x="286" y="306" width="314" height="30" rx="4" class="bx"/><rect x="590" y="310" width="6" height="6" fill="#E08A0B"/>
+            <text x="294" y="318" class="lb">Listwise reranker</text>
+            <text x="294" y="330" class="sb">frontier LM reads title + abstract of the pool head</text>
+            <path d="M443 336 V 350" class="ar"/>
+
+            <rect x="286" y="350" width="314" height="30" rx="4" fill="#F4FBF8" stroke="#0E9F6E" stroke-width="1.1"/><rect x="590" y="354" width="6" height="6" fill="#64748B"/>
+            <text x="294" y="362" class="lb" fill="#0B5B42">Named-entity pinning</text>
+            <text x="294" y="374" class="sb" fill="#0E9F6E">∀ s ∈ specifics, a first-hand paper is re-inserted post-rank</text>
+            <path d="M443 380 V 394" class="ar"/>
+
+            <rect x="286" y="394" width="314" height="30" rx="4" fill="#0F172A"/>
+            <text x="294" y="413" font-size="10.5" font-weight="700" fill="#fff"><tspan class="sym">C</tspan>  candidate set,  |<tspan class="sym">C</tspan>| ≤ 66</text>
+          </g>
+
+          <!-- ===================== (c) ===================== -->
+          <g>
+            <rect x="648" y="122" width="212" height="28" rx="4" class="bx"/><rect x="850" y="126" width="6" height="6" fill="#0B8FA8"/>
+            <text x="656" y="134" class="lb">Relevance triage</text><text x="656" y="145" class="sb">allocate the full-text budget</text>
+            <path d="M754 150 V 162" class="ar"/>
+
+            <rect x="648" y="162" width="212" height="28" rx="4" class="bx"/><rect x="850" y="166" width="6" height="6" fill="#64748B"/>
+            <text x="656" y="174" class="lb">Full-text fetch</text><text x="656" y="185" class="sb">PMC BioC, sectioned; captions kept</text>
+            <path d="M754 190 V 202" class="ar"/>
+
+            <rect x="648" y="202" width="212" height="28" rx="4" class="bx"/><rect x="850" y="206" width="6" height="6" fill="#0B8FA8"/>
+            <text x="656" y="214" class="lb">Per-document compression ∥</text><text x="656" y="225" class="sb">extraction only · counter-evidence mandated</text>
+            <path d="M754 230 V 242" class="ar"/>
+
+            <rect x="648" y="242" width="212" height="30" rx="4" fill="#F4FBF8" stroke="#0E9F6E" stroke-width="1.3"/>
+            <rect x="850" y="246" width="6" height="6" fill="#64748B"/>
+            <text x="656" y="255" class="lb" fill="#0B5B42">Verbatim span check <tspan class="sym">σ</tspan></text>
+            <text x="656" y="266" class="sb" fill="#0E9F6E">quote must be a literal substring of the source</text>
+            <path d="M860 257 H 884" fill="none" stroke="#C0392F" stroke-width="1.2" marker-end="url(#ahr)"/>
+            <text x="884" y="248" font-size="8.4px" fill="#C0392F">drop</text>
+            <path d="M754 272 V 284" class="ar"/>
+
+            <rect x="648" y="284" width="212" height="40" rx="4" fill="#F1F5FA" stroke="#334155" stroke-width="1.1"/>
+            <text x="656" y="298" class="lb"><tspan class="sym">B</tspan> — evidence bank</text>
+            <text x="656" y="311" class="sb"><tspan class="sym">n</tspan> = (quote, triple, relation, uncertainty,</text>
+            <text x="656" y="321" class="sb">      section, pmid),  id = pmid#k</text>
+            <path d="M754 324 V 336" class="ar"/>
+
+            <rect x="648" y="336" width="212" height="28" rx="4" fill="#FEF6F6" stroke="#E5484D" stroke-width="1.1"/><rect x="850" y="340" width="6" height="6" fill="#64748B"/>
+            <text x="656" y="348" class="lb" fill="#B3363A">Claim projection — no LM</text><text x="656" y="359" class="sb" fill="#E5484D">group notes by sub-claim target τ</text>
+            <path d="M754 364 V 376" class="ar"/>
+
+            <rect x="648" y="376" width="212" height="28" rx="4" class="bx"/><rect x="850" y="380" width="6" height="6" fill="#0B8FA8"/>
+            <text x="656" y="388" class="lb">Concept clustering</text><text x="656" y="399" class="sb">fine claims → 6–12 concepts</text>
+            <path d="M754 404 V 416" class="ar"/>
+
+            <rect x="648" y="416" width="212" height="42" rx="4" fill="#0F172A"/>
+            <text x="656" y="431" font-size="10.5" font-weight="700" fill="#fff"><tspan class="sym">C</tspan>  claim set, each (<tspan class="sym">S⁺</tspan>, <tspan class="sym">S⁻</tspan>, <tspan class="sym">w</tspan>)</text>
+            <text x="656" y="447" font-size="8.6px" fill="#94A3B8">conflict(c) ⟺ both sides are non-empty</text>
+          </g>
+
+          <!-- ===================== (d) ===================== -->
+          <g>
+            <rect x="920" y="122" width="228" height="46" rx="4" class="bx"/><rect x="1138" y="126" width="6" height="6" fill="#E08A0B"/>
+            <text x="928" y="136" class="lb">Six-section writer</text>
+            <text x="928" y="147" class="sb">evidence → conflict → judgment → answer → …</text>
+            <g>
+              <rect x="928" y="152" width="34" height="9" rx="1.5" fill="#E08A0B" opacity=".55"/>
+              <rect x="966" y="152" width="34" height="9" rx="1.5" fill="#E5484D" opacity=".55"/>
+              <rect x="1004" y="152" width="34" height="9" rx="1.5" fill="#E08A0B" opacity=".55"/>
+              <rect x="1042" y="152" width="34" height="9" rx="1.5" fill="#0B8FA8" opacity=".55"/>
+              <rect x="1080" y="152" width="30" height="9" rx="1.5" fill="#94A3B8" opacity=".55"/>
+              <rect x="1114" y="152" width="30" height="9" rx="1.5" fill="#94A3B8" opacity=".55"/>
+            </g>
+            <path d="M1034 168 V 180" class="ar"/>
+
+            <rect x="920" y="180" width="228" height="28" rx="4" fill="#FFFCF3" stroke="#E08A0B" stroke-width="1.1"/><rect x="1138" y="184" width="6" height="6" fill="#64748B"/>
+            <text x="928" y="192" class="lb" fill="#A96908">Citation guard — no LM</text><text x="928" y="203" class="sb" fill="#B57A16">drop sentences without a resolvable citation</text>
+            <path d="M1034 208 V 220" class="ar"/>
+
+            <rect x="920" y="220" width="228" height="40" rx="4" fill="#0F172A"/>
+            <rect x="1138" y="248" width="6" height="6" fill="#0B8FA8"/><rect x="1128" y="248" width="6" height="6" fill="#E08A0B"/>
+            <text x="928" y="234" font-size="10.5" font-weight="700" fill="#fff">Faithfulness gate — NLI</text>
+            <text x="928" y="246" font-size="8.6px" fill="#94A3B8">label ∈ {support, refute, NEI}; load-bearing</text>
+            <text x="928" y="256" font-size="8.6px" fill="#94A3B8">failures re-verified by the frontier model</text>
+            <path d="M1034 260 V 268" class="ar"/>
+
+            <rect x="920" y="268" width="228" height="28" rx="4" fill="#F7F4FF" stroke="#7A5AF8" stroke-width="1.1"/><rect x="1138" y="272" width="6" height="6" fill="#64748B"/>
+            <text x="928" y="280" class="lb" fill="#5B3FD1">KG consistency check</text><text x="928" y="291" class="sb" fill="#7A5AF8">extracted triples vs curated GLKB edges</text>
+            <path d="M1034 296 V 308" class="ar"/>
+
+            <rect x="920" y="308" width="228" height="28" rx="4" class="bx"/><rect x="1138" y="312" width="6" height="6" fill="#64748B"/>
+            <text x="928" y="320" class="lb">Structural checklist — no LM</text><text x="928" y="331" class="sb">21 rules; accept a revision only if n_fail ↓</text>
+            <path d="M1034 336 V 348" class="ar"/>
+
+            <rect x="920" y="348" width="228" height="28" rx="4" class="bx"/><rect x="1138" y="352" width="6" height="6" fill="#64748B"/>
+            <text x="928" y="360" class="lb">Polish + rollback</text><text x="928" y="371" class="sb">reject a rewrite that loses a number or quote</text>
+            <path d="M1034 376 V 388" class="ar"/>
+
+            <rect x="920" y="388" width="228" height="28" rx="4" class="bx"/><rect x="1138" y="392" width="6" height="6" fill="#0B8FA8"/>
+            <text x="928" y="400" class="lb">Figure vision gate</text><text x="928" y="411" class="sb">multimodal check; fail-closed</text>
+            <path d="M1034 416 V 428" class="ar"/>
+
+            <rect x="920" y="428" width="228" height="42" rx="4" fill="#06392C"/>
+            <text x="928" y="443" font-size="10.5" font-weight="700" fill="#fff"><tspan class="sym">R</tspan>  six-section report</text>
+            <text x="928" y="459" font-size="8.6px" fill="#8FD6C2">+ paper funnel + per-citation provenance</text>
+
+            <!-- refine loop -->
+            <path d="M920 322 C 902 322, 902 145, 918 145" fill="none" stroke="#334155" stroke-width="1.1" stroke-dasharray="3 3" marker-end="url(#ah)"/>
+            <text x="907" y="238" class="ann" text-anchor="middle" transform="rotate(-90 907 238)">≤ 2 rounds</text>
+          </g>
+
+          <!-- ===================== DATA SOURCES ===================== -->
+          <g>
+            <text x="40" y="546" class="tab" fill="#8494A8">DATA SOURCES</text>
+
+            <!-- GLKB cylinder -->
+            <g>
+              <path d="M300 552 h 240 v 58 a 120 13 0 0 1 -240 0 z" fill="#F7F4FF" stroke="#7A5AF8" stroke-width="1.1"/>
+              <ellipse cx="420" cy="552" rx="120" ry="13" fill="#EDE9FE" stroke="#7A5AF8" stroke-width="1.1"/>
+              <text x="420" y="578" class="lb" fill="#5B3FD1" text-anchor="middle">GLKB knowledge graph · Neo4j</text>
+              <text x="420" y="592" class="sb" fill="#7A5AF8" text-anchor="middle">2.63 × 10⁸ terms · 1.46 × 10⁷ curated relations</text>
+              <text x="420" y="604" class="sb" fill="#7A5AF8" text-anchor="middle">native vector index + full-text indexes</text>
+            </g>
+
+            <!-- PubMed cylinder -->
+            <g>
+              <path d="M620 552 h 240 v 58 a 120 13 0 0 1 -240 0 z" fill="#F4FAFD" stroke="#0B8FA8" stroke-width="1.1"/>
+              <ellipse cx="740" cy="552" rx="120" ry="13" fill="#E4F3F8" stroke="#0B8FA8" stroke-width="1.1"/>
+              <text x="740" y="578" class="lb" fill="#0A7186" text-anchor="middle">PubMed / PMC</text>
+              <text x="740" y="592" class="sb" fill="#0B8FA8" text-anchor="middle">E-utilities search · ELink similar &amp; citing</text>
+              <text x="740" y="604" class="sb" fill="#0B8FA8" text-anchor="middle">BioC Open Access full text · rate-paced</text>
+            </g>
+
+            <!-- feeds -->
+            <g fill="none" stroke-dasharray="4 4" stroke-width="1.1">
+              <path d="M420 539 V 504" stroke="#7A5AF8" marker-end="url(#ahd)"/>
+              <path d="M740 539 V 504" stroke="#0B8FA8" marker-end="url(#ahd)"/>
+              <path d="M690 539 V 522 H 500 V 504" stroke="#0B8FA8" marker-end="url(#ahd)"/>
+              <path d="M420 623 V 646 H 1040 V 504" stroke="#7A5AF8" marker-end="url(#ahd)"/>
+            </g>
+            <text x="1046" y="640" class="ann">graph is also the verifier</text>
+          </g>
+
+          <!-- ===================== LEGEND ===================== -->
+          <g transform="translate(40,684)">
+            <rect x="0" y="0" width="1120" height="52" rx="5" fill="#F7F9FC" stroke="#E3E9F0"/>
+            <text x="16" y="18" class="tab" fill="#64748B">COMPUTE CLASS</text>
+            <rect x="16" y="28" width="7" height="7" fill="#64748B"/><text x="30" y="35" class="sb">deterministic code — reproducible, cannot be argued with</text>
+            <rect x="330" y="28" width="7" height="7" fill="#0B8FA8"/><text x="344" y="35" class="sb">small LM — extraction, checking, clustering</text>
+            <rect x="610" y="28" width="7" height="7" fill="#E08A0B"/><text x="624" y="35" class="sb">frontier LM — planning, ranking, synthesis</text>
+
+            <text x="1104" y="18" class="tab" fill="#64748B" text-anchor="end">‖ parallel · dashed = data source · red = rejected</text>
+            <text x="1104" y="35" class="sb" text-anchor="end">Boxed symbols denote the artefact each stage emits.</text>
+          </g>
+        </svg>

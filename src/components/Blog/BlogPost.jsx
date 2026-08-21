@@ -55,9 +55,13 @@ const Paragraph = function Paragraph({ node, children }) {
     const { src, alt } = image.properties;
     return (
         <figure className="blog-figure">
-            {/* The design authors captions, not alt text, so the caption is the
-                alternative. The one uncaptioned figure gets alt="". */}
-            <img src={IMAGES[src] || src} alt={alt || ''} loading="lazy" />
+            {/* The plate is the bordered, filled box the design insets the image
+                inside by 21 (714:2709) — the image itself carries no border. */}
+            <span className="blog-figure-plate">
+                {/* The design authors captions, not alt text, so the caption is the
+                    alternative. The one uncaptioned figure gets alt="". */}
+                <img src={IMAGES[src] || src} alt={alt || ''} loading="lazy" />
+            </span>
             {alt ? <figcaption>{alt}</figcaption> : null}
         </figure>
     );

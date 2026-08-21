@@ -67,6 +67,7 @@ const place = (anchorRect, cardHeight) => {
  */
 const ReferenceHoverCard = ({
     reference,
+    citation,
     number,
     anchorRect,
     isBookmarked,
@@ -115,9 +116,13 @@ const ReferenceHoverCard = ({
     if (!reference) return null;
 
     const pmid = reference.pmid ? String(reference.pmid) : '';
-    const quote = (Array.isArray(reference.evidence) ? reference.evidence : [])
+    // The passage this citation actually rests on, when the answer bound one to this spot.
+    // `reference.evidence` is per-paper, so a paper cited twice for two different sentences
+    // showed the same quote at both — which is the whole reason direct_citations exists.
+    const referenceEvidence = (Array.isArray(reference.evidence) ? reference.evidence : [])
         .map((e) => (typeof e === 'string' ? e : e?.quote))
         .find((q) => q && String(q).trim());
+    const quote = (citation?.quote || '').trim() || referenceEvidence;
     const authors = formatAuthors(reference.authors);
     // The app normalises references through `parseReferences`, which renames the agent's `date`
     // and `n_citation` to `year` and `citation_count`. Read both: the normalised names are what
@@ -131,6 +136,10 @@ const ReferenceHoverCard = ({
             ref={ref}
             className="ref-hover-card"
             role="tooltip"
+            /* Which binding this card is showing. Two chips on one paper look identical from
+               the outside, so without this there is no way to tell a card that re-opened on
+               the second citation from one that never closed after the first. */
+            data-citation={citation?.marker || undefined}
             style={{
                 left: pos ? `${pos.left}px` : 0,
                 top: pos ? `${pos.top}px` : 0,

@@ -126,6 +126,9 @@ const normalizeDetail = (detail) => ({
             timestamp: formatTimestamp(message.created_at),
             trajectory: message.trajectory || null,
             invocationId: message.invocation_id ?? message.invocationId ?? null,
+            // null for user messages, for answers saved before this shipped, and for
+            // answers with no bindings — all of which mean the same thing here.
+            directCitations: message.direct_citations ?? message.directCitations ?? null,
         }))
         : [],
 });

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1200 360" xmlns="http://www.w3.org/2000/svg" font-family="Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+          <!-- dial A -->
+          <text x="60" y="40" font-size="12" font-weight="750" letter-spacing="1.5" fill="#0B8FA8">DIAL A — WHAT COUNTS AS EVIDENCE</text>
+          <g>
+            <rect x="60" y="60" width="150" height="70" rx="12" fill="#0B8FA8" fill-opacity=".11" stroke="#0B8FA8" stroke-width="1.8"/>
+            <text x="135" y="93" font-size="14.5" font-weight="700" fill="#0A7186" text-anchor="middle">Reviews</text>
+            <text x="135" y="112" font-size="11.5" fill="#6B7C93" text-anchor="middle">only</text>
+
+            <rect x="222" y="60" width="150" height="70" rx="12" fill="#fff" stroke="#E3E9F0"/>
+            <text x="297" y="93" font-size="14.5" font-weight="700" fill="#3A4A61" text-anchor="middle">Primary</text>
+            <text x="297" y="112" font-size="11.5" fill="#9AA9BC" text-anchor="middle">only</text>
+
+            <rect x="384" y="60" width="120" height="70" rx="12" fill="#fff" stroke="#E3E9F0" stroke-dasharray="5 4"/>
+            <text x="444" y="99" font-size="14.5" font-weight="700" fill="#9AA9BC" text-anchor="middle">Off</text>
+          </g>
+
+          <!-- multiply -->
+          <text x="546" y="105" font-size="26" font-weight="400" fill="#C6D2E0" text-anchor="middle">×</text>
+
+          <!-- dial B -->
+          <text x="590" y="40" font-size="12" font-weight="750" letter-spacing="1.5" fill="#E08A0B">DIAL B — WHAT COMES FIRST</text>
+          <g>
+            <rect x="590" y="60" width="150" height="70" rx="12" fill="#E08A0B" fill-opacity=".11" stroke="#E08A0B" stroke-width="1.8"/>
+            <text x="665" y="93" font-size="14.5" font-weight="700" fill="#A96908" text-anchor="middle">High impact</text>
+            <text x="665" y="112" font-size="11.5" fill="#6B7C93" text-anchor="middle">IF → citations → year</text>
+
+            <rect x="752" y="60" width="150" height="70" rx="12" fill="#fff" stroke="#E3E9F0"/>
+            <text x="827" y="93" font-size="14.5" font-weight="700" fill="#3A4A61" text-anchor="middle">Recent</text>
+            <text x="827" y="112" font-size="11.5" fill="#9AA9BC" text-anchor="middle">newest first</text>
+
+            <rect x="914" y="60" width="150" height="70" rx="12" fill="#fff" stroke="#E3E9F0" stroke-dasharray="5 4"/>
+            <text x="989" y="99" font-size="14.5" font-weight="700" fill="#9AA9BC" text-anchor="middle">Balanced</text>
+          </g>
+
+          <!-- mechanism strips -->
+          <g>
+            <rect x="60" y="190" width="520" height="130" rx="13" fill="#fff" stroke="#E3E9F0"/>
+            <text x="84" y="220" font-size="13.5" font-weight="700" fill="#0A1628">“Reviews only” is verified, not just filtered</text>
+            <g>
+              <rect x="84" y="238" width="146" height="58" rx="10" fill="#F7F9FC" stroke="#E3E9F0"/>
+              <text x="157" y="262" font-size="12" font-weight="680" fill="#3A4A61" text-anchor="middle">indexed type</text>
+              <text x="157" y="280" font-size="11" fill="#9AA9BC" text-anchor="middle">+ title pattern</text>
+              <path d="M238 267 h 22" stroke="#C6D2E0" stroke-width="2"/>
+              <rect x="266" y="238" width="146" height="58" rx="10" fill="#0B8FA8" fill-opacity=".09" stroke="#9BD6E2"/>
+              <text x="339" y="262" font-size="12" font-weight="680" fill="#0A7186" text-anchor="middle">abstract read</text>
+              <text x="339" y="280" font-size="11" fill="#0A7186" text-anchor="middle">title-only matches</text>
+              <path d="M420 267 h 22" stroke="#C6D2E0" stroke-width="2"/>
+              <rect x="448" y="238" width="108" height="58" rx="10" fill="#0A1628"/>
+              <text x="502" y="262" font-size="12" font-weight="680" fill="#5EE7F5" text-anchor="middle">confirmed</text>
+              <text x="502" y="280" font-size="11" fill="#9AA9BC" text-anchor="middle">or dropped</text>
+            </g>
+          </g>
+          <g>
+            <rect x="620" y="190" width="520" height="130" rx="13" fill="#fff" stroke="#E3E9F0"/>
+            <text x="644" y="220" font-size="13.5" font-weight="700" fill="#0A1628">“High impact” resolves the metric three ways</text>
+            <g>
+              <rect x="644" y="238" width="146" height="58" rx="10" fill="#E08A0B" fill-opacity=".09" stroke="#F3CE8E"/>
+              <text x="717" y="262" font-size="12" font-weight="680" fill="#A96908" text-anchor="middle">knowledge graph</text>
+              <text x="717" y="280" font-size="11" fill="#A96908" text-anchor="middle">curated record</text>
+              <path d="M798 267 h 20" stroke="#C6D2E0" stroke-width="2"/>
+              <rect x="824" y="238" width="146" height="58" rx="10" fill="#F7F9FC" stroke="#E3E9F0"/>
+              <text x="897" y="262" font-size="12" font-weight="680" fill="#3A4A61" text-anchor="middle">local table</text>
+              <text x="897" y="280" font-size="11" fill="#9AA9BC" text-anchor="middle">fallback</text>
+              <path d="M978 267 h 20" stroke="#C6D2E0" stroke-width="2"/>
+              <rect x="1004" y="238" width="112" height="58" rx="10" fill="#F7F9FC" stroke="#E3E9F0" stroke-dasharray="5 4"/>
+              <text x="1060" y="262" font-size="12" font-weight="680" fill="#9AA9BC" text-anchor="middle">estimate</text>
+              <text x="1060" y="280" font-size="11" fill="#9AA9BC" text-anchor="middle">last resort</text>
+            </g>
+          </g>
+        </svg>

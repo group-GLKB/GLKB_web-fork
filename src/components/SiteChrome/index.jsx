@@ -10,7 +10,10 @@ import './scoped.css';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import siteLogo from '../../img/about/image 26.png';
+// The app's own mark and wordmark, not the About-only lockup that used to sit here:
+// this is one site, and the logo above the marketing pages is the logo above the app.
+import siteMark from '../../img/GLKB_logo_icon.png';
+import siteWordmark from '../../img/navbar/logo.png';
 
 /** Where the article list lives now that About owns it. */
 export const BLOG_LIST_PATH = '/about#from-the-lab';
@@ -33,7 +36,8 @@ export const SiteNav = ({ active, onGetStarted }) => {
                 onClick={() => navigate('/about')}
                 aria-label="GLKB"
             >
-                <img src={siteLogo} alt="GLKB" />
+                <img className="site-logo-mark" src={siteMark} alt="" />
+                <img className="site-logo-wordmark" src={siteWordmark} alt="GLKB" />
             </button>
             <nav className="site-nav-actions">
                 {active === 'home' ? null : (
@@ -41,13 +45,10 @@ export const SiteNav = ({ active, onGetStarted }) => {
                         Home
                     </button>
                 )}
-                <button
-                    type="button"
-                    className={`site-nav-link${active === 'blog' ? ' is-active' : ''}`}
-                    onClick={() => navigate(BLOG_LIST_PATH)}
-                >
-                    Our Blog
-                </button>
+                {/* Our Blog is hidden from the bar. The articles are a section of About
+                    rather than a page of their own, so the link pointed at an anchor on
+                    the page the reader was most likely already on. They are still reached
+                    from "From the Lab", and BLOG_LIST_PATH still routes. */}
                 <button
                     type="button"
                     className="site-nav-link"
@@ -87,7 +88,10 @@ export const SiteFooter = ({ withCta = true }) => {
             </section>
             )}
             <footer className="site-footer">
-                <img className="site-footer-logo" src={siteLogo} alt="GLKB" />
+                <span className="site-footer-logo">
+                    <img className="site-logo-mark" src={siteMark} alt="" />
+                    <img className="site-logo-wordmark" src={siteWordmark} alt="GLKB" />
+                </span>
                 <div className="site-footer-row">
                     <div className="site-footer-links">
                         <button type="button" onClick={() => navigate('/terms')}>Terms of Use</button>

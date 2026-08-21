@@ -6,21 +6,21 @@
  * markdown refers to, so the index page can read a post's metadata without
  * rendering the article.
  */
-import glkb01 from '../../img/blog/glkb-01-two-kinds.png';
-import glkb02 from '../../img/blog/glkb-02-funnel.png';
-import glkb03 from '../../img/blog/glkb-03-schema.png';
-import glkb04 from '../../img/blog/glkb-04-retrieval.png';
-import glkb05 from '../../img/blog/glkb-05-rfx6.png';
-import glkb06 from '../../img/blog/glkb-06-investigate.png';
-import inv01 from '../../img/blog/inv-01-pipeline.png';
-import inv02 from '../../img/blog/inv-02-architecture.png';
-import inv03 from '../../img/blog/inv-03-retrieval.png';
-import inv04 from '../../img/blog/inv-04-funnel.png';
-import inv05 from '../../img/blog/inv-05-claim-centric.png';
-import inv06 from '../../img/blog/inv-06-verification.png';
-import inv07 from '../../img/blog/inv-07-report-anatomy.png';
-import inv08 from '../../img/blog/inv-08-positioning.png';
-import inv09 from '../../img/blog/inv-09-search-mode.png';
+import glkb01 from '../../img/blog/glkb-01-layers.svg';
+import glkb02 from '../../img/blog/glkb-02-funnel.svg';
+import glkb03 from '../../img/blog/glkb-03-schema.svg';
+import glkb04 from '../../img/blog/glkb-04-retrieval.svg';
+import glkb05 from '../../img/blog/glkb-05-rfx6.svg';
+import glkb06 from '../../img/blog/glkb-06-investigate.svg';
+import fig01 from '../../img/blog/fig-01-pipeline.svg';
+import fig02 from '../../img/blog/fig-02-architecture.svg';
+import fig03 from '../../img/blog/fig-03-retrieval.svg';
+import fig04 from '../../img/blog/fig-04-funnel.svg';
+import fig05 from '../../img/blog/fig-05-claim-centric.svg';
+import fig06 from '../../img/blog/fig-06-verification.svg';
+import fig07 from '../../img/blog/fig-07-report-anatomy.svg';
+import fig08 from '../../img/blog/fig-08-positioning.svg';
+import fig09 from '../../img/blog/fig-09-search-mode.svg';
 
 import glkbArticle from './content/glkb-knowledge-graph.md';
 import investigateArticle from './content/investigate-auditable-research.md';
@@ -28,21 +28,21 @@ import { parseArticle } from './markdown';
 
 /** Markdown names an image by file name; webpack knows it by URL. */
 export const IMAGES = {
-    'glkb-01-two-kinds.png': glkb01,
-    'glkb-02-funnel.png': glkb02,
-    'glkb-03-schema.png': glkb03,
-    'glkb-04-retrieval.png': glkb04,
-    'glkb-05-rfx6.png': glkb05,
-    'glkb-06-investigate.png': glkb06,
-    'inv-01-pipeline.png': inv01,
-    'inv-02-architecture.png': inv02,
-    'inv-03-retrieval.png': inv03,
-    'inv-04-funnel.png': inv04,
-    'inv-05-claim-centric.png': inv05,
-    'inv-06-verification.png': inv06,
-    'inv-07-report-anatomy.png': inv07,
-    'inv-08-positioning.png': inv08,
-    'inv-09-search-mode.png': inv09,
+    'glkb-01-layers.svg': glkb01,
+    'glkb-02-funnel.svg': glkb02,
+    'glkb-03-schema.svg': glkb03,
+    'glkb-04-retrieval.svg': glkb04,
+    'glkb-05-rfx6.svg': glkb05,
+    'glkb-06-investigate.svg': glkb06,
+    'fig-01-pipeline.svg': fig01,
+    'fig-02-architecture.svg': fig02,
+    'fig-03-retrieval.svg': fig03,
+    'fig-04-funnel.svg': fig04,
+    'fig-05-claim-centric.svg': fig05,
+    'fig-06-verification.svg': fig06,
+    'fig-07-report-anatomy.svg': fig07,
+    'fig-08-positioning.svg': fig08,
+    'fig-09-search-mode.svg': fig09,
 };
 
 export const posts = [investigateArticle, glkbArticle].map(parseArticle);
