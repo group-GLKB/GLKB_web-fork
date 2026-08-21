@@ -44,7 +44,13 @@
     overflow-y: auto;
 }
 
-/* 707:2715 — the rail is headed by the blog's own name in brand blue. */
+/* 707:2715 — the rail is headed by the blog's own name in brand blue.
+   The design gives this row a fixed 34px box over 22px of text, with 4 of that
+   above: the remaining 8 are what separate it from the first ToC group, since
+   the rail itself stacks its children with no gap. Ours had only the 4, so the
+   contents list sat 8px too close under the back button. The 8 goes on as
+   padding rather than a height so the chevron stays centred on the text — the
+   design splits those jobs across two nested frames, 707:2715 and 707:2716. */
 .blog-toc-brand {
     border: none;
     background: none;
@@ -56,6 +62,7 @@
     width: 160px;
     margin: 0;
     padding-top: 4px;
+    padding-bottom: 8px;
     font-size: 14px;
     font-weight: 600;
     line-height: 22px;
