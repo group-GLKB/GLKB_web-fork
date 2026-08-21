@@ -9,7 +9,7 @@
     align-items: center;
     gap: 10px;
     background: var(--color-background-surface);
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--color-border-default);
 }
 
 .app-mobile-header-context {

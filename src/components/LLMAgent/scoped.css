@@ -1748,7 +1748,6 @@
     background-color: var(--color-grey-25);
     border-radius: 8px;
     border: 1.5px solid var(--color-border-default);
-    color: #333;
     color: var(--color-grey-600);
     cursor: pointer;
     display: flex;

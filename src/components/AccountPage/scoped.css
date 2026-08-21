@@ -441,8 +441,11 @@
     box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.12);
 }
 
+/* The palette's green-text role. Settings (244:5280) draws an error state and
+   no success state at all, so there is no designed colour to match here — but
+   an invented green next to a tokenised red is the wrong kind of consistent. */
 .settings-inline-success {
-    color: #16794C;
+    color: var(--color-status-active-text);
 }
 
 .settings-inline-error {

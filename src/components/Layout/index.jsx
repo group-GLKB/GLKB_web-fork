@@ -126,7 +126,7 @@ const AppLayout = () => {
                             window.dispatchEvent(new CustomEvent(SIDEBAR_OPEN_EVENT));
                         }}
                     >
-                        <MenuIcon sx={{ fontSize: 22, color: '#646464' }} />
+                        <MenuIcon sx={{ fontSize: 22, color: 'var(--color-text-tertiary)' }} />
                     </button>
                     <Link to="/" className="app-mobile-header-logo-link" aria-label="GLKB Home">
                         <img src={logoIcon} alt="GLKB logo" className="app-mobile-header-logo-icon" />
