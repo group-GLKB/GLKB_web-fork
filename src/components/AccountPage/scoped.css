@@ -14,7 +14,7 @@
     overflow: hidden;
 }
 
-/* The secondary rail: the app's own sidebar sits to its left. */
+/* The page's only rail — the app's sidebar is hidden on Settings. */
 .settings-nav {
     width: 280px;
     background: var(--color-background-surface);

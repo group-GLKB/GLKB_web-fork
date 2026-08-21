@@ -20,7 +20,12 @@ import {
 } from '@mui/material';
 
 import { ReactComponent as ChatIcon } from '../../img/llm/chat_message.svg';
+import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
 import { ReactComponent as MapIcon } from '../../img/llm/graph_share.svg';
+import {
+    forgetInvestigateConversations,
+    getInvestigateConversationIds,
+} from '../../utils/investigateConversations';
 import {
   fetchConversations,
   getConversations,
@@ -194,6 +199,11 @@ const History = () => {
     const [isPhoneDevice, setIsPhoneDevice] = useState(false);
     const [conversationBookmarks, setConversationBookmarks] = useState([]);
     const [graphBookmarks, setGraphBookmarks] = useState([]);
+
+    // Which of these were investigate runs, so the row can carry the microscope
+    // the design gives them (176:8230). Re-read whenever the list changes: a run
+    // started in this tab marks itself while History is mounted behind it.
+    const investigateIds = useMemo(() => getInvestigateConversationIds(), [conversations]);
 
     const normalizedChatItems = useMemo(() => (
         conversations.map((conversation) => ({
@@ -456,6 +466,7 @@ const History = () => {
         setIsDeleting(true);
         const idsToDelete = [...selectedIds];
         await Promise.allSettled(idsToDelete.map((id) => removeConversation(id)));
+        forgetInvestigateConversations(idsToDelete);
         setConversations((prev) => prev.filter((conversation) => !idsToDelete.includes(conversation.id)));
         setSelectedIds([]);
         setSelectMode(false);
@@ -514,6 +525,7 @@ const History = () => {
         } catch (error) {
             // Ignore delete failures.
         }
+        forgetInvestigateConversations(idToDelete);
         setConversations((prev) => prev.filter((item) => String(item.id) !== idToDelete));
         setSelectedIds((prev) => prev.filter((id) => String(id) !== idToDelete));
     };
@@ -774,7 +786,9 @@ const History = () => {
                                         key={`chat-${item.id}`}
                                         conversation={item.conversation}
                                         title={item.title}
-                                        leadingIcon={<ChatIcon />}
+                                        leadingIcon={investigateIds.has(item.id)
+                                            ? <InvestigateIcon />
+                                            : <ChatIcon />}
                                         subtitle={undefined}
                                         footerContent={(
                                             <div className="history-card-meta">

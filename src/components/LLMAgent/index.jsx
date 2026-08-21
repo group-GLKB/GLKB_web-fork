@@ -109,6 +109,7 @@ import {
     subscribeToNotifyPrefs,
 } from '../../service/notifications';
 import { clearActiveRun, setActiveRun } from '../../service/activeRun';
+import { markInvestigateConversation } from '../../utils/investigateConversations';
 import CiteDialog from '../Units/CiteDialog';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import ChatSearchBar from './ChatSearchBar';
@@ -976,6 +977,9 @@ const MessageCard = React.memo(function MessageCard({
             reference,
             number: getReferenceNumber(href),
             rect: element.getBoundingClientRect(),
+            // kept as well as the rect so the card can re-measure and follow the
+            // citation when something scrolls, rather than closing
+            element,
         });
     };
 
@@ -1472,6 +1476,7 @@ const MessageCard = React.memo(function MessageCard({
                                                     reference={hoverCard.reference}
                                                     number={hoverCard.number}
                                                     anchorRect={hoverCard.rect}
+                                                    anchorEl={hoverCard.element}
                                                     isBookmarked={bookmarkedPmids.has(
                                                         String(extractPmidFromReference(hoverCard.reference)),
                                                     )}
@@ -2324,6 +2329,12 @@ function LLMAgent() {
             } catch (error) {
                 logDev('[LLM] Failed to create conversation', error);
             }
+        }
+        // History tells an investigate conversation from a chat by its icon, and the
+        // conversation list the API returns carries no such flag — so note it here,
+        // where the app is the one deciding.
+        if (investigateEnabled && historyId) {
+            markInvestigateConversation(historyId);
         }
         if (resetInvestigateSession) {
             sessionIdRef.current = null;
@@ -3536,16 +3547,30 @@ function LLMAgent() {
         setSelectedCitation(null);
     };
 
+    // Hovering a citation brings its entry into view in the references panel.
+    //
+    // Deliberately not scrollIntoView: that scrolls *every* scrollable ancestor
+    // of the target, not just the list, so bringing an entry to the middle of
+    // the panel also nudged the column the citation itself lives in. The chip
+    // slid out from under the pointer, which is a mouseout, which closed the
+    // card the hover had just opened — the card blinked away exactly as the
+    // scroll arrived. Scrolling the list and nothing else leaves the chip where
+    // the pointer left it.
     useEffect(() => {
-        if (!hoveredPubmedId || !referencesListRef.current) return;
+        const list = referencesListRef.current;
+        if (!hoveredPubmedId || !list) return;
 
-        const targetElement = document.querySelector(`[data-pubmed-id="${hoveredPubmedId}"]`);
-        if (targetElement) {
-            targetElement.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center'
-            });
-        }
+        // Scoped to the list for the same reason: both the desktop panel and the
+        // mobile drawer mark their entries, and a document-wide query answers
+        // with whichever is first in the DOM rather than the one on screen.
+        const target = list.querySelector(`[data-pubmed-id="${hoveredPubmedId}"]`);
+        if (!target) return;
+
+        // Rects rather than offsetTop: offsetTop is measured from the nearest
+        // positioned ancestor, which is not necessarily this list.
+        const offset = target.getBoundingClientRect().top - list.getBoundingClientRect().top;
+        const centred = offset - (list.clientHeight - target.offsetHeight) / 2;
+        list.scrollTo({ top: Math.max(0, list.scrollTop + centred), behavior: 'smooth' });
     }, [hoveredPubmedId]);
 
     const handleDownloadConversation = (messageIndex) => {

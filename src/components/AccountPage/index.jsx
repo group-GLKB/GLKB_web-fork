@@ -156,14 +156,11 @@ const AccountPage = () => {
             setShowAvatarModal(false);
             return;
         }
-        // The contract takes 1..16 and has no way to say "none", so clearing a
-        // picture that was already saved is not something this can do yet.
+        // Nothing picked, nothing saved: the row is already showing the default.
+        // (The contract takes 1..16 and cannot say "none", so there is no way to
+        // go back to the default once a picture is saved either.)
         if (pickedAvatar === null) {
-            if (avatarId === null) {
-                setShowAvatarModal(false);
-                return;
-            }
-            setAvatarError('Removing a picture once it is saved is not supported yet.');
+            setShowAvatarModal(false);
             return;
         }
         setSavingAvatar(true);
@@ -564,21 +561,9 @@ const AccountPage = () => {
                     <div className="modal">
                         <div className="modal-title">Choose a profile picture</div>
                         <div className="avatar-grid" role="radiogroup" aria-label="Profile picture">
-                            {/* Having no picture is a choice, and the row falls back
-                                to the default when it is the one made. */}
-                            <button
-                                type="button"
-                                role="radio"
-                                aria-checked={pickedAvatar === null}
-                                aria-label="No picture"
-                                title="No picture"
-                                className={`avatar-option${pickedAvatar === null ? ' is-picked' : ''}`}
-                                onClick={() => setPickedAvatar(null)}
-                            >
-                                <span className="avatar-option-mark settings-avatar-default">
-                                    <PersonIcon />
-                                </span>
-                            </button>
+                            {/* The default is not a tile. Having chosen nothing is
+                                already the default, so listing it would be offering
+                                the state you are in as a thing to switch to. */}
                             {AVATARS.map((avatar) => (
                                 <button
                                     key={avatar.id}

@@ -66,6 +66,7 @@ const ReferenceHoverCard = ({
     reference,
     number,
     anchorRect,
+    anchorEl,
     isBookmarked,
     onBookmark,
     onCite,
@@ -83,15 +84,35 @@ const ReferenceHoverCard = ({
         setPos(place(anchorRect, ref.current.offsetHeight));
     }, [anchorRect, reference]);
 
+    // A fixed-position card cannot ride along with a citation that scrolls away, so it used to
+    // close on any scroll at all, captured from anywhere in the document. That included the
+    // references panel scrolling to the hovered entry — something this very hover sets off — and
+    // the card blinked away just as the panel arrived.
+    //
+    // Given the citation's element it can follow instead: re-place on scroll, and close only once
+    // the citation has genuinely left the viewport. Without one (the card can be driven by a bare
+    // rect) there is nothing to re-measure, so closing remains the only honest option.
     useEffect(() => {
         const close = () => onMouseLeave?.();
-        window.addEventListener('scroll', close, true);
+        const onScroll = () => {
+            if (!anchorEl || !ref.current) {
+                close();
+                return;
+            }
+            const rect = anchorEl.getBoundingClientRect();
+            if (rect.bottom < 0 || rect.top > window.innerHeight) {
+                close();
+                return;
+            }
+            setPos(place(rect, ref.current.offsetHeight));
+        };
+        window.addEventListener('scroll', onScroll, true);
         window.addEventListener('resize', close);
         return () => {
-            window.removeEventListener('scroll', close, true);
+            window.removeEventListener('scroll', onScroll, true);
             window.removeEventListener('resize', close);
         };
-    }, [onMouseLeave]);
+    }, [anchorEl, onMouseLeave]);
 
     if (!reference) return null;
 

@@ -58,10 +58,10 @@ const AppLayout = () => {
         || location.pathname.startsWith('/terms');
     const isAccountPage = location.pathname.startsWith('/account');
     const isChatPage = location.pathname.startsWith('/chat');
-    // Settings keeps the app's sidebar and puts its own section nav beside it as
-    // a secondary rail, per Figma 244:5280 — About and the blog are the only
-    // pages that stand on their own.
-    const hideSidebar = isAboutPage || isBlogPage || isLegalPage;
+    // Settings stands on its own, as About, the blog and the notices do: its
+    // section nav is a rail already, and two rails side by side spend 300px to
+    // say the same thing twice. That nav carries its own way back to the app.
+    const hideSidebar = isAboutPage || isBlogPage || isLegalPage || isAccountPage;
     const showMobileHeader = isPhoneDevice && !isAboutPage && !isBlogPage && !isLegalPage
         && !isMobileHeaderHidden;
 
