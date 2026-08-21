@@ -17,14 +17,11 @@ import {
 import {
   Box,
   Checkbox,
-  Divider,
   IconButton,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
   Typography,
 } from '@mui/material';
+
+import { ContextMenu, ContextMenuItem } from '../ContextMenu';
 
 const getDefaultTitle = (conversation) => (
     conversation?.leadingTitle || conversation?.title || 'Untitled conversation'
@@ -257,98 +254,42 @@ const ConversationCard = ({
                 </Box>
             </div>
             {hasMenu && (
-                <Menu
+                <ContextMenu
                     anchorEl={menuAnchorEl}
                     open={isMenuOpen}
                     onClose={handleCloseMenu}
                     disableRestoreFocus
-                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                    MenuListProps={{
-                        sx: {
-                            py: 0.5,
-                        },
-                    }}
-                    PaperProps={{
-                        sx: {
-                            minWidth: 176,
-                            borderRadius: 2,
-                            boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
-                            border: '1px solid var(--color-border-default)',
-                            padding: '4px',
-                            '& .MuiMenuItem-root': {
-                                fontFamily: 'Geist, sans-serif',
-                                fontSize: '10px',
-                                lineHeight: '12px',
-                                fontWeight: 400,
-                                color: 'var(--color-text-secondary)',
-                                minHeight: 20,
-                                height: 20,
-                                borderRadius: '4px',
-                                gap: '4px',
-                                px: '4px',
-                                py: 0,
-                            },
-                        },
-                    }}
                 >
                     {onRename && (
-                        <MenuItem onClick={handleStartRename}>
-                            <ListItemIcon sx={{ minWidth: 0, color: 'var(--color-text-tertiary)' }}>
-                                <DriveFileRenameOutlineIcon sx={{ fontSize: 12 }} />
-                            </ListItemIcon>
-                            <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
-                                Rename
-                            </ListItemText>
-                        </MenuItem>
+                        <ContextMenuItem
+                            icon={<DriveFileRenameOutlineIcon />}
+                            onClick={handleStartRename}
+                        >
+                            Rename
+                        </ContextMenuItem>
                     )}
                     {onBookmark && (
-                        <MenuItem onClick={handleBookmark}>
-                            <ListItemIcon sx={{ minWidth: 0, color: 'var(--color-text-tertiary)' }}>
-                                <BookmarkMenuIcon sx={{ fontSize: 12 }} />
-                            </ListItemIcon>
-                            <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
-                                {resolvedBookmarkLabel}
-                            </ListItemText>
-                        </MenuItem>
+                        <ContextMenuItem icon={<BookmarkMenuIcon />} onClick={handleBookmark}>
+                            {resolvedBookmarkLabel}
+                        </ContextMenuItem>
                     )}
                     {onManageFolders && (
-                        <MenuItem onClick={() => {
-                            handleCloseMenu();
-                            onManageFolders(conversation);
-                        }}>
-                            <ListItemIcon sx={{ minWidth: 0, color: 'var(--color-text-tertiary)' }}>
-                                <FolderOutlinedIcon sx={{ fontSize: 12 }} />
-                            </ListItemIcon>
-                            <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
-                                {folderLabel}
-                            </ListItemText>
-                        </MenuItem>
+                        <ContextMenuItem
+                            icon={<FolderOutlinedIcon />}
+                            onClick={() => {
+                                handleCloseMenu();
+                                onManageFolders(conversation);
+                            }}
+                        >
+                            {folderLabel}
+                        </ContextMenuItem>
                     )}
                     {onDelete && (
-                        <>
-                            {(onRename || onBookmark || onManageFolders) && <Divider />}
-                            <MenuItem onClick={handleDelete} sx={{ color: 'var(--color-status-error-text) !important' }}>
-                                <ListItemIcon sx={{ minWidth: 0, color: 'var(--color-status-error-text)' }}>
-                                    <DeleteOutlineIcon sx={{ fontSize: 12 }} />
-                                </ListItemIcon>
-                                <ListItemText
-                                    primaryTypographyProps={{
-                                        sx: {
-                                            color: 'var(--color-status-error-text)',
-                                            fontFamily: 'Geist, sans-serif',
-                                            fontSize: '10px',
-                                            lineHeight: '12px',
-                                            fontWeight: 400,
-                                        },
-                                    }}
-                                >
-                                    Delete
-                                </ListItemText>
-                            </MenuItem>
-                        </>
+                        <ContextMenuItem icon={<DeleteOutlineIcon />} danger onClick={handleDelete}>
+                            Delete
+                        </ContextMenuItem>
                     )}
-                </Menu>
+                </ContextMenu>
             )}
         </Box>
     );

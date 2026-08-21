@@ -42,6 +42,8 @@ import {
     Typography,
 } from '@mui/material';
 
+import { ContextMenu, ContextMenuItem } from '../Units/ContextMenu';
+
 import { ReactComponent as FolderOpenIcon } from '../../img/folder_open.svg';
 import { ReactComponent as ChatIcon } from '../../img/llm/chat_message.svg';
 import { ReactComponent as ShareIcon } from '../../img/llm/graph_share.svg';
@@ -478,61 +480,23 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                     <MoreHorizIcon sx={{ fontSize: 12 }} />
                 </IconButton>
             </div>
-            <Menu
+            <ContextMenu
                 anchorEl={menuAnchorEl}
                 open={isMenuOpen}
                 onClose={handleCloseMenu}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                MenuListProps={{
-                    sx: {
-                        py: 0.5,
-                    },
-                }}
-                PaperProps={{
-                    sx: {
-                        minWidth: 176,
-                        borderRadius: 2,
-                        boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
-                        '& .MuiMenuItem-root': {
-                            fontFamily: 'Geist, sans-serif',
-                            fontSize: '10px',
-                            lineHeight: '12px',
-                            fontWeight: 400,
-                            color: 'var(--color-text-secondary)',
-                            py: 0.75,
-                            px: 1.25,
-                        },
-                    },
-                }}
             >
-                <MenuItem onClick={handleRemoveBookmark}>
-                    <ListItemIcon sx={{ minWidth: 26, color: 'var(--color-text-secondary)' }}>
-                        <BookmarkIcon sx={{ fontSize: 12 }} />
-                    </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
-                        Remove bookmark
-                    </ListItemText>
-                </MenuItem>
+                <ContextMenuItem icon={<BookmarkIcon />} onClick={handleRemoveBookmark}>
+                    Remove bookmark
+                </ContextMenuItem>
                 {onManageFolders && (
-                    <MenuItem onClick={handleManageFolders}>
-                        <ListItemIcon sx={{ minWidth: 26, color: 'var(--color-text-secondary)' }}>
-                            <FolderOutlinedIcon sx={{ fontSize: 12 }} />
-                        </ListItemIcon>
-                        <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
-                            Add to folder
-                        </ListItemText>
-                    </MenuItem>
+                    <ContextMenuItem icon={<FolderOutlinedIcon />} onClick={handleManageFolders}>
+                        Add to folder
+                    </ContextMenuItem>
                 )}
-                <MenuItem onClick={handleCite}>
-                    <ListItemIcon sx={{ minWidth: 26, color: 'var(--color-text-secondary)' }}>
-                        <FormatQuoteOutlinedIcon sx={{ fontSize: 12 }} />
-                    </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
-                        Cite
-                    </ListItemText>
-                </MenuItem>
-            </Menu>
+                <ContextMenuItem icon={<FormatQuoteOutlinedIcon />} onClick={handleCite}>
+                    Cite
+                </ContextMenuItem>
+            </ContextMenu>
         </Box>
     );
 };
@@ -596,35 +560,13 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
             <div className="library-folder-meta">
                 {folder?.chat_count ?? 0} chats / {folder?.ref_count ?? 0} references
             </div>
-            <Menu
+            <ContextMenu
                 anchorEl={menuAnchorEl}
                 open={isMenuOpen}
                 onClose={handleCloseMenu}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                MenuListProps={{
-                    sx: {
-                        py: 0.5,
-                    },
-                }}
-                PaperProps={{
-                    sx: {
-                        minWidth: 176,
-                        borderRadius: 2,
-                        boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
-                        '& .MuiMenuItem-root': {
-                            fontFamily: 'Geist, sans-serif',
-                            fontSize: '10px',
-                            lineHeight: '12px',
-                            fontWeight: 400,
-                            color: 'var(--color-text-secondary)',
-                            py: 0.75,
-                            px: 1.25,
-                        },
-                    },
-                }}
             >
-                <MenuItem
+                <ContextMenuItem
+                    icon={<DriveFileRenameOutlineIcon />}
                     onClick={() => {
                         handleCloseMenu();
                         if (onRename) {
@@ -632,14 +574,10 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                         }
                     }}
                 >
-                    <ListItemIcon sx={{ minWidth: 26, color: 'var(--color-text-secondary)' }}>
-                        <DriveFileRenameOutlineIcon sx={{ fontSize: 12 }} />
-                    </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
-                        Rename
-                    </ListItemText>
-                </MenuItem>
-                <MenuItem
+                    Rename
+                </ContextMenuItem>
+                <ContextMenuItem
+                    icon={<FileCopyOutlinedIcon />}
                     onClick={() => {
                         handleCloseMenu();
                         if (onDuplicate) {
@@ -647,40 +585,21 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                         }
                     }}
                 >
-                    <ListItemIcon sx={{ minWidth: 26, color: 'var(--color-text-secondary)' }}>
-                        <FileCopyOutlinedIcon sx={{ fontSize: 12 }} />
-                    </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
-                        Duplicate
-                    </ListItemText>
-                </MenuItem>
-                <MenuItem
+                    Duplicate
+                </ContextMenuItem>
+                <ContextMenuItem
+                    icon={<DeleteOutlineIcon />}
+                    danger
                     onClick={() => {
                         handleCloseMenu();
                         if (onDelete) {
                             onDelete(folder);
                         }
                     }}
-                    sx={{ color: 'var(--color-status-error-text) !important' }}
                 >
-                    <ListItemIcon sx={{ minWidth: 26, color: 'var(--color-status-error-text)' }}>
-                        <DeleteOutlineIcon sx={{ fontSize: 12 }} />
-                    </ListItemIcon>
-                    <ListItemText
-                        primaryTypographyProps={{
-                            sx: {
-                                color: 'var(--color-status-error-text)',
-                                fontFamily: 'Geist, sans-serif',
-                                fontSize: '10px',
-                                lineHeight: '12px',
-                                fontWeight: 400,
-                            },
-                        }}
-                    >
-                        Delete
-                    </ListItemText>
-                </MenuItem>
-            </Menu>
+                    Delete
+                </ContextMenuItem>
+            </ContextMenu>
         </div>
     );
 };

@@ -38,6 +38,8 @@ import {
   Typography,
   useMediaQuery,
 } from '@mui/material';
+
+import { ContextMenu, ContextMenuItem } from '../ContextMenu';
 import {
   styled,
   useTheme,
@@ -1083,72 +1085,24 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                     {drawerContent}
                 </PermanentDrawer>
             )}
-            <Menu
+            <ContextMenu
                 anchorEl={recentMenuAnchorEl}
                 open={isRecentMenuOpen}
                 onClose={handleCloseRecentMenu}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                MenuListProps={{
-                    sx: {
-                        py: 0.5,
-                    },
-                }}
-                PaperProps={{
-                    sx: {
-                        minWidth: 176,
-                        borderRadius: 2,
-                        boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
-                        '& .MuiMenuItem-root': {
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontSize: '10px',
-                            lineHeight: '12px',
-                            fontWeight: 400,
-                            color: 'var(--color-grey-900)',
-                            py: 0.75,
-                            px: 1.25,
-                        },
-                    },
-                }}
             >
-                <MenuItem onClick={handleRenameRecent}>
-                    <ListItemIcon sx={{ minWidth: 26, color: 'var(--color-grey-900)' }}>
-                        <DriveFileRenameOutlineIcon sx={{ fontSize: 12 }} />
-                    </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>Rename</ListItemText>
-                </MenuItem>
-                <MenuItem onClick={handleBookmarkRecent}>
-                    <ListItemIcon sx={{ minWidth: 26, color: 'var(--color-grey-900)' }}>
-                        {isRecentBookmarked ? (
-                            <BookmarkIcon sx={{ fontSize: 12 }} />
-                        ) : (
-                            <BookmarkBorderIcon sx={{ fontSize: 12 }} />
-                        )}
-                    </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '10px', lineHeight: '12px', fontWeight: 400 }}>
-                        {isRecentBookmarked ? 'Remove bookmark' : 'Bookmark'}
-                    </ListItemText>
-                </MenuItem>
-                <Divider sx={{ borderColor: 'var(--color-border-default)' }} />
-                <MenuItem onClick={handleDeleteRecent} sx={{ color: 'var(--color-status-error-text) !important' }}>
-                    <ListItemIcon sx={{ minWidth: 26, color: 'var(--color-status-error-text)' }}>
-                        <DeleteOutlineIcon sx={{ fontSize: 12 }} />
-                    </ListItemIcon>
-                    <ListItemText
-                        primaryTypographyProps={{
-                            sx: {
-                                color: 'var(--color-status-error-text)',
-                                fontFamily: 'DM Sans, sans-serif',
-                                fontSize: '10px',
-                                lineHeight: '12px',
-                                fontWeight: 400,
-                            },
-                        }}
-                    >
-                        Delete
-                    </ListItemText>
-                </MenuItem>
-            </Menu>
+                <ContextMenuItem icon={<DriveFileRenameOutlineIcon />} onClick={handleRenameRecent}>
+                    Rename
+                </ContextMenuItem>
+                <ContextMenuItem
+                    icon={isRecentBookmarked ? <BookmarkIcon /> : <BookmarkBorderIcon />}
+                    onClick={handleBookmarkRecent}
+                >
+                    {isRecentBookmarked ? 'Remove bookmark' : 'Bookmark'}
+                </ContextMenuItem>
+                <ContextMenuItem icon={<DeleteOutlineIcon />} danger onClick={handleDeleteRecent}>
+                    Delete
+                </ContextMenuItem>
+            </ContextMenu>
             <Menu
                 anchorEl={userMenuAnchorEl}
                 open={isUserMenuOpen}
