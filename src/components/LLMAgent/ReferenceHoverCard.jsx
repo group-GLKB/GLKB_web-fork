@@ -136,6 +136,10 @@ const ReferenceHoverCard = ({
             ref={ref}
             className="ref-hover-card"
             role="tooltip"
+            /* Which binding this card is showing. Two chips on one paper look identical from
+               the outside, so without this there is no way to tell a card that re-opened on
+               the second citation from one that never closed after the first. */
+            data-citation={citation?.marker || undefined}
             style={{
                 left: pos ? `${pos.left}px` : 0,
                 top: pos ? `${pos.top}px` : 0,

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1120 400" xmlns="http://www.w3.org/2000/svg" font-family="Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+          <defs>
+            <linearGradient id="gfnl" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#BFE6F0"/><stop offset="40%" stop-color="#6FC9DE"/>
+              <stop offset="78%" stop-color="#189CB4"/><stop offset="100%" stop-color="#0E9F6E"/>
+            </linearGradient>
+            <marker id="g2a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill="#9AA9BC"/>
+            </marker>
+          </defs>
+
+          <text x="40" y="30" font-size="11" font-weight="750" letter-spacing="1.6" fill="#9AA9BC">ENTITY PIPELINE — WHAT SURVIVES</text>
+
+          <path d="M40 56 L 1080 122 L 1080 190 L 40 256 Z" fill="url(#gfnl)" opacity=".92"/>
+          <g stroke="#fff" stroke-width="2.4" opacity=".85">
+            <path d="M330 74 L 330 238"/><path d="M650 94 L 650 218"/><path d="M880 108 L 880 204"/>
+          </g>
+          <g text-anchor="middle" fill="#fff">
+            <text x="185" y="156" font-size="30" font-weight="750">432,417,310</text>
+            <text x="185" y="180" font-size="12.5" opacity=".92">entity mentions found</text>
+            <text x="490" y="158" font-size="27" font-weight="750">341,319,268</text>
+            <text x="490" y="180" font-size="12.5" opacity=".92">mapped to a term (78.9%)</text>
+            <text x="765" y="158" font-size="24" font-weight="750">257,222,596</text>
+            <text x="765" y="180" font-size="12.5" opacity=".92">survived the LLM audit</text>
+            <text x="980" y="158" font-size="22" font-weight="750">500,272</text>
+            <text x="980" y="180" font-size="12.5" opacity=".92">distinct terms used</text>
+          </g>
+
+          <!-- relationship stage -->
+          <text x="40" y="304" font-size="11" font-weight="750" letter-spacing="1.6" fill="#9AA9BC">RELATIONSHIP PIPELINE</text>
+          <g>
+            <rect x="40" y="318" width="300" height="62" rx="10" fill="#F7F9FC" stroke="#E3E9F0"/>
+            <text x="60" y="345" font-size="21" font-weight="740" fill="#0A1628">19,407,338</text>
+            <text x="60" y="366" font-size="11.5" fill="#6B7C93">term pairs co-occurring ≥ 5 times</text>
+
+            <path d="M348 349 H 378" stroke="#9AA9BC" stroke-width="1.8" marker-end="url(#g2a)"/>
+
+            <rect x="386" y="318" width="330" height="62" rx="10" fill="#F7F9FC" stroke="#E3E9F0"/>
+            <text x="406" y="345" font-size="21" font-weight="740" fill="#0A1628">9,286,411</text>
+            <text x="406" y="366" font-size="11.5" fill="#6B7C93">had a sentence asserting a relationship (47.9%)</text>
+
+            <path d="M724 349 H 754" stroke="#9AA9BC" stroke-width="1.8" marker-end="url(#g2a)"/>
+
+            <rect x="762" y="318" width="318" height="62" rx="10" fill="#0A1628"/>
+            <text x="782" y="345" font-size="21" font-weight="740" fill="#5EE7F5">14,634,427</text>
+            <text x="782" y="366" font-size="11.5" fill="#94A3B8">typed relationships in the graph</text>
+          </g>
+        </svg>

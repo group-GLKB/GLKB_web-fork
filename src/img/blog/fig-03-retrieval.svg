@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1200 470" xmlns="http://www.w3.org/2000/svg" font-family="Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+          <!-- stage strip -->
+          <g font-size="11" font-weight="750" letter-spacing="1.6" fill="#9AA9BC">
+            <text x="40" y="28">QUESTION</text>
+            <text x="300" y="28">SIX CHANNELS, IN PARALLEL</text>
+            <text x="852" y="28">FUSE</text>
+            <text x="938" y="28">RANK</text>
+            <text x="1160" y="28" text-anchor="end">KEEP</text>
+          </g>
+          <path d="M40 40 H1160" stroke="#EEF2F7" stroke-width="1.5"/>
+
+          <!-- question -->
+          <circle cx="72" cy="238" r="16" fill="#0A1628"/>
+          <circle cx="72" cy="238" r="26" fill="none" stroke="#0A1628" stroke-opacity=".16" stroke-width="1.5"/>
+
+          <!-- ribbons -->
+          <g fill="none" stroke-width="15" stroke-linecap="round" opacity=".92">
+            <path d="M96 238 C 210 238, 220 78, 330 78 L 700 78 C 800 78, 806 238, 862 238" stroke="#2C7BE5"/>
+            <path d="M96 238 C 210 238, 220 142, 330 142 L 700 142 C 800 142, 806 238, 862 238" stroke="#0B8FA8"/>
+            <path d="M96 238 C 210 238, 220 206, 330 206 L 700 206 C 800 206, 806 238, 862 238" stroke="#7A5AF8"/>
+            <path d="M96 238 C 210 238, 220 270, 330 270 L 700 270 C 800 270, 806 238, 862 238" stroke="#E08A0B"/>
+            <path d="M96 238 C 210 238, 220 334, 330 334 L 700 334 C 800 334, 806 238, 862 238" stroke="#DB2777"/>
+            <path d="M96 238 C 210 238, 220 400, 330 400 L 700 400 C 800 400, 806 238, 862 238" stroke="#C6D2E0" stroke-dasharray="1 13"/>
+          </g>
+
+          <!-- channel labels ON the flat run -->
+          <g text-anchor="middle" font-size="13" font-weight="700" fill="#fff">
+            <text x="515" y="83">dense vector</text>
+            <text x="515" y="147">exact names</text>
+            <text x="515" y="211">graph walk</text>
+            <text x="515" y="275">citation trail</text>
+            <text x="515" y="339">second pass</text>
+          </g>
+          <text x="515" y="405" font-size="13" font-weight="700" fill="#8B9AAE" text-anchor="middle">agentic · optional</text>
+
+          <!-- fusion neck -->
+          <rect x="858" y="186" width="11" height="104" rx="5.5" fill="#0A1628"/>
+
+          <!-- lens = rerank -->
+          <path d="M968 168 Q 1012 238 968 308 Q 924 238 968 168 Z" fill="#E08A0B" fill-opacity=".14" stroke="#E08A0B" stroke-width="2"/>
+
+          <!-- connector -->
+          <path d="M1016 238 H 1050" stroke="#C6D2E0" stroke-width="2" stroke-dasharray="4 4"/>
+
+          <!-- output -->
+          <rect x="1050" y="190" width="118" height="96" rx="14" fill="#0A1628"/>
+          <text x="1109" y="238" font-size="34" font-weight="740" fill="#5EE7F5" text-anchor="middle">66</text>
+          <text x="1109" y="262" font-size="12" fill="#B9CBDD" text-anchor="middle">papers</text>
+
+          <!-- bottom annotation rail -->
+          <path d="M40 440 H1160" stroke="#EEF2F7" stroke-width="1.5"/>
+          <g font-size="12.5" fill="#6B7C93">
+            <text x="858" y="362" text-anchor="middle">pool of 300–900</text>
+            <text x="968" y="336" text-anchor="middle" font-size="0"> </text>
+            <text x="1109" y="336" text-anchor="middle">ranked, then pinned</text>
+          </g>
+          <g font-size="12.5" fill="#6B7C93">
+            <text x="40" y="462">Each channel searches independently — nothing is thrown away before fusion.</text>
+            <text x="1160" y="462" text-anchor="end">Every drug, trial or assay named in the question keeps a paper.</text>
+          </g>
+        </svg>

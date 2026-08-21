@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1200 420" xmlns="http://www.w3.org/2000/svg" font-family="Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+          <line x1="600" y1="30" x2="600" y2="392" stroke="#E3E9F0" stroke-width="1.5"/>
+
+          <!-- ============ LEFT ============ -->
+          <text x="46" y="42" font-size="12" font-weight="750" letter-spacing="1.6" fill="#9AA9BC">PAPER-CENTRIC</text>
+          <g>
+            <rect x="46" y="72" width="66" height="46" rx="8" fill="#2C7BE5" opacity=".85"/>
+            <rect x="46" y="140" width="66" height="46" rx="8" fill="#0B8FA8" opacity=".85"/>
+            <rect x="46" y="208" width="66" height="46" rx="8" fill="#E08A0B" opacity=".85"/>
+            <rect x="46" y="276" width="66" height="46" rx="8" fill="#DB2777" opacity=".85"/>
+          </g>
+          <g stroke="#C6D2E0" stroke-width="2.5">
+            <path d="M120 95 H 250"/><path d="M120 163 H 250"/><path d="M120 231 H 250"/><path d="M120 299 H 250"/>
+          </g>
+          <g fill="#F1F5FA" stroke="#E3E9F0">
+            <rect x="256" y="72" width="286" height="46" rx="8"/>
+            <rect x="256" y="140" width="286" height="46" rx="8"/>
+            <rect x="256" y="208" width="286" height="46" rx="8"/>
+            <rect x="256" y="276" width="286" height="46" rx="8"/>
+          </g>
+          <g fill="#9AA9BC">
+            <rect x="272" y="88" width="180" height="6" rx="3"/><rect x="272" y="100" width="120" height="6" rx="3"/>
+            <rect x="272" y="156" width="200" height="6" rx="3"/><rect x="272" y="168" width="96" height="6" rx="3"/>
+            <rect x="272" y="224" width="170" height="6" rx="3"/><rect x="272" y="236" width="140" height="6" rx="3"/>
+            <rect x="272" y="292" width="190" height="6" rx="3"/><rect x="272" y="304" width="110" height="6" rx="3"/>
+          </g>
+          <rect x="46" y="348" width="496" height="42" rx="9" fill="#FDF1F1" stroke="#F6C9CA"/>
+          <text x="66" y="374" font-size="14" font-weight="640" fill="#B3363A">Four separate paragraphs. The contradiction is never stated.</text>
+
+          <!-- ============ RIGHT ============ -->
+          <text x="646" y="42" font-size="12" font-weight="750" letter-spacing="1.6" fill="#E5484D">CLAIM-CENTRIC</text>
+          <g>
+            <rect x="646" y="72" width="52" height="40" rx="7" fill="#2C7BE5" opacity=".85"/>
+            <rect x="646" y="132" width="52" height="40" rx="7" fill="#0B8FA8" opacity=".85"/>
+            <rect x="646" y="192" width="52" height="40" rx="7" fill="#E08A0B" opacity=".85"/>
+            <rect x="646" y="252" width="52" height="40" rx="7" fill="#DB2777" opacity=".85"/>
+          </g>
+          <!-- crossing edges -->
+          <g fill="none" stroke-width="2.2" opacity=".75">
+            <path d="M702 92 C 780 92, 800 150, 872 150" stroke="#2C7BE5"/>
+            <path d="M702 152 C 780 152, 800 150, 872 150" stroke="#0B8FA8"/>
+            <path d="M702 212 C 780 212, 800 150, 872 150" stroke="#E08A0B"/>
+            <path d="M702 272 C 780 272, 800 150, 872 150" stroke="#DB2777"/>
+            <path d="M702 100 C 790 100, 810 288, 872 288" stroke="#2C7BE5" opacity=".4"/>
+            <path d="M702 220 C 790 220, 810 288, 872 288" stroke="#E08A0B" opacity=".4"/>
+          </g>
+
+          <!-- conflicted claim node -->
+          <g>
+            <rect x="872" y="106" width="282" height="88" rx="12" fill="#fff" stroke="#E5484D" stroke-width="2"/>
+            <rect x="872" y="106" width="141" height="88" rx="12" fill="#0E9F6E" fill-opacity=".08"/>
+            <path d="M1013 106 v88" stroke="#E5484D" stroke-width="2" stroke-dasharray="5 4"/>
+            <text x="942" y="140" font-size="12" font-weight="750" fill="#0E9F6E" text-anchor="middle">SUPPORTS</text>
+            <g fill="#0E9F6E"><circle cx="922" cy="164" r="7"/><circle cx="962" cy="164" r="7"/></g>
+            <text x="1084" y="140" font-size="12" font-weight="750" fill="#E5484D" text-anchor="middle">REFUTES</text>
+            <g fill="#E5484D"><circle cx="1064" cy="164" r="7"/><circle cx="1104" cy="164" r="7"/></g>
+            <rect x="1024" y="76" width="130" height="24" rx="12" fill="#E5484D"/>
+            <text x="1089" y="92" font-size="11" font-weight="750" fill="#fff" letter-spacing=".8" text-anchor="middle">CONFLICT</text>
+          </g>
+          <!-- clean claim node -->
+          <g>
+            <rect x="872" y="256" width="282" height="64" rx="12" fill="#F7F9FC" stroke="#E3E9F0"/>
+            <text x="892" y="284" font-size="12" font-weight="700" fill="#9AA9BC">CONSISTENT</text>
+            <g fill="#0E9F6E"><circle cx="900" cy="302" r="6"/><circle cx="924" cy="302" r="6"/></g>
+          </g>
+          <rect x="646" y="348" width="508" height="42" rx="9" fill="#F0FAF6" stroke="#BFE9D8"/>
+          <text x="666" y="374" font-size="14" font-weight="640" fill="#0B5B42">Two sides, different papers, and a verdict on why.</text>
+        </svg>

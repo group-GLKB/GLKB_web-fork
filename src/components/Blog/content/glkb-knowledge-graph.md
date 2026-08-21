@@ -54,7 +54,7 @@ The problem is not that the knowledge is missing. It is that the largest store o
 
 GLKB closes that gap by extracting entities and relationships from PubMed, normalizing them against the same ontologies the curated databases use, and loading both into one graph. Because the two halves share a vocabulary, a single query can cross from a curated gene–pathway edge to the literature evidence supporting a gene–disease claim, and land on the PMIDs.
 
-![GLKB’s three parts. The controlled vocabulary is not a convenience — it is the mechanism. Because extracted entities and curated records resolve to the same term identifiers, the literature half and the expert half become one traversable graph.](glkb-01-two-kinds.png)
+![GLKB’s three parts. The controlled vocabulary is not a convenience — it is the mechanism. Because extracted entities and curated records resolve to the same term identifiers, the literature half and the expert half become one traversable graph.](glkb-01-layers.svg)
 
 ### What GLKB Is {#what-glkb-is}
 
@@ -88,7 +88,7 @@ For each co-occurring term pair, sentences are reranked by a BGE model; up to 10
 
 The attrition is the interesting part. Of 432 million raw entity mentions, 60% survive to become graph annotations. Of 19.4 million term pairs that co-occur at least five times, fewer than half turn out to have any sentence actually asserting a relationship between them.
 
-![The construction funnel. Roughly 40% of raw entity mentions never become graph annotations, and more than half of frequently co-occurring term pairs never become edges. Both are deliberate: co-occurrence is not a relationship, and a tagger’s confidence is not evidence.](glkb-02-funnel.png)
+![The construction funnel. Roughly 40% of raw entity mentions never become graph annotations, and more than half of frequently co-occurring term pairs never become edges. Both are deliberate: co-occurrence is not a relationship, and a tagger’s confidence is not evidence.](glkb-02-funnel.svg)
 
 :::callout Why this matters if you use the graph
 An edge in GLKB’s semantic network means at least one PubMed sentence asserts this relationship, and a model classified the assertion into a type. It does not mean the relationship is true, replicated, or uncontested. The graph carries the evidence so you can check — the Cooccur edge stores the supporting article count, and every extracted relationship traces back to the articles it was summarized from.
@@ -106,7 +106,7 @@ Every biomedical entity carries one shared Vocabulary label, subtyped by a singl
 | Descriptive (link only to other terms) | Pathway, BiologicalProcess, CellularComponent, MolecularFunction |
 | Bibliographic (the document layer) | Article, Journal |
 
-![The schema. The source property on every association edge is what lets you separate expert-curated claims from literature-extracted ones inside a single query — and the Cooccur edge, weighted by supporting article count, is what makes statistical association testing possible directly on the graph.](glkb-03-schema.png)
+![The schema. The source property on every association edge is what lets you separate expert-curated claims from literature-extracted ones inside a single query — and the Cooccur edge, weighted by supporting article count, is what makes statistical association testing possible directly on the graph.](glkb-03-schema.svg)
 
 | Component | Scale | What it gives you |
 | --- | --- | --- |
@@ -123,7 +123,7 @@ Every biomedical entity carries one shared Vocabulary label, subtyped by a singl
 
 The same graph supports three retrieval modalities, and which one you want depends on how well-formed your question is.
 
-![The three retrieval modes are complementary, not alternatives. A well-built agent uses all three: textual to resolve what you named, semantic to find what you did not, structural to ask questions that involve more than one entity at a time.](glkb-04-retrieval.png)
+![The three retrieval modes are complementary, not alternatives. A well-built agent uses all three: textual to resolve what you named, semantic to find what you did not, structural to ask questions that involve more than one entity at a time.](glkb-04-retrieval.svg)
 
 All three are reachable from a web interface with interactive graph visualization, from RESTful APIs, and — for the embeddings — as a downloadable data dump you can load into any model.
 
@@ -156,7 +156,7 @@ This is the use case most bench scientists will recognize. You have a differenti
 
 RFX6 had recently been identified as a hub gene for beta-cell function, but its relationship to other type 2 diabetes genes was unclear. Here is what the graph query looks like end to end.
 
-![The RFX6 workflow. Two chi-square screens against literature co-occurrence reduce ~9,700 differentially expressed genes to 72 candidates. As an unprompted check, 19 of the 36 curated T2D causal genes from the Type 2 Diabetes Knowledge Portal fall inside that set.](glkb-05-rfx6.png)
+![The RFX6 workflow. Two chi-square screens against literature co-occurrence reduce ~9,700 differentially expressed genes to 72 candidates. As an unprompted check, 19 of the 36 curated T2D causal genes from the Type 2 Diabetes Knowledge Portal fall inside that set.](glkb-05-rfx6.svg)
 
 The result that makes this more than a filtering exercise is the negative one. Of the 17 T2D causal genes that did not come out of the RFX6 screen, 15 also sit far from RFX6 in the co-occurrence clustering — which is a specific, falsifiable statement: RFX6 acts through insulin secretion and beta-cell development, and not through the other established T2D mechanisms.
 
@@ -191,7 +191,7 @@ Separating real statements from irrelevant ones at 0.99 shows the embeddings cap
 
 GLKB is infrastructure, and the clearest way to see what infrastructure is worth is to look at what gets built on it. Investigate, our deep-research agent, uses the graph in four distinct places — and none of them would exist without it.
 
-![Investigate treats GLKB as four capabilities at once. The graph walk is the one with no substitute: it reaches mechanism papers that share no keywords with the question, by following curated relationships between the entities involved.](glkb-06-investigate.png)
+![Investigate treats GLKB as four capabilities at once. The graph walk is the one with no substitute: it reaches mechanism papers that share no keywords with the question, by following curated relationships between the entities involved.](glkb-06-investigate.svg)
 
 The last row is the one we did not anticipate. Because GLKB holds expert-curated edges alongside literature-extracted ones, an agent can check the relations it pulled out of a paper against relations that were independently curated. The knowledge base becomes not just the source but the auditor.
 

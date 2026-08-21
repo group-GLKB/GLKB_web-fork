@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1200 500" xmlns="http://www.w3.org/2000/svg" font-family="Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+          <!-- inflow -->
+          <text x="600" y="30" font-size="12" font-weight="750" letter-spacing="1.6" fill="#9AA9BC" text-anchor="middle">DRAFT CLAIMS</text>
+          <g fill="#9AA9BC">
+            <circle cx="560" cy="52" r="5"/><circle cx="586" cy="46" r="5"/><circle cx="612" cy="52" r="5"/><circle cx="638" cy="46" r="5"/>
+          </g>
+
+          <!-- discard gutter -->
+          <rect x="1006" y="66" width="150" height="368" rx="12" fill="#FDF1F1" stroke="#F6C9CA" stroke-dasharray="6 5"/>
+          <text x="1081" y="94" font-size="11.5" font-weight="750" letter-spacing="1.2" fill="#E5484D" text-anchor="middle">DISCARDED</text>
+
+          <!-- plate builder -->
+          <g>
+            <!-- plate 1 -->
+            <rect x="330" y="84" width="600" height="34" rx="10" fill="#0A1628"/>
+            <g fill="#F7F9FC"><circle cx="430" cy="101" r="6"/><circle cx="530" cy="101" r="6"/><circle cx="630" cy="101" r="6"/><circle cx="730" cy="101" r="6"/><circle cx="830" cy="101" r="6"/></g>
+            <circle cx="66" cy="101" r="17" fill="#0B8FA8"/><text x="66" y="107" font-size="14" font-weight="750" fill="#fff" text-anchor="middle">1</text>
+            <text x="98" y="97" font-size="16.5" font-weight="700" fill="#0A1628">Verbatim span</text>
+            <text x="98" y="117" font-size="12.5" fill="#6B7C93">code · quotes must be literal</text>
+            <path d="M934 101 h 64" stroke="#E5484D" stroke-width="2" stroke-dasharray="4 4"/>
+            <circle cx="1010" cy="101" r="5" fill="#E5484D"/>
+            <text x="1081" y="118" font-size="11" fill="#B3363A" text-anchor="middle">paraphrased quotes</text>
+
+            <!-- plate 2 -->
+            <rect x="330" y="170" width="600" height="34" rx="10" fill="#0A1628"/>
+            <g fill="#F7F9FC"><circle cx="450" cy="187" r="6"/><circle cx="560" cy="187" r="6"/><circle cx="670" cy="187" r="6"/><circle cx="780" cy="187" r="6"/></g>
+            <circle cx="66" cy="187" r="17" fill="#0B8FA8"/><text x="66" y="193" font-size="14" font-weight="750" fill="#fff" text-anchor="middle">2</text>
+            <text x="98" y="183" font-size="16.5" font-weight="700" fill="#0A1628">Citation guard</text>
+            <text x="98" y="203" font-size="12.5" fill="#6B7C93">code · uncited lines deleted</text>
+            <path d="M934 187 h 64" stroke="#E5484D" stroke-width="2" stroke-dasharray="4 4"/>
+            <circle cx="1010" cy="187" r="5" fill="#E5484D"/>
+            <text x="1081" y="204" font-size="11" fill="#B3363A" text-anchor="middle">unsourced assertions</text>
+
+            <!-- plate 3 — highlighted -->
+            <rect x="330" y="256" width="600" height="38" rx="11" fill="#0A1628" stroke="#5EE7F5" stroke-width="2"/>
+            <g fill="#F7F9FC"><circle cx="480" cy="275" r="6"/><circle cx="600" cy="275" r="6"/><circle cx="720" cy="275" r="6"/></g>
+            <circle cx="66" cy="275" r="17" fill="#0A1628"/><text x="66" y="281" font-size="14" font-weight="750" fill="#5EE7F5" text-anchor="middle">3</text>
+            <text x="98" y="271" font-size="16.5" font-weight="700" fill="#0A1628">Faithfulness</text>
+            <text x="98" y="291" font-size="12.5" fill="#6B7C93">inference · claim vs its evidence</text>
+            <path d="M934 275 h 64" stroke="#E5484D" stroke-width="2" stroke-dasharray="4 4"/>
+            <circle cx="1010" cy="275" r="5" fill="#E5484D"/>
+            <text x="1081" y="292" font-size="11" fill="#B3363A" text-anchor="middle">overreach</text>
+
+            <!-- plate 4 -->
+            <rect x="330" y="346" width="600" height="34" rx="10" fill="#0A1628"/>
+            <g fill="#F7F9FC"><circle cx="520" cy="363" r="6"/><circle cx="660" cy="363" r="6"/></g>
+            <circle cx="66" cy="363" r="17" fill="#6B7C93"/><text x="66" y="369" font-size="14" font-weight="750" fill="#fff" text-anchor="middle">4</text>
+            <text x="98" y="359" font-size="16.5" font-weight="700" fill="#0A1628">Structure check</text>
+            <text x="98" y="379" font-size="12.5" fill="#6B7C93">code · 21 rules, 2 rewrites</text>
+            <path d="M934 363 h 64" stroke="#E5484D" stroke-width="2" stroke-dasharray="4 4"/>
+            <circle cx="1010" cy="363" r="5" fill="#E5484D"/>
+            <text x="1081" y="380" font-size="11" fill="#B3363A" text-anchor="middle">vague, single-source</text>
+
+            <!-- plate 5 -->
+            <rect x="330" y="428" width="600" height="34" rx="10" fill="#0A1628"/>
+            <g fill="#F7F9FC"><circle cx="580" cy="445" r="6"/></g>
+            <circle cx="66" cy="445" r="17" fill="#E08A0B"/><text x="66" y="451" font-size="14" font-weight="750" fill="#fff" text-anchor="middle">5</text>
+            <text x="98" y="441" font-size="16.5" font-weight="700" fill="#0A1628">Polish rollback</text>
+            <text x="98" y="461" font-size="12.5" fill="#6B7C93">code · lost a number, undone</text>
+            <path d="M934 445 h 64" stroke="#E5484D" stroke-width="2" stroke-dasharray="4 4"/>
+            <circle cx="1010" cy="445" r="5" fill="#E5484D"/>
+            <text x="1081" y="462" font-size="11" fill="#B3363A" text-anchor="middle">lost specifics</text>
+          </g>
+
+          <!-- falling dots between plates -->
+          <g fill="#0E9F6E">
+            <circle cx="480" cy="145" r="4.5"/><circle cx="600" cy="140" r="4.5"/><circle cx="720" cy="148" r="4.5"/>
+            <circle cx="520" cy="228" r="4.5"/><circle cx="640" cy="232" r="4.5"/>
+            <circle cx="560" cy="318" r="4.5"/><circle cx="680" cy="322" r="4.5"/>
+            <circle cx="600" cy="404" r="4.5"/>
+          </g>
+          <text x="600" y="492" font-size="13" font-weight="700" fill="#0E9F6E" text-anchor="middle">what reaches you</text>
+        </svg>

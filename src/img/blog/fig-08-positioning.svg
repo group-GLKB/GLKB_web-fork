@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1200 500" xmlns="http://www.w3.org/2000/svg" font-family="Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+          <defs>
+            <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#0E9F6E" stop-opacity=".26"/><stop offset="100%" stop-color="#0E9F6E" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+
+          <rect x="150" y="50" width="900" height="380" rx="14" fill="#FAFCFE"/>
+          <g stroke="#E9EFF5" stroke-width="1.2">
+            <path d="M600 50 V430"/><path d="M150 240 H1050"/>
+          </g>
+
+          <!-- axes labels -->
+          <text x="600" y="466" font-size="13" font-weight="700" fill="#0A1628" text-anchor="middle">How much of the literature it actually reaches</text>
+          <text x="170" y="452" font-size="11.5" fill="#9AA9BC">one search</text>
+          <text x="1030" y="452" font-size="11.5" fill="#9AA9BC" text-anchor="end">exhaustive</text>
+          <g transform="translate(126,240) rotate(-90)">
+            <text x="0" y="0" font-size="13" font-weight="700" fill="#0A1628" text-anchor="middle">Whether you can verify it</text>
+          </g>
+          <text x="110" y="80" font-size="11.5" fill="#9AA9BC">auditable</text>
+          <text x="110" y="420" font-size="11.5" fill="#9AA9BC">asserted</text>
+
+          <!-- bubbles -->
+          <g opacity=".95">
+            <circle cx="300" cy="356" r="52" fill="#94A3B8" fill-opacity=".18" stroke="#B9C4D2"/>
+            <text x="300" y="352" font-size="13" font-weight="680" fill="#5C6B80" text-anchor="middle">General</text>
+            <text x="300" y="370" font-size="13" font-weight="680" fill="#5C6B80" text-anchor="middle">chat + search</text>
+
+            <circle cx="470" cy="180" r="52" fill="#7A5AF8" fill-opacity=".14" stroke="#C3B4FB"/>
+            <text x="470" y="176" font-size="13" font-weight="680" fill="#5B3FD1" text-anchor="middle">Citation</text>
+            <text x="470" y="194" font-size="13" font-weight="680" fill="#5B3FD1" text-anchor="middle">analytics</text>
+
+            <circle cx="700" cy="330" r="56" fill="#E08A0B" fill-opacity=".13" stroke="#F3CE8E"/>
+            <text x="700" y="326" font-size="13" font-weight="680" fill="#A96908" text-anchor="middle">General-purpose</text>
+            <text x="700" y="344" font-size="13" font-weight="680" fill="#A96908" text-anchor="middle">deep research</text>
+
+            <circle cx="760" cy="176" r="50" fill="#0B8FA8" fill-opacity=".13" stroke="#9BD6E2"/>
+            <text x="760" y="172" font-size="13" font-weight="680" fill="#0A7186" text-anchor="middle">Semantic</text>
+            <text x="760" y="190" font-size="13" font-weight="680" fill="#0A7186" text-anchor="middle">paper search</text>
+
+            <circle cx="930" cy="140" r="118" fill="url(#glow)"/>
+            <circle cx="930" cy="140" r="62" fill="#0A1628"/>
+            <text x="930" y="136" font-size="15.5" font-weight="740" fill="#fff" text-anchor="middle">Investigate</text>
+            <text x="930" y="156" font-size="11.5" fill="#7FE7D0" text-anchor="middle">GLKB</text>
+          </g>
+
+          <!-- quadrant hint -->
+          <text x="1036" y="222" font-size="12" font-weight="700" fill="#0E9F6E" text-anchor="end">reads widely, and proves it</text>
+        </svg>

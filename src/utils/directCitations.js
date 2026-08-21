@@ -58,6 +58,61 @@ export const parseDirectCitations = (raw) => {
         .filter(Boolean);
 };
 
+/**
+ * The same bindings, read out of the answer text instead of the structured field.
+ *
+ * Not every deployment ships `direct_citations` yet — the backend this app talks to emits the
+ * `[[cN]]` markers and the trailing definition block, and no field. But the block *is* the
+ * bindings: `[[cN]]: "quote"`, one per passage, which is everything a chip needs, since the
+ * PMID comes from the link the marker is attached to.
+ *
+ * So the block is parsed as a fallback rather than merely discarded. Everything read this way
+ * is reported unverified with `no_source` — nothing checked these quotes against the papers,
+ * and claiming otherwise would put a verification badge on an unverified passage. The moment
+ * the field ships, it wins: see citationsFor.
+ */
+/* One definition line. The quote is taken greedily to the last `"` on the line, which is what
+   makes an embedded quote fall out for free — `[[c3]]: "We discover \"subTMEs,\" and more."` */
+const BLOCK_LINE = /^[ \t]*\[\[(c\d+)\]\]\s*:\s*"(.*)"[ \t]*$/gim;
+
+export const parseCitationsBlock = (content) => {
+    if (typeof content !== 'string') return [];
+    const block = content.match(CITATIONS_BLOCK)?.[0];
+    if (!block) return [];
+
+    const out = [];
+    const seen = new Set();
+    let match = BLOCK_LINE.exec(block);
+    while (match) {
+        const [, marker, quote] = match;
+        if (!seen.has(marker)) {
+            seen.add(marker);
+            out.push({
+                marker,
+                pmid: '',
+                // ...and unescaping puts it back the way the paper wrote it.
+                quote: quote.replace(/\\(["\\])/g, '$1'),
+                verified: false,
+                contextType: 'no_source',
+                offsets: [],
+            });
+        }
+        match = BLOCK_LINE.exec(block);
+    }
+    BLOCK_LINE.lastIndex = 0;
+    return out;
+};
+
+/**
+ * The bindings for a message: the structured field when the backend sends one, the answer's own
+ * definition block when it does not. Both give a chip the passage it rests on; only the first
+ * carries a verification result worth showing.
+ */
+export const citationsFor = (directCitations, content) => {
+    const parsed = parseDirectCitations(directCitations);
+    return parsed.length > 0 ? parsed : parseCitationsBlock(content);
+};
+
 /** Marker → binding. Duplicate markers cannot happen: same marker means same passage. */
 export const indexByMarker = (citations) => {
     const map = new Map();
@@ -88,14 +143,23 @@ export const bindMarkersToLinks = (content, byMarker) => {
 };
 
 /**
- * Drop the human-readable definition block — but only when there are bindings to render in its
- * place. An answer saved before this shipped still has the block and no bindings, and hiding it
- * there would take the passages out of the text while leaving nothing structured behind: the
- * reader would lose the evidence entirely rather than merely seeing it as prose.
+ * Drop the human-readable definition block. Always.
+ *
+ * The integration guide asks for this to be conditional on there being bindings, so that an
+ * answer saved before the feature shipped degrades to "quotes visible as prose" rather than
+ * losing its evidence. That fallback does not survive contact with this app: the answer body
+ * goes through stripUnresolvedCitations, which removes every `[[cN]]` it finds — including the
+ * labels that give the block its structure. What is left is not prose. It is the quotes run
+ * together on one line, joined by the colons their labels used to introduce:
+ *
+ *     "...promote resistance to immunotherapy." : "We show that GVAX-induced..." : "Bulk and...
+ *
+ * So there is nothing to preserve by keeping it, and the block goes unconditionally. Old
+ * answers lose evidence that was already unreadable; new ones show it on the citation itself,
+ * which is where it belongs.
  */
-export const stripCitationsBlock = (content, citations) => {
+export const stripCitationsBlock = (content) => {
     if (typeof content !== 'string') return content;
-    if (!(citations?.length > 0)) return content;
     return content.replace(CITATIONS_BLOCK, '').trimEnd();
 };
 

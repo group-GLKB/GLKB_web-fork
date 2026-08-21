@@ -112,6 +112,7 @@ import { clearActiveRun, setActiveRun } from '../../service/activeRun';
 import { markInvestigateConversation } from '../../utils/investigateConversations';
 import {
     bindMarkersToLinks,
+    citationsFor,
     hrefWithoutMarker,
     indexByMarker,
     markerFromHref,
@@ -951,8 +952,8 @@ const MessageCard = React.memo(function MessageCard({
        utils/directCitations — which is why every read of a citation href goes through
        pmidFromHref rather than splitting on '/'. */
     const directCitations = useMemo(
-        () => parseDirectCitations(message.directCitations),
-        [message.directCitations],
+        () => citationsFor(message.directCitations, message.content),
+        [message.directCitations, message.content],
     );
     const citationsByMarker = useMemo(() => indexByMarker(directCitations), [directCitations]);
 
@@ -1493,10 +1494,7 @@ const MessageCard = React.memo(function MessageCard({
                                             >
                                                 {stripUnresolvedCitations(
                                                     bindMarkersToLinks(
-                                                        stripCitationsBlock(
-                                                            message.content,
-                                                            directCitations,
-                                                        ),
+                                                        stripCitationsBlock(message.content),
                                                         citationsByMarker,
                                                     ),
                                                 )}
