@@ -58,8 +58,14 @@
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 4px;
-    width: 160px;
+    /* No gap, and 16 wider than a ToC group: the chevron is a 16px box sitting
+       directly against a 160px label box, and 160 is exactly what the groups
+       below are (707:2716 → 707:2717 + 707:2718). The rail right-aligns its
+       children, so those two 160s line up and the chevron hangs out into the
+       margin — which is the point. Giving the button the groups' own 160 put
+       the chevron inside it and pushed the label 20px past the headings. */
+    gap: 0;
+    width: 176px;
     margin: 0;
     padding-top: 4px;
     padding-bottom: 8px;
