@@ -114,19 +114,19 @@ check('card width', 240, got.card.w);
 // The design fixes where every block sits. Checking properties alone missed a 5px drift: the
 // PMID row rendered at its line-height 20 where the design pins it to 16, and the 1px divider
 // added a pixel the design's zero-height stroke does not.
-// 304 in the design; 262 here, from two subtractions the design's own render does not need:
+// 304 in the design; 284 here. One subtraction remains:
 //   -20  the blank line in the placeholder copy between the authors and the journal
-//        (see .ref-hover-authors in scoped.css);
-//   -16  the dead space under the quote's second clamped line, which the design leaves in a fixed
-//        60px block. This card floats over the answer, so a row it does not need is a row of text
-//        it covers.
-// Everything below the head therefore sits above the design's own y, and nothing else moves.
-check('card height (design 304, less blank line + quote slack)', 262, got.cardHeight);
+//        (see .ref-hover-authors in scoped.css). Reproducing it puts an empty line inside the
+//        metadata block, which reads as a layout bug rather than as spacing.
+// The quote block used to lose another 16 as well. It does not now: it is 66, three 22px lines,
+// six over the design's 60 — and unlike the old 44, every pixel of it carries text.
+// Everything below the head therefore sits exactly 20 above the design's own y.
+check('card height (design 304, less the blank line)', 284, got.cardHeight);
 check('title      y', '16..70', got.y.title);
 check('source     y (design 84..144)', '78..118', got.y.source);
-check('quote      y (design 156..216)', '130..174', got.y.quote);
-check('PMID row   y (design 228..244)', '186..202', got.y.meta);
-check('footer     y (design 268..288)', '214..234', got.y.actions);
+check('quote      y (design 156..216, 3 lines)', '130..196', got.y.quote);
+check('PMID row   y (design 228..244, less the blank line)', '208..224', got.y.meta);
+check('footer     y (design 268..288, less the blank line)', '248..268', got.y.actions);
 check('card padding (space/4)', '16px', got.card.pad);
 check('card radius (radius/4)', '16px', got.card.radius);
 check('card children gap (space/3)', '12px', got.card.gap);
@@ -143,8 +143,8 @@ check('source type (body-sm)', '400 12px/20px', got.source.font);
 check('source colour (text/tertiary)', '#5E6E87', hex(got.source.color));
 check('quote type (body)', '400 14px/22px', got.quoteText.font);
 check('quote colour (text/secondary)', '#222A38', hex(got.quoteText.color));
-check('quote block height (design 60, less its slack)', 44, got.quote.h);
-check('quote text clamped to 2 lines', 44, got.quoteText.h);
+check('quote block height (design 60, +6 so three lines fit)', 66, got.quote.h);
+check('quote text clamped to 3 lines', 66, got.quoteText.h);
 check('authors line margin (deviation: design 20px)', '0px', got.authors.marginBottom);
 check('meta type (body-sm)', '400 12px/20px', got.meta.font);
 check('divider height', 1, got.divider.h);
