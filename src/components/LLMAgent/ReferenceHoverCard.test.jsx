@@ -256,3 +256,48 @@ describe('scrolling', () => {
         panel.remove();
     });
 });
+
+/**
+ * The point of `direct_citations`: a paper cited twice for two different sentences must show
+ * the sentence that belongs to *this* chip. Before it, both chips read the reference's own
+ * `evidence`, which is one blob per paper — so both showed the same quote.
+ */
+describe('per-citation evidence', () => {
+    const passage = (quote) => ({ marker: 'c1', pmid: REFERENCE.pmid, quote, verified: true });
+
+    it('shows the passage bound to this citation, not the paper-level evidence', () => {
+        setup({ citation: passage('Induction of apoptosis depends strictly on p53 function.') });
+
+        // The card wraps a quote in typographic marks, so these match on the text inside.
+        expect(screen.getByText(/depends strictly on p53 function/)).toBeInTheDocument();
+        expect(screen.queryByText(/HLA-I hyperexpression/)).not.toBeInTheDocument();
+    });
+
+    it('gives two citations of one paper their own quotes', () => {
+        const first = render(
+            <ReferenceHoverCard
+                reference={REFERENCE}
+                citation={passage('First supporting sentence.')}
+                number={10}
+                anchorRect={{ left: 400, top: 500, bottom: 516, width: 20, height: 16 }}
+                onMouseLeave={() => {}}
+            />,
+        );
+        expect(screen.getByText(/First supporting sentence/)).toBeInTheDocument();
+        first.unmount();
+
+        setup({ citation: passage('Second supporting sentence.') });
+        expect(screen.getByText(/Second supporting sentence/)).toBeInTheDocument();
+        expect(screen.queryByText(/First supporting sentence/)).not.toBeInTheDocument();
+    });
+
+    it('falls back to the paper evidence when nothing is bound to this spot', () => {
+        setup({ citation: null });
+        expect(screen.getByText(/HLA-I hyperexpression/)).toBeInTheDocument();
+    });
+
+    it('falls back when the binding carries an empty quote', () => {
+        setup({ citation: passage('   ') });
+        expect(screen.getByText(/HLA-I hyperexpression/)).toBeInTheDocument();
+    });
+});

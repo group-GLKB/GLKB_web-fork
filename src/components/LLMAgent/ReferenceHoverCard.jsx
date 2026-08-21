@@ -67,6 +67,7 @@ const place = (anchorRect, cardHeight) => {
  */
 const ReferenceHoverCard = ({
     reference,
+    citation,
     number,
     anchorRect,
     isBookmarked,
@@ -115,9 +116,13 @@ const ReferenceHoverCard = ({
     if (!reference) return null;
 
     const pmid = reference.pmid ? String(reference.pmid) : '';
-    const quote = (Array.isArray(reference.evidence) ? reference.evidence : [])
+    // The passage this citation actually rests on, when the answer bound one to this spot.
+    // `reference.evidence` is per-paper, so a paper cited twice for two different sentences
+    // showed the same quote at both — which is the whole reason direct_citations exists.
+    const referenceEvidence = (Array.isArray(reference.evidence) ? reference.evidence : [])
         .map((e) => (typeof e === 'string' ? e : e?.quote))
         .find((q) => q && String(q).trim());
+    const quote = (citation?.quote || '').trim() || referenceEvidence;
     const authors = formatAuthors(reference.authors);
     // The app normalises references through `parseReferences`, which renames the agent's `date`
     // and `n_citation` to `year` and `citation_count`. Read both: the normalised names are what

@@ -310,6 +310,11 @@ export class LLMAgentService {
                                 type: 'final',
                                 answer: data.response,
                                 references: data.references || [],
+                                // Per-citation evidence. Read `direct_citations`, never
+                                // `citations` — that is an unrelated agent field with a
+                                // different shape. The backend normalises this name for us
+                                // on every endpoint, this frame included.
+                                directCitations: data.direct_citations || [],
                                 messages: data.messages || [],
                                 sessionId: data.session_id || null,
                                 trajectory: data.trajectory || null,
@@ -501,6 +506,7 @@ export class LLMAgentService {
             return {
                 answer: response.data.answer,
                 references: response.data.references || [],
+                directCitations: response.data.direct_citations || [],
                 messages: response.data.messages || [],
             };
         } catch (error) {
