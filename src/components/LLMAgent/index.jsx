@@ -1531,7 +1531,7 @@ const MessageCard = React.memo(function MessageCard({
                                         sx={{ flex: 1, width: "100%" }}
                                         onChange={(event) => setEditContent(event.target.value)}
                                     /> : (
-                                        <div className="markdown-body" style={{ fontFamily: 'Geist, sans-serif' }}>
+                                        <div className="markdown-body">
                                             <ReactMarkdown
                                                 remarkPlugins={[remarkGfm]}
                                                 components={{
