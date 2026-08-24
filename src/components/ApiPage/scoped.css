@@ -28,7 +28,9 @@
     min-height: 0;
     min-width: 0;
     box-sizing: border-box;
-    gap: 24px;
+    /* Named so the header's own spacing can subtract it — see .api-header. */
+    --api-content-gap: 24px;
+    gap: var(--api-content-gap);
     padding: 24px 80px 48px;
 }
 
@@ -36,9 +38,15 @@
     padding: 16px 24px 32px;
 }
 
+/* 48 between the header block and the content under it, which is what History
+   (.history-search) and Library (.library-tabs-row) both set. The flex gap here is
+   the spacing between sections — 24, and 20 under 1440 — so the header made do with
+   whichever of those applied and the page sat tighter than the others at every width.
+   Subtracting the gap rather than hard-coding a number keeps it 48 at both. */
 .api-header {
     display: flex;
     flex-direction: column;
+    margin-bottom: calc(48px - var(--api-content-gap, 24px));
 }
 
 .api-header-top {
@@ -924,7 +932,7 @@
 @media (max-width: 1440px) {
     .api-content {
         padding: 20px 40px 36px;
-        gap: 20px;
+        --api-content-gap: 20px;
     }
 
     .api-keys-toolbar {
