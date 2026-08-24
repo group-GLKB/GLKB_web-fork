@@ -721,6 +721,12 @@ const ThoughtGroup = React.memo(
 const parseThinkingEntry = (entry) => {
     const stepFromEntry = typeof entry?.step === 'string' ? entry.step.trim() : '';
     const raw = entry?.content ?? '';
+    // A run of text the model streamed before a tool call — its own narration on the way to
+    // the next step, not the answer. There is no transport tag to parse: the content IS the
+    // line, and the heading is fixed so consecutive narrations collapse into one group.
+    if (entry?.isThought) {
+        return { stepName: 'Thinking', line: raw };
+    }
     const trimmed = raw.trim();
     if (!trimmed) {
         return { stepName: stepFromEntry || 'Step', line: raw };
@@ -898,6 +904,23 @@ const stripUnresolvedCitations = (content) => {
     return content.replace(UNRESOLVED_CITATION_TOKEN, '');
 };
 
+// The tail of a streamed answer is a sentence caught mid-word, and markdown does not degrade
+// gracefully when you cut it there: half of `[38743124](https://…` renders as literal text, and
+// `## Citation` renders as a heading that vanishes a chunk later. Both flicker, and neither is in
+// the finished answer. They are removed while the text is still arriving and left alone once it
+// is final, so what the reader sees only ever grows.
+const PARTIAL_CITATIONS_HEADING = /\n+#{1,6}[ \t]*c(i(t(a(t(i(o(n(s)?)?)?)?)?)?)?)?[ \t]*$/i;
+const UNCLOSED_LINK = /\[[^\]\n]*\][ \t]*\([^)\n]*$/;
+const UNCLOSED_BRACKET = /\[[^\]\n]*$/;
+
+const tidyStreamingText = (content) => {
+    if (typeof content !== 'string' || !content) return content;
+    return content
+        .replace(PARTIAL_CITATIONS_HEADING, '')
+        .replace(UNCLOSED_LINK, '')
+        .replace(UNCLOSED_BRACKET, '');
+};
+
 const MessageCard = React.memo(function MessageCard({
     index,
     message,
@@ -945,12 +968,30 @@ const MessageCard = React.memo(function MessageCard({
     );
     const citationsByMarker = useMemo(() => indexByMarker(directCitations), [directCitations]);
 
+    // While the answer is still streaming there are no `references` yet, so every citation fell
+    // through to its raw PMID and then snapped to a small number when the Complete frame landed —
+    // the most visible way the streamed text differed from the finished one. The backend numbers
+    // references by order of first appearance in the answer, so reading that same order off the
+    // text already on screen gives each citation the number it is about to be given.
+    // (With an active `ranking_mode` the backend reranks afterwards, so a number can still change
+    // once — a far smaller change than an eight-digit PMID becoming a 1.)
+    const streamingNumberByPmid = useMemo(() => {
+        if ((message.references || []).length) return null;
+        const order = new Map();
+        const text = String(message.content || '');
+        for (const match of text.matchAll(/pubmed\.ncbi\.nlm\.nih\.gov\/(\d+)/g)) {
+            if (!order.has(match[1])) order.set(match[1], order.size + 1);
+        }
+        return order;
+    }, [message.references, message.content]);
+
     const getReferenceNumber = (href) => {
         const pmid = pmidFromHref(href);
         const referenceIndex = (message.references || []).findIndex(
             (reference) => extractPmidFromReference(reference) === pmid
         );
-        return referenceIndex >= 0 ? referenceIndex + 1 : null;
+        if (referenceIndex >= 0) return referenceIndex + 1;
+        return streamingNumberByPmid?.get(pmid) ?? null;
     };
     const allowUserEdit = true;
 
@@ -1489,7 +1530,11 @@ const MessageCard = React.memo(function MessageCard({
                                             >
                                                 {stripUnresolvedCitations(
                                                     bindMarkersToLinks(
-                                                        stripCitationsBlock(message.content),
+                                                        stripCitationsBlock(
+                                                            isLoading
+                                                                ? tidyStreamingText(message.content)
+                                                                : message.content,
+                                                        ),
                                                         citationsByMarker,
                                                     ),
                                                 )}
@@ -2672,8 +2717,21 @@ function LLMAgent() {
                         if (!isActiveStream) return;
                         const buf = streamingAnswerRef.current;
                         if (update.block > buf.block) {
-                            // A new block: whatever streamed before it was the model talking to
-                            // itself on the way to a tool call, not the answer.
+                            // A new block: whatever streamed before it was the model talking its
+                            // way to a tool call, not the answer. It is worth showing — it is the
+                            // only glimpse of the model's own reasoning the transport carries, and
+                            // it arrives long before any answer text does — so it goes into the
+                            // body as it streams and moves into the thought list here, once the
+                            // block it belonged to has ended.
+                            const narration = buf.text.trim();
+                            if (narration) {
+                                thinkingStepsRef.current = [...thinkingStepsRef.current, {
+                                    step: 'Thinking',
+                                    content: narration,
+                                    isThought: true,
+                                }];
+                                setThinkingStepsVersion(v => v + 1);
+                            }
                             streamingAnswerRef.current = { block: update.block, text: update.delta };
                         } else if (update.block === buf.block) {
                             streamingAnswerRef.current = { block: buf.block, text: buf.text + update.delta };
