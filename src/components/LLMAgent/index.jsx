@@ -1796,6 +1796,9 @@ function LLMAgent() {
     const lastAutoSelectedRef = useRef(null);
     const sessionIdRef = useRef(null);
     const runIdRef = useRef(null);
+    // The conversation whose answer is currently being recovered, so the two restore
+    // paths cannot both poll for it and overwrite each other's result.
+    const resumingConversationRef = useRef(null);
     // The clarify round's identifiers, mirrored out of React state.
     //
     // The panel is answered by POSTing to /clarify with (session_id, invocation_id, stage). Issue
@@ -1959,43 +1962,72 @@ function LLMAgent() {
     // The server does not stop when the browser goes away: the agent finishes the run and the
     // backend writes the answer to history on its own. What was missing was the client half —
     // every recovery path keyed off `runIdRef`, which a reload destroys, and none of them ran on
-    // load. So a reader who refreshed saw their own question with nothing under it, and the
-    // answer that arrived a minute later stayed invisible until they reloaded a second time.
+    // load. The session id is the address that does survive (sessionStorage, written at submit),
+    // and `GET /run?session_id=` answers with the latest run for it, for chat and investigate.
     //
-    // The session id is the address that does survive (sessionStorage, written at submit), and
-    // `GET /run?session_id=` answers with the latest run for it — for chat and investigate alike.
+    // Two rules keep the recovery from being worse than the problem:
+    //
+    //   SINGLE FLIGHT. Two restore paths reach this — the mount-time one a plain reload takes,
+    //   and the one that runs when a conversation is opened from the list — and they used to
+    //   race. One would reach a miss and write a failure into the message while the other was
+    //   still polling; the other then landed the real answer on top. That is the "thinking, then
+    //   Sorry, then the answer" flicker.
+    //
+    //   LOOK BEFORE TOUCHING. The first poll happens with the UI untouched. A run that has
+    //   already finished — the common case, because a reload takes longer than the poll — is
+    //   rendered directly, with no loading state and no flash of anything else. The spinner goes
+    //   back only once the server has actually said "running".
     const resumeUnfinishedRun = useCallback(async (conversationId, messages, stillMounted) => {
         if (!isExchangeUnfinished(messages)) return;
-        const last = messages[messages.length - 1];
+        const key = String(conversationId);
+        if (resumingConversationRef.current === key) return;
         const sessionId = getStoredSessionId(conversationId);
         if (!sessionId) return;      // nothing to reconnect to; leave the history as it is
+        resumingConversationRef.current = key;
 
         const investigate = isInvestigateConversation(conversationId);
-        // Give the reader the loading state back, so the wait looks like a wait rather than a
-        // question that was silently dropped.
-        if (last.role === 'user') {
-            setChatHistory((prev) => [...prev, {
-                role: 'assistant',
-                content: '',
-                references: [],
-                timestamp: new Date().toISOString(),
-                thinkingSteps: [],
-                thoughtDurationMs: null,
-                trajectory: null,
-                investigateMode: investigate,
-            }]);
-        }
-        setIsLoading(true);
-        setIsProcessing(true);
-        setStreamingStepName('Reconnecting to your answer...');
+        const last = messages[messages.length - 1];
+        let placeholderAdded = false;
+
+        const showWaiting = () => {
+            if (placeholderAdded) return;
+            placeholderAdded = true;
+            if (last.role === 'user') {
+                setChatHistory((prev) => [...prev, {
+                    role: 'assistant',
+                    content: '',
+                    references: [],
+                    timestamp: new Date().toISOString(),
+                    thinkingSteps: [],
+                    thoughtDurationMs: null,
+                    trajectory: null,
+                    investigateMode: investigate,
+                }]);
+            }
+            setIsLoading(true);
+            setIsProcessing(true);
+            setStreamingStepName('Reconnecting to your answer...');
+        };
 
         const settle = (patch) => {
             setChatHistory((prev) => {
                 if (!prev.length) return prev;
                 const next = [...prev];
                 const tail = next[next.length - 1];
-                if (!tail || tail.role !== 'assistant') return prev;
-                next[next.length - 1] = { ...tail, ...patch };
+                if (tail && tail.role === 'assistant') {
+                    next[next.length - 1] = { ...tail, ...patch };
+                } else {
+                    next.push({
+                        role: 'assistant',
+                        references: [],
+                        timestamp: new Date().toISOString(),
+                        thinkingSteps: [],
+                        thoughtDurationMs: null,
+                        trajectory: null,
+                        investigateMode: investigate,
+                        ...patch,
+                    });
+                }
                 return next;
             });
             setIsLoading(false);
@@ -2003,58 +2035,77 @@ function LLMAgent() {
             setStreamingStepName('');
         };
 
-        // An investigate run takes many minutes; a chat turn takes under one. The cap is the
-        // longer of the two because the cheap thing to get wrong here is giving up too early.
-        for (let attempt = 0; attempt < RESUME_MAX_POLLS; attempt += 1) {
-            if (!stillMounted()) return;
-            let run = null;
+        const applyRun = (run) => {
+            settle({
+                content: run.response || '',
+                references: parseReferences(run.references),
+                trajectory: run.trajectory || null,
+                investigateMode: investigate,
+                ...(investigate ? { investigatePercent: 100, investigatePhase: 'summary' } : {}),
+            });
+            if (run.response) llmService.updateMessages(run.response);
+        };
+
+        // The answer may already be in history — written there by the backend while the page was
+        // reloading. Cheaper and more reliable than the run store, which is in-process memory.
+        const answerFromHistory = async () => {
             try {
-                run = await llmService.getRun({ sessionId });
+                const detail = await fetchConversationDetail(conversationId);
+                if (!stillMounted()) return true;
+                const saved = detail?.messages || [];
+                if (!isExchangeUnfinished(saved)) {
+                    setChatHistory(saved);
+                    setIsLoading(false);
+                    setIsProcessing(false);
+                    setStreamingStepName('');
+                    return true;
+                }
             } catch (error) {
-                if (error?.response?.status === 404) {
-                    // The agent no longer has the run — it restarted, or the record aged out.
-                    // The answer may still have been written to history before that happened.
-                    try {
-                        const detail = await fetchConversationDetail(conversationId);
-                        if (!stillMounted()) return;
-                        const saved = (detail?.messages || []);
-                        const tail = saved[saved.length - 1];
-                        if (tail && tail.role === 'assistant' && String(tail.content || '').trim()) {
-                            setChatHistory(saved);
-                            setIsLoading(false);
-                            setIsProcessing(false);
-                            setStreamingStepName('');
-                            return;
-                        }
-                    } catch (refetchError) {
-                        logDev('[LLM] resume refetch failed', refetchError);
-                    }
-                    settle({ content: RESUME_LOST_MESSAGE });
+                logDev('[LLM] resume history refetch failed', error);
+            }
+            return false;
+        };
+
+        try {
+            for (let attempt = 0; attempt < RESUME_MAX_POLLS; attempt += 1) {
+                if (!stillMounted()) return;
+                let run = null;
+                let missing = false;
+                try {
+                    run = await llmService.getRun({ sessionId });
+                } catch (error) {
+                    missing = error?.response?.status === 404;
+                    if (!missing) logDev('[LLM] resume poll failed', error);
+                }
+                if (!stillMounted()) return;
+
+                if (run && (run.status === 'complete' || run.response)) {
+                    applyRun(run);
                     return;
                 }
-                logDev('[LLM] resume poll failed', error);
-            }
+                if (run?.status === 'error' || missing) {
+                    // The run is gone or failed. Its answer may still have reached history before
+                    // that happened, so that is checked before anything is declared lost.
+                    if (await answerFromHistory()) return;
+                    settle({
+                        content: run?.error
+                            ? `Sorry, this run failed: ${run.error}`
+                            : RESUME_LOST_MESSAGE,
+                    });
+                    return;
+                }
 
-            if (run?.status === 'error') {
-                settle({ content: run.error ? `Sorry, this run failed: ${run.error}` : RESUME_LOST_MESSAGE });
-                return;
+                showWaiting();   // only now: the server has said it is still working
+                await new Promise((resolve) => setTimeout(resolve, RESUME_POLL_MS));
             }
-            if (run && (run.status === 'complete' || run.response)) {
-                if (!stillMounted()) return;
-                settle({
-                    content: run.response || '',
-                    references: parseReferences(run.references),
-                    trajectory: run.trajectory || null,
-                    investigateMode: investigate,
-                    investigatePercent: investigate ? 100 : undefined,
-                    investigatePhase: investigate ? 'summary' : undefined,
-                });
-                if (run.response) llmService.updateMessages(run.response);
-                return;
+            if (stillMounted() && !(await answerFromHistory())) {
+                settle({ content: RESUME_LOST_MESSAGE });
             }
-            await new Promise((resolve) => setTimeout(resolve, RESUME_POLL_MS));
+        } finally {
+            if (resumingConversationRef.current === key) {
+                resumingConversationRef.current = null;
+            }
         }
-        if (stillMounted()) settle({ content: RESUME_LOST_MESSAGE });
     }, [llmService]);
 
     useEffect(() => {
