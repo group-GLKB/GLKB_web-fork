@@ -2147,6 +2147,17 @@ function LLMAgent() {
             hasConsumedInitialQueryRef.current = true;
             const query = location.state.initialQuery;
             const searchOptions = location.state.initialSearchOptions || null;
+            // Consuming the query means REMOVING it. React Router keeps navigation state in
+            // `history.state`, which the browser restores on reload, but the ref that says it has
+            // already been used is component state and does not survive one. So a refresh re-ran
+            // the question: a second full agent run, billed again, while the first run's answer —
+            // which the server was still writing to history — was never shown.
+            const { initialQuery: _consumedQuery, initialSearchOptions: _consumedOptions,
+                    ...restState } = location.state;
+            navigate(location.pathname, {
+                replace: true,
+                state: Object.keys(restState).length ? restState : null,
+            });
             initialSearchOptionsRef.current = searchOptions;
             if (searchOptions?.investigateEnabled) {
                 setChatInvestigateEnabled(true);
@@ -2159,7 +2170,7 @@ function LLMAgent() {
                 });
             }
         }
-    }, [location.state, isLoading, startNewConversation]);
+    }, [location.state, location.pathname, navigate, isLoading, startNewConversation]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
