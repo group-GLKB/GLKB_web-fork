@@ -503,12 +503,17 @@
 }
 
 .library-mobile-sort-row {
-    margin-top: 0;
+    /* Sits under the search field, so it needs air between them — flush against
+       the input it read as part of it. */
+    margin-top: 12px;
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    /* Right-aligned: the export button that used to hold the other end of this
+       row moved to the bottom bar, leaving Sort alone on the left with nothing
+       opposite it. */
+    justify-content: flex-end;
+    gap: 8px;
 }
 
 .library-mobile-folder-drawer-paper {
