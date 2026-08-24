@@ -2732,6 +2732,22 @@ function LLMAgent() {
                             thinkingStepsRef.current = next;
                         }
                         setThinkingStepsVersion(v => v + 1);
+                        // `thinkingStepsRef` is what the FINISHED message carries; the live view
+                        // renders `streamingGroups`, which until now was only ever written from
+                        // `case 'step'`. Without this the opening line was invisible for the whole
+                        // run and only surfaced, collapsed, once the answer had already landed —
+                        // i.e. exactly when it is no longer worth reading.
+                        //
+                        // Matched by name rather than by "the last group": the line keeps growing
+                        // while the run's own progress steps are being appended after it.
+                        setStreamingGroups((prev) => {
+                            const group = { name: 'Thinking', lines: [pre.text] };
+                            const at = prev.findIndex((g) => g.name === 'Thinking');
+                            if (at < 0) return [...prev, group];
+                            const next = [...prev];
+                            next[at] = group;
+                            return next;
+                        });
                         break;
                     }
                     case 'delta': {
