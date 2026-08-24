@@ -110,7 +110,8 @@ import {
     subscribeToNotifyPrefs,
 } from '../../service/notifications';
 import { clearActiveRun, setActiveRun } from '../../service/activeRun';
-import { markInvestigateConversation } from '../../utils/investigateConversations';
+import { isInvestigateConversation, markInvestigateConversation } from '../../utils/investigateConversations';
+import { isExchangeUnfinished } from '../../service/resumeRun';
 import {
     bindMarkersToLinks,
     citationsFor,
@@ -372,6 +373,14 @@ const setStoredSessionId = (historyId, sessionId) => {
 };
 
 const STEP_LABELS = stepLabels || {};
+
+// Reattaching to a run left behind by a reload. An investigate run can take fifteen minutes, so
+// the cap is generous on purpose: giving up early is the expensive mistake here — it turns an
+// answer that is still coming into a message that says it is gone.
+const RESUME_POLL_MS = 3000;
+const RESUME_MAX_POLLS = 300;      // 15 minutes
+const RESUME_LOST_MESSAGE =
+    'This answer could not be recovered after the page was reloaded. Please ask again.';
 const PUBMED_ESUMMARY_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi';
 const PLACEHOLDER_PMID_PREFIX = 'PMID ';
 
@@ -1945,6 +1954,109 @@ function LLMAgent() {
         refreshTierStatus();
     }, [refreshTierStatus]);
 
+    // Reattach to a run that was still going when the page was reloaded.
+    //
+    // The server does not stop when the browser goes away: the agent finishes the run and the
+    // backend writes the answer to history on its own. What was missing was the client half —
+    // every recovery path keyed off `runIdRef`, which a reload destroys, and none of them ran on
+    // load. So a reader who refreshed saw their own question with nothing under it, and the
+    // answer that arrived a minute later stayed invisible until they reloaded a second time.
+    //
+    // The session id is the address that does survive (sessionStorage, written at submit), and
+    // `GET /run?session_id=` answers with the latest run for it — for chat and investigate alike.
+    const resumeUnfinishedRun = useCallback(async (conversationId, messages, stillMounted) => {
+        if (!isExchangeUnfinished(messages)) return;
+        const last = messages[messages.length - 1];
+        const sessionId = getStoredSessionId(conversationId);
+        if (!sessionId) return;      // nothing to reconnect to; leave the history as it is
+
+        const investigate = isInvestigateConversation(conversationId);
+        // Give the reader the loading state back, so the wait looks like a wait rather than a
+        // question that was silently dropped.
+        if (last.role === 'user') {
+            setChatHistory((prev) => [...prev, {
+                role: 'assistant',
+                content: '',
+                references: [],
+                timestamp: new Date().toISOString(),
+                thinkingSteps: [],
+                thoughtDurationMs: null,
+                trajectory: null,
+                investigateMode: investigate,
+            }]);
+        }
+        setIsLoading(true);
+        setIsProcessing(true);
+        setStreamingStepName('Reconnecting to your answer...');
+
+        const settle = (patch) => {
+            setChatHistory((prev) => {
+                if (!prev.length) return prev;
+                const next = [...prev];
+                const tail = next[next.length - 1];
+                if (!tail || tail.role !== 'assistant') return prev;
+                next[next.length - 1] = { ...tail, ...patch };
+                return next;
+            });
+            setIsLoading(false);
+            setIsProcessing(false);
+            setStreamingStepName('');
+        };
+
+        // An investigate run takes many minutes; a chat turn takes under one. The cap is the
+        // longer of the two because the cheap thing to get wrong here is giving up too early.
+        for (let attempt = 0; attempt < RESUME_MAX_POLLS; attempt += 1) {
+            if (!stillMounted()) return;
+            let run = null;
+            try {
+                run = await llmService.getRun({ sessionId });
+            } catch (error) {
+                if (error?.response?.status === 404) {
+                    // The agent no longer has the run — it restarted, or the record aged out.
+                    // The answer may still have been written to history before that happened.
+                    try {
+                        const detail = await fetchConversationDetail(conversationId);
+                        if (!stillMounted()) return;
+                        const saved = (detail?.messages || []);
+                        const tail = saved[saved.length - 1];
+                        if (tail && tail.role === 'assistant' && String(tail.content || '').trim()) {
+                            setChatHistory(saved);
+                            setIsLoading(false);
+                            setIsProcessing(false);
+                            setStreamingStepName('');
+                            return;
+                        }
+                    } catch (refetchError) {
+                        logDev('[LLM] resume refetch failed', refetchError);
+                    }
+                    settle({ content: RESUME_LOST_MESSAGE });
+                    return;
+                }
+                logDev('[LLM] resume poll failed', error);
+            }
+
+            if (run?.status === 'error') {
+                settle({ content: run.error ? `Sorry, this run failed: ${run.error}` : RESUME_LOST_MESSAGE });
+                return;
+            }
+            if (run && (run.status === 'complete' || run.response)) {
+                if (!stillMounted()) return;
+                settle({
+                    content: run.response || '',
+                    references: parseReferences(run.references),
+                    trajectory: run.trajectory || null,
+                    investigateMode: investigate,
+                    investigatePercent: investigate ? 100 : undefined,
+                    investigatePhase: investigate ? 'summary' : undefined,
+                });
+                if (run.response) llmService.updateMessages(run.response);
+                return;
+            }
+            await new Promise((resolve) => setTimeout(resolve, RESUME_POLL_MS));
+        }
+        if (stillMounted()) settle({ content: RESUME_LOST_MESSAGE });
+    }, [llmService]);
+
     useEffect(() => {
         if (authLoading) return undefined;
         let isMounted = true;
@@ -1998,6 +2110,9 @@ function LLMAgent() {
                     setChatHistory(detail?.messages || []);
                     setActiveConversationIdState(String(nextActiveId));
                     activeConversationIdRef.current = String(nextActiveId);
+                    // The path a plain reload takes. Fire and forget: it polls for minutes and
+                    // the restore must not wait on it.
+                    resumeUnfinishedRun(nextActiveId, detail?.messages || [], () => isMounted);
                 } catch (error) {
                     logDev('[LLM] Failed to load conversation detail', error);
                 } finally {
@@ -2018,7 +2133,8 @@ function LLMAgent() {
         return () => {
             isMounted = false;
         };
-    }, [authLoading, isAuthenticated, location.state?.initialQuery, location.state?.conversationId]);
+    }, [authLoading, isAuthenticated, location.state?.initialQuery, location.state?.conversationId,
+        resumeUnfinishedRun]);
 
     const cancelStreaming = useCallback((options = {}) => {
         const { abort = true } = options;
@@ -2067,6 +2183,9 @@ function LLMAgent() {
                 setSelectedMessageIndex(null);
                 setShowReloadPrompt(false);
                 llmService.clearHistory();
+                // The conversation may have been left mid-answer. Fire and forget: this polls for
+                // minutes, and the load itself must not wait on it.
+                resumeUnfinishedRun(nextId, detail?.messages || [], () => isMounted);
             } catch (error) {
                 logDev('[LLM] Failed to load selected conversation', error);
             } finally {
@@ -2081,7 +2200,7 @@ function LLMAgent() {
         return () => {
             isMounted = false;
         };
-    }, [isAuthenticated, location.state, cancelStreaming, llmService]);
+    }, [isAuthenticated, location.state, cancelStreaming, llmService, resumeUnfinishedRun]);
 
     const startNewConversation = useCallback((options = {}) => {
         cancelStreaming();
