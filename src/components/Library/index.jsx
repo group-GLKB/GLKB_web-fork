@@ -1547,12 +1547,15 @@ const Library = () => {
                             </Box>
                         )}
                         <Box className="library-tabs-row">
-                            <Typography className="library-count">
-                                {activeTab === REFERENCES_TAB
-                                    ? `All References (${visibleReferences.length})`
-                                    : `All Chats (${visibleChats.length})`}
-                            </Typography>
+                            {!isPhoneDevice && (
+                                <Typography className="library-count">
+                                    {activeTab === REFERENCES_TAB
+                                        ? `All References (${visibleReferences.length})`
+                                        : `All Chats (${visibleChats.length})`}
+                                </Typography>
+                            )}
                             <Box className="library-toolbar-actions">
+                                {!isPhoneDevice && (
                                 <div className="library-segmented" role="tablist">
                                     {tabs.map((tab) => (
                                         <button
@@ -1567,6 +1570,7 @@ const Library = () => {
                                         </button>
                                     ))}
                                 </div>
+                                )}
                                 {!isPhoneDevice && librarySortControl}
                             </Box>
                         </Box>
@@ -1947,6 +1951,50 @@ const Library = () => {
                             </Typography>
                         )}
                     </Box>
+                    {/* 800:22889 puts the count, the export and the Reference/Chat toggle in a
+                        bar along the bottom on a phone, where a thumb reaches them, rather than
+                        stacked above the list with the search and the sort. */}
+                    {isPhoneDevice && (
+                        <Box className="library-mobile-bar">
+                            <span className="library-mobile-bar-count">
+                                {activeTab === REFERENCES_TAB
+                                    ? `${visibleReferences.length} Items`
+                                    : `${visibleChats.length} Items`}
+                            </span>
+                            <IconButton
+                                size="small"
+                                onClick={handleExportReferences}
+                                disabled={isReferenceExportDisabled}
+                                title="Download references (.bib)"
+                                className="library-mobile-bar-download"
+                            >
+                                <DownloadIcon
+                                    aria-label="Download references"
+                                    style={{
+                                        width: 16,
+                                        height: 16,
+                                        color: isReferenceExportDisabled
+                                            ? 'var(--color-grey-300)'
+                                            : 'var(--color-text-tertiary)',
+                                    }}
+                                />
+                            </IconButton>
+                            <div className="library-segmented" role="tablist">
+                                {tabs.map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        type="button"
+                                        role="tab"
+                                        aria-selected={activeTab === tab.id}
+                                        className={`library-segmented-option${activeTab === tab.id ? ' is-active' : ''}`}
+                                        onClick={() => handleTabClick(tab.id)}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </Box>
+                    )}
                 </Box>
             </Box>
         </div>

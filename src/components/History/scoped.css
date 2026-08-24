@@ -353,7 +353,15 @@
         padding-left: 0;
     }
 
+    /* The desktop list is pulled -36 and given 36 of padding back, so the checkbox
+       hanging in the gutter stays inside the scroll box. Zeroing the padding without
+       the margin left the whole list 36 to the left of everything above it — rows at
+       -12 against a 24px page gutter, and in select mode the checkbox off the side of
+       the screen entirely. A phone has no hover gutter to reserve, so neither is
+       wanted here. */
     .history-list {
+        margin-left: 0;
+        width: 100%;
         padding: 0;
         overflow-x: hidden;
     }
@@ -361,4 +369,53 @@
     .history-list > .MuiTypography-root {
         padding-left: 0;
     }
+}
+/* ---------------------------------------------------------------- mobile select bar
+   800:22889 — while selecting, a phone gets an action bar along the bottom carrying the
+   count and every action that applies to the selection. */
+.history-mobile-select-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-top: 1px solid var(--color-border-default);
+    background-color: var(--color-background-surface);
+    flex: 0 0 auto;
+}
+
+.history-mobile-select-count {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    color: var(--color-text-tertiary);
+    white-space: nowrap;
+}
+
+.history-mobile-select-action {
+    flex: 0 0 auto;
+    height: 28px;
+    padding: 0 10px;
+    border: none;
+    border-radius: var(--radius-2, 8px);
+    background-color: var(--color-background-muted);
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.history-mobile-select-action.is-danger {
+    background-color: var(--color-status-error);
+    color: var(--color-text-inverse);
+}
+
+.history-mobile-select-action:disabled {
+    opacity: 0.5;
+    cursor: default;
 }

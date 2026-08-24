@@ -483,6 +483,20 @@ const History = () => {
         }
     };
 
+    /* 800:22889 offers Bookmark beside Delete in the phone's select bar. The single-row
+       handler toggles, which would be wrong for a mixed selection — bookmarking three rows
+       of which one is already bookmarked should leave all three bookmarked, not two. */
+    const handleBookmarkSelected = async () => {
+        const chosen = conversations.filter((item) => selectedIdSet.has(String(item.id)));
+        for (const conversation of chosen) {
+            if (bookmarkedConversationIds.has(String(conversation.id))) continue;
+            // eslint-disable-next-line no-await-in-loop
+            await handleBookmarkConversation(conversation);
+        }
+        setSelectMode(false);
+        setSelectedIds([]);
+    };
+
     const handleBookmarkConversation = async (conversation) => {
         if (!conversation) return;
         const entry = {
@@ -563,29 +577,7 @@ const History = () => {
             <Box className="history-body">
                 <Box className="history-content">
                     <Box className="history-top">
-                        {isMobileSelectMode && (
-                            <Box className="history-mobile-select-header">
-                                <button
-                                    type="button"
-                                    className="history-select-toggle"
-                                    onClick={handleToggleSelectMode}
-                                >
-                                    Cancel
-                                </button>
-                                <Typography className="history-mobile-select-title">
-                                    {selectedCount} selected
-                                </Typography>
-                                <button
-                                    type="button"
-                                    className="history-delete-action"
-                                    onClick={handleDeleteSelected}
-                                    disabled={selectedCount === 0 || isDeleting}
-                                >
-                                    Delete
-                                </button>
-                            </Box>
-                        )}
-                        {!isMobileSelectMode && (
+                        {(
                             <Box className="history-header">
                                 <Box className="history-title-row">
                                     <Typography sx={{
@@ -637,7 +629,8 @@ const History = () => {
                         )}
                         <Box className="history-meta-row">
                             {isMobileSelectMode ? (
-                                <Box className="history-select-toolbar history-select-toolbar-mobile-only">
+                                <>
+                                    <Box className="history-select-toolbar history-select-toolbar-mobile-only">
                                     <Tooltip
                                         title={allFilteredSelected ? 'Deselect All' : 'Select All'}
                                         placement="bottom"
@@ -687,7 +680,18 @@ const History = () => {
                                             Select All
                                         </Typography>
                                     </Box>
-                                </Box>
+                                    </Box>
+                                    {/* The way out. Removing the old top strip took Cancel with
+                                        it and left select mode with no exit at all; 800:22889
+                                        puts it where Select was, naming what it leaves. */}
+                                    <button
+                                        type="button"
+                                        className="history-select-toggle"
+                                        onClick={handleToggleSelectMode}
+                                    >
+                                        Exit Select
+                                    </button>
+                                </>
                             ) : selectMode ? (
                                 <>
                                     <Box className="history-select-toolbar">
@@ -755,7 +759,7 @@ const History = () => {
                                         className="history-select-toggle"
                                         onClick={handleToggleSelectMode}
                                     >
-                                        Cancel
+                                        {isPhoneDevice ? 'Exit Select' : 'Cancel'}
                                     </button>
                                 </>
                             ) : (
@@ -870,6 +874,40 @@ const History = () => {
                             </Typography>
                         )}
                     </Box>
+                    {/* 800:22889 — in select mode the phone gets an action bar along the
+                        bottom: how many are chosen, and what can be done with them. It used to
+                        be a strip above the list carrying only Delete, so Select all and
+                        Bookmark had nowhere to live and the destructive action sat alone. */}
+                    {isMobileSelectMode && (
+                        <Box className="history-mobile-select-bar">
+                            <span className="history-mobile-select-count">
+                                {selectedCount} selected
+                            </span>
+                            <button
+                                type="button"
+                                className="history-mobile-select-action"
+                                onClick={handleToggleSelectAllFiltered}
+                            >
+                                {allFilteredSelected ? 'Deselect all' : 'Select all'}
+                            </button>
+                            <button
+                                type="button"
+                                className="history-mobile-select-action"
+                                onClick={handleBookmarkSelected}
+                                disabled={selectedCount === 0}
+                            >
+                                Bookmark
+                            </button>
+                            <button
+                                type="button"
+                                className="history-mobile-select-action is-danger"
+                                onClick={handleDeleteSelected}
+                                disabled={selectedCount === 0 || isDeleting}
+                            >
+                                Delete
+                            </button>
+                        </Box>
+                    )}
                 </Box>
             </Box>
         </div>

@@ -67,8 +67,27 @@
         padding-right: 0;
     }
 
+    /* On a phone the checkbox cannot hang in a gutter, because there is none: the
+       list runs to the 24px page margin, so `left: -32px` put it at -44 — visible
+       in the DOM, off the side of the screen, and select mode looked like it had
+       simply not turned on. 800:22889 gives it a column of its own at the head of
+       the row instead. */
+    .history-item-row-select-mode {
+        grid-template-columns: 28px minmax(0, 1fr);
+        column-gap: 4px;
+    }
+
     .history-item-row-select-mode .history-row-checkbox {
-        margin-left: 0 !important;
+        position: static;
+        transform: none;
+        grid-column: 1;
+        align-self: center;
+        margin: 0 !important;
+        padding: 0;
+    }
+
+    .history-item-row-select-mode .history-item {
+        grid-column: 2;
     }
 
     .history-item-more {

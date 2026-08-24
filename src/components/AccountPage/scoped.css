@@ -861,9 +861,39 @@
 }
 
 @media (max-width: 767px) {
+    /* 800:22889 gives each channel a row of its own — heading, then Browser and
+       Email each full width with the switch against the right edge, matching the
+       Email / Display Name / Avatar rows above them. Stacking only the group kept
+       the two side by side under the heading, which reads as one wrapped line
+       rather than as two settings. */
     .settings-row-notify {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
+        align-items: stretch;
+        gap: 4px;
+    }
+
+    .settings-notify-toggles {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        width: 100%;
+    }
+
+    .settings-notify-option {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 8px 0;
+    }
+
+    /* The reset date is nowrap, so on a narrow row it does not shrink — it runs
+       out through the 24px gutter and stops 12 from the screen edge, the only
+       thing on the page that does. Letting it wrap keeps it inside; it stays on
+       one line whenever one line fits. */
+    .settings-row-chip {
+        white-space: normal;
+        text-align: right;
+        min-width: 0;
     }
 }

@@ -1092,3 +1092,51 @@
     background: var(--color-background-subtle);
     color: var(--color-grey-300);
 }
+
+/* ---------------------------------------------------------------- mobile bottom bar
+   800:22889 — on a phone the count, the export and the Reference/Chat toggle sit in a
+   bar along the bottom of the list rather than stacked above it. */
+.library-mobile-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    /* No side padding: the bar sits inside the page's own 24px gutter, and adding
+       its own put the count and the toggle 24 further in than the search box. */
+    padding: 12px 0;
+    border-top: 1px solid var(--color-border-default);
+    background-color: var(--color-background-surface);
+    flex: 0 0 auto;
+}
+
+.library-mobile-bar-count {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    color: var(--color-text-tertiary);
+    white-space: nowrap;
+}
+
+.library-mobile-bar-download {
+    flex: 0 0 auto;
+}
+
+.library-mobile-bar .library-segmented {
+    flex: 0 0 auto;
+}
+
+@media (max-width: 767px) {
+    /* Its two children — the count and the Reference/Chat toggle — moved to the
+       bottom bar, so the row itself is now an empty band of padding. */
+    .library-tabs-row {
+        display: none;
+    }
+
+    /* The sort control carries its own export button, which the bottom bar now
+       also has. One download per screen. */
+    .library-mobile-sort-row .library-sort-download {
+        display: none;
+    }
+}
