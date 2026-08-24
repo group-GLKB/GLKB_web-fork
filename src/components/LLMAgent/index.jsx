@@ -928,6 +928,7 @@ const MessageCard = React.memo(function MessageCard({
     isProcessing,
     streamingGroups,
     streamingStepName,
+    preamble,
     investigatePhase,
     investigateFunnel,
     investigateStartedAt,
@@ -1402,6 +1403,30 @@ const MessageCard = React.memo(function MessageCard({
                             </Box>
                         )}
 
+                        {/* The opening line, while the run is still going. It cannot live in the
+                            group list below: that list is gated on `!isLoading`, so every thought
+                            group is drawn only after the answer has landed, and during the run the
+                            panel is one animated status line. This is the one thing that has to be
+                            readable DURING the wait, so it gets its own slot. */}
+                        {isAssistant && isLoading && preamble && (
+                            <Box sx={{
+                                mt: '6px',
+                                ml: 1,
+                                pl: '10px',
+                                borderLeft: '2px solid var(--color-border-default)',
+                            }}>
+                                <Typography sx={{
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontSize: '14px',
+                                    fontWeight: 400,
+                                    lineHeight: 1.5,
+                                    color: 'var(--color-text-tertiary)',
+                                }}>
+                                    {preamble}
+                                </Typography>
+                            </Box>
+                        )}
+
                         {isAssistant && !isLoading && thoughtsExpanded && hasDisplayGroups && (
                             <Box sx={{
                                 mt: '6px',
@@ -1687,6 +1712,10 @@ function LLMAgent() {
     const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [streamingGroups, setStreamingGroups] = useState([]);
+    // The cheap-tier opening line as it streams. Held as STATE, not only in the thought refs:
+    // the thought list is not rendered at all while `isLoading`, so a ref that only feeds it
+    // cannot put anything on screen during the wait this line exists to fill.
+    const [preambleText, setPreambleText] = useState('');
     const [streamingStepName, setStreamingStepName] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [leftPaneWidth, setLeftPaneWidth] = useState(66);
@@ -2001,6 +2030,7 @@ function LLMAgent() {
         setIsLoading(false);
         setIsProcessing(false);
         setStreamingGroups([]);
+        setPreambleText('');
         setStreamingStepName('');
         thinkingStepsRef.current = [];
         setThinkingStepsVersion(v => v + 1);
@@ -2430,6 +2460,7 @@ function LLMAgent() {
         setIsLoading(true);
         setIsProcessing(true);
         setStreamingGroups([]);
+        setPreambleText('');
         setStreamingStepName('');
         applyPendingClarification(null);
         setClarificationDrafts({});
@@ -2732,6 +2763,7 @@ function LLMAgent() {
                             thinkingStepsRef.current = next;
                         }
                         setThinkingStepsVersion(v => v + 1);
+                        setPreambleText(pre.text);
                         // `thinkingStepsRef` is what the FINISHED message carries; the live view
                         // renders `streamingGroups`, which until now was only ever written from
                         // `case 'step'`. Without this the opening line was invisible for the whole
@@ -3449,6 +3481,7 @@ function LLMAgent() {
                 totalMessages={chatHistory.length}
                 isProcessing={isProcessing}
                 streamingGroups={streamingGroups}
+                preamble={preambleText}
                 streamingStepName={streamingStepName}
                 investigatePhase={investigatePhase}
                 investigateFunnel={investigateFunnel}
