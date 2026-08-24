@@ -1435,7 +1435,16 @@ const MessageCard = React.memo(function MessageCard({
                                         Reload
                                     </MuiButton>
                                 </Box>
-                            ) : isLoading ? null :
+                            ) : (
+                                // While the run is in flight this used to render `null`
+                                // unconditionally, so the answer could only appear once
+                                // `isProcessing` went false — which is why streaming it made no
+                                // visible difference: the text was in state, and the body was
+                                // not being drawn. It stays hidden only until there is text to
+                                // show, so a deep-research turn (no Delta frames, content empty
+                                // until the end) looks exactly as it did before.
+                                isLoading && !message.content
+                            ) ? null :
                                 isEditing ?
                                     <TextField
                                         hiddenLabel
