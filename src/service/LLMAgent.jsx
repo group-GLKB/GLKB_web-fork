@@ -305,6 +305,28 @@ export class LLMAgentService {
                                 keywords,
                                 papers,
                             });
+                        } else if (data.step === 'Delta') {
+                            // A chunk of the answer as the model writes it. `delta` is the
+                            // INCREMENT, not the running total, so the client appends. `block`
+                            // rises on every tool call: in a ReAct loop the model also narrates
+                            // before each call ("I'll search PubMed for…") and that text streams
+                            // too, so only the NEWEST block is the answer. See the agent's
+                            // service/stream_delta.py.
+                            onUpdate({
+                                type: 'delta',
+                                block: Number(data.block) || 0,
+                                delta: typeof data.delta === 'string' ? data.delta : '',
+                            });
+                        } else if (data.step === 'Answer') {
+                            // The finished answer, shipped ahead of the reference/citation
+                            // payload it used to wait behind. Text only — `Complete` still
+                            // carries everything, including this same string, so this frame is
+                            // purely "show it sooner".
+                            onUpdate({
+                                type: 'answer',
+                                answer: data.response,
+                                sessionId: data.session_id || null,
+                            });
                         } else if (data.step === 'Complete') {
                             onUpdate({
                                 type: 'final',

@@ -1692,6 +1692,10 @@ function LLMAgent() {
     const messagesContainerRef = useRef(null);
     const abortControllerRef = useRef(null);
     const thinkingStepsRef = useRef([]);
+    // The answer as it streams in. `block` rises on every tool call, and only the newest block is
+    // the answer — in a ReAct loop the model narrates before each call and that text streams too,
+    // so a lower block number means "that was a previous train of thought, throw it away".
+    const streamingAnswerRef = useRef({ block: -1, text: '' });
     const prevSelectedMessageIndexRef = useRef(null);
     const lastAutoSelectedRef = useRef(null);
     const sessionIdRef = useRef(null);
@@ -2390,6 +2394,7 @@ function LLMAgent() {
         investigatePapersRef.current = [];
         investigateDetailRef.current = {};
         thinkingStepsRef.current = [];
+        streamingAnswerRef.current = { block: -1, text: '' };
         setThinkingStepsVersion(v => v + 1);
 
         try {
@@ -2654,6 +2659,51 @@ function LLMAgent() {
                             }
                         }
                         break;
+                    case 'delta': {
+                        if (!isActiveStream) return;
+                        const buf = streamingAnswerRef.current;
+                        if (update.block > buf.block) {
+                            // A new block: whatever streamed before it was the model talking to
+                            // itself on the way to a tool call, not the answer.
+                            streamingAnswerRef.current = { block: update.block, text: update.delta };
+                        } else if (update.block === buf.block) {
+                            streamingAnswerRef.current = { block: buf.block, text: buf.text + update.delta };
+                        } else {
+                            return;   // a straggler from a block already superseded
+                        }
+                        const live = streamingAnswerRef.current.text;
+                        setChatHistory(prev => {
+                            const newHistory = [...prev];
+                            const last = newHistory[newHistory.length - 1];
+                            if (!last || last.role !== 'assistant') return prev;
+                            newHistory[newHistory.length - 1] = { ...last, content: live };
+                            return newHistory;
+                        });
+                        break;
+                    }
+                    case 'answer': {
+                        if (!isActiveStream) return;
+                        // The authoritative text. It replaces the streamed accumulation rather
+                        // than being appended to it: `Complete` will carry this same string, and
+                        // the citation markers are rewritten server-side after the last chunk, so
+                        // the streamed copy is a preview and this is the real thing.
+                        if (update.sessionId) {
+                            sessionIdRef.current = update.sessionId;
+                        }
+                        streamingAnswerRef.current = { block: Number.MAX_SAFE_INTEGER, text: update.answer || '' };
+                        setChatHistory(prev => {
+                            const newHistory = [...prev];
+                            const last = newHistory[newHistory.length - 1];
+                            if (!last || last.role !== 'assistant') return prev;
+                            newHistory[newHistory.length - 1] = { ...last, content: update.answer || '' };
+                            return newHistory;
+                        });
+                        // The run is NOT over: references, citations and the graph query list are
+                        // still on their way. Keep the spinner, but say what it is waiting for —
+                        // the answer is already on screen and readable.
+                        setStreamingStepName('Finalizing references...');
+                        break;
+                    }
                     case 'final':
                         if (!isActiveStream) return;
                         if (update.sessionId) {
