@@ -1750,6 +1750,10 @@ function LLMAgent() {
     // the answer — in a ReAct loop the model narrates before each call and that text streams too,
     // so a lower block number means "that was a previous train of thought, throw it away".
     const streamingAnswerRef = useRef({ block: -1, text: '' });
+    // The cheap-tier opening line, accumulated in place. It occupies ONE entry in the thought
+    // list that grows as the chunks land, rather than one entry per chunk — `groupThinkingSteps`
+    // would otherwise render a column of two-word fragments.
+    const preambleRef = useRef({ text: '', index: -1 });
     const prevSelectedMessageIndexRef = useRef(null);
     const lastAutoSelectedRef = useRef(null);
     const sessionIdRef = useRef(null);
@@ -2449,6 +2453,7 @@ function LLMAgent() {
         investigateDetailRef.current = {};
         thinkingStepsRef.current = [];
         streamingAnswerRef.current = { block: -1, text: '' };
+        preambleRef.current = { text: '', index: -1 };
         setThinkingStepsVersion(v => v + 1);
 
         try {
@@ -2713,6 +2718,22 @@ function LLMAgent() {
                             }
                         }
                         break;
+                    case 'thinking': {
+                        if (!isActiveStream) return;
+                        const pre = preambleRef.current;
+                        pre.text += update.delta;
+                        const entry = { step: 'Thinking', content: pre.text, isThought: true };
+                        if (pre.index < 0) {
+                            pre.index = thinkingStepsRef.current.length;
+                            thinkingStepsRef.current = [...thinkingStepsRef.current, entry];
+                        } else {
+                            const next = [...thinkingStepsRef.current];
+                            next[pre.index] = entry;
+                            thinkingStepsRef.current = next;
+                        }
+                        setThinkingStepsVersion(v => v + 1);
+                        break;
+                    }
                     case 'delta': {
                         if (!isActiveStream) return;
                         const buf = streamingAnswerRef.current;

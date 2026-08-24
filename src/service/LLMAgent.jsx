@@ -305,6 +305,15 @@ export class LLMAgentService {
                                 keywords,
                                 papers,
                             });
+                        } else if (data.step === 'Thinking') {
+                            // The opening line, written by a cheap model while the agent is still
+                            // on its first turn. It is not the answer and never becomes it — the
+                            // real text arrives on `Delta`/`Answer` and supersedes it — so it goes
+                            // to the thought list, not the body.
+                            onUpdate({
+                                type: 'thinking',
+                                delta: typeof data.delta === 'string' ? data.delta : '',
+                            });
                         } else if (data.step === 'Delta') {
                             // A chunk of the answer as the model writes it. `delta` is the
                             // INCREMENT, not the running total, so the client appends. `block`
