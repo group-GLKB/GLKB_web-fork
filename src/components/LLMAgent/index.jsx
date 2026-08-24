@@ -2461,8 +2461,20 @@ function LLMAgent() {
         }
         // An investigate run must know its session id BEFORE the stream opens, because that id is
         // the only address a clarify round can be answered at. See mintSessionId.
-        if (investigateEnabled && !sessionIdRef.current) {
+        //
+        // A chat run now mints one too. The id is also the address a RUN is recovered at
+        // (`GET /run?session_id=`), and after a reload it is the only one left: the run id lives
+        // in a ref that the reload destroys. The agent honours a client-supplied id and only
+        // invents its own when we send none, so choosing it here changes nothing about the run
+        // and gives the reload something to reconnect to.
+        if (!sessionIdRef.current) {
             sessionIdRef.current = mintSessionId();
+        }
+        // Persist it NOW, not when the run finishes. It used to be written on the `Saved` frame,
+        // which arrives at the END of the run — precisely never, for the case that needs it: a
+        // reader who reloads while the answer is still being written.
+        if (historyId) {
+            setStoredSessionId(historyId, sessionIdRef.current);
         }
 
         // Update chat history with user message
