@@ -1273,19 +1273,27 @@ const MessageCard = React.memo(function MessageCard({
             <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: "5px", justifyContent: "flex-end" }}>
                 <Box
                     sx={{
-                        bgcolor: isAssistant ? "transparent" : "var(--color-background-muted)", // Different background colors
+                        bgcolor: isAssistant ? "transparent" : "var(--color-background-muted)",
                         boxShadow: "none",
-                        maxWidth: isAssistant ? "100%" : "80%", // Adjust max width for assistant messages
+                        /* 45:1176/1177 — the question is a background/muted bubble at radius/2,
+                           8 by 16, holding body-lg, and its text is capped at 560 rather than at
+                           a fraction of the column. 80% of a wide column is a very long line to
+                           read; 560 is the measure the frame sets. */
+                        maxWidth: isAssistant ? "100%" : "560px",
                         width: isAssistant ? "100%" : "auto",
                         display: "flex",
                         alignItems: "flex-start",
-                        // The user bubble keeps even padding on every side per the design spec.
                         px: isAssistant ? "0px" : "16px",
-                        pt: isAssistant ? "12px" : "12px",
-                        pb: isAssistant ? "24px" : "12px",
-                        // border: isAssistant ? "1px solid" : "none",
+                        pt: isAssistant ? "12px" : "8px",
+                        pb: isAssistant ? "24px" : "8px",
                         borderColor: "divider",
-                        borderRadius: isAssistant ? "24px" : "16px",
+                        borderRadius: isAssistant ? "24px" : "var(--radius-2, 8px)",
+                        ...(isAssistant ? {} : {
+                            fontSize: "16px",
+                            fontWeight: 400,
+                            lineHeight: "26px",
+                            color: "var(--color-text-secondary)",
+                        }),
                         // The assistant fills the column; the user bubble hugs its
                         // text, so a one-line question is a one-line-wide box.
                         flex: isAssistant ? 1 : "0 1 auto",

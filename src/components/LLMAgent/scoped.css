@@ -1442,18 +1442,6 @@
     justify-content: flex-end;
 }
 
-.message-wrapper.user .message {
-    background-color: var(--color-background-surface) !important;
-    color: var(--color-grey-900);
-    border-radius: 8px;
-    padding: 8px 16px;
-    max-width: 800px;
-}
-
-.message-wrapper.user .message:hover {
-    background-color: var(--color-background-surface) !important;
-}
-
 .message-wrapper.assistant {
     background-color: transparent;
     justify-content: flex-start;
@@ -1592,13 +1580,9 @@
     justify-content: flex-end;
 }
 
-.message-wrapper.user .message {
-    background-color: var(--color-background-muted) !important;
-    color: var(--color-grey-900);
-    border-radius: 8px;
-    padding: 8px 16px;
-    max-width: 480px;
-}
+/* The question's own styling lives in the sx on the bubble in index.jsx, not here —
+   `.message-wrapper` is markup this component stopped rendering. What remains below are
+   the rules that still match something. */
 
 .reference-button-wrapper {
     padding: 0 16px 16px;
@@ -1957,36 +1941,38 @@
 }
 
 /* h1 is rare in an answer but the vendored sheet gives it 2em and a bottom rule. */
-.markdown-body h1 {
+/* ---- headings
+   The message frame (45:2243) declares exactly one heading token, h5 at 16/20, and none of
+   the larger ones — no 20/28, no 24/32. An answer's headings sit inside a message, not on a
+   page, so the ceiling is lower than the blog's.
+   
+   Which markdown level gets which was settled by counting what the agent actually writes.
+   Across 20 saved conversations: h1 twice, h2 seventy-four times, h3 a hundred and eighteen,
+   h4 twice, h5 and h6 never. An investigate report is six h2 sections with h3 beneath them,
+   every time. So there are two levels in practice, and the frame has exactly two emphasis
+   steps to spend on them:
+   
+       h2  ->  h5               16/20 SemiBold, text/primary
+       h3  ->  body-emphasized  14/22 SemiBold, text/secondary
+   
+   h1 joins h2 and h4-h6 join h3: four occurrences between them in twenty conversations, and
+   inventing sizes the frame does not contain to separate them would cost more than it buys. */
+.markdown-body h1,
+.markdown-body h2 {
     margin: 24px 0 12px;
     padding-bottom: 0;
     border-bottom: none;
-    font-size: 24px;
-    font-weight: 600;
-    line-height: 32px;
-    color: var(--color-text-primary);
-}
-
-.markdown-body h2 {
-    margin: 24px 0 12px;
-    font-size: 20px;
-    font-weight: 600;
-    line-height: 28px;
-    color: var(--color-text-primary);
-}
-
-.markdown-body h3 {
-    margin: 20px 0 8px;
     font-size: 16px;
     font-weight: 600;
     line-height: 20px;
-    color: var(--color-text-secondary);
+    color: var(--color-text-primary);
 }
 
+.markdown-body h3,
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-    margin: 16px 0 8px;
+    margin: 20px 0 8px;
     font-size: 14px;
     font-weight: 600;
     line-height: 22px;
