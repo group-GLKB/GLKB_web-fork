@@ -2141,7 +2141,18 @@ function LLMAgent() {
             let nextActiveId = getActiveConversationId();
             const hasInitialQuery = Boolean(location.state?.initialQuery);
             const hasConversationId = Boolean(location.state?.conversationId);
-            const shouldSkipRestore = hasInitialQuery || hasConversationId;
+            /* ...or a question from the home page that this mount has already taken.
+            
+               Consuming that question removes it from location.state, and this effect lists
+               location.state.initialQuery among its dependencies — so clearing it ran the
+               effect again, this time with nothing telling it to stand back. It then restored
+               whatever conversation was most recent over the top of the question being asked:
+               the user's message and the spinner vanished for as long as the detail fetch took,
+               and came back only when the first token landed. That is the stutter. The ref is
+               set before the state is cleared, so it covers the whole gap. */
+            const shouldSkipRestore = hasInitialQuery
+                || hasConversationId
+                || hasConsumedInitialQueryRef.current;
 
             if (cached.length > 0) {
                 setConversationsState(cached);
@@ -2618,6 +2629,17 @@ function LLMAgent() {
             investigateMode: investigateEnabled,
         };
 
+        /* Paint before waiting on anything.
+        
+           These used to run after the conversation had been created, which is a network round
+           trip: the question sat unrendered and the panel showed no sign of having started for
+           as long as that took. Nothing below needs them to have waited — the conversation id
+           is not part of what they draw. */
+        setChatHistory([...baseHistory, newMessage]);
+        setUserInput('');
+        setIsLoading(true);
+        setIsProcessing(true);
+
         let historyId = activeConversationIdRef.current;
         if (shouldStartNewConversation && isAuthenticated) {
             try {
@@ -2666,11 +2688,7 @@ function LLMAgent() {
             setStoredSessionId(historyId, sessionIdRef.current);
         }
 
-        // Update chat history with user message
-        setChatHistory([...baseHistory, newMessage]);
-        setUserInput('');
-        setIsLoading(true);
-        setIsProcessing(true);
+        // The question and the spinner are already up — see above.
         setStreamingGroups([]);
         setPreambleText('');
         setStreamingStepName('');
@@ -4034,6 +4052,10 @@ function LLMAgent() {
        to restore. */
     const hasNothingToShow = !isConversationLoading
         && !isProcessing
+        // A question handed over from the home page is on its way: the state that carried it
+        // has already been cleared, and the conversation it will live in does not exist yet.
+        // Reading "nothing to show" in that window sent the asker back to the home page.
+        && !hasConsumedInitialQueryRef.current
         && chatHistory.length === 0
         && !activeConversationId
         && !location.state?.initialQuery
