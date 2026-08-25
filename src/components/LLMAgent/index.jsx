@@ -30,6 +30,7 @@ import {
   Check as CheckIcon,
   ChevronRight as ChevronRightIcon,
   Clear as ClearIcon,
+  Close as CloseIcon,
   EditNote as EditNoteIcon,
   ExpandMore as ExpandMoreIcon,
   ScienceOutlined as ScienceOutlinedIcon,
@@ -1754,6 +1755,22 @@ const MessageCard = React.memo(function MessageCard({
 function LLMAgent() {
     const location = useLocation();
     const [userInput, setUserInput] = useState('');
+    /**
+     * Follow-ups typed while an answer is still being written.
+     *
+     * The bar used to go dead for the length of a run — measured on live runs, 19 to 68 seconds
+     * — so a question that occurred to the reader mid-answer had to be held in their head until
+     * the page let them type it. Sending it immediately is not an option either: the agent is
+     * mid-stream and a second turn on the same conversation would race the first. So it is
+     * queued: the text leaves the reader's hands at once, and the run that carries it starts
+     * when the current one ends.
+     *
+     * A list rather than a single slot — someone who thinks of two things should not have to
+     * wait for the first to be answered before writing the second. They go out one at a time,
+     * oldest first, each waiting for the previous answer.
+     */
+    const [queuedPrompts, setQueuedPrompts] = useState([]);
+    const queueSeqRef = useRef(0);
     const [chatHistory, setChatHistory] = useState(() => {
         const initialQuery = location.state?.initialQuery;
         if (initialQuery) {
@@ -2319,6 +2336,8 @@ function LLMAgent() {
                 setChatHistory(detail?.messages || []);
                 setSelectedMessageIndex(null);
                 setShowReloadPrompt(false);
+                // Queued follow-ups belong to the conversation they were typed into.
+                setQueuedPrompts([]);
                 llmService.clearHistory();
                 // The conversation may have been left mid-answer. Fire and forget: this polls for
                 // minutes, and the load itself must not wait on it.
@@ -2363,6 +2382,7 @@ function LLMAgent() {
         setActiveConversationIdState(null);
         activeConversationIdRef.current = null;
         setActiveConversationId(null);
+        setQueuedPrompts([]);
         llmService.clearHistory();
     }, [cancelStreaming, llmService]);
 
@@ -2735,7 +2755,12 @@ function LLMAgent() {
            as long as that took. Nothing below needs them to have waited — the conversation id
            is not part of what they draw. */
         setChatHistory([...baseHistory, newMessage]);
-        setUserInput('');
+        // Only when the text came from the box. Every caller that passes `input` is resending
+        // something else — a queued follow-up, an edited message, a retry — and the box may now
+        // hold a draft the reader is in the middle of writing. It could not before, because the
+        // box was disabled for the length of a run; now that it is live, clearing it here would
+        // delete their work.
+        if (!input) setUserInput('');
         setIsLoading(true);
         setIsProcessing(true);
 
@@ -3836,6 +3861,26 @@ function LLMAgent() {
             />
             );
         })}
+        {queuedPrompts.map((item) => (
+            <Container
+                key={item.id}
+                className="message-pair queued-prompt"
+                sx={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', mb: '5px', justifyContent: 'flex-end' }}
+            >
+                <Box className="queued-prompt-bubble">
+                    <span className="queued-prompt-text">{item.text}</span>
+                    <button
+                        type="button"
+                        className="queued-prompt-remove"
+                        title="Remove from queue"
+                        aria-label={`Remove queued question: ${item.text}`}
+                        onClick={() => removeQueuedPrompt(item.id)}
+                    >
+                        <CloseIcon sx={{ fontSize: 16 }} />
+                    </button>
+                </Box>
+            </Container>
+        ))}
         </Box>);
     };
 
@@ -4138,6 +4183,63 @@ function LLMAgent() {
     // Declared here, after every handler above exists, and read by `renderMessages` — which is
     // defined earlier but only called from the JSX below. Without these the memo on MessageCard
     // never held: six props were a new function on every render.
+    const stableSubmit = useStableCallback(handleSubmit);
+
+    /**
+     * Send now, or queue if an answer is still being written.
+     *
+     * The decision is made here rather than in the bar so the bar keeps one action with one
+     * meaning — "this text is finished, take it" — whatever the run happens to be doing.
+     */
+    const submitOrQueue = useCallback((event, searchOptions) => {
+        event?.preventDefault?.();
+        const text = userInput.trim();
+        if (!text || isLimitReachedEffective) return;
+        if (!isLoading) {
+            stableSubmit(event, null, null, { searchOptions });
+            return;
+        }
+        queueSeqRef.current += 1;
+        setQueuedPrompts((prev) => [...prev, {
+            id: `q-${queueSeqRef.current}`,
+            text,
+            // Captured now rather than read at send time: they describe the turn the reader
+            // meant to ask for.
+            searchOptions,
+        }]);
+        setUserInput('');
+    }, [userInput, isLoading, isLimitReachedEffective, stableSubmit]);
+
+    const removeQueuedPrompt = useCallback((id) => {
+        setQueuedPrompts((prev) => prev.filter((item) => item.id !== id));
+    }, []);
+
+    /**
+     * Release the oldest queued prompt once nothing is in flight.
+     *
+     * Guarded by a ref as well as by the flags: `handleSubmit` is async and does not flip
+     * `isLoading` until it has built the request, so two renders inside that window would
+     * otherwise send the same prompt twice. The guard is held for the whole run — the promise
+     * `handleSubmit` returns settles when the stream does — so the next one waits its turn.
+     */
+    const flushingQueueRef = useRef(false);
+    useEffect(() => {
+        if (isLoading || isProcessing || isConversationLoading) return;
+        if (!queuedPrompts.length || isLimitReachedEffective) return;
+        if (flushingQueueRef.current) return;
+        flushingQueueRef.current = true;
+        const [next, ...rest] = queuedPrompts;
+        setQueuedPrompts(rest);
+        Promise.resolve(
+            stableSubmit(null, next.text, null, { searchOptions: next.searchOptions }),
+        ).finally(() => {
+            flushingQueueRef.current = false;
+        });
+    }, [
+        isLoading, isProcessing, isConversationLoading,
+        queuedPrompts, isLimitReachedEffective, stableSubmit,
+    ]);
+
     const stableRefresh = useStableCallback(handleRegenerateResponse);
     const stableCopy = useStableCallback(handleCopyMessage);
     const stableSave = useStableCallback(handleSaveEdit);
@@ -4798,11 +4900,9 @@ function LLMAgent() {
                                                         isLoading={isLoading}
                                                         isQueryLimitReached={isLimitReachedEffective}
                                                         investigateEnabled={chatInvestigateEnabled}
-                                                        onSubmit={(event) => handleSubmit(event, null, null, {
-                                                            searchOptions: {
-                                                                investigateEnabled: chatInvestigateEnabled,
-                                                                ...(initialSearchOptionsRef.current || {}),
-                                                            },
+                                                        onSubmit={(event) => submitOrQueue(event, {
+                                                            investigateEnabled: chatInvestigateEnabled,
+                                                            ...(initialSearchOptionsRef.current || {}),
                                                         })}
                                                         onStop={handleStopStreaming}
                                                     />
