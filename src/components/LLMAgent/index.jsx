@@ -6,6 +6,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -66,6 +67,7 @@ import ReferenceHoverCard from './ReferenceHoverCard';
 import { getBookmarks, toggleBookmark } from '../../utils/bookmarks';
 import { resolveClarifyRound } from './clarifyRound';
 import { mintSessionId } from './sessionId';
+import { makeDrip } from './streamDrip';
 import { ReactComponent as ContentCopyIcon } from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import { ReactComponent as ReferenceIcon } from '../../img/llm/reference.svg';
@@ -936,6 +938,41 @@ const tidyStreamingText = (content) => {
         .replace(UNCLOSED_BRACKET, '');
 };
 
+const rafSchedule = (fn) => (
+    typeof requestAnimationFrame === 'function' ? requestAnimationFrame(fn) : setTimeout(fn, 33)
+);
+const rafCancel = (id) => {
+    if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(id);
+    else clearTimeout(id);
+};
+
+/**
+ * A callback whose identity never changes but which always calls the latest closure.
+ *
+ * `MessageCard` is memoised, and six of the handlers it takes were re-created on every
+ * render — which defeated the memo for EVERY card, so a single streamed chunk re-parsed
+ * the markdown of every answer in the conversation, not just the one being written.
+ */
+const useStableCallback = (fn) => {
+    const ref = useRef(fn);
+    useLayoutEffect(() => { ref.current = fn; });
+    return useCallback((...args) => ref.current?.(...args), []);
+};
+
+// Stable placeholders for the live-run props, which only the streaming card ever reads
+// (every use inside MessageCard is behind `isLoading`). Passing the live values to the
+// settled cards as well changed their props on every frame and re-rendered them for nothing.
+// How far from the bottom the reader may be before auto-follow stops chasing them.
+const AUTO_FOLLOW_SLACK_PX = 80;
+// The conversation is mirrored into sessionStorage for a reload mid-answer; it does not need
+// to be written once per streamed chunk.
+const CHAT_PERSIST_DEBOUNCE_MS = 400;
+
+const NO_GROUPS = [];
+const NO_KEYWORDS = [];
+const NO_PAPERS = [];
+const NO_DETAIL = {};
+
 const MessageCard = React.memo(function MessageCard({
     index,
     message,
@@ -951,8 +988,6 @@ const MessageCard = React.memo(function MessageCard({
     investigateKeywords,
     investigatePapers,
     investigateDetail,
-    thinkingStepsVersion,
-    liveThinkingStepsRef,
     pendingClarification,
     clarificationDrafts,
     clarificationError,
@@ -1779,7 +1814,6 @@ function LLMAgent() {
     // n_conflicted, section/step/total). Accumulated rather than replaced, so a later frame that
     // omits a field does not blank the active step's detail block.
     const [investigateDetail, setInvestigateDetail] = useState({});
-    const [thinkingStepsVersion, setThinkingStepsVersion] = useState(0);
     const [notifyEmailEnabled, setNotifyEmailEnabled] = useState(() => getNotifyPrefs().email);
 
     // The same preference has a row in Settings and a toggle here; either can
@@ -1802,6 +1836,25 @@ function LLMAgent() {
     // the answer — in a ReAct loop the model narrates before each call and that text streams too,
     // so a lower block number means "that was a previous train of thought, throw it away".
     const streamingAnswerRef = useRef({ block: -1, text: '' });
+    // Lazily built once. Both of its inputs are stable: `streamingAnswerRef` is a ref and
+    // `setChatHistory` is a useState setter, so the drip never captures a stale render.
+    const dripRef = useRef(null);
+    if (!dripRef.current) {
+        dripRef.current = makeDrip({
+            getFull: () => streamingAnswerRef.current.text,
+            show: (text) => setChatHistory((prev) => {
+                const next = [...prev];
+                const last = next[next.length - 1];
+                if (!last || last.role !== 'assistant') return prev;
+                if (last.content === text) return prev;
+                next[next.length - 1] = { ...last, content: text };
+                return next;
+            }),
+        });
+    }
+    // A run can still be in flight when the reader leaves the page; nothing should go on
+    // painting into a conversation that is no longer mounted.
+    useEffect(() => () => dripRef.current?.stop(), []);
     // The cheap-tier opening line, accumulated in place. It occupies ONE entry in the thought
     // list that grows as the chunks land, rather than one entry per chunk — `groupThinkingSteps`
     // would otherwise render a column of two-word fragments.
@@ -2227,13 +2280,13 @@ function LLMAgent() {
         }
         abortControllerRef.current = null;
         activeStreamIdRef.current = null;
+        dripRef.current?.stop();
         setIsLoading(false);
         setIsProcessing(false);
         setStreamingGroups([]);
         setPreambleText('');
         setStreamingStepName('');
         thinkingStepsRef.current = [];
-        setThinkingStepsVersion(v => v + 1);
         applyPendingClarification(null);
         setClarificationDrafts({});
         setClarificationError('');
@@ -2313,9 +2366,25 @@ function LLMAgent() {
         llmService.clearHistory();
     }, [cancelStreaming, llmService]);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
+    /**
+     * Follow the answer down.
+     *
+     * This ran `scrollIntoView({behavior:'smooth'})` on every state change. While text is
+     * streaming that is many times a second, and each call restarts the animation before the
+     * previous one has finished — the scroll never settles, which is most of what made the
+     * streamed answer look like it was stuttering. It also dragged the view back down when the
+     * reader had scrolled up to re-read something earlier in the answer.
+     *
+     * So: smooth for a settled change, and while a run is in flight instant, at most once per
+     * frame, and only when the reader is already at the bottom.
+     */
+    const scrollFrameRef = useRef(0);
+    const scrollToBottom = useCallback((smooth = true) => {
+        messagesEndRef.current?.scrollIntoView({
+            behavior: smooth ? 'smooth' : 'auto',
+            block: 'end',
+        });
+    }, []);
 
     const handleClick = (event, link) => {
         event.preventDefault();
@@ -2323,12 +2392,37 @@ function LLMAgent() {
     };
 
     useEffect(() => {
-        scrollToBottom();
-    }, [chatHistory, streamingGroups]);
+        if (!isProcessing) {
+            scrollToBottom(true);
+            return undefined;
+        }
+        const container = messagesContainerRef.current;
+        if (container) {
+            const distance = container.scrollHeight - container.scrollTop - container.clientHeight;
+            if (distance > AUTO_FOLLOW_SLACK_PX) return undefined;   // the reader scrolled away
+        }
+        if (scrollFrameRef.current) return undefined;
+        scrollFrameRef.current = rafSchedule(() => {
+            scrollFrameRef.current = 0;
+            scrollToBottom(false);
+        });
+        return () => {
+            if (scrollFrameRef.current) {
+                rafCancel(scrollFrameRef.current);
+                scrollFrameRef.current = 0;
+            }
+        };
+    }, [chatHistory, streamingGroups, isProcessing, scrollToBottom]);
 
+    // Debounced rather than written on every change: this is a synchronous main-thread write of
+    // `JSON.stringify(chatHistory)` — the whole conversation, references included — and it ran
+    // once per streamed chunk. The tab only needs the latest state, not every intermediate one.
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-        sessionStorage.setItem('llmChatHistory', JSON.stringify(chatHistory));
+        if (typeof window === 'undefined') return undefined;
+        const id = setTimeout(() => {
+            sessionStorage.setItem('llmChatHistory', JSON.stringify(chatHistory));
+        }, CHAT_PERSIST_DEBOUNCE_MS);
+        return () => clearTimeout(id);
     }, [chatHistory]);
 
     useEffect(() => {
@@ -2719,8 +2813,8 @@ function LLMAgent() {
         investigateDetailRef.current = {};
         thinkingStepsRef.current = [];
         streamingAnswerRef.current = { block: -1, text: '' };
+        dripRef.current.reset();
         preambleRef.current = { text: '', index: -1 };
-        setThinkingStepsVersion(v => v + 1);
 
         try {
             logDev('[LLM] submit', { input: inputText });
@@ -2896,14 +2990,12 @@ function LLMAgent() {
                                         isProgress: true,
                                         phase: update.phase,
                                     }];
-                                    setThinkingStepsVersion(v => v + 1);
                                 }
                             }
 
                             if (hasContent && !update.isProgress) {
                                 const newEntry = { step: update.step, content: rawContent };
                                 thinkingStepsRef.current = [...thinkingStepsRef.current, newEntry];
-                                setThinkingStepsVersion(v => v + 1);
                                 const parsedEntry = parseThinkingEntry(newEntry);
                                 if (parsedEntry.stepName) {
                                     setStreamingStepName(parsedEntry.stepName);
@@ -2997,7 +3089,6 @@ function LLMAgent() {
                             next[pre.index] = entry;
                             thinkingStepsRef.current = next;
                         }
-                        setThinkingStepsVersion(v => v + 1);
                         setPreambleText(pre.text);
                         // `thinkingStepsRef` is what the FINISHED message carries; the live view
                         // renders `streamingGroups`, which until now was only ever written from
@@ -3034,22 +3125,15 @@ function LLMAgent() {
                                     content: narration,
                                     isThought: true,
                                 }];
-                                setThinkingStepsVersion(v => v + 1);
                             }
                             streamingAnswerRef.current = { block: update.block, text: update.delta };
+                            dripRef.current.reset();
                         } else if (update.block === buf.block) {
                             streamingAnswerRef.current = { block: buf.block, text: buf.text + update.delta };
                         } else {
                             return;   // a straggler from a block already superseded
                         }
-                        const live = streamingAnswerRef.current.text;
-                        setChatHistory(prev => {
-                            const newHistory = [...prev];
-                            const last = newHistory[newHistory.length - 1];
-                            if (!last || last.role !== 'assistant') return prev;
-                            newHistory[newHistory.length - 1] = { ...last, content: live };
-                            return newHistory;
-                        });
+                        dripRef.current.start();
                         break;
                     }
                     case 'answer': {
@@ -3062,13 +3146,10 @@ function LLMAgent() {
                             sessionIdRef.current = update.sessionId;
                         }
                         streamingAnswerRef.current = { block: Number.MAX_SAFE_INTEGER, text: update.answer || '' };
-                        setChatHistory(prev => {
-                            const newHistory = [...prev];
-                            const last = newHistory[newHistory.length - 1];
-                            if (!last || last.role !== 'assistant') return prev;
-                            newHistory[newHistory.length - 1] = { ...last, content: update.answer || '' };
-                            return newHistory;
-                        });
+                        // No drip here: this is the finished text, and the reader has already
+                        // watched most of it arrive. Holding the tail back now would be delay
+                        // for its own sake.
+                        dripRef.current.flush(update.answer || '');
                         // The run is NOT over: references, citations and the graph query list are
                         // still on their way. Keep the spinner, but say what it is waiting for —
                         // the answer is already on screen and readable.
@@ -3077,6 +3158,8 @@ function LLMAgent() {
                     }
                     case 'final':
                         if (!isActiveStream) return;
+                        // The whole message is replaced below; anything still queued is stale.
+                        dripRef.current.stop();
                         if (update.sessionId) {
                             sessionIdRef.current = update.sessionId;
                         }
@@ -3708,25 +3791,32 @@ function LLMAgent() {
     }, []);
 
     const renderMessages = () => {
-        return (<Box sx={{ p: isPhoneDevice ? 1 : 2 }}>{chatHistory.map((message, index) => (
+        // Only the last assistant card is the one being written, and every use of the live-run
+        // props inside MessageCard sits behind its `isLoading`. Handing those props to the
+        // settled cards too changed their props on every frame, so each streamed chunk
+        // re-rendered — and re-parsed the markdown of — every answer in the conversation.
+        const lastIndex = chatHistory.length - 1;
+        return (<Box sx={{ p: isPhoneDevice ? 1 : 2 }}>{chatHistory.map((message, index) => {
+            const isStreamingCard = isProcessing
+                && index === lastIndex
+                && message.role === 'assistant';
+            return (
             <MessageCard
                 key={index}
                 index={index}
                 message={message}
                 totalMessages={chatHistory.length}
                 isProcessing={isProcessing}
-                streamingGroups={streamingGroups}
-                preamble={preambleText}
-                streamingStepName={streamingStepName}
-                investigatePhase={investigatePhase}
-                investigateFunnel={investigateFunnel}
-                investigateStartedAt={investigateStartedAt}
-                investigatePercent={investigatePercent}
-                investigateKeywords={investigateKeywords}
-                investigatePapers={investigatePapers}
-                investigateDetail={investigateDetail}
-                thinkingStepsVersion={thinkingStepsVersion}
-                liveThinkingStepsRef={thinkingStepsRef}
+                streamingGroups={isStreamingCard ? streamingGroups : NO_GROUPS}
+                preamble={isStreamingCard ? preambleText : ''}
+                streamingStepName={isStreamingCard ? streamingStepName : ''}
+                investigatePhase={isStreamingCard ? investigatePhase : null}
+                investigateFunnel={isStreamingCard ? investigateFunnel : null}
+                investigateStartedAt={isStreamingCard ? investigateStartedAt : null}
+                investigatePercent={isStreamingCard ? investigatePercent : null}
+                investigateKeywords={isStreamingCard ? investigateKeywords : NO_KEYWORDS}
+                investigatePapers={isStreamingCard ? investigatePapers : NO_PAPERS}
+                investigateDetail={isStreamingCard ? investigateDetail : NO_DETAIL}
                 pendingClarification={pendingClarification}
                 clarificationDrafts={clarificationDrafts}
                 clarificationError={clarificationError}
@@ -3735,16 +3825,18 @@ function LLMAgent() {
                 onUpdateClarificationDraft={updateClarificationDraft}
                 onSubmitClarification={submitClarification}
                 onSkipClarification={submitClarification}
-                refresh={handleRegenerateResponse}
-                copy={handleCopyMessage}
-                save={handleSaveEdit}
-                downloadConversation={handleDownloadConversation}
-                onOpenFeedback={handleOpenFeedback}
+                refresh={stableRefresh}
+                copy={stableCopy}
+                save={stableSave}
+                downloadConversation={stableDownload}
+                onOpenFeedback={stableOpenFeedback}
                 showReloadPrompt={showReloadPrompt}
-                onReloadLatest={handleReloadLatest}
+                onReloadLatest={stableReloadLatest}
                 onStop={handleStopStreaming}
             />
-        ))}</Box>);
+            );
+        })}
+        </Box>);
     };
 
     const [sortOption, setSortOption] = useState('Year');
@@ -4042,6 +4134,16 @@ function LLMAgent() {
 
         message.success('Q&A downloaded');
     };
+
+    // Declared here, after every handler above exists, and read by `renderMessages` — which is
+    // defined earlier but only called from the JSX below. Without these the memo on MessageCard
+    // never held: six props were a new function on every render.
+    const stableRefresh = useStableCallback(handleRegenerateResponse);
+    const stableCopy = useStableCallback(handleCopyMessage);
+    const stableSave = useStableCallback(handleSaveEdit);
+    const stableDownload = useStableCallback(handleDownloadConversation);
+    const stableOpenFeedback = useStableCallback(handleOpenFeedback);
+    const stableReloadLatest = useStableCallback(handleReloadLatest);
 
     /* Nothing to show: no conversation restored, nothing streaming, and no question
        handed over from the home page.
