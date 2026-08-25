@@ -15,6 +15,7 @@ import { message } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import ReactMarkdown from 'react-markdown';
 import {
+  Navigate,
   UNSAFE_NavigationContext,
   useLocation,
   useNavigate,
@@ -4001,6 +4002,29 @@ function LLMAgent() {
         message.success('Q&A downloaded');
     };
 
+    /* Nothing to show: no conversation restored, nothing streaming, and no question
+       handed over from the home page.
+       
+       This used to be the "Explore Biomedical Literature" screen — a second home page,
+       reachable by typing /chat, and shown for as long as it took the first token to
+       arrive after a question was submitted, which is why it flashed. Home is the page
+       that does this job, so go there instead of drawing an emptier version of it.
+       
+       Deliberately not an unconditional redirect on /chat: recovering a run after a
+       reload arrives here with no router state either, and sending that to the home
+       page would undo it. What separates the two is whether there is a conversation
+       to restore. */
+    const hasNothingToShow = !isConversationLoading
+        && !isProcessing
+        && chatHistory.length === 0
+        && !activeConversationId
+        && !location.state?.initialQuery
+        && !location.state?.conversationId;
+
+    if (hasNothingToShow) {
+        return <Navigate to="/" replace />;
+    }
+
     return (
         <>
             <Helmet>
@@ -4532,38 +4556,6 @@ function LLMAgent() {
                                                             </MuiButton>
                                                         )}
                                                     </Box>
-                                                    {/* Add example queries section */}
-                                                    {!isConversationLoading && chatHistory.length === 0 && (
-                                                        <div className='empty-components-container'>
-                                                            <div className="empty-page-title" style={{ paddingTop: '1rem' }}>
-                                                                <div style={{ gap: '1rem', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
-                                                                    <Typography sx={{ fontFamily: "Geist, sans-serif", fontSize: '32px', fontWeight: '700', color: "var(--color-grey-900)" }}>
-                                                                        Explore Biomedical Literature
-                                                                    </Typography>
-                                                                    <Typography sx={{ fontFamily: "Geist, sans-serif", fontSize: '16px', fontWeight: '500', color: "var(--color-text-tertiary)" }}>
-                                                                        AI-powered Genomic Literature Knowledge Base
-                                                                    </Typography>
-                                                                </div>
-                                                            </div>
-                                                            <div className="example-queries-header">
-                                                                <Typography sx={{ fontFamily: "Geist, sans-serif", fontSize: '16px', fontWeight: '400', color: "var(--color-grey-400)", width: '100%', textAlign: 'left' }}>
-                                                                    Try these example queries:
-                                                                </Typography>
-                                                                <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '10px', minHeight: '80px' }}>
-                                                                    {
-                                                                        ["What is the role of BRCA1 in breast cancer?",
-                                                                            "How many articles about Alzheimer's disease are published in 2020?",
-                                                                            "What pathways does TP53 participate in?"
-                                                                        ].map((query, index) => (
-                                                                            <div className="example-query" key={index} onClick={() => handleExampleClick(query)}>
-                                                                                {query}
-                                                                            </div>
-                                                                        ))
-                                                                    }
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    )}
 
                                                     <div ref={messagesContainerRef} className="messages-container">
                                                         {!isConversationLoading && renderMessages()}
