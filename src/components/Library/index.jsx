@@ -287,6 +287,8 @@ const normalizeFolderChat = (session) => {
         createdAt: session?.created_at || null,
         updatedAt: session?.last_accessed_time || session?.updatedAt || session?.created_at || null,
         messageCount: session?.message_count ?? messages.length,
+        // `sessions[].is_investigate` on /fav/chat and the folder listings.
+        isInvestigate: session?.is_investigate === true,
         messages,
     };
 };
