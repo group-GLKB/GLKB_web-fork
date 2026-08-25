@@ -107,6 +107,11 @@ const normalizeSummary = (summary) => ({
     createdAt: summary.created_at,
     updatedAt: summary.last_accessed_time,
     messageCount: summary.message_count ?? 0,
+    // Whether this conversation ever ran deep research. Written by the backend on
+    // /deep-research/stream and sticky once set, so it labels the conversation rather
+    // than its last turn. Absent on a server that predates the field, which reads the
+    // same as false — see investigateConversations.js for what covers that gap.
+    isInvestigate: summary.is_investigate === true,
     messages: [],
 });
 
@@ -116,6 +121,7 @@ const normalizeDetail = (detail) => ({
     leadingTitle: detail.leading_title || 'New Chat',
     createdAt: detail.created_at,
     updatedAt: detail.last_accessed_time,
+    isInvestigate: detail.is_investigate === true,
     messageCount: Array.isArray(detail.messages) ? detail.messages.length : 0,
     messages: Array.isArray(detail.messages)
         ? detail.messages.map((message) => ({
@@ -168,8 +174,8 @@ export const fetchConversationDetail = async (id) => {
     return conversation;
 };
 
-export const createConversation = async (leadingTitle = null) => {
-    const data = await createChatHistory(leadingTitle);
+export const createConversation = async (leadingTitle = null, isInvestigate = false) => {
+    const data = await createChatHistory(leadingTitle, isInvestigate);
     const conversation = normalizeSummary(data);
     const next = upsertConversation(getConversations(), conversation);
     setConversations(next, { activeId: conversation.id });

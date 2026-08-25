@@ -1,6 +1,7 @@
 import './scoped.css';
 
 import React, {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -200,10 +201,20 @@ const History = () => {
     const [conversationBookmarks, setConversationBookmarks] = useState([]);
     const [graphBookmarks, setGraphBookmarks] = useState([]);
 
-    // Which of these were investigate runs, so the row can carry the microscope
-    // the design gives them (176:8230). Re-read whenever the list changes: a run
-    // started in this tab marks itself while History is mounted behind it.
+    /* Which of these were investigate runs, so the row can carry the microscope the design
+       gives them (176:8230).
+       
+       The server answers this now — chat_histories.is_investigate, written by
+       /deep-research/stream and sticky once set. The local marks stay as a fallback for
+       conversations the server has not labelled: everything that ran before the column
+       existed, and every conversation at all until the backend branch carrying it lands.
+       Drop the second half of the `||` then, and the module with it. */
     const investigateIds = useMemo(() => getInvestigateConversationIds(), [conversations]);
+    const isInvestigateRun = useCallback(
+        (conversation) => conversation?.isInvestigate === true
+            || investigateIds.has(String(conversation?.id)),
+        [investigateIds],
+    );
 
     const normalizedChatItems = useMemo(() => (
         conversations.map((conversation) => ({
@@ -790,7 +801,7 @@ const History = () => {
                                         key={`chat-${item.id}`}
                                         conversation={item.conversation}
                                         title={item.title}
-                                        leadingIcon={investigateIds.has(item.id)
+                                        leadingIcon={isInvestigateRun(item.conversation)
                                             ? <InvestigateIcon />
                                             : <ChatIcon />}
                                         subtitle={undefined}

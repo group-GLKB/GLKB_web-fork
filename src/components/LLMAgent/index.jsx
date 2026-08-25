@@ -1978,7 +1978,9 @@ function LLMAgent() {
     //   already finished — the common case, because a reload takes longer than the poll — is
     //   rendered directly, with no loading state and no flash of anything else. The spinner goes
     //   back only once the server has actually said "running".
-    const resumeUnfinishedRun = useCallback(async (conversationId, messages, stillMounted) => {
+    const resumeUnfinishedRun = useCallback(async (
+        conversationId, messages, stillMounted, isInvestigateHint,
+    ) => {
         if (!isExchangeUnfinished(messages)) return;
         const key = String(conversationId);
         if (resumingConversationRef.current === key) return;
@@ -1986,7 +1988,11 @@ function LLMAgent() {
         if (!sessionId) return;      // nothing to reconnect to; leave the history as it is
         resumingConversationRef.current = key;
 
-        const investigate = isInvestigateConversation(conversationId);
+        /* Which kind of run to reattach to. The conversation record answers this now
+           (chat_histories.is_investigate); the local mark is the fallback for rows the
+           server has not labelled, and for servers that do not carry the column yet. */
+        const investigate = isInvestigateHint === true
+            || isInvestigateConversation(conversationId);
         const last = messages[messages.length - 1];
         let placeholderAdded = false;
 
@@ -2164,7 +2170,9 @@ function LLMAgent() {
                     activeConversationIdRef.current = String(nextActiveId);
                     // The path a plain reload takes. Fire and forget: it polls for minutes and
                     // the restore must not wait on it.
-                    resumeUnfinishedRun(nextActiveId, detail?.messages || [], () => isMounted);
+                    resumeUnfinishedRun(
+                        nextActiveId, detail?.messages || [], () => isMounted, detail?.isInvestigate,
+                    );
                 } catch (error) {
                     logDev('[LLM] Failed to load conversation detail', error);
                 } finally {
@@ -2237,7 +2245,9 @@ function LLMAgent() {
                 llmService.clearHistory();
                 // The conversation may have been left mid-answer. Fire and forget: this polls for
                 // minutes, and the load itself must not wait on it.
-                resumeUnfinishedRun(nextId, detail?.messages || [], () => isMounted);
+                resumeUnfinishedRun(
+                    nextId, detail?.messages || [], () => isMounted, detail?.isInvestigate,
+                );
             } catch (error) {
                 logDev('[LLM] Failed to load selected conversation', error);
             } finally {
@@ -2604,7 +2614,7 @@ function LLMAgent() {
         if (shouldStartNewConversation && isAuthenticated) {
             try {
                 const leadingTitle = inputText.trim().slice(0, 200) || null;
-                const conversation = await createConversation(leadingTitle);
+                const conversation = await createConversation(leadingTitle, investigateEnabled);
                 const nextList = upsertConversation(getConversations(), conversation);
                 setConversationsState(nextList);
                 setConversations(nextList);

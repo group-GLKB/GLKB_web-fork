@@ -9,9 +9,16 @@ export const listChatHistories = async ({ offset = 0, limit = 20 } = {}) => {
     return response.data;
 };
 
-export const createChatHistory = async (leadingTitle = null) => {
+/**
+ * `is_investigate` is optional and only sent when true: /deep-research/stream sets it
+ * anyway when the run starts, but sending it here means the conversation is labelled
+ * from the moment it appears in History rather than once the answer lands. A server
+ * without the field ignores it.
+ */
+export const createChatHistory = async (leadingTitle = null, isInvestigate = false) => {
     const response = await axios.post(API_BASE, {
         leading_title: leadingTitle ?? null,
+        ...(isInvestigate ? { is_investigate: true } : {}),
     });
     return response.data;
 };
