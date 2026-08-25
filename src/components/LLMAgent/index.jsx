@@ -582,21 +582,25 @@ const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
                 {(tool || summary) && (
                     <Typography
                         sx={{
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontSize: '16px',
+                            /* body-sm. This is what a step did, not what the answer says, and
+                               it was set at 16 — larger than the answer's own 14, and larger
+                               than the 12 the streaming lines beside it use. The rest of the
+                               app left DM Sans behind too. */
+                            fontFamily: 'Geist, sans-serif',
+                            fontSize: '12px',
                             fontWeight: 400,
                             color: 'var(--color-text-tertiary)',
                             whiteSpace: 'pre-wrap',
-                            lineHeight: 1.5,
+                            lineHeight: '20px',
                         }}
                     >
                         {tool && (
                             <Box
                                 component="span"
                                 sx={{
-                                    fontFamily: 'DM Sans, sans-serif',
-                                    fontSize: '16px',
-                                    fontWeight: 800,
+                                    fontFamily: 'Geist, sans-serif',
+                                    fontSize: '12px',
+                                    fontWeight: 600,
                                     textTransform: 'uppercase',
                                     color: 'var(--color-text-tertiary)',
                                     marginRight: '6px',
@@ -611,12 +615,12 @@ const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
                 {result && (
                     <Typography
                         sx={{
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontSize: '16px',
+                            fontFamily: 'Geist, sans-serif',
+                            fontSize: '12px',
                             fontWeight: 400,
                             color: 'var(--color-text-tertiary)',
                             whiteSpace: 'pre-wrap',
-                            lineHeight: 1.5,
+                            lineHeight: '20px',
                         }}
                     >
                         {result}
@@ -629,9 +633,10 @@ const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
     return (
         <Typography
             sx={{
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'Geist, sans-serif',
                 fontSize: '12px',
                 fontWeight: 400,
+                lineHeight: '20px',
                 color: 'var(--color-grey-400)',
                 whiteSpace: 'pre-wrap',
             }}
