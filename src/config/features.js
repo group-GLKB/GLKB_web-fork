@@ -27,4 +27,4 @@ export const SHOW_API_DOCS = false;
  * no request can carry `investigateEnabled` and every question goes through
  * ordinary chat.
  */
-export const INVESTIGATE_ENABLED = false;
+export const INVESTIGATE_ENABLED = true;
