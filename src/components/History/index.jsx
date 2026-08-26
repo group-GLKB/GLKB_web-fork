@@ -777,7 +777,10 @@ const History = () => {
                                 <>
                                     <Box className="history-select-toolbar history-select-toolbar-empty">
                                         <Box className="history-select-toolbar-content">
-                                            <Typography className="history-meta-text">
+                                            <Typography
+                                                className="history-meta-text"
+                                                sx={{ fontSize: 12 }}
+                                            >
                                                 {filteredTotalCount} search history records with GLKB
                                             </Typography>
                                         </Box>
