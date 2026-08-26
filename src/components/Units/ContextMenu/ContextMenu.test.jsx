@@ -115,9 +115,10 @@ describe('a row', () => {
      * The gutter is the 4px gap. MUI's default ListItemIcon reserves 56px, which is most of why
      * the old copies were so much wider than the frame.
      */
-    it('gives the icon no gutter of its own', () => {
+    it('overrides MUI\'s icon gutter so the rendered spacing is the row gap', () => {
         setup();
-        expect(styleOf(items()[0].querySelector('.MuiListItemIcon-root'))['min-width']).toBe('0');
+        const icon = items()[0].querySelector('.MuiListItemIcon-root');
+        expect(Number.parseFloat(window.getComputedStyle(icon).minWidth)).toBe(0);
     });
 });
 
