@@ -76,9 +76,12 @@ export const ContextMenuItem = ({ icon, children, danger = false, ...rest }) => 
             }}
         >
             {icon ? (
-                // minWidth 0 because the gap is the gutter — MUI's default 56px gutter is what
-                // made these rows so much wider than the frame's.
-                <ListItemIcon sx={{ minWidth: 0, color, '& .MuiSvgIcon-root': { fontSize: 12 } }}>
+                // The 4px flex gap is the entire gutter in Figma. This is deliberately inline:
+                // MUI's injected ListItemIcon rule otherwise wins the cascade and reserves 56px.
+                <ListItemIcon
+                    style={{ minWidth: 0 }}
+                    sx={{ color, '& .MuiSvgIcon-root': { fontSize: 12 } }}
+                >
                     {icon}
                 </ListItemIcon>
             ) : null}
