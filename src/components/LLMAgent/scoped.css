@@ -14,7 +14,7 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: #FDFEFF;
+    background-color: var(--color-background-page);
     overflow: hidden;
 }
 
@@ -131,29 +131,30 @@
     height: 44px;
     transform: translate(-50%, -50%);
     border-radius: 8px;
-    background-color: #EEF3FF;
-    border: 1px solid #B7D3FF;
+    background-color: var(--color-brand-soft);
+    border: 1px solid var(--color-brand-muted);
     box-shadow: 0 6px 16px rgba(22, 69, 99, 0.18);
     pointer-events: none;
     z-index: 2;
 }
 
+/* Figma 44:4573 — 22x22 so it lines up with the 22px sort toggle beside it. */
 .references-action-button.MuiIconButton-root {
     padding: 4px;
     border-radius: 4px;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     overflow: hidden;
 }
 
 .references-action-button.MuiIconButton-root:hover {
-    background-color: #F2F4F8;
+    background-color: var(--color-background-subtle);
 }
 
 .references-action-button.MuiIconButton-root.Mui-disabled {
     background-color: transparent;
-    color: #B0B0B0;
+    color: var(--color-grey-300);
 }
 
 .llm-column {
@@ -169,7 +170,7 @@
     border: none;
     border-radius: 0;
     width: 100%;
-    background-color: #FDFEFF;
+    background-color: var(--color-background-page);
     height: 100%;
     min-height: 0;
     padding: 0;
@@ -190,22 +191,41 @@
     height: 100%;
     min-height: 0;
     box-sizing: border-box;
-    background-color: #ffffff;
+    background-color: var(--color-background-surface);
 }
 
+/* Figma "Investigate Thinking" / References panel (node 44:4561): the 400px column insets the
+   384px card by space/4 on the right and space/6 at the bottom, flush left. */
 .references-column {
-    padding: 16px 14px 24px 0;
+    padding: 16px 16px 24px 0;
     box-sizing: border-box;
     position: relative;
 }
 
+/* Inside stroke, so the card's content box stays the full 384px the design lays out against. */
 .references-column .references-container {
-    border: 1px solid #E5E9F0;
+    position: relative;
+    border: none;
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 2px 10px rgba(12, 16, 24, 0.04);
 }
 
+/* The stroke rides above the rows. As an inset shadow on the container it painted
+   below descendant backgrounds, so a highlighted row's fill ran over it and the
+   left edge of the card disappeared for that row. */
+.references-column .references-container::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    box-shadow: inset 0 0 0 1px var(--color-grey-100);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Resting state is the neutral tab; the brand fill is the hover, which is what
+   it used to wear at rest. */
 .references-collapse-toggle.MuiIconButton-root {
     position: absolute;
     z-index: 3;
@@ -214,15 +234,17 @@
     width: 32px;
     height: 32px;
     padding: 6px;
-    border: 1px solid #F2F4F8;
+    border: 1px solid var(--color-border-subtle);
     border-right: none;
     border-radius: 4px 0 0 4px;
-    background-color: #D9E6FE;
-    color: #155DFC;
+    background-color: var(--color-background-subtle);
+    color: var(--color-text-tertiary);
+    transition: background-color 0.16s ease, color 0.16s ease;
 }
 
 .references-collapse-toggle.MuiIconButton-root:hover {
-    background-color: #C9DCFD;
+    background-color: var(--color-brand-muted);
+    color: var(--color-brand-primary);
 }
 
 .llm-mobile-references-drawer {
@@ -242,7 +264,7 @@
     justify-content: space-between;
     gap: 12px;
     padding: 20px 24px;
-    border-bottom: 1px solid #F2F4F8;
+    box-shadow: inset 0 -1px 0 var(--color-grey-50);
 }
 
 .references-header-main {
@@ -259,24 +281,26 @@
     font-weight: 600;
     font-size: 16px;
     line-height: 20px;
-    color: #0C1018;
+    color: var(--color-text-primary);
     flex-shrink: 0;
 }
 
+/* Figma 44:4566 — icon/label/chevron on space/1, divided from the title by space/3 either side.
+   Type is the `caption` style (Geist Regular 10/12) in color/text/tertiary. */
 .references-scope-trigger {
     min-width: 0;
     max-width: 218px;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     padding: 0 0 0 12px;
     border: none;
-    border-left: 1px solid #F2F4F8;
+    border-left: 1px solid var(--color-border-subtle);
     background: transparent;
-    color: #8090AB;
+    color: var(--color-text-tertiary);
     font-family: 'Geist', sans-serif;
     font-size: 10px;
-    line-height: 14px;
+    line-height: 12px;
     cursor: pointer;
 }
 
@@ -290,7 +314,7 @@
 .references-scope-icon {
     width: 12px !important;
     height: 12px !important;
-    color: #8090AB;
+    color: var(--color-text-tertiary);
     flex-shrink: 0;
 }
 
@@ -306,10 +330,11 @@
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
 }
 
+/* Figma 44:4569 — iconSize/xs. */
 .references-scope-chevron {
-    width: 14px !important;
-    height: 14px !important;
-    color: #8090AB;
+    width: 12px !important;
+    height: 12px !important;
+    color: var(--color-text-tertiary);
     transform: rotate(90deg);
     transition: transform 0.16s ease;
     flex-shrink: 0;
@@ -324,8 +349,8 @@
     flex-direction: column;
     gap: 16px;
     padding: 20px 24px;
-    border-bottom: 1px solid #F2F4F8;
-    background-color: #F8F9FC;
+    border-bottom: 1px solid var(--color-border-subtle);
+    background-color: var(--color-grey-25);
 }
 
 .references-scope-option {
@@ -338,7 +363,7 @@
     padding: 0;
     border: none;
     background: transparent;
-    color: #0C1018;
+    color: var(--color-text-primary);
     font-family: 'Geist', sans-serif;
     font-size: 14px;
     font-weight: 600;
@@ -363,13 +388,13 @@
     width: 20px;
     height: 20px;
     border-radius: 12px;
-    border: 1px solid #CBD2E0;
+    border: 1px solid var(--color-border-strong);
     box-sizing: border-box;
     flex-shrink: 0;
 }
 
 .references-scope-radio.selected {
-    border: 4px solid #155DFC;
+    border: 4px solid var(--color-brand-primary);
 }
 
 .references-toolbar-row {
@@ -377,56 +402,58 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 24px;
-    border-bottom: 1px solid #F2F4F8;
-    background-color: #FCFDFE;
+    box-shadow: inset 0 -1px 0 var(--color-grey-50);
+    background-color: var(--color-background-page);
 }
 
 .references-count-label {
     font-family: 'Geist', sans-serif;
     font-weight: 600;
     font-size: 12px;
-    line-height: 16px;
-    color: #0C1018;
+    line-height: 20px;
+    color: var(--color-text-primary);
 }
 
 .references-toolbar-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
 }
 
 .references-sort-toggle.MuiToggleButtonGroup-root {
-    background-color: #F2F4F8;
+    background-color: var(--color-background-subtle);
     border-radius: 5px;
     padding: 1px;
     gap: 0;
 }
 
+/* Figma 44:4575/44:4577 — 20px segments in a 1px-padded track, so the group is 22px tall. */
 .references-sort-toggle .MuiToggleButton-root {
     text-transform: none;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-weight: 600;
     font-size: 12px;
-    color: #5E6E87;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
     border: none;
     padding: 4px 8px;
-    height: 22px;
-    min-height: 22px;
+    height: 20px;
+    min-height: 20px;
     border-radius: 4px !important;
 }
 
 .references-sort-toggle .MuiToggleButton-root.Mui-selected {
-    background-color: #FFFFFF;
-    color: #155DFC;
+    background-color: var(--color-background-surface);
+    color: var(--color-brand-primary);
 }
 
 .references-sort-toggle .MuiToggleButton-root.Mui-selected:hover {
-    background-color: #FFFFFF;
+    background-color: var(--color-background-surface);
 }
 
 .reference-item {
     padding: 12px 0;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .reference-item:last-child {
@@ -454,7 +481,7 @@
 }
 
 .reference-item a {
-    color: #1890ff;
+    color: var(--color-brand-primary);
     text-decoration: none;
     font-size: 12px;
     display: block;
@@ -462,7 +489,7 @@
 }
 
 .reference-item a:hover {
-    color: #40a9ff;
+    color: var(--color-blue-600);
 }
 
 .message {
@@ -476,10 +503,10 @@
 }
 
 .message.user {
-    background-color: #ffffff !important;
+    background-color: var(--color-background-surface) !important;
     margin-left: auto;
     cursor: default;
-    color: #141B26;
+    color: var(--color-grey-900);
 }
 
 .message.assistant {
@@ -510,7 +537,7 @@
     flex-grow: 1;
     padding: 12px;
     height: 42px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--color-border-default);
     border-radius: 4px;
     font-size: 1rem;
     outline: none;
@@ -519,8 +546,8 @@
 
 .clear-button {
     padding: 0.8rem 1.5rem;
-    background-color: #EDF0FE;
-    border: 1px solid #e0e0e0;
+    background-color: var(--color-background-subtle);
+    border: 1px solid var(--color-border-default);
     border-radius: 4px;
     cursor: pointer;
     font-size: 1rem;
@@ -545,7 +572,7 @@
 }
 
 .clear-button:hover {
-    background-color: #e0e0e0;
+    background-color: var(--color-background-muted);
     color: #666;
 }
 
@@ -558,7 +585,7 @@
     padding-top: 0px;
     padding-bottom: 20px;
     gap: 20px;
-    background: #FDFEFF;
+    background: var(--color-background-page);
     width: 100%;
     border-top: none;
     border-bottom: none;
@@ -588,42 +615,42 @@
     padding: 10px 14px;
     border-radius: 10px 10px 0 0;
     border: none;
-    background: #EEF3FF;
+    background: var(--color-brand-soft);
 }
 
 .llm-limit-warning-text {
     font-family: 'DM Sans', sans-serif;
     font-size: 14px;
     font-weight: 500;
-    color: #141B26;
+    color: var(--color-grey-900);
 }
 
 .llm-limit-warning-button {
-    border: 1px solid #155DFC;
-    background: #ffffff;
-    color: #155DFC;
+    border: 1px solid var(--color-brand-primary);
+    background: var(--color-background-surface);
+    color: var(--color-brand-primary);
     border-radius: 999px;
     padding: 6px 14px;
     font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     cursor: pointer;
     white-space: nowrap;
 }
 
 .llm-limit-warning-button:hover {
-    background: #F3F8FF;
+    background: var(--color-grey-25);
 }
 
 .llm-limit-warning-button:disabled {
-    border-color: #cbd5e1;
-    background: #f1f5f9;
-    color: #94a3b8;
+    border-color: var(--color-border-strong);
+    background: var(--color-background-subtle);
+    color: var(--color-grey-300);
     cursor: not-allowed;
 }
 
 .clear-button {
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--color-border-default);
     white-space: nowrap;
 }
 
@@ -669,7 +696,7 @@
 
 .loading-step-label {
     display: inline-block;
-    background-image: linear-gradient(90deg, #5B5B5B 0%, #B6C0CB 10%, #5B5B5B 20%);
+    background-image: linear-gradient(90deg, var(--color-grey-600) 0%, var(--color-grey-300) 10%, var(--color-grey-600) 20%);
     background-size: 420% 100%;
     background-position: 200% 50%;
     color: transparent;
@@ -704,7 +731,7 @@
     gap: 4px;
     margin-top: 8px;
     margin-bottom: 10px;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 600;
@@ -724,7 +751,7 @@
 .investigate-summary-icon,
 .investigate-summary-chevron {
     font-size: 16px !important;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     transition: transform 0.2s ease;
 }
 
@@ -733,82 +760,552 @@
 }
 
 .investigate-summary-text {
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
 }
 
-/* Figma Asking Question — inline clarify */
-.clarify-inline-panel {
-    margin: 12px 0 16px;
+/* ── reference hover card — Figma "Reference - Hover Preview", node 299:22085 ──────────────
+   240px wide (208 content + space/4 padding), radius/4 on a border/default hairline, children on
+   space/3. Fixed-positioned because it must escape the transcript's scroll container; the shadow
+   is not in the design but a floating card over text needs one to read as lifted. */
+.ref-hover-card {
+    position: fixed;
+    z-index: 1300;
+    width: 240px;
+    box-sizing: border-box;
     padding: 16px;
-    border: 1px solid #D9E6FE;
-    border-radius: 16px;
-    background: #FDFEFF;
-    box-shadow: 0 4px 16px rgba(21, 93, 252, 0.06);
-}
-
-.clarify-inline-kicker {
-    font-family: 'Geist', 'DM Sans', sans-serif !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    color: #155DFC !important;
-    margin-bottom: 4px !important;
-}
-
-.clarify-inline-title {
-    font-family: 'Geist', 'DM Sans', sans-serif !important;
-    font-size: 18px !important;
-    font-weight: 700 !important;
-    color: #141B26 !important;
-    margin-bottom: 6px !important;
-}
-
-.clarify-inline-reason {
-    font-family: 'DM Sans', sans-serif !important;
-    font-size: 13px !important;
-    color: #5E6E87 !important;
-    line-height: 1.45 !important;
-    margin-bottom: 12px !important;
-}
-
-.clarify-inline-card {
-    border: 1px solid #E6EDF8;
-    border-radius: 12px;
-    padding: 12px;
-    background: #FFFFFF;
-}
-
-.clarify-inline-header {
-    font-family: 'DM Sans', sans-serif !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    color: #5E6E87 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    margin-bottom: 4px !important;
-}
-
-.clarify-inline-question {
-    font-family: 'DM Sans', sans-serif !important;
-    font-size: 15px !important;
-    font-weight: 500 !important;
-    color: #222A38 !important;
-    line-height: 1.45 !important;
-    margin-bottom: 8px !important;
-}
-
-.clarify-inline-error {
-    margin-top: 12px !important;
-    font-family: 'DM Sans', sans-serif !important;
-    font-size: 13px !important;
-    color: #A10902 !important;
-}
-
-.clarify-inline-actions {
     display: flex;
-    justify-content: flex-end;
+    flex-direction: column;
     gap: 12px;
+    border-radius: 16px;
+    background: var(--color-background-surface);
+    /* Inside stroke, as Figma draws it: a real border would eat 2px of the 240 and push the
+       content column to 206 with a 17px inset. The lift shadow is not in the design, but a card
+       floating over body text needs one to read as lifted rather than as part of the paragraph. */
+    box-shadow: inset 0 0 0 1px var(--color-grey-100), 0 8px 24px rgba(12, 16, 24, 0.12);
+    font-family: 'Geist', sans-serif;
+    pointer-events: auto;
+}
+
+.ref-hover-head {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* `interactive/emphasized` — 14/18, the design's own leading (299:22087). It was set at 20 here,
+   which opened the title's own lines and pushed everything under it down. */
+.ref-hover-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 18px;
+    color: var(--color-text-primary);
+    overflow-wrap: anywhere;
+    /* The design's title is three lines; a real one can run five or six, and every extra line goes
+       into a card that floats over the answer. Clamped so the card's height is bounded by its
+       design shape rather than by the longest title PubMed happens to hold. */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* `body-sm`; the design puts the authors and the year/journal on their own lines */
+.ref-hover-source {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+}
+
+.ref-hover-authors,
+.ref-hover-year {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* DELIBERATE DEVIATION from Figma 299:22088.
+   The design's text node is 60px for two 20px lines, the extra 20 sitting between them — exactly
+   one line height, i.e. a blank line typed into the placeholder copy. Reproducing it pixel for
+   pixel (verified: every text row landed on the design's own row) left an empty line between the
+   authors and the journal, which reads as a layout bug rather than as spacing. Dropped, so the
+   metadata block is the 40px its two lines need. Restore `margin-bottom: 20px` for a literal
+   match. */
+.ref-hover-authors {
+    margin-bottom: 0;
+}
+
+/* The quote hangs off a rule, space/2 from it, and the rule runs the height of the block.
+   The design draws 60px here (299:22089). It used to be 44 — two 22px lines, on the reasoning that
+   the remaining 16 were dead space over the answer. The card is bigger now, and the honest way to
+   spend the height is a third line of the quote rather than padding under a second: 66 is three
+   lines, and the extra six over the design's 60 all carry text. */
+.ref-hover-quote {
+    display: flex;
+    gap: 8px;
+    height: 66px;
+    border-left: 1px solid var(--color-border-default);
+    padding-left: 8px;
+}
+
+/* `body`. Three lines, clamped and ellipsised, matching the block above. */
+.ref-hover-quote-text {
+    margin: 0;
+    /* max-height, not height: an explicit height beats -webkit-line-clamp and let one line more
+       than the clamp show through under the ellipsis. */
+    max-height: 66px;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 22px;
+    color: var(--color-text-secondary);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+.ref-hover-meta {
+    margin: 0;
+    /* Figma 299:22092 fixes this row at 16px while its text runs at line-height 20 — the block is
+       shorter than its own line box. Letting it size to the text made it 20 and pushed the
+       divider, the footer and the card's own height 4-5px down. */
+    height: 16px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ref-hover-divider {
+    height: 1px;
+    background: var(--color-background-muted);
+    /* Figma 299:22094 is a zero-height stroke — it is drawn at y=256 and costs the column no
+       space, so the 12px gaps either side of it meet at 24px. A 1px box adds its pixel to the
+       flow and pushed the footer, and the card's height, one down. */
+    margin-bottom: -1px;
+}
+
+.ref-hover-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* the citation's own number, in brand/muted */
+.ref-hover-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background: var(--color-brand-muted);
+    color: var(--color-brand-primary);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+}
+
+.ref-hover-buttons {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ref-hover-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+}
+
+.ref-hover-icon:hover { background: var(--color-background-subtle); }
+.ref-hover-quote-icon { width: 12px; height: 12px; display: block; }
+.ref-hover-bookmark { width: 14px !important; height: 14px !important; }
+.ref-hover-bookmark.active { color: var(--color-brand-primary); }
+
+/* `interactive/sm` at 10/12, per the design's Full Text chip */
+.ref-hover-fulltext {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 4px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 12px;
+    color: var(--color-text-tertiary);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.ref-hover-fulltext:hover { background: var(--color-background-subtle); }
+.ref-hover-external { width: 12px !important; height: 12px !important; }
+
+/* The panel hangs off the composer rather than sitting in the transcript, matching Figma
+   111:4385 (x=148, y=-502 inside the 976x112 input-bar frame — same width and x as the input row,
+   bottom edge 8px above it). `bottom: 100%` measures from the dock's top, which is the composer's
+   top, so the gap is the design's 8px whatever height the input grows to. Anchoring it here also
+   keeps an unanswered question on screen: in the message stream it scrolled away with the
+   transcript, and the run cannot continue until it is answered. */
+.composer-dock {
+    position: relative;
+    /* A flex column, because `.chat-container .chat-header` centres itself with `align-self`,
+       which only does anything to a flex item. Wrapping the composer in a plain block div
+       silently left-aligned it — at >=981px the bar is `width: calc(100% - 48px)`, so it shifted
+       24px. */
+    display: flex;
+    flex-direction: column;
+}
+
+.clarify-float {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 8px);
+    z-index: 5;
+    /* Mirrors .chat-header's horizontal padding so the panel's edges line up with the input box
+       rather than with the bar around it, which is the alignment the design draws (the panel and
+       the input row share an x and a width). That padding is responsive, so this tracks it at
+       each breakpoint below — spanning the bar instead left the panel 56px wider than the input
+       on a 980px viewport. */
+    padding: 0 56px;
+    /* it floats over the transcript, so it must not grow past the viewport */
+    max-height: min(60vh, 560px);
+    overflow-y: auto;
+    /* Once the panel is taller than that it scrolls inside this wrapper — and a square wrapper
+       clips the panel's 16px corners square. Matching the radius makes the clip follow them. */
+    border-radius: 16px;
+}
+
+@media (max-width: 700px) {
+    .clarify-float { padding: 0 24px; }
+}
+
+@media (min-width: 981px) {
+    /* At this width the composer is not inset by padding but narrowed outright —
+       `.chat-container .chat-header { width: calc(100% - 48px) }`, centred by align-self. The
+       panel has to be narrowed the same way or it hangs 24px past the input on each side. */
+    .chat-container .clarify-float {
+        padding: 0;
+        width: calc(100% - 48px);
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        /* The design's 8px is to the INPUT BOX, and at this width the composer carries
+           `padding: 24px 0` — so measuring 8px off the dock's top left a 32px gap, with the
+           composer's own padding making up the difference. Pull back by that padding. */
+        bottom: calc(100% - 16px);
+    }
+}
+
+/* inline spacing belongs to the inline placement it no longer has */
+.clarify-float .clarify-panel {
+    margin: 0;
+    box-shadow: inset 0 0 0 1px var(--color-grey-100), 0 12px 32px rgba(12, 16, 24, 0.10);
+}
+
+/* ── clarify panel — Figma "Asking User Question v2", node 581:7642 ─────────
+   Panel: radius/4 on a border/default hairline, space/4 block / space/3 inline padding.
+   Rows: space/5 inline / space/2 block on radius/2, background/subtle at rest, background/muted
+   on hover, brand/soft when chosen. The 16px marker is a rounded square in both modes; it carries
+   the option's number in pick-one and is empty in pick-any, and fills with brand/primary and a
+   check once chosen. */
+.clarify-panel {
+    margin: 12px 0 16px;
+    padding: 16px 12px;
+    border-radius: 16px;
+    box-shadow: inset 0 0 0 1px var(--color-grey-100);
+    background: var(--color-background-surface);
+    font-family: 'Geist', sans-serif;
+}
+
+.clarify-question + .clarify-question {
     margin-top: 16px;
 }
+
+.clarify-question-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 0 8px 12px;
+}
+
+/* `body-emphasized` */
+.clarify-question-text {
+    flex: 1 0 0;
+    min-width: 0;
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+    color: var(--color-text-primary);
+    overflow-wrap: anywhere;
+}
+
+/* "(1/3)" — the design writes it in the title's own weight and colour (577:6733); it is set apart
+   only so it never breaks onto a line by itself. */
+.clarify-question-step {
+    white-space: nowrap;
+}
+
+.clarify-close {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+}
+
+.clarify-close:disabled { cursor: default; opacity: 0.5; }
+.clarify-close-icon { width: 20px !important; height: 20px !important; }
+
+.clarify-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 8px;
+}
+
+/* No gap: the design butts the body column against the marker (577:6737 is 584 wide and 577:6744
+   starts at 604 in a 640 row, with space/5 of padding either side) and keeps the text off it with
+   the inset below instead. */
+.clarify-option {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 8px 20px;
+    border-radius: 8px;
+    background: var(--color-background-subtle);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.clarify-option:hover { background: var(--color-background-muted); }
+.clarify-option.selected { background: var(--color-brand-soft); }
+.clarify-option[aria-disabled='true'] { cursor: default; }
+
+.clarify-option:focus-visible {
+    outline: 2px solid var(--color-brand-primary);
+    outline-offset: 1px;
+}
+
+.clarify-option-body {
+    flex: 1 0 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* `interactive/sm`. The design runs this row to the marker's edge (577:6738 is the full 584) and
+   only insets the description; a label long enough to wrap would then end flush against the
+   marker, so it takes the same space/5 inset as the line below it. */
+.clarify-option-line {
+    display: flex;
+    align-items: center;
+    padding-right: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    color: var(--color-text-secondary);
+}
+
+.clarify-option-label {
+    flex: 1 0 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+/* The description runs to space/5 short of the label's right edge (577:6741), so it wraps clear of
+   the marker instead of running under it. */
+.clarify-option-descwrap {
+    padding-right: 20px;
+}
+
+/* `body-sm` */
+.clarify-option-desc {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+    overflow-wrap: anywhere;
+}
+
+.clarify-option-mark {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 4px;
+    background: var(--color-background-surface);
+    color: var(--color-neutral-white);
+    cursor: pointer;
+}
+
+/* `caption` — the option's number at rest, in pick-one only */
+.clarify-option-marknum {
+    font-size: 10px;
+    font-weight: 400;
+    line-height: 12px;
+    color: var(--color-text-tertiary);
+}
+
+.clarify-option-mark.selected,
+.clarify-option.selected .clarify-option-mark {
+    border-color: var(--color-brand-primary);
+    background: var(--color-brand-primary);
+}
+
+.clarify-option-check { width: 12px !important; height: 12px !important; }
+
+/* Other: pencil + label, with the input where a description would sit */
+.clarify-other {
+    align-items: center;
+    padding: 8px 20px 12px;
+    cursor: default;
+}
+
+.clarify-other:hover { background: var(--color-background-subtle); }
+.clarify-other.selected:hover { background: var(--color-brand-soft); }
+
+.clarify-other-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-secondary);
+}
+
+.clarify-other-pencil { width: 12px !important; height: 12px !important; }
+
+.clarify-other-input {
+    width: 100%;
+    height: 32px;
+    box-sizing: border-box;
+    padding: 0 12px;
+    border: 1px solid var(--color-border-default);
+    border-radius: 8px;
+    background: var(--color-background-surface);
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    color: var(--color-text-secondary);
+}
+
+.clarify-other-input::placeholder {
+    color: var(--color-text-tertiary);
+    opacity: 0.6;
+}
+
+.clarify-other-input:focus {
+    outline: none;
+    border-color: var(--color-brand-primary);
+}
+
+.clarify-error {
+    margin: 12px 8px 0 !important;
+    font-family: 'Geist', sans-serif !important;
+    font-size: 12px !important;
+    line-height: 16px !important;
+    color: var(--color-status-error-text) !important;
+}
+
+.clarify-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 8px 8px 0;
+}
+
+.clarify-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    background: var(--color-background-subtle);
+    color: var(--color-text-secondary);
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    cursor: pointer;
+}
+
+.clarify-back:hover { background: var(--color-background-muted); }
+.clarify-back:disabled { opacity: 0.6; cursor: default; }
+
+/* Skip while nothing is answered (577:6784); Submit once something is (577:7462). */
+.clarify-skip,
+.clarify-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    cursor: pointer;
+}
+
+.clarify-skip {
+    background: var(--color-background-subtle);
+    color: var(--color-text-secondary);
+}
+
+.clarify-skip:hover { background: var(--color-background-muted); }
+
+.clarify-submit {
+    background: var(--color-brand-primary);
+    color: var(--color-text-inverse);
+}
+
+.clarify-submit:hover { background: var(--color-blue-600); }
+
+.clarify-submit:disabled,
+.clarify-skip:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.clarify-submit-icon { width: 16px !important; height: 16px !important; }
 
 .investigate-funnel-summary {
     display: flex;
@@ -823,17 +1320,17 @@
     gap: 4px;
     padding: 4px 10px;
     border-radius: 999px;
-    background: #F2F4F8;
-    color: #5E6E87;
+    background: var(--color-background-subtle);
+    color: var(--color-text-tertiary);
     font-family: 'DM Sans', sans-serif;
     font-size: 12px;
     font-weight: 500;
 }
 
 .investigate-funnel-chip strong {
-    color: #222A38;
+    color: var(--color-text-secondary);
     font-weight: 700;
-    font-size: 13px;
+    font-size: 12px;
 }
 
 @keyframes llm-step-label-out {
@@ -895,6 +1392,8 @@
     width: 100%;
 }
 
+/* Figma 573:6056 — space/6 gutter, space/4 top and bottom. (It was 24 all round, which made every
+   row 16px taller than the design's 156.) */
 .references-list>div {
     margin: 0;
     padding: 16px 24px;
@@ -909,25 +1408,26 @@
 }
 
 .references-list .reference-entry-wrapper.highlighted {
-    background-color: #F7F9FF;
+    background-color: var(--color-brand-subtle);
     border-radius: 8px;
 }
 
+/* The rule belongs to the card's text column, not to the row: in the design it is the body frame's
+   own bottom border (573:6060), so it starts past the number badge — 24 of gutter, 16 of badge, 12
+   of gap — and stops at the gutter on the right. Running it full-bleed underlined the badge column
+   too, which read as a table rule rather than as the end of an entry. border/subtle, not
+   border/default: it sits inside a card, where the stronger grey was heavier than the design's. */
 .references-list>div::after {
     content: '';
     position: absolute;
-    left: 0;
-    right: 0;
+    left: 52px;
+    right: 24px;
     bottom: 0;
-    border-bottom: 1px solid #F2F4F8;
+    border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .references-list>div:last-child::after {
     border-bottom: none;
-}
-
-.references-list>div:last-child {
-    padding-bottom: 16px;
 }
 
 .message-wrapper {
@@ -940,18 +1440,6 @@
 
 .message-wrapper.user {
     justify-content: flex-end;
-}
-
-.message-wrapper.user .message {
-    background-color: #ffffff !important;
-    color: #141B26;
-    border-radius: 8px;
-    padding: 8px 16px;
-    max-width: 800px;
-}
-
-.message-wrapper.user .message:hover {
-    background-color: #ffffff !important;
 }
 
 .message-wrapper.assistant {
@@ -971,7 +1459,7 @@
 
 .message.selected {
     border-radius: 6px;
-    outline: 1px solid #4096ff;
+    outline: 1px solid var(--color-brand-primary);
 }
 
 .system-icon {
@@ -982,7 +1470,7 @@
     object-fit: contain;
     flex-shrink: 0;
     align-self: flex-start;
-    border: 1px solid #4B6B8C;
+    border: 1px solid var(--color-border-default);
     padding: 2px;
 }
 
@@ -997,7 +1485,7 @@
     padding: 4px 12px;
     height: auto;
     background: transparent;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--color-border-default);
     color: #666;
     display: flex;
     align-items: center;
@@ -1005,15 +1493,15 @@
 }
 
 .reference-button:hover {
-    background: #f5f5f5;
-    border-color: #d0d0d0;
+    background: var(--color-background-subtle);
+    border-color: var(--color-border-strong);
     color: #444;
 }
 
 .reference-button.selected {
-    background: #e6f4ff;
-    border-color: #91caff;
-    color: #1677ff;
+    background: var(--color-background-subtle);
+    border-color: var(--color-blue-200);
+    color: var(--color-brand-primary);
 }
 
 .reference-button .anticon {
@@ -1027,7 +1515,7 @@
 }
 
 .message.streaming {
-    background-color: #f5f5f5;
+    background-color: var(--color-background-subtle);
     border-radius: 8px;
     padding: 12px;
     margin-bottom: 8px;
@@ -1053,7 +1541,7 @@
 
 .reasoning-section,
 .response-section {
-    background-color: #f8f9fa;
+    background-color: var(--color-grey-25);
     border-radius: 8px;
     margin-bottom: 16px;
     overflow: hidden;
@@ -1064,15 +1552,15 @@
     display: flex;
     align-items: center;
     padding: 12px 16px;
-    background-color: #f0f2f5;
-    border-bottom: 1px solid #e4e6eb;
+    background-color: var(--color-background-subtle);
+    border-bottom: 1px solid var(--color-border-default);
 }
 
 .reasoning-header span,
 .response-header span {
     margin-left: 8px;
     font-weight: 500;
-    color: #1a1a1a;
+    color: var(--color-grey-900);
 }
 
 .reasoning-content,
@@ -1092,13 +1580,9 @@
     justify-content: flex-end;
 }
 
-.message-wrapper.user .message {
-    background-color: #E5E9F0 !important;
-    color: #141B26;
-    border-radius: 8px;
-    padding: 8px 16px;
-    max-width: 480px;
-}
+/* The question's own styling lives in the sx on the bubble in index.jsx, not here —
+   `.message-wrapper` is markup this component stopped rendering. What remains below are
+   the rules that still match something. */
 
 .reference-button-wrapper {
     padding: 0 16px 16px;
@@ -1114,11 +1598,11 @@
 }
 
 .input-form {
-    border-top: 1px solid #e4e6eb;
+    border-top: 1px solid var(--color-border-default);
 }
 
 .message-input:disabled {
-    background-color: #f5f5f5;
+    background-color: var(--color-background-subtle);
     cursor: not-allowed;
 }
 
@@ -1167,147 +1651,6 @@
     margin-right: 8px;
 }
 
-.reasoning-content {
-    padding: 12px;
-    background: #f9f9f9;
-    border-radius: 8px;
-    margin-top: 8px;
-}
-
-.empty-components-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.empty-page-title {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    align-self: center;
-    top: 50%;
-    transform: translateY(calc(-50% - 100px));
-}
-
-.example-queries-header {
-    position: absolute;
-    bottom: 140px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    margin-left: 56px;
-    margin-right: 56px;
-    gap: 4px;
-    width: calc(100% - 112px);
-}
-
-.glkb-logo {
-    height: 80px;
-    width: auto;
-    object-fit: contain;
-}
-
-.example-query-list {
-    font-family: 'Open Sans', sans-serif;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    justify-content: space-between;
-    width: 100%;
-    overflow-x: auto;
-    padding-bottom: 0;
-}
-
-@media (max-width: 700px) {
-    .chat-header {
-        padding-left: 24px;
-        padding-right: 24px;
-        padding-bottom: 24px;
-    }
-
-    .example-query-list {
-        flex-direction: column;
-        gap: 12px;
-        align-items: center;
-        padding-bottom: 12px;
-    }
-}
-
-/* .example-query-list::-webkit-scrollbar,
-.example-query-list::-webkit-scrollbar-track,
-.example-query-list::-webkit-scrollbar-thumb,
-.example-query-list::-webkit-scrollbar-thumb:hover {
-    display: none;
-} */
-
-.example-query {
-    align-items: flex-start;
-    background-color: #F4F9FE;
-    border-radius: 8px;
-    border: 1.5px solid #e2e8f0;
-    color: #333;
-    color: #4A5568;
-    cursor: pointer;
-    display: flex;
-    flex: 1 1 0;
-    font-size: 18px;
-    font-weight: 600;
-    height: auto;
-    line-height: 150%;
-    margin: 0 11.5px;
-    max-width: none;
-    min-height: 100%;
-    min-height: 70px;
-    min-width: 185px;
-    overflow: hidden;
-    padding: 16px;
-    text-align: left;
-    transition: all 0.2s ease;
-    width: auto;
-}
-
-@media (max-width: 1825px) {
-    .example-query {
-        font-size: 16px;
-    }
-}
-
-@media (max-width: 700px) {
-    .example-query {
-        font-size: 14px;
-        padding: 12px;
-        min-width: 100%;
-        max-width: 100%;
-        margin: 0;
-        height: 40px;
-        min-height: 40px;
-    }
-}
-
-.example-query:hover {
-    background-color: #f8f9fa;
-    border-color: #d0d0d0;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.example-query:first-child {
-    margin-left: 0;
-}
-
-.example-query:last-child {
-    margin-right: 0;
-}
-
-/* @media (max-width: 700px) {
-    .example-query {
-        font-size: 0.8rem;
-        padding: 0.8rem;
-    }
-} */
 
 .response-content {
     padding: 16px;
@@ -1320,14 +1663,14 @@
 }
 
 .response-content code {
-    background-color: #f5f5f5;
+    background-color: var(--color-background-subtle);
     padding: 2px 4px;
     border-radius: 4px;
     font-family: monospace;
 }
 
 .response-content pre {
-    background-color: #f5f5f5;
+    background-color: var(--color-background-subtle);
     padding: 1em;
     border-radius: 4px;
     overflow-x: auto;
@@ -1382,7 +1725,7 @@
 /* 消息操作按钮样式 */
 .message-action-button {
     background-color: rgba(255, 255, 255, 0.8);
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--color-border-default);
     border-radius: 4px;
     width: 28px;
     height: 28px;
@@ -1395,7 +1738,7 @@
 }
 
 .message-action-button:hover {
-    background-color: #f0f0f0;
+    background-color: var(--color-background-subtle);
     color: #333;
 }
 
@@ -1411,7 +1754,7 @@
 }
 
 .regenerate-button:hover {
-    color: #1677ff;
+    color: var(--color-brand-primary);
 }
 
 /* 编辑按钮特定样式 */
@@ -1427,7 +1770,7 @@
 
 /* 编辑状态的消息样式 */
 .message-wrapper.editing .message {
-    background-color: #f9f9f9;
+    background-color: var(--color-grey-25);
     border: 1px dashed #ccc;
     padding: 12px;
 }
@@ -1436,7 +1779,7 @@
 .edit-message-input {
     width: 100%;
     padding: 10px;
-    border: 1px solid #d9d9d9;
+    border: 1px solid var(--color-border-strong);
     border-radius: 4px;
     font-size: 1rem;
     font-family: inherit;
@@ -1474,13 +1817,13 @@
 }
 
 .cancel-edit-button {
-    background-color: #f5f5f5;
+    background-color: var(--color-background-subtle);
     color: #666;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--color-border-default);
 }
 
 .cancel-edit-button:hover {
-    background-color: #e0e0e0;
+    background-color: var(--color-background-muted);
 }
 
 /* 复制成功提示样式 */
@@ -1517,64 +1860,273 @@
     height: 24px;
     padding: 4px;
     border-radius: 4px;
-    color: #8090AB;
+    color: var(--color-grey-400);
 }
 
 .message-wrapper.assistant .MuiIconButton-root:hover {
-    background-color: #F2F4F8;
-    color: #155DFC;
+    background-color: var(--color-background-subtle);
+    color: var(--color-brand-primary);
 }
 
+/* Figma 45:2243 — the citation is a 16px square holding the number alone, in
+   brand/primary on brand/muted. It used to be a pill with a 16px abstract glyph
+   in front of a text-secondary number. */
 .markdown-body a[href*="pubmed.ncbi.nlm.nih.gov"] {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
+    justify-content: center;
     position: relative;
-    text-decoration: none;
-    color: #222A38;
-    font-family: 'Geist', sans-serif;
-    font-size: 10px;
-    font-weight: 400;
-    line-height: 12px;
-    padding: 2px 6px 2px 4px;
-    border-radius: 256px;
-    background-color: #D9E6FE;
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
-    vertical-align: baseline;
-}
-
-.markdown-body a[href*="pubmed.ncbi.nlm.nih.gov"]::before {
-    content: '';
-    width: 16px;
+    box-sizing: border-box;
+    min-width: 16px;
     height: 16px;
-    flex-shrink: 0;
-    background: url('../../img/llm/reference_chip_abstract.svg') no-repeat center / 16px 16px;
+    padding: 0 2px;
+    text-decoration: none;
+    color: var(--color-brand-primary);
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    border-radius: 4px;
+    background-color: var(--color-brand-muted);
+    transition: background-color 0.2s ease, color 0.2s ease;
+    vertical-align: text-bottom;
 }
 
 .markdown-body .inline-citation-number {
-    min-width: 8px;
+    min-width: 0;
 }
 
 .markdown-body a[href*="pubmed.ncbi.nlm.nih.gov"]:hover {
-    color: #0C1018;
-    background-color: #BBCFFE;
-    box-shadow: inset 0 0 0 0.3px #7AADFB;
+    color: var(--color-neutral-white);
+    background-color: var(--color-brand-primary);
 }
 
-.markdown-body h1,
-.markdown-body h2 {
-    color: #0C1018;
+/* ---------------------------------------------------------------- answer typography
+   The answer body is rendered by react-markdown into .markdown-body, whose base is a vendored
+   GitHub stylesheet — 312 rules of someone else's type scale. It sets h2 to 20/1.3, h3 to
+   18/1.3, paragraphs to 1.6em, links to rgb(1,141,255) and rules to #d1d9e0b3, none of which
+   comes from this design system.
+   
+   This block puts the answer on the design's own scale. The tokens are the file's:
+   
+       h3    24/32 SemiBold        body            14/22 Regular
+       h4    20/28 SemiBold        body-emphasized 14/22 SemiBold
+       h5    16/20 SemiBold        body-lg         16/26 Regular
+   
+   Which heading level takes which token follows the blog article, the one long-form prose
+   surface in the file that was built from a frame: its section heads are 24/32, its
+   subsections 16/20, its body 14/22 in text/secondary. There is no frame for a rendered chat
+   answer, so that precedent is the closest thing to one. If a frame turns up and disagrees,
+   this block is where to change it — the vendored sheet should stay untouched. */
+
+.markdown-body {
+    /* Was an inline style on the element, which is a stylesheet fight the markup happened to
+       win. Declared here it beats the vendored rule on specificity instead. */
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--color-text-secondary);
 }
 
 .markdown-body p,
 .markdown-body li {
     white-space: normal;
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--color-text-secondary);
+}
+
+.markdown-body p {
+    margin: 0 0 16px;
+}
+
+/* h1 is rare in an answer but the vendored sheet gives it 2em and a bottom rule. */
+/* ---- headings
+   The message frame (45:2243) declares exactly one heading token, h5 at 16/20, and none of
+   the larger ones — no 20/28, no 24/32. An answer's headings sit inside a message, not on a
+   page, so the ceiling is lower than the blog's.
+   
+   Which markdown level gets which was settled by counting what the agent actually writes.
+   Across 20 saved conversations: h1 twice, h2 seventy-four times, h3 a hundred and eighteen,
+   h4 twice, h5 and h6 never. An investigate report is six h2 sections with h3 beneath them,
+   every time. So there are two levels in practice, and the frame has exactly two emphasis
+   steps to spend on them:
+   
+       h2  ->  h5               16/20 SemiBold, text/primary
+       h3  ->  body-emphasized  14/22 SemiBold, text/secondary
+   
+   h1 joins h2 and h4-h6 join h3: four occurrences between them in twenty conversations, and
+   inventing sizes the frame does not contain to separate them would cost more than it buys. */
+.markdown-body h1,
+.markdown-body h2 {
+    margin: 24px 0 12px;
+    padding-bottom: 0;
+    border-bottom: none;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 20px;
+    color: var(--color-text-primary);
+}
+
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+    margin: 20px 0 8px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+    color: var(--color-text-secondary);
+}
+
+.markdown-body > *:first-child {
+    margin-top: 0;
+}
+
+/* ---- lists
+   The vendored sheet zeroes ul's padding, which puts the markers outside the content box where
+   the overflow clips them. These give the marker somewhere to sit.
+   
+   Alternating filled and hollow by depth: the browser's own default runs disc, circle, square,
+   and a square among round bullets reads as a different kind of thing rather than a deeper one. */
+.markdown-body ul,
+.markdown-body ol {
+    margin: 0 0 16px;
+    padding-left: 24px;
+}
+
+/* The vendored sheet hand-draws its bullet: `ul li::before`, a 5px filled circle positioned
+   absolutely at left:15px. With the list's padding zeroed the real marker was off-box and that
+   fake one was all you saw. Restoring the padding brought the real marker back and showed both
+   at once — and being a fixed filled circle, the fake one is the same at every depth, so it
+   would quietly defeat the alternation below. Turning it off leaves the genuine ::marker, which
+   is the only one that honours list-style-type. */
+.markdown-body ul li::before {
+    content: none;
+}
+
+.markdown-body ul { list-style-type: disc; }
+.markdown-body ul ul { list-style-type: circle; }
+.markdown-body ul ul ul { list-style-type: disc; }
+.markdown-body ul ul ul ul { list-style-type: circle; }
+
+/* `.markdown-body ul li` in the vendored sheet is one selector more specific than a bare `li`,
+   so it wins on both line-height and a 32px indent that sits on top of the list's own padding.
+   Matching its specificity is the only way to be heard. */
+.markdown-body ul li,
+.markdown-body ol li {
+    margin: 0 0 4px;
+    padding-left: 0;
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--color-text-secondary);
+}
+
+/* A nested list belongs to the item above it, not to the gap after it. */
+.markdown-body li > ul,
+.markdown-body li > ol {
+    margin: 4px 0 0;
+}
+
+/* ---- quotes
+   The design's aside is a rule down the left and nothing else, with the type stepping up to
+   16/26 rather than down — the same component the blog uses (717:2747). */
+.markdown-body blockquote {
+    margin: 0 0 16px;
+    padding: 2px 0 2px 16px;
+    border-left: 2px solid var(--color-brand-primary);
+    color: var(--color-text-secondary);
+}
+
+.markdown-body blockquote p {
+    margin: 0;
+    font-size: 16px;
+    line-height: 26px;
+}
+
+/* ---- tables, as the blog draws them */
+.markdown-body table {
+    margin: 0 0 16px;
+    width: 100%;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-2, 8px);
+    border-collapse: collapse;
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 22px;
+}
+
+/* Same story as the list items: the vendored sheet reaches these through
+   `.markdown-body table th`, which also brings its own 1px #ececf1 border on every cell. */
+.markdown-body table th,
+.markdown-body table td {
+    padding: 12px 16px;
+    text-align: left;
+    border: none;
+    border-bottom: 1px solid var(--color-border-default);
+    vertical-align: top;
+    font-size: 14px;
+    line-height: 22px;
+}
+
+.markdown-body table th {
+    font-weight: 600;
+    color: var(--color-text-primary);
+    background-color: var(--color-background-subtle);
+    white-space: nowrap;
+}
+
+.markdown-body table td {
+    color: var(--color-text-secondary);
+}
+
+.markdown-body table tr:last-child td {
+    border-bottom: none;
+}
+
+/* ---- code */
+.markdown-body code {
+    padding: 2px 4px;
+    border-radius: var(--radius-1, 4px);
+    background-color: var(--color-background-subtle);
+    font-size: 13px;
+}
+
+.markdown-body pre {
+    margin: 0 0 16px;
+    padding: 12px 16px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-2, 8px);
+    background-color: var(--color-background-subtle);
+}
+
+.markdown-body pre code {
+    padding: 0;
+    background: none;
+}
+
+/* ---- rules and links
+   The vendored link colour is rgb(1,141,255), which is not the brand blue. Citations are
+   styled separately above and keep their own treatment. */
+.markdown-body hr {
+    margin: 24px 0;
+    border: 0;
+    border-bottom: 1px solid var(--color-border-default);
+}
+
+.markdown-body a:not([href*="pubmed.ncbi.nlm.nih.gov"]) {
+    color: var(--color-brand-primary);
+}
+
+.markdown-body strong {
+    font-weight: 600;
+    color: var(--color-text-primary);
 }
 
 .message-wrapper.user .message,
 .message-wrapper.user .message:hover {
-    background-color: #ffffff !important;
-    color: #141B26;
+    background-color: var(--color-background-surface) !important;
+    color: var(--color-grey-900);
 }
 
 .message.assistant,
@@ -1588,7 +2140,7 @@
     min-width: 0;
     padding: 4px;
     border-radius: 4px;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 600;
@@ -1606,7 +2158,7 @@
 }
 
 .llm-header-references-toggle.MuiButton-root:hover {
-    background-color: #F2F4F8;
+    background-color: var(--color-background-subtle);
 }
 
 @media (min-width: 981px) {
@@ -1627,10 +2179,10 @@
 }
 
 .llm-reference-button.MuiButtonBase-root {
-    border: 1px solid #155DFC;
+    border: 1px solid var(--color-brand-primary);
     box-shadow: none;
-    color: #155DFC;
-    background-color: #f7f8fa;
+    color: var(--color-brand-primary);
+    background-color: var(--color-grey-25);
     border-radius: 4px;
     height: 40px;
     padding: 0 10px;
@@ -1641,13 +2193,13 @@
 
 .llm-reference-button.MuiButtonBase-root .MuiButton-startIcon,
 .llm-reference-button.MuiButtonBase-root .MuiSvgIcon-root {
-    color: #155DFC;
+    color: var(--color-brand-primary);
 }
 
 .llm-reference-button.MuiButtonBase-root:hover {
-    color: #155DFC;
-    border-color: #155DFC;
-    background-color: #e1e2e4;
+    color: var(--color-brand-primary);
+    border-color: var(--color-brand-primary);
+    background-color: var(--color-background-muted);
 }
 /* ============================================================================
    Investigate progress panel (Figma `Inverstigate` + MOTION-SPEC.md)
@@ -1682,7 +2234,7 @@ button.ip-head-left {
 
 .ip-head-icon {
     font-size: 16px !important;
-    color: #4B88FD;
+    color: var(--color-brand-primary);
 }
 
 /* Title transition is fade-out-to-blank then fade-in — NOT a crossfade
@@ -1692,7 +2244,7 @@ button.ip-head-left {
     font-size: 16px;
     font-weight: 600;
     line-height: 1.4;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     white-space: nowrap;
     opacity: 1;
     transition: opacity 0.25s ease;
@@ -1702,7 +2254,7 @@ button.ip-head-left {
 
 .ip-head-caret {
     font-size: 16px !important;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     transition: transform 0.18s ease;
 }
 
@@ -1724,7 +2276,7 @@ button.ip-head-left {
     font-size: 14px;
     font-weight: 500;
     line-height: 1.4;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
 }
 
 /* Tabular figures: the clock reflows every second, and proportional digits would shift the
@@ -1739,8 +2291,8 @@ button.ip-notify {
     border-radius: 999px;
 }
 
-button.ip-notify:hover { background: #EEF3FF; color: #155DFC; }
-button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
+button.ip-notify:hover { background: var(--color-brand-soft); color: var(--color-brand-primary); }
+button.ip-notify.active { background: var(--color-brand-muted); color: var(--color-blue-600); }
 
 .ip-body {
     padding: 14px 0 0 4px;
@@ -1770,10 +2322,10 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 
 .ip-counter-value {
     font-family: 'DM Sans', sans-serif;
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 700;
     line-height: 1.2;
-    color: #1B2A41;
+    color: var(--color-text-primary);
     /* tabular figures so a counting number does not jitter its own column */
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum' 1;
@@ -1781,9 +2333,9 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 
 .ip-counter-label {
     font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 400;
-    color: #7B8AA1;
+    color: var(--color-grey-400);
 }
 
 /* ── bar ────────────────────────────────────────────────────────────────── */
@@ -1792,14 +2344,14 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
     width: min(100%, 460px);
     height: 6px;
     border-radius: 999px;
-    background: #E4E9F2;
+    background: var(--color-background-muted);
     overflow: hidden;
 }
 
 .ip-bar-fill {
     height: 100%;
     border-radius: 999px;
-    background: #155DFC;
+    background: var(--color-brand-primary);
     /* width is driven frame-by-frame from JS; no CSS transition, or the two fight */
 }
 
@@ -1807,7 +2359,7 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 .ip-steps {
     margin-top: 16px;
     padding-top: 14px;
-    border-top: 1px solid #EDF0F6;
+    border-top: 1px solid var(--color-border-subtle);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -1820,8 +2372,8 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 }
 
 .ip-step-icon {
-    font-size: 17px !important;
-    color: #5E6E87;
+    font-size: 16px !important;
+    color: var(--color-text-tertiary);
     flex-shrink: 0;
 }
 
@@ -1830,12 +2382,12 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
     font-size: 14px;
     font-weight: 500;
     line-height: 1.5;
-    color: #34435C;
+    color: var(--color-grey-600);
 }
 
 /* completed rows dim one step (MOTION-SPEC §5) */
-.ip-step.done .ip-step-label { color: #6B7A93; }
-.ip-step.done .ip-step-icon { color: #8A97AC; }
+.ip-step.done .ip-step-label { color: var(--color-text-tertiary); }
+.ip-step.done .ip-step-icon { color: var(--color-grey-400); }
 
 /* ── detail block ───────────────────────────────────────────────────────── */
 /* Indented under the active row with a 1px rail aligned to the row icon, and a
@@ -1846,7 +2398,7 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 .ip-step-detail {
     margin: 6px 0 0 8px;
     padding: 2px 0 0 18px;
-    border-left: 1px solid #E4E9F2;
+    border-left: 1px solid var(--color-border-default);
 }
 
 /* at most two lines per item, so a long topic cannot push the rest out of view */
@@ -1858,8 +2410,17 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
     overflow: hidden;
 }
 
-/* expanded: the whole list, scrollable, no clamping */
+/* Expanded: the whole list, scrollable, no clamping.
+   The scroll sits on the LIST, not on this block. When it was here, "Show less" — which renders
+   after the list — sat below 30 items' worth of scroll, so the only way back was to scroll to the
+   bottom of an inner scroll area. Scrolling the list instead keeps the label above it and the
+   toggle below it both permanently in view. */
 .ip-step-detail.expanded {
+    max-height: none;
+    overflow: visible;
+}
+
+.ip-step-detail.expanded .ip-cycle {
     max-height: 260px;
     overflow-y: auto;
 }
@@ -1875,10 +2436,10 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 .ip-detail-bullet {
     margin: 0 0 6px;
     font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 400;
     line-height: 1.55;
-    color: #8A97AC;
+    color: var(--color-grey-400);
 }
 
 .ip-detail-bullet { position: relative; padding-left: 12px; }
@@ -1887,7 +2448,7 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
     content: '•';
     position: absolute;
     left: 0;
-    color: #A8B3C6;
+    color: var(--color-grey-300);
 }
 
 .ip-detail-bullet-title {
@@ -1895,8 +2456,8 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
     margin-bottom: 6px;
 }
 
-.ip-detail-para a { color: #6B7A93; text-decoration: none; }
-.ip-detail-para a:hover { color: #155DFC; text-decoration: underline; }
+.ip-detail-para a { color: var(--color-text-tertiary); text-decoration: none; }
+.ip-detail-para a:hover { color: var(--color-brand-primary); text-decoration: underline; }
 
 .ip-chips {
     display: flex;
@@ -1909,14 +2470,14 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
     align-items: center;
     padding: 3px 10px;
     border-radius: 6px;
-    background: #F1F4F9;
+    background: var(--color-background-subtle);
     font-family: 'DM Sans', sans-serif;
     font-size: 12px;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     white-space: nowrap;
 }
 
-.ip-chip-more { background: transparent; color: #8A97AC; }
+.ip-chip-more { background: transparent; color: var(--color-grey-400); }
 
 /* cycling detail: a slice at a time, crossfading (MOTION-SPEC §6) */
 .ip-cycle {
@@ -1936,14 +2497,14 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
     font-family: 'DM Sans', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    color: #A8B3C6;
+    color: var(--color-grey-300);
 }
 
-.ip-cycle-toggle:hover { color: #155DFC; text-decoration: underline; }
+.ip-cycle-toggle:hover { color: var(--color-brand-primary); text-decoration: underline; }
 
 @media (max-width: 720px) {
     .ip-counters { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .ip-counter-value { font-size: 22px; }
+    .ip-counter-value { font-size: 20px; }
     .ip-head-right { gap: 10px; }
 }
 
@@ -1960,30 +2521,45 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 /* ── References skeleton (MOTION-SPEC §7) ────────────────────────────────────
    A highlight wave travels top-to-bottom on a loop: one card group at full
    opacity, the rest near-invisible. Staggered animation-delay makes the wave. */
+/* Geometry is Figma 44:4788 / 44:4744: a space/6 gutter, rows of space/6 padding split by a
+   color/border/default rule, and five 12px bars on a space/1 x2 rhythm — 24 + (5*12 + 4*8) + 24
+   lands each row on the design's 140px exactly. The bar widths are the design's own (80/232/200/
+   180/160) rather than percentages, because they are what makes the block read as a citation;
+   max-width keeps them inside a panel dragged narrower than the 384px design width. */
 .ref-skeleton {
-    padding: 8px 0;
+    padding: 0 24px;
 }
 
-.ref-skeleton-card {
+/* Child of `.references-list` too, so these must out-specify `.references-list>div`, which would
+   otherwise add its own 24px side padding (indenting every bar by 48px) and its own ::after
+   hairline on top of this one. */
+.ref-skeleton>.ref-skeleton-card {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 16px 32px;
-    border-bottom: 1px solid #F0F2F7;
+    padding: 24px 0;
+    box-shadow: inset 0 -1px 0 var(--color-grey-100);
     opacity: 0.28;
     animation: ref-skeleton-wave 1.6s linear infinite;
 }
 
-.ref-skeleton-bar {
-    display: block;
-    height: 9px;
-    border-radius: 999px;
-    background: #E7EBF2;
-    width: 100%;
+.ref-skeleton>.ref-skeleton-card::after {
+    content: none;
 }
 
-.ref-skeleton-bar.short { width: 26%; }
-.ref-skeleton-bar.medium { width: 62%; }
+.ref-skeleton-bar {
+    display: block;
+    height: 12px;
+    border-radius: 4px;
+    background: var(--color-background-muted);
+    max-width: 100%;
+}
+
+.ref-skeleton-card .ref-skeleton-bar:nth-child(1) { width: 80px; }
+.ref-skeleton-card .ref-skeleton-bar:nth-child(2) { width: 232px; }
+.ref-skeleton-card .ref-skeleton-bar:nth-child(3) { width: 200px; }
+.ref-skeleton-card .ref-skeleton-bar:nth-child(4) { width: 180px; }
+.ref-skeleton-card .ref-skeleton-bar:nth-child(5) { width: 160px; }
 
 @keyframes ref-skeleton-wave {
     0%   { opacity: 0.28; }
@@ -2000,6 +2576,188 @@ button.ip-notify.active { background: #D9E6FE; color: #0A47D6; }
 }
 
 /* a finished retrieval probe */
-.ip-channel { color: #6B7A93; }
-.ip-channel.failed { color: #A8B3C6; }
-.ip-channel-hits { color: #A8B3C6; }
+.ip-channel { color: var(--color-text-tertiary); }
+.ip-channel.pending { color: var(--color-grey-400); }
+.ip-channel.failed { color: var(--color-grey-300); }
+.ip-channel-hits { color: var(--color-grey-300); }
+
+/* ---------------------------------------------------------------- notify popover
+   Figma 44:5967 — the choice behind Notify me on the investigate panel. */
+.notify-pop-layer {
+    z-index: 1400;
+}
+
+.notify-pop {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    /* 20 around the top and sides, 12 under — the actions carry their own height. */
+    padding: 20px 20px 12px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-3, 12px);
+    background-color: var(--color-background-surface);
+    font-family: 'Geist', sans-serif;
+}
+
+.notify-pop-head {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.notify-pop-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+
+.notify-pop-subtitle {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+    white-space: nowrap;
+}
+
+.notify-pop-rows {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    padding-top: 4px;
+}
+
+.notify-pop-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 6px 0;
+    border-radius: var(--radius-1, 4px);
+    gap: 24px;
+}
+
+.notify-pop-row-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+
+.notify-pop-row-icon {
+    display: inline-flex;
+    color: var(--color-text-secondary);
+}
+
+.notify-pop-row-icon .MuiSvgIcon-root {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
+
+.notify-pop-error {
+    margin: 0;
+    font-size: 12px;
+    line-height: 20px;
+    color: var(--color-status-error-text);
+}
+
+.notify-pop-actions {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 8px;
+    width: 100%;
+}
+
+.notify-pop-dismiss,
+.notify-pop-confirm {
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 0 12px 12px;
+    border: none;
+    border-radius: var(--radius-1, 4px);
+    background: none;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    line-height: 16px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.notify-pop-dismiss {
+    font-weight: 500;
+    color: var(--color-text-tertiary);
+}
+
+.notify-pop-confirm {
+    font-weight: 600;
+    color: var(--color-brand-primary);
+}
+
+.notify-pop-dismiss:hover,
+.notify-pop-confirm:hover {
+    text-decoration: underline;
+}
+
+/* ── Queued follow-ups ────────────────────────────────────────────────────────
+   A question typed while an answer was still being written. It is the reader's
+   text and sits where their messages sit, but it has not been asked yet — so it
+   is drawn as an outline of the user bubble rather than the bubble itself, and
+   it carries the control that takes it back. */
+.queued-prompt-bubble {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 80%;
+    padding: 10px 12px 10px 16px;
+    border-radius: 16px;
+    border: 1px dashed var(--color-border-default);
+    background-color: transparent;
+    color: var(--color-text-tertiary);
+}
+
+.queued-prompt-text {
+    font-family: Geist, sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.queued-prompt-remove {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+}
+
+.queued-prompt-remove:hover {
+    background-color: var(--color-background-muted);
+    color: var(--color-text-primary);
+}
+
+.queued-prompt-remove:focus-visible {
+    outline: 2px solid var(--color-brand-primary);
+    outline-offset: 1px;
+}

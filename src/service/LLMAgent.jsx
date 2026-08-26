@@ -1,9 +1,13 @@
 import axios from '../utils/axiosConfig';
+import { humanizeTrace } from './traceLabel';
 
 const DEFAULT_STREAM_ENDPOINT = '/api/v1/new-llm-agent/stream';
 const INVESTIGATE_STREAM_ENDPOINT = process.env.REACT_APP_INVESTIGATE_STREAM_ENDPOINT || '/api/v1/deep-research/stream';
 const INVESTIGATE_CLARIFY_ENDPOINT = process.env.REACT_APP_INVESTIGATE_CLARIFY_ENDPOINT || '/api/v1/deep-research/clarify';
 const INVESTIGATE_RUN_ENDPOINT = process.env.REACT_APP_INVESTIGATE_RUN_ENDPOINT || '/api/v1/deep-research/run';
+// Cap on the references a deep-research answer returns. The backend accepts up to 100.
+export const INVESTIGATE_MAX_REFERENCES = 50;
+
 const INVESTIGATE_API_BASE_URL = (process.env.REACT_APP_INVESTIGATE_API_BASE_URL || '').trim().replace(/\/+$/, '');
 
 const normalizePath = (path = '') => {
@@ -258,7 +262,11 @@ export class LLMAgentService {
                         const percent = normalizePercent(
                             data.percent ?? data.progress_percent ?? detail.percent ?? null,
                         );
-                        const label = data.label || detail.label || data.message || data.content || '';
+                        // `data.content` on a tool frame is an internal trace
+                        // ("[TOOL CALL] article_search | Input: {…}"), so it is mapped to its
+                        // step.json wording before it can reach the panel as a label.
+                        const label = data.label || detail.label || data.message
+                            || humanizeTrace(data.content) || '';
                         const phase =
                             data.phase ||
                             detail.phase ||
@@ -297,11 +305,47 @@ export class LLMAgentService {
                                 keywords,
                                 papers,
                             });
+                        } else if (data.step === 'Thinking') {
+                            // The opening line, written by a cheap model while the agent is still
+                            // on its first turn. It is not the answer and never becomes it — the
+                            // real text arrives on `Delta`/`Answer` and supersedes it — so it goes
+                            // to the thought list, not the body.
+                            onUpdate({
+                                type: 'thinking',
+                                delta: typeof data.delta === 'string' ? data.delta : '',
+                            });
+                        } else if (data.step === 'Delta') {
+                            // A chunk of the answer as the model writes it. `delta` is the
+                            // INCREMENT, not the running total, so the client appends. `block`
+                            // rises on every tool call: in a ReAct loop the model also narrates
+                            // before each call ("I'll search PubMed for…") and that text streams
+                            // too, so only the NEWEST block is the answer. See the agent's
+                            // service/stream_delta.py.
+                            onUpdate({
+                                type: 'delta',
+                                block: Number(data.block) || 0,
+                                delta: typeof data.delta === 'string' ? data.delta : '',
+                            });
+                        } else if (data.step === 'Answer') {
+                            // The finished answer, shipped ahead of the reference/citation
+                            // payload it used to wait behind. Text only — `Complete` still
+                            // carries everything, including this same string, so this frame is
+                            // purely "show it sooner".
+                            onUpdate({
+                                type: 'answer',
+                                answer: data.response,
+                                sessionId: data.session_id || null,
+                            });
                         } else if (data.step === 'Complete') {
                             onUpdate({
                                 type: 'final',
                                 answer: data.response,
                                 references: data.references || [],
+                                // Per-citation evidence. Read `direct_citations`, never
+                                // `citations` — that is an unrelated agent field with a
+                                // different shape. The backend normalises this name for us
+                                // on every endpoint, this frame included.
+                                directCitations: data.direct_citations || [],
                                 messages: data.messages || [],
                                 sessionId: data.session_id || null,
                                 trajectory: data.trajectory || null,
@@ -375,6 +419,15 @@ export class LLMAgentService {
             }
             if (Number.isFinite(Number(options.maxArticles))) {
                 payload.max_articles = Number(options.maxArticles);
+            } else if (investigateEnabled) {
+                // `max_articles` truncates the REFERENCE list the agent returns
+                // (service/api.py: `references = references[:request.max_articles]`); it never
+                // reaches retrieval, so raising it costs nothing and only stops hiding sources the
+                // run already found. Nothing sets it on the investigate path — the Search Options
+                // control that fed it was removed under Investigate — so the request fell through
+                // to the backend's schema default of 20 and the panel read "20 Citations" on every
+                // deep-research run regardless of how many papers were actually cited.
+                payload.max_articles = INVESTIGATE_MAX_REFERENCES;
             }
             // Deep Research drops filters/ranking_mode — it runs its own hybrid retrieval rather
             // than the agent's search tools. Sending them anyway would be worse than useless: the
@@ -484,6 +537,7 @@ export class LLMAgentService {
             return {
                 answer: response.data.answer,
                 references: response.data.references || [],
+                directCitations: response.data.direct_citations || [],
                 messages: response.data.messages || [],
             };
         } catch (error) {

@@ -4,7 +4,7 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: #FDFEFF;
+    background-color: var(--color-background-page);
     overflow: hidden;
 }
 
@@ -21,14 +21,17 @@
 
 .history-content {
     width: 100%;
-    max-width: 1000px;
     margin: 0 auto;
+    /* The reading column is capped at 1200px; the 96px gutters sit outside it,
+       so the border-box cap is 1200 + 2 x 96. */
+    max-width: calc(1200px + 192px);
     display: flex;
     flex-direction: column;
     flex: 1;
     min-height: 0;
-    gap: 12px;
-    padding: 24px 0;
+    gap: 0;
+    padding: 24px 96px;
+    box-sizing: border-box;
 }
 
 .history-top {
@@ -40,7 +43,6 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    padding: 0 36px;
 }
 
 .history-title-row {
@@ -57,30 +59,34 @@
     fill: currentColor;
 }
 
+/* The list is pulled 36px left and given the same padding back, so the checkbox
+   hanging at -32px sits inside the scroll container's padding box while the rows
+   still begin on the content baseline. overflow-x cannot be visible here — a
+   scrollable y axis forces it to auto — so the gutter has to be padding. */
 .history-list {
     flex: 1;
     min-height: 0;
+    margin: 8px 0 0 -36px;
     overflow-y: auto;
-    overflow-x: visible;
-    width: 100%;
-    padding: 0 0 0 14px;
+    width: calc(100% + 36px);
+    padding: 0 0 0 36px;
     box-sizing: border-box;
 }
 
 .history-list>.MuiTypography-root {
-    padding-left: 36px;
+    padding-left: 16px;
 }
 
 .history-section-title {
     font-family: 'Geist', sans-serif;
     font-weight: 700;
     font-size: 14px;
-    color: #222A38;
+    color: var(--color-text-secondary);
     margin-top: 16px;
 }
 
 .history-search {
-    margin-top: 12px;
+    margin-top: 48px;
     width: 100%;
     position: relative;
 }
@@ -90,11 +96,11 @@
     height: 36px;
     padding: 0 64px 0 12px;
     border-radius: 8px;
-    border: 1px solid #CBD2E0;
-    background-color: #ffffff;
+    border: 1px solid var(--color-border-strong);
+    background-color: var(--color-background-surface);
     font-family: 'Geist', sans-serif;
     font-size: 12px;
-    color: #0C1018;
+    color: var(--color-text-primary);
     outline: none;
     box-shadow: none;
 }
@@ -104,12 +110,12 @@
 .history-search-input::-moz-placeholder,
 .history-search-input:-ms-input-placeholder,
 .history-search-input::-ms-input-placeholder {
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     font-family: 'Geist, sans-serif';
 }
 
 .history-search-input:focus {
-    border-color: #155DFC;
+    border-color: var(--color-brand-primary);
     box-shadow: 0 0 0 2px rgba(21, 93, 252, 0.15);
 }
 
@@ -119,8 +125,8 @@
     top: 50%;
     transform: translateY(-50%);
     border: none;
-    background: #EEF3FA;
-    color: #222A38;
+    background: var(--color-background-subtle);
+    color: var(--color-text-secondary);
     font-family: 'Geist';
     font-size: 12px;
     font-weight: 600;
@@ -130,83 +136,90 @@
 }
 
 .history-search-clear:hover {
-    background: #E2E9F4;
+    background: var(--color-background-muted);
 }
 
 .history-meta-row {
-    margin-top: 8px;
+    position: relative;
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: space-between;
     gap: 12px;
     width: 100%;
-    height: 43px;
-    padding: 0 36px 0 0;
+    min-height: 24px;
+    margin-top: 16px;
+    padding: 0 4px;
     box-sizing: border-box;
 }
 
 .history-meta-text {
     font-family: 'Geist', sans-serif;
-    font-weight: 500;
-    font-size: 13px;
-    color: #5E6E87;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 20px;
+    color: var(--color-text-secondary);
     text-align: left;
 }
 
 .history-select-toggle {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 8px;
     border: none;
+    border-radius: 8px;
     background: transparent;
-    color: #222A38;
+    color: var(--color-text-secondary);
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
-    line-height: 1.4;
+    line-height: 16px;
     text-decoration: underline;
     text-underline-offset: 2px;
-    border-radius: 6px;
-    padding: 2px 4px;
     cursor: pointer;
 }
 
 .history-select-toggle:hover {
-    background: #EEF3FA;
+    background: var(--color-background-subtle);
 }
 
+/* One column: the checkbox no longer takes space in the row, so the label
+   starts on the same baseline as the count in the default state. */
 .history-select-toolbar {
-    display: grid;
-    grid-template-columns: 36px minmax(0, 1fr);
+    flex: 1;
+    min-width: 0;
+    display: flex;
     align-items: center;
-    min-height: 32px;
+    min-height: 24px;
 }
 
-.history-select-toolbar-empty .history-select-toolbar-content {
-    grid-column: 2;
-}
-
-.history-select-all-checkbox {
-    grid-column: 1;
-    justify-self: start;
-    align-self: center;
-    margin-left: -12px;
+/* Same gutter as the row checkboxes below, so the control and the column it
+   drives share a left edge. */
+.history-meta-row .history-select-all-checkbox {
+    position: absolute;
+    left: -32px;
+    top: 50%;
+    transform: translateY(-50%);
+    margin: 0;
 }
 
 .history-select-toolbar-content {
-    grid-column: 2;
     display: flex;
     align-items: center;
     gap: 4px;
     min-width: 0;
-    padding-left: 12px;
+    padding-left: 0;
 }
 
 .history-delete-action {
     border: none;
     background: transparent;
-    color: #B42318;
+    color: var(--color-status-error-text);
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
-    line-height: 1.4;
+    line-height: 16px;
     text-decoration: underline;
     text-underline-offset: 2px;
     display: inline-flex;
@@ -218,11 +231,11 @@
 }
 
 .history-delete-action:hover:not(:disabled) {
-    background: #FEECEC;
+    background: var(--color-background-subtle);
 }
 
 .history-delete-action:disabled {
-    color: #C8A7A4;
+    color: var(--color-grey-300);
     cursor: not-allowed;
 }
 
@@ -241,12 +254,12 @@
     gap: 8px;
     padding: 0 12px;
     border-radius: 16px;
-    border: 1px solid #E7F1FF;
-    background-color: #ffffff;
+    border: 1px solid var(--color-border-default);
+    background-color: var(--color-background-surface);
     font-family: 'Geist', sans-serif;
     font-weight: 500;
     font-size: 14px;
-    color: #222A38;
+    color: var(--color-text-secondary);
     height: 32px;
     box-sizing: border-box;
 }
@@ -261,11 +274,12 @@
 .history-card-meta {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     font-family: 'Geist', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    color: #969696;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
 }
 
 .history-card-meta-icon {
@@ -283,8 +297,8 @@
     align-items: center;
     justify-content: space-between;
     min-height: 40px;
-    background: #ffffff;
-    border-bottom: 1px solid #E5E7EB;
+    background: var(--color-background-surface);
+    border-bottom: 1px solid var(--color-border-default);
     padding: 0 0 8px;
 }
 
@@ -292,10 +306,15 @@
     font-family: 'Geist', sans-serif !important;
     font-size: 16px !important;
     font-weight: 700 !important;
-    color: #222A38;
+    color: var(--color-text-secondary);
 }
 
 @media (max-width: 767px) {
+    /* Figma 800:22889 has no line under the title on a phone. */
+    .history-subtitle {
+        display: none;
+    }
+
     .history-content {
         max-width: none;
         padding: 16px 24px;
@@ -334,7 +353,15 @@
         padding-left: 0;
     }
 
+    /* The desktop list is pulled -36 and given 36 of padding back, so the checkbox
+       hanging in the gutter stays inside the scroll box. Zeroing the padding without
+       the margin left the whole list 36 to the left of everything above it — rows at
+       -12 against a 24px page gutter, and in select mode the checkbox off the side of
+       the screen entirely. A phone has no hover gutter to reserve, so neither is
+       wanted here. */
     .history-list {
+        margin-left: 0;
+        width: 100%;
         padding: 0;
         overflow-x: hidden;
     }
@@ -342,4 +369,53 @@
     .history-list > .MuiTypography-root {
         padding-left: 0;
     }
+}
+/* ---------------------------------------------------------------- mobile select bar
+   800:22889 — while selecting, a phone gets an action bar along the bottom carrying the
+   count and every action that applies to the selection. */
+.history-mobile-select-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-top: 1px solid var(--color-border-default);
+    background-color: var(--color-background-surface);
+    flex: 0 0 auto;
+}
+
+.history-mobile-select-count {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    color: var(--color-text-tertiary);
+    white-space: nowrap;
+}
+
+.history-mobile-select-action {
+    flex: 0 0 auto;
+    height: 28px;
+    padding: 0 10px;
+    border: none;
+    border-radius: var(--radius-2, 8px);
+    background-color: var(--color-background-muted);
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.history-mobile-select-action.is-danger {
+    background-color: var(--color-status-error);
+    color: var(--color-text-inverse);
+}
+
+.history-mobile-select-action:disabled {
+    opacity: 0.5;
+    cursor: default;
 }

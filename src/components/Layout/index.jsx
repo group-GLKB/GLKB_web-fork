@@ -17,6 +17,7 @@ import { Menu as MenuIcon } from '@mui/icons-material';
 
 import logoIcon from '../../img/GLKB_logo_icon.png';
 import logoWordmark from '../../img/navbar/logo.png';
+import { isRunActive } from '../../service/activeRun';
 import { trackGtagEvent } from '../../utils/gtag';
 import LoginModal from '../Auth/LoginModal';
 import NavBarWhite from '../Units/NavBarWhite';
@@ -34,6 +35,9 @@ const getPageTitleByPath = (pathname) => {
     if (pathname.startsWith('/api-page')) return 'API | GLKB';
     if (pathname.startsWith('/account')) return 'Settings | GLKB';
     if (pathname.startsWith('/about')) return 'About | GLKB';
+    if (pathname.startsWith('/privacy')) return 'Privacy Policy | GLKB';
+    if (pathname.startsWith('/terms')) return 'Terms of Service | GLKB';
+    if (pathname.startsWith('/blog')) return 'Our Blog | GLKB';
     if (pathname.startsWith('/search')) return 'Search | GLKB';
     if (pathname.startsWith('/history')) return 'History | GLKB';
     if (pathname.startsWith('/library')) return 'Library | GLKB';
@@ -48,14 +52,39 @@ const AppLayout = () => {
     const [isPhoneDevice, setIsPhoneDevice] = useState(false);
     const [isMobileHeaderHidden, setIsMobileHeaderHidden] = useState(false);
     const isAboutPage = location.pathname.startsWith('/about');
+    const isBlogPage = location.pathname.startsWith('/blog');
+    // the legal notices stand on their own, as About and the blog do
+    const isLegalPage = location.pathname.startsWith('/privacy')
+        || location.pathname.startsWith('/terms');
     const isAccountPage = location.pathname.startsWith('/account');
     const isChatPage = location.pathname.startsWith('/chat');
-    const hideSidebar = isAboutPage || (isAccountPage && !isPhoneDevice);
-    const showMobileHeader = isPhoneDevice && !isAboutPage && !isMobileHeaderHidden;
+    // Settings stands on its own, as About, the blog and the notices do: its
+    // section nav is a rail already, and two rails side by side spend 300px to
+    // say the same thing twice. That nav carries its own way back to the app.
+    const hideSidebar = isAboutPage || isBlogPage || isLegalPage || isAccountPage;
+    const showMobileHeader = isPhoneDevice && !isAboutPage && !isBlogPage && !isLegalPage
+        && !isMobileHeaderHidden;
 
     useLayoutEffect(() => {
         document.title = getPageTitleByPath(location.pathname);
     }, [location.pathname]);
+
+    /**
+     * A conversation keeps running while the reader moves around the app, so
+     * nothing warns on navigation any more. Closing the tab does end it, and
+     * that can be done from any page — which is why this lives here rather than
+     * in the chat, which is mounted on one route only.
+     */
+    useEffect(() => {
+        const onBeforeUnload = (event) => {
+            if (!isRunActive()) return undefined;
+            event.preventDefault();
+            event.returnValue = '';
+            return '';
+        };
+        window.addEventListener('beforeunload', onBeforeUnload);
+        return () => window.removeEventListener('beforeunload', onBeforeUnload);
+    }, []);
 
     useEffect(() => {
         const evaluateIsPhone = () => {
@@ -97,7 +126,7 @@ const AppLayout = () => {
                             window.dispatchEvent(new CustomEvent(SIDEBAR_OPEN_EVENT));
                         }}
                     >
-                        <MenuIcon sx={{ fontSize: 22, color: '#646464' }} />
+                        <MenuIcon sx={{ fontSize: 22, color: 'var(--color-text-tertiary)' }} />
                     </button>
                     <Link to="/" className="app-mobile-header-logo-link" aria-label="GLKB Home">
                         <img src={logoIcon} alt="GLKB logo" className="app-mobile-header-logo-icon" />

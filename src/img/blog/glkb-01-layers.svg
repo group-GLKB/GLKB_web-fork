@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1120 470" xmlns="http://www.w3.org/2000/svg" font-family="Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+          <defs>
+            <marker id="g1a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill="#9AA9BC"/>
+            </marker>
+          </defs>
+
+          <!-- LEFT: PubMed -->
+          <text x="40" y="34" font-size="11" font-weight="750" letter-spacing="1.6" fill="#0B8FA8">SEMANTIC NETWORK · FROM LITERATURE</text>
+          <rect x="40" y="52" width="270" height="86" rx="11" fill="#F4FAFD" stroke="#0B8FA8" stroke-width="1.4"/>
+          <text x="60" y="82" font-size="15.5" font-weight="700" fill="#0A7186">PubMed</text>
+          <text x="60" y="105" font-size="24" font-weight="750" fill="#0A1628">33,403,054</text>
+          <text x="60" y="124" font-size="11.5" fill="#6B7C93">abstracts, entity-annotated</text>
+
+          <g font-size="12" fill="#0A1628">
+            <rect x="40" y="158" width="128" height="30" rx="7" fill="#fff" stroke="#CFE3EB"/><text x="54" y="177">Article</text>
+            <rect x="182" y="158" width="128" height="30" rx="7" fill="#fff" stroke="#CFE3EB"/><text x="196" y="177">Sentence</text>
+            <rect x="40" y="196" width="270" height="30" rx="7" fill="#fff" stroke="#CFE3EB"/><text x="54" y="215">Journal · citation edges</text>
+          </g>
+          <text x="40" y="252" font-size="11.5" fill="#6B7C93">Entity mentions map into the vocabulary;</text>
+          <text x="40" y="270" font-size="11.5" fill="#6B7C93">co-occurring pairs become typed relationships.</text>
+
+          <!-- CENTER: vocabulary spine -->
+          <rect x="392" y="52" width="336" height="330" rx="14" fill="#0A1628"/>
+          <text x="560" y="84" font-size="11" font-weight="750" letter-spacing="1.6" fill="#5EE7F5" text-anchor="middle">CONTROLLED VOCABULARY</text>
+          <text x="560" y="106" font-size="12.5" fill="#8FA7BE" text-anchor="middle">the backbone both halves attach to</text>
+
+          <rect x="416" y="126" width="288" height="96" rx="10" fill="#16233A"/>
+          <text x="436" y="150" font-size="10.5" font-weight="700" letter-spacing="1.2" fill="#7DD3FC">LEVEL 1 — mentioned in text</text>
+          <text x="436" y="176" font-size="22" font-weight="750" fill="#fff">690,477</text>
+          <text x="436" y="196" font-size="11.5" fill="#94A3B8">genes · diseases · chemicals · variants</text>
+          <text x="436" y="212" font-size="11.5" fill="#94A3B8">anatomy · MeSH</text>
+
+          <rect x="416" y="234" width="288" height="80" rx="10" fill="#16233A"/>
+          <text x="436" y="258" font-size="10.5" font-weight="700" letter-spacing="1.2" fill="#C4B5FD">LEVEL 2 — describes level 1</text>
+          <text x="436" y="284" font-size="22" font-weight="750" fill="#fff">41,311</text>
+          <text x="436" y="304" font-size="11.5" fill="#94A3B8">Gene Ontology · pathways</text>
+
+          <rect x="416" y="326" width="288" height="34" rx="8" fill="#0F2A3A" stroke="#1E4A5C"/>
+          <text x="560" y="348" font-size="12" fill="#7DD3FC" text-anchor="middle">375,537 ontology mappings resolve synonyms</text>
+
+          <!-- RIGHT: curated -->
+          <text x="1080" y="34" font-size="11" font-weight="750" letter-spacing="1.6" fill="#7A5AF8" text-anchor="end">CURATED NETWORK · FROM REPOSITORIES</text>
+          <rect x="810" y="52" width="270" height="86" rx="11" fill="#F7F4FF" stroke="#7A5AF8" stroke-width="1.4"/>
+          <text x="830" y="82" font-size="15.5" font-weight="700" fill="#5B3FD1">Nine repositories</text>
+          <text x="830" y="105" font-size="24" font-weight="750" fill="#0A1628">3,795,248</text>
+          <text x="830" y="124" font-size="11.5" fill="#6B7C93">expert-curated relationships</text>
+
+          <g font-size="12" fill="#0A1628">
+            <rect x="810" y="158" width="270" height="30" rx="7" fill="#fff" stroke="#DDD6FE"/><text x="824" y="177">gene regulatory networks</text>
+            <rect x="810" y="196" width="270" height="30" rx="7" fill="#fff" stroke="#DDD6FE"/><text x="824" y="215">pathways · GO annotations</text>
+            <rect x="810" y="234" width="270" height="30" rx="7" fill="#fff" stroke="#DDD6FE"/><text x="824" y="253">variant · drug · disease links</text>
+          </g>
+          <text x="810" y="290" font-size="11.5" fill="#6B7C93">56,930 terms carry curated edges —</text>
+          <text x="810" y="308" font-size="11.5" fill="#6B7C93">a precise backbone under the literature.</text>
+
+          <!-- connectors -->
+          <path d="M316 95 H 386" stroke="#9AA9BC" stroke-width="1.8" marker-end="url(#g1a)"/>
+          <path d="M804 95 H 734" stroke="#9AA9BC" stroke-width="1.8" marker-end="url(#g1a)"/>
+
+          <!-- bottom result -->
+          <rect x="40" y="404" width="1040" height="46" rx="10" fill="#F0FAF6" stroke="#BFE9D8"/>
+          <text x="62" y="433" font-size="14" font-weight="640" fill="#0B5B42">One query can cross from a curated pathway edge to the literature evidence for a gene–disease claim, and land on the PMIDs.</text>
+        </svg>

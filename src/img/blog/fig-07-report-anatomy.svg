@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1200 400" xmlns="http://www.w3.org/2000/svg" font-family="Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+          <defs>
+            <filter id="docsh" x="-20%" y="-10%" width="140%" height="130%">
+              <feDropShadow dx="0" dy="4" stdDeviation="10" flood-color="#0A1628" flood-opacity=".12"/>
+            </filter>
+          </defs>
+
+          <text x="60" y="38" font-size="12" font-weight="750" letter-spacing="1.6" fill="#9AA9BC">COMPUTED IN THIS ORDER</text>
+          <text x="1140" y="38" font-size="12" font-weight="750" letter-spacing="1.6" fill="#0A1628" text-anchor="end">DELIVERED IN THIS ORDER</text>
+
+          <!-- computation column -->
+          <g>
+            <g><circle cx="96" cy="86" r="21" fill="#fff" stroke="#E08A0B" stroke-width="2"/><text x="96" y="92" font-size="14" font-weight="750" fill="#E08A0B" text-anchor="middle">1</text><text x="132" y="84" font-size="14.5" font-weight="640" fill="#0A1628">Evidence</text><text x="132" y="102" font-size="11.5" fill="#9AA9BC">one pass per concept</text></g>
+            <g><circle cx="96" cy="148" r="21" fill="#fff" stroke="#E5484D" stroke-width="2"/><text x="96" y="154" font-size="14" font-weight="750" fill="#E5484D" text-anchor="middle">2</text><text x="132" y="146" font-size="14.5" font-weight="640" fill="#0A1628">Conflict</text><text x="132" y="164" font-size="11.5" fill="#9AA9BC">two sides, different papers</text></g>
+            <g><circle cx="96" cy="210" r="21" fill="#fff" stroke="#E08A0B" stroke-width="2"/><text x="96" y="216" font-size="14" font-weight="750" fill="#E08A0B" text-anchor="middle">3</text><text x="132" y="208" font-size="14.5" font-weight="640" fill="#0A1628">Judgment</text><text x="132" y="226" font-size="11.5" fill="#9AA9BC">ranks, does not recap</text></g>
+            <g><circle cx="96" cy="272" r="21" fill="#fff" stroke="#0B8FA8" stroke-width="2"/><text x="96" y="278" font-size="14" font-weight="750" fill="#0B8FA8" text-anchor="middle">4</text><text x="132" y="270" font-size="14.5" font-weight="640" fill="#0A1628">Direct answer</text><text x="132" y="288" font-size="11.5" fill="#9AA9BC">derived from the judgment</text></g>
+            <g><circle cx="96" cy="334" r="21" fill="#fff" stroke="#6B7C93" stroke-width="2"/><text x="96" y="340" font-size="14" font-weight="750" fill="#6B7C93" text-anchor="middle">5</text><text x="132" y="332" font-size="14.5" font-weight="640" fill="#0A1628">Findings &amp; gaps</text><text x="132" y="350" font-size="11.5" fill="#9AA9BC">narrative, then what is missing</text></g>
+          </g>
+
+          <!-- connectors -->
+          <g fill="none" stroke-width="2" opacity=".55">
+            <path d="M330 86  C 480 86,  520 216, 700 216" stroke="#E08A0B"/>
+            <path d="M330 148 C 480 148, 520 268, 700 268" stroke="#E5484D"/>
+            <path d="M330 210 C 480 210, 520 320, 700 320" stroke="#E08A0B"/>
+            <path d="M330 272 C 480 272, 520 112, 700 112" stroke="#0B8FA8"/>
+            <path d="M330 328 C 480 328, 520 164, 700 164" stroke="#6B7C93"/>
+            <path d="M330 340 C 480 340, 520 372, 700 372" stroke="#6B7C93"/>
+          </g>
+
+          <!-- document -->
+          <g filter="url(#docsh)">
+            <rect x="700" y="52" width="440" height="348" rx="14" fill="#fff"/>
+          </g>
+          <rect x="700" y="52" width="440" height="348" rx="14" fill="none" stroke="#E3E9F0"/>
+
+          <g>
+            <rect x="700" y="86" width="440" height="52" fill="#0B8FA8" fill-opacity=".07"/>
+            <rect x="700" y="86" width="4" height="52" fill="#0B8FA8"/>
+            <text x="724" y="107" font-size="14.5" font-weight="690" fill="#0A1628">Direct answer</text>
+            <text x="724" y="126" font-size="11.5" fill="#6B7C93">the calibrated bottom line, up front</text>
+
+            <rect x="700" y="138" width="4" height="52" fill="#6B7C93"/>
+            <text x="724" y="159" font-size="14.5" font-weight="690" fill="#0A1628">Investigation findings</text>
+            <text x="724" y="178" font-size="11.5" fill="#6B7C93">one connected narrative</text>
+
+            <rect x="700" y="190" width="4" height="52" fill="#E08A0B"/>
+            <text x="724" y="211" font-size="14.5" font-weight="690" fill="#0A1628">Evidence analysis</text>
+            <text x="724" y="230" font-size="11.5" fill="#6B7C93">a sub-section per concept, quoted</text>
+
+            <rect x="700" y="242" width="440" height="52" fill="#E5484D" fill-opacity=".06"/>
+            <rect x="700" y="242" width="4" height="52" fill="#E5484D"/>
+            <text x="724" y="263" font-size="14.5" font-weight="690" fill="#0A1628">Conflict analysis</text>
+            <text x="724" y="282" font-size="11.5" fill="#6B7C93">who disagrees, and why</text>
+
+            <rect x="700" y="294" width="4" height="52" fill="#E08A0B"/>
+            <text x="724" y="315" font-size="14.5" font-weight="690" fill="#0A1628">Evidence-based judgment</text>
+            <text x="724" y="334" font-size="11.5" fill="#6B7C93">explicit comparative weighing</text>
+
+            <rect x="700" y="346" width="4" height="46" fill="#6B7C93"/>
+            <text x="724" y="367" font-size="14.5" font-weight="690" fill="#0A1628">Remaining uncertainties</text>
+            <text x="724" y="386" font-size="11.5" fill="#6B7C93">grounded open questions</text>
+          </g>
+        </svg>

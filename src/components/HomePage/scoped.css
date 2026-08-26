@@ -18,7 +18,7 @@
     /* Full viewport height */
     overflow-y: auto;
     position: relative;
-    /* background-color: #DCE3FF; */
+    /* background-color: #E5E9F0; */
     --home-gutter: max(4%, 40px);
 }
 
@@ -67,7 +67,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 24px;
+    gap: 32px;
     padding: 9vh max(4vw, 24px) 6vh;
     text-align: center;
 }
@@ -75,16 +75,16 @@
 .homepage-hero-inner {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     max-width: 760px;
 }
 
 .glkb-title {
     font-family: "Geist", sans-serif;
     font-weight: 800;
-    font-size: 36px;
-    line-height: 1.2;
-    color: #141B26;
+    font-size: 40px;
+    line-height: 48px;
+    color: var(--color-text-primary);
     margin: 0;
 }
 
@@ -93,7 +93,7 @@
     font-weight: 600;
     font-size: 16px;
     line-height: 1.5;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     margin: 0;
 }
 
@@ -103,7 +103,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 24px;
+    gap: 20px;
     --example-item-gap: 12px;
     container-type: inline-size;
 }
@@ -123,38 +123,39 @@
     padding: 10px 14px;
     border-radius: 16px 16px 0 0;
     border: none;
-    background: #E7F1FF;
+    background: var(--color-brand-soft);
 }
 
 .homepage-limit-warning-text {
     font-family: 'Geist', sans-serif;
     font-size: 14px;
     font-weight: 500;
-    color: #141B26;
+    color: var(--color-grey-900);
     text-align: left;
 }
 
 .homepage-limit-warning-button {
-    border: 1px solid #155DFC;
-    background: #ffffff;
-    color: #155DFC;
+    border: 1px solid var(--color-brand-primary);
+    background: var(--color-background-surface);
+    color: var(--color-brand-primary);
     border-radius: 999px;
     padding: 6px 14px;
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
+    line-height: 16px;
     font-weight: 700;
     cursor: pointer;
     white-space: nowrap;
 }
 
 .homepage-limit-warning-button:hover {
-    background: #F3F8FF;
+    background: var(--color-grey-25);
 }
 
 .homepage-limit-warning-button:disabled {
-    border-color: #CBD2E0;
-    background: #F2F4F8;
-    color: #A8B3C8;
+    border-color: var(--color-border-strong);
+    background: var(--color-background-subtle);
+    color: var(--color-grey-300);
     cursor: not-allowed;
 }
 
@@ -162,7 +163,7 @@
     display: flex;
     flex-wrap: nowrap;
     justify-content: center;
-    gap: 12px;
+    gap: 16px;
     margin-top: 0;
     position: relative;
     z-index: 1;
@@ -170,6 +171,19 @@
     padding-left: var(--home-gutter);
     padding-right: var(--home-gutter);
     box-sizing: border-box;
+}
+
+/* Sits with the pills inside the 20px-gap column, so it moves with the ask box
+   as that grows rather than being pinned to the footer. */
+.homepage-research-notice {
+    margin: 0;
+    width: 100%;
+    font-family: "Geist", sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+    text-align: center;
 }
 
 .homepage-pills.is-hidden {
@@ -185,9 +199,9 @@
     flex: 0 0 auto;
     padding: 8px 12px;
     border-radius: 8px !important;
-    background-color: #F2F4F8;
-    border: 0.5px solid #E5E9F0;
-    color: #222A38;
+    background-color: var(--color-background-subtle);
+    border: 0.5px solid var(--color-border-default);
+    color: var(--color-text-secondary);
     font-family: "Geist", sans-serif;
     font-weight: 500;
     font-size: 12px;
@@ -198,15 +212,15 @@
 }
 
 .homepage-pill:hover {
-    background-color: #F2F4F8;
-    border-color: #E5E9F0;
+    background-color: var(--color-background-subtle);
+    border-color: var(--color-border-default);
     box-shadow: none;
     transform: translateY(-1px);
 }
 
 .homepage-pill.is-active {
-    background-color: #F2F4F8;
-    border-color: #E5E9F0;
+    background-color: var(--color-background-subtle);
+    border-color: var(--color-border-default);
     box-shadow: none;
 }
 
@@ -280,8 +294,8 @@
     width: 100%;
     padding: 16px;
     border-radius: 16px !important;
-    border: 1px solid #E7F1FF;
-    background-color: #F5F6F8 !important;
+    border: 1px solid var(--color-border-default);
+    background-color: var(--color-background-subtle) !important;
     box-shadow: 0px 6px 18px rgba(22, 69, 99, 0.08) !important;
     z-index: 3;
     box-sizing: border-box;
@@ -298,20 +312,20 @@
     font-family: "Geist", sans-serif !important;
     font-weight: 700 !important;
     font-size: 16px !important;
-    color: #155DFC !important;
+    color: var(--color-brand-primary) !important;
 }
 
 .homepage-examples-close {
-    border: 1px solid #D7E3EA;
-    background-color: #ffffff;
-    color: #64748B;
+    border: 1px solid var(--color-border-default);
+    background-color: var(--color-background-surface);
+    color: var(--color-text-tertiary);
     transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, transform 120ms ease;
 }
 
 .homepage-examples-close:hover {
-    background-color: #EEF6FF;
-    color: #155DFC;
-    border-color: #BFD6FF;
+    background-color: var(--color-background-subtle);
+    color: var(--color-brand-primary);
+    border-color: var(--color-border-strong);
     transform: translateY(-1px);
 }
 
@@ -321,7 +335,7 @@
     gap: var(--example-item-gap);
     margin: 0;
     padding: 0;
-    background-color: #F5F6F8;
+    background-color: var(--color-background-subtle);
 }
 
 .homepage-examples-item {
@@ -332,12 +346,13 @@
     gap: 12px;
     padding: 12px 14px;
     border-radius: 16px;
-    border: 0.5px solid #E5E9F0;
-    background-color: #FCFDFD;
-    color: #141B26;
+    border: 0.5px solid var(--color-border-default);
+    background-color: var(--color-background-page);
+    color: var(--color-grey-900);
     font-family: "Geist", sans-serif;
     font-weight: 500;
-    font-size: 15px;
+    font-size: 14px;
+    line-height: 22px;
     text-align: left;
     cursor: pointer;
     transition: background-color 150ms ease, transform 120ms ease;
@@ -376,37 +391,42 @@
     align-items: stretch;
 }
 
+/* Figma 800:22889 — one line: the icon, then the label. The older phone design
+   stacked them, which is why these were full-width and column. */
 .HomePageRoot.is-phone-device .homepage-pill {
     width: 100%;
     height: 100%;
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
     justify-content: flex-start;
     gap: 8px;
     min-width: 0;
 }
 
 .HomePageRoot.is-phone-device .homepage-pill-icon {
-    width: 100%;
+    flex: 0 0 auto;
+    width: auto;
     justify-content: flex-start;
 }
 
 .HomePageRoot.is-phone-device .homepage-pill-label {
-    width: 100%;
+    min-width: 0;
+    /* The longest label fits on one line at this width; clipping it with an
+       ellipsis reads worse than the wrap it replaced. */
+    white-space: nowrap;
     justify-content: flex-start;
-    white-space: normal;
     text-align: left;
 }
 
 .homepage-examples-item:hover {
-    background-color: #EDF4FF;
+    background-color: var(--color-background-subtle);
     box-shadow: none;
     transform: translateY(-1px);
 }
 
 .homepage-examples-arrow {
-    color: #155DFC;
+    color: var(--color-brand-primary);
     font-size: 16px;
     transition: transform 140ms ease;
 }
@@ -418,7 +438,7 @@
 .footer {
     align-items: center;
     padding: 0px;
-    color: #8090AB;
+    color: var(--color-grey-400);
     font-size: 14px;
     width: 100%;
     text-align: center;
@@ -428,6 +448,18 @@
 
 .footer p {
     line-height: 150%;
+}
+
+/* The three legal lines read as one paragraph in the design: same 12/20 tertiary
+   text, no gap between them. */
+.footer .homepage-footer-line {
+    margin: 0;
+    font-family: "Geist", sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+    text-align: center;
 }
 
 
@@ -440,7 +472,7 @@
 .homepage-lab-link:visited,
 .homepage-lab-link:hover,
 .homepage-lab-link:active {
-    color: #4B88FD !important;
+    color: var(--color-brand-primary) !important;
     font-weight: normal !important;
     text-decoration: none !important;
 }
@@ -496,7 +528,7 @@
     padding: 16px;
     text-align: left;
     color: black;
-    background-color: #F4F6FE;
+    background-color: var(--color-grey-25);
     border: none;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     transition: background-color 0.3s;
@@ -510,7 +542,7 @@
 }
 
 .example-query-button:hover {
-    background-color: #C4CCFE;
+    background-color: var(--color-background-normal);
     /* Change to a lighter shade on hover */
 }
 
@@ -520,7 +552,7 @@
     top: 0;
     left: 0;
     right: 0;
-    background-color: #fff;
+    background-color: var(--color-background-surface);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     z-index: 1000;
 }
@@ -545,7 +577,7 @@
 }
 
 .glkb-introduction a {
-    color: #155DFC;
+    color: var(--color-brand-primary);
     text-decoration: none;
 }
 
@@ -561,22 +593,27 @@
 }
 
 @media (max-width: 900px) {
+    /* Figma 800:22889 — the block sits centred between the header and the
+       footer rather than hanging from the top of the screen. */
     .homepage-hero {
-        padding: 8vh 20px 5vh;
+        flex: 1;
+        justify-content: center;
+        padding: 24px 20px;
         gap: 24px;
     }
 
     .glkb-title {
         font-size: 32px;
     }
+
 }
 
 .homepage-autocomplete-panel {
     width: 100%;
     padding: 16px;
     border-radius: 16px !important;
-    border: 0.5px solid #E5E9F0;
-    background-color: #F5F6F8 !important;
+    border: 0.5px solid var(--color-border-default);
+    background-color: var(--color-background-subtle) !important;
     box-shadow: none !important;
     box-sizing: border-box;
 }
@@ -587,7 +624,7 @@
     gap: var(--example-item-gap);
     padding: 0 !important;
     margin: 0 !important;
-    background-color: #F5F6F8;
+    background-color: var(--color-background-subtle);
     list-style: none;
     max-height: 320px;
     overflow-y: auto;
@@ -606,15 +643,15 @@
     padding: 12px 14px;
     margin: 0 !important;
     border-radius: 16px !important;
-    border: 0.5px solid #E5E9F0;
-    background-color: #FCFDFD;
-    color: #141B26;
+    border: 0.5px solid var(--color-border-default);
+    background-color: var(--color-background-page);
+    color: var(--color-grey-900);
     font-family: "Geist", sans-serif;
     font-weight: 500;
-    font-size: 15px;
+    font-size: 14px;
     text-align: left;
     white-space: normal;
-    line-height: 1.4;
+    line-height: 22px;
     cursor: pointer;
     transition: background-color 150ms ease, transform 120ms ease;
 }
@@ -625,7 +662,7 @@
 
 .homepage-autocomplete-option:hover,
 .homepage-autocomplete-panel .MuiAutocomplete-option.Mui-focused {
-    background-color: #EDF4FF;
+    background-color: var(--color-background-subtle);
     box-shadow: none;
     transform: translateY(-1px);
 }

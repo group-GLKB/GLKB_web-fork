@@ -1,21 +1,24 @@
 .account-page {
-    min-height: 100vh;
+    /* The app sidebar is outside this page now, so height comes from the layout
+       rather than the viewport — 100vh here would overflow it by the header. */
+    min-height: 100%;
     width: 100%;
-    background: #FAFCFF;
+    background: var(--color-background-page);
     display: flex;
 }
 
 .settings-wrapper {
     display: flex;
     width: 100%;
-    min-height: 100vh;
+    min-height: 100%;
     overflow: hidden;
 }
 
+/* The page's only rail — the app's sidebar is hidden on Settings. */
 .settings-nav {
     width: 280px;
-    background: #ffffff;
-    border-right: 1px solid #E2E8F0;
+    background: var(--color-background-surface);
+    border-right: 1px solid var(--color-border-default);
     padding: 28px 0;
     flex-shrink: 0;
 }
@@ -26,11 +29,11 @@
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    color: #9AA3AE;
-    font-size: 13px;
+    color: var(--color-grey-400);
+    font-size: 12px;
     font-weight: 500;
     transition: color 0.15s;
-    border-bottom: 1px solid #E2E8F0;
+    border-bottom: 1px solid var(--color-border-default);
     margin-bottom: 10px;
     letter-spacing: 0.1px;
     background: transparent;
@@ -42,7 +45,7 @@
 }
 
 .settings-nav-header:hover {
-    color: #6B7A8D;
+    color: var(--color-text-tertiary);
 }
 
 .settings-nav-header svg,
@@ -56,9 +59,9 @@
     align-items: center;
     gap: 9px;
     padding: 9px 20px;
-    font-size: 13.5px;
+    font-size: 14px;
     font-weight: 400;
-    color: #6B7A8D;
+    color: var(--color-text-tertiary);
     cursor: pointer;
     transition: all 0.12s;
     position: relative;
@@ -71,13 +74,13 @@
 }
 
 .settings-nav-item:hover {
-    color: #1A2332;
-    background: #FAFCFF;
+    color: var(--color-text-primary);
+    background: var(--color-background-page);
 }
 
 .settings-nav-item.active {
-    color: #1A2332;
-    background: #FAFCFF;
+    color: var(--color-text-primary);
+    background: var(--color-background-page);
     font-weight: 500;
 }
 
@@ -87,14 +90,14 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding: 61px 48px 0;
-    background: #FAFCFF;
+    padding: 48px 48px 0;
+    background: var(--color-background-page);
     overflow: hidden;
 }
 
 .settings-mobile-tabs-row {
     width: 100%;
-    border-bottom: 1px solid #D9D9D9;
+    border-bottom: 1px solid var(--color-border-default);
     margin-bottom: 20px;
 }
 
@@ -109,8 +112,8 @@
     font-size: 20px;
     font-weight: 600;
     line-height: 28px;
-    color: #0C1018;
-    margin: 16px 0 0;
+    color: var(--color-text-primary);
+    margin: 48px 0 0;
     padding: 8px 0;
     letter-spacing: 0;
 }
@@ -124,7 +127,7 @@
     gap: 16px;
     width: 100%;
     padding: 20px 0;
-    border-bottom: 1px solid #E5E9F0;
+    border-bottom: 1px solid var(--color-border-default);
 }
 
 .settings-row-last {
@@ -148,21 +151,37 @@
     font-family: 'Geist', sans-serif;
     font-size: 16px;
     font-weight: 500;
-    line-height: 28px;
-    color: #222A38;
+    line-height: 20px;
+    color: var(--color-text-secondary);
     white-space: nowrap;
 }
 
+/* Second line of a row whose label has a value under it (Display Name). */
+.settings-row-sub {
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 22px;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+
+.settings-row-labels {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
 .settings-row-label.is-danger {
-    color: #A10902;
+    color: var(--color-status-error-text);
 }
 
 .settings-row-value {
     font-family: 'Geist', sans-serif;
     font-size: 14px;
-    font-weight: 400;
-    line-height: 28px;
-    color: #5E6E87;
+    font-weight: 500;
+    line-height: 18px;
+    color: var(--color-text-secondary);
     text-align: right;
     word-break: break-word;
 }
@@ -176,33 +195,32 @@
     padding: 0 8px;
     border: none;
     border-radius: 8px;
-    background: #E5E9F0;
+    background: var(--color-background-muted);
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 500;
     line-height: 16px;
-    color: #222A38;
+    color: var(--color-text-secondary);
     cursor: pointer;
     white-space: nowrap;
     transition: background-color 0.15s ease;
 }
 
 .settings-row-action:hover {
-    background: #CBD2E0;
+    background: var(--color-background-normal);
 }
 
 .settings-row-chip {
     display: inline-flex;
     align-items: center;
-    height: 28px;
-    padding: 0 8px;
+    padding: 4px 8px;
     border-radius: 8px;
-    background: #F2F4F8;
+    background: transparent;
     font-family: 'Geist', sans-serif;
     font-size: 14px;
-    font-weight: 400;
-    line-height: 20px;
-    color: #5E6E87;
+    font-weight: 500;
+    line-height: 18px;
+    color: var(--color-text-secondary);
     white-space: nowrap;
 }
 
@@ -212,7 +230,7 @@
 
 .settings-divider {
     height: 1px;
-    background: #E8EAED;
+    background: var(--color-background-muted);
 }
 
 .flat-row {
@@ -221,7 +239,7 @@
     justify-content: space-between;
     gap: 32px;
     padding: 22px 0;
-    border-bottom: 1px solid #E8EAED;
+    border-bottom: 1px solid var(--color-border-default);
     transition: background 0.1s;
 }
 
@@ -256,7 +274,7 @@
 .flat-label {
     font-size: 14px;
     font-weight: 500;
-    color: #1A2332;
+    color: var(--color-text-primary);
     margin-bottom: 3px;
     letter-spacing: -0.1px;
 }
@@ -274,21 +292,21 @@
 }
 
 .flat-name {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
-    color: #1A2332;
+    color: var(--color-text-primary);
     letter-spacing: -0.2px;
 }
 
 .flat-value {
-    font-size: 13.5px;
-    color: #6B7A8D;
+    font-size: 14px;
+    color: var(--color-text-tertiary);
     margin-top: 2px;
 }
 
 .flat-sub {
-    font-size: 13px;
-    color: #9AA3AE;
+    font-size: 12px;
+    color: var(--color-grey-400);
     margin-top: 3px;
     line-height: 1.5;
 }
@@ -296,12 +314,12 @@
 .flat-btn {
     padding: 7px 16px;
     border-radius: 8px;
-    border: 1px solid #E8EAED;
-    background: #ffffff;
+    border: 1px solid var(--color-border-default);
+    background: var(--color-background-surface);
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
-    color: #6B7A8D;
+    color: var(--color-text-tertiary);
     cursor: pointer;
     white-space: nowrap;
     transition: background 0.12s, border-color 0.12s, color 0.12s;
@@ -310,28 +328,28 @@
 }
 
 .flat-btn:hover {
-    background: #F4F6F8;
-    border-color: #C9CDD3;
-    color: #1A2332;
+    background: var(--color-background-subtle);
+    border-color: var(--color-border-strong);
+    color: var(--color-text-primary);
 }
 
 .flat-btn.dark {
-    background: #155DFC;
-    color: #ffffff;
-    border-color: #155DFC;
+    background: var(--color-brand-primary);
+    color: var(--color-neutral-white);
+    border-color: var(--color-brand-primary);
     font-weight: 500;
 }
 
 .flat-btn.dark:hover {
-    background: #0D4DE0;
-    border-color: #0D4DE0;
+    background: var(--color-blue-600);
+    border-color: var(--color-blue-600);
 }
 
 .flat-btn:disabled,
 .flat-btn.dark:disabled {
-    background: #D7DEE8;
-    border-color: #D7DEE8;
-    color: #7F8EA3;
+    background: var(--color-background-normal);
+    border-color: var(--color-border-strong);
+    color: var(--color-grey-400);
     cursor: not-allowed;
 }
 
@@ -339,12 +357,13 @@
     display: inline-flex;
     align-items: center;
     padding: 2px 8px;
-    background: #EFF6FF;
+    background: var(--color-brand-soft);
     border-radius: 999px;
-    font-size: 11px;
+    font-size: 12px;
+    line-height: 16px;
     font-weight: 600;
-    color: #3B82F6;
-    border: 1px solid #BFDBFE;
+    color: var(--color-brand-primary);
+    border: 1px solid var(--color-brand-muted);
 }
 
 
@@ -368,7 +387,7 @@
 
 .subscription-inline-value {
     margin-top: 0;
-    color: #1A2332;
+    color: var(--color-text-primary);
     font-weight: 500;
     margin-left: auto;
     text-align: right;
@@ -376,52 +395,61 @@
 
 .subscription-progress {
     height: 8px;
-    border-radius: 999px;
-    background: #E8EAED;
+    border-radius: 256px;
+    background: var(--color-brand-muted);
     overflow: hidden;
 }
 
 .subscription-progress-fill {
     height: 100%;
-    border-radius: 999px;
-    background: linear-gradient(90deg, #155DFC 0%, #3B82F6 100%);
+    border-radius: 256px;
+    background: var(--color-brand-primary);
     transition: width 0.25s ease;
 }
 
+/* "used" is called out in brand blue against the plain "remaining". */
 .subscription-progress-footer {
-    margin-top: 8px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 11.5px;
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
     font-weight: 500;
-    color: #6B7A8D;
+    line-height: 18px;
+    color: var(--color-text-secondary);
+}
+
+.subscription-progress-used {
+    color: var(--color-brand-primary);
 }
 
 .settings-inline-input {
     width: 100%;
     margin-top: 8px;
-    border: 1px solid #E8EAED;
+    border: 1px solid var(--color-border-default);
     border-radius: 8px;
     padding: 9px 12px;
     font-family: 'Geist', sans-serif;
-    font-size: 13px;
-    color: #1A2332;
-    background: #ffffff;
+    font-size: 12px;
+    color: var(--color-text-primary);
+    background: var(--color-background-surface);
     outline: none;
 }
 
 .settings-inline-input:focus {
-    border-color: #155DFC;
+    border-color: var(--color-brand-primary);
     box-shadow: 0 0 0 3px rgba(21, 93, 252, 0.12);
 }
 
+/* The palette's green-text role. Settings (244:5280) draws an error state and
+   no success state at all, so there is no designed colour to match here — but
+   an invented green next to a tokenised red is the wrong kind of consistent. */
 .settings-inline-success {
-    color: #16794C;
+    color: var(--color-status-active-text);
 }
 
 .settings-inline-error {
-    color: #C0392B;
+    color: var(--color-status-error-text);
 }
 
 .card-avatar {
@@ -430,15 +458,15 @@
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
-    background: #E9F1FE;
+    background: var(--color-background-subtle);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #2C5CF3;
+    color: var(--color-brand-primary);
 }
 
 .card-avatar-icon {
-    font-size: 22px;
+    font-size: 20px;
 }
 
 .card-avatar-image {
@@ -478,14 +506,14 @@
 }
 
 .modal {
-    background: #ffffff;
+    background: var(--color-background-surface);
     border-radius: 16px;
     padding: 28px 32px;
     width: 420px;
     box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06);
     transform: translateY(12px) scale(0.97);
     transition: transform 0.22s ease;
-    border: 1px solid #E8EAED;
+    border: 1px solid var(--color-border-default);
     max-width: calc(100vw - 32px);
 }
 
@@ -507,14 +535,14 @@
 
 .modal-title {
     font-family: 'Geist', sans-serif;
-    font-size: 22px;
-    color: #1A2332;
+    font-size: 20px;
+    color: var(--color-text-primary);
     margin-bottom: 6px;
 }
 
 .modal-desc {
-    font-size: 13.5px;
-    color: #6B7A8D;
+    font-size: 14px;
+    color: var(--color-text-tertiary);
     margin-bottom: 24px;
     line-height: 1.5;
 }
@@ -526,7 +554,7 @@
 .modal-label {
     font-size: 12px;
     font-weight: 600;
-    color: #6B7A8D;
+    color: var(--color-text-tertiary);
     letter-spacing: 0.4px;
     text-transform: uppercase;
     margin-bottom: 7px;
@@ -536,19 +564,19 @@
 .modal-input {
     width: 100%;
     padding: 10px 14px;
-    border: 1.5px solid #E8EAED;
+    border: 1.5px solid var(--color-border-default);
     border-radius: 8px;
     font-family: 'Geist', sans-serif;
     font-size: 14px;
-    color: #1A2332;
-    background: #FAFCFF;
+    color: var(--color-text-primary);
+    background: var(--color-background-page);
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .modal-input:focus {
-    border-color: #2563EB;
-    background: #ffffff;
+    border-color: var(--color-brand-primary);
+    background: var(--color-background-surface);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
@@ -562,19 +590,19 @@
 .modal-close {
     border: none;
     background: transparent;
-    color: #9AA3AE;
+    color: var(--color-grey-400);
     cursor: pointer;
     padding: 2px;
     transition: color 0.15s ease;
 }
 
 .modal-close:hover {
-    color: #1A2332;
+    color: var(--color-text-primary);
 }
 
 .modal-text {
     font-size: 14px;
-    color: #6B7A8D;
+    color: var(--color-text-tertiary);
     line-height: 1.65;
     margin-bottom: 16px;
 }
@@ -585,7 +613,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    color: #6B7A8D;
+    color: var(--color-text-tertiary);
     font-size: 14px;
 }
 
@@ -604,22 +632,22 @@
     width: 72px;
     height: 72px;
     border-radius: 50%;
-    background: #E9F1FE;
+    background: var(--color-background-subtle);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #2C5CF3;
-    font-size: 26px;
+    color: var(--color-brand-primary);
+    font-size: 24px;
     overflow: hidden;
     flex-shrink: 0;
-    border: 3px solid #E8EAED;
+    border: 3px solid var(--color-border-default);
     transition: border-color 0.15s ease;
     cursor: pointer;
     padding: 0;
 }
 
 .avatar-preview:hover {
-    border-color: #2563EB;
+    border-color: var(--color-brand-primary);
 }
 
 .avatar-preview img {
@@ -634,20 +662,20 @@
 
 .avatar-hint {
     font-size: 12px;
-    color: #9AA3AE;
+    color: var(--color-grey-400);
     line-height: 1.4;
     margin-top: 8px;
 }
 
 .flat-btn.danger {
-    background: #9F1239;
-    border-color: #9F1239;
-    color: #ffffff;
+    background: var(--color-red-700);
+    border-color: var(--color-red-700);
+    color: var(--color-neutral-white);
 }
 
 .flat-btn.danger:hover:not(:disabled) {
-    background: #881337;
-    border-color: #881337;
+    background: var(--color-red-700);
+    border-color: var(--color-red-700);
 }
 
 .flat-btn:disabled {
@@ -660,11 +688,11 @@
     bottom: 24px;
     left: 50%;
     transform: translateX(-50%);
-    background: #1A2332;
-    color: #ffffff;
+    background: var(--color-grey-950);
+    color: var(--color-neutral-white);
     padding: 12px 20px;
     border-radius: 999px;
-    font-size: 13.5px;
+    font-size: 14px;
     font-weight: 500;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
     z-index: 400;
@@ -687,5 +715,185 @@
 
     .settings-mobile-tabs-row {
         margin-bottom: 16px;
+    }
+}
+/* ------------------------------------------------- profile picture
+   Figma 244:5280 for the row, 589:7071 for the set. Each preset is a glyph on
+   a tile filled with one of the node colours. */
+.settings-avatar-button {
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    line-height: 0;
+    border-radius: 50%;
+    flex: 0 0 auto;
+}
+
+.settings-avatar-button:hover .settings-avatar,
+.settings-avatar-button:focus-visible .settings-avatar {
+    box-shadow: 0 0 0 2px var(--color-brand-muted);
+}
+
+/* The tile itself, wherever a preset is drawn. Sizing lives here rather than in
+   avatars.js so the glyph can never outgrow the circle it sits in. */
+.settings-avatar,
+.avatar-option-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    overflow: hidden;
+    flex: 0 0 auto;
+}
+
+.settings-avatar > img,
+.avatar-option-mark > img {
+    display: block;
+    width: 62.5%;
+    height: 62.5%;
+    object-fit: contain;
+}
+
+.settings-avatar {
+    width: 52px;
+    height: 52px;
+    transition: box-shadow 0.15s ease;
+}
+
+.settings-avatar-default {
+    background: var(--color-background-muted);
+    color: var(--color-text-tertiary);
+}
+
+.settings-avatar-default svg {
+    width: 28px;
+    height: 28px;
+}
+
+/* Four columns, and the grid is what sets the tile size — the tiles follow the
+   cell instead of a fixed width that could overrun the modal. */
+.avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 8px 0 4px;
+    justify-items: center;
+}
+
+.avatar-option {
+    display: block;
+    padding: 3px;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    cursor: pointer;
+    line-height: 0;
+    box-shadow: 0 0 0 1px var(--color-border-default);
+    transition: box-shadow 0.15s ease;
+}
+
+.avatar-option:hover {
+    box-shadow: 0 0 0 2px var(--color-border-strong);
+}
+
+.avatar-option.is-picked {
+    box-shadow: 0 0 0 2px var(--color-brand-primary);
+}
+
+.avatar-option-mark {
+    width: 56px;
+    height: 56px;
+}
+
+.modal-error {
+    margin-top: 12px;
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--color-status-error-text);
+}
+
+@media (max-width: 767px) {
+    /* Thumb-sized targets, and the grid gets narrower rather than the tiles. */
+    .avatar-grid {
+        gap: 10px;
+    }
+
+    .avatar-option-mark {
+        width: 48px;
+        height: 48px;
+    }
+}
+
+/* ------------------------------------------------- notifications
+   Figma 244:5280 — one label with a named switch for each channel. */
+.settings-row-notify {
+    align-items: center;
+}
+
+.settings-notify-toggles {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 0 0 auto;
+}
+
+.settings-notify-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-notify-name {
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 18px;
+    color: var(--color-text-secondary);
+}
+
+/* Only shown when the browser refuses; it explains what to do about it. */
+.settings-notify-note {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--color-status-error-text);
+}
+
+@media (max-width: 767px) {
+    /* 800:22889 gives each channel a row of its own — heading, then Browser and
+       Email each full width with the switch against the right edge, matching the
+       Email / Display Name / Avatar rows above them. Stacking only the group kept
+       the two side by side under the heading, which reads as one wrapped line
+       rather than as two settings. */
+    .settings-row-notify {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+    }
+
+    .settings-notify-toggles {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        width: 100%;
+    }
+
+    .settings-notify-option {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 8px 0;
+    }
+
+    /* The reset date is nowrap, so on a narrow row it does not shrink — it runs
+       out through the 24px gutter and stops 12 from the screen edge, the only
+       thing on the page that does. Letting it wrap keeps it inside; it stays on
+       one line whenever one line fits. */
+    .settings-row-chip {
+        white-space: normal;
+        text-align: right;
+        min-width: 0;
     }
 }

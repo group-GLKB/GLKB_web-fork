@@ -1,6 +1,7 @@
 import './scoped.css';
 
 import React, {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -19,7 +20,13 @@ import {
   Typography,
 } from '@mui/material';
 
-import { ReactComponent as MetaIcon } from '../../img/library/Icon.svg';
+import { ReactComponent as ChatIcon } from '../../img/llm/chat_message.svg';
+import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
+import { ReactComponent as MapIcon } from '../../img/llm/graph_share.svg';
+import {
+    forgetInvestigateConversations,
+    getInvestigateConversationIds,
+} from '../../utils/investigateConversations';
 import {
   fetchConversations,
   getConversations,
@@ -43,7 +50,7 @@ import {
   removeGraphHistory,
 } from '../../utils/graphHistory';
 import { useAuth } from '../Auth/AuthContext';
-import nodeStyleColors from '../Graph/nodeStyleColors.json';
+import { nodeStyle } from '../Graph/nodeStyle';
 import ConversationCard from '../Units/ConversationCard';
 
 const DEBUG_HIDE_EXPLORE = true;
@@ -101,6 +108,11 @@ const formatRelativeTime = (value) => {
     return `${years} year${years === 1 ? '' : 's'} ago`;
 };
 
+const formatMessageCount = (conversation) => {
+    const count = typeof conversation?.messageCount === 'number' ? conversation.messageCount : 0;
+    return `${count} ${count === 1 ? 'Message' : 'Messages'}`;
+};
+
 const getConversationTitle = (conversation) => (
     conversation.leadingTitle || 'Untitled conversation'
 );
@@ -112,48 +124,13 @@ const getConversationSubtitle = (conversation) => {
     return `${count} ${count === 1 ? 'message' : 'messages'}`;
 };
 
-const hexToRgb = (hex) => {
-    if (!hex) return { r: 0, g: 0, b: 0 };
-    const cleaned = hex.replace('#', '');
-    const normalized = cleaned.length === 3
-        ? cleaned.split('').map((char) => `${char}${char}`).join('')
-        : cleaned;
-    const value = parseInt(normalized, 16);
-    if (Number.isNaN(value)) return { r: 0, g: 0, b: 0 };
-    return {
-        r: (value >> 16) & 255,
-        g: (value >> 8) & 255,
-        b: value & 255,
-    };
-};
-
-const rgbToHex = (r, g, b) => {
-    const toHex = (value) => value.toString(16).padStart(2, '0');
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-};
-
-const mixHex = (baseHex, mixHexValue, amount) => {
-    const base = hexToRgb(baseHex);
-    const mix = hexToRgb(mixHexValue);
-    const ratio = Math.min(Math.max(amount, 0), 1);
-    const r = Math.round(base.r * (1 - ratio) + mix.r * ratio);
-    const g = Math.round(base.g * (1 - ratio) + mix.g * ratio);
-    const b = Math.round(base.b * (1 - ratio) + mix.b * ratio);
-    return rgbToHex(r, g, b);
-};
-
-const toRgba = (hex, alpha) => {
-    const { r, g, b } = hexToRgb(hex);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
-
 const getPillColors = (label) => {
-    const base = nodeStyleColors[label] || nodeStyleColors.default || '#E5E5E5';
+    const style = nodeStyle(label);
     return {
-        base,
-        background: mixHex(base, '#ffffff', 0.75),
-        text: mixHex(base, '#000000', 0.35),
-        shadow: toRgba(base, 0.3),
+        base: style.border,
+        background: style.fill,
+        text: style.text,
+        shadow: style.ring,
     };
 };
 
@@ -223,6 +200,21 @@ const History = () => {
     const [isPhoneDevice, setIsPhoneDevice] = useState(false);
     const [conversationBookmarks, setConversationBookmarks] = useState([]);
     const [graphBookmarks, setGraphBookmarks] = useState([]);
+
+    /* Which of these were investigate runs, so the row can carry the microscope the design
+       gives them (176:8230).
+       
+       The server answers this now — chat_histories.is_investigate, written by
+       /deep-research/stream and sticky once set. The local marks stay as a fallback for
+       conversations the server has not labelled: everything that ran before the column
+       existed, and every conversation at all until the backend branch carrying it lands.
+       Drop the second half of the `||` then, and the module with it. */
+    const investigateIds = useMemo(() => getInvestigateConversationIds(), [conversations]);
+    const isInvestigateRun = useCallback(
+        (conversation) => conversation?.isInvestigate === true
+            || investigateIds.has(String(conversation?.id)),
+        [investigateIds],
+    );
 
     const normalizedChatItems = useMemo(() => (
         conversations.map((conversation) => ({
@@ -485,6 +477,7 @@ const History = () => {
         setIsDeleting(true);
         const idsToDelete = [...selectedIds];
         await Promise.allSettled(idsToDelete.map((id) => removeConversation(id)));
+        forgetInvestigateConversations(idsToDelete);
         setConversations((prev) => prev.filter((conversation) => !idsToDelete.includes(conversation.id)));
         setSelectedIds([]);
         setSelectMode(false);
@@ -499,6 +492,20 @@ const History = () => {
         } catch (error) {
             // Ignore rename failures.
         }
+    };
+
+    /* 800:22889 offers Bookmark beside Delete in the phone's select bar. The single-row
+       handler toggles, which would be wrong for a mixed selection — bookmarking three rows
+       of which one is already bookmarked should leave all three bookmarked, not two. */
+    const handleBookmarkSelected = async () => {
+        const chosen = conversations.filter((item) => selectedIdSet.has(String(item.id)));
+        for (const conversation of chosen) {
+            if (bookmarkedConversationIds.has(String(conversation.id))) continue;
+            // eslint-disable-next-line no-await-in-loop
+            await handleBookmarkConversation(conversation);
+        }
+        setSelectMode(false);
+        setSelectedIds([]);
     };
 
     const handleBookmarkConversation = async (conversation) => {
@@ -543,6 +550,7 @@ const History = () => {
         } catch (error) {
             // Ignore delete failures.
         }
+        forgetInvestigateConversations(idToDelete);
         setConversations((prev) => prev.filter((item) => String(item.id) !== idToDelete));
         setSelectedIds((prev) => prev.filter((id) => String(id) !== idToDelete));
     };
@@ -580,29 +588,7 @@ const History = () => {
             <Box className="history-body">
                 <Box className="history-content">
                     <Box className="history-top">
-                        {isMobileSelectMode && (
-                            <Box className="history-mobile-select-header">
-                                <button
-                                    type="button"
-                                    className="history-select-toggle"
-                                    onClick={handleToggleSelectMode}
-                                >
-                                    Cancel
-                                </button>
-                                <Typography className="history-mobile-select-title">
-                                    {selectedCount} selected
-                                </Typography>
-                                <button
-                                    type="button"
-                                    className="history-delete-action"
-                                    onClick={handleDeleteSelected}
-                                    disabled={selectedCount === 0 || isDeleting}
-                                >
-                                    Delete
-                                </button>
-                            </Box>
-                        )}
-                        {!isMobileSelectMode && (
+                        {(
                             <Box className="history-header">
                                 <Box className="history-title-row">
                                     <Typography sx={{
@@ -610,7 +596,7 @@ const History = () => {
                                         fontWeight: 600,
                                         fontSize: '24px',
                                         lineHeight: '32px',
-                                        color: '#0C1018',
+                                        color: 'var(--color-text-primary)',
                                     }}>
                                         History
                                     </Typography>
@@ -620,10 +606,12 @@ const History = () => {
                                     fontFamily: 'Geist, sans-serif',
                                     fontWeight: 400,
                                     fontSize: '14px',
-                                    lineHeight: '20px',
-                                    color: '#5E6E87',
+                                    lineHeight: '22px',
+                                    color: 'var(--color-text-tertiary)',
                                     textAlign: 'left',
-                                }}>
+                                }}
+                                    className="history-subtitle"
+                                >
                                     Revisit your past searches and conversations.
                                 </Typography>
                                 <div className="history-search">
@@ -634,7 +622,7 @@ const History = () => {
                                         name="historySearch"
                                         value={searchQuery}
                                         onChange={(event) => setSearchQuery(event.target.value)}
-                                        placeholder="Search conversations"
+                                        placeholder="Search All Items..."
                                         aria-label="Search conversations"
                                     />
                                     {searchQuery.trim() && (
@@ -652,7 +640,8 @@ const History = () => {
                         )}
                         <Box className="history-meta-row">
                             {isMobileSelectMode ? (
-                                <Box className="history-select-toolbar history-select-toolbar-mobile-only">
+                                <>
+                                    <Box className="history-select-toolbar history-select-toolbar-mobile-only">
                                     <Tooltip
                                         title={allFilteredSelected ? 'Deselect All' : 'Select All'}
                                         placement="bottom"
@@ -669,10 +658,10 @@ const History = () => {
                                         componentsProps={{
                                             tooltip: {
                                                 sx: {
-                                                    backgroundColor: '#E7F1FF',
-                                                    color: '#164563',
+                                                    backgroundColor: 'var(--color-background-subtle)',
+                                                    color: 'var(--color-text-secondary)',
                                                     fontFamily: 'Geist, sans-serif',
-                                                    fontSize: '14px',
+                                                    fontSize: '12px',
                                                     fontWeight: 500,
                                                     padding: '4px 12px',
                                                     borderRadius: '8px',
@@ -689,10 +678,10 @@ const History = () => {
                                                 onChange={handleToggleSelectAllFiltered}
                                                 inputProps={{ 'aria-label': 'Select all conversations' }}
                                                 sx={{
-                                                    color: '#D9D9D9',
+                                                    color: 'var(--color-grey-200)',
                                                     padding: '4px',
-                                                    '&.Mui-checked': { color: '#155DFC' },
-                                                    '&.MuiCheckbox-indeterminate': { color: '#155DFC' },
+                                                    '&.Mui-checked': { color: 'var(--color-brand-primary)' },
+                                                    '&.MuiCheckbox-indeterminate': { color: 'var(--color-brand-primary)' },
                                                 }}
                                             />
                                         </span>
@@ -702,7 +691,18 @@ const History = () => {
                                             Select All
                                         </Typography>
                                     </Box>
-                                </Box>
+                                    </Box>
+                                    {/* The way out. Removing the old top strip took Cancel with
+                                        it and left select mode with no exit at all; 800:22889
+                                        puts it where Select was, naming what it leaves. */}
+                                    <button
+                                        type="button"
+                                        className="history-select-toggle"
+                                        onClick={handleToggleSelectMode}
+                                    >
+                                        Exit Select
+                                    </button>
+                                </>
                             ) : selectMode ? (
                                 <>
                                     <Box className="history-select-toolbar">
@@ -722,10 +722,10 @@ const History = () => {
                                             componentsProps={{
                                                 tooltip: {
                                                     sx: {
-                                                        backgroundColor: '#E7F1FF',
-                                                        color: '#164563',
+                                                        backgroundColor: 'var(--color-background-subtle)',
+                                                        color: 'var(--color-text-secondary)',
                                                         fontFamily: 'Geist, sans-serif',
-                                                        fontSize: '14px',
+                                                        fontSize: '12px',
                                                         fontWeight: 500,
                                                         padding: '4px 12px',
                                                         borderRadius: '8px',
@@ -742,10 +742,10 @@ const History = () => {
                                                     onChange={handleToggleSelectAllFiltered}
                                                     inputProps={{ 'aria-label': 'Select all conversations' }}
                                                     sx={{
-                                                        color: '#D9D9D9',
+                                                        color: 'var(--color-grey-200)',
                                                         padding: '4px',
-                                                        '&.Mui-checked': { color: '#155DFC' },
-                                                        '&.MuiCheckbox-indeterminate': { color: '#155DFC' },
+                                                        '&.Mui-checked': { color: 'var(--color-brand-primary)' },
+                                                        '&.MuiCheckbox-indeterminate': { color: 'var(--color-brand-primary)' },
                                                     }}
                                                 />
                                             </span>
@@ -770,14 +770,17 @@ const History = () => {
                                         className="history-select-toggle"
                                         onClick={handleToggleSelectMode}
                                     >
-                                        Cancel
+                                        {isPhoneDevice ? 'Exit Select' : 'Cancel'}
                                     </button>
                                 </>
                             ) : (
                                 <>
                                     <Box className="history-select-toolbar history-select-toolbar-empty">
                                         <Box className="history-select-toolbar-content">
-                                            <Typography className="history-meta-text">
+                                            <Typography
+                                                className="history-meta-text"
+                                                sx={{ fontSize: 12 }}
+                                            >
                                                 {filteredTotalCount} search history records with GLKB
                                             </Typography>
                                         </Box>
@@ -801,13 +804,15 @@ const History = () => {
                                         key={`chat-${item.id}`}
                                         conversation={item.conversation}
                                         title={item.title}
-                                        subtitle={item.subtitle}
+                                        leadingIcon={isInvestigateRun(item.conversation)
+                                            ? <InvestigateIcon />
+                                            : <ChatIcon />}
+                                        subtitle={undefined}
                                         footerContent={(
                                             <div className="history-card-meta">
-                                                <MetaIcon className="history-card-meta-icon" />
                                                 <span>{formatRelativeTime(item.conversation?.updatedAt || item.conversation?.createdAt)}</span>
-                                                <span className="history-card-meta-sep">|</span>
-                                                <span>Chat</span>
+                                                <span className="history-card-meta-sep">·</span>
+                                                <span>{formatMessageCount(item.conversation)}</span>
                                             </div>
                                         )}
                                         timestamp={item.timestamp}
@@ -851,11 +856,11 @@ const History = () => {
                                         ) : null}
                                         title=""
                                         subtitle={item.subtitle}
+                                        leadingIcon={<MapIcon />}
                                         footerContent={(
                                             <div className="history-card-meta">
-                                                <MetaIcon className="history-card-meta-icon" />
                                                 <span>{formatRelativeTime(item.graphHistory?.createdAt || item.graphHistory?.updatedAt)}</span>
-                                                <span className="history-card-meta-sep">|</span>
+                                                <span className="history-card-meta-sep">·</span>
                                                 <span>Map</span>
                                             </div>
                                         )}
@@ -876,12 +881,47 @@ const History = () => {
                             <Typography sx={{
                                 fontFamily: 'Geist, sans-serif',
                                 fontSize: '14px',
-                                color: '#646464',
+                                lineHeight: '22px',
+                                color: 'var(--color-text-tertiary)',
                             }}>
                                 {searchQuery.trim() ? 'No matches found.' : 'No history yet.'}
                             </Typography>
                         )}
                     </Box>
+                    {/* 800:22889 — in select mode the phone gets an action bar along the
+                        bottom: how many are chosen, and what can be done with them. It used to
+                        be a strip above the list carrying only Delete, so Select all and
+                        Bookmark had nowhere to live and the destructive action sat alone. */}
+                    {isMobileSelectMode && (
+                        <Box className="history-mobile-select-bar">
+                            <span className="history-mobile-select-count">
+                                {selectedCount} selected
+                            </span>
+                            <button
+                                type="button"
+                                className="history-mobile-select-action"
+                                onClick={handleToggleSelectAllFiltered}
+                            >
+                                {allFilteredSelected ? 'Deselect all' : 'Select all'}
+                            </button>
+                            <button
+                                type="button"
+                                className="history-mobile-select-action"
+                                onClick={handleBookmarkSelected}
+                                disabled={selectedCount === 0}
+                            >
+                                Bookmark
+                            </button>
+                            <button
+                                type="button"
+                                className="history-mobile-select-action is-danger"
+                                onClick={handleDeleteSelected}
+                                disabled={selectedCount === 0 || isDeleting}
+                            >
+                                Delete
+                            </button>
+                        </Box>
+                    )}
                 </Box>
             </Box>
         </div>

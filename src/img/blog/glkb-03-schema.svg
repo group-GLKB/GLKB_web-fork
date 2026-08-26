@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1120 430" xmlns="http://www.w3.org/2000/svg" font-family="Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+          <defs>
+            <marker id="g3a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 z" fill="#8494A8"/>
+            </marker>
+          </defs>
+
+          <!-- Journal -->
+          <rect x="52" y="60" width="132" height="52" rx="10" fill="#fff" stroke="#334155" stroke-width="1.2"/>
+          <text x="118" y="82" font-size="13.5" font-weight="700" fill="#0A1628" text-anchor="middle">Journal</text>
+          <text x="118" y="99" font-size="10.5" fill="#8494A8" text-anchor="middle">impact_factor</text>
+
+          <path d="M186 96 C 220 96, 224 128, 258 128" fill="none" stroke="#8494A8" stroke-width="1.3" marker-end="url(#g3a)"/>
+          <text x="200" y="120" font-size="10" fill="#8494A8">PublishedIn</text>
+
+          <!-- Article -->
+          <rect x="262" y="102" width="184" height="76" rx="11" fill="#F4FAFD" stroke="#0B8FA8" stroke-width="1.6"/>
+          <text x="354" y="128" font-size="15" font-weight="700" fill="#0A7186" text-anchor="middle">Article</text>
+          <text x="354" y="147" font-size="10.5" fill="#6B7C93" text-anchor="middle">pubmedid · title · abstract</text>
+          <text x="354" y="163" font-size="10.5" fill="#6B7C93" text-anchor="middle">pubdate · n_citation · doi</text>
+
+          <!-- self cite -->
+          <path d="M300 102 C 292 66, 416 66, 408 102" fill="none" stroke="#8494A8" stroke-width="1.3" marker-end="url(#g3a)"/>
+          <text x="354" y="66" font-size="10" fill="#8494A8" text-anchor="middle">Cite</text>
+
+          <!-- ContainTerm -->
+          <path d="M450 140 H 588" stroke="#0B8FA8" stroke-width="1.8" marker-end="url(#g3a)"/>
+          <text x="519" y="130" font-size="11" font-weight="700" fill="#0A7186" text-anchor="middle">ContainTerm</text>
+          <text x="519" y="158" font-size="10" fill="#8494A8" text-anchor="middle">normalized_name · prob</text>
+
+          <!-- Vocabulary L1 -->
+          <rect x="592" y="60" width="230" height="160" rx="12" fill="#fff" stroke="#334155" stroke-width="1.6"/>
+          <text x="707" y="84" font-size="10.5" font-weight="750" letter-spacing="1.2" fill="#334155" text-anchor="middle">VOCABULARY · LEVEL 1</text>
+          <g font-size="11.5" fill="#0A1628">
+            <rect x="606" y="96" width="98" height="26" rx="6" fill="#F1F5FA"/><text x="655" y="113" text-anchor="middle">Gene</text>
+            <rect x="712" y="96" width="98" height="26" rx="6" fill="#F1F5FA"/><text x="761" y="113" text-anchor="middle">Disease</text>
+            <rect x="606" y="128" width="98" height="26" rx="6" fill="#F1F5FA"/><text x="655" y="145" text-anchor="middle">Chemical</text>
+            <rect x="712" y="128" width="98" height="26" rx="6" fill="#F1F5FA"/><text x="761" y="145" text-anchor="middle">Variant</text>
+            <rect x="606" y="160" width="98" height="26" rx="6" fill="#F1F5FA"/><text x="655" y="177" text-anchor="middle">MeSH</text>
+            <rect x="712" y="160" width="98" height="26" rx="6" fill="#F1F5FA"/><text x="761" y="177" text-anchor="middle">Anatomy</text>
+          </g>
+          <text x="707" y="206" font-size="10.5" fill="#8494A8" text-anchor="middle">name · synonyms · n_citation · embedding</text>
+
+          <!-- self loop associations -->
+          <path d="M640 60 C 620 22, 800 22, 780 60" fill="none" stroke="#8494A8" stroke-width="1.3" marker-end="url(#g3a)"/>
+          <text x="710" y="24" font-size="10" fill="#8494A8" text-anchor="middle">Cooccur · OntologyMapping · HierarchicalStructure</text>
+
+          <!-- L2 -->
+          <path d="M707 224 V 258" stroke="#7A5AF8" stroke-width="1.6" marker-end="url(#g3a)"/>
+          <text x="694" y="238" font-size="10.5" fill="#5B3FD1" text-anchor="end">GeneToPathwayAssociation</text>
+          <text x="694" y="252" font-size="10.5" fill="#5B3FD1" text-anchor="end">GeneToGoTermAssociation</text>
+
+          <rect x="592" y="262" width="230" height="96" rx="12" fill="#F7F4FF" stroke="#7A5AF8" stroke-width="1.4"/>
+          <text x="707" y="286" font-size="10.5" font-weight="750" letter-spacing="1.2" fill="#5B3FD1" text-anchor="middle">VOCABULARY · LEVEL 2</text>
+          <g font-size="11.5" fill="#0A1628">
+            <rect x="606" y="298" width="98" height="24" rx="6" fill="#fff"/><text x="655" y="314" text-anchor="middle">Pathway</text>
+            <rect x="712" y="298" width="98" height="24" rx="6" fill="#fff"/><text x="761" y="314" text-anchor="middle">BioProcess</text>
+            <rect x="606" y="326" width="98" height="24" rx="6" fill="#fff"/><text x="655" y="342" text-anchor="middle">CellComp</text>
+            <rect x="712" y="326" width="98" height="24" rx="6" fill="#fff"/><text x="761" y="342" text-anchor="middle">MolFunction</text>
+          </g>
+
+          <!-- curated associations panel -->
+          <rect x="862" y="60" width="216" height="298" rx="12" fill="#FBFCFD" stroke="#E3E9F0" stroke-dasharray="5 4"/>
+          <text x="970" y="84" font-size="10.5" font-weight="750" letter-spacing="1.2" fill="#8494A8" text-anchor="middle">TYPED ASSOCIATIONS</text>
+          <g font-size="11" fill="#3A4A61">
+            <text x="878" y="110">GeneToDiseaseAssociation</text>
+            <text x="878" y="132">GeneToGeneAssociation</text>
+            <text x="878" y="154">GeneToExpressionSite…</text>
+            <text x="878" y="176">DiseaseToPhenotypic…</text>
+            <text x="878" y="198">ChemicalToDisease…</text>
+            <text x="878" y="220">ChemicalAffectsGene…</text>
+            <text x="878" y="242">ChemicalToChemical…</text>
+            <text x="878" y="264">VariantToGeneAssociation</text>
+            <text x="878" y="286">VariantToDiseaseAssoc…</text>
+          </g>
+          <text x="878" y="322" font-size="10.5" fill="#8494A8">each edge carries</text>
+          <text x="878" y="338" font-size="10.5" fill="#8494A8"><tspan font-weight="700" fill="#3A4A61">source</tspan> and <tspan font-weight="700" fill="#3A4A61">type</tspan> — you can</text>
+          <text x="878" y="352" font-size="10.5" fill="#8494A8">filter curated vs literature.</text>
+
+          <!-- indexes strip -->
+          <rect x="52" y="372" width="1026" height="50" rx="9" fill="#F1F5FA" stroke="#E3E9F0"/>
+          <text x="72" y="394" font-size="12" fill="#3A4A61"><tspan font-weight="700" fill="#0A1628">Indexes:</tspan>  full-text on <tspan font-weight="600" fill="#0A1628">Vocabulary.name</tspan> and <tspan font-weight="600" fill="#0A1628">Article.title</tspan>  ·  1536-dim vector index over abstract embeddings</text>
+          <text x="72" y="412" font-size="12" fill="#3A4A61">property indexes on <tspan font-weight="600" fill="#0A1628">pubmedid</tspan>, <tspan font-weight="600" fill="#0A1628">pubdate</tspan>, <tspan font-weight="600" fill="#0A1628">n_citation</tspan>, <tspan font-weight="600" fill="#0A1628">doi</tspan></text>
+        </svg>

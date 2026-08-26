@@ -1,46 +1,34 @@
 .history-item-row {
     position: relative;
     display: grid;
-    grid-template-columns: 36px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
     width: 100%;
     box-sizing: border-box;
-    padding-right: 36px;
     --history-hover-bleed: 4px;
     --history-hover-radius: 12px;
-    --history-row-gutter: 36px;
-}
-
-.history-item-row-no-checkbox {
-    grid-template-columns: minmax(0, 1fr);
     --history-row-gutter: 0px;
 }
 
 .history-item-row::before {
     content: '';
     position: absolute;
-    left: calc(var(--history-row-gutter) - var(--history-hover-bleed) - 14px);
-    right: calc(var(--history-row-gutter) - var(--history-hover-bleed));
-    top: 0;
-    border-top: 1px solid #D9D9D9;
-    opacity: 1;
-    transition: opacity 0.2s ease;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-bottom: 1px solid var(--color-border-default);
 }
 
-.history-item-row:hover::before {
-    opacity: 0;
-}
-
-.history-item-row:hover+.history-item-row::before {
-    opacity: 0;
-}
-
-.history-row-checkbox {
-    grid-column: 1;
-    justify-self: start;
-    align-self: center;
-    margin-left: -12px !important;
-    margin-top: 0;
+/* Hangs in the gutter beside the row rather than taking a column inside it, so
+   the row's text sits on the same baseline as the header and search above. The
+   list reserves the gutter as padding (see .history-list) — without that the
+   scroll container would clip this, which it did when the inset was a margin. */
+.history-item-row .history-row-checkbox {
+    position: absolute;
+    left: -32px;
+    top: 50%;
+    transform: translateY(-50%);
+    margin: 0 !important;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -56,34 +44,50 @@
 }
 
 .history-item {
-    grid-column: 2;
+    grid-column: 1;
     width: 100%;
     text-align: left;
     background: transparent;
     border: none;
-    margin: 0 -12px;
-    padding: 16px 12px;
+    margin: 0;
+    padding: 16px;
     border-radius: 10px;
     box-sizing: border-box;
     cursor: pointer;
     position: relative;
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 16px;
     transition: background-color 0.2s ease, border-radius 0.2s ease;
 }
 
-.history-item-row-no-checkbox .history-item {
-    grid-column: 1;
-    margin: 0;
-    padding: 16px 0;
-}
 
 @media (max-width: 767px) {
     .history-item-row {
         padding-right: 0;
     }
 
+    /* On a phone the checkbox cannot hang in a gutter, because there is none: the
+       list runs to the 24px page margin, so `left: -32px` put it at -44 — visible
+       in the DOM, off the side of the screen, and select mode looked like it had
+       simply not turned on. 800:22889 gives it a column of its own at the head of
+       the row instead. */
+    .history-item-row-select-mode {
+        grid-template-columns: 28px minmax(0, 1fr);
+        column-gap: 4px;
+    }
+
     .history-item-row-select-mode .history-row-checkbox {
-        margin-left: 0 !important;
+        position: static;
+        transform: none;
+        grid-column: 1;
+        align-self: center;
+        margin: 0 !important;
+        padding: 0;
+    }
+
+    .history-item-row-select-mode .history-item {
+        grid-column: 2;
     }
 
     .history-item-more {
@@ -92,11 +96,27 @@
     }
 }
 
+/* Figma 176:10878 — the row is a 20px glyph and the text column, 16px apart. */
+.history-item-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-tertiary);
+}
+
+.history-item-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
 .history-item-content {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 0;
     flex: 1;
     text-align: left;
     margin-left: 0;
@@ -110,19 +130,25 @@
     width: 100%;
 }
 
+/* Figma 176:11678 / 176:10547 tint the hovered row with background/subtle;
+   the old fill was brand blue, which read as a selection rather than a hover. */
 .history-item-row:hover .history-item,
 .history-item:focus-visible {
-    background-color: #E7F1FF;
-    border-radius: 12px;
+    background-color: var(--color-background-subtle);
+    border-radius: 8px;
 }
 
-.history-title {
+/* Scoped through the row: these are MUI Typography, and .MuiTypography-body1
+   (400 16/24) is injected after this stylesheet, so at equal specificity it took
+   the type back off the design's interactive/lg. */
+.history-item-row .history-title {
     flex: 1;
     min-width: 0;
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 600;
+    font-family: 'Geist', sans-serif;
+    font-weight: 500;
     font-size: 16px;
-    color: #164563;
+    line-height: 20px;
+    color: var(--color-text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -131,19 +157,19 @@
 .history-title-input {
     flex: 1;
     min-width: 0;
-    border: 1px solid #DADADA;
+    border: 1px solid var(--color-border-default);
     border-radius: 8px;
     padding: 4px 8px;
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 600;
+    font-family: 'Geist', sans-serif;
+    font-weight: 500;
     font-size: 16px;
-    color: #164563;
-    background-color: #ffffff;
+    color: var(--color-text-primary);
+    background-color: var(--color-background-surface);
     outline: none;
 }
 
 .history-title-input:focus {
-    border-color: #155DFC;
+    border-color: var(--color-brand-primary);
     box-shadow: 0 0 0 2px rgba(21, 93, 252, 0.12);
 }
 
@@ -170,16 +196,17 @@
 }
 
 .history-item:focus-visible {
-    outline: 2px solid #155DFC;
+    outline: 2px solid var(--color-brand-primary);
     outline-offset: 4px;
     border-radius: 8px;
 }
 
-.history-subtitle {
-    font-family: 'DM Sans', sans-serif;
+.history-item-row .history-subtitle {
+    font-family: 'Geist', sans-serif;
     font-weight: 400;
-    font-size: 14px;
-    color: #646464;
+    font-size: 12px;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
     overflow: hidden;
     display: -webkit-box;
     line-clamp: 2;
@@ -187,9 +214,22 @@
     -webkit-box-orient: vertical;
 }
 
-.history-timestamp {
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 500;
+.history-item-row .history-timestamp {
+    font-family: 'Geist', sans-serif;
+    font-weight: 400;
     font-size: 12px;
-    color: #808080;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+}
+@media (max-width: 767px) {
+    /* Figma 800:22889 wraps a row's title over two or three lines. Cutting it
+       at one, as the wide layout does, leaves a phone row saying almost
+       nothing — every title here starts the same way. */
+    .history-item-row .history-title {
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
 }

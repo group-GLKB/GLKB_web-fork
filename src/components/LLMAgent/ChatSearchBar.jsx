@@ -22,6 +22,17 @@ const ChatSearchBar = ({
     onStop,
 }) => {
     const isMobileViewport = useMediaQuery('(max-width:700px)');
+    // The field stayed disabled for the whole run — up to a minute — so a follow-up that
+    // occurred to the reader mid-answer had to be held in their head. It is writable now, and
+    // `onSubmit` queues rather than sends while a run is in flight (the parent decides which).
+    const canSend = Boolean(userInput.trim()) && !isQueryLimitReached;
+    // Stop is what the button offers when there is nothing to send. Typing turns it back into
+    // send, which is also how a reader gets out of a queued follow-up they no longer want:
+    // clear the field and the stop control is there again.
+    const showStop = isLoading && !canSend;
+    const placeholder = isLoading
+        ? (isMobileViewport ? 'Ask next…' : 'Ask a follow-up — it will send when this answer finishes')
+        : (isMobileViewport ? 'Ask more...' : 'Ask a question about the biomedical literature...');
 
     return (
         <div className="chat-header">
@@ -30,11 +41,11 @@ const ChatSearchBar = ({
             display: 'flex',
             gap: 2,
             margin: '0 auto',
-            backgroundColor: '#F2F4F8',
+            backgroundColor: 'var(--color-background-subtle)',
             borderRadius: '16px',
             borderWidth: '1px',
             borderStyle: 'solid',
-            borderColor: '#E5E9F0',
+            borderColor: 'var(--color-border-default)',
             boxShadow: 'none',
             flexDirection: 'column',
         }}>
@@ -43,16 +54,16 @@ const ChatSearchBar = ({
                 size="small"
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
-                disabled={isLoading || isQueryLimitReached}
+                disabled={isQueryLimitReached}
                 variant="outlined"
-                placeholder={isMobileViewport ? 'Ask more...' : 'Ask a question about the biomedical literature...'}
+                placeholder={placeholder}
                 multiline
                 minRows={1}
                 maxRows={4}
                 onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent?.isComposing) {
                         e.preventDefault();
-                        if (!isLoading && !isQueryLimitReached && userInput.trim()) {
+                        if (canSend) {
                             onSubmit?.(e);
                         }
                     }
@@ -70,7 +81,7 @@ const ChatSearchBar = ({
                         paddingBottom: { xs: '8px', sm: '10px' },
                         fontFamily: 'Geist, sans-serif',
                         fontSize: '14px',
-                        color: '#0C1018',
+                        color: 'var(--color-text-primary)',
                         '& fieldset': {
                             border: 'none',
                         },
@@ -79,7 +90,7 @@ const ChatSearchBar = ({
                         lineHeight: '24px',
                     },
                     '& .MuiInputBase-input::placeholder': {
-                        color: '#A8B3C8',
+                        color: 'var(--color-grey-300)',
                         opacity: 1,
                     },
                 }}
@@ -111,7 +122,7 @@ const ChatSearchBar = ({
                                     }}
                                 />
                             )}
-                            {isLoading ? (
+                            {showStop ? (
                                 <Box
                                     onClick={() => {
                                         trackGtagEvent('chat_stop_click', { source: 'chat_searchbar' });
@@ -121,7 +132,9 @@ const ChatSearchBar = ({
                                         width: 32,
                                         height: 32,
                                         borderRadius: '8px',
-                                        backgroundColor: '#222A38',
+                                        // Same brand-muted square as the idle send button — the
+                                        // near-black fill it used to have belonged to no palette here.
+                                        backgroundColor: 'var(--color-brand-muted)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -129,15 +142,16 @@ const ChatSearchBar = ({
                                     }}
                                     title="Stop"
                                 >
-                                    <Box sx={{ width: 12, height: 12, backgroundColor: '#fff', borderRadius: '2px' }} />
+                                    <Box sx={{ width: 12, height: 12, backgroundColor: 'var(--color-brand-primary)', borderRadius: '2px' }} />
                                 </Box>
                             ) : (
                                 <Box
                                     onClick={(event) => {
-                                        if (!userInput.trim() || isQueryLimitReached) return;
+                                        if (!canSend) return;
                                         trackGtagEvent('chat_submit_click', {
                                             source: 'chat_searchbar',
                                             investigate: Boolean(investigateEnabled),
+                                            queued: Boolean(isLoading),
                                         });
                                         onSubmit?.(event);
                                     }}
@@ -145,19 +159,19 @@ const ChatSearchBar = ({
                                         width: 32,
                                         height: 32,
                                         borderRadius: '8px',
-                                        backgroundColor: userInput.trim() && !isQueryLimitReached ? '#155DFC' : '#D9E6FE',
+                                        backgroundColor: canSend ? 'var(--color-brand-primary)' : 'var(--color-brand-muted)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        cursor: userInput.trim() && !isQueryLimitReached ? 'pointer' : 'default',
+                                        cursor: canSend ? 'pointer' : 'default',
                                     }}
-                                    title="Send"
+                                    title={isLoading ? 'Send when this answer finishes' : 'Send'}
                                 >
                                     <SearchArrowIcon
                                         style={{
                                             width: 16,
                                             height: 16,
-                                            color: userInput.trim() && !isQueryLimitReached ? '#FFFFFF' : '#155DFC',
+                                            color: canSend ? 'var(--color-neutral-white)' : 'var(--color-brand-primary)',
                                         }}
                                     />
                                 </Box>

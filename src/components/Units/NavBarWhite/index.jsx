@@ -38,6 +38,8 @@ import {
   Typography,
   useMediaQuery,
 } from '@mui/material';
+
+import { ContextMenu, ContextMenuItem } from '../ContextMenu';
 import {
   styled,
   useTheme,
@@ -99,8 +101,8 @@ const openedMixin = (theme) => ({
         duration: theme.transitions.duration.enteringScreen,
     }),
     overflowX: 'hidden',
-    borderRight: '1px solid #E5E9F0',
-    backgroundColor: '#ffffff',
+    borderRight: '1px solid var(--color-border-default)',
+    backgroundColor: 'var(--color-background-surface)',
 });
 
 const closedMixin = (theme) => ({
@@ -110,8 +112,8 @@ const closedMixin = (theme) => ({
         duration: theme.transitions.duration.leavingScreen,
     }),
     overflowX: 'hidden',
-    borderRight: '1px solid #E5E9F0',
-    backgroundColor: '#ffffff',
+    borderRight: '1px solid var(--color-border-default)',
+    backgroundColor: 'var(--color-background-surface)',
 });
 
 const PermanentDrawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' })(
@@ -130,6 +132,59 @@ const PermanentDrawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !=
         }),
     })
 );
+
+const HINT_TOOLTIP_PROPS = {
+    placement: 'right',
+    componentsProps: {
+        tooltip: {
+            sx: {
+                backgroundColor: 'var(--color-brand-soft)',
+                color: 'var(--color-grey-900)',
+                fontFamily: 'DM Sans, sans-serif',
+                fontWeight: 500,
+                fontSize: '14px',
+                padding: '4px 12px',
+                borderRadius: '8px',
+                boxShadow: 'none',
+            },
+        },
+    },
+};
+
+/**
+ * A hint that goes away when you click the thing it is describing.
+ *
+ * Every one of these labels a button that changes the sidebar, and MUI's own
+ * open state does not survive that. It only attaches onMouseLeave while the
+ * hover listener is enabled (Tooltip.js), so a trigger that blanks its title
+ * or disables hovering on click keeps its internal state set to open: the
+ * pointer's departure is never heard. The tooltip stays hidden while the title
+ * is empty, then reappears — with the pointer nowhere near it — the moment the
+ * title comes back. Owning the state here and clearing it on click closes that
+ * hole, and covers the case where the pointer never moves because the panel
+ * opened underneath it.
+ */
+const HintTooltip = ({ children, title, ...props }) => {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <Tooltip
+            {...HINT_TOOLTIP_PROPS}
+            {...props}
+            title={title}
+            open={open && Boolean(title)}
+            onOpen={() => setOpen(true)}
+            onClose={() => setOpen(false)}
+        >
+            {React.cloneElement(children, {
+                onClick: (event) => {
+                    setOpen(false);
+                    children.props.onClick?.(event);
+                },
+            })}
+        </Tooltip>
+    );
+};
 
 function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
     const { isAuthenticated, user, logout, openLoginModal } = useAuth();
@@ -327,7 +382,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
             {
                 label: 'New Chat',
                 to: '/',
-                icon: <AddIcon style={{ width: 22, height: 22 }} />,
+                icon: <AddIcon style={{ width: 20, height: 20 }} />,
                 exact: true,
             },
         ]
@@ -335,10 +390,10 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const middleItems = useMemo(() => (
         [
-            { label: 'Explore', to: '/search', icon: <CategorySearchIcon style={{ width: 22, height: 22 }} /> },
-            { label: 'API', to: '/api-page', icon: <CodeBlocksIcon style={{ width: 22, height: 22 }} /> },
-            { label: 'Library', to: '/library', icon: <BookIcon className="sidebar-book-icon" style={{ width: 22, height: 22 }} /> },
-            { label: 'History', to: '/history', icon: <HistoryIcon className="sidebar-history-icon" style={{ width: 22, height: 22 }} /> },
+            { label: 'Explore', to: '/search', icon: <CategorySearchIcon style={{ width: 20, height: 20 }} /> },
+            { label: 'API', to: '/api-page', icon: <CodeBlocksIcon style={{ width: 20, height: 20 }} /> },
+            { label: 'Library', to: '/library', icon: <BookIcon className="sidebar-book-icon" style={{ width: 20, height: 20 }} /> },
+            { label: 'History', to: '/history', icon: <HistoryIcon className="sidebar-history-icon" style={{ width: 20, height: 20 }} /> },
         ].filter((item) => !(DEBUG_HIDE_EXPLORE && item.label === 'Explore'))
     ), []);
 
@@ -353,10 +408,11 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
             label: 'Log in',
             // Opens the sign-in overlay instead of navigating to a page.
             onClick: () => openLoginModal(),
-            icon: <PersonIcon sx={{ fontSize: 22 }} />,
+            icon: <PersonIcon sx={{ fontSize: 20 }} />,
             iconBoxSx: {
-                backgroundColor: '#155DFC',
-                color: '#ffffff',
+                backgroundColor: 'var(--color-background-muted)',
+                color: 'var(--color-text-tertiary)',
+                borderRadius: '256px',
             },
         }
     ), [openLoginModal]);
@@ -496,24 +552,6 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
         return String(conversation.id) === String(activeConversationId || '');
     };
 
-    const tooltipProps = {
-        placement: 'right',
-        componentsProps: {
-            tooltip: {
-                sx: {
-                    backgroundColor: '#EEF3FF',
-                    color: '#141B26',
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontWeight: 500,
-                    fontSize: '14px',
-                    padding: '4px 12px',
-                    borderRadius: '8px',
-                    boxShadow: 'none',
-                },
-            },
-        },
-    };
-
     const renderNavItem = (item) => {
         const linkProps = item.onClick
             ? { component: 'button', type: 'button' }
@@ -545,20 +583,20 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                     borderRadius: 1,
                     justifyContent: 'flex-start',
                     px: 0,
-                    color: '#222A38',
+                    color: 'var(--color-text-secondary)',
                     '&.Mui-selected': {
                         backgroundColor: 'transparent',
-                        color: '#222A38',
+                        color: 'var(--color-text-secondary)',
                         '& .sidebar-nav-icon': {
-                            backgroundColor: '#D9E6FE',
-                            color: '#155DFC',
+                            backgroundColor: 'var(--color-brand-muted)',
+                            color: 'var(--color-brand-primary)',
                         },
                         '&:hover': {
                             backgroundColor: 'transparent',
                         },
                     },
                     '&:hover': {
-                        backgroundColor: 'rgba(1, 105, 176, 0.04)',
+                        backgroundColor: 'var(--color-background-subtle)',
                     },
                 }}
             >
@@ -577,7 +615,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                             height: 36,
                             borderRadius: '4px',
                             backgroundColor: 'transparent',
-                            color: '#8090AB',
+                            color: 'var(--color-text-tertiary)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -594,7 +632,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                         fontWeight: 500,
                         fontSize: '16px',
                         lineHeight: '28px',
-                        color: '#222A38',
+                        color: 'var(--color-text-secondary)',
                     }}
                     sx={{
                         opacity: open ? 1 : 0,
@@ -616,9 +654,9 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
         }
 
         return (
-            <Tooltip key={item.label} title={item.label} {...tooltipProps}>
+            <HintTooltip key={item.label} title={item.label}>
                 {button}
-            </Tooltip>
+            </HintTooltip>
         );
     };
 
@@ -643,10 +681,9 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                 pl: 0,
                             }}
                         >
-                            <Tooltip
+                            <HintTooltip
                                 title={open ? '' : 'Open sidebar'}
                                 disableHoverListener={open}
-                                {...tooltipProps}
                                 PopperProps={{
                                     modifiers: [
                                         {
@@ -726,12 +763,12 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                 width: 22,
                                                 height: 22,
                                                 position: 'absolute',
-                                                color: '#155DFC',
+                                                color: 'var(--color-brand-primary)',
                                             }}
                                         />
                                     </Box>
                                 </IconButton>
-                            </Tooltip>
+                            </HintTooltip>
                             <Box
                                 component={Link}
                                 to="/"
@@ -761,7 +798,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                 />
                             </Box>
                             {open && (
-                                <Tooltip title="Collapse sidebar" {...tooltipProps}>
+                                <HintTooltip title="Collapse sidebar">
                                     <IconButton
                                         aria-label="Collapse sidebar"
                                         onClick={() => {
@@ -774,31 +811,31 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                             height: 36,
                                             ml: 'auto',
                                             borderRadius: '4px',
-                                            color: '#46566C',
+                                            color: 'var(--color-grey-600)',
                                             flexShrink: 0,
                                             '&:hover': {
-                                                backgroundColor: '#F2F4F8',
+                                                backgroundColor: 'var(--color-background-subtle)',
                                             },
                                         }}
                                     >
                                         <SidebarLeftIcon style={{ width: 20, height: 20 }} />
                                     </IconButton>
-                                </Tooltip>
+                                </HintTooltip>
                             )}
                         </Box>
                     )}
                 </Box>
-                <Divider sx={{ display: 'none', borderColor: '#E5E9F0' }} />
+                <Divider sx={{ display: 'none', borderColor: 'var(--color-border-default)' }} />
                 <List sx={{ px: 0, pt: 3, pb: 0 }}>
                     {topItems.map((item) => renderNavItem(item))}
                 </List>
-                <Divider sx={{ mx: 0, borderColor: '#E5E9F0' }} />
+                <Divider sx={{ mx: 0, borderColor: 'var(--color-border-default)' }} />
                 <Box className="sidebar-scroll">
                     <List sx={{ px: 0, pt: 2, pb: 0 }}>
                         {middleItems.map((item) => renderNavItem(item))}
                     </List>
-                    <Divider sx={{ mx: 0, borderColor: '#E5E9F0' }} />
-                    {/* <Divider sx={{ mx: 3.5, borderColor: '#E5E9F0' }} />
+                    <Divider sx={{ mx: 0, borderColor: 'var(--color-border-default)' }} />
+                    {/* <Divider sx={{ mx: 3.5, borderColor: 'var(--color-border-default)' }} />
                     <List sx={{ px: 1, py: 1 }}>
                         {bottomItems.map((item) => renderNavItem(item))}
                     </List> */}
@@ -811,7 +848,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                     fontWeight: 500,
                                     fontSize: '12px',
                                     lineHeight: '16px',
-                                    color: '#8090AB',
+                                    color: 'var(--color-grey-400)',
                                     textTransform: 'none',
                                 }}
                             >
@@ -867,7 +904,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                     sx={{
                                                         width: '100%',
                                                         border: 'none',
-                                                        backgroundColor: isActiveRecent ? '#EEF3FF' : 'transparent',
+                                                        backgroundColor: isActiveRecent ? 'var(--color-brand-soft)' : 'transparent',
                                                         padding: isActiveRecent ? '4px 8px' : 0,
                                                         margin: isActiveRecent ? '-4px 0' : 0,
                                                         borderRadius: isActiveRecent ? '4px' : 0,
@@ -875,7 +912,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                         fontSize: '12px',
                                                         fontWeight: isActiveRecent ? 500 : 400,
                                                         lineHeight: '16px',
-                                                        color: isActiveRecent ? '#155DFC' : '#222A38',
+                                                        color: isActiveRecent ? 'var(--color-brand-primary)' : 'var(--color-text-secondary)',
                                                         textAlign: 'left',
                                                         cursor: 'pointer',
                                                         whiteSpace: 'nowrap',
@@ -883,15 +920,15 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                         textOverflow: 'ellipsis',
                                                         transition: 'background-color 0.2s ease, border-color 0.2s ease, padding-right 0.16s ease',
                                                         '&:hover': {
-                                                            backgroundColor: isActiveRecent ? '#EEF3FF' : 'transparent',
+                                                            backgroundColor: isActiveRecent ? 'var(--color-brand-soft)' : 'transparent',
                                                         },
                                                         ...(isEditingRecent && {
                                                             cursor: 'text',
                                                             outline: 'none',
-                                                            borderColor: '#155DFC',
+                                                            borderColor: 'var(--color-brand-primary)',
                                                             boxShadow: '0 0 0 2px rgba(21, 93, 252, 0.12)',
                                                             '&:hover': {
-                                                                backgroundColor: '#ffffff',
+                                                                backgroundColor: 'var(--color-background-surface)',
                                                             },
                                                         }),
                                                     }}
@@ -912,7 +949,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                         width: 24,
                                                         height: 24,
                                                         borderRadius: '8px',
-                                                        color: '#141B26',
+                                                        color: 'var(--color-grey-900)',
                                                         opacity: 0,
                                                         pointerEvents: 'none',
                                                         transition: 'opacity 0.16s ease, background-color 0.16s ease',
@@ -921,7 +958,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                         },
                                                     }}
                                                 >
-                                                    <MoreHorizIcon sx={{ fontSize: 18 }} />
+                                                    <MoreHorizIcon sx={{ fontSize: 12 }} />
                                                 </IconButton>
                                             </Box>
                                         );
@@ -932,7 +969,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                     )}
                 </Box>
                 <Box sx={{ mt: 'auto', pb: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Divider sx={{ mx: 0, borderColor: '#E5E9F0' }} />
+                    <Divider sx={{ mx: 0, borderColor: 'var(--color-border-default)' }} />
                     <List sx={{ px: 0, py: 0 }}>
                         {!isAuthenticated ? (
                             renderNavItem({ ...loginItem, noBottomMargin: true })
@@ -956,8 +993,8 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                 ),
                                 onClick: handleOpenUserMenu,
                                 iconBoxSx: {
-                                    backgroundColor: '#E5E9F0',
-                                    color: '#5E6E87',
+                                    backgroundColor: 'var(--color-background-muted)',
+                                    color: 'var(--color-text-tertiary)',
                                     borderRadius: '50%',
                                 },
                                 noBottomMargin: true,
@@ -989,7 +1026,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                         borderRight: 'none',
                     }}
                 >
-                    <Tooltip title="Open sidebar" {...tooltipProps}>
+                    <HintTooltip title="Open sidebar">
                         <IconButton
                             aria-label="Expand sidebar"
                             onClick={() => {
@@ -1001,16 +1038,16 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                 width: 40,
                                 height: 40,
                                 borderRadius: '12px',
-                                backgroundColor: isHomeRoute ? 'transparent' : '#E5E9F0',
-                                color: '#646464',
+                                backgroundColor: isHomeRoute ? 'transparent' : 'var(--color-background-muted)',
+                                color: 'var(--color-grey-600)',
                                 '&:hover': {
-                                    backgroundColor: isHomeRoute ? 'transparent' : '#CBD2E0',
+                                    backgroundColor: isHomeRoute ? 'transparent' : 'var(--color-background-normal)',
                                 },
                             }}
                         >
                             <MenuIcon sx={{ fontSize: 22 }} />
                         </IconButton>
-                    </Tooltip>
+                    </HintTooltip>
                 </Box>
             )}
 
@@ -1048,70 +1085,24 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                     {drawerContent}
                 </PermanentDrawer>
             )}
-            <Menu
+            <ContextMenu
                 anchorEl={recentMenuAnchorEl}
                 open={isRecentMenuOpen}
                 onClose={handleCloseRecentMenu}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                MenuListProps={{
-                    sx: {
-                        py: 0.5,
-                    },
-                }}
-                PaperProps={{
-                    sx: {
-                        minWidth: 176,
-                        borderRadius: 2,
-                        boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
-                        '& .MuiMenuItem-root': {
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontSize: '13px',
-                            fontWeight: 500,
-                            color: '#141B26',
-                            py: 0.75,
-                            px: 1.25,
-                        },
-                    },
-                }}
             >
-                <MenuItem onClick={handleRenameRecent}>
-                    <ListItemIcon sx={{ minWidth: 26, color: '#141B26' }}>
-                        <DriveFileRenameOutlineIcon sx={{ fontSize: 18 }} />
-                    </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>Rename</ListItemText>
-                </MenuItem>
-                <MenuItem onClick={handleBookmarkRecent}>
-                    <ListItemIcon sx={{ minWidth: 26, color: '#141B26' }}>
-                        {isRecentBookmarked ? (
-                            <BookmarkIcon sx={{ fontSize: 18 }} />
-                        ) : (
-                            <BookmarkBorderIcon sx={{ fontSize: 18 }} />
-                        )}
-                    </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
-                        {isRecentBookmarked ? 'Remove bookmark' : 'Bookmark'}
-                    </ListItemText>
-                </MenuItem>
-                <Divider sx={{ borderColor: '#E5E9F0' }} />
-                <MenuItem onClick={handleDeleteRecent} sx={{ color: '#A10902 !important' }}>
-                    <ListItemIcon sx={{ minWidth: 26, color: '#A10902' }}>
-                        <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                    </ListItemIcon>
-                    <ListItemText
-                        primaryTypographyProps={{
-                            sx: {
-                                color: '#A10902',
-                                fontFamily: 'DM Sans, sans-serif',
-                                fontSize: '13px',
-                                fontWeight: 500,
-                            },
-                        }}
-                    >
-                        Delete
-                    </ListItemText>
-                </MenuItem>
-            </Menu>
+                <ContextMenuItem icon={<DriveFileRenameOutlineIcon />} onClick={handleRenameRecent}>
+                    Rename
+                </ContextMenuItem>
+                <ContextMenuItem
+                    icon={isRecentBookmarked ? <BookmarkIcon /> : <BookmarkBorderIcon />}
+                    onClick={handleBookmarkRecent}
+                >
+                    {isRecentBookmarked ? 'Remove bookmark' : 'Bookmark'}
+                </ContextMenuItem>
+                <ContextMenuItem icon={<DeleteOutlineIcon />} danger onClick={handleDeleteRecent}>
+                    Delete
+                </ContextMenuItem>
+            </ContextMenu>
             <Menu
                 anchorEl={userMenuAnchorEl}
                 open={isUserMenuOpen}
@@ -1124,7 +1115,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 0,
-                        color: '#222A38',
+                        color: 'var(--color-text-secondary)',
                     },
                 }}
                 PaperProps={{
@@ -1133,22 +1124,22 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                         borderRadius: '12px',
                         boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
                         '& .MuiMenuItem-root': {
-                            color: '#222A38',
+                            color: 'var(--color-text-secondary)',
                             fontFamily: 'DM Sans, sans-serif',
                             fontWeight: 400,
                             fontSize: '14px',
                         },
                         '& .MuiListItemText-primary': {
-                            color: '#222A38',
+                            color: 'var(--color-text-secondary)',
                             fontFamily: 'DM Sans, sans-serif',
                             fontWeight: 400,
                             fontSize: '14px',
                         },
                         '& .MuiTypography-root': {
-                            color: '#222A38',
+                            color: 'var(--color-text-secondary)',
                         },
                         '& .MuiListItemIcon-root': {
-                            color: '#5E6E87',
+                            color: 'var(--color-text-tertiary)',
                         },
                     },
                 }}
@@ -1169,7 +1160,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                             fontFamily: 'DM Sans, sans-serif',
                             fontWeight: 400,
                             fontSize: '14px',
-                            color: '#222A38',
+                            color: 'var(--color-text-secondary)',
                         }}
                     >
                         {userDisplayName}
@@ -1195,7 +1186,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                     </ListItemIcon>
                     <ListItemText>Upgrade with Code</ListItemText>
                 </MenuItem>
-                <Divider sx={{ borderColor: '#E5E9F0' }} />
+                <Divider sx={{ borderColor: 'var(--color-border-default)' }} />
                 <MenuItem onClick={handleLogoutClick} sx={{ px: 2, py: 1 }}>
                     <ListItemIcon sx={{ minWidth: "16px !important", mr: 1 }}>
                         <Box

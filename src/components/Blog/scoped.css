@@ -1,0 +1,504 @@
+/* Blog, from Figma 707:2703 and 732:8445. Type and colour come from the token
+   scale the rest of the app uses; the article column is the design's 800px. */
+
+.blog-page {
+    min-height: 100vh;
+    background-color: var(--color-background-page);
+    font-family: 'Geist', sans-serif;
+    color: var(--color-text-secondary);
+}
+
+/* ---------------------------------------------------------------- body
+   Figma 707:2732 — an 800px content column holding a 640px text measure, with
+   the sticky rail beside it. The hero lives inside that column, not in a band
+   of its own above it. */
+.blog-body {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    border-bottom: 1px solid var(--color-border-default);
+}
+
+/* The 800px column is centred on the page and the rail occupies the left
+   gutter, right-aligned against it — so on a 1440 frame the rail's 160px block
+   lands at 144 and the article starts at 400. Giving the rail flex:1 with
+   nothing to balance it on the right instead pinned the article to the right
+   edge and dragged the rail across to meet it. */
+.blog-body::after {
+    content: '';
+    flex: 0 1 320px;
+}
+
+.blog-toc {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    flex: 0 1 320px;
+    min-width: 176px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    padding: 64px 16px 0 0;
+    box-sizing: border-box;
+    max-height: 100vh;
+    overflow-y: auto;
+}
+
+/* 707:2715 — the rail is headed by the blog's own name in brand blue.
+   The design gives this row a fixed 34px box over 22px of text, with 4 of that
+   above: the remaining 8 are what separate it from the first ToC group, since
+   the rail itself stacks its children with no gap. Ours had only the 4, so the
+   contents list sat 8px too close under the back button. The 8 goes on as
+   padding rather than a height so the chevron stays centred on the text — the
+   design splits those jobs across two nested frames, 707:2715 and 707:2716. */
+.blog-toc-brand {
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    /* No gap, and 16 wider than a ToC group: the chevron is a 16px box sitting
+       directly against a 160px label box, and 160 is exactly what the groups
+       below are (707:2716 → 707:2717 + 707:2718). The rail right-aligns its
+       children, so those two 160s line up and the chevron hangs out into the
+       margin — which is the point. Giving the button the groups' own 160 put
+       the chevron inside it and pushed the label 20px past the headings. */
+    gap: 0;
+    width: 176px;
+    margin: 0;
+    padding-top: 4px;
+    padding-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+    color: var(--color-brand-primary);
+}
+
+.blog-toc-brand-icon.MuiSvgIcon-root {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
+
+/* 944:2595 — groups are separated by 16px; items inside them by their own 4px. */
+.blog-toc-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 160px;
+    padding-bottom: 16px;
+}
+
+.blog-toc-link {
+    width: 100%;
+    padding: 4px 0;
+    border: none;
+    background: none;
+    text-align: left;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+}
+
+/* Children are indented by space/2 and drop to tertiary — the hierarchy is
+   carried by indent and colour, not by size. */
+.blog-toc-link.is-child {
+    padding-left: 8px;
+    color: var(--color-text-tertiary);
+}
+
+.blog-toc-link:hover {
+    color: var(--color-brand-primary);
+}
+
+.blog-toc-link.is-active {
+    color: var(--color-text-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.blog-content {
+    width: 800px;
+    max-width: 800px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 64px 0 40px;
+    box-sizing: border-box;
+}
+
+/* ---------------------------------------------------------------- hero */
+.blog-hero {
+    width: 100%;
+    max-width: 640px;
+    padding-bottom: 48px;
+}
+
+/* 732:9059 — tag and date on one line, pushed to opposite ends. */
+.blog-meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 16px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+    color: var(--color-text-tertiary);
+    white-space: nowrap;
+}
+
+.blog-title {
+    margin: 0;
+    padding-bottom: 16px;
+    font-size: 40px;
+    font-weight: 800;
+    line-height: 48px;
+    color: var(--color-text-primary);
+}
+
+.blog-lede {
+    margin: 0;
+    padding-bottom: 16px;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 26px;
+    color: var(--color-text-primary);
+}
+
+.blog-hero-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 0 16px;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--color-brand-primary);
+    color: var(--color-text-inverse);
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+    cursor: pointer;
+}
+
+.blog-hero-cta:hover {
+    background-color: var(--color-blue-600);
+}
+
+.blog-article {
+    width: 100%;
+    max-width: 640px;
+    min-width: 0;
+}
+
+/* A section is a band: a hairline across the measure, 48 of padding, a heading
+   block, then its subsections 32 below (970:2675, py-48 gap-32; the heading
+   block is gap-8). Flattened into margins here, because markdown gives a flat
+   run of elements rather than the design's nest of auto-layout frames. */
+.blog-h2 {
+    margin: 0 0 32px;
+    padding-top: 48px;
+    border-top: 1px solid var(--color-border-default);
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 32px;
+    color: var(--color-text-secondary);
+    scroll-margin-top: 24px;
+}
+
+.blog-h2::after {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 2px;
+    margin-top: 8px;
+    background-color: var(--color-brand-primary);
+}
+
+.blog-article > .blog-h2:first-child {
+    padding-top: 48px;
+}
+
+.blog-h3 {
+    margin: 32px 0 16px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 20px;
+    color: var(--color-text-secondary);
+    scroll-margin-top: 24px;
+}
+
+.blog-p {
+    margin: 0 0 16px;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 22px;
+    color: var(--color-text-secondary);
+}
+
+/* ---------------------------------------------------------------- figures
+   714:2708 — a gap-12 column: the image in its own padded box, then the caption.
+   The box is what carries the border and the fill; the image inside it is inset
+   by 21 on every side, which is why it reads as a plate rather than a bordered
+   picture. */
+.blog-figure {
+    margin: 16px 0;
+}
+
+.blog-figure-plate {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 21px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-4, 16px);
+    background-color: var(--color-background-subtle);
+}
+
+.blog-figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.blog-figure figcaption {
+    margin-top: 12px;
+    padding: 0 8px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+    text-align: center;
+}
+
+/* ---------------------------------------------------------------- tables */
+.blog-table-wrap {
+    margin: 0 0 16px;
+    overflow-x: auto;
+    border: 1px solid var(--color-border-default);
+    border-radius: 8px;
+}
+
+.blog-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    line-height: 22px;
+}
+
+.blog-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    background-color: var(--color-background-subtle);
+    border-bottom: 1px solid var(--color-border-default);
+    white-space: nowrap;
+}
+
+.blog-table td {
+    padding: 12px 16px;
+    color: var(--color-text-secondary);
+    border-bottom: 1px solid var(--color-border-default);
+    vertical-align: top;
+}
+
+.blog-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* ---------------------------------------------------------------- callout
+   717:2747 — a rule down the left and nothing else: no box, no fill, no radius.
+   The type steps UP to 16/26 rather than down, which is what makes it read as
+   an aside beside 14/22 body copy. Title and body are the same size; only the
+   weight separates them. A bare blockquote is the same component without a
+   title (713:2710). */
+.blog-callout,
+.blog-article blockquote {
+    margin: 16px 0;
+    padding: 2px 0 2px 16px;
+    border-left: 2px solid var(--color-brand-primary);
+}
+
+.blog-callout-title,
+.blog-callout-text,
+.blog-article blockquote p {
+    margin: 0;
+    font-size: 16px;
+    line-height: 26px;
+    color: var(--color-text-secondary);
+}
+
+.blog-callout-title {
+    font-weight: 600;
+}
+
+.blog-callout-text,
+.blog-article blockquote p {
+    font-weight: 400;
+}
+
+/* ---------------------------------------------------------------- list */
+.blog-list {
+    margin: 0 0 16px;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.blog-list li {
+    position: relative;
+    padding-left: 20px;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 22px;
+    color: var(--color-text-secondary);
+}
+
+.blog-list li::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 8px;
+    width: 6px;
+    height: 6px;
+    border-radius: 256px;
+    background-color: var(--color-brand-primary);
+}
+
+.blog-list strong {
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+/* ---------------------------------------------------------------- sample run */
+.blog-sample {
+    margin: 24px 0 32px;
+    border: 1px solid var(--color-border-default);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.blog-sample-label {
+    padding: 8px 16px;
+    background-color: var(--color-background-subtle);
+    border-bottom: 1px solid var(--color-border-default);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 12px;
+    letter-spacing: 0.06em;
+    color: var(--color-text-tertiary);
+}
+
+.blog-sample-note {
+    padding: 12px 16px;
+    background-color: var(--color-brand-subtle);
+    border-bottom: 1px solid var(--color-border-default);
+    font-size: 12px;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+}
+
+.blog-sample-body {
+    padding: 16px;
+}
+
+.blog-sample-heading {
+    margin: 16px 0 4px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    color: var(--color-brand-primary);
+}
+
+.blog-sample-body > .blog-sample-heading:first-child {
+    margin-top: 0;
+}
+
+.blog-sample-text {
+    margin: 0 0 12px;
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--color-text-secondary);
+}
+
+.blog-sample-footer {
+    padding: 8px 16px;
+    border-top: 1px solid var(--color-border-default);
+    background-color: var(--color-grey-25);
+    font-size: 12px;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+}
+
+/* ---------------------------------------------------------------- read next */
+.blog-read-next {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-top: 1px solid var(--color-border-default);
+    border-bottom: 1px solid var(--color-border-default);
+    padding: 0 48px;
+}
+
+.blog-read-next-inner {
+    width: 100%;
+    max-width: 640px;
+    padding: 80px 0;
+}
+
+.blog-read-next-title {
+    margin: 0 0 24px;
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 40px;
+    color: var(--color-text-primary);
+}
+
+/* Read Next holds one shared post card, at the 240px the article column wants
+   rather than the full-width the About rail gives it. */
+.blog-card-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+}
+
+.blog-card-grid .site-card {
+    width: 240px;
+    height: 240px;
+}
+
+@media (max-width: 1100px) {
+    .blog-toc,
+    .blog-body::after {
+        display: none;
+    }
+
+    .blog-content {
+        width: 100%;
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+}
+
+@media (max-width: 767px) {
+    .blog-hero,
+    .blog-body,
+    .blog-read-next {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .blog-body {
+        padding-top: 40px;
+    }
+}

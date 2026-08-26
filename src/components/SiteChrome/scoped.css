@@ -1,0 +1,324 @@
+/* The marketing shell, from Figma 604:7226 — shared by About and the blog
+   articles, which are one site with one nav and one footer. */
+
+/* ---------------------------------------------------------------- navigation */
+.site-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 48px;
+    background-color: var(--color-background-surface);
+    border-bottom: 1px solid var(--color-border-default);
+    box-sizing: border-box;
+}
+
+.site-nav-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+/* Mark then wordmark, at the heights the app's own sidebar gives them. */
+.site-logo-mark,
+.site-logo-wordmark {
+    height: 36px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+}
+
+/* The wordmark's glyphs sit a hair high against the mark in the source art —
+   the app corrects for it in the sidebar and so does this. */
+.site-logo-wordmark {
+    transform: translateY(1px);
+}
+
+.site-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.site-nav-link {
+    border: none;
+    background: none;
+    padding: 0;
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.site-nav-link:hover,
+.site-nav-link.is-active {
+    color: var(--color-brand-primary);
+}
+
+/* ---------------------------------------------------------------- buttons
+   Figma 604:7234 — 40px tall, 8px radius, 14/22 semibold. */
+.site-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 0 16px;
+    border: none;
+    border-radius: var(--radius-2);
+    background-color: var(--color-brand-primary);
+    color: var(--color-text-inverse);
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.site-button:hover {
+    background-color: var(--color-blue-600);
+}
+
+.site-button--ghost {
+    padding: 8px 15px;
+    border: 1px solid var(--color-border-strong);
+    background-color: var(--color-background-surface);
+    color: var(--color-text-tertiary);
+    font-weight: 400;
+}
+
+.site-button--ghost:hover {
+    background-color: var(--color-background-subtle);
+}
+
+.site-nav-cta {
+    display: inline-flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 16px;
+    border: none;
+    border-radius: var(--radius-2);
+    background-color: var(--color-brand-primary);
+    color: var(--color-text-inverse);
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+    cursor: pointer;
+}
+
+.site-nav-cta:hover {
+    background-color: var(--color-blue-600);
+}
+
+/* ---------------------------------------------------------------- closing CTA */
+.site-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding: 120px 48px;
+    background-color: var(--color-blue-25);
+    border-top: 1px solid var(--color-border-default);
+    text-align: center;
+}
+
+.site-cta-eyebrow {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 22px;
+    color: var(--color-text-tertiary);
+}
+
+.site-cta-title {
+    margin: 8px 0 24px;
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 40px;
+    color: var(--color-text-primary);
+}
+
+.site-cta-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+
+/* ---------------------------------------------------------------- footer */
+.site-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 32px 48px 40px;
+    background-color: var(--color-background-surface);
+    border-top: 1px solid var(--color-border-default);
+}
+
+.site-footer-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+}
+
+.site-footer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.site-footer-links {
+    display: flex;
+    gap: 32px;
+}
+
+.site-footer-links button {
+    border: none;
+    background: none;
+    padding: 0;
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+}
+
+.site-footer-links button:hover {
+    color: var(--color-brand-primary);
+}
+
+.site-footer-copyright {
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--color-text-tertiary);
+}
+
+/* ---------------------------------------------------------------- post card
+   Figma 604:7276 — 17px padding, muted thumbnail, date, title, 2-line excerpt. */
+.site-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    height: 232px;
+    padding: 17px;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-2);
+    background-color: var(--color-background-surface);
+    box-sizing: border-box;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.site-card:hover {
+    border-color: var(--color-blue-200);
+    box-shadow: 0 2px 10px rgba(12, 16, 24, 0.06);
+}
+
+.site-card-thumb {
+    flex: 1;
+    min-height: 0;
+    border-radius: var(--radius-1);
+    background-color: var(--color-background-muted);
+    overflow: hidden;
+}
+
+.site-card-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.site-card-date {
+    margin-top: 16px;
+    padding: 0 4px;
+    font-size: 12px;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+}
+
+.site-card-title {
+    padding: 0 4px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 20px;
+    color: var(--color-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.site-card-excerpt {
+    margin-top: 4px;
+    padding: 0 4px;
+    height: 48px;
+    overflow: hidden;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 22px;
+    color: var(--color-text-tertiary);
+}
+
+@media (max-width: 767px) {
+    .site-nav,
+    .site-cta,
+    .site-footer {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    /* The bar wants 548px: a 213px logo beside four actions. On a phone that
+       put Get Started off the right edge, unreachable. The logo keeps its row
+       and the actions take the next one. */
+    .site-nav {
+        flex-wrap: wrap;
+        gap: 12px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+
+    .site-logo-mark,
+    .site-logo-wordmark {
+        height: 28px;
+    }
+
+    .site-nav-actions {
+        width: 100%;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .site-nav-link {
+        font-size: 13px;
+    }
+
+    .site-cta {
+        padding-top: 64px;
+        padding-bottom: 64px;
+    }
+
+    .site-cta-title {
+        font-size: 24px;
+        line-height: 32px;
+    }
+
+    .site-footer-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .site-footer-links {
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+}

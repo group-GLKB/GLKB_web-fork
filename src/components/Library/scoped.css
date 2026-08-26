@@ -4,7 +4,7 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: #FAFCFF;
+    background-color: var(--color-background-page);
     overflow: hidden;
 }
 
@@ -21,18 +21,24 @@
 
 .library-content {
     flex: 1;
+    width: 100%;
+    margin: 0 auto;
+    /* The reading column is capped at 1200px; the 96px gutters sit outside it,
+       so the border-box cap is 1200 + 2 x 96. */
+    max-width: calc(1200px + 192px);
     display: flex;
     flex-direction: column;
     min-height: 0;
-    gap: 12px;
-    padding: 24px 48px 36px;
+    gap: 0;
+    padding: 24px 96px;
+    box-sizing: border-box;
 }
 
 .library-folder-manager {
     width: 240px;
     min-width: 240px;
-    background-color: #FAFCFF;
-    border-right: 1px solid #E2E8F0;
+    background-color: var(--color-background-surface);
+    border-right: 1px solid var(--color-border-default);
     padding: 24px 16px;
     display: flex;
     flex-direction: column;
@@ -55,11 +61,10 @@
 
 .library-folder-manager-section-title {
     font-family: 'Geist', sans-serif;
-    font-weight: 700;
+    font-weight: 500;
     font-size: 12px;
-    color: #7A7A7A;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    line-height: 16px;
+    color: var(--color-text-tertiary);
 }
 
 .library-folder-manager-actions {
@@ -72,47 +77,65 @@
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    color: #164563;
+    color: var(--color-text-secondary);
 }
 
 .library-folder-manager-action.Mui-disabled {
-    color: #C4C4C4;
+    color: var(--color-grey-200);
 }
 
 .library-folder-manager-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
     max-height: calc(100vh - 260px);
     overflow-y: auto;
     padding-right: 4px;
 }
 
 .library-folder-manager-item {
+    box-sizing: border-box;
     border: none;
     background: transparent;
-    padding: 8px 10px;
-    border-radius: 10px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     cursor: pointer;
-    color: #164563;
+    color: var(--color-text-secondary);
     font-family: 'Geist', sans-serif;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 400;
+    line-height: 22px;
     text-align: left;
     width: 100%;
 }
 
 .library-folder-manager-item:hover {
-    background-color: #F2F6FF;
+    background-color: var(--color-background-subtle);
 }
 
+/* The selected folder — and "All Items", which is the default selection —
+   takes the brand-soft fill with interactive/default in brand blue. */
 .library-folder-manager-item.is-active {
-    background-color: #E7F1FF;
-    color: #155DFC;
-    font-weight: 600;
+    background-color: var(--color-brand-soft);
+    color: var(--color-brand-primary);
+    font-weight: 500;
+    line-height: 18px;
+}
+
+.library-folder-manager-item.is-active .library-folder-manager-count {
+    color: var(--color-brand-primary);
+    font-weight: 500;
+    line-height: 18px;
+}
+
+/* Trailing "Add new folder" row: same 32px box, tertiary text, no fill. */
+.library-folder-manager-add {
+    padding-right: 0;
+    color: var(--color-text-tertiary);
 }
 
 .library-folder-manager-icon {
@@ -132,15 +155,16 @@
 
 .library-folder-manager-count {
     font-family: 'Geist', sans-serif;
-    font-weight: 600;
-    font-size: 12px;
-    color: inherit;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--color-text-tertiary);
 }
 
 .library-folder-manager-empty {
     font-family: 'Geist', sans-serif;
     font-size: 12px;
-    color: #9A9A9A;
+    color: var(--color-text-tertiary);
     padding: 4px 10px;
 }
 
@@ -161,11 +185,11 @@
     height: 36px;
     padding: 0 64px 0 12px;
     border-radius: 8px;
-    border: 1px solid #CBD2E0;
-    background-color: #ffffff;
+    border: 1px solid var(--color-border-strong);
+    background-color: var(--color-background-surface);
     font-family: 'Geist', sans-serif;
     font-size: 12px;
-    color: #0C1018;
+    color: var(--color-text-primary);
     outline: none;
     box-shadow: none;
 }
@@ -175,12 +199,12 @@
 .library-search-input::-moz-placeholder,
 .library-search-input:-ms-input-placeholder,
 .library-search-input::-ms-input-placeholder {
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     font-family: 'Geist', sans-serif;
 }
 
 .library-search-input:focus {
-    border-color: #155DFC;
+    border-color: var(--color-brand-primary);
     box-shadow: 0 0 0 2px rgba(21, 93, 252, 0.15);
 }
 
@@ -190,8 +214,8 @@
     top: 50%;
     transform: translateY(-50%);
     border: none;
-    background: #EEF3FA;
-    color: #164563;
+    background: var(--color-background-subtle);
+    color: var(--color-text-secondary);
     font-family: 'Geist';
     font-size: 12px;
     font-weight: 600;
@@ -201,7 +225,7 @@
 }
 
 .library-search-clear:hover {
-    background: #E2E9F4;
+    background: var(--color-background-muted);
 }
 
 .library-title-bar {
@@ -224,7 +248,7 @@
     font-weight: 600 !important;
     font-size: 24px !important;
     line-height: 32px !important;
-    color: #0C1018;
+    color: var(--color-text-primary);
 }
 
 .library-subtitle {
@@ -232,8 +256,8 @@
     font-family: 'Geist', sans-serif !important;
     font-weight: 400 !important;
     font-size: 14px !important;
-    line-height: 20px !important;
-    color: #5E6E87;
+    line-height: 22px !important;
+    color: var(--color-text-tertiary);
     text-align: left;
     width: 100%;
 }
@@ -245,7 +269,7 @@
     font-weight: 600 !important;
     font-size: 20px !important;
     line-height: 28px !important;
-    color: #222A38;
+    color: var(--color-text-secondary);
     white-space: nowrap;
 }
 
@@ -286,8 +310,8 @@
     height: 28px;
     padding: 2px;
     border-radius: 6px;
-    border: 1px solid #E5E9F0;
-    background: #F2F4F8;
+    border: 1px solid var(--color-border-default);
+    background: var(--color-background-subtle);
     box-sizing: border-box;
 }
 
@@ -305,18 +329,18 @@
     font-size: 12px;
     font-weight: 500;
     line-height: 16px;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     white-space: nowrap;
     transition: background-color 0.16s ease, color 0.16s ease;
 }
 
 .library-segmented-option:hover {
-    color: #222A38;
+    color: var(--color-text-secondary);
 }
 
 .library-segmented-option.is-active {
-    background: #FFFFFF;
-    color: #155DFC;
+    background: var(--color-background-surface);
+    color: var(--color-brand-primary);
     font-weight: 600;
 }
 
@@ -334,7 +358,7 @@
     font-weight: 600;
     font-size: 16px;
     line-height: 20px;
-    color: #0C1018;
+    color: var(--color-text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -345,7 +369,7 @@
     font-weight: 400;
     font-size: 12px;
     line-height: 20px;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -355,7 +379,7 @@
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     flex-shrink: 0;
     opacity: 0;
     transition: opacity 0.15s ease;
@@ -380,13 +404,13 @@
     border-radius: 4px;
     border: none;
     background-color: transparent;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
     transition: background-color 150ms ease, color 150ms ease;
 }
 
 .library-sort-download.MuiIconButton-root:hover {
-    background-color: #F2F4F8;
-    color: #222A38;
+    background-color: var(--color-background-subtle);
+    color: var(--color-text-secondary);
     transform: none;
 }
 
@@ -395,7 +419,7 @@
     font-size: 12px;
     font-weight: 500;
     line-height: 16px;
-    color: #222A38;
+    color: var(--color-text-secondary);
 }
 
 /* 28px pill on the subtle background, matching the segmented control. */
@@ -407,39 +431,39 @@
     height: 28px;
     padding: 0 8px;
     border-radius: 8px;
-    border: 1px solid #E5E9F0;
-    background: #F2F4F8;
+    border: 1px solid var(--color-border-default);
+    background: var(--color-background-subtle);
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 500;
     line-height: 16px;
-    color: #222A38;
+    color: var(--color-text-secondary);
     cursor: pointer;
     white-space: nowrap;
     box-sizing: border-box;
 }
 
 .library-sort-pill:hover {
-    background: #E5E9F0;
+    background: var(--color-background-muted);
 }
 
 .library-sort-pill-icon.MuiSvgIcon-root {
     width: 12px;
     height: 12px;
     font-size: 12px;
-    color: #5E6E87;
+    color: var(--color-text-tertiary);
 }
 
 .library-sort-menu .MuiPaper-root {
     border-radius: 8px;
-    border: 1px solid #E5E9F0;
+    border: 1px solid var(--color-border-default);
     box-shadow: 0 4px 16px rgba(12, 16, 24, 0.08);
 }
 
 .library-sort-menu .MuiMenuItem-root {
     font-family: 'Geist', sans-serif;
     font-size: 12px;
-    color: #222A38;
+    color: var(--color-text-secondary);
     min-width: 120px;
 }
 
@@ -456,16 +480,16 @@
     font-family: 'Geist', sans-serif;
     font-size: 14px;
     font-weight: 700;
-    color: #164563;
+    color: var(--color-text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .library-folder-status-button {
-    border: 1px solid #D7E3EA;
-    background: #ffffff;
-    color: #164563;
+    border: 1px solid var(--color-border-default);
+    background: var(--color-background-surface);
+    color: var(--color-text-secondary);
     border-radius: 16px;
     padding: 6px 10px;
     font-family: 'Geist', sans-serif;
@@ -479,12 +503,17 @@
 }
 
 .library-mobile-sort-row {
-    margin-top: 0;
+    /* Sits under the search field, so it needs air between them — flush against
+       the input it read as part of it. */
+    margin-top: 12px;
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    /* Right-aligned: the export button that used to hold the other end of this
+       row moved to the bottom bar, leaving Sort alone on the left with nothing
+       opposite it. */
+    justify-content: flex-end;
+    gap: 8px;
 }
 
 .library-mobile-folder-drawer-paper {
@@ -498,7 +527,7 @@
 .library-mobile-folder-drawer {
     height: 100%;
     padding: 16px 12px;
-    background: #FAFCFF;
+    background: var(--color-background-page);
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -516,7 +545,7 @@
     font-family: 'Geist', sans-serif;
     font-size: 16px;
     font-weight: 700;
-    color: #164563;
+    color: var(--color-text-secondary);
 }
 
 .library-mobile-folder-drawer-header-actions {
@@ -531,7 +560,7 @@
     border: none;
     border-radius: 8px;
     background: transparent;
-    color: #646464;
+    color: var(--color-text-tertiary);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -546,9 +575,9 @@
 .library-mobile-folder-new-button {
     width: 100%;
     border-radius: 10px;
-    border: 1px solid #155DFC;
-    background: #ffffff;
-    color: #155DFC;
+    border: 1px solid var(--color-brand-primary);
+    background: var(--color-background-surface);
+    color: var(--color-brand-primary);
     font-family: 'Geist', sans-serif;
     font-size: 14px;
     font-weight: 700;
@@ -561,14 +590,14 @@
 }
 
 .library-mobile-folder-new-button:hover {
-    background: #F2F6FF;
+    background: var(--color-background-subtle);
 }
 
 .library-new-folder-button {
     border-radius: 16px !important;
-    border: 1px solid #155DFC !important;
-    background-color: #ffffff;
-    color: #155DFC;
+    border: 1px solid var(--color-brand-primary) !important;
+    background-color: var(--color-background-surface);
+    color: var(--color-brand-primary);
     font-family: 'Geist, sans-serif';
     font-size: 14px;
     font-weight: 700 !important;
@@ -580,7 +609,7 @@
 }
 
 .library-new-folder-button:hover {
-    background-color: #ffffff;
+    background-color: var(--color-background-surface);
 }
 
 .library-folder-grid {
@@ -592,8 +621,8 @@
 
 .library-folder-card {
     position: relative;
-    background: #ffffff;
-    border: 1px solid #D8D8D8;
+    background: var(--color-background-surface);
+    border: 1px solid var(--color-border-strong);
     border-radius: 8px;
     padding: 8px;
     display: flex;
@@ -605,8 +634,8 @@
 }
 
 .library-folder-card:hover {
-    background-color: #F2F6FF;
-    border-color: #C7D8FF;
+    background-color: var(--color-background-subtle);
+    border-color: var(--color-border-strong);
 }
 
 .library-folder-top {
@@ -621,7 +650,7 @@
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background-color: #DBEAFE;
+    background-color: var(--color-background-muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -644,7 +673,7 @@
     font-family: 'Geist';
     font-weight: 700;
     font-size: 16px;
-    color: #164563;
+    color: var(--color-text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -655,14 +684,15 @@
     font-family: 'Geist';
     font-weight: 400;
     font-size: 12px;
-    color: #969696;
+    color: var(--color-text-tertiary);
 }
 
 .library-folder-page-title {
     font-family: 'Geist';
-    font-weight: 700;
-    font-size: 15px;
-    color: #164563;
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 20px;
+    color: var(--color-text-secondary);
 }
 
 .library-folder-menu {
@@ -691,10 +721,10 @@
     --history-row-gutter: 0px;
 }
 
-/* Figma row: fixed 80px tall, 16px side padding, hairline separator. */
-.library-reference-list .history-item,
-.library-chat-list .history-item,
-.library-graph-list .history-item {
+/* Reference rows are a fixed 80px box; chat and graph rows size to their text.
+   Scoped through .history-item-row so these outrank ConversationCard's own
+   .history-item padding. */
+.library-reference-list .history-item-row .history-item {
     grid-column: 1;
     display: flex;
     align-items: center;
@@ -702,6 +732,16 @@
     height: 80px;
     box-sizing: border-box;
     padding: 0 16px;
+}
+
+.library-chat-list .history-item-row .history-item,
+.library-graph-list .history-item-row .history-item {
+    grid-column: 1;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-sizing: border-box;
+    padding: 16px;
 }
 
 .library-reference-list .history-item-row::after,
@@ -712,7 +752,7 @@
     left: 0px;
     right: 0px;
     bottom: 0;
-    border-bottom: 1px solid #E5E9F0;
+    border-bottom: 1px solid var(--color-border-default);
 }
 
 .library-reference-list .history-item-row::before,
@@ -769,12 +809,14 @@
     fill: currentColor;
 }
 
+/* Figma 176:8363 — the list shares the header's 768px column and sits 16px
+   under the search field; it used to be inset 4px and butt straight against it. */
 .library-scroll {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    margin: 0 -12px;
-    padding: 0 16px 4px;
+    margin: 16px 0 0;
+    padding: 0 0 4px;
     display: flex;
     flex-direction: column;
     gap: 24px;
@@ -786,7 +828,7 @@
     gap: 2px;
     align-items: stretch;
     width: 100%;
-    color: #164563;
+    color: var(--color-text-secondary);
 }
 
 .library-section+.library-section {
@@ -800,7 +842,7 @@
     font-weight: 600 !important;
     font-size: 20px !important;
     line-height: 28px !important;
-    color: #222A38;
+    color: var(--color-text-secondary);
     width: 100%;
     text-align: left;
 }
@@ -810,9 +852,10 @@
     padding-left: 0px !important;
     border: none;
     background: transparent;
-    color: #155DFC;
+    color: var(--color-brand-primary);
     font-family: 'Geist';
-    font-size: 13px;
+    font-size: 12px;
+    line-height: 16px;
     font-weight: 600;
     text-decoration: underline;
     text-underline-offset: 3px;
@@ -825,13 +868,13 @@
 .library-show-more-arrow {
     font-size: 10px;
     line-height: 1;
-    color: #155DFC;
+    color: var(--color-brand-primary);
 }
 
 .library-empty-text {
     font-family: 'Geist, sans-serif';
     font-size: 14px;
-    color: #646464;
+    color: var(--color-text-tertiary);
 }
 
 .library-chat-list {
@@ -846,56 +889,15 @@
     width: 100%;
 }
 
-.library-card-icon {
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0px 1px 2px -1px rgba(0, 0, 0, 0.10), 0px 1px 3px rgba(0, 0, 0, 0.10);
-    z-index: 2;
-    pointer-events: none;
-}
-
-.library-card-icon svg {
-    width: 24px;
-    height: 24px;
-    display: block;
-}
-
-.library-card-icon svg path {
-    stroke: currentColor;
-    fill: none;
-}
-
-.library-card-icon svg circle {
-    fill: currentColor;
-    stroke: currentColor;
-}
-
-.library-card-icon--chat {
-    background-color: #E7F1FF;
-    color: #2B3F6C;
-}
-
-.library-card-icon--graph {
-    background-color: #F0FDF4;
-    color: #16A34A;
-}
-
 .library-card-meta {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     font-family: 'Geist', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    color: #969696;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
 }
 
 .library-card-meta-icon {
@@ -941,12 +943,12 @@
     gap: 8px;
     padding: 0 12px;
     border-radius: 16px;
-    border: 1px solid #E7F1FF;
-    background-color: #ffffff;
+    border: 1px solid var(--color-border-default);
+    background-color: var(--color-background-surface);
     font-family: 'Geist', sans-serif;
     font-weight: 500;
     font-size: 14px;
-    color: #164563;
+    color: var(--color-text-secondary);
     height: 32px;
     box-sizing: border-box;
 }
@@ -961,8 +963,8 @@
 .library-chat-item {
     width: 100%;
     text-align: left;
-    background: #ffffff;
-    border: 1px solid #E5E7EB;
+    background: var(--color-background-surface);
+    border: 1px solid var(--color-border-default);
     padding: 12px 14px;
     border-radius: 12px;
     cursor: pointer;
@@ -974,8 +976,8 @@
 }
 
 .library-chat-item:hover {
-    background-color: #F2F6FF;
-    border-color: #C7D8FF;
+    background-color: var(--color-background-subtle);
+    border-color: var(--color-border-strong);
     border-radius: 12px;
     padding: 12px 16px;
 }
@@ -991,7 +993,7 @@
     font-family: 'Geist, sans-serif';
     font-weight: 600;
     font-size: 14px;
-    color: #164563;
+    color: var(--color-text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1001,7 +1003,7 @@
     font-family: 'Geist, sans-serif';
     font-weight: 400;
     font-size: 12px;
-    color: #808080;
+    color: var(--color-text-tertiary);
 }
 
 .library-list {
@@ -1024,11 +1026,11 @@
     left: 8px;
     right: 8px;
     bottom: 0;
-    border-bottom: 1px solid #D9D9D9;
+    border-bottom: 1px solid var(--color-border-default);
 }
 
 .library-list>div:hover {
-    background-color: #E7F1FF;
+    background-color: var(--color-background-subtle);
     border-radius: 12px;
     padding: 10px;
 }
@@ -1042,12 +1044,13 @@
 }
 
 @media (max-width: 767px) {
-    .library-content {
-        padding: 16px 24px;
+    /* Figma 800:22889 has no line under the title on a phone. */
+    .library-subtitle {
+        display: none;
     }
 
-    .library-title-bar {
-        justify-content: flex-start;
+    .library-content {
+        padding: 16px 24px;
     }
 
     .library-tabs-row {
@@ -1058,5 +1061,87 @@
 
     .library-sort {
         gap: 6px;
+    }
+}
+/* Figma 176:10342 / 176:10344 — dialog actions are a muted pair, not MUI's
+   default contained blue: Cancel on background/muted, the primary on
+   brand/muted carrying brand text. */
+.library-dialog-action.MuiButton-root {
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: var(--color-background-muted);
+    color: var(--color-text-secondary);
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 18px;
+    text-transform: none;
+    box-shadow: none;
+}
+
+.library-dialog-action.MuiButton-root:hover {
+    background: var(--color-background-normal);
+    box-shadow: none;
+}
+
+.library-dialog-action--primary.MuiButton-root {
+    background: var(--color-brand-muted);
+    color: var(--color-brand-primary);
+}
+
+.library-dialog-action--primary.MuiButton-root:hover {
+    background: var(--color-blue-200);
+}
+
+.library-dialog-action.MuiButton-root.Mui-disabled {
+    background: var(--color-background-subtle);
+    color: var(--color-grey-300);
+}
+
+/* ---------------------------------------------------------------- mobile bottom bar
+   800:22889 — on a phone the count, the export and the Reference/Chat toggle sit in a
+   bar along the bottom of the list rather than stacked above it. */
+.library-mobile-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    /* No side padding: the bar sits inside the page's own 24px gutter, and adding
+       its own put the count and the toggle 24 further in than the search box. */
+    padding: 12px 0;
+    border-top: 1px solid var(--color-border-default);
+    background-color: var(--color-background-surface);
+    flex: 0 0 auto;
+}
+
+.library-mobile-bar-count {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    color: var(--color-text-tertiary);
+    white-space: nowrap;
+}
+
+.library-mobile-bar-download {
+    flex: 0 0 auto;
+}
+
+.library-mobile-bar .library-segmented {
+    flex: 0 0 auto;
+}
+
+@media (max-width: 767px) {
+    /* Its two children — the count and the Reference/Chat toggle — moved to the
+       bottom bar, so the row itself is now an empty band of padding. */
+    .library-tabs-row {
+        display: none;
+    }
+
+    /* The sort control carries its own export button, which the bottom bar now
+       also has. One download per screen. */
+    .library-mobile-sort-row .library-sort-download {
+        display: none;
     }
 }

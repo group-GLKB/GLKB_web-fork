@@ -112,6 +112,28 @@ export const AuthProvider = ({ children }) => {
     return result;
   };
 
+  // Update the profile picture (email auth)
+  const updateAvatar = async (avatarId) => {
+    const result = await AuthService.updateAvatar(avatarId);
+
+    if (result.success && result.user) {
+      setUser(result.user);
+    }
+
+    return result;
+  };
+
+  // Re-read the user from the server, so a choice made elsewhere shows up here.
+  const refreshUser = async () => {
+    const result = await AuthService.fetchCurrentUser();
+
+    if (result.success && result.user) {
+      setUser(result.user);
+    }
+
+    return result;
+  };
+
   const openLoginModal = () => setIsLoginModalOpen(true);
   const closeLoginModal = () => setIsLoginModalOpen(false);
 
@@ -132,6 +154,8 @@ export const AuthProvider = ({ children }) => {
     verifyCode,
     loginWithGoogle,
     updateUsername,
+    updateAvatar,
+    refreshUser,
     logout,
     isLoginModalOpen,
     openLoginModal,

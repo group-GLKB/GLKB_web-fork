@@ -12,35 +12,26 @@ import {
   DeleteOutline as DeleteOutlineIcon,
   DriveFileRenameOutline as DriveFileRenameOutlineIcon,
   FolderOutlined as FolderOutlinedIcon,
-  MoreHoriz as MoreHorizIcon,
+  MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
 import {
   Box,
   Checkbox,
-  Divider,
   IconButton,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
   Typography,
 } from '@mui/material';
+
+import { ContextMenu, ContextMenuItem } from '../ContextMenu';
 
 const getDefaultTitle = (conversation) => (
     conversation?.leadingTitle || conversation?.title || 'Untitled conversation'
 );
 
-const getDefaultSubtitle = (conversation) => {
-    const count = typeof conversation?.messageCount === 'number'
-        ? conversation.messageCount
-        : 0;
-    return `${count} ${count === 1 ? 'message' : 'messages'}`;
-};
-
 const ConversationCard = ({
     conversation,
     title,
     titleContent,
+    leadingIcon,
     subtitle,
     timestamp,
     footerContent,
@@ -63,10 +54,7 @@ const ConversationCard = ({
         () => (title !== undefined ? title : getDefaultTitle(conversation)),
         [conversation, title]
     );
-    const resolvedSubtitle = useMemo(
-        () => (subtitle !== undefined ? subtitle : getDefaultSubtitle(conversation)),
-        [conversation, subtitle]
-    );
+    const resolvedSubtitle = subtitle;
     const resolvedTitleLabel = typeof resolvedTitle === 'string'
         ? resolvedTitle
         : getDefaultTitle(conversation);
@@ -165,7 +153,7 @@ const ConversationCard = ({
     const shouldRenderCheckbox = selectMode || showCheckboxOnHover;
 
     return (
-        <Box className={`history-item-row${selectMode ? ' history-item-row-select-mode' : ''}${!shouldRenderCheckbox ? ' history-item-row-no-checkbox' : ''}`}>
+        <Box className={`history-item-row${selectMode ? ' history-item-row-select-mode' : ''}`}>
             {shouldRenderCheckbox && (
                 <Checkbox
                     className="history-row-checkbox"
@@ -180,9 +168,9 @@ const ConversationCard = ({
                     }}
                     inputProps={{ 'aria-label': `Select ${resolvedTitleLabel}` }}
                     sx={{
-                        color: '#D9D9D9',
+                        color: 'var(--color-grey-200)',
                         padding: '4px',
-                        '&.Mui-checked': { color: '#155DFC' },
+                        '&.Mui-checked': { color: 'var(--color-brand-primary)' },
                     }}
                 />
             )}
@@ -198,6 +186,9 @@ const ConversationCard = ({
                     }
                 }}
             >
+                {leadingIcon ? (
+                    <span className="history-item-icon" aria-hidden="true">{leadingIcon}</span>
+                ) : null}
                 <Box className="history-item-content">
                     <Box className="history-item-title-row">
                         {isEditing ? (
@@ -225,15 +216,7 @@ const ConversationCard = ({
                             titleContent ? (
                                 titleContent
                             ) : (
-                                <Typography className="history-title" sx={{
-                                    fontFamily: 'DM Sans, sans-serif',
-                                    fontWeight: 600,
-                                    fontSize: '16px',
-                                    color: '#164563',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                }}>
+                                <Typography className="history-title">
                                     {resolvedTitle}
                                 </Typography>
                             )
@@ -246,127 +229,67 @@ const ConversationCard = ({
                                 aria-label="Open conversation menu"
                                 disabled={menuDisabled || isEditing}
                                 sx={{
-                                    width: 28,
-                                    height: 28,
-                                    borderRadius: '8px',
-                                    color: '#164563',
+                                    width: 24,
+                                    height: 24,
+                                    borderRadius: '4px',
+                                    color: 'var(--color-text-tertiary)',
                                 }}
                             >
-                                <MoreHorizIcon sx={{ fontSize: 18 }} />
+                                <MoreVertIcon sx={{ fontSize: 12 }} />
                             </IconButton>
                         )}
                     </Box>
-                    <Typography sx={{
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontWeight: 400,
-                        fontSize: '14px',
-                        color: '#646464',
-                        overflow: 'hidden',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                    }}>
-                        {resolvedSubtitle}
-                    </Typography>
+                    {resolvedSubtitle ? (
+                        <Typography className="history-subtitle">
+                            {resolvedSubtitle}
+                        </Typography>
+                    ) : null}
                     {footerContent !== undefined && footerContent !== null ? (
                         footerContent
                     ) : (timestamp !== undefined && timestamp !== null && (
-                        <Typography sx={{
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontWeight: 500,
-                            fontSize: '12px',
-                            color: '#808080',
-                        }}>
+                        <Typography className="history-timestamp">
                             {timestamp}
                         </Typography>
                     ))}
                 </Box>
             </div>
             {hasMenu && (
-                <Menu
+                <ContextMenu
                     anchorEl={menuAnchorEl}
                     open={isMenuOpen}
                     onClose={handleCloseMenu}
                     disableRestoreFocus
-                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                    MenuListProps={{
-                        sx: {
-                            py: 0.5,
-                        },
-                    }}
-                    PaperProps={{
-                        sx: {
-                            minWidth: 176,
-                            borderRadius: 2,
-                            boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
-                            '& .MuiMenuItem-root': {
-                                fontFamily: 'DM Sans, sans-serif',
-                                fontSize: '13px',
-                                fontWeight: 500,
-                                color: '#164563',
-                                py: 0.75,
-                                px: 1.25,
-                            },
-                        },
-                    }}
                 >
                     {onRename && (
-                        <MenuItem onClick={handleStartRename}>
-                            <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
-                                <DriveFileRenameOutlineIcon sx={{ fontSize: 18 }} />
-                            </ListItemIcon>
-                            <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
-                                Rename
-                            </ListItemText>
-                        </MenuItem>
+                        <ContextMenuItem
+                            icon={<DriveFileRenameOutlineIcon />}
+                            onClick={handleStartRename}
+                        >
+                            Rename
+                        </ContextMenuItem>
                     )}
                     {onBookmark && (
-                        <MenuItem onClick={handleBookmark}>
-                            <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
-                                <BookmarkMenuIcon sx={{ fontSize: 18 }} />
-                            </ListItemIcon>
-                            <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
-                                {resolvedBookmarkLabel}
-                            </ListItemText>
-                        </MenuItem>
+                        <ContextMenuItem icon={<BookmarkMenuIcon />} onClick={handleBookmark}>
+                            {resolvedBookmarkLabel}
+                        </ContextMenuItem>
                     )}
                     {onManageFolders && (
-                        <MenuItem onClick={() => {
-                            handleCloseMenu();
-                            onManageFolders(conversation);
-                        }}>
-                            <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
-                                <FolderOutlinedIcon sx={{ fontSize: 18 }} />
-                            </ListItemIcon>
-                            <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
-                                {folderLabel}
-                            </ListItemText>
-                        </MenuItem>
+                        <ContextMenuItem
+                            icon={<FolderOutlinedIcon />}
+                            onClick={() => {
+                                handleCloseMenu();
+                                onManageFolders(conversation);
+                            }}
+                        >
+                            {folderLabel}
+                        </ContextMenuItem>
                     )}
                     {onDelete && (
-                        <>
-                            {(onRename || onBookmark || onManageFolders) && <Divider />}
-                            <MenuItem onClick={handleDelete} sx={{ color: '#B42318 !important' }}>
-                                <ListItemIcon sx={{ minWidth: 26, color: '#B42318' }}>
-                                    <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                                </ListItemIcon>
-                                <ListItemText
-                                    primaryTypographyProps={{
-                                        sx: {
-                                            color: '#B42318',
-                                            fontFamily: 'DM Sans, sans-serif',
-                                            fontSize: '13px',
-                                            fontWeight: 500,
-                                        },
-                                    }}
-                                >
-                                    Delete
-                                </ListItemText>
-                            </MenuItem>
-                        </>
+                        <ContextMenuItem icon={<DeleteOutlineIcon />} danger onClick={handleDelete}>
+                            Delete
+                        </ContextMenuItem>
                     )}
-                </Menu>
+                </ContextMenu>
             )}
         </Box>
     );

@@ -1,6 +1,6 @@
 .api-docs-page-root {
     height: 100vh;
-    background: #ffffff;
+    background: var(--color-background-surface);
     color: #323232;
     display: flex;
     flex-direction: column;
@@ -15,7 +15,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: #ffffff;
+    background: var(--color-background-surface);
     position: fixed;
     top: 0;
     left: 0;
@@ -58,7 +58,7 @@
 .api-docs-jump-btn {
     border: 1px solid #d7e7ff;
     background: #eaf2ff;
-    color: #155dfc;
+    color: var(--color-brand-primary);
     border-radius: 16px;
     height: 36px;
     padding: 0 14px;
@@ -90,7 +90,7 @@
 .api-docs-sidebar {
     width: 272px;
     border-right: 1px solid #e7f1ff;
-    background: #ffffff;
+    background: var(--color-background-surface);
     padding: 20px 12px;
     overflow-y: auto;
     position: fixed;
@@ -504,7 +504,7 @@
     max-width: 176px;
     padding: 12px;
     border-radius: 16px;
-    background: #ffffff;
+    background: var(--color-background-surface);
     outline: 1px solid #e7f1ff;
     outline-offset: -1px;
     box-shadow: 0 1px 10px rgba(0, 0, 0, 0.05);
@@ -605,7 +605,7 @@
     border-radius: 16px;
     box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
     padding: 40px 48px;
-    background: radial-gradient(circle at 22% 26%, #155dfc 8%, #2f70fd 31%, #4880fe 54%, #7ba7ff 100%);
+    background: radial-gradient(circle at 22% 26%, var(--color-brand-primary) 8%, #2f70fd 31%, #4880fe 54%, #7ba7ff 100%);
     min-height: 334px;
     display: flex;
     align-items: center;
@@ -619,7 +619,7 @@
 
 .api-docs-overview-copy h1 {
     margin: 0;
-    color: #ffffff;
+    color: var(--color-neutral-white);
     font-size: 56px;
     line-height: 56px;
     font-weight: 700;
@@ -650,9 +650,9 @@
 }
 
 .api-docs-pill-btn.primary {
-    border: 1px solid #ffffff;
-    background: #ffffff;
-    color: #155dfc;
+    border: 1px solid var(--color-neutral-white);
+    background: var(--color-background-surface);
+    color: var(--color-brand-primary);
 }
 
 .api-docs-pill-btn.primary:hover {
@@ -676,7 +676,7 @@
 }
 
 .api-docs-overview-stat-card {
-    background: #ffffff;
+    background: var(--color-background-surface);
     border: 1px solid #ededed;
     border-radius: 16px;
     box-shadow: 0 1px 10px rgba(0, 0, 0, 0.05);
@@ -718,7 +718,7 @@
 }
 
 .api-docs-overview-code-card {
-    background: #ffffff;
+    background: var(--color-background-surface);
     border: 1px solid #ededed;
     border-radius: 12px;
     box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
@@ -809,7 +809,7 @@
 }
 
 .api-docs-overview-why-item {
-    background: #ffffff;
+    background: var(--color-background-surface);
     border: 1px solid #ededed;
     border-radius: 16px;
     box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
@@ -929,7 +929,7 @@
 }
 
 .api-docs-gallery-card {
-    background: #ffffff;
+    background: var(--color-background-surface);
     border: 1px solid #ededed;
     border-radius: 12px;
     padding: 24px;
@@ -1007,7 +1007,7 @@
 }
 
 .api-docs-gallery-entry-card {
-    background: #ffffff;
+    background: var(--color-background-surface);
     margin: 0;
     border: 1px solid #bdd2ff;
     border-radius: 24px;
@@ -1044,7 +1044,7 @@
     border-radius: 16px;
     border: 0.7px solid #bdd2ff;
     background: rgba(189, 210, 255, 0.3);
-    color: #155dfc;
+    color: var(--color-brand-primary);
     font-size: 12px;
     line-height: 1.5;
     font-weight: 600;
@@ -1100,7 +1100,7 @@
 }
 
 .api-docs-gallery-prompt-card {
-    background: #ffffff;
+    background: var(--color-background-surface);
     border: 1px solid #ededed;
     border-radius: 12px;
     box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
@@ -1258,11 +1258,11 @@
 }
 
 .api-docs-content pre {
-    background: #ffffff;
+    background: var(--color-background-surface);
 }
 
 .api-docs-code-block-shell {
-    background: #ffffff;
+    background: var(--color-background-surface);
     border: 1px solid #ededed;
     border-radius: 12px;
     box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
@@ -1323,7 +1323,7 @@
 }
 
 .api-docs-code-block {
-    background: #ffffff;
+    background: var(--color-background-surface);
     border: 0;
     border-radius: 12px;
     box-shadow: none;
@@ -1345,7 +1345,7 @@
 
 .api-docs-callout {
     border: 1px solid #bfd5ff;
-    border-left: 4px solid #155dfc;
+    border-left: 4px solid var(--color-brand-primary);
     background: #f5f9ff;
     border-radius: 8px;
     padding: 12px 14px;
@@ -1356,7 +1356,7 @@
 
 .api-docs-info-box {
     margin: 20px 0 12px;
-    border: 1px solid #155dfc;
+    border: 1px solid var(--color-brand-primary);
     background: #bdd2ff4d;
     border-radius: 12px;
     padding: 16px 24px;
@@ -1368,7 +1368,7 @@
 
 .api-docs-info-box-icon {
     grid-column: 1;
-    color: #155dfc;
+    color: var(--color-brand-primary);
     font-size: 20px;
     line-height: 1;
     margin-top: 1px;
@@ -1381,7 +1381,7 @@
 
 .api-docs-info-box-title {
     margin: 0 0 8px !important;
-    color: #155dfc;
+    color: var(--color-brand-primary);
     font-size: 16px;
     line-height: 1.4;
     font-weight: 600;

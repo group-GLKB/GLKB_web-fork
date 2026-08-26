@@ -2,6 +2,7 @@ import './scoped.css';
 
 import React, {
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -19,11 +20,23 @@ import {
   Tabs,
 } from '@mui/material';
 
+import { Switch } from '../Units/Switch';
+
 import {
   getMyTier,
   upgradeToPro,
 } from '../../service/Tier';
 import { useAuth } from '../Auth/AuthContext';
+import {
+    browserNotifyPermission,
+    getNotifyPrefs,
+    NOTIFY_BROWSER_KEY,
+    NOTIFY_EMAIL_KEY,
+    requestBrowserNotifyPermission,
+    setNotifyPref,
+    subscribeToNotifyPrefs,
+} from '../../service/notifications';
+import { AVATARS, avatarById } from './avatars';
 
 const getSessionValue = (key) => {
     if (typeof window === 'undefined') return '';
@@ -64,14 +77,36 @@ const formatTierLabel = (tier) => {
     return `${tier}`.charAt(0).toUpperCase() + `${tier}`.slice(1);
 };
 
+/** The presets are the design's now, so choosing one is on. */
+const ALLOW_AVATAR_CHANGE = true;
+
+/** The chosen preset, or the default when the user has not picked one. */
+const AvatarMark = ({ id, className }) => {
+    const preset = avatarById(id);
+    if (!preset) {
+        return (
+            <span className={`${className} settings-avatar-default`}>
+                <PersonIcon />
+            </span>
+        );
+    }
+    return preset.render({ className });
+};
+
 const AccountPage = () => {
-    const { user, logout, updateUsername } = useAuth();
+    const { user, logout, updateUsername, updateAvatar, refreshUser } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     const [displayName, setDisplayName] = useState(() => getSessionValue('account_display_name'));
     const [email, setEmail] = useState(() => getSessionValue('account_email'));
     const [nameDraft, setNameDraft] = useState('');
     const [showNameModal, setShowNameModal] = useState(false);
+    const [notifyPrefs, setNotifyPrefs] = useState(() => getNotifyPrefs());
+    const [notifyNote, setNotifyNote] = useState('');
+    const [showAvatarModal, setShowAvatarModal] = useState(false);
+    const [pickedAvatar, setPickedAvatar] = useState(null);
+    const [savingAvatar, setSavingAvatar] = useState(false);
+    const [avatarError, setAvatarError] = useState('');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showSignoutModal, setShowSignoutModal] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
@@ -80,6 +115,70 @@ const AccountPage = () => {
     const [activeTab, setActiveTab] = useState(
         () => (location.state?.tab === 'testing' ? 'testing' : 'account')
     );
+
+    // null until the user picks one; the row renders the default in that case.
+    const avatarId = user?.avatar_id ?? null;
+
+    // A picture chosen on another device is not in the cached login payload, so
+    // read the user back once on arrival.
+    useEffect(() => subscribeToNotifyPrefs(setNotifyPrefs), []);
+
+    /**
+     * Browser notifications need permission, and the prompt only opens from a
+     * gesture — so it is asked for here, on the toggle, rather than on load.
+     */
+    const toggleBrowserNotify = async (enabled) => {
+        setNotifyNote('');
+        if (!enabled) {
+            setNotifyPref(NOTIFY_BROWSER_KEY, false);
+            return;
+        }
+        const permission = await requestBrowserNotifyPermission();
+        if (permission !== 'granted') {
+            setNotifyPref(NOTIFY_BROWSER_KEY, false);
+            setNotifyNote(permission === 'denied'
+                ? 'Your browser is blocking notifications for this site. Allow them in its site settings first.'
+                : 'Your browser did not allow notifications.');
+            return;
+        }
+        setNotifyPref(NOTIFY_BROWSER_KEY, true);
+    };
+
+    // Only worth re-reading once a picture can differ from the cached payload.
+    const readUserOnce = useRef(false);
+    useEffect(() => {
+        if (!ALLOW_AVATAR_CHANGE || readUserOnce.current || !user) return;
+        readUserOnce.current = true;
+        refreshUser();
+    }, [user, refreshUser]);
+
+    const saveAvatar = async () => {
+        if (pickedAvatar === avatarId) {
+            setShowAvatarModal(false);
+            return;
+        }
+        // Nothing picked, nothing saved: the row is already showing the default.
+        // (The contract takes 1..16 and cannot say "none", so there is no way to
+        // go back to the default once a picture is saved either.)
+        if (pickedAvatar === null) {
+            setShowAvatarModal(false);
+            return;
+        }
+        setSavingAvatar(true);
+        setAvatarError('');
+        const result = await updateAvatar(pickedAvatar);
+        setSavingAvatar(false);
+
+        if (result.success) {
+            setShowAvatarModal(false);
+            setToastMessage('Profile picture updated');
+            return;
+        }
+        // The endpoint ships on its own branch; say so rather than blaming the user.
+        setAvatarError(result.status === 404
+            ? 'Profile pictures are not available on this server yet.'
+            : result.message);
+    };
     const [proPasscode, setProPasscode] = useState('');
     const [proActionLoading, setProActionLoading] = useState(false);
     const [proActionMessage, setProActionMessage] = useState('');
@@ -260,7 +359,7 @@ const AccountPage = () => {
                                 variant="fullWidth"
                                 TabIndicatorProps={{
                                     sx: {
-                                        backgroundColor: '#155DFC',
+                                        backgroundColor: 'var(--color-brand-primary)',
                                         height: 2,
                                     },
                                 }}
@@ -272,9 +371,9 @@ const AccountPage = () => {
                                     '& .MuiTab-root': {
                                         textTransform: 'none',
                                         fontFamily: 'Geist, sans-serif',
-                                        fontSize: '13px',
+                                        fontSize: '12px',
                                         fontWeight: 600,
-                                        color: '#164563',
+                                        color: 'var(--color-text-secondary)',
                                         minHeight: 32,
                                         minWidth: '50%',
                                         maxWidth: 'none',
@@ -282,7 +381,7 @@ const AccountPage = () => {
                                         padding: '12px 0',
                                     },
                                     '& .MuiTab-root.Mui-selected': {
-                                        color: '#155DFC',
+                                        color: 'var(--color-brand-primary)',
                                     },
                                 }}
                             >
@@ -294,31 +393,70 @@ const AccountPage = () => {
                     <div className="settings-inner">
                         {activeTab === 'account' ? (
                             <>
-                                <div className="flat-row">
-                                    <div className="flat-row-main">
-                                        <div className="card-avatar" aria-hidden="true">
-                                            <PersonIcon className="card-avatar-icon" />
-                                        </div>
-                                        <div>
-                                            <div className="flat-name">{displayName}</div>
-                                            <div className="flat-sub">{email}</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <h2 className="settings-title">Account</h2>
+                                <h2 className="settings-title settings-title-first">Account</h2>
 
                                 <div className="settings-row">
-                                    <span className="settings-row-label">Display Name</span>
+                                    <span className="settings-row-label">Email</span>
+                                    <span className="settings-row-value">{email}</span>
+                                </div>
+
+                                <div className="settings-row">
+                                    <span className="settings-row-labels">
+                                        <span className="settings-row-label">Display Name</span>
+                                        <span className="settings-row-sub">{displayName}</span>
+                                    </span>
                                     <button type="button" className="settings-row-action" onClick={openNameModal}>
                                         Edit
                                     </button>
                                 </div>
 
-                                <div className="settings-row settings-row-last">
-                                    <span className="settings-row-label">Email</span>
-                                    <span className="settings-row-value">{email}</span>
+                                {/* Figma 244:5280 — the picture sits on the right of its
+                                    own row, and opens the preset picker. */}
+                                <div className="settings-row">
+                                    <span className="settings-row-label">Avatar</span>
+                                    {ALLOW_AVATAR_CHANGE ? (
+                                        <button
+                                            type="button"
+                                            className="settings-avatar-button"
+                                            onClick={() => { setAvatarError(''); setPickedAvatar(avatarId); setShowAvatarModal(true); }}
+                                            aria-label="Change your profile picture"
+                                        >
+                                            <AvatarMark id={avatarId} className="settings-avatar" />
+                                        </button>
+                                    ) : (
+                                        <AvatarMark id={avatarId} className="settings-avatar" />
+                                    )}
                                 </div>
+
+                                {/* Figma 244:5280 — one label, two switches. Email is the
+                                    server's job and survives a closed tab; Browser is ours
+                                    and needs the reader's permission. */}
+                                <div className="settings-row settings-row-last settings-row-notify">
+                                    <span className="settings-row-label">
+                                        Notify me when Investigate finishes
+                                    </span>
+                                    <span className="settings-notify-toggles">
+                                        <span className="settings-notify-option">
+                                            <span className="settings-notify-name">Browser</span>
+                                            <Switch
+                                                checked={notifyPrefs.browser}
+                                                onChange={(event) => toggleBrowserNotify(event.target.checked)}
+                                                inputProps={{ 'aria-label': 'Notify me in this browser' }}
+                                            />
+                                        </span>
+                                        <span className="settings-notify-option">
+                                            <span className="settings-notify-name">Email</span>
+                                            <Switch
+                                                checked={notifyPrefs.email}
+                                                onChange={(event) => setNotifyPref(NOTIFY_EMAIL_KEY, event.target.checked)}
+                                                inputProps={{ 'aria-label': 'Email me when Investigate finishes' }}
+                                            />
+                                        </span>
+                                    </span>
+                                </div>
+                                {notifyNote ? (
+                                    <p className="settings-notify-note">{notifyNote}</p>
+                                ) : null}
 
                                 <h2 className="settings-title">Usage &amp; Balance</h2>
 
@@ -342,7 +480,9 @@ const AccountPage = () => {
                                         />
                                     </div>
                                     <div className="subscription-progress-footer">
-                                        <span>{tierLoading ? '-- used' : `${quotaUsed} used`}</span>
+                                        <span className="subscription-progress-used">
+                                            {tierLoading ? '-- used' : `${quotaUsed} used`}
+                                        </span>
                                         <span>{tierLoading ? '-- remaining' : `${quotaRemaining} remaining`}</span>
                                     </div>
                                 </div>
@@ -411,6 +551,53 @@ const AccountPage = () => {
                     </div>
                 </div>
             </div>
+
+            {ALLOW_AVATAR_CHANGE && showAvatarModal && (
+                <div
+                    className="modal-backdrop visible"
+                    onClick={(event) => handleBackdropClick(event, () => setShowAvatarModal(false))}
+                >
+                    <div className="modal">
+                        <div className="modal-title">Choose a profile picture</div>
+                        <div className="avatar-grid" role="radiogroup" aria-label="Profile picture">
+                            {/* The default is not a tile. Having chosen nothing is
+                                already the default, so listing it would be offering
+                                the state you are in as a thing to switch to. */}
+                            {AVATARS.map((avatar) => (
+                                <button
+                                    key={avatar.id}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={pickedAvatar === avatar.id}
+                                    aria-label={`Profile picture ${avatar.id}`}
+                                    className={`avatar-option${pickedAvatar === avatar.id ? ' is-picked' : ''}`}
+                                    onClick={() => setPickedAvatar(avatar.id)}
+                                >
+                                    {avatar.render({ className: 'avatar-option-mark' })}
+                                </button>
+                            ))}
+                        </div>
+                        {avatarError ? <div className="modal-error">{avatarError}</div> : null}
+                        <div className="modal-actions">
+                            <button
+                                type="button"
+                                className="flat-btn"
+                                onClick={() => setShowAvatarModal(false)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className="flat-btn dark"
+                                onClick={saveAvatar}
+                                disabled={savingAvatar}
+                            >
+                                {savingAvatar ? 'Saving…' : 'Save'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {showNameModal && (
                 <div

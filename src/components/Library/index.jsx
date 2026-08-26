@@ -42,12 +42,11 @@ import {
     Typography,
 } from '@mui/material';
 
+import { ContextMenu, ContextMenuItem } from '../Units/ContextMenu';
+
 import { ReactComponent as FolderOpenIcon } from '../../img/folder_open.svg';
-import { ReactComponent as MetaIcon } from '../../img/library/Icon.svg';
-import {
-    ReactComponent as ChatIcon,
-} from '../../img/library/Message square.svg';
-import { ReactComponent as ShareIcon } from '../../img/library/Share.svg';
+import { ReactComponent as ChatIcon } from '../../img/llm/chat_message.svg';
+import { ReactComponent as ShareIcon } from '../../img/llm/graph_share.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import { ReactComponent as BookIcon } from '../../img/navbar/book_4.svg';
@@ -82,9 +81,14 @@ import {
     toggleGraphBookmark,
 } from '../../utils/graphBookmarks';
 import { useAuth } from '../Auth/AuthContext';
-import nodeStyleColors from '../Graph/nodeStyleColors.json';
+import { nodeStyle } from '../Graph/nodeStyle';
 import CiteDialog from '../Units/CiteDialog';
 import ConversationCard from '../Units/ConversationCard';
+
+const formatMessageCount = (conversation) => {
+    const count = typeof conversation?.messageCount === 'number' ? conversation.messageCount : 0;
+    return `${count} ${count === 1 ? 'Message' : 'Messages'}`;
+};
 
 const ALL_TAB = 'all';
 const REFERENCES_TAB = 'references';
@@ -128,48 +132,13 @@ const buildReferenceCitation = (entry) => ([
     entry?.authors || '',
 ]);
 
-const hexToRgb = (hex) => {
-    if (!hex) return { r: 0, g: 0, b: 0 };
-    const cleaned = hex.replace('#', '');
-    const normalized = cleaned.length === 3
-        ? cleaned.split('').map((char) => `${char}${char}`).join('')
-        : cleaned;
-    const value = parseInt(normalized, 16);
-    if (Number.isNaN(value)) return { r: 0, g: 0, b: 0 };
-    return {
-        r: (value >> 16) & 255,
-        g: (value >> 8) & 255,
-        b: value & 255,
-    };
-};
-
-const rgbToHex = (r, g, b) => {
-    const toHex = (value) => value.toString(16).padStart(2, '0');
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-};
-
-const mixHex = (baseHex, mixHexValue, amount) => {
-    const base = hexToRgb(baseHex);
-    const mix = hexToRgb(mixHexValue);
-    const ratio = Math.min(Math.max(amount, 0), 1);
-    const r = Math.round(base.r * (1 - ratio) + mix.r * ratio);
-    const g = Math.round(base.g * (1 - ratio) + mix.g * ratio);
-    const b = Math.round(base.b * (1 - ratio) + mix.b * ratio);
-    return rgbToHex(r, g, b);
-};
-
-const toRgba = (hex, alpha) => {
-    const { r, g, b } = hexToRgb(hex);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
-
 const getPillColors = (label) => {
-    const base = nodeStyleColors[label] || nodeStyleColors.default || '#E5E5E5';
+    const style = nodeStyle(label);
     return {
-        base,
-        background: mixHex(base, '#ffffff', 0.75),
-        text: mixHex(base, '#000000', 0.35),
-        shadow: toRgba(base, 0.3),
+        base: style.border,
+        background: style.fill,
+        text: style.text,
+        shadow: style.ring,
     };
 };
 
@@ -318,6 +287,8 @@ const normalizeFolderChat = (session) => {
         createdAt: session?.created_at || null,
         updatedAt: session?.last_accessed_time || session?.updatedAt || session?.created_at || null,
         messageCount: session?.message_count ?? messages.length,
+        // `sessions[].is_investigate` on /fav/chat and the folder listings.
+        isInvestigate: session?.is_investigate === true,
         messages,
     };
 };
@@ -508,63 +479,26 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                     onClick={handleOpenMenu}
                     aria-label="Open reference menu"
                 >
-                    <MoreHorizIcon sx={{ fontSize: 18 }} />
+                    <MoreHorizIcon sx={{ fontSize: 12 }} />
                 </IconButton>
             </div>
-            <Menu
+            <ContextMenu
                 anchorEl={menuAnchorEl}
                 open={isMenuOpen}
                 onClose={handleCloseMenu}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                MenuListProps={{
-                    sx: {
-                        py: 0.5,
-                    },
-                }}
-                PaperProps={{
-                    sx: {
-                        minWidth: 176,
-                        borderRadius: 2,
-                        boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
-                        '& .MuiMenuItem-root': {
-                            fontFamily: 'Geist, sans-serif',
-                            fontSize: '13px',
-                            fontWeight: 500,
-                            color: '#164563',
-                            py: 0.75,
-                            px: 1.25,
-                        },
-                    },
-                }}
             >
-                <MenuItem onClick={handleRemoveBookmark}>
-                    <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
-                        <BookmarkIcon sx={{ fontSize: 18 }} />
-                    </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
-                        Remove bookmark
-                    </ListItemText>
-                </MenuItem>
+                <ContextMenuItem icon={<BookmarkIcon />} onClick={handleRemoveBookmark}>
+                    Remove bookmark
+                </ContextMenuItem>
                 {onManageFolders && (
-                    <MenuItem onClick={handleManageFolders}>
-                        <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
-                            <FolderOutlinedIcon sx={{ fontSize: 18 }} />
-                        </ListItemIcon>
-                        <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
-                            Add to folder
-                        </ListItemText>
-                    </MenuItem>
+                    <ContextMenuItem icon={<FolderOutlinedIcon />} onClick={handleManageFolders}>
+                        Add to folder
+                    </ContextMenuItem>
                 )}
-                <MenuItem onClick={handleCite}>
-                    <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
-                        <FormatQuoteOutlinedIcon sx={{ fontSize: 18 }} />
-                    </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
-                        Cite
-                    </ListItemText>
-                </MenuItem>
-            </Menu>
+                <ContextMenuItem icon={<FormatQuoteOutlinedIcon />} onClick={handleCite}>
+                    Cite
+                </ContextMenuItem>
+            </ContextMenu>
         </Box>
     );
 };
@@ -615,10 +549,10 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                             width: 28,
                             height: 28,
                             borderRadius: '8px',
-                            color: '#164563',
+                            color: 'var(--color-text-secondary)',
                         }}
                     >
-                        <MoreHorizIcon sx={{ fontSize: 18 }} />
+                        <MoreHorizIcon sx={{ fontSize: 12 }} />
                     </IconButton>
                 </div>
             </div>
@@ -628,34 +562,13 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
             <div className="library-folder-meta">
                 {folder?.chat_count ?? 0} chats / {folder?.ref_count ?? 0} references
             </div>
-            <Menu
+            <ContextMenu
                 anchorEl={menuAnchorEl}
                 open={isMenuOpen}
                 onClose={handleCloseMenu}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                MenuListProps={{
-                    sx: {
-                        py: 0.5,
-                    },
-                }}
-                PaperProps={{
-                    sx: {
-                        minWidth: 176,
-                        borderRadius: 2,
-                        boxShadow: '0px 4px 6px -2px rgba(16,24,40,0.03), 0px 12px 16px -4px rgba(16,24,40,0.08)',
-                        '& .MuiMenuItem-root': {
-                            fontFamily: 'Geist, sans-serif',
-                            fontSize: '13px',
-                            fontWeight: 500,
-                            color: '#164563',
-                            py: 0.75,
-                            px: 1.25,
-                        },
-                    },
-                }}
             >
-                <MenuItem
+                <ContextMenuItem
+                    icon={<DriveFileRenameOutlineIcon />}
                     onClick={() => {
                         handleCloseMenu();
                         if (onRename) {
@@ -663,14 +576,10 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                         }
                     }}
                 >
-                    <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
-                        <DriveFileRenameOutlineIcon sx={{ fontSize: 18 }} />
-                    </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
-                        Rename
-                    </ListItemText>
-                </MenuItem>
-                <MenuItem
+                    Rename
+                </ContextMenuItem>
+                <ContextMenuItem
+                    icon={<FileCopyOutlinedIcon />}
                     onClick={() => {
                         handleCloseMenu();
                         if (onDuplicate) {
@@ -678,39 +587,21 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                         }
                     }}
                 >
-                    <ListItemIcon sx={{ minWidth: 26, color: '#164563' }}>
-                        <FileCopyOutlinedIcon sx={{ fontSize: 18 }} />
-                    </ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ fontSize: '13px', fontWeight: 500 }}>
-                        Duplicate
-                    </ListItemText>
-                </MenuItem>
-                <MenuItem
+                    Duplicate
+                </ContextMenuItem>
+                <ContextMenuItem
+                    icon={<DeleteOutlineIcon />}
+                    danger
                     onClick={() => {
                         handleCloseMenu();
                         if (onDelete) {
                             onDelete(folder);
                         }
                     }}
-                    sx={{ color: '#B42318 !important' }}
                 >
-                    <ListItemIcon sx={{ minWidth: 26, color: '#B42318' }}>
-                        <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                    </ListItemIcon>
-                    <ListItemText
-                        primaryTypographyProps={{
-                            sx: {
-                                color: '#B42318',
-                                fontFamily: 'Geist, sans-serif',
-                                fontSize: '13px',
-                                fontWeight: 500,
-                            },
-                        }}
-                    >
-                        Delete
-                    </ListItemText>
-                </MenuItem>
-            </Menu>
+                    Delete
+                </ContextMenuItem>
+            </ContextMenu>
         </div>
     );
 };
@@ -1372,7 +1263,7 @@ const Library = () => {
                     style={{
                         width: 16,
                         height: 16,
-                        color: isReferenceExportDisabled ? '#A8B3C8' : '#5E6E87',
+                        color: isReferenceExportDisabled ? 'var(--color-grey-300)' : 'var(--color-text-tertiary)',
                     }}
                 />
             </IconButton>
@@ -1403,7 +1294,9 @@ const Library = () => {
                 <DialogTitle sx={{
                     fontFamily: 'Geist, sans-serif',
                     fontWeight: 600,
-                    fontSize: '18px',
+                    fontSize: '16px',
+                    lineHeight: '26px',
+                    color: 'var(--color-text-primary)',
                 }}>
                     {folderRenameTarget ? 'Rename Folder' : 'New Folder'}
                 </DialogTitle>
@@ -1428,13 +1321,13 @@ const Library = () => {
                     />
                 </DialogContent>
                 <DialogActions>
-                    <MuiButton onClick={handleCloseFolderDialog}>
+                    <MuiButton className="library-dialog-action" onClick={handleCloseFolderDialog}>
                         Cancel
                     </MuiButton>
                     <MuiButton
                         onClick={handleSaveFolderDialog}
                         disabled={folderRenameTarget ? !folderDialogName.trim() : false}
-                        variant="contained"
+                        className="library-dialog-action library-dialog-action--primary"
                     >
                         Save
                     </MuiButton>
@@ -1449,13 +1342,15 @@ const Library = () => {
                 <DialogTitle sx={{
                     fontFamily: 'Geist, sans-serif',
                     fontWeight: 600,
-                    fontSize: '18px',
+                    fontSize: '16px',
+                    lineHeight: '26px',
+                    color: 'var(--color-text-primary)',
                 }}>
                     Manage folders
                 </DialogTitle>
                 <DialogContent>
                     {folders.length === 0 ? (
-                        <Typography sx={{ fontFamily: 'Geist, sans-serif', fontSize: '14px', color: '#646464' }}>
+                        <Typography sx={{ fontFamily: 'Geist, sans-serif', fontSize: '14px', lineHeight: '22px', color: 'var(--color-text-tertiary)' }}>
                             No folders yet. Create one to organize your bookmarks.
                         </Typography>
                     ) : (
@@ -1469,7 +1364,7 @@ const Library = () => {
                                     py: 0.5,
                                 }}
                             >
-                                <Typography sx={{ fontFamily: 'Geist, sans-serif', fontSize: '14px', color: '#164563' }}>
+                                <Typography sx={{ fontFamily: 'Geist, sans-serif', fontSize: '14px', color: 'var(--color-text-secondary)' }}>
                                     {folder.name}
                                 </Typography>
                                 <Checkbox
@@ -1477,19 +1372,19 @@ const Library = () => {
                                     checked={Boolean(folderPickerSelections?.[folder.fid])}
                                     disabled={folderPickerLoading}
                                     onChange={() => handleToggleFolderSelection(folder.fid)}
-                                    sx={{ color: '#155DFC', '&.Mui-checked': { color: '#155DFC' } }}
+                                    sx={{ color: 'var(--color-brand-primary)', '&.Mui-checked': { color: 'var(--color-brand-primary)' } }}
                                 />
                             </Box>
                         ))
                     )}
                 </DialogContent>
                 <DialogActions>
-                    <MuiButton onClick={handleCloseFolderPicker}>
+                    <MuiButton className="library-dialog-action" onClick={handleCloseFolderPicker}>
                         Cancel
                     </MuiButton>
                     <MuiButton
                         onClick={handleSaveFolderAssignments}
-                        variant="contained"
+                        className="library-dialog-action library-dialog-action--primary"
                         disabled={folderPickerLoading || folders.length === 0}
                     >
                         Save
@@ -1505,7 +1400,7 @@ const Library = () => {
                         onClick={() => handleSelectFolder(null)}
                     >
                         <span className="library-folder-manager-icon">
-                            <BookIcon style={{ width: 18, height: 18 }} />
+                            <BookIcon style={{ width: 16, height: 16 }} />
                         </span>
                         <span className="library-folder-manager-label">All Items</span>
                         <span className="library-folder-manager-count">{allItemsCount}</span>
@@ -1534,7 +1429,7 @@ const Library = () => {
                                         onClick={() => handleSelectFolder(folder.fid)}
                                     >
                                         <span className="library-folder-manager-icon">
-                                            <FolderOpenIcon style={{ width: 18, height: 18 }} />
+                                            <FolderOpenIcon style={{ width: 16, height: 16 }} />
                                         </span>
                                         <span className="library-folder-manager-label">{folder?.name || 'Untitled folder'}</span>
                                         <span className="library-folder-manager-count">{getFolderItemCount(folder)}</span>
@@ -1543,6 +1438,16 @@ const Library = () => {
                             ) : (
                                 <div className="library-folder-manager-empty">No folders yet.</div>
                             )}
+                            <button
+                                type="button"
+                                className="library-folder-manager-item library-folder-manager-add"
+                                onClick={() => handleOpenFolderDialog()}
+                            >
+                                <span className="library-folder-manager-icon">
+                                    <AddIcon style={{ width: 16, height: 16 }} />
+                                </span>
+                                <span className="library-folder-manager-label">Add new folder</span>
+                            </button>
                         </div>
                     </Box>
                     </Box>
@@ -1582,7 +1487,7 @@ const Library = () => {
                                 onClick={() => handleSelectFolder(null)}
                             >
                                 <span className="library-folder-manager-icon">
-                                    <BookIcon style={{ width: 18, height: 18 }} />
+                                    <BookIcon style={{ width: 16, height: 16 }} />
                                 </span>
                                 <span className="library-folder-manager-label">All Items</span>
                                 <span className="library-folder-manager-count">{allItemsCount}</span>
@@ -1597,7 +1502,7 @@ const Library = () => {
                                             onClick={() => handleSelectFolder(folder.fid)}
                                         >
                                             <span className="library-folder-manager-icon">
-                                                <FolderOpenIcon style={{ width: 18, height: 18 }} />
+                                                <FolderOpenIcon style={{ width: 16, height: 16 }} />
                                             </span>
                                             <span className="library-folder-manager-label">{folder?.name || 'Untitled folder'}</span>
                                             <span className="library-folder-manager-count">{getFolderItemCount(folder)}</span>
@@ -1639,17 +1544,20 @@ const Library = () => {
                                     onClick={() => setMobileFolderDrawerOpen(true)}
                                 >
                                     <span>{folders.length} folders</span>
-                                    <KeyboardArrowDownIcon sx={{ fontSize: 18 }} />
+                                    <KeyboardArrowDownIcon sx={{ fontSize: 12 }} />
                                 </button>
                             </Box>
                         )}
                         <Box className="library-tabs-row">
-                            <Typography className="library-count">
-                                {activeTab === REFERENCES_TAB
-                                    ? `All References (${visibleReferences.length})`
-                                    : `All Chats (${visibleChats.length})`}
-                            </Typography>
+                            {!isPhoneDevice && (
+                                <Typography className="library-count">
+                                    {activeTab === REFERENCES_TAB
+                                        ? `All References (${visibleReferences.length})`
+                                        : `All Chats (${visibleChats.length})`}
+                                </Typography>
+                            )}
                             <Box className="library-toolbar-actions">
+                                {!isPhoneDevice && (
                                 <div className="library-segmented" role="tablist">
                                     {tabs.map((tab) => (
                                         <button
@@ -1664,6 +1572,7 @@ const Library = () => {
                                         </button>
                                     ))}
                                 </div>
+                                )}
                                 {!isPhoneDevice && librarySortControl}
                             </Box>
                         </Box>
@@ -1675,7 +1584,7 @@ const Library = () => {
                                 name="librarySearch"
                                 value={searchQuery}
                                 onChange={(event) => setSearchQuery(event.target.value)}
-                                placeholder={isFolderView ? 'Search this folder' : 'Search library'}
+                                placeholder={isFolderView ? 'Search this folder...' : 'Search All Items...'}
                                 aria-label={isFolderView ? 'Search this folder' : 'Search library'}
                             />
                             {searchQuery.trim() && (
@@ -1752,19 +1661,15 @@ const Library = () => {
                                                         onMouseEnter={(event) => handleLibraryWrapperHover(event, true)}
                                                         onMouseLeave={(event) => handleLibraryWrapperHover(event, false)}
                                                     >
-                                                        <span className="library-card-icon library-card-icon--chat" aria-hidden="true">
-                                                            <ChatIcon />
-                                                        </span>
                                                         <ConversationCard
                                                             conversation={conversation}
                                                             title={getConversationTitle(conversation)}
-                                                            subtitle={getConversationSubtitle(conversation)}
+                                                            leadingIcon={<ChatIcon />}
                                                             footerContent={(
                                                                 <div className="library-card-meta">
-                                                                    <MetaIcon className="library-card-meta-icon" />
                                                                     <span>{formatRelativeTime(conversation?.updatedAt || conversation?.createdAt)}</span>
-                                                                    <span className="library-card-meta-sep">|</span>
-                                                                    <span>Chat</span>
+                                                                    <span className="library-card-meta-sep">·</span>
+                                                                    <span>{formatMessageCount(conversation)}</span>
                                                                 </div>
                                                             )}
                                                             onOpen={(item) => handleOpenConversation(item.id)}
@@ -1818,11 +1723,9 @@ const Library = () => {
                                                             onMouseEnter={(event) => handleLibraryWrapperHover(event, true)}
                                                             onMouseLeave={(event) => handleLibraryWrapperHover(event, false)}
                                                         >
-                                                            <span className="library-card-icon library-card-icon--graph" aria-hidden="true">
-                                                                <ShareIcon />
-                                                            </span>
                                                             <ConversationCard
                                                                 conversation={graph}
+                                                                leadingIcon={<ShareIcon />}
                                                                 titleContent={(
                                                                     <Box sx={{ flex: 1, minWidth: 0 }}>
                                                                         {graph?.terms?.length ? (
@@ -1854,7 +1757,7 @@ const Library = () => {
                                                                                 fontFamily: 'Geist, sans-serif',
                                                                                 fontWeight: 600,
                                                                                 fontSize: '16px',
-                                                                                color: '#164563',
+                                                                                color: 'var(--color-text-secondary)',
                                                                                 whiteSpace: 'nowrap',
                                                                                 overflow: 'hidden',
                                                                                 textOverflow: 'ellipsis',
@@ -1932,19 +1835,15 @@ const Library = () => {
                                                     onMouseEnter={(event) => handleLibraryWrapperHover(event, true)}
                                                     onMouseLeave={(event) => handleLibraryWrapperHover(event, false)}
                                                 >
-                                                    <span className="library-card-icon library-card-icon--chat" aria-hidden="true">
-                                                        <ChatIcon />
-                                                    </span>
                                                     <ConversationCard
                                                         conversation={conversation}
                                                         title={getConversationTitle(conversation)}
-                                                        subtitle={getConversationSubtitle(conversation)}
+                                                        leadingIcon={<ChatIcon />}
                                                         footerContent={(
                                                             <div className="library-card-meta">
-                                                                <MetaIcon className="library-card-meta-icon" />
                                                                 <span>{formatRelativeTime(conversation?.updatedAt || conversation?.createdAt)}</span>
-                                                                <span className="library-card-meta-sep">|</span>
-                                                                <span>Chat</span>
+                                                                <span className="library-card-meta-sep">·</span>
+                                                                <span>{formatMessageCount(conversation)}</span>
                                                             </div>
                                                         )}
                                                         onOpen={(item) => handleOpenConversation(item.id)}
@@ -1976,11 +1875,9 @@ const Library = () => {
                                                         onMouseEnter={(event) => handleLibraryWrapperHover(event, true)}
                                                         onMouseLeave={(event) => handleLibraryWrapperHover(event, false)}
                                                     >
-                                                        <span className="library-card-icon library-card-icon--graph" aria-hidden="true">
-                                                            <ShareIcon />
-                                                        </span>
                                                         <ConversationCard
                                                             conversation={graph}
+                                                            leadingIcon={<ShareIcon />}
                                                             titleContent={(
                                                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                                                     {graph?.terms?.length ? (
@@ -2012,7 +1909,7 @@ const Library = () => {
                                                                             fontFamily: 'Geist, sans-serif',
                                                                             fontWeight: 600,
                                                                             fontSize: '16px',
-                                                                            color: '#164563',
+                                                                            color: 'var(--color-text-secondary)',
                                                                             whiteSpace: 'nowrap',
                                                                             overflow: 'hidden',
                                                                             textOverflow: 'ellipsis',
@@ -2056,6 +1953,50 @@ const Library = () => {
                             </Typography>
                         )}
                     </Box>
+                    {/* 800:22889 puts the count, the export and the Reference/Chat toggle in a
+                        bar along the bottom on a phone, where a thumb reaches them, rather than
+                        stacked above the list with the search and the sort. */}
+                    {isPhoneDevice && (
+                        <Box className="library-mobile-bar">
+                            <span className="library-mobile-bar-count">
+                                {activeTab === REFERENCES_TAB
+                                    ? `${visibleReferences.length} Items`
+                                    : `${visibleChats.length} Items`}
+                            </span>
+                            <IconButton
+                                size="small"
+                                onClick={handleExportReferences}
+                                disabled={isReferenceExportDisabled}
+                                title="Download references (.bib)"
+                                className="library-mobile-bar-download"
+                            >
+                                <DownloadIcon
+                                    aria-label="Download references"
+                                    style={{
+                                        width: 16,
+                                        height: 16,
+                                        color: isReferenceExportDisabled
+                                            ? 'var(--color-grey-300)'
+                                            : 'var(--color-text-tertiary)',
+                                    }}
+                                />
+                            </IconButton>
+                            <div className="library-segmented" role="tablist">
+                                {tabs.map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        type="button"
+                                        role="tab"
+                                        aria-selected={activeTab === tab.id}
+                                        className={`library-segmented-option${activeTab === tab.id ? ' is-active' : ''}`}
+                                        onClick={() => handleTabClick(tab.id)}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </Box>
+                    )}
                 </Box>
             </Box>
         </div>

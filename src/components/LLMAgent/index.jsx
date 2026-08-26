@@ -6,6 +6,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -15,6 +16,7 @@ import { message } from 'antd';
 import { Helmet } from 'react-helmet-async';
 import ReactMarkdown from 'react-markdown';
 import {
+  Navigate,
   UNSAFE_NavigationContext,
   useLocation,
   useNavigate,
@@ -22,11 +24,13 @@ import {
 import remarkGfm from 'remark-gfm';
 
 import {
+  ArrowForward as ArrowForwardIcon,
   Bookmark as BookmarkIcon,
   BookmarkBorder as BookmarkBorderIcon,
   Check as CheckIcon,
   ChevronRight as ChevronRightIcon,
   Clear as ClearIcon,
+  Close as CloseIcon,
   EditNote as EditNoteIcon,
   ExpandMore as ExpandMoreIcon,
   ScienceOutlined as ScienceOutlinedIcon,
@@ -59,8 +63,12 @@ import {
 
 import { emptyFunnel, mergeFunnel } from './funnel';
 import InvestigateProgress, { formatElapsed } from './InvestigateProgress';
+import ClarifyPanel, { getClarificationQuestionKey } from './ClarifyPanel';
+import ReferenceHoverCard from './ReferenceHoverCard';
+import { getBookmarks, toggleBookmark } from '../../utils/bookmarks';
 import { resolveClarifyRound } from './clarifyRound';
 import { mintSessionId } from './sessionId';
+import { makeDrip } from './streamDrip';
 import { ReactComponent as ContentCopyIcon } from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import { ReactComponent as ReferenceIcon } from '../../img/llm/reference.svg';
@@ -97,6 +105,27 @@ import {
   toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
 import { useAuth } from '../Auth/AuthContext';
+import {
+    NOTIFY_EMAIL_KEY,
+    getNotifyPrefs,
+    getUserNotifyEmail,
+    notifyRunComplete,
+    setNotifyPref,
+    subscribeToNotifyPrefs,
+} from '../../service/notifications';
+import { clearActiveRun, setActiveRun } from '../../service/activeRun';
+import { isInvestigateConversation, markInvestigateConversation } from '../../utils/investigateConversations';
+import { isExchangeUnfinished } from '../../service/resumeRun';
+import {
+    bindMarkersToLinks,
+    citationsFor,
+    hrefWithoutMarker,
+    indexByMarker,
+    markerFromHref,
+    parseDirectCitations,
+    pmidFromHref,
+    stripCitationsBlock,
+} from '../../utils/directCitations';
 import CiteDialog from '../Units/CiteDialog';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import ChatSearchBar from './ChatSearchBar';
@@ -162,7 +191,15 @@ const mergeInvestigateDetail = (prev, next, label) => {
     if (Array.isArray(next.channels) && next.channels.length) {
         const byName = new Map((out.channels || []).map((c) => [c.name, c]));
         next.channels.forEach((c) => {
-            if (c && c.name) byName.set(String(c.name), { name: String(c.name), hits: Number(c.hits) || 0, ok: c.ok !== false });
+            if (!c || !c.name) return;
+            // `pending` = announced but still running. Carried through so the panel can say
+            // "searching…" instead of showing an unfinished probe as a failure.
+            byName.set(String(c.name), {
+                name: String(c.name),
+                hits: Number(c.hits) || 0,
+                ok: c.ok !== false,
+                pending: c.pending === true,
+            });
         });
         out.channels = Array.from(byName.values());
     }
@@ -209,227 +246,6 @@ const formatFunnelValue = (value) => {
     const num = Number(value);
     if (!Number.isFinite(num)) return '—';
     return num.toLocaleString();
-};
-
-const getUserNotifyEmail = () => {
-    try {
-        const user = (typeof getCurrentUser === 'function' ? getCurrentUser() : null)
-            || JSON.parse(localStorage.getItem('user') || 'null');
-        const email = user?.email || user?.mail || '';
-        return typeof email === 'string' ? email.trim() : '';
-    } catch {
-        return '';
-    }
-};
-
-/** Inline clarify panel (Figma "Asking Question") — not a modal. */
-const ClarifyPanel = ({
-    pendingClarification,
-    clarificationDrafts,
-    clarificationError,
-    clarificationSubmitting,
-    hasInvalidOtherSelection,
-    onUpdateDraft,
-    onSubmit,
-    onSkip,
-}) => {
-    if (!pendingClarification) return null;
-
-    return (
-        <Box className="clarify-inline-panel" role="region" aria-label="Clarifying questions">
-            <Box className="clarify-inline-head">
-                <Typography className="clarify-inline-kicker">Asking user question...</Typography>
-                <Typography className="clarify-inline-title">Clarify your research scope</Typography>
-                {pendingClarification.reason ? (
-                    <Typography className="clarify-inline-reason">{pendingClarification.reason}</Typography>
-                ) : (
-                    <Typography className="clarify-inline-reason">
-                        Answering these helps the agent narrow evidence and improve citation quality.
-                    </Typography>
-                )}
-            </Box>
-
-            <Stack spacing={1.5} className="clarify-inline-questions">
-                {(pendingClarification.questions || []).map((question, index) => {
-                    const questionKey = getClarificationQuestionKey(question, index);
-                    const draft = clarificationDrafts[questionKey] || { selected: [], text: '', otherSelected: false };
-                    const selected = Array.isArray(draft.selected) ? draft.selected : [];
-                    const otherText = typeof draft.text === 'string' ? draft.text : '';
-                    const responseType = String(question?.response_type || 'text').toLowerCase();
-                    const options = Array.isArray(question?.options) ? question.options : [];
-                    const radioValue = draft.otherSelected ? '__other__' : (selected[0] || '');
-
-                    return (
-                        <Box key={questionKey} className="clarify-inline-card">
-                            <Typography className="clarify-inline-header">
-                                {question?.header || `Question ${index + 1}`}
-                            </Typography>
-                            <Typography className="clarify-inline-question">
-                                {question?.question || ''}
-                            </Typography>
-
-                            {responseType === 'single' && (
-                                <>
-                                    <RadioGroup
-                                        value={radioValue}
-                                        onChange={(event) => {
-                                            const nextValue = event.target.value;
-                                            if (nextValue === '__other__') {
-                                                onUpdateDraft(questionKey, {
-                                                    selected: [],
-                                                    text: otherText,
-                                                    otherSelected: true,
-                                                });
-                                                return;
-                                            }
-                                            onUpdateDraft(questionKey, {
-                                                selected: nextValue ? [nextValue] : [],
-                                                text: '',
-                                                otherSelected: false,
-                                            });
-                                        }}
-                                    >
-                                        {options.map((option) => {
-                                            const optionLabel = String(option?.label || '').trim();
-                                            if (!optionLabel) return null;
-                                            return (
-                                                <FormControlLabel
-                                                    key={optionLabel}
-                                                    value={optionLabel}
-                                                    control={<Radio size="small" />}
-                                                    label={option?.description || optionLabel}
-                                                />
-                                            );
-                                        })}
-                                        <FormControlLabel value="__other__" control={<Radio size="small" />} label="Other" />
-                                    </RadioGroup>
-                                    <TextField
-                                        fullWidth
-                                        size="small"
-                                        placeholder="Type your answer here"
-                                        value={otherText}
-                                        onChange={(event) => {
-                                            onUpdateDraft(questionKey, {
-                                                selected: [],
-                                                text: event.target.value,
-                                                otherSelected: true,
-                                            });
-                                        }}
-                                        sx={{ mt: 1 }}
-                                    />
-                                </>
-                            )}
-
-                            {responseType === 'multi' && (
-                                <>
-                                    <Stack spacing={0.5}>
-                                        {options.map((option) => {
-                                            const optionLabel = String(option?.label || '').trim();
-                                            if (!optionLabel) return null;
-                                            const checked = selected.includes(optionLabel);
-                                            return (
-                                                <FormControlLabel
-                                                    key={optionLabel}
-                                                    control={(
-                                                        <Checkbox
-                                                            size="small"
-                                                            checked={checked}
-                                                            onChange={(event) => {
-                                                                const nextSelected = event.target.checked
-                                                                    ? [...selected, optionLabel]
-                                                                    : selected.filter((item) => item !== optionLabel);
-                                                                onUpdateDraft(questionKey, {
-                                                                    selected: Array.from(new Set(nextSelected)),
-                                                                    text: otherText,
-                                                                });
-                                                            }}
-                                                        />
-                                                    )}
-                                                    label={option?.description || optionLabel}
-                                                />
-                                            );
-                                        })}
-                                    </Stack>
-                                    <TextField
-                                        fullWidth
-                                        size="small"
-                                        placeholder="Optional additional context"
-                                        value={otherText}
-                                        onChange={(event) => {
-                                            onUpdateDraft(questionKey, {
-                                                selected,
-                                                text: event.target.value,
-                                            });
-                                        }}
-                                        sx={{ mt: 1 }}
-                                    />
-                                </>
-                            )}
-
-                            {responseType === 'text' && (
-                                <TextField
-                                    fullWidth
-                                    size="small"
-                                    placeholder="Type your answer here"
-                                    value={otherText}
-                                    onChange={(event) => {
-                                        onUpdateDraft(questionKey, {
-                                            selected: [],
-                                            text: event.target.value,
-                                        });
-                                    }}
-                                />
-                            )}
-                        </Box>
-                    );
-                })}
-            </Stack>
-
-            {clarificationError && (
-                <Typography className="clarify-inline-error">{clarificationError}</Typography>
-            )}
-
-            <Box className="clarify-inline-actions">
-                <MuiButton
-                    disabled={clarificationSubmitting}
-                    onClick={() => onSkip?.()}
-                    className="clarify-inline-skip"
-                    sx={{
-                        borderRadius: '10px',
-                        border: '1px solid #CBD5E1',
-                        textTransform: 'none',
-                        fontFamily: 'DM Sans, sans-serif',
-                        color: '#46566C',
-                    }}
-                >
-                    Skip
-                </MuiButton>
-                <MuiButton
-                    disabled={clarificationSubmitting || hasInvalidOtherSelection}
-                    onClick={() => onSubmit?.()}
-                    sx={{
-                        borderRadius: '10px',
-                        border: '1px solid #155DFC',
-                        backgroundColor: '#155DFC',
-                        textTransform: 'none',
-                        fontFamily: 'DM Sans, sans-serif',
-                        color: '#FFFFFF',
-                        '&:hover': {
-                            backgroundColor: '#0A47D6',
-                            borderColor: '#0A47D6',
-                        },
-                    }}
-                >
-                    {clarificationSubmitting ? 'Submitting...' : 'Submit'}
-                </MuiButton>
-            </Box>
-        </Box>
-    );
-};
-
-const getClarificationQuestionKey = (question, index) => {
-    const raw = typeof question?.header === 'string' ? question.header.trim() : '';
-    return raw || `question-${index}`;
 };
 
 const buildClarificationDrafts = (questions) => {
@@ -561,6 +377,14 @@ const setStoredSessionId = (historyId, sessionId) => {
 };
 
 const STEP_LABELS = stepLabels || {};
+
+// Reattaching to a run left behind by a reload. An investigate run can take fifteen minutes, so
+// the cap is generous on purpose: giving up early is the expensive mistake here — it turns an
+// answer that is still coming into a message that says it is gone.
+const RESUME_POLL_MS = 3000;
+const RESUME_MAX_POLLS = 300;      // 15 minutes
+const RESUME_LOST_MESSAGE =
+    'This answer could not be recovered after the page was reloaded. Please ask again.';
 const PUBMED_ESUMMARY_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi';
 const PLACEHOLDER_PMID_PREFIX = 'PMID ';
 
@@ -761,23 +585,27 @@ const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
                 {(tool || summary) && (
                     <Typography
                         sx={{
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontSize: '16px',
+                            /* body-sm. This is what a step did, not what the answer says, and
+                               it was set at 16 — larger than the answer's own 14, and larger
+                               than the 12 the streaming lines beside it use. The rest of the
+                               app left DM Sans behind too. */
+                            fontFamily: 'Geist, sans-serif',
+                            fontSize: '12px',
                             fontWeight: 400,
-                            color: '#5E6E87',
+                            color: 'var(--color-text-tertiary)',
                             whiteSpace: 'pre-wrap',
-                            lineHeight: 1.5,
+                            lineHeight: '20px',
                         }}
                     >
                         {tool && (
                             <Box
                                 component="span"
                                 sx={{
-                                    fontFamily: 'DM Sans, sans-serif',
-                                    fontSize: '16px',
-                                    fontWeight: 800,
+                                    fontFamily: 'Geist, sans-serif',
+                                    fontSize: '12px',
+                                    fontWeight: 600,
                                     textTransform: 'uppercase',
-                                    color: '#7A7A7A',
+                                    color: 'var(--color-text-tertiary)',
                                     marginRight: '6px',
                                 }}
                             >
@@ -790,12 +618,12 @@ const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
                 {result && (
                     <Typography
                         sx={{
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontSize: '16px',
+                            fontFamily: 'Geist, sans-serif',
+                            fontSize: '12px',
                             fontWeight: 400,
-                            color: '#5E6E87',
+                            color: 'var(--color-text-tertiary)',
                             whiteSpace: 'pre-wrap',
-                            lineHeight: 1.5,
+                            lineHeight: '20px',
                         }}
                     >
                         {result}
@@ -808,10 +636,11 @@ const ThoughtLine = React.memo(function ThoughtLine({ line, lineKey }) {
     return (
         <Typography
             sx={{
-                fontFamily: 'DM Sans, sans-serif',
+                fontFamily: 'Geist, sans-serif',
                 fontSize: '12px',
                 fontWeight: 400,
-                color: '#8090AB',
+                lineHeight: '20px',
+                color: 'var(--color-grey-400)',
                 whiteSpace: 'pre-wrap',
             }}
             data-line-key={lineKey}
@@ -861,7 +690,7 @@ const ThoughtGroup = React.memo(
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '16px',
                         fontWeight: 400,
-                        color: '#5E6E87',
+                        color: 'var(--color-text-tertiary)',
                     }}>
                         {getStepLabel(group.name)}
                     </Typography>
@@ -869,8 +698,8 @@ const ThoughtGroup = React.memo(
                         <ExpandMoreIcon
                             className="thought-step-arrow"
                             sx={{
-                                fontSize: '18px',
-                                color: '#8A8A8A',
+                                fontSize: '16px',
+                                color: 'var(--color-grey-400)',
                                 opacity: 0,
                                 transition: 'opacity 0.2s ease, transform 0.2s ease',
                                 transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -884,7 +713,7 @@ const ThoughtGroup = React.memo(
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '4px',
-                        borderLeft: showBorder ? '2px solid #D9D9D9' : 'none',
+                        borderLeft: showBorder ? '2px solid var(--color-border-strong)' : 'none',
                         pl: showBorder ? '10px' : '0px',
                         ml: showBorder ? 2 : '0px',
                     }}>
@@ -910,6 +739,12 @@ const ThoughtGroup = React.memo(
 const parseThinkingEntry = (entry) => {
     const stepFromEntry = typeof entry?.step === 'string' ? entry.step.trim() : '';
     const raw = entry?.content ?? '';
+    // A run of text the model streamed before a tool call — its own narration on the way to
+    // the next step, not the answer. There is no transport tag to parse: the content IS the
+    // line, and the heading is fixed so consecutive narrations collapse into one group.
+    if (entry?.isThought) {
+        return { stepName: 'Thinking', line: raw };
+    }
     const trimmed = raw.trim();
     if (!trimmed) {
         return { stepName: stepFromEntry || 'Step', line: raw };
@@ -1057,6 +892,9 @@ const trajectoryToGroups = (trajectory) => {
  * would be a lie about what the panel knows.
  */
 const REFERENCE_SKELETON_CARDS = 6;
+// Figma 44:4744 draws five bars per card; their widths are set positionally in scoped.css so the
+// markup stays a plain list and the design's 80/232/200/180/160 ladder lives in one place.
+const REFERENCE_SKELETON_BARS = 5;
 
 const ReferencesSkeleton = () => (
     <div className="references-list ref-skeleton" aria-hidden="true">
@@ -1066,10 +904,9 @@ const ReferencesSkeleton = () => (
                 key={`ref-skeleton-${i}`}
                 style={{ animationDelay: `${(i * 1.6) / REFERENCE_SKELETON_CARDS}s` }}
             >
-                <span className="ref-skeleton-bar short" />
-                <span className="ref-skeleton-bar" />
-                <span className="ref-skeleton-bar" />
-                <span className="ref-skeleton-bar medium" />
+                {Array.from({ length: REFERENCE_SKELETON_BARS }).map((__, j) => (
+                    <span className="ref-skeleton-bar" key={`ref-skeleton-${i}-${j}`} />
+                ))}
             </div>
         ))}
     </div>
@@ -1085,6 +922,58 @@ const stripUnresolvedCitations = (content) => {
     return content.replace(UNRESOLVED_CITATION_TOKEN, '');
 };
 
+// The tail of a streamed answer is a sentence caught mid-word, and markdown does not degrade
+// gracefully when you cut it there: half of `[38743124](https://…` renders as literal text, and
+// `## Citation` renders as a heading that vanishes a chunk later. Both flicker, and neither is in
+// the finished answer. They are removed while the text is still arriving and left alone once it
+// is final, so what the reader sees only ever grows.
+const PARTIAL_CITATIONS_HEADING = /\n+#{1,6}[ \t]*c(i(t(a(t(i(o(n(s)?)?)?)?)?)?)?)?[ \t]*$/i;
+const UNCLOSED_LINK = /\[[^\]\n]*\][ \t]*\([^)\n]*$/;
+const UNCLOSED_BRACKET = /\[[^\]\n]*$/;
+
+const tidyStreamingText = (content) => {
+    if (typeof content !== 'string' || !content) return content;
+    return content
+        .replace(PARTIAL_CITATIONS_HEADING, '')
+        .replace(UNCLOSED_LINK, '')
+        .replace(UNCLOSED_BRACKET, '');
+};
+
+const rafSchedule = (fn) => (
+    typeof requestAnimationFrame === 'function' ? requestAnimationFrame(fn) : setTimeout(fn, 33)
+);
+const rafCancel = (id) => {
+    if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(id);
+    else clearTimeout(id);
+};
+
+/**
+ * A callback whose identity never changes but which always calls the latest closure.
+ *
+ * `MessageCard` is memoised, and six of the handlers it takes were re-created on every
+ * render — which defeated the memo for EVERY card, so a single streamed chunk re-parsed
+ * the markdown of every answer in the conversation, not just the one being written.
+ */
+const useStableCallback = (fn) => {
+    const ref = useRef(fn);
+    useLayoutEffect(() => { ref.current = fn; });
+    return useCallback((...args) => ref.current?.(...args), []);
+};
+
+// Stable placeholders for the live-run props, which only the streaming card ever reads
+// (every use inside MessageCard is behind `isLoading`). Passing the live values to the
+// settled cards as well changed their props on every frame and re-rendered them for nothing.
+// How far from the bottom the reader may be before auto-follow stops chasing them.
+const AUTO_FOLLOW_SLACK_PX = 80;
+// The conversation is mirrored into sessionStorage for a reload mid-answer; it does not need
+// to be written once per streamed chunk.
+const CHAT_PERSIST_DEBOUNCE_MS = 400;
+
+const NO_GROUPS = [];
+const NO_KEYWORDS = [];
+const NO_PAPERS = [];
+const NO_DETAIL = {};
+
 const MessageCard = React.memo(function MessageCard({
     index,
     message,
@@ -1092,6 +981,7 @@ const MessageCard = React.memo(function MessageCard({
     isProcessing,
     streamingGroups,
     streamingStepName,
+    preamble,
     investigatePhase,
     investigateFunnel,
     investigateStartedAt,
@@ -1099,10 +989,6 @@ const MessageCard = React.memo(function MessageCard({
     investigateKeywords,
     investigatePapers,
     investigateDetail,
-    thinkingStepsVersion,
-    liveThinkingStepsRef,
-    notifyEmailEnabled,
-    onToggleNotifyEmail,
     pendingClarification,
     clarificationDrafts,
     clarificationError,
@@ -1124,14 +1010,100 @@ const MessageCard = React.memo(function MessageCard({
     const isLastUserMessage = index === totalMessages - 1 && message.role === 'assistant';
     const isLoading = isProcessing && isLastUserMessage;
     const messageID = index;
+    /* Each chip is bound to one passage, so a paper cited twice for two different sentences
+       shows two different quotes. The binding rides on the link as a `#cN` fragment — see
+       utils/directCitations — which is why every read of a citation href goes through
+       pmidFromHref rather than splitting on '/'. */
+    const directCitations = useMemo(
+        () => citationsFor(message.directCitations, message.content),
+        [message.directCitations, message.content],
+    );
+    const citationsByMarker = useMemo(() => indexByMarker(directCitations), [directCitations]);
+
+    // While the answer is still streaming there are no `references` yet, so every citation fell
+    // through to its raw PMID and then snapped to a small number when the Complete frame landed —
+    // the most visible way the streamed text differed from the finished one. The backend numbers
+    // references by order of first appearance in the answer, so reading that same order off the
+    // text already on screen gives each citation the number it is about to be given.
+    // (With an active `ranking_mode` the backend reranks afterwards, so a number can still change
+    // once — a far smaller change than an eight-digit PMID becoming a 1.)
+    const streamingNumberByPmid = useMemo(() => {
+        if ((message.references || []).length) return null;
+        const order = new Map();
+        const text = String(message.content || '');
+        for (const match of text.matchAll(/pubmed\.ncbi\.nlm\.nih\.gov\/(\d+)/g)) {
+            if (!order.has(match[1])) order.set(match[1], order.size + 1);
+        }
+        return order;
+    }, [message.references, message.content]);
+
     const getReferenceNumber = (href) => {
-        const pmid = String(href || '').split('/').filter(Boolean).pop();
+        const pmid = pmidFromHref(href);
         const referenceIndex = (message.references || []).findIndex(
             (reference) => extractPmidFromReference(reference) === pmid
         );
-        return referenceIndex >= 0 ? referenceIndex + 1 : null;
+        if (referenceIndex >= 0) return referenceIndex + 1;
+        return streamingNumberByPmid?.get(pmid) ?? null;
     };
     const allowUserEdit = true;
+
+    /**
+     * Reference hover card (Figma "Reference - Hover Preview"). Replaces the browser's native
+     * `title` tooltip on a citation, which could only show one unstyled string and never said
+     * which paper the quote came from.
+     *
+     * The close is delayed because the card is a hover target itself — Full Text and the bookmark
+     * are only reachable if moving the pointer off the citation and onto the card does not dismiss
+     * it on the way across the gap.
+     */
+    const [hoverCard, setHoverCard] = useState(null);
+    const [bookmarkedPmids, setBookmarkedPmids] = useState(() => new Set());
+    const hoverCloseTimer = useRef(null);
+
+    const cancelHoverClose = () => {
+        if (hoverCloseTimer.current) {
+            clearTimeout(hoverCloseTimer.current);
+            hoverCloseTimer.current = null;
+        }
+    };
+
+    const showReferenceCard = (href, element) => {
+        cancelHoverClose();
+        const pmid = pmidFromHref(href);
+        const reference = (message.references || []).find(
+            (item) => extractPmidFromReference(item) === pmid,
+        );
+        if (!reference || !element) return;
+        setHoverCard({
+            reference,
+            number: getReferenceNumber(href),
+            rect: element.getBoundingClientRect(),
+            // The passage this particular chip rests on, when the answer bound one.
+            // Without it the card falls back to the reference's own evidence, which is
+            // the same blob for every chip that cites the paper.
+            citation: citationsByMarker.get(markerFromHref(href)) || null,
+        });
+    };
+
+    const hideReferenceCard = () => {
+        cancelHoverClose();
+        hoverCloseTimer.current = setTimeout(() => setHoverCard(null), 160);
+    };
+
+    useEffect(() => () => cancelHoverClose(), []);
+
+    useEffect(() => {
+        const sync = (event) => {
+            const list = event?.detail || getBookmarks();
+            setBookmarkedPmids(new Set(
+                (Array.isArray(list) ? list : []).map((item) => String(item.id ?? item.pmid ?? '')),
+            ));
+        };
+        sync();
+        window.addEventListener('glkb-bookmarks-updated', sync);
+        return () => window.removeEventListener('glkb-bookmarks-updated', sync);
+    }, []);
+
     const [editContent, setEditContent] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [expandedGroups, setExpandedGroups] = useState({});
@@ -1342,20 +1314,30 @@ const MessageCard = React.memo(function MessageCard({
             <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: "5px", justifyContent: "flex-end" }}>
                 <Box
                     sx={{
-                        bgcolor: isAssistant ? "transparent" : "#E5E9F0", // Different background colors
+                        bgcolor: isAssistant ? "transparent" : "var(--color-background-muted)",
                         boxShadow: "none",
-                        maxWidth: isAssistant ? "100%" : "80%", // Adjust max width for assistant messages
+                        /* 45:1176/1177 — the question is a background/muted bubble at radius/2,
+                           8 by 16, holding body-lg, and its text is capped at 560 rather than at
+                           a fraction of the column. 80% of a wide column is a very long line to
+                           read; 560 is the measure the frame sets. */
+                        maxWidth: isAssistant ? "100%" : "560px",
                         width: isAssistant ? "100%" : "auto",
                         display: "flex",
                         alignItems: "flex-start",
-                        // The user bubble keeps even padding on every side per the design spec.
                         px: isAssistant ? "0px" : "16px",
-                        pt: isAssistant ? "12px" : "12px",
-                        pb: isAssistant ? "24px" : "12px",
-                        // border: isAssistant ? "1px solid" : "none",
+                        pt: isAssistant ? "12px" : "8px",
+                        pb: isAssistant ? "24px" : "8px",
                         borderColor: "divider",
-                        borderRadius: isAssistant ? "24px" : "16px",
-                        flex: 1, // Occupy maximum width
+                        borderRadius: isAssistant ? "24px" : "var(--radius-2, 8px)",
+                        ...(isAssistant ? {} : {
+                            fontSize: "16px",
+                            fontWeight: 400,
+                            lineHeight: "26px",
+                            color: "var(--color-text-secondary)",
+                        }),
+                        // The assistant fills the column; the user bubble hugs its
+                        // text, so a one-line question is a one-line-wide box.
+                        flex: isAssistant ? 1 : "0 1 auto",
                     }}
                 >
                     <Box sx={{ flex: 1, maxWidth: "100%" }}>
@@ -1415,21 +1397,6 @@ const MessageCard = React.memo(function MessageCard({
                                 done={resolvedPhase === 'summary'}
                                 expanded={investigateExpanded}
                                 onToggleExpanded={() => setInvestigateExpanded((prev) => !prev)}
-                                notifyEmailEnabled={notifyEmailEnabled}
-                                onToggleNotifyEmail={onToggleNotifyEmail}
-                            />
-                        )}
-
-                        {showInvestigateProgress && pendingClarification && (
-                            <ClarifyPanel
-                                pendingClarification={pendingClarification}
-                                clarificationDrafts={clarificationDrafts}
-                                clarificationError={clarificationError}
-                                clarificationSubmitting={clarificationSubmitting}
-                                hasInvalidOtherSelection={hasInvalidOtherSelection}
-                                onUpdateDraft={onUpdateClarificationDraft}
-                                onSubmit={() => onSubmitClarification?.({ useDefaults: false })}
-                                onSkip={() => onSkipClarification?.({ useDefaults: true })}
                             />
                         )}
 
@@ -1475,7 +1442,7 @@ const MessageCard = React.memo(function MessageCard({
                                             fontFamily: 'DM Sans, sans-serif',
                                             fontSize: '16px',
                                             fontWeight: isLoading ? 400 : 600,
-                                            color: isLoading ? 'transparent' : '#5E6E87',
+                                            color: isLoading ? 'transparent' : 'var(--color-text-tertiary)',
                                             WebkitTextFillColor: isLoading ? 'transparent' : undefined,
                                         }}
                                     >
@@ -1485,7 +1452,7 @@ const MessageCard = React.memo(function MessageCard({
                                         <ExpandMoreIcon
                                             sx={{
                                                 fontSize: '16px',
-                                                color: '#5E6E87',
+                                                color: 'var(--color-text-tertiary)',
                                                 transform: thoughtsExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                                                 transition: 'transform 0.2s ease',
                                             }}
@@ -1495,13 +1462,37 @@ const MessageCard = React.memo(function MessageCard({
                             </Box>
                         )}
 
+                        {/* The opening line, while the run is still going. It cannot live in the
+                            group list below: that list is gated on `!isLoading`, so every thought
+                            group is drawn only after the answer has landed, and during the run the
+                            panel is one animated status line. This is the one thing that has to be
+                            readable DURING the wait, so it gets its own slot. */}
+                        {isAssistant && isLoading && preamble && (
+                            <Box sx={{
+                                mt: '6px',
+                                ml: 1,
+                                pl: '10px',
+                                borderLeft: '2px solid var(--color-border-default)',
+                            }}>
+                                <Typography sx={{
+                                    fontFamily: 'DM Sans, sans-serif',
+                                    fontSize: '14px',
+                                    fontWeight: 400,
+                                    lineHeight: 1.5,
+                                    color: 'var(--color-text-tertiary)',
+                                }}>
+                                    {preamble}
+                                </Typography>
+                            </Box>
+                        )}
+
                         {isAssistant && !isLoading && thoughtsExpanded && hasDisplayGroups && (
                             <Box sx={{
                                 mt: '6px',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 gap: '0px',
-                                borderLeft: '2px solid #E6E6E6',
+                                borderLeft: '2px solid var(--color-border-default)',
                                 pl: '4px',
                                 ml: 1,
                             }}>
@@ -1519,11 +1510,15 @@ const MessageCard = React.memo(function MessageCard({
                             </Box>
                         )}
 
-                        <Box mt={1}>
+                        {/* Separates the body from the investigate summary and thinking rows
+                            above it. The user bubble has none of those, so on that side the
+                            margin was just 8px of dead space above the text — 20px above it
+                            against 12px below, inside padding that is 12px on both sides. */}
+                        <Box mt={isAssistant ? 1 : 0}>
                             {showReloadInMessage ? (
                                 <Box
                                     sx={{
-                                        backgroundColor: '#F2F4F8',
+                                        backgroundColor: 'var(--color-background-subtle)',
                                         borderRadius: '8px',
                                         padding: '6px 8px',
                                         display: 'flex',
@@ -1537,7 +1532,7 @@ const MessageCard = React.memo(function MessageCard({
                                             fontFamily: 'DM Sans, sans-serif',
                                             fontSize: '12px',
                                             fontWeight: 500,
-                                            color: '#5E6E87',
+                                            color: 'var(--color-text-tertiary)',
                                         }}
                                     >
                                         Response interrupted. Reload latest message.
@@ -1554,18 +1549,27 @@ const MessageCard = React.memo(function MessageCard({
                                             minHeight: '28px',
                                             padding: '2px 8px',
                                             borderRadius: '8px',
-                                            borderColor: '#CBD2E0',
-                                            color: '#5E6E87',
+                                            borderColor: 'var(--color-border-strong)',
+                                            color: 'var(--color-text-tertiary)',
                                             '&:hover': {
-                                                borderColor: '#A8B3C8',
-                                                backgroundColor: '#E5E9F0',
+                                                borderColor: 'var(--color-grey-300)',
+                                                backgroundColor: 'var(--color-background-muted)',
                                             },
                                         }}
                                     >
                                         Reload
                                     </MuiButton>
                                 </Box>
-                            ) : isLoading ? null :
+                            ) : (
+                                // While the run is in flight this used to render `null`
+                                // unconditionally, so the answer could only appear once
+                                // `isProcessing` went false — which is why streaming it made no
+                                // visible difference: the text was in state, and the body was
+                                // not being drawn. It stays hidden only until there is text to
+                                // show, so a deep-research turn (no Delta frames, content empty
+                                // until the end) looks exactly as it did before.
+                                isLoading && !message.content
+                            ) ? null :
                                 isEditing ?
                                     <TextField
                                         hiddenLabel
@@ -1577,23 +1581,78 @@ const MessageCard = React.memo(function MessageCard({
                                         sx={{ flex: 1, width: "100%" }}
                                         onChange={(event) => setEditContent(event.target.value)}
                                     /> : (
-                                        <div className="markdown-body" style={{ fontFamily: 'Geist, sans-serif' }}>
+                                        <div className="markdown-body">
                                             <ReactMarkdown
                                                 remarkPlugins={[remarkGfm]}
                                                 components={{
-                                                    a: ({ href, children, ...props }) => {
+                                                    a: ({ href, children, title, ...props }) => {
                                                         const isPubMedReference = href?.includes('pubmed.ncbi.nlm.nih.gov');
                                                         const referenceNumber = isPubMedReference ? getReferenceNumber(href) : null;
+                                                        if (!isPubMedReference) {
+                                                            return <a href={href} title={title} {...props}>{children}</a>;
+                                                        }
+                                                        // The marker is ours; PubMed should not be sent it.
+                                                        const linkHref = hrefWithoutMarker(href);
+                                                        // `title` is dropped on purpose: the agent puts the evidence
+                                                        // sentence there, and leaving it would show the browser's own
+                                                        // tooltip on top of the card that now presents the same quote
+                                                        // with the paper it came from.
                                                         return (
-                                                            <a href={href} {...props}>
+                                                            <a
+                                                                href={linkHref}
+                                                                {...props}
+                                                                onMouseEnter={(event) => showReferenceCard(href, event.currentTarget)}
+                                                                onMouseLeave={hideReferenceCard}
+                                                                onFocus={(event) => showReferenceCard(href, event.currentTarget)}
+                                                                onBlur={hideReferenceCard}
+                                                            >
                                                                 <span className="inline-citation-number">{referenceNumber || children}</span>
                                                             </a>
                                                         );
                                                     },
                                                 }}
                                             >
-                                                {stripUnresolvedCitations(message.content)}
+                                                {stripUnresolvedCitations(
+                                                    bindMarkersToLinks(
+                                                        stripCitationsBlock(
+                                                            isLoading
+                                                                ? tidyStreamingText(message.content)
+                                                                : message.content,
+                                                        ),
+                                                        citationsByMarker,
+                                                    ),
+                                                )}
                                             </ReactMarkdown>
+                                            {hoverCard && (
+                                                <ReferenceHoverCard
+                                                    reference={hoverCard.reference}
+                                                    citation={hoverCard.citation}
+                                                    number={hoverCard.number}
+                                                    anchorRect={hoverCard.rect}
+                                                    isBookmarked={bookmarkedPmids.has(
+                                                        String(extractPmidFromReference(hoverCard.reference)),
+                                                    )}
+                                                    onMouseEnter={cancelHoverClose}
+                                                    onMouseLeave={hideReferenceCard}
+                                                    onBookmark={(event) => {
+                                                        event.preventDefault();
+                                                        event.stopPropagation();
+                                                        const pmid = extractPmidFromReference(hoverCard.reference);
+                                                        toggleBookmark({ ...hoverCard.reference, pmid })
+                                                            .then((next) => window.dispatchEvent(new CustomEvent(
+                                                                'glkb-bookmarks-updated', { detail: next },
+                                                            )))
+                                                            .catch(() => {});
+                                                    }}
+                                                    onCite={(event) => {
+                                                        event.preventDefault();
+                                                        event.stopPropagation();
+                                                        copy(`[${hoverCard.number}] ${hoverCard.reference.title || ''} `
+                                                            + `PMID: ${extractPmidFromReference(hoverCard.reference)}`);
+                                                    }}
+                                                    onFullText={() => setHoverCard(null)}
+                                                />
+                                            )}
                                         </div>
                                     )}
                         </Box>
@@ -1607,7 +1666,7 @@ const MessageCard = React.memo(function MessageCard({
                                         title="Copy response"
                                         aria-label="Copy response"
                                     >
-                                        <ContentCopyIcon style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }} />
+                                        <ContentCopyIcon style={{ width: '16px', height: '16px', display: 'block', color: 'var(--color-grey-400)' }} />
                                     </IconButton>
                                 )}
                                 {allowResponseRefresh && isLastUserMessage && !isLoading && (
@@ -1616,13 +1675,13 @@ const MessageCard = React.memo(function MessageCard({
                                         onClick={() => refresh(null, index)}
                                         title="Regenerate response"
                                     >
-                                        <ReplayIcon style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }} />
+                                        <ReplayIcon style={{ width: '16px', height: '16px', display: 'block', color: 'var(--color-grey-400)' }} />
                                     </IconButton>
                                 )}
                                 {!isLoading && <IconButton size="small" onClick={() => downloadConversation(messageID)} title="Download this Q&A">
                                     <DownloadIcon
                                         aria-label="Download"
-                                        style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }}
+                                        style={{ width: '16px', height: '16px', display: 'block', color: 'var(--color-grey-400)' }}
                                     />
                                 </IconButton>}
                                 {!isLoading && (
@@ -1631,7 +1690,7 @@ const MessageCard = React.memo(function MessageCard({
                                         onClick={onOpenFeedback}
                                         title="Share feedback"
                                     >
-                                        <ThumbsUpDownIcon style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }} />
+                                        <ThumbsUpDownIcon style={{ width: '16px', height: '16px', display: 'block', color: 'var(--color-grey-400)' }} />
                                     </IconButton>
                                 )}
                             </Stack>
@@ -1669,7 +1728,7 @@ const MessageCard = React.memo(function MessageCard({
                                 title="Copy message"
                                 aria-label="Copy message"
                             >
-                                <ContentCopyIcon style={{ width: '16px', height: '16px', display: 'block', color: '#8090AB' }} />
+                                <ContentCopyIcon style={{ width: '16px', height: '16px', display: 'block', color: 'var(--color-grey-400)' }} />
                             </IconButton>
                             {allowUserEdit && (
                                 <IconButton
@@ -1696,6 +1755,22 @@ const MessageCard = React.memo(function MessageCard({
 function LLMAgent() {
     const location = useLocation();
     const [userInput, setUserInput] = useState('');
+    /**
+     * Follow-ups typed while an answer is still being written.
+     *
+     * The bar used to go dead for the length of a run — measured on live runs, 19 to 68 seconds
+     * — so a question that occurred to the reader mid-answer had to be held in their head until
+     * the page let them type it. Sending it immediately is not an option either: the agent is
+     * mid-stream and a second turn on the same conversation would race the first. So it is
+     * queued: the text leaves the reader's hands at once, and the run that carries it starts
+     * when the current one ends.
+     *
+     * A list rather than a single slot — someone who thinks of two things should not have to
+     * wait for the first to be answered before writing the second. They go out one at a time,
+     * oldest first, each waiting for the previous answer.
+     */
+    const [queuedPrompts, setQueuedPrompts] = useState([]);
+    const queueSeqRef = useRef(0);
     const [chatHistory, setChatHistory] = useState(() => {
         const initialQuery = location.state?.initialQuery;
         if (initialQuery) {
@@ -1712,6 +1787,10 @@ function LLMAgent() {
     const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [streamingGroups, setStreamingGroups] = useState([]);
+    // The cheap-tier opening line as it streams. Held as STATE, not only in the thought refs:
+    // the thought list is not rendered at all while `isLoading`, so a ref that only feeds it
+    // cannot put anything on screen during the wait this line exists to fill.
+    const [preambleText, setPreambleText] = useState('');
     const [streamingStepName, setStreamingStepName] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [leftPaneWidth, setLeftPaneWidth] = useState(66);
@@ -1728,7 +1807,6 @@ function LLMAgent() {
     const [showReloadPrompt, setShowReloadPrompt] = useState(
         () => getStoredProcessingFlag() || getStoredIncompleteFlag()
     );
-    const [showLeaveConfirmDialog, setShowLeaveConfirmDialog] = useState(false);
     const [feedbackOpen, setFeedbackOpen] = useState(false);
     const [feedbackRating, setFeedbackRating] = useState(0);
     const [feedbackText, setFeedbackText] = useState('');
@@ -1753,14 +1831,13 @@ function LLMAgent() {
     // n_conflicted, section/step/total). Accumulated rather than replaced, so a later frame that
     // omits a field does not blank the active step's detail block.
     const [investigateDetail, setInvestigateDetail] = useState({});
-    const [thinkingStepsVersion, setThinkingStepsVersion] = useState(0);
-    const [notifyEmailEnabled, setNotifyEmailEnabled] = useState(() => {
-        try {
-            return localStorage.getItem('glkb_investigate_notify_email') === '1';
-        } catch {
-            return false;
-        }
-    });
+    const [notifyEmailEnabled, setNotifyEmailEnabled] = useState(() => getNotifyPrefs().email);
+
+    // The same preference has a row in Settings and a toggle here; either can
+    // move it, including from another tab.
+    useEffect(() => subscribeToNotifyPrefs(
+        (prefs) => setNotifyEmailEnabled(prefs.email),
+    ), []);
     const [chatInvestigateEnabled, setChatInvestigateEnabled] = useState(false);
     const investigateFunnelRef = useRef(emptyFunnel());
     const investigatePhaseRef = useRef('searching');
@@ -1772,10 +1849,40 @@ function LLMAgent() {
     const messagesContainerRef = useRef(null);
     const abortControllerRef = useRef(null);
     const thinkingStepsRef = useRef([]);
+    // The answer as it streams in. `block` rises on every tool call, and only the newest block is
+    // the answer — in a ReAct loop the model narrates before each call and that text streams too,
+    // so a lower block number means "that was a previous train of thought, throw it away".
+    const streamingAnswerRef = useRef({ block: -1, text: '' });
+    // Lazily built once. Both of its inputs are stable: `streamingAnswerRef` is a ref and
+    // `setChatHistory` is a useState setter, so the drip never captures a stale render.
+    const dripRef = useRef(null);
+    if (!dripRef.current) {
+        dripRef.current = makeDrip({
+            getFull: () => streamingAnswerRef.current.text,
+            show: (text) => setChatHistory((prev) => {
+                const next = [...prev];
+                const last = next[next.length - 1];
+                if (!last || last.role !== 'assistant') return prev;
+                if (last.content === text) return prev;
+                next[next.length - 1] = { ...last, content: text };
+                return next;
+            }),
+        });
+    }
+    // A run can still be in flight when the reader leaves the page; nothing should go on
+    // painting into a conversation that is no longer mounted.
+    useEffect(() => () => dripRef.current?.stop(), []);
+    // The cheap-tier opening line, accumulated in place. It occupies ONE entry in the thought
+    // list that grows as the chunks land, rather than one entry per chunk — `groupThinkingSteps`
+    // would otherwise render a column of two-word fragments.
+    const preambleRef = useRef({ text: '', index: -1 });
     const prevSelectedMessageIndexRef = useRef(null);
     const lastAutoSelectedRef = useRef(null);
     const sessionIdRef = useRef(null);
     const runIdRef = useRef(null);
+    // The conversation whose answer is currently being recovered, so the two restore
+    // paths cannot both poll for it and overwrite each other's result.
+    const resumingConversationRef = useRef(null);
     // The clarify round's identifiers, mirrored out of React state.
     //
     // The panel is answered by POSTing to /clarify with (session_id, invocation_id, stage). Issue
@@ -1802,9 +1909,23 @@ function LLMAgent() {
     const navigationBypassRef = useRef(false);
     const originalNavigatorMethodsRef = useRef({ push: null, replace: null });
     const navigate = useNavigate();
-    const { navigator: routerNavigator } = useContext(UNSAFE_NavigationContext);
+
+    /**
+     * Tell the reader their report landed. Both completion paths call this, and
+     * a run can finish through either, so it fires at most once per run.
+     */
+    const announcedRunRef = useRef(null);
+    const announceInvestigateComplete = useCallback(() => {
+        const runId = runIdRef.current || 'current';
+        if (announcedRunRef.current === runId) return;
+        announcedRunRef.current = runId;
+        notifyRunComplete({
+            title: 'Investigate finished',
+            body: 'Your report is ready to read.',
+            onClick: () => navigate('/chat'),
+        });
+    }, [navigate]);
     const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
-    const [pendingNavigation, setPendingNavigation] = useState(null);
     const useMobileReferencesDrawer = isPhoneDevice;
 
     useEffect(() => {
@@ -1825,96 +1946,30 @@ function LLMAgent() {
         }
     }, [useMobileReferencesDrawer]);
 
+// Nothing guards in-app navigation any more: a run survives the route change,
+    // so a dialog asking whether to abandon it would be describing something that
+    // no longer happens.
+
+    // Closing the tab is the one exit that does end a run, and it needs warning
+    // about from whichever page the reader is on — so the handler lives in the
+    // layout and reads this registry instead of this component's state.
+    const isLoadingRef = useRef(false);
     useEffect(() => {
-        if (!routerNavigator) return undefined;
-
-        if (!originalNavigatorMethodsRef.current.push && typeof routerNavigator.push === 'function') {
-            originalNavigatorMethodsRef.current.push = routerNavigator.push.bind(routerNavigator);
-        }
-        if (!originalNavigatorMethodsRef.current.replace && typeof routerNavigator.replace === 'function') {
-            originalNavigatorMethodsRef.current.replace = routerNavigator.replace.bind(routerNavigator);
-        }
-
+        isLoadingRef.current = isLoading;
         if (!isLoading) {
-            if (originalNavigatorMethodsRef.current.push) {
-                routerNavigator.push = originalNavigatorMethodsRef.current.push;
-            }
-            if (originalNavigatorMethodsRef.current.replace) {
-                routerNavigator.replace = originalNavigatorMethodsRef.current.replace;
-            }
-            return undefined;
+            clearActiveRun();
+            return;
         }
-
-        const guardedPush = (...args) => {
-            if (navigationBypassRef.current && originalNavigatorMethodsRef.current.push) {
-                originalNavigatorMethodsRef.current.push(...args);
-                return;
-            }
-            setPendingNavigation({ method: 'push', args });
-            setShowLeaveConfirmDialog(true);
-        };
-
-        const guardedReplace = (...args) => {
-            if (navigationBypassRef.current && originalNavigatorMethodsRef.current.replace) {
-                originalNavigatorMethodsRef.current.replace(...args);
-                return;
-            }
-            setPendingNavigation({ method: 'replace', args });
-            setShowLeaveConfirmDialog(true);
-        };
-
-        routerNavigator.push = guardedPush;
-        routerNavigator.replace = guardedReplace;
-
-        return () => {
-            if (originalNavigatorMethodsRef.current.push) {
-                routerNavigator.push = originalNavigatorMethodsRef.current.push;
-            }
-            if (originalNavigatorMethodsRef.current.replace) {
-                routerNavigator.replace = originalNavigatorMethodsRef.current.replace;
-            }
-        };
-    }, [isLoading, routerNavigator]);
-
-    useEffect(() => {
-        if (isLoading) return;
-        setShowLeaveConfirmDialog(false);
-        setPendingNavigation(null);
+        // A run id means an investigate run, which the server can be asked about
+        // later; a plain answer is only saved against its history id.
+        setActiveRun({ kind: runIdRef.current ? 'investigate' : 'chat', runId: runIdRef.current || null });
     }, [isLoading]);
 
-    useEffect(() => {
-        if (!isLoading) return undefined;
-
-        const handleBeforeUnload = (event) => {
-            event.preventDefault();
-            event.returnValue = '';
-        };
-
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-        };
-    }, [isLoading]);
-
-    const handleLeaveDialogCancel = () => {
-        setShowLeaveConfirmDialog(false);
-        setPendingNavigation(null);
-    };
-
-    const handleLeaveDialogConfirm = () => {
-        setShowLeaveConfirmDialog(false);
-        if (pendingNavigation) {
-            const method = pendingNavigation.method;
-            const args = pendingNavigation.args || [];
-            const fn = originalNavigatorMethodsRef.current[method];
-            if (typeof fn === 'function') {
-                navigationBypassRef.current = true;
-                fn(...args);
-                navigationBypassRef.current = false;
-            }
-        }
-        setPendingNavigation(null);
-    };
+    useEffect(() => () => {
+        // Leaving the route does not end the run, so the registry is left alone
+        // unless the run had already finished.
+        if (!isLoadingRef.current) clearActiveRun();
+    }, []);
 
     const refreshTierStatus = useCallback(async () => {
         if (authLoading) {
@@ -1986,6 +2041,163 @@ function LLMAgent() {
         refreshTierStatus();
     }, [refreshTierStatus]);
 
+    // Reattach to a run that was still going when the page was reloaded.
+    //
+    // The server does not stop when the browser goes away: the agent finishes the run and the
+    // backend writes the answer to history on its own. What was missing was the client half —
+    // every recovery path keyed off `runIdRef`, which a reload destroys, and none of them ran on
+    // load. The session id is the address that does survive (sessionStorage, written at submit),
+    // and `GET /run?session_id=` answers with the latest run for it, for chat and investigate.
+    //
+    // Two rules keep the recovery from being worse than the problem:
+    //
+    //   SINGLE FLIGHT. Two restore paths reach this — the mount-time one a plain reload takes,
+    //   and the one that runs when a conversation is opened from the list — and they used to
+    //   race. One would reach a miss and write a failure into the message while the other was
+    //   still polling; the other then landed the real answer on top. That is the "thinking, then
+    //   Sorry, then the answer" flicker.
+    //
+    //   LOOK BEFORE TOUCHING. The first poll happens with the UI untouched. A run that has
+    //   already finished — the common case, because a reload takes longer than the poll — is
+    //   rendered directly, with no loading state and no flash of anything else. The spinner goes
+    //   back only once the server has actually said "running".
+    const resumeUnfinishedRun = useCallback(async (
+        conversationId, messages, stillMounted, isInvestigateHint,
+    ) => {
+        if (!isExchangeUnfinished(messages)) return;
+        const key = String(conversationId);
+        if (resumingConversationRef.current === key) return;
+        const sessionId = getStoredSessionId(conversationId);
+        if (!sessionId) return;      // nothing to reconnect to; leave the history as it is
+        resumingConversationRef.current = key;
+
+        /* Which kind of run to reattach to. The conversation record answers this now
+           (chat_histories.is_investigate); the local mark is the fallback for rows the
+           server has not labelled, and for servers that do not carry the column yet. */
+        const investigate = isInvestigateHint === true
+            || isInvestigateConversation(conversationId);
+        const last = messages[messages.length - 1];
+        let placeholderAdded = false;
+
+        const showWaiting = () => {
+            if (placeholderAdded) return;
+            placeholderAdded = true;
+            if (last.role === 'user') {
+                setChatHistory((prev) => [...prev, {
+                    role: 'assistant',
+                    content: '',
+                    references: [],
+                    timestamp: new Date().toISOString(),
+                    thinkingSteps: [],
+                    thoughtDurationMs: null,
+                    trajectory: null,
+                    investigateMode: investigate,
+                }]);
+            }
+            setIsLoading(true);
+            setIsProcessing(true);
+            setStreamingStepName('Reconnecting to your answer...');
+        };
+
+        const settle = (patch) => {
+            setChatHistory((prev) => {
+                if (!prev.length) return prev;
+                const next = [...prev];
+                const tail = next[next.length - 1];
+                if (tail && tail.role === 'assistant') {
+                    next[next.length - 1] = { ...tail, ...patch };
+                } else {
+                    next.push({
+                        role: 'assistant',
+                        references: [],
+                        timestamp: new Date().toISOString(),
+                        thinkingSteps: [],
+                        thoughtDurationMs: null,
+                        trajectory: null,
+                        investigateMode: investigate,
+                        ...patch,
+                    });
+                }
+                return next;
+            });
+            setIsLoading(false);
+            setIsProcessing(false);
+            setStreamingStepName('');
+        };
+
+        const applyRun = (run) => {
+            settle({
+                content: run.response || '',
+                references: parseReferences(run.references),
+                trajectory: run.trajectory || null,
+                investigateMode: investigate,
+                ...(investigate ? { investigatePercent: 100, investigatePhase: 'summary' } : {}),
+            });
+            if (run.response) llmService.updateMessages(run.response);
+        };
+
+        // The answer may already be in history — written there by the backend while the page was
+        // reloading. Cheaper and more reliable than the run store, which is in-process memory.
+        const answerFromHistory = async () => {
+            try {
+                const detail = await fetchConversationDetail(conversationId);
+                if (!stillMounted()) return true;
+                const saved = detail?.messages || [];
+                if (!isExchangeUnfinished(saved)) {
+                    setChatHistory(saved);
+                    setIsLoading(false);
+                    setIsProcessing(false);
+                    setStreamingStepName('');
+                    return true;
+                }
+            } catch (error) {
+                logDev('[LLM] resume history refetch failed', error);
+            }
+            return false;
+        };
+
+        try {
+            for (let attempt = 0; attempt < RESUME_MAX_POLLS; attempt += 1) {
+                if (!stillMounted()) return;
+                let run = null;
+                let missing = false;
+                try {
+                    run = await llmService.getRun({ sessionId });
+                } catch (error) {
+                    missing = error?.response?.status === 404;
+                    if (!missing) logDev('[LLM] resume poll failed', error);
+                }
+                if (!stillMounted()) return;
+
+                if (run && (run.status === 'complete' || run.response)) {
+                    applyRun(run);
+                    return;
+                }
+                if (run?.status === 'error' || missing) {
+                    // The run is gone or failed. Its answer may still have reached history before
+                    // that happened, so that is checked before anything is declared lost.
+                    if (await answerFromHistory()) return;
+                    settle({
+                        content: run?.error
+                            ? `Sorry, this run failed: ${run.error}`
+                            : RESUME_LOST_MESSAGE,
+                    });
+                    return;
+                }
+
+                showWaiting();   // only now: the server has said it is still working
+                await new Promise((resolve) => setTimeout(resolve, RESUME_POLL_MS));
+            }
+            if (stillMounted() && !(await answerFromHistory())) {
+                settle({ content: RESUME_LOST_MESSAGE });
+            }
+        } finally {
+            if (resumingConversationRef.current === key) {
+                resumingConversationRef.current = null;
+            }
+        }
+    }, [llmService]);
+
     useEffect(() => {
         if (authLoading) return undefined;
         let isMounted = true;
@@ -2004,7 +2216,18 @@ function LLMAgent() {
             let nextActiveId = getActiveConversationId();
             const hasInitialQuery = Boolean(location.state?.initialQuery);
             const hasConversationId = Boolean(location.state?.conversationId);
-            const shouldSkipRestore = hasInitialQuery || hasConversationId;
+            /* ...or a question from the home page that this mount has already taken.
+            
+               Consuming that question removes it from location.state, and this effect lists
+               location.state.initialQuery among its dependencies — so clearing it ran the
+               effect again, this time with nothing telling it to stand back. It then restored
+               whatever conversation was most recent over the top of the question being asked:
+               the user's message and the spinner vanished for as long as the detail fetch took,
+               and came back only when the first token landed. That is the stutter. The ref is
+               set before the state is cleared, so it covers the whole gap. */
+            const shouldSkipRestore = hasInitialQuery
+                || hasConversationId
+                || hasConsumedInitialQueryRef.current;
 
             if (cached.length > 0) {
                 setConversationsState(cached);
@@ -2039,6 +2262,11 @@ function LLMAgent() {
                     setChatHistory(detail?.messages || []);
                     setActiveConversationIdState(String(nextActiveId));
                     activeConversationIdRef.current = String(nextActiveId);
+                    // The path a plain reload takes. Fire and forget: it polls for minutes and
+                    // the restore must not wait on it.
+                    resumeUnfinishedRun(
+                        nextActiveId, detail?.messages || [], () => isMounted, detail?.isInvestigate,
+                    );
                 } catch (error) {
                     logDev('[LLM] Failed to load conversation detail', error);
                 } finally {
@@ -2059,7 +2287,8 @@ function LLMAgent() {
         return () => {
             isMounted = false;
         };
-    }, [authLoading, isAuthenticated, location.state?.initialQuery, location.state?.conversationId]);
+    }, [authLoading, isAuthenticated, location.state?.initialQuery, location.state?.conversationId,
+        resumeUnfinishedRun]);
 
     const cancelStreaming = useCallback((options = {}) => {
         const { abort = true } = options;
@@ -2068,12 +2297,13 @@ function LLMAgent() {
         }
         abortControllerRef.current = null;
         activeStreamIdRef.current = null;
+        dripRef.current?.stop();
         setIsLoading(false);
         setIsProcessing(false);
         setStreamingGroups([]);
+        setPreambleText('');
         setStreamingStepName('');
         thinkingStepsRef.current = [];
-        setThinkingStepsVersion(v => v + 1);
         applyPendingClarification(null);
         setClarificationDrafts({});
         setClarificationError('');
@@ -2106,7 +2336,14 @@ function LLMAgent() {
                 setChatHistory(detail?.messages || []);
                 setSelectedMessageIndex(null);
                 setShowReloadPrompt(false);
+                // Queued follow-ups belong to the conversation they were typed into.
+                setQueuedPrompts([]);
                 llmService.clearHistory();
+                // The conversation may have been left mid-answer. Fire and forget: this polls for
+                // minutes, and the load itself must not wait on it.
+                resumeUnfinishedRun(
+                    nextId, detail?.messages || [], () => isMounted, detail?.isInvestigate,
+                );
             } catch (error) {
                 logDev('[LLM] Failed to load selected conversation', error);
             } finally {
@@ -2121,7 +2358,7 @@ function LLMAgent() {
         return () => {
             isMounted = false;
         };
-    }, [isAuthenticated, location.state, cancelStreaming, llmService]);
+    }, [isAuthenticated, location.state, cancelStreaming, llmService, resumeUnfinishedRun]);
 
     const startNewConversation = useCallback((options = {}) => {
         cancelStreaming();
@@ -2145,12 +2382,29 @@ function LLMAgent() {
         setActiveConversationIdState(null);
         activeConversationIdRef.current = null;
         setActiveConversationId(null);
+        setQueuedPrompts([]);
         llmService.clearHistory();
     }, [cancelStreaming, llmService]);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
+    /**
+     * Follow the answer down.
+     *
+     * This ran `scrollIntoView({behavior:'smooth'})` on every state change. While text is
+     * streaming that is many times a second, and each call restarts the animation before the
+     * previous one has finished — the scroll never settles, which is most of what made the
+     * streamed answer look like it was stuttering. It also dragged the view back down when the
+     * reader had scrolled up to re-read something earlier in the answer.
+     *
+     * So: smooth for a settled change, and while a run is in flight instant, at most once per
+     * frame, and only when the reader is already at the bottom.
+     */
+    const scrollFrameRef = useRef(0);
+    const scrollToBottom = useCallback((smooth = true) => {
+        messagesEndRef.current?.scrollIntoView({
+            behavior: smooth ? 'smooth' : 'auto',
+            block: 'end',
+        });
+    }, []);
 
     const handleClick = (event, link) => {
         event.preventDefault();
@@ -2158,12 +2412,37 @@ function LLMAgent() {
     };
 
     useEffect(() => {
-        scrollToBottom();
-    }, [chatHistory, streamingGroups]);
+        if (!isProcessing) {
+            scrollToBottom(true);
+            return undefined;
+        }
+        const container = messagesContainerRef.current;
+        if (container) {
+            const distance = container.scrollHeight - container.scrollTop - container.clientHeight;
+            if (distance > AUTO_FOLLOW_SLACK_PX) return undefined;   // the reader scrolled away
+        }
+        if (scrollFrameRef.current) return undefined;
+        scrollFrameRef.current = rafSchedule(() => {
+            scrollFrameRef.current = 0;
+            scrollToBottom(false);
+        });
+        return () => {
+            if (scrollFrameRef.current) {
+                rafCancel(scrollFrameRef.current);
+                scrollFrameRef.current = 0;
+            }
+        };
+    }, [chatHistory, streamingGroups, isProcessing, scrollToBottom]);
 
+    // Debounced rather than written on every change: this is a synchronous main-thread write of
+    // `JSON.stringify(chatHistory)` — the whole conversation, references included — and it ran
+    // once per streamed chunk. The tab only needs the latest state, not every intermediate one.
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-        sessionStorage.setItem('llmChatHistory', JSON.stringify(chatHistory));
+        if (typeof window === 'undefined') return undefined;
+        const id = setTimeout(() => {
+            sessionStorage.setItem('llmChatHistory', JSON.stringify(chatHistory));
+        }, CHAT_PERSIST_DEBOUNCE_MS);
+        return () => clearTimeout(id);
     }, [chatHistory]);
 
     useEffect(() => {
@@ -2187,6 +2466,17 @@ function LLMAgent() {
             hasConsumedInitialQueryRef.current = true;
             const query = location.state.initialQuery;
             const searchOptions = location.state.initialSearchOptions || null;
+            // Consuming the query means REMOVING it. React Router keeps navigation state in
+            // `history.state`, which the browser restores on reload, but the ref that says it has
+            // already been used is component state and does not survive one. So a refresh re-ran
+            // the question: a second full agent run, billed again, while the first run's answer —
+            // which the server was still writing to history — was never shown.
+            const { initialQuery: _consumedQuery, initialSearchOptions: _consumedOptions,
+                    ...restState } = location.state;
+            navigate(location.pathname, {
+                replace: true,
+                state: Object.keys(restState).length ? restState : null,
+            });
             initialSearchOptionsRef.current = searchOptions;
             if (searchOptions?.investigateEnabled) {
                 setChatInvestigateEnabled(true);
@@ -2199,7 +2489,7 @@ function LLMAgent() {
                 });
             }
         }
-    }, [location.state, isLoading, startNewConversation]);
+    }, [location.state, location.pathname, navigate, isLoading, startNewConversation]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -2405,6 +2695,10 @@ function LLMAgent() {
                 journal,
                 authors,
                 evidence,
+                // The PMC full text, where the paper has one. This function rebuilds references
+                // through a whitelist, so a field it does not name is silently dropped — which is
+                // what happened to this one: the agent sent it and nothing downstream ever saw it.
+                fulltext_url: ref?.fulltext_url || '',
             };
         });
     };
@@ -2454,11 +2748,27 @@ function LLMAgent() {
             investigateMode: investigateEnabled,
         };
 
+        /* Paint before waiting on anything.
+        
+           These used to run after the conversation had been created, which is a network round
+           trip: the question sat unrendered and the panel showed no sign of having started for
+           as long as that took. Nothing below needs them to have waited — the conversation id
+           is not part of what they draw. */
+        setChatHistory([...baseHistory, newMessage]);
+        // Only when the text came from the box. Every caller that passes `input` is resending
+        // something else — a queued follow-up, an edited message, a retry — and the box may now
+        // hold a draft the reader is in the middle of writing. It could not before, because the
+        // box was disabled for the length of a run; now that it is live, clearing it here would
+        // delete their work.
+        if (!input) setUserInput('');
+        setIsLoading(true);
+        setIsProcessing(true);
+
         let historyId = activeConversationIdRef.current;
         if (shouldStartNewConversation && isAuthenticated) {
             try {
                 const leadingTitle = inputText.trim().slice(0, 200) || null;
-                const conversation = await createConversation(leadingTitle);
+                const conversation = await createConversation(leadingTitle, investigateEnabled);
                 const nextList = upsertConversation(getConversations(), conversation);
                 setConversationsState(nextList);
                 setConversations(nextList);
@@ -2472,6 +2782,12 @@ function LLMAgent() {
                 logDev('[LLM] Failed to create conversation', error);
             }
         }
+        // History tells an investigate conversation from a chat by its icon, and the
+        // conversation list the API returns carries no such flag — so note it here,
+        // where the app is the one deciding.
+        if (investigateEnabled && historyId) {
+            markInvestigateConversation(historyId);
+        }
         if (resetInvestigateSession) {
             sessionIdRef.current = null;
             setStoredSessionId(historyId, null);
@@ -2480,16 +2796,25 @@ function LLMAgent() {
         }
         // An investigate run must know its session id BEFORE the stream opens, because that id is
         // the only address a clarify round can be answered at. See mintSessionId.
-        if (investigateEnabled && !sessionIdRef.current) {
+        //
+        // A chat run now mints one too. The id is also the address a RUN is recovered at
+        // (`GET /run?session_id=`), and after a reload it is the only one left: the run id lives
+        // in a ref that the reload destroys. The agent honours a client-supplied id and only
+        // invents its own when we send none, so choosing it here changes nothing about the run
+        // and gives the reload something to reconnect to.
+        if (!sessionIdRef.current) {
             sessionIdRef.current = mintSessionId();
         }
+        // Persist it NOW, not when the run finishes. It used to be written on the `Saved` frame,
+        // which arrives at the END of the run — precisely never, for the case that needs it: a
+        // reader who reloads while the answer is still being written.
+        if (historyId) {
+            setStoredSessionId(historyId, sessionIdRef.current);
+        }
 
-        // Update chat history with user message
-        setChatHistory([...baseHistory, newMessage]);
-        setUserInput('');
-        setIsLoading(true);
-        setIsProcessing(true);
+        // The question and the spinner are already up — see above.
         setStreamingGroups([]);
+        setPreambleText('');
         setStreamingStepName('');
         applyPendingClarification(null);
         setClarificationDrafts({});
@@ -2512,7 +2837,9 @@ function LLMAgent() {
         investigatePapersRef.current = [];
         investigateDetailRef.current = {};
         thinkingStepsRef.current = [];
-        setThinkingStepsVersion(v => v + 1);
+        streamingAnswerRef.current = { block: -1, text: '' };
+        dripRef.current.reset();
+        preambleRef.current = { text: '', index: -1 };
 
         try {
             logDev('[LLM] submit', { input: inputText });
@@ -2688,14 +3015,12 @@ function LLMAgent() {
                                         isProgress: true,
                                         phase: update.phase,
                                     }];
-                                    setThinkingStepsVersion(v => v + 1);
                                 }
                             }
 
                             if (hasContent && !update.isProgress) {
                                 const newEntry = { step: update.step, content: rawContent };
                                 thinkingStepsRef.current = [...thinkingStepsRef.current, newEntry];
-                                setThinkingStepsVersion(v => v + 1);
                                 const parsedEntry = parseThinkingEntry(newEntry);
                                 if (parsedEntry.stepName) {
                                     setStreamingStepName(parsedEntry.stepName);
@@ -2776,8 +3101,90 @@ function LLMAgent() {
                             }
                         }
                         break;
+                    case 'thinking': {
+                        if (!isActiveStream) return;
+                        const pre = preambleRef.current;
+                        pre.text += update.delta;
+                        const entry = { step: 'Thinking', content: pre.text, isThought: true };
+                        if (pre.index < 0) {
+                            pre.index = thinkingStepsRef.current.length;
+                            thinkingStepsRef.current = [...thinkingStepsRef.current, entry];
+                        } else {
+                            const next = [...thinkingStepsRef.current];
+                            next[pre.index] = entry;
+                            thinkingStepsRef.current = next;
+                        }
+                        setPreambleText(pre.text);
+                        // `thinkingStepsRef` is what the FINISHED message carries; the live view
+                        // renders `streamingGroups`, which until now was only ever written from
+                        // `case 'step'`. Without this the opening line was invisible for the whole
+                        // run and only surfaced, collapsed, once the answer had already landed —
+                        // i.e. exactly when it is no longer worth reading.
+                        //
+                        // Matched by name rather than by "the last group": the line keeps growing
+                        // while the run's own progress steps are being appended after it.
+                        setStreamingGroups((prev) => {
+                            const group = { name: 'Thinking', lines: [pre.text] };
+                            const at = prev.findIndex((g) => g.name === 'Thinking');
+                            if (at < 0) return [...prev, group];
+                            const next = [...prev];
+                            next[at] = group;
+                            return next;
+                        });
+                        break;
+                    }
+                    case 'delta': {
+                        if (!isActiveStream) return;
+                        const buf = streamingAnswerRef.current;
+                        if (update.block > buf.block) {
+                            // A new block: whatever streamed before it was the model talking its
+                            // way to a tool call, not the answer. It is worth showing — it is the
+                            // only glimpse of the model's own reasoning the transport carries, and
+                            // it arrives long before any answer text does — so it goes into the
+                            // body as it streams and moves into the thought list here, once the
+                            // block it belonged to has ended.
+                            const narration = buf.text.trim();
+                            if (narration) {
+                                thinkingStepsRef.current = [...thinkingStepsRef.current, {
+                                    step: 'Thinking',
+                                    content: narration,
+                                    isThought: true,
+                                }];
+                            }
+                            streamingAnswerRef.current = { block: update.block, text: update.delta };
+                            dripRef.current.reset();
+                        } else if (update.block === buf.block) {
+                            streamingAnswerRef.current = { block: buf.block, text: buf.text + update.delta };
+                        } else {
+                            return;   // a straggler from a block already superseded
+                        }
+                        dripRef.current.start();
+                        break;
+                    }
+                    case 'answer': {
+                        if (!isActiveStream) return;
+                        // The authoritative text. It replaces the streamed accumulation rather
+                        // than being appended to it: `Complete` will carry this same string, and
+                        // the citation markers are rewritten server-side after the last chunk, so
+                        // the streamed copy is a preview and this is the real thing.
+                        if (update.sessionId) {
+                            sessionIdRef.current = update.sessionId;
+                        }
+                        streamingAnswerRef.current = { block: Number.MAX_SAFE_INTEGER, text: update.answer || '' };
+                        // No drip here: this is the finished text, and the reader has already
+                        // watched most of it arrive. Holding the tail back now would be delay
+                        // for its own sake.
+                        dripRef.current.flush(update.answer || '');
+                        // The run is NOT over: references, citations and the graph query list are
+                        // still on their way. Keep the spinner, but say what it is waiting for —
+                        // the answer is already on screen and readable.
+                        setStreamingStepName('Finalizing references...');
+                        break;
+                    }
                     case 'final':
                         if (!isActiveStream) return;
+                        // The whole message is replaced below; anything still queued is stale.
+                        dripRef.current.stop();
                         if (update.sessionId) {
                             sessionIdRef.current = update.sessionId;
                         }
@@ -2799,6 +3206,7 @@ function LLMAgent() {
                                 role: 'assistant',
                                 content: update.answer,
                                 references: parseReferences(update.references),
+                                directCitations: parseDirectCitations(update.directCitations),
                                 timestamp: timestamp,
                                 thinkingSteps: thinkingStepsRef.current,
                                 thoughtDurationMs: Date.now() - requestStartedAt,
@@ -2908,6 +3316,7 @@ function LLMAgent() {
                 try {
                     const run = await llmService.getRun({ runId: runIdRef.current });
                     if (run && (run.status === 'complete' || run.response)) {
+                        announceInvestigateComplete();
                         applyPendingClarification(null);
                         setIsProcessing(false);
                         setStreamingStepName('');
@@ -3082,6 +3491,7 @@ function LLMAgent() {
             try {
                 const run = await llmService.getRun({ runId: runIdRef.current });
                 if (!(run && (run.status === 'complete' || run.response))) return;
+                announceInvestigateComplete();
                 applyPendingClarification(null);
                 setIsProcessing(false);
                 setStreamingStepName('');
@@ -3127,11 +3537,12 @@ function LLMAgent() {
         };
     }, [isLoading, llmService]);
 
-    useEffect(() => {
-        return () => {
-            if (abortControllerRef.current) abortControllerRef.current.abort();
-        };
-    }, []);
+    // Deliberately no abort on unmount. Changing page used to cancel the
+    // request, which is the one thing that actually loses the work: the server
+    // keeps going, a plain answer is saved against its history id and an
+    // investigate run can be re-read by its run id, so leaving the route is
+    // survivable. Aborting was not.
+    useEffect(() => () => {}, []);
 
     const handleSaveEdit = async (e, index, content) => {
         if (content.trim() === '' || isLoading) return;
@@ -3405,38 +3816,32 @@ function LLMAgent() {
     }, []);
 
     const renderMessages = () => {
-        return (<Box sx={{ p: isPhoneDevice ? 1 : 2 }}>{chatHistory.map((message, index) => (
+        // Only the last assistant card is the one being written, and every use of the live-run
+        // props inside MessageCard sits behind its `isLoading`. Handing those props to the
+        // settled cards too changed their props on every frame, so each streamed chunk
+        // re-rendered — and re-parsed the markdown of — every answer in the conversation.
+        const lastIndex = chatHistory.length - 1;
+        return (<Box sx={{ p: isPhoneDevice ? 1 : 2 }}>{chatHistory.map((message, index) => {
+            const isStreamingCard = isProcessing
+                && index === lastIndex
+                && message.role === 'assistant';
+            return (
             <MessageCard
                 key={index}
                 index={index}
                 message={message}
                 totalMessages={chatHistory.length}
                 isProcessing={isProcessing}
-                streamingGroups={streamingGroups}
-                streamingStepName={streamingStepName}
-                investigatePhase={investigatePhase}
-                investigateFunnel={investigateFunnel}
-                investigateStartedAt={investigateStartedAt}
-                investigatePercent={investigatePercent}
-                investigateKeywords={investigateKeywords}
-                investigatePapers={investigatePapers}
-                investigateDetail={investigateDetail}
-                thinkingStepsVersion={thinkingStepsVersion}
-                liveThinkingStepsRef={thinkingStepsRef}
-                notifyEmailEnabled={notifyEmailEnabled}
-                onToggleNotifyEmail={(enabled) => {
-                    setNotifyEmailEnabled(Boolean(enabled));
-                    try {
-                        localStorage.setItem('glkb_investigate_notify_email', enabled ? '1' : '0');
-                    } catch {
-                        /* ignore */
-                    }
-                    if (enabled && !getUserNotifyEmail()) {
-                        message.warning('Sign in with email to receive completion notifications.');
-                    } else if (enabled) {
-                        message.success('Will email you when this investigation finishes.');
-                    }
-                }}
+                streamingGroups={isStreamingCard ? streamingGroups : NO_GROUPS}
+                preamble={isStreamingCard ? preambleText : ''}
+                streamingStepName={isStreamingCard ? streamingStepName : ''}
+                investigatePhase={isStreamingCard ? investigatePhase : null}
+                investigateFunnel={isStreamingCard ? investigateFunnel : null}
+                investigateStartedAt={isStreamingCard ? investigateStartedAt : null}
+                investigatePercent={isStreamingCard ? investigatePercent : null}
+                investigateKeywords={isStreamingCard ? investigateKeywords : NO_KEYWORDS}
+                investigatePapers={isStreamingCard ? investigatePapers : NO_PAPERS}
+                investigateDetail={isStreamingCard ? investigateDetail : NO_DETAIL}
                 pendingClarification={pendingClarification}
                 clarificationDrafts={clarificationDrafts}
                 clarificationError={clarificationError}
@@ -3445,16 +3850,38 @@ function LLMAgent() {
                 onUpdateClarificationDraft={updateClarificationDraft}
                 onSubmitClarification={submitClarification}
                 onSkipClarification={submitClarification}
-                refresh={handleRegenerateResponse}
-                copy={handleCopyMessage}
-                save={handleSaveEdit}
-                downloadConversation={handleDownloadConversation}
-                onOpenFeedback={handleOpenFeedback}
+                refresh={stableRefresh}
+                copy={stableCopy}
+                save={stableSave}
+                downloadConversation={stableDownload}
+                onOpenFeedback={stableOpenFeedback}
                 showReloadPrompt={showReloadPrompt}
-                onReloadLatest={handleReloadLatest}
+                onReloadLatest={stableReloadLatest}
                 onStop={handleStopStreaming}
             />
-        ))}</Box>);
+            );
+        })}
+        {queuedPrompts.map((item) => (
+            <Container
+                key={item.id}
+                className="message-pair queued-prompt"
+                sx={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', mb: '5px', justifyContent: 'flex-end' }}
+            >
+                <Box className="queued-prompt-bubble">
+                    <span className="queued-prompt-text">{item.text}</span>
+                    <button
+                        type="button"
+                        className="queued-prompt-remove"
+                        title="Remove from queue"
+                        aria-label={`Remove queued question: ${item.text}`}
+                        onClick={() => removeQueuedPrompt(item.id)}
+                    >
+                        <CloseIcon sx={{ fontSize: 16 }} />
+                    </button>
+                </Box>
+            </Container>
+        ))}
+        </Box>);
     };
 
     const [sortOption, setSortOption] = useState('Year');
@@ -3680,16 +4107,30 @@ function LLMAgent() {
         setSelectedCitation(null);
     };
 
+    // Hovering a citation brings its entry into view in the references panel.
+    //
+    // Deliberately not scrollIntoView: that scrolls *every* scrollable ancestor
+    // of the target, not just the list, so bringing an entry to the middle of
+    // the panel also nudged the column the citation itself lives in. The chip
+    // slid out from under the pointer, which is a mouseout, which closed the
+    // card the hover had just opened — the card blinked away exactly as the
+    // scroll arrived. Scrolling the list and nothing else leaves the chip where
+    // the pointer left it.
     useEffect(() => {
-        if (!hoveredPubmedId || !referencesListRef.current) return;
+        const list = referencesListRef.current;
+        if (!hoveredPubmedId || !list) return;
 
-        const targetElement = document.querySelector(`[data-pubmed-id="${hoveredPubmedId}"]`);
-        if (targetElement) {
-            targetElement.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center'
-            });
-        }
+        // Scoped to the list for the same reason: both the desktop panel and the
+        // mobile drawer mark their entries, and a document-wide query answers
+        // with whichever is first in the DOM rather than the one on screen.
+        const target = list.querySelector(`[data-pubmed-id="${hoveredPubmedId}"]`);
+        if (!target) return;
+
+        // Rects rather than offsetTop: offsetTop is measured from the nearest
+        // positioned ancestor, which is not necessarily this list.
+        const offset = target.getBoundingClientRect().top - list.getBoundingClientRect().top;
+        const centred = offset - (list.clientHeight - target.offsetHeight) / 2;
+        list.scrollTo({ top: Math.max(0, list.scrollTop + centred), behavior: 'smooth' });
     }, [hoveredPubmedId]);
 
     const handleDownloadConversation = (messageIndex) => {
@@ -3739,6 +4180,100 @@ function LLMAgent() {
         message.success('Q&A downloaded');
     };
 
+    // Declared here, after every handler above exists, and read by `renderMessages` — which is
+    // defined earlier but only called from the JSX below. Without these the memo on MessageCard
+    // never held: six props were a new function on every render.
+    const stableSubmit = useStableCallback(handleSubmit);
+
+    /**
+     * Send now, or queue if an answer is still being written.
+     *
+     * The decision is made here rather than in the bar so the bar keeps one action with one
+     * meaning — "this text is finished, take it" — whatever the run happens to be doing.
+     */
+    const submitOrQueue = useCallback((event, searchOptions) => {
+        event?.preventDefault?.();
+        const text = userInput.trim();
+        if (!text || isLimitReachedEffective) return;
+        if (!isLoading) {
+            stableSubmit(event, null, null, { searchOptions });
+            return;
+        }
+        queueSeqRef.current += 1;
+        setQueuedPrompts((prev) => [...prev, {
+            id: `q-${queueSeqRef.current}`,
+            text,
+            // Captured now rather than read at send time: they describe the turn the reader
+            // meant to ask for.
+            searchOptions,
+        }]);
+        setUserInput('');
+    }, [userInput, isLoading, isLimitReachedEffective, stableSubmit]);
+
+    const removeQueuedPrompt = useCallback((id) => {
+        setQueuedPrompts((prev) => prev.filter((item) => item.id !== id));
+    }, []);
+
+    /**
+     * Release the oldest queued prompt once nothing is in flight.
+     *
+     * Guarded by a ref as well as by the flags: `handleSubmit` is async and does not flip
+     * `isLoading` until it has built the request, so two renders inside that window would
+     * otherwise send the same prompt twice. The guard is held for the whole run — the promise
+     * `handleSubmit` returns settles when the stream does — so the next one waits its turn.
+     */
+    const flushingQueueRef = useRef(false);
+    useEffect(() => {
+        if (isLoading || isProcessing || isConversationLoading) return;
+        if (!queuedPrompts.length || isLimitReachedEffective) return;
+        if (flushingQueueRef.current) return;
+        flushingQueueRef.current = true;
+        const [next, ...rest] = queuedPrompts;
+        setQueuedPrompts(rest);
+        Promise.resolve(
+            stableSubmit(null, next.text, null, { searchOptions: next.searchOptions }),
+        ).finally(() => {
+            flushingQueueRef.current = false;
+        });
+    }, [
+        isLoading, isProcessing, isConversationLoading,
+        queuedPrompts, isLimitReachedEffective, stableSubmit,
+    ]);
+
+    const stableRefresh = useStableCallback(handleRegenerateResponse);
+    const stableCopy = useStableCallback(handleCopyMessage);
+    const stableSave = useStableCallback(handleSaveEdit);
+    const stableDownload = useStableCallback(handleDownloadConversation);
+    const stableOpenFeedback = useStableCallback(handleOpenFeedback);
+    const stableReloadLatest = useStableCallback(handleReloadLatest);
+
+    /* Nothing to show: no conversation restored, nothing streaming, and no question
+       handed over from the home page.
+       
+       This used to be the "Explore Biomedical Literature" screen — a second home page,
+       reachable by typing /chat, and shown for as long as it took the first token to
+       arrive after a question was submitted, which is why it flashed. Home is the page
+       that does this job, so go there instead of drawing an emptier version of it.
+       
+       Deliberately not an unconditional redirect on /chat: recovering a run after a
+       reload arrives here with no router state either, and sending that to the home
+       page would undo it. What separates the two is whether there is a conversation
+       to restore. */
+    const hasNothingToShow = !isConversationLoading
+        && !isProcessing
+        // A question handed over from the home page is on its way: the state that carried it
+        // has already been cleared, and the conversation it will live in does not exist yet.
+        // Reading "nothing to show" in that window sent the asker back to the home page.
+        && !hasConsumedInitialQueryRef.current
+        && chatHistory.length === 0
+        && !activeConversationId
+        && !location.state?.initialQuery
+        && !location.state?.conversationId;
+
+    if (hasNothingToShow) {
+        return <Navigate to="/" replace />;
+    }
+
     return (
         <>
             <Helmet>
@@ -3784,7 +4319,7 @@ function LLMAgent() {
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '20px',
                         fontWeight: 700,
-                        color: '#141B26',
+                        color: 'var(--color-grey-900)',
                     }}
                 >
                     Clarify Your Research Scope
@@ -3794,7 +4329,7 @@ function LLMAgent() {
                         sx={{
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: '14px',
-                            color: '#5E6E87',
+                            color: 'var(--color-text-tertiary)',
                             lineHeight: 1.5,
                             mb: 2,
                         }}
@@ -3806,8 +4341,8 @@ function LLMAgent() {
                         <Box
                             sx={{
                                 borderRadius: '10px',
-                                backgroundColor: '#F7F9FF',
-                                border: '1px solid #D6E6FF',
+                                backgroundColor: 'var(--color-brand-subtle)',
+                                border: '1px solid var(--color-border-default)',
                                 px: 1.5,
                                 py: 1,
                                 mb: 2,
@@ -3816,8 +4351,8 @@ function LLMAgent() {
                             <Typography
                                 sx={{
                                     fontFamily: 'DM Sans, sans-serif',
-                                    fontSize: '13px',
-                                    color: '#0836B0',
+                                    fontSize: '12px',
+                                    color: 'var(--color-blue-700)',
                                     lineHeight: 1.45,
                                 }}
                             >
@@ -3840,7 +4375,7 @@ function LLMAgent() {
                                 <Box
                                     key={questionKey}
                                     sx={{
-                                        border: '1px solid #E6EDF8',
+                                        border: '1px solid var(--color-border-default)',
                                         borderRadius: '12px',
                                         p: 1.5,
                                     }}
@@ -3850,7 +4385,7 @@ function LLMAgent() {
                                             fontFamily: 'DM Sans, sans-serif',
                                             fontSize: '12px',
                                             fontWeight: 700,
-                                            color: '#5E6E87',
+                                            color: 'var(--color-text-tertiary)',
                                             textTransform: 'uppercase',
                                             letterSpacing: '0.03em',
                                             mb: 0.5,
@@ -3862,9 +4397,9 @@ function LLMAgent() {
                                     <Typography
                                         sx={{
                                             fontFamily: 'DM Sans, sans-serif',
-                                            fontSize: '15px',
+                                            fontSize: '14px',
                                             fontWeight: 500,
-                                            color: '#222A38',
+                                            color: 'var(--color-text-secondary)',
                                             lineHeight: 1.45,
                                             mb: 1,
                                         }}
@@ -3994,8 +4529,8 @@ function LLMAgent() {
                             sx={{
                                 mt: 2,
                                 fontFamily: 'DM Sans, sans-serif',
-                                fontSize: '13px',
-                                color: '#A10902',
+                                fontSize: '12px',
+                                color: 'var(--color-status-error-text)',
                             }}
                         >
                             {clarificationError}
@@ -4008,10 +4543,10 @@ function LLMAgent() {
                         onClick={() => submitClarification({ useDefaults: true })}
                         sx={{
                             borderRadius: '10px',
-                            border: '1px solid #CBD5E1',
+                            border: '1px solid var(--color-border-strong)',
                             textTransform: 'none',
                             fontFamily: 'DM Sans, sans-serif',
-                            color: '#46566C',
+                            color: 'var(--color-grey-600)',
                         }}
                     >
                         Skip (Use Defaults)
@@ -4021,14 +4556,14 @@ function LLMAgent() {
                         onClick={() => submitClarification({ useDefaults: false })}
                         sx={{
                             borderRadius: '10px',
-                            border: '1px solid #155DFC',
-                            backgroundColor: '#155DFC',
+                            border: '1px solid var(--color-brand-primary)',
+                            backgroundColor: 'var(--color-brand-primary)',
                             textTransform: 'none',
                             fontFamily: 'DM Sans, sans-serif',
-                            color: '#FFFFFF',
+                            color: 'var(--color-neutral-white)',
                             '&:hover': {
-                                backgroundColor: '#0A47D6',
-                                borderColor: '#0A47D6',
+                                backgroundColor: 'var(--color-blue-600)',
+                                borderColor: 'var(--color-blue-600)',
                             },
                         }}
                     >
@@ -4037,73 +4572,7 @@ function LLMAgent() {
                 </DialogActions>
             </Dialog>
 
-            <Dialog
-                open={showLeaveConfirmDialog}
-                onClose={handleLeaveDialogCancel}
-                className="api-keys-dialog-root"
-                fullWidth
-                maxWidth="xs"
-            >
-                <DialogTitle
-                    sx={{
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontSize: '20px',
-                        fontWeight: 700,
-                        color: '#141B26',
-                        paddingBottom: '8px',
-                    }}
-                >
-                    Leave this page?
-                </DialogTitle>
-                <DialogContent
-                    sx={{
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontSize: '14px',
-                        color: '#5E6E87',
-                        lineHeight: 1.5,
-                        paddingTop: '4px !important',
-                    }}
-                >
-                    Leaving this page will interrupt the current LLM response loading.
-                </DialogContent>
-                <DialogActions sx={{ padding: '16px 24px 24px' }}>
-                    <MuiButton
-                        onClick={handleLeaveDialogCancel}
-                        sx={{
-                            borderRadius: '12px',
-                            border: '1px solid #D6DDE8',
-                            color: '#141B26',
-                            textTransform: 'none',
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontWeight: 700,
-                            fontSize: '14px',
-                            padding: '8px 16px',
-                        }}
-                    >
-                        Stay
-                    </MuiButton>
-                    <MuiButton
-                        onClick={handleLeaveDialogConfirm}
-                        sx={{
-                            borderRadius: '12px',
-                            border: '1px solid #DC2626',
-                            backgroundColor: '#FC2415',
-                            color: '#ffffff',
-                            textTransform: 'none',
-                            fontFamily: 'DM Sans, sans-serif',
-                            fontWeight: 700,
-                            fontSize: '14px',
-                            padding: '8px 16px',
-                            '&:hover': {
-                                backgroundColor: '#A10902',
-                                borderColor: '#A10902',
-                            },
-                        }}
-                    >
-                        Leave
-                    </MuiButton>
-                </DialogActions>
-            </Dialog>
+            {/* The leave-while-running dialog is gone with the guard that raised it. */}
 
             <Dialog
                 open={feedbackOpen}
@@ -4127,13 +4596,13 @@ function LLMAgent() {
                                 fontSize: '24px',
                                 fontWeight: '700 !important',
                                 lineHeight: 1.3,
-                                color: '#222A38',
+                                color: 'var(--color-text-secondary)',
                             }}
                         >
                             Share your feedback
                         </Typography>
                         <IconButton onClick={handleCloseFeedback} aria-label="Close feedback dialog">
-                            <ClearIcon sx={{ color: '#5E6E87' }} />
+                            <ClearIcon sx={{ color: 'var(--color-text-tertiary)' }} />
                         </IconButton>
                     </Box>
 
@@ -4144,7 +4613,7 @@ function LLMAgent() {
                                 fontSize: '16px',
                                 fontWeight: '400 !important',
                                 lineHeight: 1.5,
-                                color: '#222A38',
+                                color: 'var(--color-text-secondary)',
                             }}
                         >
                             Your feedback helps us improve GLKB.
@@ -4161,7 +4630,7 @@ function LLMAgent() {
                                     <StarIcon
                                         sx={{
                                             fontSize: 32,
-                                            color: feedbackRating >= star ? '#F5AF18' : '#D8D8D8',
+                                            color: feedbackRating >= star ? '#F5AF18' : 'var(--color-grey-200)',
                                         }}
                                     />
                                 </IconButton>
@@ -4181,13 +4650,13 @@ function LLMAgent() {
                                     fontFamily: 'DM Sans, sans-serif',
                                     fontSize: '16px',
                                     fontWeight: '400 !important',
-                                    color: '#222A38',
+                                    color: 'var(--color-text-secondary)',
                                     '& fieldset': {
-                                        borderColor: '#8090AB',
+                                        borderColor: 'var(--color-grey-400)',
                                     },
                                 },
                                 '& .MuiInputBase-input::placeholder': {
-                                    color: '#8090AB',
+                                    color: 'var(--color-grey-400)',
                                     opacity: 1,
                                 },
                             }}
@@ -4199,9 +4668,9 @@ function LLMAgent() {
                             onClick={handleCloseFeedback}
                             sx={{
                                 borderRadius: '8px',
-                                border: '1px solid #D8D8D8',
-                                color: '#222A38',
-                                backgroundColor: '#FFFFFF',
+                                border: '1px solid var(--color-border-strong)',
+                                color: 'var(--color-text-secondary)',
+                                backgroundColor: 'var(--color-background-surface)',
                                 textTransform: 'none',
                                 fontFamily: 'DM Sans, sans-serif',
                                 fontSize: '16px',
@@ -4219,8 +4688,8 @@ function LLMAgent() {
                             disabled={feedbackSubmitting || feedbackRating < 1}
                             sx={{
                                 borderRadius: '8px',
-                                backgroundColor: '#155DFC',
-                                color: '#FFFFFF',
+                                backgroundColor: 'var(--color-brand-primary)',
+                                color: 'var(--color-neutral-white)',
                                 textTransform: 'none',
                                 fontFamily: 'DM Sans, sans-serif',
                                 fontSize: '16px',
@@ -4230,11 +4699,11 @@ function LLMAgent() {
                                 py: '8px',
                                 minWidth: '170px',
                                 '&:hover': {
-                                    backgroundColor: '#0A47D6',
+                                    backgroundColor: 'var(--color-blue-600)',
                                 },
                                 '&.Mui-disabled': {
-                                    backgroundColor: '#BBCFFE',
-                                    color: '#FFFFFF',
+                                    backgroundColor: 'var(--color-blue-200)',
+                                    color: 'var(--color-neutral-white)',
                                 },
                             }}
                         >
@@ -4249,7 +4718,7 @@ function LLMAgent() {
                     <Grid item xs={12} className="llm-subgrid">
                         <div className="llm-main-content">
                             {/* <MuiButton variant="text" sx={{
-                                color: '#222A38',
+                                color: 'var(--color-text-secondary)',
                                 fontFamily: 'Open Sans, sans-serif',
                                 alignSelf: 'flex-start',
                                 zIndex: 1,
@@ -4280,7 +4749,7 @@ function LLMAgent() {
                                                         justifyContent: 'space-between',
                                                         padding: '0 24px',
                                                         height: '66px',
-                                                        backgroundColor: '#FFFFFF',
+                                                        backgroundColor: 'var(--color-background-surface)',
                                                     }}>
                                                         <Box sx={{
                                                             display: 'flex',
@@ -4294,7 +4763,7 @@ function LLMAgent() {
                                                                 fontSize: '14px',
                                                                 fontWeight: 600,
                                                                 lineHeight: '18px',
-                                                                color: '#141B26',
+                                                                color: 'var(--color-grey-900)',
                                                                 overflow: 'hidden',
                                                                 textOverflow: 'ellipsis',
                                                                 whiteSpace: 'nowrap',
@@ -4312,9 +4781,9 @@ function LLMAgent() {
                                                                 }
                                                                 sx={{
                                                                     padding: '4px',
-                                                                    color: isConversationBookmarked ? '#155DFC' : '#5E6E87',
+                                                                    color: isConversationBookmarked ? 'var(--color-brand-primary)' : 'var(--color-text-tertiary)',
                                                                     '&:hover': {
-                                                                        backgroundColor: '#F2F4F8',
+                                                                        backgroundColor: 'var(--color-background-subtle)',
                                                                     },
                                                                 }}
                                                                 title={isConversationBookmarked ? 'Remove bookmark' : 'Bookmark this chat'}
@@ -4336,38 +4805,6 @@ function LLMAgent() {
                                                             </MuiButton>
                                                         )}
                                                     </Box>
-                                                    {/* Add example queries section */}
-                                                    {!isConversationLoading && chatHistory.length === 0 && (
-                                                        <div className='empty-components-container'>
-                                                            <div className="empty-page-title" style={{ paddingTop: '1rem' }}>
-                                                                <div style={{ gap: '1rem', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
-                                                                    <Typography sx={{ fontFamily: "Geist, sans-serif", fontSize: '32px', fontWeight: '700', color: "#141B26" }}>
-                                                                        Explore Biomedical Literature
-                                                                    </Typography>
-                                                                    <Typography sx={{ fontFamily: "Geist, sans-serif", fontSize: '18px', fontWeight: '500', color: "#5E6E87" }}>
-                                                                        AI-powered Genomic Literature Knowledge Base
-                                                                    </Typography>
-                                                                </div>
-                                                            </div>
-                                                            <div className="example-queries-header">
-                                                                <Typography sx={{ fontFamily: "Geist, sans-serif", fontSize: '16px', fontWeight: '400', color: "#8090AB", width: '100%', textAlign: 'left' }}>
-                                                                    Try these example queries:
-                                                                </Typography>
-                                                                <div className="example-query-list" style={{ marginTop: '0px', paddingTop: '10px', minHeight: '80px' }}>
-                                                                    {
-                                                                        ["What is the role of BRCA1 in breast cancer?",
-                                                                            "How many articles about Alzheimer's disease are published in 2020?",
-                                                                            "What pathways does TP53 participate in?"
-                                                                        ].map((query, index) => (
-                                                                            <div className="example-query" key={index} onClick={() => handleExampleClick(query)}>
-                                                                                {query}
-                                                                            </div>
-                                                                        ))
-                                                                    }
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    )}
 
                                                     <div ref={messagesContainerRef} className="messages-container">
                                                         {!isConversationLoading && renderMessages()}
@@ -4375,12 +4812,12 @@ function LLMAgent() {
                                                     </div>
                                                     {isConversationLoading && loadingConversationId && (
                                                         <div className="chat-loading-overlay">
-                                                            <CircularProgress size={28} sx={{ color: '#141B26' }} />
+                                                            <CircularProgress size={28} sx={{ color: 'var(--color-grey-900)' }} />
                                                             <Typography sx={{
                                                                 fontFamily: 'Open Sans, sans-serif',
                                                                 fontSize: '14px',
                                                                 fontWeight: 400,
-                                                                color: '#5E6E87',
+                                                                color: 'var(--color-text-tertiary)',
                                                             }}>
                                                                 Loading chat history... This may take ~20 seconds
                                                             </Typography>
@@ -4400,21 +4837,21 @@ function LLMAgent() {
                                                         <button
                                                             type="submit"
                                                             className="send-button"
-                                                                border: "1px solid #155DFC",
-                                                                bgcolor: "#f7f8fa",
-                                                                color: "#155DFC",
+                                                                border: "1px solid var(--color-brand-primary)",
+                                                                bgcolor: "var(--color-grey-25)",
+                                                                color: "var(--color-brand-primary)",
                                                                 "& .MuiButton-startIcon": {
-                                                                    color: "#155DFC",
+                                                                    color: "var(--color-brand-primary)",
                                                                 },
                                                                 "& .MuiSvgIcon-root": {
-                                                                    color: "#155DFC",
+                                                                    color: "var(--color-brand-primary)",
                                                                 },
                                                         >
                                                             Send
-                                                                    color: "#155DFC",
-                                                                    boxShadow: index == selectedMessageIndex ? "0 0 0 1px #155DFC" : "none",
+                                                                    color: "var(--color-brand-primary)",
+                                                                    boxShadow: index == selectedMessageIndex ? "0 0 0 1px var(--color-brand-primary)" : "none",
                                                             icon={<DeleteOutlined />}
-                                                                boxShadow: index == selectedMessageIndex ? "0 0 0 1px #155DFC" : "none",
+                                                                boxShadow: index == selectedMessageIndex ? "0 0 0 1px var(--color-brand-primary)" : "none",
                                                             className="clear-button"
                                                             disabled={isLoading}
                                                         >
@@ -4436,20 +4873,40 @@ function LLMAgent() {
                                                             </button>
                                                         </div>
                                                     )}
+                                                    {/* Figma "Asking Question" hangs the panel off the
+                                                        composer (111:4385 sits at y=-502 inside the
+                                                        input bar frame), not in the message stream:
+                                                        it is a question to answer before the run can
+                                                        go on, so it belongs where the answer is typed
+                                                        and must not scroll away with the transcript. */}
+                                                    <div className="composer-dock">
+                                                        {pendingClarification && (
+                                                            <div className="clarify-float">
+                                                                <ClarifyPanel
+                                                                    pendingClarification={pendingClarification}
+                                                                    clarificationDrafts={clarificationDrafts}
+                                                                    clarificationError={clarificationError}
+                                                                    clarificationSubmitting={clarificationSubmitting}
+                                                                    hasInvalidOtherSelection={hasInvalidOtherSelection}
+                                                                    onUpdateDraft={updateClarificationDraft}
+                                                                    onSubmit={() => submitClarification({ useDefaults: false })}
+                                                                    onSkip={() => submitClarification({ useDefaults: true })}
+                                                                />
+                                                            </div>
+                                                        )}
                                                     <ChatSearchBar
                                                         userInput={userInput}
                                                         setUserInput={setUserInput}
                                                         isLoading={isLoading}
                                                         isQueryLimitReached={isLimitReachedEffective}
                                                         investigateEnabled={chatInvestigateEnabled}
-                                                        onSubmit={(event) => handleSubmit(event, null, null, {
-                                                            searchOptions: {
-                                                                investigateEnabled: chatInvestigateEnabled,
-                                                                ...(initialSearchOptionsRef.current || {}),
-                                                            },
+                                                        onSubmit={(event) => submitOrQueue(event, {
+                                                            investigateEnabled: chatInvestigateEnabled,
+                                                            ...(initialSearchOptionsRef.current || {}),
                                                         })}
                                                         onStop={handleStopStreaming}
                                                     />
+                                                    </div>
                                                 </div>
                                             </Box>
                                             {!useMobileReferencesDrawer && !isReferencesCollapsed && (
@@ -4528,10 +4985,10 @@ function LLMAgent() {
                                                                             <DownloadIcon
                                                                                 aria-label="Download references"
                                                                                 style={{
-                                                                                    width: '16px',
-                                                                                    height: '16px',
+                                                                                    width: '14px',
+                                                                                    height: '14px',
                                                                                     display: 'block',
-                                                                                    color: isExportDisabled ? '#B0B7C3' : '#5E6E87',
+                                                                                    color: isExportDisabled ? 'var(--color-grey-300)' : 'var(--color-text-tertiary)',
                                                                                 }}
                                                                             />
                                                                         </IconButton>
@@ -4561,7 +5018,9 @@ function LLMAgent() {
                                                                                 ref.citation_count,
                                                                                 ref.year,
                                                                                 ref.journal,
-                                                                                ref.authors
+                                                                                ref.authors,
+                                                                                // [6] the real full text, where the paper has one
+                                                                                ref.fulltext_url,
                                                                             ];
                                                                             const pubmedId = ref.url.split('/').filter(Boolean).pop();
                                                                             const isHighlighted = hoveredPubmedId === pubmedId;
@@ -4630,10 +5089,10 @@ function LLMAgent() {
                                                                 <DownloadIcon
                                                                     aria-label="Download references"
                                                                     style={{
-                                                                        width: '16px',
-                                                                        height: '16px',
+                                                                        width: '14px',
+                                                                        height: '14px',
                                                                         display: 'block',
-                                                                        color: isExportDisabled ? '#B0B7C3' : '#5E6E87',
+                                                                        color: isExportDisabled ? 'var(--color-grey-300)' : 'var(--color-text-tertiary)',
                                                                     }}
                                                                 />
                                                             </IconButton>
@@ -4643,7 +5102,7 @@ function LLMAgent() {
                                                                 onClick={() => setIsMobileReferencesDrawerOpen(false)}
                                                                 title="Close references"
                                                             >
-                                                                <ChevronRightIcon sx={{ color: '#5E6E87', transform: 'rotate(90deg)' }} />
+                                                                <ChevronRightIcon sx={{ color: 'var(--color-text-tertiary)', transform: 'rotate(90deg)' }} />
                                                             </IconButton>
                                                         </div>
                                                     </div>
@@ -4657,7 +5116,8 @@ function LLMAgent() {
                                                                     ref.citation_count,
                                                                     ref.year,
                                                                     ref.journal,
-                                                                    ref.authors
+                                                                    ref.authors,
+                                                                    ref.fulltext_url,
                                                                 ];
                                                                 const pubmedId = ref.url.split('/').filter(Boolean).pop();
                                                                 const isHighlighted = hoveredPubmedId === pubmedId;
