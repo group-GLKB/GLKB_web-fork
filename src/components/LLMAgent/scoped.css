@@ -2711,3 +2711,53 @@ button.ip-notify.active { background: var(--color-brand-muted); color: var(--col
 .notify-pop-confirm:hover {
     text-decoration: underline;
 }
+
+/* ── Queued follow-ups ────────────────────────────────────────────────────────
+   A question typed while an answer was still being written. It is the reader's
+   text and sits where their messages sit, but it has not been asked yet — so it
+   is drawn as an outline of the user bubble rather than the bubble itself, and
+   it carries the control that takes it back. */
+.queued-prompt-bubble {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 80%;
+    padding: 10px 12px 10px 16px;
+    border-radius: 16px;
+    border: 1px dashed var(--color-border-default);
+    background-color: transparent;
+    color: var(--color-text-tertiary);
+}
+
+.queued-prompt-text {
+    font-family: Geist, sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.queued-prompt-remove {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+}
+
+.queued-prompt-remove:hover {
+    background-color: var(--color-background-muted);
+    color: var(--color-text-primary);
+}
+
+.queued-prompt-remove:focus-visible {
+    outline: 2px solid var(--color-brand-primary);
+    outline-offset: 1px;
+}
