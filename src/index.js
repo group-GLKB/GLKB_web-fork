@@ -159,6 +159,9 @@ function AppWithRoutes() {
                     <Route path="/api-page" element={<ApiPage />} />
                     {/* LLMAgent is mounted persistently by AppLayout; this route only selects it. */}
                     <Route path="/chat" element={null} />
+                    {/* Each conversation has its own address, so a link opens it and a
+                        reload keeps it. The id is the backend's `public_id` UUID. */}
+                    <Route path="/chat/:publicId" element={null} />
                     <Route path="/history" element={<History />} />
                     <Route path="/library" element={<Library />} />
                     <Route path="/account" element={<AccountPage />} />

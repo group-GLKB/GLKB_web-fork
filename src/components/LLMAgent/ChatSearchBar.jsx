@@ -23,13 +23,25 @@ const ChatSearchBar = ({
     onStop,
 }) => {
     const isMobileViewport = useMediaQuery('(max-width:700px)');
-    const canSend = Boolean(userInput.trim()) && !isQueryLimitReached && !isLoading;
-    const showStop = isLoading && !isRunElsewhere;
-    const placeholder = isLoading
-        ? (isRunElsewhere
-            ? 'Another conversation is still loading'
-            : 'Wait for this answer to finish')
-        : (isMobileViewport ? 'Ask more...' : 'Ask a question about the biomedical literature...');
+    /* Two different situations wear the same `isLoading`, and they want opposite answers.
+    
+       THIS conversation is answering: the field stays live and a submit is queued by the
+       parent, so a follow-up that occurs to the reader mid-answer leaves their hands at once
+       instead of being held in their head for the length of a run.
+    
+       ANOTHER conversation is answering (`isRunElsewhere`): there is nothing here to queue
+       against — the run belongs to a different thread — so the field is held as it was. */
+    const canType = !isQueryLimitReached && !isRunElsewhere;
+    const canSend = Boolean(userInput.trim()) && canType;
+    // Stop is what the button offers when there is nothing to send. Typing turns it back into
+    // send, which is also how a reader gets out of a queued follow-up they no longer want:
+    // clear the field and the stop control is there again.
+    const showStop = isLoading && !isRunElsewhere && !canSend;
+    const placeholder = isRunElsewhere
+        ? 'Another conversation is still loading'
+        : (isLoading
+            ? (isMobileViewport ? 'Ask next…' : 'Ask a follow-up — it will send when this answer finishes')
+            : (isMobileViewport ? 'Ask more...' : 'Ask a question about the biomedical literature...'));
 
     return (
         <div className="chat-header">
@@ -51,10 +63,10 @@ const ChatSearchBar = ({
                 size="small"
                 value={userInput}
                 onChange={(e) => {
-                    if (isQueryLimitReached || isLoading) return;
+                    if (!canType) return;
                     setUserInput(e.target.value);
                 }}
-                disabled={isQueryLimitReached || isLoading}
+                disabled={!canType}
                 variant="outlined"
                 placeholder={placeholder}
                 multiline
@@ -165,7 +177,7 @@ const ChatSearchBar = ({
                                         justifyContent: 'center',
                                         cursor: canSend ? 'pointer' : 'default',
                                     }}
-                                    title="Send"
+                                    title={isLoading ? 'Send when this answer finishes' : 'Send'}
                                 >
                                     <SearchArrowIcon
                                         style={{

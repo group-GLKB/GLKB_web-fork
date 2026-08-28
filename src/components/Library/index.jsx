@@ -70,6 +70,7 @@ import {
 import {
     setActiveConversationId,
     updateConversationTitle,
+  chatPathForConversation,
 } from '../../utils/chatHistory';
 import {
     fetchConversationBookmarks,
@@ -806,10 +807,16 @@ const Library = () => {
         setSelectedCitation(null);
     };
 
-    const handleOpenConversation = (conversationId) => {
+    /** Takes the bookmark row, so the conversation's own URL is available. */
+    const handleOpenConversation = (conversation) => {
+        const conversationId = conversation?.id ?? conversation;
         if (!conversationId) return;
         setActiveConversationId(String(conversationId));
-        navigate('/chat', { state: { conversationId: String(conversationId) } });
+        // The bookmark payload spells it either way depending on which endpoint filled it.
+        const publicId = conversation?.publicId || conversation?.public_id || null;
+        navigate(chatPathForConversation({ publicId }), {
+            state: { conversationId: String(conversationId) },
+        });
     };
 
     const handleOpenGraph = (graph) => {
@@ -1679,7 +1686,7 @@ const Library = () => {
                                                                     <span>{formatMessageCount(conversation)}</span>
                                                                 </div>
                                                             )}
-                                                            onOpen={(item) => handleOpenConversation(item.id)}
+                                                            onOpen={(item) => handleOpenConversation(item)}
                                                             onRename={handleRenameConversation}
                                                             onBookmark={handleBookmarkConversation}
                                                             onManageFolders={handleManageChatFolders}
@@ -1854,7 +1861,7 @@ const Library = () => {
                                                                 <span>{formatMessageCount(conversation)}</span>
                                                             </div>
                                                         )}
-                                                        onOpen={(item) => handleOpenConversation(item.id)}
+                                                        onOpen={(item) => handleOpenConversation(item)}
                                                         onRename={handleRenameConversation}
                                                         onBookmark={handleBookmarkConversation}
                                                         onManageFolders={handleManageChatFolders}

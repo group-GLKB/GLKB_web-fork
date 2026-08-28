@@ -28,6 +28,18 @@ export const getChatHistoryDetail = async (hid) => {
     return response.data;
 };
 
+/**
+ * The same conversation, addressed by the id that can live in a URL.
+ *
+ * `hid` is the row's primary key: sequential, and it says how many conversations exist on
+ * the deployment. `public_id` is a UUID the backend mints for exactly this purpose, so a
+ * shareable /chat/<id> link neither enumerates nor counts.
+ */
+export const getChatHistoryDetailByPublicId = async (publicId) => {
+    const response = await axios.get(`${API_BASE}/public/${publicId}`);
+    return response.data;
+};
+
 export const updateChatHistoryTitle = async (hid, leadingTitle) => {
     const response = await axios.patch(`${API_BASE}/${hid}`, {
         leading_title: leadingTitle,

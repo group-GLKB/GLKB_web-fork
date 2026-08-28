@@ -35,38 +35,70 @@ const setup = (props = {}) => {
 const field = () => screen.getByRole('textbox');
 
 describe('ChatSearchBar while an answer is streaming', () => {
-    it('locks the field', () => {
+    it('leaves the field writable, so a follow-up can be queued', () => {
         setup({ isLoading: true });
-        expect(field()).toBeDisabled();
+        expect(field()).not.toBeDisabled();
     });
 
-    it('does not accept typing', () => {
+    it('accepts typing', () => {
         const { setUserInput } = setup({ isLoading: true });
         fireEvent.change(field(), { target: { value: 'and in mice?' } });
-        expect(setUserInput).not.toHaveBeenCalled();
+        expect(setUserInput).toHaveBeenCalledWith('and in mice?');
     });
 
-    it('does not submit on Enter', () => {
+    it('submits on Enter, so the follow-up can be queued', () => {
         const { onSubmit } = setup({ isLoading: true, userInput: 'and in mice?' });
         fireEvent.keyDown(field(), { key: 'Enter' });
-        expect(onSubmit).not.toHaveBeenCalled();
+        expect(onSubmit).toHaveBeenCalledTimes(1);
     });
 
-    it('offers stop while viewing the running conversation', () => {
+    it('offers send rather than stop once there is something to send', () => {
+        const { onSubmit, onStop } = setup({ isLoading: true, userInput: 'and in mice?' });
+        expect(screen.queryByTitle('Stop')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByTitle('Send when this answer finishes'));
+        expect(onSubmit).toHaveBeenCalledTimes(1);
+        expect(onStop).not.toHaveBeenCalled();
+    });
+
+    it('offers stop while the field is empty', () => {
         const { onStop } = setup({ isLoading: true, userInput: '   ' });
         fireEvent.click(screen.getByTitle('Stop'));
         expect(onStop).toHaveBeenCalledTimes(1);
     });
 
-    it('explains that the current answer must finish', () => {
+    it('says what will happen to the text', () => {
         setup({ isLoading: true });
-        expect(screen.getByPlaceholderText('Wait for this answer to finish')).toBeInTheDocument();
+        expect(
+            screen.getByPlaceholderText('Ask a follow-up — it will send when this answer finishes'),
+        ).toBeInTheDocument();
     });
 
-    it('shows no stop control while a different conversation is open', () => {
-        setup({ isLoading: true, isRunElsewhere: true });
-        expect(screen.queryByTitle('Stop')).not.toBeInTheDocument();
-        expect(screen.getByPlaceholderText('Another conversation is still loading')).toBeDisabled();
+    describe('while a DIFFERENT conversation is the one running', () => {
+        // Nothing here to queue against: that run belongs to another thread, and holding a
+        // question against it would fire it at a moment the reader has no reason to expect.
+        const elsewhere = { isLoading: true, isRunElsewhere: true };
+
+        it('locks the field', () => {
+            setup(elsewhere);
+            expect(field()).toBeDisabled();
+        });
+
+        it('says which situation it is', () => {
+            setup(elsewhere);
+            expect(screen.getByPlaceholderText('Another conversation is still loading'))
+                .toBeInTheDocument();
+        });
+
+        it('shows no stop control — the run is not this one to stop', () => {
+            setup({ ...elsewhere, userInput: '' });
+            expect(screen.queryByTitle('Stop')).not.toBeInTheDocument();
+        });
+
+        it('does not submit on Enter', () => {
+            const { onSubmit } = setup({ ...elsewhere, userInput: 'q' });
+            fireEvent.keyDown(field(), { key: 'Enter' });
+            expect(onSubmit).not.toHaveBeenCalled();
+        });
     });
 
     it('does not submit blank text', () => {

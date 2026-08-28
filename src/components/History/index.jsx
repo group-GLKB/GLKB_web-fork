@@ -34,6 +34,7 @@ import {
   removeConversation,
   setActiveConversationId,
   updateConversationTitle,
+  chatPathForConversation,
 } from '../../utils/chatHistory';
 import {
   fetchConversationBookmarks,
@@ -429,7 +430,11 @@ const History = () => {
     const handleOpenConversation = (conversationId) => {
         if (selectMode) return;
         setActiveConversationId(conversationId);
-        navigate('/chat', { state: { conversationId } });
+        const conversation = conversations.find((c) => String(c.id) === String(conversationId));
+        const path = chatPathForConversation(conversation);
+        // The state is still passed: it is what opens a conversation whose row predates
+        // `public_id`, and it is harmless when the path already names one.
+        navigate(path, { state: { conversationId } });
     };
 
     const handleOpenGraph = (history) => {

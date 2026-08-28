@@ -70,6 +70,7 @@ import {
   removeConversation,
   setActiveConversationId,
   updateConversationTitle,
+  chatPathForConversation,
 } from '../../../utils/chatHistory';
 import {
   fetchConversationBookmarks,
@@ -924,7 +925,10 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                         if (isEditingRecent) return;
                                                         setActiveConversationId(conversation.id);
                                                         setActiveConversationIdState(conversation.id);
-                                                        navigate('/chat', { state: { conversationId: conversation.id } });
+                                                        navigate(
+                                                            chatPathForConversation(conversation),
+                                                            { state: { conversationId: conversation.id } },
+                                                        );
                                                     }}
                                                     sx={{
                                                         width: '100%',

@@ -20,6 +20,7 @@ import {
   UNSAFE_NavigationContext,
   useLocation,
   useNavigate,
+  useParams,
 } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 
@@ -90,6 +91,7 @@ import {
 import {
   createConversation,
   fetchConversationDetail,
+  fetchConversationDetailByPublicId,
   fetchConversations,
   getActiveConversationId,
   getConversations,
@@ -1778,12 +1780,33 @@ const MessageCard = React.memo(function MessageCard({
 
 function LLMAgent({ isRouteActive = true }) {
     const location = useLocation();
+    /* The conversation this page is showing, taken from the address bar.
+    
+       Before this existed the id lived only in router state and sessionStorage, so a link
+       could not open a conversation and closing the tab lost which one was open — the page
+       came back empty and bounced to the home page. */
+    const { publicId: routePublicId } = useParams();
     const initialRunSnapshotRef = useRef(undefined);
     if (initialRunSnapshotRef.current === undefined) {
         initialRunSnapshotRef.current = readActiveRunSnapshot() || null;
     }
     const initialRunSnapshot = initialRunSnapshotRef.current;
     const [userInput, setUserInput] = useState('');
+    /**
+     * Follow-ups typed while an answer is still being written.
+     *
+     * Sending one straight away is not an option: the agent is mid-stream and a second turn on
+     * the same conversation would race the first. Refusing it is what this replaced — the
+     * reader had to hold the question in their head for the length of a run, measured at 19 to
+     * 68 seconds. So it is queued: the text leaves their hands at once, and the run that
+     * carries it starts when the current one ends.
+     *
+     * A list rather than one slot — someone who thinks of two things should not have to wait
+     * for the first answer before writing the second. They go out oldest first, each waiting
+     * for the previous answer.
+     */
+    const [queuedPrompts, setQueuedPrompts] = useState([]);
+    const queueSeqRef = useRef(0);
     const [chatHistory, setChatHistory] = useState(() => {
         const initialQuery = location.state?.initialQuery;
         if (initialQuery) {
@@ -2214,7 +2237,12 @@ function LLMAgent({ isRouteActive = true }) {
             }
             setIsLoading(true);
             setIsProcessing(true);
-            setStreamingStepName((prev) => prev || 'Reconnecting to your answer...');
+            /* Not "Reconnecting". Nothing is wrong with the connection: the run is on the
+               server, it is still being written, and it will land here when it is done —
+               including if this page is closed and reopened. The old wording read as a
+               failure to connect and invited a reload, which is the one thing that does not
+               help. */
+            setStreamingStepName((prev) => prev || 'Still answering — this will appear when it finishes');
         };
 
         const settle = (patch) => {
@@ -2363,7 +2391,23 @@ function LLMAgent({ isRouteActive = true }) {
             }
 
             const cached = getConversations();
-            let nextActiveId = initialRunSnapshotRef.current?.conversationId
+            /* The address bar is the strongest statement of which conversation to show, and
+               the only one that survives the tab closing — sessionStorage does not. Resolve it
+               to the row id the rest of this effect works in, and let that flow run unchanged. */
+            let fromRoute = null;
+            if (routePublicId) {
+                try {
+                    fromRoute = await fetchConversationDetailByPublicId(routePublicId);
+                } catch (error) {
+                    // A bad or foreign id is a 404 from the backend, which checks ownership.
+                    // Fall through to whatever else this mount knows about rather than
+                    // stranding the reader on an empty page.
+                    logDev('[LLM] Failed to open conversation from the URL', error);
+                }
+                if (!isMounted) return;
+            }
+            let nextActiveId = fromRoute?.id
+                || initialRunSnapshotRef.current?.conversationId
                 || getActiveConversationId();
             const hasInitialQuery = Boolean(location.state?.initialQuery);
             const hasConversationId = Boolean(location.state?.conversationId);
@@ -2376,10 +2420,11 @@ function LLMAgent({ isRouteActive = true }) {
                the user's message and the spinner vanished for as long as the detail fetch took,
                and came back only when the first token landed. That is the stutter. The ref is
                set before the state is cleared, so it covers the whole gap. */
-            const shouldSkipRestore = hasInitialQuery
-                || hasConversationId
-                || initialQueryTransitionRef.current
-                || Boolean(activeStreamIdRef.current);
+            const shouldSkipRestore = !fromRoute
+                && (hasInitialQuery
+                    || hasConversationId
+                    || initialQueryTransitionRef.current
+                    || Boolean(activeStreamIdRef.current));
 
             if (cached.length > 0) {
                 setConversationsState(cached);
@@ -2462,7 +2507,22 @@ function LLMAgent({ isRouteActive = true }) {
             isMounted = false;
         };
     }, [authLoading, isAuthenticated, location.state?.initialQuery, location.state?.conversationId,
-        resumeUnfinishedRun]);
+        routePublicId, resumeUnfinishedRun]);
+
+    /* Put the conversation in the address bar once it has one.
+    
+       `replace`, not `push`: this is the same page gaining its own name, not a navigation the
+       reader made — a pushed entry would make Back step through /chat -> /chat/<id> and look
+       like it did nothing. Only ever upgrades /chat to /chat/<id>; it never rewrites one
+       conversation's URL to another's, which is what would fight a reader mid-navigation. */
+    useEffect(() => {
+        if (!activeConversationId) return;
+        if (routePublicId) return;                       // the URL already names a conversation
+        const current = conversationsState.find((c) => String(c.id) === String(activeConversationId));
+        const publicId = current?.publicId;
+        if (!publicId) return;                           // a row the backend has not backfilled
+        navigate(`/chat/${publicId}`, { replace: true });
+    }, [activeConversationId, conversationsState, routePublicId, navigate]);
 
     const cancelStreaming = useCallback((options = {}) => {
         const { abort = true } = options;
@@ -2605,6 +2665,7 @@ function LLMAgent({ isRouteActive = true }) {
         setActiveConversationIdState(null);
         activeConversationIdRef.current = null;
         setActiveConversationId(null);
+        setQueuedPrompts([]);
         llmService.clearHistory();
     }, [cancelStreaming, llmService]);
 
@@ -4238,6 +4299,26 @@ function LLMAgent({ isRouteActive = true }) {
             />
             );
         })}
+        {queuedPrompts.map((item) => (
+            <Container
+                key={item.id}
+                className="message-pair queued-prompt"
+                sx={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', mb: '5px', justifyContent: 'flex-end' }}
+            >
+                <Box className="queued-prompt-bubble">
+                    <span className="queued-prompt-text">{item.text}</span>
+                    <button
+                        type="button"
+                        className="queued-prompt-remove"
+                        title="Remove from queue"
+                        aria-label={`Remove queued question: ${item.text}`}
+                        onClick={() => removeQueuedPrompt(item.id)}
+                    >
+                        <CloseIcon sx={{ fontSize: 16 }} />
+                    </button>
+                </Box>
+            </Container>
+        ))}
         </Box>);
     };
 
@@ -4542,16 +4623,68 @@ function LLMAgent({ isRouteActive = true }) {
     // never held: six props were a new function on every render.
     const stableSubmit = useStableCallback(handleSubmit);
 
-    const submitIfIdle = useCallback((event, searchOptions) => {
+    /**
+     * Send now, or queue if an answer is still being written.
+     *
+     * The decision is made here rather than in the bar so the bar keeps one action with one
+     * meaning — "this text is finished, take it" — whatever the run happens to be doing.
+     *
+     * A run in a DIFFERENT conversation is refused rather than queued: this queue belongs to
+     * the thread on screen, and holding a question against a run the reader cannot see would
+     * fire it at a moment they have no reason to expect.
+     */
+    const submitOrQueue = useCallback((event, searchOptions) => {
         event?.preventDefault?.();
         const text = userInput.trim();
         if (!text || isLimitReachedEffective) return;
-        if (isLoading) {
+        if (isLoading && !isViewingRunningConversation) {
             message.info('Wait for the running conversation to finish before asking another question.');
             return;
         }
-        stableSubmit(event, null, null, { searchOptions });
-    }, [userInput, isLoading, isLimitReachedEffective, stableSubmit]);
+        if (!isLoading) {
+            stableSubmit(event, null, null, { searchOptions });
+            return;
+        }
+        queueSeqRef.current += 1;
+        setQueuedPrompts((prev) => [...prev, {
+            id: `q-${queueSeqRef.current}`,
+            text,
+            // Captured now rather than read at send time: they describe the turn the reader
+            // meant to ask for.
+            searchOptions,
+        }]);
+        setUserInput('');
+    }, [userInput, isLoading, isViewingRunningConversation, isLimitReachedEffective, stableSubmit]);
+
+    const removeQueuedPrompt = useCallback((id) => {
+        setQueuedPrompts((prev) => prev.filter((item) => item.id !== id));
+    }, []);
+
+    /**
+     * Release the oldest queued prompt once nothing is in flight.
+     *
+     * Guarded by a ref as well as by the flags: `handleSubmit` is async and does not flip
+     * `isLoading` until it has built the request, so two renders inside that window would
+     * otherwise send the same prompt twice. The guard is held for the whole run — the promise
+     * `handleSubmit` returns settles when the stream does — so the next one waits its turn.
+     */
+    const flushingQueueRef = useRef(false);
+    useEffect(() => {
+        if (isLoading || isProcessing || isConversationLoading) return;
+        if (!queuedPrompts.length || isLimitReachedEffective) return;
+        if (flushingQueueRef.current) return;
+        flushingQueueRef.current = true;
+        const [next, ...rest] = queuedPrompts;
+        setQueuedPrompts(rest);
+        Promise.resolve(
+            stableSubmit(null, next.text, null, { searchOptions: next.searchOptions }),
+        ).finally(() => {
+            flushingQueueRef.current = false;
+        });
+    }, [
+        isLoading, isProcessing, isConversationLoading,
+        queuedPrompts, isLimitReachedEffective, stableSubmit,
+    ]);
 
     const stableRefresh = useStableCallback(handleRegenerateResponse);
     const stableCopy = useStableCallback(handleCopyMessage);
@@ -4581,7 +4714,10 @@ function LLMAgent({ isRouteActive = true }) {
         && chatHistory.length === 0
         && !activeConversationId
         && !location.state?.initialQuery
-        && !location.state?.conversationId;
+        && !location.state?.conversationId
+        // The address names a conversation: it is still being fetched, not absent. Redirecting
+        // here is what made a reopened /chat/<id> bounce to the home page.
+        && !routePublicId;
 
     // Keep the controller, refs and effects mounted while another page is visible, but do not
     // leave a hidden copy of the very large chat DOM (or its Helmet metadata) in that page.
@@ -5220,7 +5356,7 @@ function LLMAgent({ isRouteActive = true }) {
                                                         isRunElsewhere={isLoading && !isViewingRunningConversation}
                                                         isQueryLimitReached={isLimitReachedEffective}
                                                         investigateEnabled={chatInvestigateEnabled}
-                                                        onSubmit={(event) => submitIfIdle(event, {
+                                                        onSubmit={(event) => submitOrQueue(event, {
                                                             investigateEnabled: chatInvestigateEnabled,
                                                             ...(initialSearchOptionsRef.current || {}),
                                                         })}

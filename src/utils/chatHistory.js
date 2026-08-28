@@ -2,6 +2,7 @@ import {
   createChatHistory,
   deleteChatHistory,
   getChatHistoryDetail,
+  getChatHistoryDetailByPublicId,
   listChatHistories,
   updateChatHistoryTitle,
 } from '../service/ChatHistory';
@@ -103,6 +104,9 @@ const normalizeReferences = (refs) => {
 const normalizeSummary = (summary) => ({
     id: String(summary.hid),
     hid: summary.hid,
+    // The URL-safe id. Null on a row the backend has not backfilled, which is why every
+    // reader falls back to the hid rather than assuming it is there.
+    publicId: summary.public_id || null,
     leadingTitle: summary.leading_title || 'New Chat',
     createdAt: summary.created_at,
     updatedAt: summary.last_accessed_time,
@@ -118,6 +122,7 @@ const normalizeSummary = (summary) => ({
 const normalizeDetail = (detail) => ({
     id: String(detail.hid),
     hid: detail.hid,
+    publicId: detail.public_id || null,
     leadingTitle: detail.leading_title || 'New Chat',
     createdAt: detail.created_at,
     updatedAt: detail.last_accessed_time,
@@ -163,6 +168,34 @@ export const fetchConversations = async (options = {}) => {
         ? data.histories.map(normalizeSummary)
         : [];
     return setConversations(list);
+};
+
+/**
+ * Restore a conversation from the id in the URL.
+ *
+ * This is what makes /chat/<id> work on a cold load. The conversation list and the active-id
+ * pointer live in sessionStorage, which the browser discards when the tab closes — so before
+ * the URL carried the id, reopening the page after closing it had nothing to restore from and
+ * showed an empty chat.
+ */
+/**
+ * Where to send the reader to open this conversation.
+ *
+ * `/chat/<public_id>` when the row has one — an address that survives a reload, a new tab and
+ * being pasted to someone else. Plain `/chat` otherwise, and the caller passes the id in
+ * router state as before: rows created before the backend backfilled `public_id` still have
+ * to open.
+ */
+export const chatPathForConversation = (conversation) => (
+    conversation?.publicId ? `/chat/${conversation.publicId}` : '/chat'
+);
+
+export const fetchConversationDetailByPublicId = async (publicId) => {
+    if (!publicId) return null;
+    const data = await getChatHistoryDetailByPublicId(publicId);
+    const conversation = normalizeDetail(data);
+    setConversations(upsertConversation(getConversations(), conversation));
+    return conversation;
 };
 
 export const fetchConversationDetail = async (id) => {
