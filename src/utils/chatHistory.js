@@ -267,8 +267,23 @@ export const upsertConversation = (list, conversation) => {
     return sortConversations(next);
 };
 
-export const updateConversationMessages = (list, id, messages) => {
+/**
+ * Write a conversation's messages back into the list.
+ *
+ * `touch` moves the conversation to the top of the sidebar by dating it now. The list is
+ * ordered by `updatedAt`, which is the server's `last_accessed_time` and only changes when
+ * the list is refetched — which happens on `Complete`. So without this the conversation
+ * being answered right now sat at whatever rank it held before the question was asked, and
+ * only jumped to the top once the answer had already landed: the reader watched the run in
+ * the wrong place for the whole time it was running.
+ *
+ * Only the run writes with `touch`. Merely opening an old conversation also lands here (the
+ * effect that mirrors `chatHistory` into the list), and reordering History as a side effect
+ * of reading it is not what anyone asked for.
+ */
+export const updateConversationMessages = (list, id, messages, options = {}) => {
     if (!id) return sortConversations(list || []);
+    const { touch = false } = options;
     let found = false;
     const next = (list || []).map((item) => {
         if (item.id !== id) return item;
@@ -277,6 +292,7 @@ export const updateConversationMessages = (list, id, messages) => {
             ...item,
             messages,
             messageCount: Array.isArray(messages) ? messages.length : item.messageCount,
+            ...(touch ? { updatedAt: new Date().toISOString() } : {}),
         };
     });
 

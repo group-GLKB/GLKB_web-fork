@@ -2022,7 +2022,14 @@ function LLMAgent({ isRouteActive = true }) {
         runningChatHistoryRef.current = next;
         const runningId = runningConversationIdRef.current;
         if (runningId) {
-            const nextList = updateConversationMessages(getConversations(), runningId, next);
+            // `touch`: this is the conversation being answered, so it belongs at the top of the
+            // sidebar for as long as it runs — not at the rank it held before the question.
+            const nextList = updateConversationMessages(
+                getConversations(),
+                runningId,
+                next,
+                { touch: true },
+            );
             setConversations(nextList);
             setConversationsState(nextList);
         }
