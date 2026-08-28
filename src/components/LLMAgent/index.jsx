@@ -121,6 +121,7 @@ import {
     readActiveRunSnapshot,
     writeActiveRunSnapshot,
 } from '../../service/agentRunSnapshot';
+import { shouldSkipConversationRestore } from '../../service/conversationRestore';
 import { isInvestigateConversation, markInvestigateConversation } from '../../utils/investigateConversations';
 import {
     getLiveConversationNavigationAction,
@@ -2467,11 +2468,18 @@ function LLMAgent({ isRouteActive = true }) {
                the user's message and the spinner vanished for as long as the detail fetch took,
                and came back only when the first token landed. That is the stutter. The ref is
                set before the state is cleared, so it covers the whole gap. */
-            const shouldSkipRestore = !fromRoute
-                && (hasInitialQuery
-                    || hasConversationId
-                    || initialQueryTransitionRef.current
-                    || Boolean(activeStreamIdRef.current));
+            // ...or the address bar catching up with the run this mount is already showing.
+            // See service/conversationRestore.js for what these cases are and why the address
+            // is not always the last word on which conversation to show.
+            const shouldSkipRestore = shouldSkipConversationRestore({
+                routeConversationId: fromRoute?.id ?? null,
+                activeConversationId: activeConversationIdRef.current,
+                runningConversationId: runningConversationIdRef.current,
+                activeStreamId: activeStreamIdRef.current,
+                hasInitialQuery,
+                hasConversationId,
+                isInitialQueryTransition: initialQueryTransitionRef.current,
+            });
 
             if (cached.length > 0) {
                 setConversationsState(cached);
