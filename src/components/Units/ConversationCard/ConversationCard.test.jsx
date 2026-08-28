@@ -13,7 +13,7 @@
  * Refresh with UPDATE_FIXTURES=1.
  */
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import fs from 'fs';
 import path from 'path';
@@ -86,4 +86,20 @@ describe('ConversationCard geometry fixture', () => {
     // jest, so scoped.css never loads and jsdom only ever sees the emotion rules.
     // The cascade is asserted in e2e/scripts/measure-library-history-settings.mjs,
     // which loads this fixture over the real stylesheet in the browser's order.
+});
+
+describe('a loading conversation', () => {
+    it('replaces the context button with the live status dot', () => {
+        render(
+            <ConversationCard
+                conversation={conversation}
+                isLoadingConversation
+                onOpen={() => {}}
+                onDelete={() => {}}
+            />,
+        );
+
+        expect(screen.getByLabelText('Conversation is loading')).toBeInTheDocument();
+        expect(screen.queryByLabelText('Open conversation menu')).not.toBeInTheDocument();
+    });
 });

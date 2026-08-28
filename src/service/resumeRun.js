@@ -19,4 +19,25 @@ export const isExchangeUnfinished = (messages) => {
     return last.role === 'assistant' && !String(last.content || '').trim();
 };
 
+/**
+ * Decide what opening a History row should do while one conversation still owns the live stream.
+ * A React route change must not invalidate that stream merely to reload the same conversation,
+ * and a different conversation may be viewed without taking ownership of that stream.
+ */
+export const getLiveConversationNavigationAction = ({
+    requestedConversationId,
+    activeConversationId,
+    hasLiveRun,
+}) => {
+    if (!hasLiveRun) return 'load';
+    if (
+        requestedConversationId != null
+        && activeConversationId != null
+        && String(requestedConversationId) === String(activeConversationId)
+    ) {
+        return 'continue-current';
+    }
+    return 'load-other';
+};
+
 export default isExchangeUnfinished;

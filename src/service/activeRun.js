@@ -1,19 +1,19 @@
 /**
  * Which conversation, if any, is still working.
  *
- * The chat lives under a route, so navigating to Library unmounts it. The run
- * itself does not belong to that component — the server keeps going, the answer
- * is saved against its history id, and an investigate run can be re-read by its
- * run id. What the component used to do was abort the request on unmount, which
- * threw the run away for no reason other than the reader changing page.
+ * The Agent controller remains mounted after its first visit, so normal app
+ * navigation no longer interrupts its request or live state. The run also does
+ * not belong to the visible page: the server keeps going, plain answers are
+ * saved against their history ids, and investigate runs can be re-read by run id.
  *
- * This registry outlives the route. It exists so that:
+ * This registry outlives the visible route. It exists so that:
  *   - the page can be left without a warning, because nothing is lost;
+ *   - every Agent entry point can stay locked until that one run finishes;
  *   - closing the tab still warns, wherever the reader happens to be, because
  *     that does end the run.
  *
- * Module scope rather than context: the value is read from an event handler in
- * the layout and written from deep inside the chat, and nothing renders from it.
+ * Module scope rather than context: it is written from deep inside the chat and
+ * observed by both the layout and entry surfaces without owning the Agent UI.
  */
 const listeners = new Set();
 

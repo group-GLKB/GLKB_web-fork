@@ -14,6 +14,7 @@ const ChatSearchBar = ({
     userInput,
     setUserInput,
     isLoading,
+    isRunElsewhere = false,
     isQueryLimitReached = false,
     // Investigate is fixed for the life of a session, so the bar reports the
     // mode for analytics but no longer renders a toggle.
@@ -22,16 +23,12 @@ const ChatSearchBar = ({
     onStop,
 }) => {
     const isMobileViewport = useMediaQuery('(max-width:700px)');
-    // The field stayed disabled for the whole run — up to a minute — so a follow-up that
-    // occurred to the reader mid-answer had to be held in their head. It is writable now, and
-    // `onSubmit` queues rather than sends while a run is in flight (the parent decides which).
-    const canSend = Boolean(userInput.trim()) && !isQueryLimitReached;
-    // Stop is what the button offers when there is nothing to send. Typing turns it back into
-    // send, which is also how a reader gets out of a queued follow-up they no longer want:
-    // clear the field and the stop control is there again.
-    const showStop = isLoading && !canSend;
+    const canSend = Boolean(userInput.trim()) && !isQueryLimitReached && !isLoading;
+    const showStop = isLoading && !isRunElsewhere;
     const placeholder = isLoading
-        ? (isMobileViewport ? 'Ask next…' : 'Ask a follow-up — it will send when this answer finishes')
+        ? (isRunElsewhere
+            ? 'Another conversation is still loading'
+            : 'Wait for this answer to finish')
         : (isMobileViewport ? 'Ask more...' : 'Ask a question about the biomedical literature...');
 
     return (
@@ -53,8 +50,11 @@ const ChatSearchBar = ({
                 className="input-form"
                 size="small"
                 value={userInput}
-                onChange={(e) => setUserInput(e.target.value)}
-                disabled={isQueryLimitReached}
+                onChange={(e) => {
+                    if (isQueryLimitReached || isLoading) return;
+                    setUserInput(e.target.value);
+                }}
+                disabled={isQueryLimitReached || isLoading}
                 variant="outlined"
                 placeholder={placeholder}
                 multiline
@@ -106,7 +106,7 @@ const ChatSearchBar = ({
                                 gap: 1,
                             }}
                         >
-                            {userInput !== '' && !isQueryLimitReached && (
+                            {userInput !== '' && !isQueryLimitReached && !isLoading && (
                                 <CloseIcon
                                     onMouseDown={(event) => {
                                         event.preventDefault();
@@ -151,7 +151,7 @@ const ChatSearchBar = ({
                                         trackGtagEvent('chat_submit_click', {
                                             source: 'chat_searchbar',
                                             investigate: Boolean(investigateEnabled),
-                                            queued: Boolean(isLoading),
+                                            queued: false,
                                         });
                                         onSubmit?.(event);
                                     }}
@@ -165,7 +165,7 @@ const ChatSearchBar = ({
                                         justifyContent: 'center',
                                         cursor: canSend ? 'pointer' : 'default',
                                     }}
-                                    title={isLoading ? 'Send when this answer finishes' : 'Send'}
+                                    title="Send"
                                 >
                                     <SearchArrowIcon
                                         style={{

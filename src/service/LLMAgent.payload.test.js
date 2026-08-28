@@ -7,7 +7,12 @@
  * silently filters the NEXT ordinary chat turn in the same conversation.
  */
 import axios from '../utils/axiosConfig';
-import { extractFunnelMetrics, INVESTIGATE_MAX_REFERENCES, LLMAgentService } from './LLMAgent';
+import {
+    extractFunnelMetrics,
+    INVESTIGATE_MAX_REFERENCES,
+    LLMAgentService,
+    PHASE_PERCENT_FLOOR,
+} from './LLMAgent';
 
 jest.mock('../utils/axiosConfig', () => ({ __esModule: true, default: { post: jest.fn() } }));
 
@@ -43,6 +48,34 @@ describe('ordinary chat', () => {
 });
 
 describe('investigate (deep research)', () => {
+    it('parses the Started frame instead of dropping it on a missing phase constant', async () => {
+        const updates = [];
+        axios.post.mockImplementationOnce(async (_url, _payload, config) => {
+            config.onDownloadProgress({
+                target: {
+                    responseText: 'data: {"step":"Started","run_id":"run-1","session_id":"session-1"}\n\n',
+                },
+            });
+            return { data: '' };
+        });
+
+        const svc = new LLMAgentService();
+        await svc.chat(
+            'does X help?',
+            new AbortController(),
+            (update) => updates.push(update),
+            { investigateEnabled: true },
+        );
+
+        expect(updates).toContainEqual(expect.objectContaining({
+            type: 'started',
+            runId: 'run-1',
+            sessionId: 'session-1',
+            phase: 'searching',
+            percent: PHASE_PERCENT_FLOOR.searching,
+        }));
+    });
+
     it('carries neither filters nor ranking_mode', async () => {
         await run({ investigateEnabled: true, filters: ['review'], rankingMode: 'high_impact' });
         expect(sentPayload()).not.toHaveProperty('filters');

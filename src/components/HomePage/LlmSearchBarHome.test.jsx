@@ -40,7 +40,9 @@ beforeEach(() => {
 
 // `setOpen` is called from an effect on mount, so it is required even though the autocomplete
 // popup is irrelevant here.
-const setup = () => render(<LlmSearchBarHome setOpen={() => {}} autocompleteOptions={[]} />);
+const setup = (props = {}) => render(
+    <LlmSearchBarHome setOpen={() => {}} autocompleteOptions={[]} {...props} />,
+);
 
 // Matched outside the drawers on purpose: the option chips inside them carry the very same
 // labels once the drawer has been opened, so a plain by-role query finds several elements.
@@ -144,5 +146,22 @@ describe('with INVESTIGATE_ENABLED off', () => {
         expect(investigateButton()).toBeNull();
         fireEvent.click(optionsTrigger());
         expect(drawerIsOpen()).toBe(true);
+    });
+});
+
+describe('while another Agent conversation is loading', () => {
+    it('locks every entry point and does not navigate', () => {
+        setup({ isAgentRunActive: true });
+
+        expect(screen.getByPlaceholderText('A conversation is still loading')).toBeDisabled();
+        expect(investigateButton()).toBeDisabled();
+
+        const start = screen.getByRole('button', { name: /start chat/i, hidden: true });
+        expect(start).toHaveAttribute('aria-disabled', 'true');
+        fireEvent.click(start);
+        fireEvent.keyDown(screen.getByPlaceholderText('A conversation is still loading'), {
+            key: 'Enter',
+        });
+        expect(mockNavigate).not.toHaveBeenCalled();
     });
 });

@@ -20,6 +20,7 @@ import logoWordmark from '../../img/navbar/logo.png';
 import { isRunActive } from '../../service/activeRun';
 import { trackGtagEvent } from '../../utils/gtag';
 import LoginModal from '../Auth/LoginModal';
+import PersistentAgentSurface from './PersistentAgentSurface';
 import NavBarWhite from '../Units/NavBarWhite';
 
 const SIDEBAR_OPEN_EVENT = 'glkb-open-sidebar';
@@ -150,7 +151,15 @@ const AppLayout = () => {
             )}
             {!hideSidebar && <NavBarWhite hideCompactRail={showMobileHeader || isMobileHeaderHidden} />}
             <div className={`app-layout-content${showMobileHeader ? ' has-mobile-header' : ''}`}>
-                <Outlet />
+                {/*
+                  The Agent owns live SSE/XHR callbacks and a large amount of in-flight state.
+                  Mount it once with the app shell instead of once with the /chat route: route
+                  changes now hide its view but cannot tear down the request or its state. This
+                  covers ordinary chat and Investigate with the same lifecycle.
+                */}
+                <PersistentAgentSurface active={isChatPage}>
+                    <Outlet />
+                </PersistentAgentSurface>
             </div>
             {/* Sign-in lives in an overlay so it can appear over any page. */}
             <LoginModal />

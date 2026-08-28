@@ -40,6 +40,7 @@ import {
 } from '@mui/material';
 
 import { ContextMenu, ContextMenuItem } from '../ContextMenu';
+import ConversationRunStatus from '../ConversationRunStatus';
 import {
   styled,
   useTheme,
@@ -61,6 +62,7 @@ import {
 } from '../../../img/navbar/sidebar.left.svg';
 import userAccountIcon from '../../../img/user/ic_outline-account-circle.svg';
 import userLogoutIcon from '../../../img/user/mynaui_logout.svg';
+import { getActiveRun, subscribeToActiveRun } from '../../../service/activeRun';
 import {
   fetchConversations,
   getActiveConversationId,
@@ -217,6 +219,22 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
     const [editingRecentTitle, setEditingRecentTitle] = useState('');
     const [conversationBookmarks, setConversationBookmarks] = useState([]);
     const [storedProfile, setStoredProfile] = useState(() => getStoredAccountProfile());
+    const [activeRun, setActiveRunState] = useState(() => getActiveRun());
+    const loadingConversationId = activeRun?.conversationId != null
+        ? String(activeRun.conversationId)
+        : null;
+
+    useEffect(() => subscribeToActiveRun(setActiveRunState), []);
+
+    useEffect(() => {
+        if (
+            loadingConversationId
+            && String(recentMenuConversation?.id) === loadingConversationId
+        ) {
+            setRecentMenuAnchorEl(null);
+            setRecentMenuConversation(null);
+        }
+    }, [loadingConversationId, recentMenuConversation]);
 
     useEffect(() => {
         if (isSmallScreen) {
@@ -458,6 +476,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const handleOpenRecentMenu = (event, conversation) => {
         event.stopPropagation();
+        if (loadingConversationId && String(conversation?.id) === loadingConversationId) return;
         setRecentMenuAnchorEl(event.currentTarget);
         setRecentMenuConversation(conversation);
     };
@@ -516,6 +535,10 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const handleDeleteRecent = async () => {
         if (!recentMenuConversation?.id) return;
+        if (loadingConversationId && String(recentMenuConversation.id) === loadingConversationId) {
+            handleCloseRecentMenu();
+            return;
+        }
         trackGtagEvent('recent_delete_click', { source: 'sidebar_recent_menu' });
         const idToDelete = String(recentMenuConversation.id);
         const deletingActiveConversation = String(activeConversationId) === idToDelete;
@@ -859,13 +882,15 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                     (() => {
                                         const isEditingRecent = String(editingRecentId) === String(conversation.id);
                                         const isActiveRecent = isActiveConversation(conversation);
+                                        const isLoadingRecent = loadingConversationId != null
+                                            && String(conversation.id) === loadingConversationId;
                                         return (
                                             <Box
                                                 key={conversation.id}
                                                 sx={{
                                                     position: 'relative',
-                                                    width: isActiveRecent ? 'calc(100% + 16px)' : '100%',
-                                                    marginLeft: isActiveRecent ? '-8px' : 0,
+                                                    width: 'calc(100% + 16px)',
+                                                    marginLeft: '-8px',
                                                     minHeight: 16,
                                                     '&:hover .recent-entry-button, &:focus-within .recent-entry-button': {
                                                         paddingRight: '36px',
@@ -905,9 +930,10 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                         width: '100%',
                                                         border: 'none',
                                                         backgroundColor: isActiveRecent ? 'var(--color-brand-soft)' : 'transparent',
-                                                        padding: isActiveRecent ? '4px 8px' : 0,
-                                                        margin: isActiveRecent ? '-4px 0' : 0,
-                                                        borderRadius: isActiveRecent ? '4px' : 0,
+                                                        padding: '4px 8px',
+                                                        paddingRight: isLoadingRecent ? '36px' : '8px',
+                                                        margin: '-4px 0',
+                                                        borderRadius: '4px',
                                                         fontFamily: 'Geist, sans-serif',
                                                         fontSize: '12px',
                                                         fontWeight: isActiveRecent ? 500 : 400,
@@ -935,7 +961,18 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                 >
                                                     {isEditingRecent ? undefined : getConversationTitle(conversation)}
                                                 </Box>
-                                                <IconButton
+                                                {isLoadingRecent ? (
+                                                    <Box
+                                                        sx={{
+                                                            position: 'absolute',
+                                                            right: 6,
+                                                            top: '50%',
+                                                            transform: 'translateY(-50%)',
+                                                        }}
+                                                    >
+                                                        <ConversationRunStatus />
+                                                    </Box>
+                                                ) : <IconButton
                                                     size="small"
                                                     className="recent-more-button"
                                                     onClick={(event) => handleOpenRecentMenu(event, conversation)}
@@ -959,7 +996,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                     }}
                                                 >
                                                     <MoreHorizIcon sx={{ fontSize: 12 }} />
-                                                </IconButton>
+                                                </IconButton>}
                                             </Box>
                                         );
                                     })()

@@ -1,0 +1,34 @@
+.conversation-run-status {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.conversation-run-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--color-brand-primary, #155dfc);
+    animation: conversation-run-status-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes conversation-run-status-pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.32;
+        transform: scale(0.88);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .conversation-run-status-dot {
+        animation: none;
+    }
+}
