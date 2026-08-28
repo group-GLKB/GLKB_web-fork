@@ -1314,6 +1314,20 @@ const MessageCard = React.memo(function MessageCard({
         }
 
         if (currentLabel === loadingStepLabel) {
+            /* Settle the phase before leaving, rather than leaving it wherever the last run
+               put it.
+
+               A swap goes out (opacity 0), then swap, then in, on chained timers, and every
+               run of this effect cancels those timers first. `renderedStepLabelRef` is only
+               advanced inside the first timer, so a label that changes and changes BACK inside
+               that ~220ms window — which the step labels do, cycling through a tool name and
+               returning to Processing — arrives here with the label matching again and the
+               timers already cancelled. The phase was still `out`, and nothing left to move
+               it: `.loading-step-label--out` is opacity 0, so the only thing on screen during
+               thinking became invisible, and stayed that way until the label changed to
+               something genuinely different. The body renders nothing while the answer is
+               empty, so the card read as completely blank. */
+            setStepLabelPhase((phase) => (phase === 'idle' ? phase : 'idle'));
             return undefined;
         }
 
