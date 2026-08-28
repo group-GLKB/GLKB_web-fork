@@ -1,6 +1,7 @@
 import './scoped.css';
 
 import React, {
+    useCallback,
     useEffect,
     useMemo,
     useState,
@@ -61,7 +62,7 @@ import {
     updateFavoriteGraphFolder,
     updateFavoriteReferenceFolder,
 } from '../../service/Favorites';
-import { getActiveRun, subscribeToActiveRun } from '../../service/activeRun';
+import { getRunningConversationIds, subscribeToActiveRun } from '../../service/activeRun';
 import {
     fetchBookmarks,
     getBookmarks,
@@ -635,12 +636,19 @@ const Library = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isPhoneDevice, setIsPhoneDevice] = useState(false);
     const [mobileFolderDrawerOpen, setMobileFolderDrawerOpen] = useState(false);
-    const [activeRun, setActiveRunState] = useState(() => getActiveRun());
-    const loadingConversationId = activeRun?.conversationId != null
-        ? String(activeRun.conversationId)
-        : null;
+    // Several conversations can be working at once, so this is a membership test rather
+    // than a comparison against the one run there used to be.
+    const [runningConversationIds, setRunningConversationIds] = useState(
+        () => getRunningConversationIds(),
+    );
+    const isConversationRunning = useCallback(
+        (id) => id != null && runningConversationIds.has(String(id)),
+        [runningConversationIds],
+    );
 
-    useEffect(() => subscribeToActiveRun(setActiveRunState), []);
+    useEffect(() => subscribeToActiveRun(
+        () => setRunningConversationIds(getRunningConversationIds()),
+    ), []);
 
     const [selectedFolderId, setSelectedFolderId] = useState(() => {
         const params = new URLSearchParams(location.search);
@@ -1692,7 +1700,7 @@ const Library = () => {
                                                             onManageFolders={handleManageChatFolders}
                                                             isBookmarked
                                                             bookmarkLabel="Remove bookmark"
-                                                            isLoadingConversation={String(conversation.id) === loadingConversationId}
+                                                            isLoadingConversation={isConversationRunning(conversation.id)}
                                                         />
                                                     </div>
                                                 ))}
@@ -1867,7 +1875,7 @@ const Library = () => {
                                                         onManageFolders={handleManageChatFolders}
                                                         isBookmarked
                                                         bookmarkLabel="Remove bookmark"
-                                                        isLoadingConversation={String(conversation.id) === loadingConversationId}
+                                                        isLoadingConversation={isConversationRunning(conversation.id)}
                                                     />
                                                 </div>
                                             ))}

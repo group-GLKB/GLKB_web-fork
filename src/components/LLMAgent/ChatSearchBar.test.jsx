@@ -74,19 +74,22 @@ describe('ChatSearchBar while an answer is streaming', () => {
     });
 
     describe('while a DIFFERENT conversation is the one running', () => {
-        // Nothing here to queue against: that run belongs to another thread, and holding a
-        // question against it would fire it at a moment the reader has no reason to expect.
+        // Nothing is racing: that run has its own session and its own history id, and the
+        // backend locks per history id. So this question starts now rather than waiting, and
+        // the other answer goes on being written. The field used to be disabled here, which
+        // is what left "New Chat" mid-run on a composer nobody could type in.
         const elsewhere = { isLoading: true, isRunElsewhere: true };
 
-        it('locks the field', () => {
+        it('leaves the field usable', () => {
             setup(elsewhere);
-            expect(field()).toBeDisabled();
+            expect(field()).not.toBeDisabled();
         });
 
-        it('says which situation it is', () => {
+        it('says the other answer is not being interrupted', () => {
             setup(elsewhere);
-            expect(screen.getByPlaceholderText('Another conversation is still loading'))
-                .toBeInTheDocument();
+            expect(
+                screen.getByPlaceholderText('Ask a new question — the other answer keeps writing'),
+            ).toBeInTheDocument();
         });
 
         it('shows no stop control — the run is not this one to stop', () => {
@@ -94,8 +97,17 @@ describe('ChatSearchBar while an answer is streaming', () => {
             expect(screen.queryByTitle('Stop')).not.toBeInTheDocument();
         });
 
-        it('does not submit on Enter', () => {
+        it('submits on Enter, starting a second conversation', () => {
             const { onSubmit } = setup({ ...elsewhere, userInput: 'q' });
+            fireEvent.keyDown(field(), { key: 'Enter' });
+            expect(onSubmit).toHaveBeenCalledTimes(1);
+        });
+
+        it('still refuses when the quota is gone, whoever is running', () => {
+            const { onSubmit } = setup({
+                ...elsewhere, userInput: 'q', isQueryLimitReached: true,
+            });
+            expect(field()).toBeDisabled();
             fireEvent.keyDown(field(), { key: 'Enter' });
             expect(onSubmit).not.toHaveBeenCalled();
         });

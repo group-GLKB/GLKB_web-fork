@@ -115,7 +115,7 @@ import {
     setNotifyPref,
     subscribeToNotifyPrefs,
 } from '../../service/notifications';
-import { clearActiveRun, setActiveRun } from '../../service/activeRun';
+import { clearActiveRun, clearPendingRun, setActiveRun } from '../../service/activeRun';
 import {
     clearActiveRunSnapshot,
     readActiveRunSnapshot,
@@ -2113,7 +2113,17 @@ function LLMAgent({ isRouteActive = true }) {
     useEffect(() => {
         isLoadingRef.current = isLoading;
         if (!isLoading) {
-            clearActiveRun();
+            /* Only the conversation this component was just answering. A run the reader left
+               behind to ask something else is still being written on the server, and it stays
+               in the registry — and so keeps its dot in the sidebar — until its own request
+               settles and clears itself by id. Clearing the whole registry here would take
+               those marks down while the answers were still coming. */
+            const finished = runningConversationIdRef.current;
+            // A run with no conversation id — a guest, or a row the server never returned —
+            // is filed under the pending key and has to be released by that name, or it would
+            // sit in the registry forever making the app think something is still working.
+            if (finished) clearActiveRun(finished);
+            else clearPendingRun();
             return;
         }
         // A run id means an investigate run, which the server can be asked about
@@ -2127,7 +2137,9 @@ function LLMAgent({ isRouteActive = true }) {
 
     useEffect(() => () => {
         // Leaving the route does not end the run, so the registry is left alone
-        // unless the run had already finished.
+        // unless the run had already finished. Unmounting the controller does end
+        // every request it owns, detached ones included, so nothing may be left
+        // claiming to be in flight.
         if (!isLoadingRef.current) clearActiveRun();
     }, []);
 
@@ -2673,7 +2685,13 @@ function LLMAgent({ isRouteActive = true }) {
     ]);
 
     const startNewConversation = useCallback((options = {}) => {
-        cancelStreaming();
+        /* `keepRunning` releases the run instead of ending it. Everything below still clears —
+           the view is starting over — but the request is left open, so the server finishes the
+           answer and writes it to its own history. `cancelStreaming` already sets
+           `activeStreamIdRef` to null, which is what detaches the frames from this view; the
+           registry entry stays until the request itself settles, so the conversation keeps its
+           working dot in the sidebar meanwhile. */
+        cancelStreaming({ abort: !options.keepRunning });
         clearActiveRunSnapshot();
         liveRunSnapshotRef.current = null;
         if (!options.skipHistoryReset) {
@@ -3134,9 +3152,19 @@ function LLMAgent({ isRouteActive = true }) {
     const handleSubmit = async (e, input = null, t = null, options = {}) => {
         const inputText = input || userInput;
         e && e.preventDefault();
-        if (!inputText.trim() || isLoading || isLimitReachedEffective) return;
+        if (!inputText.trim() || isLimitReachedEffective) return;
 
         const shouldStartNewConversation = options.forceNewConversation || !activeConversationIdRef.current;
+        /* A run in flight only blocks a second turn in the conversation that is running it —
+           that one would race its own predecessor, and `submitOrQueue` holds it back instead.
+           A question asked anywhere else is a different session with a different history id,
+           and the backend locks per history id rather than per user, so it may simply start.
+           This used to refuse every submit while `isLoading`, which meant a reader with a new
+           question had to wait out an answer they had already stopped reading. */
+        if (isLoading && !shouldStartNewConversation && runningConversationIdRef.current
+            && String(activeConversationIdRef.current) === String(runningConversationIdRef.current)) {
+            return;
+        }
         const baseHistory = Array.isArray(options.baseHistory)
             ? options.baseHistory
             : (shouldStartNewConversation ? [] : chatHistory);
@@ -3183,9 +3211,21 @@ function LLMAgent({ isRouteActive = true }) {
            as long as that took. Nothing below needs them to have waited — the conversation id
            is not part of what they draw. */
         const optimisticRunHistory = [...baseHistory, newMessage];
+        /* Whatever was running a moment ago, captured before the line below overwrites it.
+           `runConversationId` then tracks the conversation THIS run owns — through the row
+           being created and through the `saved` frame, which is the only thing that can move
+           a run onto a different id. Both are closure-local on purpose: once a later run takes
+           the foreground the shared refs describe that one, and this run still has to be able
+           to say which conversation it was, so it can take its own mark out of the registry
+           when it ends. */
+        const previousRunWasLive = isLoadingRef.current;
+        const previousRunConversationId = previousRunWasLive
+            ? runningConversationIdRef.current
+            : null;
         runningConversationIdRef.current = shouldStartNewConversation
             ? null
             : activeConversationIdRef.current;
+        let runConversationId = runningConversationIdRef.current;
         runningChatHistoryRef.current = optimisticRunHistory;
         backgroundCompletionNotifiedRef.current = null;
         setRunHistoryRevision((revision) => revision + 1);
@@ -3231,6 +3271,7 @@ function LLMAgent({ isRouteActive = true }) {
         }
         if (historyId) {
             runningConversationIdRef.current = String(historyId);
+            runConversationId = String(historyId);
         }
         if (resetInvestigateSession) {
             sessionIdRef.current = null;
@@ -3301,7 +3342,18 @@ function LLMAgent({ isRouteActive = true }) {
                 investigateMode: investigateEnabled,
             }]);
 
-            if (abortControllerRef.current) {
+            /* Only a run in THIS conversation is cut off — it is being replaced by a retry or
+               an edited message, so its answer is not wanted. A run in another conversation is
+               left alone to finish: the reader moved on to a new question, they did not ask for
+               the previous answer to be thrown away. Assigning `activeStreamIdRef` above has
+               already detached it from the view, so it stops painting here; the server writes
+               it to its own history and `resumeUnfinishedRun` collects it when the reader goes
+               back. Aborting it instead would have destroyed a half-written answer every time
+               someone started a second question. */
+            const replacesOwnRun = !previousRunWasLive
+                || (previousRunConversationId != null
+                    && String(previousRunConversationId) === String(runConversationId));
+            if (abortControllerRef.current && replacesOwnRun) {
                 abortControllerRef.current.abort();
             }
             const abortController = new AbortController();
@@ -3686,6 +3738,7 @@ function LLMAgent({ isRouteActive = true }) {
                         if (isActiveStream) {
                             const savedId = update.historyId ? String(update.historyId) : null;
                             if (savedId) {
+                                runConversationId = savedId;
                                 const previousRunningId = runningConversationIdRef.current;
                                 const wasViewingRun = previousRunningId
                                     ? String(activeConversationIdRef.current) === String(previousRunningId)
@@ -3835,6 +3888,12 @@ function LLMAgent({ isRouteActive = true }) {
             }
         } finally {
             refreshTierStatus();
+            /* Unconditional, and by this run's own id: a detached run reaches here with the
+               foreground belonging to a later one, and it still has to take its own mark out
+               of the registry — otherwise the sidebar would show it working forever. The
+               guarded block below is the opposite case, the foreground run settling its UI. */
+            if (runConversationId) clearActiveRun(runConversationId);
+            else clearPendingRun();
             if (activeStreamIdRef.current === streamId) {
                 setIsLoading(false);
                 setIsProcessing(false);
@@ -4046,12 +4105,18 @@ function LLMAgent({ isRouteActive = true }) {
             });
     };
 
+    /* New Chat, mid-run included.
+
+       It used to navigate away and return without resetting anything, so the reader landed on
+       a page that still believed the old conversation was selected and still had `isLoading`
+       set — which left the composer disabled with "Another conversation is still loading" and
+       no way out but waiting. New Chat now always reaches an empty chat.
+
+       `keepRunning` is what makes that safe: the run is released rather than aborted, so the
+       answer the reader walked away from is still written, saved against its own history id,
+       and shown by `resumeUnfinishedRun` when they come back to it. */
     const handleClear = useCallback(() => {
-        if (isLoading) {
-            navigate('/');
-            return;
-        }
-        startNewConversation();
+        startNewConversation({ keepRunning: isLoading });
         navigate('/');
     }, [isLoading, navigate, startNewConversation]);
 
@@ -4672,7 +4737,11 @@ function LLMAgent({ isRouteActive = true }) {
         const text = userInput.trim();
         if (!text || isLimitReachedEffective) return;
         if (isLoading && !isViewingRunningConversation) {
-            message.info('Wait for the running conversation to finish before asking another question.');
+            // A different thread. It used to be refused — "wait for the running conversation to
+            // finish" — which made the reader hold the question for as long as an answer they
+            // were no longer reading. It is its own session with its own history id, so it just
+            // starts, and the run they left keeps being written.
+            stableSubmit(event, null, null, { searchOptions });
             return;
         }
         if (!isLoading) {

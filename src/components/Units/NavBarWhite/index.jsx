@@ -1,6 +1,7 @@
 import './scoped.css';
 
 import React, {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -62,7 +63,7 @@ import {
 } from '../../../img/navbar/sidebar.left.svg';
 import userAccountIcon from '../../../img/user/ic_outline-account-circle.svg';
 import userLogoutIcon from '../../../img/user/mynaui_logout.svg';
-import { getActiveRun, subscribeToActiveRun } from '../../../service/activeRun';
+import { getRunningConversationIds, subscribeToActiveRun } from '../../../service/activeRun';
 import {
   fetchConversations,
   getActiveConversationId,
@@ -220,22 +221,27 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
     const [editingRecentTitle, setEditingRecentTitle] = useState('');
     const [conversationBookmarks, setConversationBookmarks] = useState([]);
     const [storedProfile, setStoredProfile] = useState(() => getStoredAccountProfile());
-    const [activeRun, setActiveRunState] = useState(() => getActiveRun());
-    const loadingConversationId = activeRun?.conversationId != null
-        ? String(activeRun.conversationId)
-        : null;
+    /* Every conversation that is working, not just the newest one: a reader can leave an answer
+       to write itself and ask something else, so more than one row can be in flight at a time
+       and each of them needs its own dot. */
+    const [runningConversationIds, setRunningConversationIds] = useState(
+        () => getRunningConversationIds(),
+    );
+    const isConversationRunning = useCallback(
+        (id) => id != null && runningConversationIds.has(String(id)),
+        [runningConversationIds],
+    );
 
-    useEffect(() => subscribeToActiveRun(setActiveRunState), []);
+    useEffect(() => subscribeToActiveRun(
+        () => setRunningConversationIds(getRunningConversationIds()),
+    ), []);
 
     useEffect(() => {
-        if (
-            loadingConversationId
-            && String(recentMenuConversation?.id) === loadingConversationId
-        ) {
+        if (isConversationRunning(recentMenuConversation?.id)) {
             setRecentMenuAnchorEl(null);
             setRecentMenuConversation(null);
         }
-    }, [loadingConversationId, recentMenuConversation]);
+    }, [isConversationRunning, recentMenuConversation]);
 
     useEffect(() => {
         if (isSmallScreen) {
@@ -477,7 +483,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const handleOpenRecentMenu = (event, conversation) => {
         event.stopPropagation();
-        if (loadingConversationId && String(conversation?.id) === loadingConversationId) return;
+        if (isConversationRunning(conversation?.id)) return;
         setRecentMenuAnchorEl(event.currentTarget);
         setRecentMenuConversation(conversation);
     };
@@ -536,7 +542,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const handleDeleteRecent = async () => {
         if (!recentMenuConversation?.id) return;
-        if (loadingConversationId && String(recentMenuConversation.id) === loadingConversationId) {
+        if (isConversationRunning(recentMenuConversation.id)) {
             handleCloseRecentMenu();
             return;
         }
@@ -883,8 +889,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                     (() => {
                                         const isEditingRecent = String(editingRecentId) === String(conversation.id);
                                         const isActiveRecent = isActiveConversation(conversation);
-                                        const isLoadingRecent = loadingConversationId != null
-                                            && String(conversation.id) === loadingConversationId;
+                                        const isLoadingRecent = isConversationRunning(conversation.id);
                                         return (
                                             <Box
                                                 key={conversation.id}

@@ -23,22 +23,26 @@ const ChatSearchBar = ({
     onStop,
 }) => {
     const isMobileViewport = useMediaQuery('(max-width:700px)');
-    /* Two different situations wear the same `isLoading`, and they want opposite answers.
-    
-       THIS conversation is answering: the field stays live and a submit is queued by the
-       parent, so a follow-up that occurs to the reader mid-answer leaves their hands at once
-       instead of being held in their head for the length of a run.
-    
-       ANOTHER conversation is answering (`isRunElsewhere`): there is nothing here to queue
-       against — the run belongs to a different thread — so the field is held as it was. */
-    const canType = !isQueryLimitReached && !isRunElsewhere;
+    /* Two different situations wear the same `isLoading`, and the field stays usable in both.
+
+       THIS conversation is answering: a submit is queued by the parent, so a follow-up that
+       occurs to the reader mid-answer leaves their hands at once instead of being held in
+       their head for the length of a run. A second turn here really would race the first.
+
+       ANOTHER conversation is answering (`isRunElsewhere`): nothing is racing. That run has
+       its own session and its own history id, and the backend locks per history id — so this
+       question simply starts, and the other answer goes on being written. The field used to
+       be disabled here, which meant "New Chat" during a run led to a composer that could not
+       be typed in. */
+    const canType = !isQueryLimitReached;
     const canSend = Boolean(userInput.trim()) && canType;
     // Stop is what the button offers when there is nothing to send. Typing turns it back into
     // send, which is also how a reader gets out of a queued follow-up they no longer want:
-    // clear the field and the stop control is there again.
+    // clear the field and the stop control is there again. There is nothing here to stop when
+    // the run belongs to another thread.
     const showStop = isLoading && !isRunElsewhere && !canSend;
     const placeholder = isRunElsewhere
-        ? 'Another conversation is still loading'
+        ? (isMobileViewport ? 'Ask something new…' : 'Ask a new question — the other answer keeps writing')
         : (isLoading
             ? (isMobileViewport ? 'Ask next…' : 'Ask a follow-up — it will send when this answer finishes')
             : (isMobileViewport ? 'Ask more...' : 'Ask a question about the biomedical literature...'));

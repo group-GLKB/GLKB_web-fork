@@ -23,7 +23,7 @@ import {
 import { ReactComponent as ChatIcon } from '../../img/llm/chat_message.svg';
 import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
 import { ReactComponent as MapIcon } from '../../img/llm/graph_share.svg';
-import { getActiveRun, subscribeToActiveRun } from '../../service/activeRun';
+import { getRunningConversationIds, subscribeToActiveRun } from '../../service/activeRun';
 import {
     forgetInvestigateConversations,
     getInvestigateConversationIds,
@@ -202,12 +202,21 @@ const History = () => {
     const [isPhoneDevice, setIsPhoneDevice] = useState(false);
     const [conversationBookmarks, setConversationBookmarks] = useState([]);
     const [graphBookmarks, setGraphBookmarks] = useState([]);
-    const [activeRun, setActiveRunState] = useState(() => getActiveRun());
-    const loadingConversationId = activeRun?.conversationId != null
-        ? String(activeRun.conversationId)
-        : null;
+    /* Every conversation that is working, not just the newest: a reader can leave one answer
+       to write itself and ask something else, so several rows can be in flight at once. A row
+       that is running still may not be deleted or bulk-selected — that part is unchanged, it
+       just applies to each of them now. */
+    const [runningConversationIds, setRunningConversationIds] = useState(
+        () => getRunningConversationIds(),
+    );
+    const isConversationRunning = useCallback(
+        (id) => id != null && runningConversationIds.has(String(id)),
+        [runningConversationIds],
+    );
 
-    useEffect(() => subscribeToActiveRun(setActiveRunState), []);
+    useEffect(() => subscribeToActiveRun(
+        () => setRunningConversationIds(getRunningConversationIds()),
+    ), []);
 
     /* Which of these were investigate runs, so the row can carry the microscope the design
        gives them (176:8230).
@@ -274,7 +283,7 @@ const History = () => {
 
     const filteredIds = filteredChatItems
         .map((item) => item.id)
-        .filter((id) => id !== loadingConversationId);
+        .filter((id) => !isConversationRunning(id));
     const selectedIdSet = new Set(selectedIds);
     const selectedFilteredCount = filteredIds.filter((id) => selectedIdSet.has(id)).length;
     const selectedCount = selectedIds.length;
@@ -453,7 +462,7 @@ const History = () => {
     };
 
     const handleToggleConversationSelection = (conversationId, forceSelectMode = false) => {
-        if (String(conversationId) === loadingConversationId) return;
+        if (isConversationRunning(conversationId)) return;
         if (!selectMode) {
             if (!forceSelectMode) return;
             setSelectMode(true);
@@ -490,7 +499,7 @@ const History = () => {
     const handleDeleteSelected = async () => {
         if (selectedCount === 0 || isDeleting) return;
         setIsDeleting(true);
-        const idsToDelete = selectedIds.filter((id) => String(id) !== loadingConversationId);
+        const idsToDelete = selectedIds.filter((id) => !isConversationRunning(id));
         if (idsToDelete.length === 0) {
             setIsDeleting(false);
             return;
@@ -564,7 +573,7 @@ const History = () => {
     const handleDeleteConversation = async (conversation) => {
         if (!conversation?.id) return;
         const idToDelete = String(conversation.id);
-        if (idToDelete === loadingConversationId) return;
+        if (isConversationRunning(idToDelete)) return;
         try {
             await removeConversation(idToDelete);
         } catch (error) {
@@ -592,9 +601,9 @@ const History = () => {
     }, [conversations]);
 
     useEffect(() => {
-        if (!loadingConversationId) return;
-        setSelectedIds((prev) => prev.filter((id) => String(id) !== loadingConversationId));
-    }, [loadingConversationId]);
+        if (!runningConversationIds.size) return;
+        setSelectedIds((prev) => prev.filter((id) => !isConversationRunning(id)));
+    }, [runningConversationIds, isConversationRunning]);
 
     useEffect(() => {
         setSelectedGraphIds((prev) => prev.filter((id) => graphHistories.some((history) => String(history.id) === String(id))));
@@ -851,7 +860,7 @@ const History = () => {
                                         onRename={handleRenameConversation}
                                         onBookmark={handleBookmarkConversation}
                                         onDelete={handleDeleteConversation}
-                                        isLoadingConversation={item.id === loadingConversationId}
+                                        isLoadingConversation={isConversationRunning(item.id)}
                                     />
                                 ) : (
                                     <ConversationCard
