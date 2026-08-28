@@ -1,4 +1,5 @@
 import axios from '../utils/axiosConfig';
+import { PHASE_PERCENT_FLOOR } from './investigatePhases';
 import { humanizeTrace } from './traceLabel';
 
 const DEFAULT_STREAM_ENDPOINT = '/api/v1/new-llm-agent/stream';

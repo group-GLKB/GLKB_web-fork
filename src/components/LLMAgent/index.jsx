@@ -114,8 +114,16 @@ import {
     subscribeToNotifyPrefs,
 } from '../../service/notifications';
 import { clearActiveRun, setActiveRun } from '../../service/activeRun';
+import {
+    clearActiveRunSnapshot,
+    readActiveRunSnapshot,
+    writeActiveRunSnapshot,
+} from '../../service/agentRunSnapshot';
 import { isInvestigateConversation, markInvestigateConversation } from '../../utils/investigateConversations';
-import { isExchangeUnfinished } from '../../service/resumeRun';
+import {
+    getLiveConversationNavigationAction,
+    isExchangeUnfinished,
+} from '../../service/resumeRun';
 import {
     bindMarkersToLinks,
     citationsFor,
@@ -320,12 +328,26 @@ const logDev = (...args) => {
     }
 };
 
-const getStoredChatHistory = () => {
+const getStoredChatHistory = (conversationId = null) => {
     if (typeof window === 'undefined') return [];
     const conversations = getConversations();
-    const activeId = getActiveConversationId();
-    const active = conversations.find((item) => item.id === activeId);
+    const activeId = conversationId || getActiveConversationId();
+    const active = conversations.find((item) => String(item.id) === String(activeId));
     return active?.messages || [];
+};
+
+const mergeMessagesWithRunSnapshot = (messages, snapshot) => {
+    const base = Array.isArray(messages) ? [...messages] : [];
+    const liveAssistant = snapshot?.assistantMessage;
+    if (!snapshot?.active || !liveAssistant || liveAssistant.role !== 'assistant') return base;
+
+    const tail = base[base.length - 1];
+    if (tail?.role === 'assistant') {
+        base[base.length - 1] = { ...tail, ...liveAssistant };
+    } else if (tail?.role === 'user') {
+        base.push(liveAssistant);
+    }
+    return base;
 };
 
 const getStoredProcessingFlag = () => {
@@ -1005,6 +1027,8 @@ const MessageCard = React.memo(function MessageCard({
     save,
     downloadConversation,
     onOpenFeedback,
+    interactionLocked = false,
+    conversationId,
 }) {
     const isAssistant = message.role === "assistant";
     const isLastUserMessage = index === totalMessages - 1 && message.role === 'assistant';
@@ -1045,7 +1069,7 @@ const MessageCard = React.memo(function MessageCard({
         if (referenceIndex >= 0) return referenceIndex + 1;
         return streamingNumberByPmid?.get(pmid) ?? null;
     };
-    const allowUserEdit = true;
+    const allowUserEdit = !interactionLocked;
 
     /**
      * Reference hover card (Figma "Reference - Hover Preview"). Replaces the browser's native
@@ -1246,7 +1270,7 @@ const MessageCard = React.memo(function MessageCard({
             return;
         }
         setThoughtsExpanded(false);
-    }, [isLoading]);
+    }, [isLoading, conversationId]);
 
     useEffect(() => {
         if (showInvestigateProgress) {
@@ -1669,7 +1693,7 @@ const MessageCard = React.memo(function MessageCard({
                                         <ContentCopyIcon style={{ width: '16px', height: '16px', display: 'block', color: 'var(--color-grey-400)' }} />
                                     </IconButton>
                                 )}
-                                {allowResponseRefresh && isLastUserMessage && !isLoading && (
+                                {allowResponseRefresh && isLastUserMessage && !isLoading && !interactionLocked && (
                                     <IconButton
                                         size="small"
                                         onClick={() => refresh(null, index)}
@@ -1718,7 +1742,7 @@ const MessageCard = React.memo(function MessageCard({
                                 save(event, messageID, editContent);
                                 setIsEditing(false);
                                 setEditContent('');
-                            }}>
+                            }} disabled={interactionLocked}>
                                 <CheckIcon fontSize="small" />
                             </IconButton>
                         </> : <div className="user-message-actions">
@@ -1752,25 +1776,14 @@ const MessageCard = React.memo(function MessageCard({
     );
 });
 
-function LLMAgent() {
+function LLMAgent({ isRouteActive = true }) {
     const location = useLocation();
+    const initialRunSnapshotRef = useRef(undefined);
+    if (initialRunSnapshotRef.current === undefined) {
+        initialRunSnapshotRef.current = readActiveRunSnapshot() || null;
+    }
+    const initialRunSnapshot = initialRunSnapshotRef.current;
     const [userInput, setUserInput] = useState('');
-    /**
-     * Follow-ups typed while an answer is still being written.
-     *
-     * The bar used to go dead for the length of a run — measured on live runs, 19 to 68 seconds
-     * — so a question that occurred to the reader mid-answer had to be held in their head until
-     * the page let them type it. Sending it immediately is not an option either: the agent is
-     * mid-stream and a second turn on the same conversation would race the first. So it is
-     * queued: the text leaves the reader's hands at once, and the run that carries it starts
-     * when the current one ends.
-     *
-     * A list rather than a single slot — someone who thinks of two things should not have to
-     * wait for the first to be answered before writing the second. They go out one at a time,
-     * oldest first, each waiting for the previous answer.
-     */
-    const [queuedPrompts, setQueuedPrompts] = useState([]);
-    const queueSeqRef = useRef(0);
     const [chatHistory, setChatHistory] = useState(() => {
         const initialQuery = location.state?.initialQuery;
         if (initialQuery) {
@@ -1782,17 +1795,35 @@ function LLMAgent() {
                 investigateMode: Boolean(location.state?.initialSearchOptions?.investigateEnabled),
             }];
         }
-        return getStoredChatHistory();
+        const stored = getStoredChatHistory(initialRunSnapshot?.conversationId || null);
+        return mergeMessagesWithRunSnapshot(stored, initialRunSnapshot);
     });
+    const runningConversationIdRef = useRef(
+        initialRunSnapshot?.active ? initialRunSnapshot.conversationId : null,
+    );
+    const runningChatHistoryRef = useRef(
+        initialRunSnapshot?.active
+            ? mergeMessagesWithRunSnapshot(
+                getStoredChatHistory(initialRunSnapshot.conversationId),
+                initialRunSnapshot,
+            )
+            : [],
+    );
+    const runHistoryUpdaterRef = useRef(null);
+    const [runHistoryRevision, setRunHistoryRevision] = useState(0);
     const [selectedMessageIndex, setSelectedMessageIndex] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [streamingGroups, setStreamingGroups] = useState([]);
+    const [isLoading, setIsLoading] = useState(() => Boolean(initialRunSnapshot?.active));
+    const [streamingGroups, setStreamingGroups] = useState(
+        () => initialRunSnapshot?.streamingGroups || [],
+    );
     // The cheap-tier opening line as it streams. Held as STATE, not only in the thought refs:
     // the thought list is not rendered at all while `isLoading`, so a ref that only feeds it
     // cannot put anything on screen during the wait this line exists to fill.
-    const [preambleText, setPreambleText] = useState('');
-    const [streamingStepName, setStreamingStepName] = useState('');
-    const [isProcessing, setIsProcessing] = useState(false);
+    const [preambleText, setPreambleText] = useState(initialRunSnapshot?.preambleText || '');
+    const [streamingStepName, setStreamingStepName] = useState(
+        initialRunSnapshot?.streamingStepName || '',
+    );
+    const [isProcessing, setIsProcessing] = useState(() => Boolean(initialRunSnapshot?.active));
     const [leftPaneWidth, setLeftPaneWidth] = useState(66);
     const [isDraggingSplit, setIsDraggingSplit] = useState(false);
     const [dragIndicatorY, setDragIndicatorY] = useState(0);
@@ -1800,7 +1831,9 @@ function LLMAgent() {
     const [isPhoneDevice, setIsPhoneDevice] = useState(false);
     const [isMobileReferencesDrawerOpen, setIsMobileReferencesDrawerOpen] = useState(false);
     const [conversationsState, setConversationsState] = useState(() => getConversations());
-    const [activeConversationId, setActiveConversationIdState] = useState(() => getActiveConversationId());
+    const [activeConversationId, setActiveConversationIdState] = useState(
+        () => initialRunSnapshot?.conversationId || getActiveConversationId(),
+    );
     const [isConversationLoading, setIsConversationLoading] = useState(false);
     const [loadingConversationId, setLoadingConversationId] = useState(null);
     const [conversationBookmarks, setConversationBookmarksState] = useState(() => getConversationBookmarks());
@@ -1817,20 +1850,38 @@ function LLMAgent() {
     const [chatTitleDraft, setChatTitleDraft] = useState('');
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
     const [queryLimitTotal, setQueryLimitTotal] = useState(10);
-    const [pendingClarification, setPendingClarification] = useState(null);
-    const [clarificationDrafts, setClarificationDrafts] = useState({});
+    const [pendingClarification, setPendingClarification] = useState(
+        initialRunSnapshot?.pendingClarification || null,
+    );
+    const [clarificationDrafts, setClarificationDrafts] = useState(
+        () => initialRunSnapshot?.clarificationDrafts || {},
+    );
     const [clarificationError, setClarificationError] = useState('');
     const [clarificationSubmitting, setClarificationSubmitting] = useState(false);
-    const [investigatePhase, setInvestigatePhase] = useState('searching');
-    const [investigateFunnel, setInvestigateFunnel] = useState(() => emptyFunnel());
-    const [investigateStartedAt, setInvestigateStartedAt] = useState(null);
-    const [investigatePercent, setInvestigatePercent] = useState(null);
-    const [investigateKeywords, setInvestigateKeywords] = useState([]);
-    const [investigatePapers, setInvestigatePapers] = useState([]);
+    const [investigatePhase, setInvestigatePhase] = useState(
+        initialRunSnapshot?.investigatePhase || 'searching',
+    );
+    const [investigateFunnel, setInvestigateFunnel] = useState(
+        () => initialRunSnapshot?.investigateFunnel || emptyFunnel(),
+    );
+    const [investigateStartedAt, setInvestigateStartedAt] = useState(
+        initialRunSnapshot?.investigateStartedAt || null,
+    );
+    const [investigatePercent, setInvestigatePercent] = useState(
+        initialRunSnapshot?.investigatePercent ?? null,
+    );
+    const [investigateKeywords, setInvestigateKeywords] = useState(
+        () => initialRunSnapshot?.investigateKeywords || [],
+    );
+    const [investigatePapers, setInvestigatePapers] = useState(
+        () => initialRunSnapshot?.investigatePapers || [],
+    );
     // The structured fields of the progress frames seen so far (topic, facets, n_claims,
     // n_conflicted, section/step/total). Accumulated rather than replaced, so a later frame that
     // omits a field does not blank the active step's detail block.
-    const [investigateDetail, setInvestigateDetail] = useState({});
+    const [investigateDetail, setInvestigateDetail] = useState(
+        () => initialRunSnapshot?.investigateDetail || {},
+    );
     const [notifyEmailEnabled, setNotifyEmailEnabled] = useState(() => getNotifyPrefs().email);
 
     // The same preference has a row in Settings and a toggle here; either can
@@ -1838,35 +1889,42 @@ function LLMAgent() {
     useEffect(() => subscribeToNotifyPrefs(
         (prefs) => setNotifyEmailEnabled(prefs.email),
     ), []);
-    const [chatInvestigateEnabled, setChatInvestigateEnabled] = useState(false);
-    const investigateFunnelRef = useRef(emptyFunnel());
-    const investigatePhaseRef = useRef('searching');
-    const investigatePercentRef = useRef(null);
-    const investigateKeywordsRef = useRef([]);
-    const investigatePapersRef = useRef([]);
-    const investigateDetailRef = useRef({});
+    const [chatInvestigateEnabled, setChatInvestigateEnabled] = useState(
+        () => Boolean(initialRunSnapshot?.investigate),
+    );
+    const investigateFunnelRef = useRef(initialRunSnapshot?.investigateFunnel || emptyFunnel());
+    const investigatePhaseRef = useRef(initialRunSnapshot?.investigatePhase || 'searching');
+    const investigatePercentRef = useRef(initialRunSnapshot?.investigatePercent ?? null);
+    const investigateKeywordsRef = useRef(initialRunSnapshot?.investigateKeywords || []);
+    const investigatePapersRef = useRef(initialRunSnapshot?.investigatePapers || []);
+    const investigateDetailRef = useRef(initialRunSnapshot?.investigateDetail || {});
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
     const abortControllerRef = useRef(null);
-    const thinkingStepsRef = useRef([]);
+    const thinkingStepsRef = useRef(initialRunSnapshot?.thinkingSteps || []);
     // The answer as it streams in. `block` rises on every tool call, and only the newest block is
     // the answer — in a ReAct loop the model narrates before each call and that text streams too,
     // so a lower block number means "that was a previous train of thought, throw it away".
-    const streamingAnswerRef = useRef({ block: -1, text: '' });
+    const streamingAnswerRef = useRef(
+        initialRunSnapshot?.streamingAnswer || { block: -1, text: '' },
+    );
     // Lazily built once. Both of its inputs are stable: `streamingAnswerRef` is a ref and
     // `setChatHistory` is a useState setter, so the drip never captures a stale render.
     const dripRef = useRef(null);
     if (!dripRef.current) {
         dripRef.current = makeDrip({
             getFull: () => streamingAnswerRef.current.text,
-            show: (text) => setChatHistory((prev) => {
+            show: (text) => {
+                const updateHistory = runHistoryUpdaterRef.current || setChatHistory;
+                updateHistory((prev) => {
                 const next = [...prev];
                 const last = next[next.length - 1];
                 if (!last || last.role !== 'assistant') return prev;
                 if (last.content === text) return prev;
                 next[next.length - 1] = { ...last, content: text };
                 return next;
-            }),
+                });
+            },
         });
     }
     // A run can still be in flight when the reader leaves the page; nothing should go on
@@ -1875,11 +1933,13 @@ function LLMAgent() {
     // The cheap-tier opening line, accumulated in place. It occupies ONE entry in the thought
     // list that grows as the chunks land, rather than one entry per chunk — `groupThinkingSteps`
     // would otherwise render a column of two-word fragments.
-    const preambleRef = useRef({ text: '', index: -1 });
+    const preambleRef = useRef(
+        initialRunSnapshot?.preamble || { text: '', index: -1 },
+    );
     const prevSelectedMessageIndexRef = useRef(null);
     const lastAutoSelectedRef = useRef(null);
-    const sessionIdRef = useRef(null);
-    const runIdRef = useRef(null);
+    const sessionIdRef = useRef(initialRunSnapshot?.sessionId || null);
+    const runIdRef = useRef(initialRunSnapshot?.runId || null);
     // The conversation whose answer is currently being recovered, so the two restore
     // paths cannot both poll for it and overwrite each other's result.
     const resumingConversationRef = useRef(null);
@@ -1891,24 +1951,76 @@ function LLMAgent() {
     // them as null. Every other live investigate value here is already mirrored into a ref for the
     // same reason (funnel, phase, percent, papers, session id): a value the SSE handler writes and
     // a click handler reads must not depend on which render each of them closed over.
-    const pendingClarificationRef = useRef(null);
+    const pendingClarificationRef = useRef(initialRunSnapshot?.pendingClarification || null);
     // The ONLY way to set the pending round: the ref and the state must never disagree, or the
     // panel would render one round while submit answers another.
     const applyPendingClarification = useCallback((next) => {
         pendingClarificationRef.current = next || null;
         setPendingClarification(next || null);
     }, []);
-    const hasConsumedInitialQueryRef = useRef(false);
+    // The Agent now outlives /chat, so this cannot be a one-shot boolean: every trip from Home
+    // to Chat gets a fresh location key and may carry a new question.
+    const consumedInitialQueryKeyRef = useRef(null);
+    const initialQueryTransitionRef = useRef(false);
     const initialSearchOptionsRef = useRef(null);
     const lastSearchOptionsRef = useRef(null);
-    const activeConversationIdRef = useRef(getActiveConversationId());
+    const activeConversationIdRef = useRef(
+        initialRunSnapshot?.conversationId || getActiveConversationId(),
+    );
     const loadingConversationIdRef = useRef(null);
     const activeStreamIdRef = useRef(null);
+    const liveRunSnapshotRef = useRef(initialRunSnapshot);
+    const snapshotWriteTimerRef = useRef(null);
     const splitContainerRef = useRef(null);
     const isDraggingSplitRef = useRef(false);
     const navigationBypassRef = useRef(false);
     const originalNavigatorMethodsRef = useRef({ push: null, replace: null });
     const navigate = useNavigate();
+
+    const updateRunningChatHistory = useCallback((updater) => {
+        const previous = runningChatHistoryRef.current;
+        const next = typeof updater === 'function' ? updater(previous) : updater;
+        if (!Array.isArray(next) || next === previous) return previous;
+
+        runningChatHistoryRef.current = next;
+        const runningId = runningConversationIdRef.current;
+        if (runningId) {
+            const nextList = updateConversationMessages(getConversations(), runningId, next);
+            setConversations(nextList);
+            setConversationsState(nextList);
+        }
+
+        const selectedId = activeConversationIdRef.current;
+        const isSelectedRun = runningId
+            ? String(selectedId) === String(runningId)
+            : Boolean(activeStreamIdRef.current) && !selectedId;
+        if (isSelectedRun) {
+            setChatHistory(next);
+        }
+        setRunHistoryRevision((revision) => revision + 1);
+        return next;
+    }, []);
+    runHistoryUpdaterRef.current = updateRunningChatHistory;
+
+    const isViewingRunningConversation = Boolean(isLoading && (
+        (runningConversationIdRef.current
+            && String(activeConversationId) === String(runningConversationIdRef.current))
+        || (!runningConversationIdRef.current && activeStreamIdRef.current && !activeConversationId)
+    ));
+
+    const backgroundCompletionNotifiedRef = useRef(null);
+    const announceBackgroundCompletion = useCallback(() => {
+        const runningId = runningConversationIdRef.current;
+        if (!runningId || String(activeConversationIdRef.current) === String(runningId)) return;
+        const notificationKey = runIdRef.current || sessionIdRef.current || String(runningId);
+        if (backgroundCompletionNotifiedRef.current === notificationKey) return;
+        backgroundCompletionNotifiedRef.current = notificationKey;
+        const conversation = getConversations().find(
+            (item) => String(item.id) === String(runningId),
+        );
+        const title = conversation?.leadingTitle || 'Your background conversation';
+        message.success(`${title} is ready.`);
+    }, []);
 
     /**
      * Tell the reader their report landed. Both completion paths call this, and
@@ -1962,8 +2074,12 @@ function LLMAgent() {
         }
         // A run id means an investigate run, which the server can be asked about
         // later; a plain answer is only saved against its history id.
-        setActiveRun({ kind: runIdRef.current ? 'investigate' : 'chat', runId: runIdRef.current || null });
-    }, [isLoading]);
+        setActiveRun({
+            kind: runIdRef.current ? 'investigate' : 'chat',
+            runId: runIdRef.current || null,
+            conversationId: runningConversationIdRef.current || null,
+        });
+    }, [isLoading, activeConversationId]);
 
     useEffect(() => () => {
         // Leaving the route does not end the run, so the registry is left alone
@@ -2062,7 +2178,7 @@ function LLMAgent() {
     //   rendered directly, with no loading state and no flash of anything else. The spinner goes
     //   back only once the server has actually said "running".
     const resumeUnfinishedRun = useCallback(async (
-        conversationId, messages, stillMounted, isInvestigateHint,
+        conversationId, messages, stillMounted, isInvestigateHint, displayMessages = messages,
     ) => {
         if (!isExchangeUnfinished(messages)) return;
         const key = String(conversationId);
@@ -2070,20 +2186,22 @@ function LLMAgent() {
         const sessionId = getStoredSessionId(conversationId);
         if (!sessionId) return;      // nothing to reconnect to; leave the history as it is
         resumingConversationRef.current = key;
+        runningConversationIdRef.current = key;
+        runningChatHistoryRef.current = Array.isArray(displayMessages) ? displayMessages : messages;
 
         /* Which kind of run to reattach to. The conversation record answers this now
            (chat_histories.is_investigate); the local mark is the fallback for rows the
            server has not labelled, and for servers that do not carry the column yet. */
         const investigate = isInvestigateHint === true
             || isInvestigateConversation(conversationId);
-        const last = messages[messages.length - 1];
+        const last = displayMessages[displayMessages.length - 1] || messages[messages.length - 1];
         let placeholderAdded = false;
 
         const showWaiting = () => {
             if (placeholderAdded) return;
             placeholderAdded = true;
             if (last.role === 'user') {
-                setChatHistory((prev) => [...prev, {
+                updateRunningChatHistory((prev) => [...prev, {
                     role: 'assistant',
                     content: '',
                     references: [],
@@ -2096,11 +2214,11 @@ function LLMAgent() {
             }
             setIsLoading(true);
             setIsProcessing(true);
-            setStreamingStepName('Reconnecting to your answer...');
+            setStreamingStepName((prev) => prev || 'Reconnecting to your answer...');
         };
 
         const settle = (patch) => {
-            setChatHistory((prev) => {
+            updateRunningChatHistory((prev) => {
                 if (!prev.length) return prev;
                 const next = [...prev];
                 const tail = next[next.length - 1];
@@ -2129,11 +2247,19 @@ function LLMAgent() {
             settle({
                 content: run.response || '',
                 references: parseReferences(run.references),
+                thinkingSteps: thinkingStepsRef.current,
                 trajectory: run.trajectory || null,
                 investigateMode: investigate,
-                ...(investigate ? { investigatePercent: 100, investigatePhase: 'summary' } : {}),
+                ...(investigate ? {
+                    investigateFunnel: { ...investigateFunnelRef.current },
+                    investigatePercent: 100,
+                    investigatePhase: 'summary',
+                    investigateKeywords: [...(investigateKeywordsRef.current || [])],
+                    investigatePapers: [...(investigatePapersRef.current || [])],
+                } : {}),
             });
             if (run.response) llmService.updateMessages(run.response);
+            announceBackgroundCompletion();
         };
 
         // The answer may already be in history — written there by the backend while the page was
@@ -2144,10 +2270,32 @@ function LLMAgent() {
                 if (!stillMounted()) return true;
                 const saved = detail?.messages || [];
                 if (!isExchangeUnfinished(saved)) {
-                    setChatHistory(saved);
+                    const next = [...saved];
+                    const tail = next[next.length - 1];
+                    if (tail?.role === 'assistant') {
+                        next[next.length - 1] = {
+                            ...tail,
+                            thinkingSteps: tail.thinkingSteps?.length
+                                ? tail.thinkingSteps
+                                : thinkingStepsRef.current,
+                            ...(investigate ? {
+                                investigateMode: true,
+                                investigateFunnel: tail.investigateFunnel
+                                    || { ...investigateFunnelRef.current },
+                                investigatePhase: tail.investigatePhase || 'summary',
+                                investigatePercent: tail.investigatePercent ?? 100,
+                                investigateKeywords: tail.investigateKeywords
+                                    || [...(investigateKeywordsRef.current || [])],
+                                investigatePapers: tail.investigatePapers
+                                    || [...(investigatePapersRef.current || [])],
+                            } : {}),
+                        };
+                    }
+                    updateRunningChatHistory(next);
                     setIsLoading(false);
                     setIsProcessing(false);
                     setStreamingStepName('');
+                    announceBackgroundCompletion();
                     return true;
                 }
             } catch (error) {
@@ -2196,7 +2344,7 @@ function LLMAgent() {
                 resumingConversationRef.current = null;
             }
         }
-    }, [llmService]);
+    }, [announceBackgroundCompletion, llmService, updateRunningChatHistory]);
 
     useEffect(() => {
         if (authLoading) return undefined;
@@ -2207,13 +2355,16 @@ function LLMAgent() {
                 setConversationsState([]);
                 setActiveConversationIdState(null);
                 activeConversationIdRef.current = null;
+                setIsLoading(false);
+                setIsProcessing(false);
                 setIsConversationLoading(false);
                 setLoadingConversationId(null);
                 return;
             }
 
             const cached = getConversations();
-            let nextActiveId = getActiveConversationId();
+            let nextActiveId = initialRunSnapshotRef.current?.conversationId
+                || getActiveConversationId();
             const hasInitialQuery = Boolean(location.state?.initialQuery);
             const hasConversationId = Boolean(location.state?.conversationId);
             /* ...or a question from the home page that this mount has already taken.
@@ -2227,7 +2378,8 @@ function LLMAgent() {
                set before the state is cleared, so it covers the whole gap. */
             const shouldSkipRestore = hasInitialQuery
                 || hasConversationId
-                || hasConsumedInitialQueryRef.current;
+                || initialQueryTransitionRef.current
+                || Boolean(activeStreamIdRef.current);
 
             if (cached.length > 0) {
                 setConversationsState(cached);
@@ -2258,15 +2410,37 @@ function LLMAgent() {
                 try {
                     const detail = await fetchConversationDetail(nextActiveId);
                     if (!isMounted) return;
-                    sessionIdRef.current = getStoredSessionId(nextActiveId);
-                    setChatHistory(detail?.messages || []);
+                    const serverMessages = detail?.messages || [];
+                    const runSnapshot = initialRunSnapshotRef.current;
+                    const isSnapshotTarget = runSnapshot?.active
+                        && String(runSnapshot.conversationId) === targetId;
+                    const serverUnfinished = isExchangeUnfinished(serverMessages);
+                    const displayMessages = isSnapshotTarget && serverUnfinished
+                        ? mergeMessagesWithRunSnapshot(serverMessages, runSnapshot)
+                        : serverMessages;
+                    sessionIdRef.current = getStoredSessionId(nextActiveId)
+                        || runSnapshot?.sessionId
+                        || null;
+                    setChatHistory(displayMessages);
                     setActiveConversationIdState(String(nextActiveId));
                     activeConversationIdRef.current = String(nextActiveId);
-                    // The path a plain reload takes. Fire and forget: it polls for minutes and
-                    // the restore must not wait on it.
-                    resumeUnfinishedRun(
-                        nextActiveId, detail?.messages || [], () => isMounted, detail?.isInvestigate,
-                    );
+                    if (serverUnfinished) {
+                        // The path a plain reload takes. Fire and forget: it polls for minutes and
+                        // the restore must not wait on it. `displayMessages` retains all progress
+                        // received before the connection was interrupted.
+                        resumeUnfinishedRun(
+                            nextActiveId,
+                            serverMessages,
+                            () => isMounted,
+                            detail?.isInvestigate,
+                            displayMessages,
+                        );
+                    } else if (isSnapshotTarget) {
+                        // The backend finished while this page was reconnecting.
+                        setIsLoading(false);
+                        setIsProcessing(false);
+                        setStreamingStepName('');
+                    }
                 } catch (error) {
                     logDev('[LLM] Failed to load conversation detail', error);
                 } finally {
@@ -2297,6 +2471,8 @@ function LLMAgent() {
         }
         abortControllerRef.current = null;
         activeStreamIdRef.current = null;
+        runningConversationIdRef.current = null;
+        runningChatHistoryRef.current = [];
         dripRef.current?.stop();
         setIsLoading(false);
         setIsProcessing(false);
@@ -2317,8 +2493,43 @@ function LLMAgent() {
         let isMounted = true;
 
         const loadConversation = async () => {
-            cancelStreaming({ abort: false });
             const targetId = String(conversationId);
+            const runningId = runningConversationIdRef.current
+                ? String(runningConversationIdRef.current)
+                : null;
+            const hasLiveRun = Boolean(
+                activeStreamIdRef.current
+                || resumingConversationRef.current
+                || isLoadingRef.current,
+            );
+
+            const navigationAction = getLiveConversationNavigationAction({
+                requestedConversationId: targetId,
+                activeConversationId: runningId,
+                hasLiveRun,
+            });
+
+            if (navigationAction === 'continue-current') {
+                // Returning from History to the conversation that is already streaming must be a
+                // pure view change. The old code invalidated activeStreamId here, so every later
+                // SSE frame was discarded and only the final polling recovery remained.
+                setActiveConversationId(targetId);
+                setActiveConversationIdState(targetId);
+                activeConversationIdRef.current = targetId;
+                setChatHistory(runningChatHistoryRef.current);
+                setSelectedMessageIndex(null);
+                const { conversationId: _consumedConversationId, ...restState } = location.state || {};
+                navigate(location.pathname, {
+                    replace: true,
+                    state: Object.keys(restState).length ? restState : null,
+                });
+                return;
+            }
+
+            const preserveLiveRun = navigationAction === 'load-other';
+            if (!preserveLiveRun) {
+                cancelStreaming({ abort: false });
+            }
             loadingConversationIdRef.current = targetId;
             setLoadingConversationId(targetId);
             setIsConversationLoading(true);
@@ -2330,20 +2541,22 @@ function LLMAgent() {
                 setActiveConversationId(nextId);
                 setActiveConversationIdState(nextId);
                 activeConversationIdRef.current = nextId;
-                sessionIdRef.current = getStoredSessionId(nextId);
+                if (!preserveLiveRun) {
+                    sessionIdRef.current = getStoredSessionId(nextId);
+                }
                 lastAutoSelectedRef.current = null;
                 setHoveredPubmedId(null);
                 setChatHistory(detail?.messages || []);
                 setSelectedMessageIndex(null);
                 setShowReloadPrompt(false);
-                // Queued follow-ups belong to the conversation they were typed into.
-                setQueuedPrompts([]);
-                llmService.clearHistory();
-                // The conversation may have been left mid-answer. Fire and forget: this polls for
-                // minutes, and the load itself must not wait on it.
-                resumeUnfinishedRun(
-                    nextId, detail?.messages || [], () => isMounted, detail?.isInvestigate,
-                );
+                if (!preserveLiveRun) {
+                    llmService.clearHistory();
+                    // The conversation may have been left mid-answer. Fire and forget: this polls
+                    // for minutes, and the load itself must not wait on it.
+                    resumeUnfinishedRun(
+                        nextId, detail?.messages || [], () => isMounted, detail?.isInvestigate,
+                    );
+                }
             } catch (error) {
                 logDev('[LLM] Failed to load selected conversation', error);
             } finally {
@@ -2358,10 +2571,20 @@ function LLMAgent() {
         return () => {
             isMounted = false;
         };
-    }, [isAuthenticated, location.state, cancelStreaming, llmService, resumeUnfinishedRun]);
+    }, [
+        isAuthenticated,
+        location.pathname,
+        location.state,
+        cancelStreaming,
+        llmService,
+        navigate,
+        resumeUnfinishedRun,
+    ]);
 
     const startNewConversation = useCallback((options = {}) => {
         cancelStreaming();
+        clearActiveRunSnapshot();
+        liveRunSnapshotRef.current = null;
         if (!options.skipHistoryReset) {
             setChatHistory([]);
         }
@@ -2382,7 +2605,6 @@ function LLMAgent() {
         setActiveConversationIdState(null);
         activeConversationIdRef.current = null;
         setActiveConversationId(null);
-        setQueuedPrompts([]);
         llmService.clearHistory();
     }, [cancelStreaming, llmService]);
 
@@ -2412,7 +2634,7 @@ function LLMAgent() {
     };
 
     useEffect(() => {
-        if (!isProcessing) {
+        if (!isViewingRunningConversation || !isProcessing) {
             scrollToBottom(true);
             return undefined;
         }
@@ -2432,7 +2654,7 @@ function LLMAgent() {
                 scrollFrameRef.current = 0;
             }
         };
-    }, [chatHistory, streamingGroups, isProcessing, scrollToBottom]);
+    }, [chatHistory, streamingGroups, isProcessing, isViewingRunningConversation, scrollToBottom]);
 
     // Debounced rather than written on every change: this is a synchronous main-thread write of
     // `JSON.stringify(chatHistory)` — the whole conversation, references included — and it ran
@@ -2450,6 +2672,109 @@ function LLMAgent() {
         sessionStorage.setItem('llmWasProcessing', isProcessing ? 'true' : 'false');
     }, [isProcessing]);
 
+    // Keep the live presentation state separate from the saved conversation. History only gains
+    // the final assistant message, while this snapshot preserves what the reader had already seen
+    // (steps, partial text and Investigate progress) if the transport or page reconnects.
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        if (!isProcessing) {
+            if (snapshotWriteTimerRef.current) {
+                window.clearTimeout(snapshotWriteTimerRef.current);
+                snapshotWriteTimerRef.current = null;
+            }
+            liveRunSnapshotRef.current = null;
+            initialRunSnapshotRef.current = null;
+            clearActiveRunSnapshot();
+            return;
+        }
+
+        const conversationId = runningConversationIdRef.current;
+        if (!conversationId) return;
+        const runHistory = runningChatHistoryRef.current;
+        let assistantMessage = null;
+        for (let i = runHistory.length - 1; i >= 0; i -= 1) {
+            if (runHistory[i]?.role === 'assistant') {
+                assistantMessage = {
+                    role: 'assistant',
+                    content: runHistory[i].content || '',
+                    timestamp: runHistory[i].timestamp || null,
+                    investigateMode: Boolean(runHistory[i].investigateMode),
+                };
+                break;
+            }
+        }
+
+        liveRunSnapshotRef.current = {
+            conversationId,
+            sessionId: sessionIdRef.current,
+            runId: runIdRef.current,
+            investigate: Boolean(
+                investigateStartedAt || runIdRef.current || assistantMessage?.investigateMode,
+            ),
+            assistantMessage,
+            thinkingSteps: thinkingStepsRef.current,
+            streamingAnswer: streamingAnswerRef.current,
+            streamingGroups,
+            preamble: preambleRef.current,
+            preambleText,
+            streamingStepName,
+            investigatePhase,
+            investigateFunnel,
+            investigateStartedAt,
+            investigatePercent,
+            investigateKeywords,
+            investigatePapers,
+            investigateDetail,
+            pendingClarification,
+            clarificationDrafts,
+        };
+
+        // Throttle rather than debounce: a busy stream may update continuously for minutes, and
+        // repeatedly cancelling a debounce would leave no usable snapshot during that whole time.
+        if (!snapshotWriteTimerRef.current) {
+            snapshotWriteTimerRef.current = window.setTimeout(() => {
+                snapshotWriteTimerRef.current = null;
+                if (liveRunSnapshotRef.current) {
+                    writeActiveRunSnapshot(liveRunSnapshotRef.current);
+                }
+            }, CHAT_PERSIST_DEBOUNCE_MS);
+        }
+    }, [
+        clarificationDrafts,
+        investigateDetail,
+        investigateFunnel,
+        investigateKeywords,
+        investigatePapers,
+        investigatePercent,
+        investigatePhase,
+        investigateStartedAt,
+        isProcessing,
+        pendingClarification,
+        preambleText,
+        runHistoryRevision,
+        streamingGroups,
+        streamingStepName,
+    ]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const flushSnapshot = () => {
+            if (liveRunSnapshotRef.current) {
+                writeActiveRunSnapshot(liveRunSnapshotRef.current);
+            }
+        };
+        window.addEventListener('pagehide', flushSnapshot);
+        return () => {
+            window.removeEventListener('pagehide', flushSnapshot);
+            if (snapshotWriteTimerRef.current) {
+                window.clearTimeout(snapshotWriteTimerRef.current);
+                snapshotWriteTimerRef.current = null;
+            }
+            flushSnapshot();
+        };
+    }, []);
+
     useEffect(() => {
         if (typeof window === 'undefined') return undefined;
         const handlePageShow = (event) => {
@@ -2462,8 +2787,12 @@ function LLMAgent() {
     }, [isProcessing]);
 
     useEffect(() => {
-        if (location.state && location.state.initialQuery && !hasConsumedInitialQueryRef.current) {
-            hasConsumedInitialQueryRef.current = true;
+        if (
+            location.state?.initialQuery
+            && consumedInitialQueryKeyRef.current !== location.key
+        ) {
+            consumedInitialQueryKeyRef.current = location.key;
+            initialQueryTransitionRef.current = true;
             const query = location.state.initialQuery;
             const searchOptions = location.state.initialSearchOptions || null;
             // Consuming the query means REMOVING it. React Router keeps navigation state in
@@ -2489,7 +2818,13 @@ function LLMAgent() {
                 });
             }
         }
-    }, [location.state, location.pathname, navigate, isLoading, startNewConversation]);
+    }, [location.state, location.pathname, location.key, navigate, isLoading, startNewConversation]);
+
+    useEffect(() => {
+        if (chatHistory.length > 0 || isProcessing) {
+            initialQueryTransitionRef.current = false;
+        }
+    }, [chatHistory.length, isProcessing]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -2517,19 +2852,20 @@ function LLMAgent() {
     }, []);
 
     useEffect(() => {
-        if (useMobileReferencesDrawer || !splitContainerRef.current) return undefined;
+        if (!isRouteActive || useMobileReferencesDrawer || !splitContainerRef.current) return undefined;
+        const splitContainer = splitContainerRef.current;
 
         const updateReferenceLayout = () => {
             setIsReferencesCollapsed(
-                splitContainerRef.current.getBoundingClientRect().width < MIN_SPLIT_WIDTH_WITH_REFERENCES
+                splitContainer.getBoundingClientRect().width < MIN_SPLIT_WIDTH_WITH_REFERENCES
             );
         };
 
         updateReferenceLayout();
         const resizeObserver = new ResizeObserver(updateReferenceLayout);
-        resizeObserver.observe(splitContainerRef.current);
+        resizeObserver.observe(splitContainer);
         return () => resizeObserver.disconnect();
-    }, [useMobileReferencesDrawer]);
+    }, [isRouteActive, useMobileReferencesDrawer]);
 
     const updateSplitWidth = useCallback((clientX) => {
         if (!splitContainerRef.current) return;
@@ -2754,9 +3090,16 @@ function LLMAgent() {
            trip: the question sat unrendered and the panel showed no sign of having started for
            as long as that took. Nothing below needs them to have waited — the conversation id
            is not part of what they draw. */
-        setChatHistory([...baseHistory, newMessage]);
+        const optimisticRunHistory = [...baseHistory, newMessage];
+        runningConversationIdRef.current = shouldStartNewConversation
+            ? null
+            : activeConversationIdRef.current;
+        runningChatHistoryRef.current = optimisticRunHistory;
+        backgroundCompletionNotifiedRef.current = null;
+        setRunHistoryRevision((revision) => revision + 1);
+        setChatHistory(optimisticRunHistory);
         // Only when the text came from the box. Every caller that passes `input` is resending
-        // something else — a queued follow-up, an edited message, a retry — and the box may now
+        // something else — an edited message or a retry — and the box may now
         // hold a draft the reader is in the middle of writing. It could not before, because the
         // box was disabled for the length of a run; now that it is live, clearing it here would
         // delete their work.
@@ -2773,10 +3116,16 @@ function LLMAgent() {
                 setConversationsState(nextList);
                 setConversations(nextList);
                 historyId = conversation?.id || null;
-                setActiveConversationIdState(historyId);
-                activeConversationIdRef.current = historyId;
-                if (historyId) {
-                    setActiveConversationId(historyId);
+                runningConversationIdRef.current = historyId;
+                // Creating the server-side row is asynchronous. If the reader opened a
+                // historical conversation during that wait, keep that conversation selected;
+                // the newly-created row still owns the run, but no longer owns the viewport.
+                if (!activeConversationIdRef.current) {
+                    setActiveConversationIdState(historyId);
+                    activeConversationIdRef.current = historyId;
+                    if (historyId) {
+                        setActiveConversationId(historyId);
+                    }
                 }
             } catch (error) {
                 logDev('[LLM] Failed to create conversation', error);
@@ -2787,6 +3136,9 @@ function LLMAgent() {
         // where the app is the one deciding.
         if (investigateEnabled && historyId) {
             markInvestigateConversation(historyId);
+        }
+        if (historyId) {
+            runningConversationIdRef.current = String(historyId);
         }
         if (resetInvestigateSession) {
             sessionIdRef.current = null;
@@ -2845,7 +3197,7 @@ function LLMAgent() {
             logDev('[LLM] submit', { input: inputText });
 
             // Append a blank message
-            setChatHistory(prev => [...prev, {
+            updateRunningChatHistory(prev => [...prev, {
                 role: 'assistant',
                 content: '',
                 references: [],
@@ -2937,7 +3289,7 @@ function LLMAgent() {
                             if (update.step === 'Error') {
                                 setIsProcessing(false);
                                 setStreamingStepName('');
-                                setChatHistory(prev => {
+                                updateRunningChatHistory(prev => {
                                     const newHistory = [...prev];
                                     const assistantMessage = {
                                         role: 'assistant',
@@ -3183,7 +3535,7 @@ function LLMAgent() {
                     }
                     case 'final':
                         if (!isActiveStream) return;
-                        // The whole message is replaced below; anything still queued is stale.
+                        // The whole message is replaced below with the authoritative final data.
                         dripRef.current.stop();
                         if (update.sessionId) {
                             sessionIdRef.current = update.sessionId;
@@ -3200,7 +3552,7 @@ function LLMAgent() {
                                 update.funnel,
                             );
                         }
-                        setChatHistory(prev => {
+                        updateRunningChatHistory(prev => {
                             const newHistory = [...prev];
                             const assistantMessage = {
                                 role: 'assistant',
@@ -3228,15 +3580,28 @@ function LLMAgent() {
 
                             return newHistory;
                         });
-                        setSelectedMessageIndex(chatHistory.length + 1);
+                        if (
+                            String(activeConversationIdRef.current)
+                            === String(runningConversationIdRef.current)
+                        ) {
+                            setSelectedMessageIndex(runningChatHistoryRef.current.length - 1);
+                        }
+                        announceBackgroundCompletion();
                         break;
                     case 'saved': {
                         if (isActiveStream) {
                             const savedId = update.historyId ? String(update.historyId) : null;
-                            if (savedId && savedId !== activeConversationIdRef.current) {
-                                setActiveConversationId(savedId);
-                                setActiveConversationIdState(savedId);
-                                activeConversationIdRef.current = savedId;
+                            if (savedId) {
+                                const previousRunningId = runningConversationIdRef.current;
+                                const wasViewingRun = previousRunningId
+                                    ? String(activeConversationIdRef.current) === String(previousRunningId)
+                                    : !activeConversationIdRef.current;
+                                runningConversationIdRef.current = savedId;
+                                if (wasViewingRun) {
+                                    setActiveConversationId(savedId);
+                                    setActiveConversationIdState(savedId);
+                                    activeConversationIdRef.current = savedId;
+                                }
                             }
                             if (savedId) {
                                 const nextSessionId = update.sessionId || sessionIdRef.current;
@@ -3246,7 +3611,7 @@ function LLMAgent() {
                                 }
                             }
                             if (update.invocationId) {
-                                setChatHistory((prev) => {
+                                updateRunningChatHistory((prev) => {
                                     const next = [...prev];
                                     let assistantIndex = -1;
                                     for (let i = next.length - 1; i >= 0; i -= 1) {
@@ -3279,7 +3644,7 @@ function LLMAgent() {
                         setClarificationSubmitting(false);
                         setIsProcessing(false);
                         setStreamingStepName('');
-                        setChatHistory(prev => {
+                        updateRunningChatHistory(prev => {
                             const newHistory = [...prev];
                             const errorMessage = {
                                 role: 'assistant',
@@ -3320,7 +3685,7 @@ function LLMAgent() {
                         applyPendingClarification(null);
                         setIsProcessing(false);
                         setStreamingStepName('');
-                        setChatHistory((prev) => {
+                        updateRunningChatHistory((prev) => {
                             const newHistory = [...prev];
                             newHistory[newHistory.length - 1] = {
                                 role: 'assistant',
@@ -3342,6 +3707,7 @@ function LLMAgent() {
                             }
                             return newHistory;
                         });
+                        announceBackgroundCompletion();
                         refreshTierStatus();
                         if (activeStreamIdRef.current === streamId) {
                             setIsLoading(false);
@@ -3358,7 +3724,7 @@ function LLMAgent() {
                 setIsQueryLimitReached(true);
             }
             if (activeStreamIdRef.current === streamId) {
-                setChatHistory(prev => {
+                updateRunningChatHistory(prev => {
                     const newHistory = [...prev];
                     const errorMessage = {
                         role: 'assistant',
@@ -3496,7 +3862,7 @@ function LLMAgent() {
                 setIsProcessing(false);
                 setStreamingStepName('');
                 setIsLoading(false);
-                setChatHistory((prev) => {
+                updateRunningChatHistory((prev) => {
                     if (!prev.length) return prev;
                     const newHistory = [...prev];
                     const last = newHistory[newHistory.length - 1];
@@ -3518,6 +3884,7 @@ function LLMAgent() {
                     if (run.response) llmService.updateMessages(run.response);
                     return newHistory;
                 });
+                announceBackgroundCompletion();
                 activeStreamIdRef.current = null;
             } catch (error) {
                 logDev('[LLM] visibility run recovery failed', error);
@@ -3535,13 +3902,16 @@ function LLMAgent() {
             document.removeEventListener('visibilitychange', onVisibility);
             window.clearInterval(intervalId);
         };
-    }, [isLoading, llmService]);
+    }, [
+        announceBackgroundCompletion,
+        isLoading,
+        llmService,
+        updateRunningChatHistory,
+    ]);
 
-    // Deliberately no abort on unmount. Changing page used to cancel the
-    // request, which is the one thing that actually loses the work: the server
-    // keeps going, a plain answer is saved against its history id and an
-    // investigate run can be re-read by its run id, so leaving the route is
-    // survivable. Aborting was not.
+    // Deliberately no abort when the app shell itself unmounts. Normal route changes now keep
+    // this controller mounted, while a full shell teardown can still be recovered from the
+    // persisted history id (and, for investigate, the run id).
     useEffect(() => () => {}, []);
 
     const handleSaveEdit = async (e, index, content) => {
@@ -3583,9 +3953,13 @@ function LLMAgent() {
     };
 
     const handleClear = useCallback(() => {
+        if (isLoading) {
+            navigate('/');
+            return;
+        }
         startNewConversation();
         navigate('/');
-    }, [navigate, startNewConversation]);
+    }, [isLoading, navigate, startNewConversation]);
 
     useEffect(() => {
         const handleMobileHeaderNewChat = () => {
@@ -3822,16 +4196,17 @@ function LLMAgent() {
         // re-rendered — and re-parsed the markdown of — every answer in the conversation.
         const lastIndex = chatHistory.length - 1;
         return (<Box sx={{ p: isPhoneDevice ? 1 : 2 }}>{chatHistory.map((message, index) => {
-            const isStreamingCard = isProcessing
+            const isStreamingCard = isViewingRunningConversation
+                && isProcessing
                 && index === lastIndex
                 && message.role === 'assistant';
             return (
             <MessageCard
-                key={index}
+                key={`${activeConversationId || 'new'}:${index}`}
                 index={index}
                 message={message}
                 totalMessages={chatHistory.length}
-                isProcessing={isProcessing}
+                isProcessing={isStreamingCard}
                 streamingGroups={isStreamingCard ? streamingGroups : NO_GROUPS}
                 preamble={isStreamingCard ? preambleText : ''}
                 streamingStepName={isStreamingCard ? streamingStepName : ''}
@@ -3842,7 +4217,7 @@ function LLMAgent() {
                 investigateKeywords={isStreamingCard ? investigateKeywords : NO_KEYWORDS}
                 investigatePapers={isStreamingCard ? investigatePapers : NO_PAPERS}
                 investigateDetail={isStreamingCard ? investigateDetail : NO_DETAIL}
-                pendingClarification={pendingClarification}
+                pendingClarification={isStreamingCard ? pendingClarification : null}
                 clarificationDrafts={clarificationDrafts}
                 clarificationError={clarificationError}
                 clarificationSubmitting={clarificationSubmitting}
@@ -3858,29 +4233,11 @@ function LLMAgent() {
                 showReloadPrompt={showReloadPrompt}
                 onReloadLatest={stableReloadLatest}
                 onStop={handleStopStreaming}
+                interactionLocked={isLoading}
+                conversationId={activeConversationId}
             />
             );
         })}
-        {queuedPrompts.map((item) => (
-            <Container
-                key={item.id}
-                className="message-pair queued-prompt"
-                sx={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', mb: '5px', justifyContent: 'flex-end' }}
-            >
-                <Box className="queued-prompt-bubble">
-                    <span className="queued-prompt-text">{item.text}</span>
-                    <button
-                        type="button"
-                        className="queued-prompt-remove"
-                        title="Remove from queue"
-                        aria-label={`Remove queued question: ${item.text}`}
-                        onClick={() => removeQueuedPrompt(item.id)}
-                    >
-                        <CloseIcon sx={{ fontSize: 16 }} />
-                    </button>
-                </Box>
-            </Container>
-        ))}
         </Box>);
     };
 
@@ -4185,60 +4542,16 @@ function LLMAgent() {
     // never held: six props were a new function on every render.
     const stableSubmit = useStableCallback(handleSubmit);
 
-    /**
-     * Send now, or queue if an answer is still being written.
-     *
-     * The decision is made here rather than in the bar so the bar keeps one action with one
-     * meaning — "this text is finished, take it" — whatever the run happens to be doing.
-     */
-    const submitOrQueue = useCallback((event, searchOptions) => {
+    const submitIfIdle = useCallback((event, searchOptions) => {
         event?.preventDefault?.();
         const text = userInput.trim();
         if (!text || isLimitReachedEffective) return;
-        if (!isLoading) {
-            stableSubmit(event, null, null, { searchOptions });
+        if (isLoading) {
+            message.info('Wait for the running conversation to finish before asking another question.');
             return;
         }
-        queueSeqRef.current += 1;
-        setQueuedPrompts((prev) => [...prev, {
-            id: `q-${queueSeqRef.current}`,
-            text,
-            // Captured now rather than read at send time: they describe the turn the reader
-            // meant to ask for.
-            searchOptions,
-        }]);
-        setUserInput('');
+        stableSubmit(event, null, null, { searchOptions });
     }, [userInput, isLoading, isLimitReachedEffective, stableSubmit]);
-
-    const removeQueuedPrompt = useCallback((id) => {
-        setQueuedPrompts((prev) => prev.filter((item) => item.id !== id));
-    }, []);
-
-    /**
-     * Release the oldest queued prompt once nothing is in flight.
-     *
-     * Guarded by a ref as well as by the flags: `handleSubmit` is async and does not flip
-     * `isLoading` until it has built the request, so two renders inside that window would
-     * otherwise send the same prompt twice. The guard is held for the whole run — the promise
-     * `handleSubmit` returns settles when the stream does — so the next one waits its turn.
-     */
-    const flushingQueueRef = useRef(false);
-    useEffect(() => {
-        if (isLoading || isProcessing || isConversationLoading) return;
-        if (!queuedPrompts.length || isLimitReachedEffective) return;
-        if (flushingQueueRef.current) return;
-        flushingQueueRef.current = true;
-        const [next, ...rest] = queuedPrompts;
-        setQueuedPrompts(rest);
-        Promise.resolve(
-            stableSubmit(null, next.text, null, { searchOptions: next.searchOptions }),
-        ).finally(() => {
-            flushingQueueRef.current = false;
-        });
-    }, [
-        isLoading, isProcessing, isConversationLoading,
-        queuedPrompts, isLimitReachedEffective, stableSubmit,
-    ]);
 
     const stableRefresh = useStableCallback(handleRegenerateResponse);
     const stableCopy = useStableCallback(handleCopyMessage);
@@ -4264,11 +4577,17 @@ function LLMAgent() {
         // A question handed over from the home page is on its way: the state that carried it
         // has already been cleared, and the conversation it will live in does not exist yet.
         // Reading "nothing to show" in that window sent the asker back to the home page.
-        && !hasConsumedInitialQueryRef.current
+        && !initialQueryTransitionRef.current
         && chatHistory.length === 0
         && !activeConversationId
         && !location.state?.initialQuery
         && !location.state?.conversationId;
+
+    // Keep the controller, refs and effects mounted while another page is visible, but do not
+    // leave a hidden copy of the very large chat DOM (or its Helmet metadata) in that page.
+    if (!isRouteActive) {
+        return null;
+    }
 
     if (hasNothingToShow) {
         return <Navigate to="/" replace />;
@@ -4880,7 +5199,7 @@ function LLMAgent() {
                                                         go on, so it belongs where the answer is typed
                                                         and must not scroll away with the transcript. */}
                                                     <div className="composer-dock">
-                                                        {pendingClarification && (
+                                                        {isViewingRunningConversation && pendingClarification && (
                                                             <div className="clarify-float">
                                                                 <ClarifyPanel
                                                                     pendingClarification={pendingClarification}
@@ -4898,9 +5217,10 @@ function LLMAgent() {
                                                         userInput={userInput}
                                                         setUserInput={setUserInput}
                                                         isLoading={isLoading}
+                                                        isRunElsewhere={isLoading && !isViewingRunningConversation}
                                                         isQueryLimitReached={isLimitReachedEffective}
                                                         investigateEnabled={chatInvestigateEnabled}
-                                                        onSubmit={(event) => submitOrQueue(event, {
+                                                        onSubmit={(event) => submitIfIdle(event, {
                                                             investigateEnabled: chatInvestigateEnabled,
                                                             ...(initialSearchOptionsRef.current || {}),
                                                         })}

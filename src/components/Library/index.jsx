@@ -61,6 +61,7 @@ import {
     updateFavoriteGraphFolder,
     updateFavoriteReferenceFolder,
 } from '../../service/Favorites';
+import { getActiveRun, subscribeToActiveRun } from '../../service/activeRun';
 import {
     fetchBookmarks,
     getBookmarks,
@@ -633,6 +634,12 @@ const Library = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isPhoneDevice, setIsPhoneDevice] = useState(false);
     const [mobileFolderDrawerOpen, setMobileFolderDrawerOpen] = useState(false);
+    const [activeRun, setActiveRunState] = useState(() => getActiveRun());
+    const loadingConversationId = activeRun?.conversationId != null
+        ? String(activeRun.conversationId)
+        : null;
+
+    useEffect(() => subscribeToActiveRun(setActiveRunState), []);
 
     const [selectedFolderId, setSelectedFolderId] = useState(() => {
         const params = new URLSearchParams(location.search);
@@ -1678,6 +1685,7 @@ const Library = () => {
                                                             onManageFolders={handleManageChatFolders}
                                                             isBookmarked
                                                             bookmarkLabel="Remove bookmark"
+                                                            isLoadingConversation={String(conversation.id) === loadingConversationId}
                                                         />
                                                     </div>
                                                 ))}
@@ -1852,6 +1860,7 @@ const Library = () => {
                                                         onManageFolders={handleManageChatFolders}
                                                         isBookmarked
                                                         bookmarkLabel="Remove bookmark"
+                                                        isLoadingConversation={String(conversation.id) === loadingConversationId}
                                                     />
                                                 </div>
                                             ))}

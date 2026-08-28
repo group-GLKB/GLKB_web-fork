@@ -873,7 +873,8 @@
 
 .library-empty-text {
     font-family: 'Geist, sans-serif';
-    font-size: 14px;
+    font-size: 12px;
+    line-height: 20px;
     color: var(--color-text-tertiary);
 }
 

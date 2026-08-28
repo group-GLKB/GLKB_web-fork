@@ -23,6 +23,7 @@ import {
 import { ReactComponent as ChatIcon } from '../../img/llm/chat_message.svg';
 import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
 import { ReactComponent as MapIcon } from '../../img/llm/graph_share.svg';
+import { getActiveRun, subscribeToActiveRun } from '../../service/activeRun';
 import {
     forgetInvestigateConversations,
     getInvestigateConversationIds,
@@ -200,6 +201,12 @@ const History = () => {
     const [isPhoneDevice, setIsPhoneDevice] = useState(false);
     const [conversationBookmarks, setConversationBookmarks] = useState([]);
     const [graphBookmarks, setGraphBookmarks] = useState([]);
+    const [activeRun, setActiveRunState] = useState(() => getActiveRun());
+    const loadingConversationId = activeRun?.conversationId != null
+        ? String(activeRun.conversationId)
+        : null;
+
+    useEffect(() => subscribeToActiveRun(setActiveRunState), []);
 
     /* Which of these were investigate runs, so the row can carry the microscope the design
        gives them (176:8230).
@@ -264,7 +271,9 @@ const History = () => {
         [filteredHistoryItems]
     );
 
-    const filteredIds = filteredChatItems.map((item) => item.id);
+    const filteredIds = filteredChatItems
+        .map((item) => item.id)
+        .filter((id) => id !== loadingConversationId);
     const selectedIdSet = new Set(selectedIds);
     const selectedFilteredCount = filteredIds.filter((id) => selectedIdSet.has(id)).length;
     const selectedCount = selectedIds.length;
@@ -439,6 +448,7 @@ const History = () => {
     };
 
     const handleToggleConversationSelection = (conversationId, forceSelectMode = false) => {
+        if (String(conversationId) === loadingConversationId) return;
         if (!selectMode) {
             if (!forceSelectMode) return;
             setSelectMode(true);
@@ -475,7 +485,11 @@ const History = () => {
     const handleDeleteSelected = async () => {
         if (selectedCount === 0 || isDeleting) return;
         setIsDeleting(true);
-        const idsToDelete = [...selectedIds];
+        const idsToDelete = selectedIds.filter((id) => String(id) !== loadingConversationId);
+        if (idsToDelete.length === 0) {
+            setIsDeleting(false);
+            return;
+        }
         await Promise.allSettled(idsToDelete.map((id) => removeConversation(id)));
         forgetInvestigateConversations(idsToDelete);
         setConversations((prev) => prev.filter((conversation) => !idsToDelete.includes(conversation.id)));
@@ -545,6 +559,7 @@ const History = () => {
     const handleDeleteConversation = async (conversation) => {
         if (!conversation?.id) return;
         const idToDelete = String(conversation.id);
+        if (idToDelete === loadingConversationId) return;
         try {
             await removeConversation(idToDelete);
         } catch (error) {
@@ -570,6 +585,11 @@ const History = () => {
     useEffect(() => {
         setSelectedIds((prev) => prev.filter((id) => conversations.some((conversation) => conversation.id === id)));
     }, [conversations]);
+
+    useEffect(() => {
+        if (!loadingConversationId) return;
+        setSelectedIds((prev) => prev.filter((id) => String(id) !== loadingConversationId));
+    }, [loadingConversationId]);
 
     useEffect(() => {
         setSelectedGraphIds((prev) => prev.filter((id) => graphHistories.some((history) => String(history.id) === String(id))));
@@ -826,6 +846,7 @@ const History = () => {
                                         onRename={handleRenameConversation}
                                         onBookmark={handleBookmarkConversation}
                                         onDelete={handleDeleteConversation}
+                                        isLoadingConversation={item.id === loadingConversationId}
                                     />
                                 ) : (
                                     <ConversationCard

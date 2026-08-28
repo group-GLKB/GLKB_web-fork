@@ -37,6 +37,7 @@ import {
   getMyTier,
   isFreePlanLimitReached,
 } from '../../service/Tier';
+import { isRunActive, subscribeToActiveRun } from '../../service/activeRun';
 import { trackGtagEvent } from '../../utils/gtag';
 import { useAuth } from '../Auth/AuthContext';
 import exampleSchema from './exampleSchema.json';
@@ -59,6 +60,7 @@ const HomePage = () => {
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
     const [queryLimitTotal, setQueryLimitTotal] = useState(10);
     const [isPhoneDevice, setIsPhoneDevice] = useState(false);
+    const [isAgentRunActive, setIsAgentRunActive] = useState(() => isRunActive());
     const { isAuthenticated, loading, openLoginModal } = useAuth();
     const navigate = useNavigate();
     const examplePanelRef = useRef(null);
@@ -88,6 +90,10 @@ const HomePage = () => {
     const displayedQueryLimit = Number.isFinite(Number(queryLimitTotal)) && Number(queryLimitTotal) > 0
         ? Number(queryLimitTotal)
         : 10;
+
+    useEffect(() => subscribeToActiveRun(
+        (run) => setIsAgentRunActive(Boolean(run)),
+    ), []);
 
     // const [focused, setFocused] = useState(false);
     // const theme = useTheme();
@@ -367,6 +373,7 @@ const HomePage = () => {
                                             prefillQuery={prefillQuery}
                                             autocompleteOptions={exampleSchema.autocomplete || []}
                                             isQueryLimitReached={showHomeLimitWarning}
+                                            isAgentRunActive={isAgentRunActive}
                                         />
                                         {activePill && (
                                             <Paper className="homepage-examples-panel" ref={examplePanelRef}>

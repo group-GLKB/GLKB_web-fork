@@ -1,12 +1,4 @@
-/**
- * The bar stays writable while an answer is being written.
- *
- * It used to disable the field for the whole run — up to a minute on a chat turn — so a
- * follow-up that occurred to the reader mid-answer had to be held in their head until the page
- * let them type it. The field is live now; the parent decides whether `onSubmit` sends or
- * queues, and these tests pin the half of the contract the bar owns: the text is accepted, the
- * action still fires, and Stop stays reachable.
- */
+/** A single Agent run owns the composer until it settles. */
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -43,42 +35,38 @@ const setup = (props = {}) => {
 const field = () => screen.getByRole('textbox');
 
 describe('ChatSearchBar while an answer is streaming', () => {
-    it('leaves the field writable', () => {
+    it('locks the field', () => {
         setup({ isLoading: true });
-        expect(field()).not.toBeDisabled();
+        expect(field()).toBeDisabled();
     });
 
-    it('accepts typing', () => {
+    it('does not accept typing', () => {
         const { setUserInput } = setup({ isLoading: true });
         fireEvent.change(field(), { target: { value: 'and in mice?' } });
-        expect(setUserInput).toHaveBeenCalledWith('and in mice?');
+        expect(setUserInput).not.toHaveBeenCalled();
     });
 
-    it('submits on Enter, so the follow-up can be queued', () => {
+    it('does not submit on Enter', () => {
         const { onSubmit } = setup({ isLoading: true, userInput: 'and in mice?' });
         fireEvent.keyDown(field(), { key: 'Enter' });
-        expect(onSubmit).toHaveBeenCalledTimes(1);
+        expect(onSubmit).not.toHaveBeenCalled();
     });
 
-    it('offers send rather than stop once there is something to send', () => {
-        const { onSubmit, onStop } = setup({ isLoading: true, userInput: 'and in mice?' });
-        expect(screen.queryByTitle('Stop')).not.toBeInTheDocument();
-        fireEvent.click(screen.getByTitle('Send when this answer finishes'));
-        expect(onSubmit).toHaveBeenCalledTimes(1);
-        expect(onStop).not.toHaveBeenCalled();
-    });
-
-    it('offers stop while the field is empty', () => {
+    it('offers stop while viewing the running conversation', () => {
         const { onStop } = setup({ isLoading: true, userInput: '   ' });
         fireEvent.click(screen.getByTitle('Stop'));
         expect(onStop).toHaveBeenCalledTimes(1);
     });
 
-    it('says what will happen to the text', () => {
+    it('explains that the current answer must finish', () => {
         setup({ isLoading: true });
-        expect(
-            screen.getByPlaceholderText('Ask a follow-up — it will send when this answer finishes'),
-        ).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Wait for this answer to finish')).toBeInTheDocument();
+    });
+
+    it('shows no stop control while a different conversation is open', () => {
+        setup({ isLoading: true, isRunElsewhere: true });
+        expect(screen.queryByTitle('Stop')).not.toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Another conversation is still loading')).toBeDisabled();
     });
 
     it('does not submit blank text', () => {

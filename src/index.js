@@ -33,7 +33,6 @@ import History from './components/History';
 import HomePage from './components/HomePage';
 import AppLayout from './components/Layout';
 import Library from './components/Library';
-import LLMAgent from './components/LLMAgent';
 import MaintenancePage from './components/MaintenancePage';
 import ResultPage from './components/ResultPage';
 import TestAuth from './components/TestAuth';
@@ -158,7 +157,8 @@ function AppWithRoutes() {
                     <Route path="/privacy" element={<PrivacyPolicy />} />
                     <Route path="/terms" element={<TermsOfService />} />
                     <Route path="/api-page" element={<ApiPage />} />
-                    <Route path="/chat" element={<LLMAgent />} />
+                    {/* LLMAgent is mounted persistently by AppLayout; this route only selects it. */}
+                    <Route path="/chat" element={null} />
                     <Route path="/history" element={<History />} />
                     <Route path="/library" element={<Library />} />
                     <Route path="/account" element={<AccountPage />} />

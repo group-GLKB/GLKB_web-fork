@@ -39,6 +39,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const hasTrackedInputRef = React.useRef(false);
     const lastPrefillRef = React.useRef(undefined);
     const isQueryLimitReached = Boolean(props.isQueryLimitReached);
+    const isAgentRunActive = Boolean(props.isAgentRunActive);
+    const isInputLocked = isQueryLimitReached || isAgentRunActive;
     useEffect(() => {
         // console.log(props);
         props.setOpen(isOpen);
@@ -115,6 +117,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     };
 
     const navigateToLLMAgent = (query = '') => {
+        if (isAgentRunActive) return;
         // Clear input timeout to prevent search_input event after submission
         if (inputTimeoutRef.current) {
             clearTimeout(inputTimeoutRef.current);
@@ -379,15 +382,15 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 freeSolo
                 fullWidth
                 open={!mobileOptionsOpen && !desktopOptionsOpen && isOpen}
-                disabled={isQueryLimitReached}
+                disabled={isInputLocked}
                 options={props.autocompleteOptions || []}
                 filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
                 onChange={(event, newValue) => {
-                    if (isQueryLimitReached) return;
+                    if (isInputLocked) return;
                     setLlmQuery(newValue || '');
                 }}
                 onInputChange={(event, newInputValue) => {
-                    if (isQueryLimitReached) return;
+                    if (isInputLocked) return;
                     setLlmQuery(newInputValue || '');
                 }}
                 openOnFocus
@@ -407,7 +410,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 }}
                 inputValue={llmQuery}
                 onOpen={() => {
-                    if (isQueryLimitReached) {
+                    if (isInputLocked) {
                         return;
                     }
                     setIsOpen(true);
@@ -426,13 +429,15 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             {...params}
                             /* Figma 800:22889 shortens this on a phone, where the
                                long form wraps to two lines. */
-                            placeholder={isMobileLayout
-                                ? 'Ask about the biomedical literature...'
-                                : 'Ask a question about the biomedical literature...'}
+                            placeholder={isAgentRunActive
+                                ? 'A conversation is still loading'
+                                : (isMobileLayout
+                                    ? 'Ask about the biomedical literature...'
+                                    : 'Ask a question about the biomedical literature...')}
                             multiline
                             minRows={3}
                             maxRows={9}
-                            disabled={isQueryLimitReached}
+                            disabled={isInputLocked}
                             sx={{
                                 minHeight: { xs: '148px', sm: '152px' },
                                 width: '100%',
@@ -495,6 +500,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 }}
                             >
                                 <Button
+                                    disabled={isInputLocked}
                                     onMouseDown={(event) => {
                                         event.preventDefault();
                                         event.stopPropagation();
@@ -649,17 +655,18 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 <Box
                                     role="button"
                                     aria-label="Start chat"
+                                    aria-disabled={isInputLocked}
                                     className="search-button-big"
-                                    onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}
+                                    onClick={() => { if (!isInputLocked) navigateToLLMAgent(llmQuery.trim()); }}
                                     sx={{
                                         height: { xs: '32px', sm: '32px' },
                                         width: { xs: '32px', sm: '32px' },
                                         borderRadius: '8px',
-                                        backgroundColor: llmQuery.trim() && !isQueryLimitReached ? 'var(--color-brand-primary)' : 'var(--color-brand-muted)',
+                                        backgroundColor: llmQuery.trim() && !isInputLocked ? 'var(--color-brand-primary)' : 'var(--color-brand-muted)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        cursor: 'pointer',
+                                        cursor: isInputLocked ? 'not-allowed' : 'pointer',
                                         transition: 'transform 120ms ease',
                                         boxShadow: 'none',
                                         '&:hover': {
@@ -670,7 +677,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 >
                                     <SearchArrowIcon
                                         style={{
-                                            color: llmQuery.trim() && !isQueryLimitReached ? 'var(--color-neutral-white)' : 'var(--color-brand-primary)',
+                                            color: llmQuery.trim() && !isInputLocked ? 'var(--color-neutral-white)' : 'var(--color-brand-primary)',
                                             width: '16px',
                                             height: '16px',
                                         }}
@@ -752,7 +759,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     </Box>
                 )}
                 onKeyDown={(e) => {
-                    if (isQueryLimitReached) {
+                    if (isInputLocked) {
                         e.preventDefault();
                         return;
                     }
