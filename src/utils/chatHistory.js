@@ -28,7 +28,10 @@ const getConversationMessageCount = (conversation) => {
 
 const isTransientZeroMessageState = () => {
     if (typeof window === 'undefined') return false;
-    const inChatPage = window.location.pathname === '/chat';
+    // startsWith, because a conversation's own URL is /chat/<public_id>. Exact-matching here
+    // pruned a just-created, still-empty conversation out of the list the moment it had an
+    // address of its own.
+    const inChatPage = window.location.pathname.startsWith('/chat');
     const wasProcessing = sessionStorage.getItem('llmWasProcessing') === 'true';
     return inChatPage || wasProcessing;
 };

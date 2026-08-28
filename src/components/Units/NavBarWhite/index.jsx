@@ -201,7 +201,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
         if (typeof window === 'undefined') {
             return true;
         }
-        if (location.pathname === '/chat' && !isSmallScreen) {
+        if (location.pathname.startsWith('/chat') && !isSmallScreen) {
             return true;
         }
         const storedOpen = window.localStorage.getItem('sidebar-open');
@@ -243,7 +243,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
             return;
         }
 
-        if (location.pathname === '/chat') {
+        if (location.pathname.startsWith('/chat')) {
             setOpen(true);
             return;
         }
@@ -545,7 +545,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
         const deletingActiveConversation = String(activeConversationId) === idToDelete;
         try {
             await removeConversation(idToDelete);
-            if (deletingActiveConversation && location.pathname === '/chat') {
+            if (deletingActiveConversation && location.pathname.startsWith('/chat')) {
                 navigate('/');
             }
         } catch (error) {
@@ -572,7 +572,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const isActiveConversation = (conversation) => {
         if (!conversation?.id) return false;
-        if (location.pathname !== '/chat') return false;
+        if (!location.pathname.startsWith('/chat')) return false;
         return String(conversation.id) === String(activeConversationId || '');
     };
 

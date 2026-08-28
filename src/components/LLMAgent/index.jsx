@@ -2530,13 +2530,22 @@ function LLMAgent({ isRouteActive = true }) {
        like it did nothing. Only ever upgrades /chat to /chat/<id>; it never rewrites one
        conversation's URL to another's, which is what would fight a reader mid-navigation. */
     useEffect(() => {
+        /* Only while the chat page is the one being looked at.
+        
+           This component is mounted persistently — Layout keeps it alive behind every other
+           page so a run survives navigation — so without this guard the effect fires on the
+           home page too. It did, and it broke New Chat: that button clears the conversation
+           and sends the reader home, the agent then restored the most recent conversation
+           into `activeConversationId`, and this navigated straight back into it. There was no
+           way to reach an empty chat. */
+        if (!location.pathname.startsWith('/chat')) return;
         if (!activeConversationId) return;
         if (routePublicId) return;                       // the URL already names a conversation
         const current = conversationsState.find((c) => String(c.id) === String(activeConversationId));
         const publicId = current?.publicId;
         if (!publicId) return;                           // a row the backend has not backfilled
         navigate(`/chat/${publicId}`, { replace: true });
-    }, [activeConversationId, conversationsState, routePublicId, navigate]);
+    }, [location.pathname, activeConversationId, conversationsState, routePublicId, navigate]);
 
     const cancelStreaming = useCallback((options = {}) => {
         const { abort = true } = options;
