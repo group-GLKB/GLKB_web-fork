@@ -1031,6 +1031,7 @@ const MessageCard = React.memo(function MessageCard({
     onOpenFeedback,
     interactionLocked = false,
     conversationId,
+    answerReady = false,
 }) {
     const isAssistant = message.role === "assistant";
     const isLastUserMessage = index === totalMessages - 1 && message.role === 'assistant';
@@ -1174,7 +1175,16 @@ const MessageCard = React.memo(function MessageCard({
         if (!currentStepLabel) return 'Thinking...';
         return currentStepLabel.endsWith('...') ? currentStepLabel : `${currentStepLabel}...`;
     }, [isLoading, currentStepLabel]);
-    const thoughtHeaderText = isLoading
+    /* The answer text is final the moment the `Answer` frame lands; what runs after it is
+       reference reranking, full-text link resolution (an NCBI call, rate-limited) and the KG
+       query build. That is not the model thinking, and an animated "…" over a finished answer
+       reads as a run that has stalled rather than one that is tidying up.
+    
+       Only the header changes. `displayGroups`, the expand control and everything keyed on
+       `isLoading` stay as they are, so the thought list does not swap contents or collapse
+       underneath the reader while the last frames arrive. */
+    const thinkingIsOver = !isLoading || answerReady;
+    const thoughtHeaderText = !thinkingIsOver
         ? (animatedStepLabel || loadingStepLabel)
         : (thoughtDurationLabel ? `Thought for ${thoughtDurationLabel}` : 'Thought summary');
     const showInvestigateProgress = isAssistant && isInvestigateMessage && isLoading;
@@ -1807,6 +1817,10 @@ function LLMAgent({ isRouteActive = true }) {
      */
     const [queuedPrompts, setQueuedPrompts] = useState([]);
     const queueSeqRef = useRef(0);
+    /* The answer text has landed and will not change; only the trailing annotations are still
+       coming. Presentation only — `isLoading` and `isProcessing` are untouched, so the run is
+       still a run: the composer stays as it was and nothing new can start. */
+    const [answerReady, setAnswerReady] = useState(false);
     const [chatHistory, setChatHistory] = useState(() => {
         const initialQuery = location.state?.initialQuery;
         if (initialQuery) {
@@ -2534,6 +2548,7 @@ function LLMAgent({ isRouteActive = true }) {
         runningConversationIdRef.current = null;
         runningChatHistoryRef.current = [];
         dripRef.current?.stop();
+        setAnswerReady(false);
         setIsLoading(false);
         setIsProcessing(false);
         setStreamingGroups([]);
@@ -3252,6 +3267,7 @@ function LLMAgent({ isRouteActive = true }) {
         thinkingStepsRef.current = [];
         streamingAnswerRef.current = { block: -1, text: '' };
         dripRef.current.reset();
+        setAnswerReady(false);
         preambleRef.current = { text: '', index: -1 };
 
         try {
@@ -3588,6 +3604,7 @@ function LLMAgent({ isRouteActive = true }) {
                         // watched most of it arrive. Holding the tail back now would be delay
                         // for its own sake.
                         dripRef.current.flush(update.answer || '');
+                        setAnswerReady(true);
                         // The run is NOT over: references, citations and the graph query list are
                         // still on their way. Keep the spinner, but say what it is waiting for —
                         // the answer is already on screen and readable.
@@ -4296,6 +4313,7 @@ function LLMAgent({ isRouteActive = true }) {
                 onStop={handleStopStreaming}
                 interactionLocked={isLoading}
                 conversationId={activeConversationId}
+                answerReady={isStreamingCard && answerReady}
             />
             );
         })}
