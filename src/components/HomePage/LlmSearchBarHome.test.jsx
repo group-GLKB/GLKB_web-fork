@@ -149,19 +149,55 @@ describe('with INVESTIGATE_ENABLED off', () => {
     });
 });
 
-describe('while another Agent conversation is loading', () => {
-    it('locks every entry point and does not navigate', () => {
-        setup({ isAgentRunActive: true });
+describe('while another Agent conversation is answering', () => {
+    /* This box used to be locked whenever any run was in flight, and New Chat during a run
+       sends the reader to this page — so the one place they were sent to get away from a busy
+       conversation was itself a dead end reading "A conversation is still loading". A question
+       asked here opens its own conversation with its own history id, and the backend locks per
+       history id, so it does not race the answer already being written. */
+    const PLACEHOLDER = 'Ask a new question — the other answer keeps writing';
 
-        expect(screen.getByPlaceholderText('A conversation is still loading')).toBeDisabled();
+    it('stays usable and says the other answer is not being interrupted', () => {
+        setup({ isAgentRunActive: true });
+        expect(screen.getByPlaceholderText(PLACEHOLDER)).not.toBeDisabled();
+        expect(investigateButton()).not.toBeDisabled();
+    });
+
+    it('starts the new conversation on Enter', () => {
+        setup({ isAgentRunActive: true });
+        const field = screen.getByPlaceholderText(PLACEHOLDER);
+        fireEvent.change(field, { target: { value: 'what is TP53?' } });
+        fireEvent.keyDown(field, { key: 'Enter' });
+        expect(mockNavigate).toHaveBeenCalledWith('/chat', expect.objectContaining({
+            state: expect.objectContaining({ initialQuery: 'what is TP53?' }),
+        }));
+    });
+
+    it('starts it from the button too', () => {
+        setup({ isAgentRunActive: true });
+        const field = screen.getByPlaceholderText(PLACEHOLDER);
+        fireEvent.change(field, { target: { value: 'what is BRCA1?' } });
+        const start = screen.getByRole('button', { name: /start chat/i, hidden: true });
+        expect(start).toHaveAttribute('aria-disabled', 'false');
+        fireEvent.click(start);
+        expect(mockNavigate).toHaveBeenCalledWith('/chat', expect.objectContaining({
+            state: expect.objectContaining({ initialQuery: 'what is BRCA1?' }),
+        }));
+    });
+});
+
+describe('when the quota is gone', () => {
+    // A different matter entirely: there is no run to start, so the box really is locked.
+    it('locks every entry point and does not navigate', () => {
+        setup({ isQueryLimitReached: true });
+
+        const field = document.querySelector('textarea:not([aria-hidden="true"])');
+        expect(field).toBeDisabled();
         expect(investigateButton()).toBeDisabled();
 
         const start = screen.getByRole('button', { name: /start chat/i, hidden: true });
         expect(start).toHaveAttribute('aria-disabled', 'true');
         fireEvent.click(start);
-        fireEvent.keyDown(screen.getByPlaceholderText('A conversation is still loading'), {
-            key: 'Enter',
-        });
         expect(mockNavigate).not.toHaveBeenCalled();
     });
 });

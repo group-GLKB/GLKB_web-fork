@@ -40,7 +40,16 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const lastPrefillRef = React.useRef(undefined);
     const isQueryLimitReached = Boolean(props.isQueryLimitReached);
     const isAgentRunActive = Boolean(props.isAgentRunActive);
-    const isInputLocked = isQueryLimitReached || isAgentRunActive;
+    /* An answer being written somewhere else does NOT lock this box.
+
+       It used to: New Chat during a run sends the reader here, and here they met a disabled
+       field reading "A conversation is still loading" with no way forward — the same dead end
+       the chat composer had, in the one place the reader was sent to escape it. A question
+       asked here opens its own conversation with its own history id, and the backend locks per
+       history id, so it does not race the answer already being written.
+
+       The quota is a different matter and still locks: there is no run to start at all. */
+    const isInputLocked = isQueryLimitReached;
     useEffect(() => {
         // console.log(props);
         props.setOpen(isOpen);
@@ -117,7 +126,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     };
 
     const navigateToLLMAgent = (query = '') => {
-        if (isAgentRunActive) return;
         // Clear input timeout to prevent search_input event after submission
         if (inputTimeoutRef.current) {
             clearTimeout(inputTimeoutRef.current);
@@ -430,7 +438,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             /* Figma 800:22889 shortens this on a phone, where the
                                long form wraps to two lines. */
                             placeholder={isAgentRunActive
-                                ? 'A conversation is still loading'
+                                ? (isMobileLayout
+                                    ? 'Ask something new\u2026'
+                                    : 'Ask a new question \u2014 the other answer keeps writing')
                                 : (isMobileLayout
                                     ? 'Ask about the biomedical literature...'
                                     : 'Ask a question about the biomedical literature...')}

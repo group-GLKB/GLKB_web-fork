@@ -2951,13 +2951,18 @@ function LLMAgent({ isRouteActive = true }) {
             if (searchOptions?.investigateEnabled) {
                 setChatInvestigateEnabled(true);
             }
-            if (!isLoading) {
-                startNewConversation({ skipHistoryReset: true });
-                handleSubmit(null, query, null, {
-                    forceNewConversation: true,
-                    searchOptions,
-                });
-            }
+            /* Asked even while another conversation is answering. This used to be behind
+               `if (!isLoading)`, so a question handed over from the home page during a run was
+               dropped without a word — the reader watched their question sit there and nothing
+               happen. It opens its own conversation, which does not race the run in flight.
+
+               `keepRunning` so the answer being written is released rather than aborted: this
+               is a new thread, not a replacement for the old one. */
+            startNewConversation({ skipHistoryReset: true, keepRunning: isLoading });
+            handleSubmit(null, query, null, {
+                forceNewConversation: true,
+                searchOptions,
+            });
         }
     }, [location.state, location.pathname, location.key, navigate, isLoading, startNewConversation]);
 
