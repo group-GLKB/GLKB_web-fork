@@ -140,6 +140,9 @@ const ChatSearchBar = ({
                             )}
                             {showStop ? (
                                 <Box
+                                    component="button"
+                                    type="button"
+                                    aria-label="Stop generating"
                                     onClick={() => {
                                         trackGtagEvent('chat_stop_click', { source: 'chat_searchbar' });
                                         onStop?.();
@@ -151,6 +154,8 @@ const ChatSearchBar = ({
                                         // Same brand-muted square as the idle send button — the
                                         // near-black fill it used to have belonged to no palette here.
                                         backgroundColor: 'var(--color-brand-muted)',
+                                        border: 'none',
+                                        padding: 0,
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -162,6 +167,10 @@ const ChatSearchBar = ({
                                 </Box>
                             ) : (
                                 <Box
+                                    component="button"
+                                    type="button"
+                                    aria-label={isLoading ? 'Send when this answer finishes' : 'Send'}
+                                    aria-disabled={!canSend}
                                     onClick={(event) => {
                                         if (!canSend) return;
                                         trackGtagEvent('chat_submit_click', {
@@ -176,6 +185,8 @@ const ChatSearchBar = ({
                                         height: 32,
                                         borderRadius: '8px',
                                         backgroundColor: canSend ? 'var(--color-brand-primary)' : 'var(--color-brand-muted)',
+                                        border: 'none',
+                                        padding: 0,
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',

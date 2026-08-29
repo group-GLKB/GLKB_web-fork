@@ -128,11 +128,6 @@ const Graph = forwardRef(function Graph(props, ref) {
     return elements;
   }, [props.data]);
 
-  // Add early return if no data
-  if (!props.data || !props.data.nodes) {
-    return <div>Loading...</div>;
-  }
-
   // Memoize the stylesheet generation
   const generateStyleSheet = useCallback((id) => {
     const baseStyleSheet = [
@@ -404,6 +399,15 @@ const Graph = forwardRef(function Graph(props, ref) {
       cy.removeAllListeners();
     };
   }, [handleNodeClick, handleEdgeClick, props.handleInformation, props.informationOpen]);
+
+  /* AFTER every hook, not between them. This early return used to sit above eight hook
+     declarations, so the component called a different number of hooks depending on whether
+     data had arrived — and the render where data first landed threw "rendered more hooks
+     than during the previous render" and took the page down. The hooks above all tolerate
+     missing data on their own. */
+  if (!props.data || !props.data.nodes) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div>

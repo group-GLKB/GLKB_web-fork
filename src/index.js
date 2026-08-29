@@ -21,6 +21,7 @@ import {
 import { AuthProvider } from './components/Auth/AuthContext';
 import HomePage from './components/HomePage';
 import AppLayout from './components/Layout';
+import ErrorBoundary from './components/Units/ErrorBoundary';
 import { SHOW_API_DOCS } from './config/features';
 
 /* Everything past the landing page and the chat is fetched when it is asked for.
@@ -198,11 +199,40 @@ function AppWithRoutes() {
 }
 
 
+/* The backstop. Message-level boundaries catch a broken card; anything that escapes them
+   used to unmount the entire tree and leave a silent white page — transcript, sidebar and
+   composer gone at once. Plain elements only: whatever crashed may be a UI library, and
+   this screen must not depend on it. */
+const rootFallback = (
+    <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', minHeight: '60vh',
+        fontFamily: 'system-ui, sans-serif', color: '#333', gap: '12px', padding: '24px',
+    }}
+    >
+        <div style={{ fontSize: '18px', fontWeight: 600 }}>Something went wrong.</div>
+        <div>The page hit an unexpected error. Reloading will pick up where the server is —
+            answers being written are kept there and come back with the page.</div>
+        <button
+            type="button"
+            onClick={() => window.location.reload()}
+            style={{
+                padding: '8px 20px', fontSize: '14px', cursor: 'pointer',
+                border: '1px solid #ccc', borderRadius: '6px', background: '#fff',
+            }}
+        >
+            Reload
+        </button>
+    </div>
+);
+
 const root = createRoot(document.getElementById('root'));
 root.render(
     <Router>
         <AuthProvider>
-            <AppWithRoutes />
+            <ErrorBoundary label="app root" fallback={rootFallback}>
+                <AppWithRoutes />
+            </ErrorBoundary>
         </AuthProvider>
     </Router>
 );

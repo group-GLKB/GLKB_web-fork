@@ -14,6 +14,10 @@ import {
 } from 'react-router-dom';
 
 import {
+    // The saved-item cards' timestamp icon. It was referenced as an undefined `MetaIcon`,
+    // so every card in the bookmarked-graphs and shared-maps lists crashed on render —
+    // the Library page white-screened for anyone who had saved a map.
+    AccessTimeRounded as MetaIcon,
     Bookmark as BookmarkIcon,
     Close as CloseIcon,
     ChevronRight as ChevronRightIcon,

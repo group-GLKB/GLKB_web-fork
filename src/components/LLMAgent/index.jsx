@@ -151,6 +151,7 @@ import {
     stripCitationsBlock,
 } from '../../utils/directCitations';
 import CiteDialog from '../Units/CiteDialog';
+import ErrorBoundary from '../Units/ErrorBoundary';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import ChatSearchBar from './ChatSearchBar';
 import stepLabels from './step.json';
@@ -4780,8 +4781,21 @@ function LLMAgent({ isRouteActive = true }) {
                 && index === lastIndex
                 && message.role === 'assistant';
             return (
-            <MessageCard
+            /* One message failing to draw costs that message, not the conversation. Without
+               this, a single malformed answer unmounted the whole app — including the view
+               of every run still being written. Keyed by content length so a card that threw
+               on a half-arrived streamed fragment retries as the rest of the text lands. */
+            <ErrorBoundary
                 key={`${activeConversationId || 'new'}:${index}`}
+                label={`message ${index}`}
+                resetKey={message?.content?.length ?? 0}
+                fallback={(
+                    <Box className="message-card message-card-failed" sx={{ p: 2, color: 'text.secondary' }}>
+                        This message could not be displayed.
+                    </Box>
+                )}
+            >
+            <MessageCard
                 index={index}
                 message={message}
                 totalMessages={chatHistory.length}
@@ -4816,6 +4830,7 @@ function LLMAgent({ isRouteActive = true }) {
                 conversationId={activeConversationId}
                 answerReady={isStreamingCard && answerReady}
             />
+            </ErrorBoundary>
             );
         })}
         {/* Only the ones waiting on THIS thread. They used to be drawn wherever the reader
@@ -6045,6 +6060,31 @@ function LLMAgent({ isRouteActive = true }) {
                                                     </Box>
 
                                                     <div ref={messagesContainerRef} className="messages-container">
+                                                        {/* For screen readers only: the visual signal that an answer is
+                                                            being written is a spinner and a growing card, neither of
+                                                            which a reader hears. Announced politely — never interrupting
+                                                            what is being read — and cleared when the run settles. */}
+                                                        <Box
+                                                            role="status"
+                                                            aria-live="polite"
+                                                            sx={{
+                                                                position: 'absolute',
+                                                                width: '1px',
+                                                                height: '1px',
+                                                                margin: '-1px',
+                                                                padding: 0,
+                                                                overflow: 'hidden',
+                                                                clip: 'rect(0 0 0 0)',
+                                                                whiteSpace: 'nowrap',
+                                                                border: 0,
+                                                            }}
+                                                        >
+                                                            {isViewingRunningConversation
+                                                                ? (answerReady
+                                                                    ? 'The answer is ready and its references are being finalized.'
+                                                                    : 'The assistant is answering.')
+                                                                : ''}
+                                                        </Box>
                                                         {!isConversationLoading && renderMessages()}
                                                         <div ref={messagesEndRef} />
                                                     </div>
