@@ -70,6 +70,12 @@ import { getBookmarks, toggleBookmark } from '../../utils/bookmarks';
 import { resolveClarifyRound } from './clarifyRound';
 import { mintSessionId } from './sessionId';
 import { makeDrip } from './streamDrip';
+import {
+    promptsForConversation,
+    promptsSurvivingReset,
+    queuedPromptOwner,
+    releaseTargetFor,
+} from './promptQueue';
 import { ReactComponent as ContentCopyIcon } from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import { ReactComponent as ReferenceIcon } from '../../img/llm/reference.svg';
@@ -2736,7 +2742,10 @@ function LLMAgent({ isRouteActive = true }) {
         setActiveConversationIdState(null);
         activeConversationIdRef.current = null;
         setActiveConversationId(null);
-        setQueuedPrompts([]);
+        /* Starting a new chat drops the questions that were waiting on the chat being left —
+           the ones with no thread of their own — and keeps those queued against a named
+           conversation, which is still being written and will still take its follow-up. */
+        setQueuedPrompts(promptsSurvivingReset);
         llmService.clearHistory();
     }, [cancelStreaming, llmService]);
 
@@ -3176,7 +3185,11 @@ function LLMAgent({ isRouteActive = true }) {
         e && e.preventDefault();
         if (!inputText.trim() || isLimitReachedEffective) return;
 
-        const shouldStartNewConversation = options.forceNewConversation || !activeConversationIdRef.current;
+        /* Which conversation this turn belongs to. Normally the one on screen, but a released
+           queued prompt names its own: it was written as a follow-up to a particular thread and
+           has to land there even if the reader has since moved on to another one. */
+        const targetConversationId = options.conversationId ?? activeConversationIdRef.current;
+        const shouldStartNewConversation = options.forceNewConversation || !targetConversationId;
         /* A run in flight only blocks a second turn in the conversation that is running it —
            that one would race its own predecessor, and `submitOrQueue` holds it back instead.
            A question asked anywhere else is a different session with a different history id,
@@ -3184,7 +3197,7 @@ function LLMAgent({ isRouteActive = true }) {
            This used to refuse every submit while `isLoading`, which meant a reader with a new
            question had to wait out an answer they had already stopped reading. */
         if (isLoading && !shouldStartNewConversation && runningConversationIdRef.current
-            && String(activeConversationIdRef.current) === String(runningConversationIdRef.current)) {
+            && String(targetConversationId) === String(runningConversationIdRef.current)) {
             return;
         }
         const baseHistory = Array.isArray(options.baseHistory)
@@ -3246,12 +3259,19 @@ function LLMAgent({ isRouteActive = true }) {
             : null;
         runningConversationIdRef.current = shouldStartNewConversation
             ? null
-            : activeConversationIdRef.current;
+            : targetConversationId;
         let runConversationId = runningConversationIdRef.current;
         runningChatHistoryRef.current = optimisticRunHistory;
         backgroundCompletionNotifiedRef.current = null;
         setRunHistoryRevision((revision) => revision + 1);
-        setChatHistory(optimisticRunHistory);
+        /* Only when this turn belongs to the thread on screen. A released queued prompt can
+           belong to one the reader has since left, and painting it here is precisely how it
+           ended up appearing under whatever conversation happened to be open. The messages
+           still reach their own conversation, through `updateRunningChatHistory`, which writes
+           against `runningConversationIdRef` rather than against the viewport. */
+        const targetIsOnScreen = shouldStartNewConversation
+            || String(targetConversationId) === String(activeConversationIdRef.current);
+        if (targetIsOnScreen) setChatHistory(optimisticRunHistory);
         // Only when the text came from the box. Every caller that passes `input` is resending
         // something else — an edited message or a retry — and the box may now
         // hold a draft the reader is in the middle of writing. It could not before, because the
@@ -3261,7 +3281,7 @@ function LLMAgent({ isRouteActive = true }) {
         setIsLoading(true);
         setIsProcessing(true);
 
-        let historyId = activeConversationIdRef.current;
+        let historyId = targetConversationId;
         if (shouldStartNewConversation && isAuthenticated) {
             try {
                 const leadingTitle = inputText.trim().slice(0, 200) || null;
@@ -4420,7 +4440,11 @@ function LLMAgent({ isRouteActive = true }) {
             />
             );
         })}
-        {queuedPrompts.map((item) => (
+        {/* Only the ones waiting on THIS thread. They used to be drawn wherever the reader
+            happened to be, so a question queued in one conversation appeared to be pending in
+            another — and then was sent there. An entry queued before its row existed has no
+            conversation to be shown under yet, and belongs to whatever is open. */}
+        {promptsForConversation(queuedPrompts, activeConversationId).map((item) => (
             <Container
                 key={item.id}
                 className="message-pair queued-prompt"
@@ -4774,6 +4798,11 @@ function LLMAgent({ isRouteActive = true }) {
         setQueuedPrompts((prev) => [...prev, {
             id: `q-${queueSeqRef.current}`,
             text,
+            // The thread this is a follow-up TO — see promptQueue.js.
+            conversationId: queuedPromptOwner(
+                runningConversationIdRef.current,
+                activeConversationIdRef.current,
+            ),
             // Captured now rather than read at send time: they describe the turn the reader
             // meant to ask for.
             searchOptions,
@@ -4801,8 +4830,18 @@ function LLMAgent({ isRouteActive = true }) {
         flushingQueueRef.current = true;
         const [next, ...rest] = queuedPrompts;
         setQueuedPrompts(rest);
+        /* Into the conversation it was written against, not the one on screen. When that is
+           somewhere else the turn needs its own starting history too — `chatHistory` holds the
+           thread the reader is looking at, which is not the one this question continues. */
+        const { conversationId: targetId, onScreen: targetIsOnScreen } = releaseTargetFor(
+            next, activeConversationIdRef.current,
+        );
         Promise.resolve(
-            stableSubmit(null, next.text, null, { searchOptions: next.searchOptions }),
+            stableSubmit(null, next.text, null, {
+                searchOptions: next.searchOptions,
+                ...(targetId == null ? {} : { conversationId: targetId }),
+                ...(targetIsOnScreen ? {} : { baseHistory: getStoredChatHistory(targetId) }),
+            }),
         ).finally(() => {
             flushingQueueRef.current = false;
         });
