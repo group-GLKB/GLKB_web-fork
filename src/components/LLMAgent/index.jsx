@@ -2093,6 +2093,46 @@ function LLMAgent({ isRouteActive = true }) {
         setConversationsState(nextList);
     }, []);
 
+    /* The store write, throttled for the streaming hot path. `updateRunningChatHistory`
+       runs on every drip tick (~30/s), and writing through on each one meant JSON-parsing
+       the whole conversation list, sorting it three times, stringifying it back and firing
+       the NavBar's update event per animation frame — visible jank on long answers. The
+       refs and the on-screen transcript stay per-tick; the store gets the LATEST copy at
+       most every CHAT_PERSIST_DEBOUNCE_MS, and `flushConversationStoreWrite` hands over
+       anything pending before the view detaches. */
+    const conversationStoreWriteRef = useRef({ timer: null, conversationId: null, messages: null });
+    const flushConversationStoreWrite = useCallback(() => {
+        const pending = conversationStoreWriteRef.current;
+        if (pending.timer) {
+            window.clearTimeout(pending.timer);
+            pending.timer = null;
+        }
+        if (pending.conversationId && pending.messages) {
+            writeConversationMessages(pending.conversationId, pending.messages);
+        }
+        pending.conversationId = null;
+        pending.messages = null;
+    }, [writeConversationMessages]);
+    const scheduleConversationStoreWrite = useCallback((conversationId, messages) => {
+        const pending = conversationStoreWriteRef.current;
+        if (pending.conversationId && String(pending.conversationId) !== String(conversationId)) {
+            // A write for another conversation is waiting; it must not be dropped.
+            flushConversationStoreWrite();
+        }
+        pending.conversationId = conversationId;
+        pending.messages = messages;
+        if (pending.timer) return;
+        pending.timer = window.setTimeout(() => {
+            pending.timer = null;
+            const latest = conversationStoreWriteRef.current;
+            if (latest.conversationId && latest.messages) {
+                writeConversationMessages(latest.conversationId, latest.messages);
+                latest.conversationId = null;
+                latest.messages = null;
+            }
+        }, CHAT_PERSIST_DEBOUNCE_MS);
+    }, [writeConversationMessages, flushConversationStoreWrite]);
+
     const updateRunningChatHistory = useCallback((updater) => {
         const previous = runningChatHistoryRef.current;
         const next = typeof updater === 'function' ? updater(previous) : updater;
@@ -2101,7 +2141,7 @@ function LLMAgent({ isRouteActive = true }) {
         runningChatHistoryRef.current = next;
         const runningId = runningConversationIdRef.current;
         if (runningId) {
-            writeConversationMessages(runningId, next);
+            scheduleConversationStoreWrite(runningId, next);
         }
 
         const selectedId = activeConversationIdRef.current;
@@ -2122,7 +2162,7 @@ function LLMAgent({ isRouteActive = true }) {
         }
         setRunHistoryRevision((revision) => revision + 1);
         return next;
-    }, [writeConversationMessages]);
+    }, [scheduleConversationStoreWrite]);
     runHistoryUpdaterRef.current = updateRunningChatHistory;
 
     /* Re-evaluated whenever the run registry changes. The queue release below waits on "is the
@@ -2141,6 +2181,9 @@ function LLMAgent({ isRouteActive = true }) {
        every conversation-switching path below uses it. */
     const cancelStreaming = useCallback((options = {}) => {
         const { abort = true } = options;
+        // The throttled store write may still be holding this run's newest messages; hand
+        // them over before the refs stop naming their conversation.
+        flushConversationStoreWrite();
         if (abort && abortControllerRef.current) {
             abortControllerRef.current.abort();
         }
@@ -2160,12 +2203,19 @@ function LLMAgent({ isRouteActive = true }) {
         setClarificationDrafts({});
         setClarificationError('');
         setClarificationSubmitting(false);
-    }, []);
+    }, [flushConversationStoreWrite]);
 
     const isViewingRunningConversation = Boolean(isLoading && (
         (runningConversationIdRef.current
             && String(activeConversationId) === String(runningConversationIdRef.current))
-        || (!runningConversationIdRef.current && activeStreamIdRef.current && !activeConversationId)
+        /* A nameless thread is "the running one" whether its answer arrives down a live
+           stream or through a recovery poll. A signed-out reader's resumed run has neither a
+           conversation id nor a stream, and counting it as "running elsewhere" hid every
+           piece of progress UI behind a blank bubble — and let a fresh submit start on the
+           same session id the recovery was still polling. */
+        || (!runningConversationIdRef.current
+            && (activeStreamIdRef.current || resumingConversationRef.current)
+            && !activeConversationId)
     ));
 
     // Conversations already announced. A Set, not a slot: several runs can be in flight.
@@ -2282,11 +2332,17 @@ function LLMAgent({ isRouteActive = true }) {
     }, [isLoading, activeConversationId]);
 
     useEffect(() => () => {
-        // Leaving the route does not end the run, so the registry is left alone
-        // unless the run had already finished. Unmounting the controller does end
-        // every request it owns, detached ones included, so nothing may be left
-        // claiming to be in flight.
-        if (!isLoadingRef.current) clearActiveRun();
+        /* Only the mark THIS view registered. The old no-argument clear wiped the whole
+           registry, background turns included — their requests carry on after an unmount
+           (nothing aborts them) and their own `finally` owns their marks; wiping them here
+           silenced the tab-close warning and disarmed the double-submit guard for
+           conversations that were still being written. */
+        if (isLoadingRef.current) return;
+        const registered = registeredAttachmentRef.current;
+        if (!registered) return;
+        registeredAttachmentRef.current = null;
+        if (registered.conversationId != null) clearActiveRun(registered.conversationId);
+        else clearPendingRun(registered.streamId);
     }, []);
 
     const refreshTierStatus = useCallback(async () => {
@@ -2413,6 +2469,16 @@ function LLMAgent({ isRouteActive = true }) {
            server has not labelled, and for servers that do not carry the column yet. */
         const investigate = isInvestigateHint === true
             || isInvestigateConversation(conversationId);
+        /* Marked NOW, not at the first successful poll: between opening the conversation and
+           that poll, the registry said nothing was running here, so a submit or a queue
+           release could put a second turn on a history id the server was still answering. */
+        if (!markExistedBefore && conversationId) {
+            setActiveRun({
+                kind: investigate ? 'investigate' : 'chat',
+                runId: null,
+                conversationId: String(conversationId),
+            });
+        }
         const last = displayMessages[displayMessages.length - 1] || messages[messages.length - 1];
         let placeholderAdded = false;
 
@@ -2502,6 +2568,9 @@ function LLMAgent({ isRouteActive = true }) {
             try {
                 const detail = await fetchConversationDetail(conversationId);
                 if (!stillMounted()) return true;
+                // A submit landed while this fetch was in flight; the live run owns the
+                // transcript now, and the old saved copy must not be written over it.
+                if (activeStreamIdRef.current) return true;
                 const saved = detail?.messages || [];
                 /* Finished THROUGH the turn being waited on — decided by identity, not by
                    count. The local and server histories drift in length in both directions:
@@ -2583,6 +2652,10 @@ function LLMAgent({ isRouteActive = true }) {
                     if (!missing) logDev('[LLM] resume poll failed', error);
                 }
                 if (!stillMounted()) return;
+                /* Re-checked AFTER the await too: a submit can land while getRun is in
+                   flight, and applying the recovered OLD answer then would overwrite the new
+                   turn's bubble and kill its streaming UI mid-run. */
+                if (activeStreamIdRef.current) return;
 
                 if (run && (run.status === 'complete' || run.response)) {
                     applyRun(run);
@@ -2610,14 +2683,16 @@ function LLMAgent({ isRouteActive = true }) {
             if (resumingConversationRef.current === key) {
                 resumingConversationRef.current = null;
             }
-            /* An abandoned reattach cleans up its own mark. "Abandoned" is: it put the mark up
-               (showWaiting ran, so the registry effect registered it), nothing else owns it
-               (it did not exist before), and the view has since moved elsewhere — the settle
-               paths leave `runningConversationIdRef` pointing here and are cleared by the
-               registry effect instead. */
-            if (placeholderAdded && !markExistedBefore && conversationId
-                && String(runningConversationIdRef.current ?? '') !== String(conversationId)) {
-                clearActiveRun(conversationId);
+            /* The reattach cleans up the mark it put up, on every exit — settle, abandon, or
+               timeout. Nothing else owns a reload orphan's mark, and the registry effect only
+               clears on an isLoading transition, which the fast path (answer found before any
+               waiting state) never makes. The one exception: a live submit that took this
+               conversation over mid-poll — its own finally owns the mark now. */
+            if (!markExistedBefore && conversationId) {
+                const cid = String(conversationId);
+                const takenOverByLiveRun = activeStreamIdRef.current
+                    && String(runningConversationIdRef.current ?? '') === cid;
+                if (!takenOverByLiveRun) clearActiveRun(cid);
             }
         }
     }, [announceBackgroundCompletion, llmService, updateRunningChatHistory]);
@@ -2744,6 +2819,15 @@ function LLMAgent({ isRouteActive = true }) {
                 loadingConversationIdRef.current = targetId;
                 setLoadingConversationId(targetId);
                 setIsConversationLoading(true);
+                /* Read BEFORE the fetch: `fetchConversationDetail` upserts the server's copy
+                   into the store on its way back, so a read after the await always sees the
+                   server's own messages and the comparison below can never be true. A turn
+                   can be in flight for this conversation that the server's history does not
+                   carry yet — a follow-up released in the background, or a run left behind by
+                   New Chat — and the store's optimistic copy is its only record; showing the
+                   server's shorter copy would make the question the reader queued here look
+                   like it never existed. */
+                const storedMessages = getStoredChatHistory(targetId);
                 try {
                     const detail = await fetchConversationDetail(nextActiveId);
                     if (!isMounted) return;
@@ -2752,12 +2836,6 @@ function LLMAgent({ isRouteActive = true }) {
                     const isSnapshotTarget = runSnapshot?.active
                         && String(runSnapshot.conversationId) === targetId;
                     const serverUnfinished = isExchangeUnfinished(serverMessages);
-                    /* A turn can be in flight for this conversation that the server's history
-                       does not carry yet — a follow-up released in the background, or a run
-                       left behind by New Chat. The store holds its optimistic turn; showing
-                       the server's shorter copy instead would make the question the reader
-                       queued here look like it never existed. */
-                    const storedMessages = getStoredChatHistory(targetId);
                     const storedAhead = isConversationRunning(targetId)
                         && storedMessages.length > serverMessages.length
                         && isExchangeUnfinished(storedMessages);
@@ -2919,6 +2997,9 @@ function LLMAgent({ isRouteActive = true }) {
             loadingConversationIdRef.current = targetId;
             setLoadingConversationId(targetId);
             setIsConversationLoading(true);
+            /* Read before the fetch — the fetch upserts the server copy over the store.
+               See the route restore above. */
+            const storedMessages = getStoredChatHistory(targetId);
             try {
                 const detail = await fetchConversationDetail(conversationId);
                 if (!isMounted) return;
@@ -2931,10 +3012,6 @@ function LLMAgent({ isRouteActive = true }) {
                 lastAutoSelectedRef.current = null;
                 setHoveredPubmedId(null);
                 const serverMessages = detail?.messages || [];
-                /* Same rule as the route restore above: a turn in flight for this conversation
-                   may exist only in the store — a background follow-up, or a run New Chat left
-                   behind — and the server's shorter copy must not hide it. */
-                const storedMessages = getStoredChatHistory(nextId);
                 const storedAhead = isConversationRunning(nextId)
                     && storedMessages.length > serverMessages.length
                     && isExchangeUnfinished(storedMessages);
@@ -3305,6 +3382,15 @@ function LLMAgent({ isRouteActive = true }) {
     useEffect(() => {
         if (typeof window === 'undefined') return;
         if (!activeConversationIdRef.current) return;
+        /* While the attached run is writing this very conversation, the running-history
+           updater owns the store copy (throttled); re-parsing and deep-comparing the whole
+           list here on every streamed tick only ever concluded "nothing to do", at real
+           main-thread cost. */
+        if (isLoadingRef.current
+            && String(runningConversationIdRef.current ?? '')
+                === String(activeConversationIdRef.current)) {
+            return;
+        }
         const currentList = getConversations();
         const active = currentList.find((item) => item.id === activeConversationIdRef.current);
         const storedMessages = active?.messages || [];
@@ -3636,15 +3722,23 @@ function LLMAgent({ isRouteActive = true }) {
                 setConversationsState(nextList);
                 setConversations(nextList);
                 historyId = conversation?.id || null;
-                runningConversationIdRef.current = historyId;
-                // Creating the server-side row is asynchronous. If the reader opened a
-                // historical conversation during that wait, keep that conversation selected;
-                // the newly-created row still owns the run, but no longer owns the viewport.
-                if (!activeConversationIdRef.current) {
-                    setActiveConversationIdState(historyId);
-                    activeConversationIdRef.current = historyId;
-                    if (historyId) {
-                        setActiveConversationId(historyId);
+                /* Only while this run still owns the view. The reader can hit New Chat (or
+                   open another conversation) during this round trip; the release nulled these
+                   refs — or a newer run owns them — and repointing them from this stale
+                   continuation wrote a blank bubble over the new row's stored transcript and
+                   re-selected that row under the reader's fresh screen. */
+                if (activeStreamIdRef.current === streamId) {
+                    runningConversationIdRef.current = historyId;
+                    // Creating the server-side row is asynchronous. If the reader opened a
+                    // historical conversation during that wait, keep that conversation
+                    // selected; the newly-created row still owns the run, but no longer owns
+                    // the viewport.
+                    if (!activeConversationIdRef.current) {
+                        setActiveConversationIdState(historyId);
+                        activeConversationIdRef.current = historyId;
+                        if (historyId) {
+                            setActiveConversationId(historyId);
+                        }
                     }
                 }
             } catch (error) {
@@ -3658,8 +3752,23 @@ function LLMAgent({ isRouteActive = true }) {
             markInvestigateConversation(historyId);
         }
         if (historyId) {
-            runningConversationIdRef.current = String(historyId);
             runConversationId = String(historyId);
+            if (activeStreamIdRef.current === streamId) {
+                runningConversationIdRef.current = String(historyId);
+            } else {
+                /* Released while the row was being created. The run carries on detached: its
+                   registry mark moves from the provisional stream key onto the row it now
+                   owns (the sidebar dot, and the guard against a second turn on this history
+                   id, both need the row's name), and its question reaches the row's stored
+                   copy directly — the running refs belong to the view, which has let go. */
+                setActiveRun({
+                    kind: investigateEnabled ? 'investigate' : 'chat',
+                    runId: null,
+                    conversationId: String(historyId),
+                    key: streamId,
+                });
+                writeConversationMessages(String(historyId), optimisticRunHistory);
+            }
             /* A follow-up queued in the moments before this row existed was filed with no
                conversation. It was written against THIS thread — the only nameless one — so it
                takes the row's id now, and stops being drawn under (or released into) whatever
@@ -3670,6 +3779,16 @@ function LLMAgent({ isRouteActive = true }) {
                     : item))
                 : prev));
         }
+        /* The session id this RUN will use. For the attached run it is the shared ref —
+           frame handlers keep updating that. A run released during the row's round trip must
+           not touch the ref at all: New Chat just cleared it for the reader's next question,
+           and writing this run's session back would hand that next question a session it was
+           never part of. */
+        let runSessionId;
+        if (activeStreamIdRef.current !== streamId) {
+            runSessionId = getStoredSessionId(historyId) || mintSessionId();
+            if (historyId) setStoredSessionId(historyId, runSessionId);
+        } else {
         if (resetInvestigateSession) {
             sessionIdRef.current = null;
             setStoredSessionId(historyId, null);
@@ -3693,7 +3812,13 @@ function LLMAgent({ isRouteActive = true }) {
         if (historyId) {
             setStoredSessionId(historyId, sessionIdRef.current);
         }
+        runSessionId = sessionIdRef.current;
+        }
 
+        /* View state, and only the view's run may touch it. A continuation released during
+           the row round trip reaching these lines wiped the streaming panels of whatever run
+           the reader had started SINCE. */
+        if (activeStreamIdRef.current === streamId) {
         // The question and the spinner are already up — see above.
         setStreamingGroups([]);
         setPreambleText('');
@@ -3723,6 +3848,7 @@ function LLMAgent({ isRouteActive = true }) {
         dripRef.current.reset();
         setAnswerReady(false);
         preambleRef.current = { text: '', index: -1 };
+        }
         // A NEW run re-arms this conversation's completion notice — the announcement set
         // de-duplicates per conversation, not per run.
         if (runConversationId) {
@@ -3732,8 +3858,7 @@ function LLMAgent({ isRouteActive = true }) {
         try {
             logDev('[LLM] submit', { input: inputText });
 
-            // Append a blank message
-            updateRunningChatHistory(prev => [...prev, {
+            const blankAssistant = {
                 role: 'assistant',
                 content: '',
                 references: [],
@@ -3742,7 +3867,15 @@ function LLMAgent({ isRouteActive = true }) {
                 thoughtDurationMs: null,
                 trajectory: null,
                 investigateMode: investigateEnabled,
-            }]);
+            };
+            if (activeStreamIdRef.current === streamId) {
+                // Append a blank message
+                updateRunningChatHistory(prev => [...prev, blankAssistant]);
+            } else if (runConversationId) {
+                // Detached before the stream opened: the placeholder goes straight to the
+                // row's stored copy, where the reattach that opens it will find the turn.
+                writeConversationMessages(runConversationId, [...optimisticRunHistory, blankAssistant]);
+            }
 
             /* Only a run in THIS conversation is cut off — it is being replaced by a retry or
                an edited message, so its answer is not wanted. A run in another conversation is
@@ -3854,7 +3987,18 @@ function LLMAgent({ isRouteActive = true }) {
 
                                     return newHistory;
                                 });
-                                setSelectedMessageIndex(chatHistory.length + 1);
+                                /* The run history's real tail, guarded to the conversation on
+                                   screen — the same shape as the 'final' handler. The old
+                                   `chatHistory.length + 1` was a stale render-time closure:
+                                   after a regenerate it pointed past the end of the shortened
+                                   history, and a background run's error frame mis-set the
+                                   selection of whatever conversation was open. */
+                                if (
+                                    String(activeConversationIdRef.current)
+                                    === String(runningConversationIdRef.current)
+                                ) {
+                                    setSelectedMessageIndex(runningChatHistoryRef.current.length - 1);
+                                }
                                 break;
                             }
 
@@ -4223,7 +4367,7 @@ function LLMAgent({ isRouteActive = true }) {
                 }
             }, {
                 historyId,
-                sessionId: sessionIdRef.current,
+                sessionId: runSessionId,
                 filters: Array.isArray(requestSearchOptions?.filters) ? requestSearchOptions.filters : undefined,
                 rankingMode: typeof requestSearchOptions?.rankingMode === 'string' ? requestSearchOptions.rankingMode : undefined,
                 investigateEnabled,
@@ -4302,12 +4446,16 @@ function LLMAgent({ isRouteActive = true }) {
             }
         } finally {
             refreshTierStatus();
-            /* Unconditional, and by this run's own id: a detached run reaches here with the
-               foreground belonging to a later one, and it still has to take its own mark out
-               of the registry — otherwise the sidebar would show it working forever. The
-               guarded block below is the opposite case, the foreground run settling its UI. */
+            /* Unconditional, and by BOTH of this run's possible names: a detached run reaches
+               here with the foreground belonging to a later one, and it still has to take its
+               own mark out of the registry — otherwise the sidebar would show it working
+               forever. The provisional 'run:<streamId>' slot is cleared as well as the row id,
+               because a run released DURING the row's creation is never re-keyed — the
+               registry effect stopped following it — and clearing only the row id left that
+               provisional entry claiming a run for the life of the tab: the tab-close warning
+               fired forever and the home composer never unlocked. */
             if (runConversationId) clearActiveRun(runConversationId);
-            else clearPendingRun(streamId);
+            clearPendingRun(streamId);
             /* A released run reaches here with the foreground belonging to a later one, so its
                frames — `complete` included — were dropped and nothing has told the reader their
                answer landed. That notification is most of what makes leaving a run to finish a
@@ -5175,15 +5323,17 @@ function LLMAgent({ isRouteActive = true }) {
         event?.preventDefault?.();
         const text = userInput.trim();
         if (!text || isLimitReachedEffective) return;
-        if (isLoading && !isViewingRunningConversation) {
-            // A different thread. It used to be refused — "wait for the running conversation to
-            // finish" — which made the reader hold the question for as long as an answer they
-            // were no longer reading. It is its own session with its own history id, so it just
-            // starts, and the run they left keeps being written.
-            stableSubmit(event, null, null, { searchOptions });
-            return;
-        }
-        if (!isLoading) {
+        /* "Busy" is the REGISTRY's word, not only the view's. The view flags describe the
+           run the view follows; a background follow-up holds its conversation without ever
+           touching them, and a submit into it used to be refused silently deep inside
+           `handleSubmit` — Enter did nothing, the text stayed in the box, nothing said why.
+           A question into a busy thread is queued, whoever is doing the answering. A
+           question into any other thread just starts: it is its own session with its own
+           history id, and the run the reader left keeps being written. */
+        const targetConversationId = activeConversationIdRef.current;
+        const targetBusy = isConversationRunning(targetConversationId)
+            || (isLoading && isViewingRunningConversation);
+        if (!targetBusy) {
             stableSubmit(event, null, null, { searchOptions });
             return;
         }
@@ -5191,11 +5341,15 @@ function LLMAgent({ isRouteActive = true }) {
         setQueuedPrompts((prev) => [...prev, {
             id: `q-${queueSeqRef.current}`,
             text,
-            // The thread this is a follow-up TO — see promptQueue.js.
-            conversationId: queuedPromptOwner(
-                runningConversationIdRef.current,
-                activeConversationIdRef.current,
-            ),
+            // The thread this is a follow-up TO — see promptQueue.js. When the view is
+            // following the run, the run's own id is the most current name for it; when the
+            // busy thread is being answered in the background, the screen's id is.
+            conversationId: isViewingRunningConversation
+                ? queuedPromptOwner(
+                    runningConversationIdRef.current,
+                    activeConversationIdRef.current,
+                )
+                : (targetConversationId != null ? String(targetConversationId) : null),
             // Captured now rather than read at send time: they describe the turn the reader
             // meant to ask for.
             searchOptions,

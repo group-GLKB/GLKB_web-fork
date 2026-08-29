@@ -132,4 +132,25 @@ test('queued follow-ups in two conversations land in their own threads', async (
     expect(finalB.users).toHaveLength(2);
     expect(finalB.answers).toHaveLength(2);
     expect(finalB.queued).toHaveLength(0);
+
+    /* Leave no residue: the two conversations this run created are deleted through the same
+       API the app uses. The account is shared with humans checking the product by hand, and
+       a sidebar full of nonce-tagged questions is noise they should never see. Deliberately
+       AFTER the assertions — a failing run keeps its data for investigation. */
+    const apiBase = process.env.GLKB_API_BASE
+        || 'https://jieliulab3.dcmb.med.umich.edu/reorg-api';
+    const token = await page.evaluate(() => localStorage.getItem('access_token'));
+    const listResponse = await page.request.get(
+        `${apiBase}/api/v1/new-llm-agent/history?limit=20`,
+        { headers: { Authorization: `Bearer ${token}` } },
+    );
+    const { histories = [] } = await listResponse.json();
+    for (const row of histories) {
+        if (String(row.leading_title || '').includes(NONCE)) {
+            await page.request.delete(
+                `${apiBase}/api/v1/new-llm-agent/history/${row.hid}`,
+                { headers: { Authorization: `Bearer ${token}` } },
+            );
+        }
+    }
 });
