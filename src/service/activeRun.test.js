@@ -99,6 +99,48 @@ describe('a run that starts before its conversation row exists', () => {
         clearPendingRun();
         expect(isRunActive()).toBe(false);
     });
+
+    /* Two nameless runs at once became possible when a reader could leave one answer writing
+       and start another. They shared a single slot, so the second overwrote the first and
+       whichever settled first took down the mark belonging to the one still going — the
+       tab-close warning stopped, and every entry point reported nothing running. */
+    it('keeps two nameless runs apart, by the run they belong to', () => {
+        setActiveRun({ ...chatRun(null), key: 'stream-a' });
+        setActiveRun({ ...chatRun(null), key: 'stream-b' });
+        expect(isRunActive()).toBe(true);
+
+        clearPendingRun('stream-a');
+        expect(isRunActive()).toBe(true);          // b is still being written
+        clearPendingRun('stream-b');
+        expect(isRunActive()).toBe(false);
+    });
+
+    it('still hides a nameless run from the conversation list', () => {
+        setActiveRun({ ...chatRun(null), key: 'stream-a' });
+        expect(getRunningConversationIds()).toEqual(new Set());
+    });
+
+    it('gives up its own slot, not another run\'s, when the row arrives', () => {
+        setActiveRun({ ...chatRun(null), key: 'stream-a' });
+        setActiveRun({ ...chatRun(null), key: 'stream-b' });
+        setActiveRun({ ...chatRun('42'), key: 'stream-a' });
+        expect(getRunningConversationIds()).toEqual(new Set(['42']));
+        clearPendingRun('stream-b');
+        expect(getRunningConversationIds()).toEqual(new Set(['42']));
+        clearActiveRun('42');
+        expect(isRunActive()).toBe(false);
+    });
+});
+
+describe('which run is "the" run', () => {
+    // `Map.set` on an existing key keeps its original position, so without a delete first the
+    // most recently touched run was not the one reported.
+    it('reports the most recently written record, not the first inserted', () => {
+        setActiveRun(chatRun('1'));
+        setActiveRun(chatRun('2'));
+        setActiveRun({ ...chatRun('1'), runId: 'r-later' });
+        expect(getActiveRun()).toMatchObject({ conversationId: '1', runId: 'r-later' });
+    });
 });
 
 describe('subscribers', () => {

@@ -28,12 +28,19 @@ const listeners = new Set();
 /** conversationId (string) -> run record. Insertion-ordered, so the last is the newest. */
 const runs = new Map();
 
-// A run started before its conversation row exists has no id to key on. It gets this one,
-// and `setActiveRun` re-keys it as soon as the row comes back from the server.
+/* A run started before its conversation row exists has no conversation to be keyed on, so it
+   is filed under its own stream id until the row arrives. It used to share one `__pending__`
+   slot with every other such run — which was fine while only one run could exist, and stopped
+   being fine when a reader could leave one answer writing and start another: the second
+   overwrote the first's record, and whichever finished first took down the mark belonging to
+   the one still going. `__pending__` remains only for a caller that has no id at all. */
 const PENDING_KEY = '__pending__';
 
+const provisionalKey = (key) => (key ? `run:${key}` : PENDING_KEY);
+const isProvisional = (key) => key === PENDING_KEY || key.startsWith('run:');
+
 const keyFor = (run) => (
-    run?.conversationId != null ? String(run.conversationId) : PENDING_KEY
+    run?.conversationId != null ? String(run.conversationId) : provisionalKey(run?.key)
 );
 
 const notify = () => {
@@ -58,7 +65,7 @@ export const isRunActive = () => runs.size > 0;
 export const getRunningConversationIds = () => {
     const ids = new Set();
     runs.forEach((run, key) => {
-        if (key !== PENDING_KEY) ids.add(key);
+        if (!isProvisional(key)) ids.add(key);
     });
     return ids;
 };
@@ -80,11 +87,14 @@ export const setActiveRun = (run) => {
         return;
     }
     const key = keyFor(run);
-    // The conversation row is created after the run starts, so the first record is keyed
-    // PENDING and this is where it acquires its real key. Without the delete the sidebar
+    // The conversation row is created after the run starts, so a run's first record is
+    // provisional and this is where it acquires its real key. Without the delete the sidebar
     // would show one conversation running twice.
-    if (key !== PENDING_KEY) runs.delete(PENDING_KEY);
+    if (run.conversationId != null) runs.delete(provisionalKey(run.key));
     const existing = runs.get(key);
+    // Delete before set so insertion order tracks the most recent write, which is what
+    // `getActiveRun` reports. `Map.set` on an existing key keeps its original position.
+    runs.delete(key);
     runs.set(key, { startedAt: existing?.startedAt ?? Date.now(), ...run });
     notify();
 };
@@ -107,9 +117,15 @@ export const clearActiveRun = (conversationId) => {
     notify();
 };
 
-/** Drop the record for a run that never got a conversation id. */
-export const clearPendingRun = () => {
-    if (!runs.delete(PENDING_KEY)) return;
+/**
+ * Drop the record for a run that never got a conversation id.
+ *
+ * `key` is the run's own stream id. Passing it matters once more than one such run can exist:
+ * without it this clears whichever run happens to hold the shared slot, which may be one that
+ * is still being written.
+ */
+export const clearPendingRun = (key) => {
+    if (!runs.delete(provisionalKey(key))) return;
     notify();
 };
 

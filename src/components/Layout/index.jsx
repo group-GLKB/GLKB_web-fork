@@ -1,6 +1,7 @@
 import './scoped.css';
 
 import React, {
+  Suspense,
   useEffect,
   useLayoutEffect,
   useState,
@@ -158,7 +159,15 @@ const AppLayout = () => {
                   covers ordinary chat and Investigate with the same lifecycle.
                 */}
                 <PersistentAgentSurface active={isChatPage}>
-                    <Outlet />
+                    {/* The boundary sits HERE, around the routed page only, and not around the
+                        whole router. A lazy page suspending inside a boundary that also
+                        contained the Agent would hide the Agent's view along with it — the one
+                        thing this layout exists to keep alive. `null` rather than a spinner:
+                        these chunks come off the same origin and a flashed placeholder reads
+                        worse than the half-beat it replaces. */}
+                    <Suspense fallback={null}>
+                        <Outlet />
+                    </Suspense>
                 </PersistentAgentSurface>
             </div>
             {/* Sign-in lives in an overlay so it can appear over any page. */}

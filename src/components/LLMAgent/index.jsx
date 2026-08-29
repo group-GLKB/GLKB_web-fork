@@ -121,7 +121,12 @@ import {
     setNotifyPref,
     subscribeToNotifyPrefs,
 } from '../../service/notifications';
-import { clearActiveRun, clearPendingRun, setActiveRun } from '../../service/activeRun';
+import {
+    clearActiveRun,
+    clearPendingRun,
+    isConversationRunning,
+    setActiveRun,
+} from '../../service/activeRun';
 import {
     clearActiveRunSnapshot,
     readActiveRunSnapshot,
@@ -354,7 +359,13 @@ const getStoredChatHistory = (conversationId = null) => {
  * question gone.
  */
 const baseMessagesForSnapshot = (snapshot) => {
-    const stored = getStoredChatHistory(snapshot?.conversationId || null);
+    /* Only ask the store when the snapshot names a conversation. `getStoredChatHistory(null)`
+       does not mean "no conversation" — it falls back to the remembered active id, so a guest
+       snapshot would have been drawn on top of whatever conversation the last signed-in reader
+       of this browser had open, and preferred that stranger's transcript to its own. */
+    const stored = snapshot?.conversationId
+        ? getStoredChatHistory(snapshot.conversationId)
+        : [];
     if (stored.length) return stored;
     return Array.isArray(snapshot?.messages) ? snapshot.messages : [];
 };
@@ -2111,13 +2122,22 @@ function LLMAgent({ isRouteActive = true }) {
         || (!runningConversationIdRef.current && activeStreamIdRef.current && !activeConversationId)
     ));
 
-    const backgroundCompletionNotifiedRef = useRef(null);
-    const announceBackgroundCompletion = useCallback(() => {
-        const runningId = runningConversationIdRef.current;
+    // Conversations already announced. A Set, not a slot: several runs can be in flight.
+    const backgroundCompletionNotifiedRef = useRef(new Set());
+    /**
+     * @param {*} [forConversationId] The conversation that finished, when the caller knows it.
+     *
+     * A released run has to name itself. The refs describe whatever took the foreground after
+     * it, so reading them told the announcement about the wrong conversation — and since the
+     * de-duplication key came from those same refs, one run could also swallow another's
+     * notification. Announced conversations are remembered by id, one entry each.
+     */
+    const announceBackgroundCompletion = useCallback((forConversationId) => {
+        const runningId = forConversationId ?? runningConversationIdRef.current;
         if (!runningId || String(activeConversationIdRef.current) === String(runningId)) return;
-        const notificationKey = runIdRef.current || sessionIdRef.current || String(runningId);
-        if (backgroundCompletionNotifiedRef.current === notificationKey) return;
-        backgroundCompletionNotifiedRef.current = notificationKey;
+        const notificationKey = String(runningId);
+        if (backgroundCompletionNotifiedRef.current.has(notificationKey)) return;
+        backgroundCompletionNotifiedRef.current.add(notificationKey);
         const conversation = getConversations().find(
             (item) => String(item.id) === String(runningId),
         );
@@ -2182,7 +2202,7 @@ function LLMAgent({ isRouteActive = true }) {
             // is filed under the pending key and has to be released by that name, or it would
             // sit in the registry forever making the app think something is still working.
             if (finished) clearActiveRun(finished);
-            else clearPendingRun();
+            else clearPendingRun(activeStreamIdRef.current);
             return;
         }
         // A run id means an investigate run, which the server can be asked about
@@ -2191,6 +2211,9 @@ function LLMAgent({ isRouteActive = true }) {
             kind: runIdRef.current ? 'investigate' : 'chat',
             runId: runIdRef.current || null,
             conversationId: runningConversationIdRef.current || null,
+            // Its own slot until the conversation row arrives, so two runs that are both still
+            // nameless do not overwrite each other's mark.
+            key: activeStreamIdRef.current,
         });
     }, [isLoading, activeConversationId]);
 
@@ -2395,6 +2418,13 @@ function LLMAgent({ isRouteActive = true }) {
         // The answer may already be in history — written there by the backend while the page was
         // reloading. Cheaper and more reliable than the run store, which is in-process memory.
         const answerFromHistory = async () => {
+            /* Only a saved conversation has a history to read. Without this a resume with no
+               conversation — the signed-out path — fetched `null`, took the empty result for a
+               finished exchange, and wrote that empty list over the reader's transcript: the
+               question and the partial answer both vanished, a completion was announced, and
+               the "this run was lost" message was skipped because the caller was told the
+               answer had been found. */
+            if (!conversationId) return false;
             try {
                 const detail = await fetchConversationDetail(conversationId);
                 if (!stillMounted()) return true;
@@ -2499,8 +2529,13 @@ function LLMAgent({ isRouteActive = true }) {
                    and no run snapshot, which is why a guest saw nothing at all for ten seconds
                    and then the whole answer at once, and why refreshing lost the lot.
 
-                   Only a run that is genuinely not in flight is cleared here. */
-                if (!activeStreamIdRef.current) {
+                   Only a run that is genuinely not in flight is cleared here — and "in flight"
+                   includes a reattach, which deliberately has no stream: after a reload the
+                   answer is polled for, not streamed. Without `resumingConversationRef` this
+                   cleared the waiting state on top of the resume, so the reader watched a
+                   static page; worse, the snapshot effect then saw `isProcessing` false and
+                   deleted the sessionStorage record, so a second reload lost the run for good. */
+                if (!activeStreamIdRef.current && !resumingConversationRef.current) {
                     setIsLoading(false);
                     setIsProcessing(false);
                 }
@@ -3333,8 +3368,12 @@ function LLMAgent({ isRouteActive = true }) {
            and the backend locks per history id rather than per user, so it may simply start.
            This used to refuse every submit while `isLoading`, which meant a reader with a new
            question had to wait out an answer they had already stopped reading. */
-        if (isLoading && !shouldStartNewConversation && runningConversationIdRef.current
-            && String(targetConversationId) === String(runningConversationIdRef.current)) {
+        /* Asked of the registry rather than the foreground flags. `runningConversationIdRef`
+           is nulled by `cancelStreaming` even on the release path, and `isLoading` describes
+           the view, so after New Chat both said "nothing is running" while the released run
+           was still being written — and reopening that conversation from History let a second
+           turn start on the same history id, which is the race this refuses. */
+        if (!shouldStartNewConversation && isConversationRunning(targetConversationId)) {
             return;
         }
         const baseHistory = Array.isArray(options.baseHistory)
@@ -3399,7 +3438,6 @@ function LLMAgent({ isRouteActive = true }) {
             : targetConversationId;
         let runConversationId = runningConversationIdRef.current;
         runningChatHistoryRef.current = optimisticRunHistory;
-        backgroundCompletionNotifiedRef.current = null;
         setRunHistoryRevision((revision) => revision + 1);
         /* Only when this turn belongs to the thread on screen. A released queued prompt can
            belong to one the reader has since left, and painting it here is precisely how it
@@ -4072,7 +4110,14 @@ function LLMAgent({ isRouteActive = true }) {
                of the registry — otherwise the sidebar would show it working forever. The
                guarded block below is the opposite case, the foreground run settling its UI. */
             if (runConversationId) clearActiveRun(runConversationId);
-            else clearPendingRun();
+            else clearPendingRun(streamId);
+            /* A released run reaches here with the foreground belonging to a later one, so its
+               frames — `complete` included — were dropped and nothing has told the reader their
+               answer landed. That notification is most of what makes leaving a run to finish a
+               usable thing to do. */
+            if (activeStreamIdRef.current !== streamId && runConversationId) {
+                announceBackgroundCompletion(runConversationId);
+            }
             if (activeStreamIdRef.current === streamId) {
                 setIsLoading(false);
                 setIsProcessing(false);
@@ -4964,6 +5009,13 @@ function LLMAgent({ isRouteActive = true }) {
         if (isLoading || isProcessing || isConversationLoading) return;
         if (!queuedPrompts.length || isLimitReachedEffective) return;
         if (flushingQueueRef.current) return;
+        const [head] = queuedPrompts;
+        /* The foreground flags are not enough. `New Chat` mid-answer RELEASES the run — the
+           view stops following it, `isLoading` goes false — while the server carries on
+           writing, and the follow-up queued against that conversation survives the reset by
+           design. Without this the queue fired it the moment the view let go, putting two
+           turns on one history id: exactly the race the queue exists to prevent. */
+        if (isConversationRunning(head?.conversationId)) return;
         flushingQueueRef.current = true;
         const [next, ...rest] = queuedPrompts;
         setQueuedPrompts(rest);
