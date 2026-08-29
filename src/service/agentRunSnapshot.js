@@ -1,6 +1,22 @@
+/**
+ * What the reader had on screen when the page went away, so a reload can put it back.
+ *
+ * A run does NOT need a saved conversation to be worth restoring. Both gates here used to
+ * require `conversationId`, which a signed-out reader never has — `createConversation` is
+ * behind `isAuthenticated` — so for a guest no snapshot was ever written, and reloading
+ * mid-answer lost the question, the answer and the progress with it. Guests are a supported
+ * class of user here, with their own quota; losing their work on a refresh is not acceptable.
+ *
+ * So the snapshot stands on its own: it carries the messages it is describing rather than
+ * pointing at a conversation store that may hold nothing. `conversationId` is still recorded
+ * when there is one, because a signed-in reader's stored conversation is the better source and
+ * the id is what reattaches the run to it.
+ */
 const ACTIVE_RUN_SNAPSHOT_KEY = 'llmActiveRunSnapshot';
 const PROCESSING_FLAG_KEY = 'llmWasProcessing';
-const SNAPSHOT_VERSION = 1;
+// 2: `conversationId` became optional and `messages` was added. A v1 snapshot cannot restore a
+// guest run and is discarded rather than half-read.
+const SNAPSHOT_VERSION = 2;
 const SNAPSHOT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 const getSessionStorage = () => {
@@ -24,10 +40,15 @@ export const readActiveRunSnapshot = () => {
         const isFresh = Number.isFinite(savedAt)
             && Date.now() - savedAt <= SNAPSHOT_MAX_AGE_MS;
 
+        // A run with neither a conversation to reattach to nor messages of its own describes
+        // nothing that can be put back on screen.
+        const hasSomethingToRestore = Boolean(parsed?.conversationId)
+            || (Array.isArray(parsed?.messages) && parsed.messages.length > 0);
+
         if (
             parsed?.version !== SNAPSHOT_VERSION
             || parsed?.active !== true
-            || !parsed?.conversationId
+            || !hasSomethingToRestore
             || !isFresh
         ) {
             storage.removeItem(ACTIVE_RUN_SNAPSHOT_KEY);
@@ -42,13 +63,16 @@ export const readActiveRunSnapshot = () => {
 
 export const writeActiveRunSnapshot = (snapshot) => {
     const storage = getSessionStorage();
-    if (!storage || !snapshot?.conversationId) return false;
+    if (!storage) return false;
+    const hasMessages = Array.isArray(snapshot?.messages) && snapshot.messages.length > 0;
+    if (!snapshot?.conversationId && !hasMessages) return false;
 
     const next = {
         ...snapshot,
         version: SNAPSHOT_VERSION,
         active: true,
-        conversationId: String(snapshot.conversationId),
+        // Null for a guest, and for the window before the row comes back from the server.
+        conversationId: snapshot.conversationId ? String(snapshot.conversationId) : null,
         savedAt: Date.now(),
     };
 

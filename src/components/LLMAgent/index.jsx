@@ -345,6 +345,20 @@ const getStoredChatHistory = (conversationId = null) => {
     return active?.messages || [];
 };
 
+/**
+ * The thread a restored run should be drawn on top of.
+ *
+ * The stored conversation when there is one — it is authoritative and holds the whole history.
+ * Otherwise the snapshot's own copy, which is all a guest has: they never get a conversation
+ * row, so the store is empty for them and restoring against it produced a blank page with the
+ * question gone.
+ */
+const baseMessagesForSnapshot = (snapshot) => {
+    const stored = getStoredChatHistory(snapshot?.conversationId || null);
+    if (stored.length) return stored;
+    return Array.isArray(snapshot?.messages) ? snapshot.messages : [];
+};
+
 const mergeMessagesWithRunSnapshot = (messages, snapshot) => {
     const base = Array.isArray(messages) ? [...messages] : [];
     const liveAssistant = snapshot?.assistantMessage;
@@ -996,6 +1010,11 @@ const useStableCallback = (fn) => {
 // settled cards as well changed their props on every frame and re-rendered them for nothing.
 // How far from the bottom the reader may be before auto-follow stops chasing them.
 const AUTO_FOLLOW_SLACK_PX = 80;
+/* Module scope, so it is the SAME array on every render. As a `{[remarkGfm]}` literal in the
+   JSX it was a new array each time, which is enough on its own to defeat any memoisation of
+   the markdown subtree — react-markdown rebuilds its unified processor when the plugin list
+   is not identical, and the answer is re-parsed in full on every streamed frame. */
+const REMARK_PLUGINS = [remarkGfm];
 // The conversation is mirrored into sessionStorage for a reload mid-answer; it does not need
 // to be written once per streamed chunk.
 const CHAT_PERSIST_DEBOUNCE_MS = 400;
@@ -1640,7 +1659,7 @@ const MessageCard = React.memo(function MessageCard({
                                     /> : (
                                         <div className="markdown-body">
                                             <ReactMarkdown
-                                                remarkPlugins={[remarkGfm]}
+                                                remarkPlugins={REMARK_PLUGINS}
                                                 components={{
                                                     a: ({ href, children, title, ...props }) => {
                                                         const isPubMedReference = href?.includes('pubmed.ncbi.nlm.nih.gov');
@@ -1853,8 +1872,10 @@ function LLMAgent({ isRouteActive = true }) {
                 investigateMode: Boolean(location.state?.initialSearchOptions?.investigateEnabled),
             }];
         }
-        const stored = getStoredChatHistory(initialRunSnapshot?.conversationId || null);
-        return mergeMessagesWithRunSnapshot(stored, initialRunSnapshot);
+        return mergeMessagesWithRunSnapshot(
+            baseMessagesForSnapshot(initialRunSnapshot),
+            initialRunSnapshot,
+        );
     });
     const runningConversationIdRef = useRef(
         initialRunSnapshot?.active ? initialRunSnapshot.conversationId : null,
@@ -1862,7 +1883,7 @@ function LLMAgent({ isRouteActive = true }) {
     const runningChatHistoryRef = useRef(
         initialRunSnapshot?.active
             ? mergeMessagesWithRunSnapshot(
-                getStoredChatHistory(initialRunSnapshot.conversationId),
+                baseMessagesForSnapshot(initialRunSnapshot),
                 initialRunSnapshot,
             )
             : [],
@@ -1895,8 +1916,16 @@ function LLMAgent({ isRouteActive = true }) {
     const [isConversationLoading, setIsConversationLoading] = useState(false);
     const [loadingConversationId, setLoadingConversationId] = useState(null);
     const [conversationBookmarks, setConversationBookmarksState] = useState(() => getConversationBookmarks());
+    /* "Response interrupted — reload the latest message" is for a run that cannot be picked up
+       again. It renders INSTEAD of the answer body, so offering it while a reattach is under
+       way covers the very answer that is on its way in, and the reader is invited to spend a
+       second run getting what the first one already produced.
+
+       A snapshot with a session id means the agent still has the run and polling will land it,
+       so there is nothing interrupted to report. */
     const [showReloadPrompt, setShowReloadPrompt] = useState(
-        () => getStoredProcessingFlag() || getStoredIncompleteFlag()
+        () => (getStoredProcessingFlag() || getStoredIncompleteFlag())
+            && !initialRunSnapshotRef.current?.sessionId
     );
     const [feedbackOpen, setFeedbackOpen] = useState(false);
     const [feedbackRating, setFeedbackRating] = useState(0);
@@ -2056,9 +2085,18 @@ function LLMAgent({ isRouteActive = true }) {
         }
 
         const selectedId = activeConversationIdRef.current;
+        /* When neither the run nor the viewport names a conversation there is only one thread,
+           and it is the one on screen.
+
+           This used to also require a live stream, which is exactly what a recovered run does
+           not have: after a reload the answer arrives by polling `GET /run?session_id=`, not
+           down an open SSE connection. A guest's recovered answer was therefore written into
+           the run history and never into `chatHistory`, so the reader watched a spinner over a
+           finished answer that was already in memory. Every caller here owns a run, so the
+           extra condition was not protecting anything. */
         const isSelectedRun = runningId
             ? String(selectedId) === String(runningId)
-            : Boolean(activeStreamIdRef.current) && !selectedId;
+            : !selectedId;
         if (isSelectedRun) {
             setChatHistory(next);
         }
@@ -2256,14 +2294,21 @@ function LLMAgent({ isRouteActive = true }) {
     //   back only once the server has actually said "running".
     const resumeUnfinishedRun = useCallback(async (
         conversationId, messages, stillMounted, isInvestigateHint, displayMessages = messages,
+        sessionIdOverride = null,
     ) => {
         if (!isExchangeUnfinished(messages)) return;
-        const key = String(conversationId);
-        if (resumingConversationRef.current === key) return;
-        const sessionId = getStoredSessionId(conversationId);
+        /* A run does not need a saved conversation to be reattachable. The agent retains it
+           against its SESSION id — `GET /run?session_id=` answers for an ordinary chat turn,
+           not just a deep-research one — and a signed-out reader has a session id and no
+           conversation. Reading the session id only out of the per-conversation store meant a
+           guest who refreshed mid-answer had nothing to reconnect to, and the answer their
+           quota had already paid for was simply gone. */
+        const sessionId = sessionIdOverride || getStoredSessionId(conversationId);
         if (!sessionId) return;      // nothing to reconnect to; leave the history as it is
+        const key = conversationId ? String(conversationId) : `session:${sessionId}`;
+        if (resumingConversationRef.current === key) return;
         resumingConversationRef.current = key;
-        runningConversationIdRef.current = key;
+        runningConversationIdRef.current = conversationId ? String(conversationId) : null;
         runningChatHistoryRef.current = Array.isArray(displayMessages) ? displayMessages : messages;
 
         /* Which kind of run to reattach to. The conversation record answers this now
@@ -2291,6 +2336,8 @@ function LLMAgent({ isRouteActive = true }) {
             }
             setIsLoading(true);
             setIsProcessing(true);
+            // Reattached: whatever the mount assumed, this run is not interrupted.
+            setShowReloadPrompt(false);
             /* Not "Reconnecting". Nothing is wrong with the connection: the run is on the
                server, it is still being written, and it will land here when it is done —
                including if this page is closed and reopened. The old wording read as a
@@ -2326,6 +2373,7 @@ function LLMAgent({ isRouteActive = true }) {
         };
 
         const applyRun = (run) => {
+            setShowReloadPrompt(false);
             settle({
                 content: run.response || '',
                 references: parseReferences(run.references),
@@ -2437,10 +2485,25 @@ function LLMAgent({ isRouteActive = true }) {
                 setConversationsState([]);
                 setActiveConversationIdState(null);
                 activeConversationIdRef.current = null;
-                setIsLoading(false);
-                setIsProcessing(false);
                 setIsConversationLoading(false);
                 setLoadingConversationId(null);
+                /* A signed-out reader gets answers too — they have their own quota — and this
+                   effect is not the thing that decides when one is finished.
+
+                   It cleared the run flags unconditionally, and `location.state.initialQuery`
+                   is among its dependencies. Asking from the home page hands the question over
+                   in router state and then REMOVES it, so that a refresh does not ask again —
+                   and that removal re-ran this effect a moment after `handleSubmit` had set the
+                   flags, wiping them. The request itself carried on, so the answer did arrive;
+                   but with `isProcessing` false there was no thinking label, no streaming card
+                   and no run snapshot, which is why a guest saw nothing at all for ten seconds
+                   and then the whole answer at once, and why refreshing lost the lot.
+
+                   Only a run that is genuinely not in flight is cleared here. */
+                if (!activeStreamIdRef.current) {
+                    setIsLoading(false);
+                    setIsProcessing(false);
+                }
                 return;
             }
 
@@ -2569,6 +2632,30 @@ function LLMAgent({ isRouteActive = true }) {
         };
     }, [authLoading, isAuthenticated, location.state?.initialQuery, location.state?.conversationId,
         routePublicId, resumeUnfinishedRun]);
+
+    /* Reattach a run that has no conversation behind it.
+     *
+     * The effect above restores from the conversation store, which is empty for a signed-out
+     * reader — they never get a row. Their run is nonetheless real, still being written, and
+     * retained by the agent against its session id, so the snapshot is the whole record: the
+     * messages it was showing and the id to poll. Without this a guest who refreshed mid-answer
+     * got their question back and then waited forever on an answer nothing was fetching.
+     */
+    useEffect(() => {
+        const snapshot = initialRunSnapshot;
+        if (!snapshot?.active || snapshot.conversationId || !snapshot.sessionId) return undefined;
+        const messages = Array.isArray(snapshot.messages) ? snapshot.messages : [];
+        if (!messages.length) return undefined;
+        let mounted = true;
+        sessionIdRef.current = snapshot.sessionId;
+        runIdRef.current = snapshot.runId || null;
+        resumeUnfinishedRun(
+            null, messages, () => mounted, snapshot.investigate, messages, snapshot.sessionId,
+        );
+        return () => { mounted = false; };
+        // `initialRunSnapshot` is read once at construction and keeps the same identity for the
+        // life of the mount, so naming it here is honest and still runs this only once.
+    }, [initialRunSnapshot, resumeUnfinishedRun]);
 
     /* Put the conversation in the address bar once it has one.
     
@@ -2750,24 +2837,62 @@ function LLMAgent({ isRouteActive = true }) {
     }, [cancelStreaming, llmService]);
 
     /**
-     * Follow the answer down.
+     * Follow the answer down — but only while the reader is standing at the bottom.
      *
-     * This ran `scrollIntoView({behavior:'smooth'})` on every state change. While text is
-     * streaming that is many times a second, and each call restarts the animation before the
-     * previous one has finished — the scroll never settles, which is most of what made the
-     * streamed answer look like it was stuttering. It also dragged the view back down when the
-     * reader had scrolled up to re-read something earlier in the answer.
+     * The view follows the text while the reader is at the bottom, and stops the moment they
+     * scroll up to re-read something. It stays stopped until they come back down. This is the
+     * behaviour every chat product has, and the reason is that scroll position is the reader's
+     * to own: nothing the page does to itself may move it.
      *
-     * So: smooth for a settled change, and while a run is in flight instant, at most once per
-     * frame, and only when the reader is already at the bottom.
+     * Two things were moving it.
+     *
+     * The settled branch called `scrollToBottom(true)` with no check at all — and this effect
+     * lists `chatHistory` among its dependencies, which keeps changing AFTER the answer lands
+     * (references attach, the `saved` frame patches invocation ids in, the history refresh
+     * rewrites the list). Each of those smooth-scrolled the reader back to the bottom, so
+     * scrolling up through a finished answer bounced you back down, repeatedly. Only the
+     * streaming branch had the "the reader scrolled away" guard; the one that fires after the
+     * answer pops did not.
+     *
+     * And `distance` was sampled inside the effect, i.e. at React's convenience rather than the
+     * reader's. Mid-drag the container is momentarily within slack of the bottom, which read as
+     * consent to jump. The pin is now updated from the container's own scroll event, so it
+     * describes where the reader actually is.
+     *
+     * A new turn re-pins: asking a question is a deliberate act, and the asker means to watch
+     * the answer, wherever they had scrolled to beforehand.
      */
     const scrollFrameRef = useRef(0);
+    const pinnedToBottomRef = useRef(true);
+    const lastMessageCountRef = useRef(chatHistory.length);
     const scrollToBottom = useCallback((smooth = true) => {
+        const container = messagesContainerRef.current;
+        /* Not `scrollIntoView`: it scrolls EVERY scrollable ancestor, so it moves the page
+           itself as well as the message list (see the reference-list scroll below, which
+           avoids it for the same reason). Driving the container's own scrollTop keeps the
+           movement inside the thread. */
+        if (container) {
+            container.scrollTo({ top: container.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+            return;
+        }
         messagesEndRef.current?.scrollIntoView({
             behavior: smooth ? 'smooth' : 'auto',
             block: 'end',
         });
     }, []);
+
+    // The pin follows the reader's own scrolling, not the render cycle.
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container) return undefined;
+        const onScroll = () => {
+            const distance = container.scrollHeight - container.scrollTop - container.clientHeight;
+            pinnedToBottomRef.current = distance <= AUTO_FOLLOW_SLACK_PX;
+        };
+        onScroll();
+        container.addEventListener('scroll', onScroll, { passive: true });
+        return () => container.removeEventListener('scroll', onScroll);
+    }, [activeConversationId, isRouteActive]);
 
     const handleClick = (event, link) => {
         event.preventDefault();
@@ -2775,14 +2900,14 @@ function LLMAgent({ isRouteActive = true }) {
     };
 
     useEffect(() => {
+        const grew = chatHistory.length > lastMessageCountRef.current;
+        lastMessageCountRef.current = chatHistory.length;
+        if (grew) pinnedToBottomRef.current = true;
+        if (!pinnedToBottomRef.current) return undefined;
+
         if (!isViewingRunningConversation || !isProcessing) {
             scrollToBottom(true);
             return undefined;
-        }
-        const container = messagesContainerRef.current;
-        if (container) {
-            const distance = container.scrollHeight - container.scrollTop - container.clientHeight;
-            if (distance > AUTO_FOLLOW_SLACK_PX) return undefined;   // the reader scrolled away
         }
         if (scrollFrameRef.current) return undefined;
         scrollFrameRef.current = rafSchedule(() => {
@@ -2830,8 +2955,11 @@ function LLMAgent({ isRouteActive = true }) {
             return;
         }
 
-        const conversationId = runningConversationIdRef.current;
-        if (!conversationId) return;
+        /* No conversation id is not a reason to skip the snapshot. A signed-out reader never
+           gets one, so this returned early for every guest run and a refresh mid-answer took
+           the question and the answer with it. The snapshot now carries the messages it
+           describes, so it can restore a run that no conversation store knows about. */
+        const conversationId = runningConversationIdRef.current || null;
         const runHistory = runningChatHistoryRef.current;
         let assistantMessage = null;
         for (let i = runHistory.length - 1; i >= 0; i -= 1) {
@@ -2848,6 +2976,10 @@ function LLMAgent({ isRouteActive = true }) {
 
         liveRunSnapshotRef.current = {
             conversationId,
+            // The thread itself, not just a pointer to it. For a signed-in reader the stored
+            // conversation is the better source and this is a fallback; for a guest it is the
+            // only record that survives the page.
+            messages: runHistory,
             sessionId: sessionIdRef.current,
             runId: runIdRef.current,
             investigate: Boolean(
