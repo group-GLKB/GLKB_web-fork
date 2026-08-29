@@ -36,6 +36,26 @@ describe('the address bar catching up with a live run', () => {
         })).toBe(true);
     });
 
+    /* A reattach has no stream on purpose — the answer is polled for — and the same address
+       upgrade fires while it waits. Reloading over it wiped the waiting card. */
+    it('stands back while the named conversation is being reattached', () => {
+        expect(shouldSkipConversationRestore({
+            routeConversationId: '42',
+            runningConversationId: '42',
+            activeStreamId: null,
+            isResuming: true,
+        })).toBe(true);
+    });
+
+    it('still loads a DIFFERENT conversation while one is being reattached', () => {
+        expect(shouldSkipConversationRestore({
+            routeConversationId: '7',
+            runningConversationId: '42',
+            activeStreamId: null,
+            isResuming: true,
+        })).toBe(false);
+    });
+
     it('compares ids as strings, so a numeric row id still matches', () => {
         expect(shouldSkipConversationRestore({
             routeConversationId: 42,
@@ -73,6 +93,32 @@ describe('an address the reader actually asked for', () => {
             hasConversationId: true,
             isInitialQueryTransition: true,
         })).toBe(false);
+    });
+
+    /* A sidebar click navigates with BOTH the path and the state, and the state-driven loader
+       does the full load. Restoring here too loaded every switch twice, and the second write
+       wiped the reattach's waiting card — a bare question over an answer minutes away. */
+    it('stands back when router state hands over the SAME conversation the path names', () => {
+        expect(shouldSkipConversationRestore({
+            routeConversationId: '7',
+            hasConversationId: true,
+            stateConversationId: '7',
+        })).toBe(true);
+    });
+
+    it('still loads when router state names a different conversation than the path', () => {
+        expect(shouldSkipConversationRestore({
+            routeConversationId: '7',
+            hasConversationId: true,
+            stateConversationId: '42',
+        })).toBe(false);
+    });
+
+    it('matches a numeric state id against the route string form', () => {
+        expect(shouldSkipConversationRestore({
+            routeConversationId: '7',
+            stateConversationId: 7,
+        })).toBe(true);
     });
 });
 

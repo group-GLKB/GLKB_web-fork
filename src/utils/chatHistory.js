@@ -6,6 +6,8 @@ import {
   listChatHistories,
   updateChatHistoryTitle,
 } from '../service/ChatHistory';
+import { isConversationRunning } from '../service/activeRun';
+import { isExchangeUnfinished } from '../service/resumeRun';
 
 const STORAGE_KEY = 'llmConversations';
 const ACTIVE_KEY = 'llmActiveConversationId';
@@ -170,7 +172,36 @@ export const fetchConversations = async (options = {}) => {
     const list = Array.isArray(data?.histories)
         ? data.histories.map(normalizeSummary)
         : [];
-    return setConversations(list);
+    /* The list endpoint returns titles, not messages, and a summary row carries
+       `messages: []`. Replacing the stored list wholesale therefore erased every locally
+       known transcript on every refresh — including the optimistic turn of a run still in
+       flight, which is the only record of a question the server has not saved yet.
+
+       Only that in-flight copy is worth keeping: a conversation that is running, or whose
+       stored copy ends mid-exchange, is ahead of the server. A settled local copy is not —
+       it can hold stale or error text the server never saved, and preserving it
+       unconditionally meant a list refresh could never repair it. The count always stays
+       the server's: it feeds the History/Library labels, which describe what is saved. */
+    const known = new Map(getConversations().map((item) => [String(item.id), item]));
+    const merged = list.map((item) => {
+        const stored = known.get(String(item.id));
+        if (!stored) return item;
+        const keepMessages = stored.messages?.length && !item.messages?.length
+            && (isConversationRunning(item.id) || isExchangeUnfinished(stored.messages));
+        /* The newer of the two timestamps. A run touches its conversation locally the moment
+           it starts writing, before the server has saved anything; taking the summary's older
+           `last_accessed_time` dropped the conversation being answered down the sidebar
+           mid-run, under rows that were long finished. */
+        const keepUpdatedAt = stored.updatedAt && item.updatedAt
+            && new Date(stored.updatedAt) > new Date(item.updatedAt);
+        if (!keepMessages && !keepUpdatedAt) return item;
+        return {
+            ...item,
+            ...(keepMessages ? { messages: stored.messages } : {}),
+            ...(keepUpdatedAt ? { updatedAt: stored.updatedAt } : {}),
+        };
+    });
+    return setConversations(merged);
 };
 
 /**

@@ -71,6 +71,7 @@ import { resolveClarifyRound } from './clarifyRound';
 import { mintSessionId } from './sessionId';
 import { makeDrip } from './streamDrip';
 import {
+    nextReleasableEntry,
     promptsForConversation,
     promptsSurvivingReset,
     queuedPromptOwner,
@@ -126,6 +127,7 @@ import {
     clearPendingRun,
     isConversationRunning,
     setActiveRun,
+    subscribeToActiveRun,
 } from '../../service/activeRun';
 import {
     clearActiveRunSnapshot,
@@ -2075,6 +2077,21 @@ function LLMAgent({ isRouteActive = true }) {
     const originalNavigatorMethodsRef = useRef({ push: null, replace: null });
     const navigate = useNavigate();
 
+    /* One conversation's stored messages, written through to both copies of the list.
+       `touch`: a conversation being answered belongs at the top of the sidebar for as long as
+       it runs — not at the rank it held before the question. Used by the attached run below
+       and by background runs, which write here and nowhere else. */
+    const writeConversationMessages = useCallback((conversationId, messages) => {
+        const nextList = updateConversationMessages(
+            getConversations(),
+            conversationId,
+            messages,
+            { touch: true },
+        );
+        setConversations(nextList);
+        setConversationsState(nextList);
+    }, []);
+
     const updateRunningChatHistory = useCallback((updater) => {
         const previous = runningChatHistoryRef.current;
         const next = typeof updater === 'function' ? updater(previous) : updater;
@@ -2083,16 +2100,7 @@ function LLMAgent({ isRouteActive = true }) {
         runningChatHistoryRef.current = next;
         const runningId = runningConversationIdRef.current;
         if (runningId) {
-            // `touch`: this is the conversation being answered, so it belongs at the top of the
-            // sidebar for as long as it runs — not at the rank it held before the question.
-            const nextList = updateConversationMessages(
-                getConversations(),
-                runningId,
-                next,
-                { touch: true },
-            );
-            setConversations(nextList);
-            setConversationsState(nextList);
+            writeConversationMessages(runningId, next);
         }
 
         const selectedId = activeConversationIdRef.current;
@@ -2113,8 +2121,45 @@ function LLMAgent({ isRouteActive = true }) {
         }
         setRunHistoryRevision((revision) => revision + 1);
         return next;
-    }, []);
+    }, [writeConversationMessages]);
     runHistoryUpdaterRef.current = updateRunningChatHistory;
+
+    /* Re-evaluated whenever the run registry changes. The queue release below waits on "is the
+       target conversation still answering", which the registry knows and no state does — a run
+       finishing in the background changes no view flag, so without this the queue only woke up
+       when something else happened to re-render, and a queued follow-up sat unsent for as long
+       as the reader sat still. */
+    const [runRegistryRevision, setRunRegistryRevision] = useState(0);
+    useEffect(() => subscribeToActiveRun(() => {
+        setRunRegistryRevision((revision) => revision + 1);
+    }), []);
+
+    /* Detach the view from the run it was following — and, unless told otherwise, end that
+       run. `abort: false` is the release: the request stays open, the server finishes the
+       answer against its own history, and only the view lets go. Defined this early because
+       every conversation-switching path below uses it. */
+    const cancelStreaming = useCallback((options = {}) => {
+        const { abort = true } = options;
+        if (abort && abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = null;
+        activeStreamIdRef.current = null;
+        runningConversationIdRef.current = null;
+        runningChatHistoryRef.current = [];
+        dripRef.current?.stop();
+        setAnswerReady(false);
+        setIsLoading(false);
+        setIsProcessing(false);
+        setStreamingGroups([]);
+        setPreambleText('');
+        setStreamingStepName('');
+        thinkingStepsRef.current = [];
+        applyPendingClarification(null);
+        setClarificationDrafts({});
+        setClarificationError('');
+        setClarificationSubmitting(false);
+    }, []);
 
     const isViewingRunningConversation = Boolean(isLoading && (
         (runningConversationIdRef.current
@@ -2189,24 +2234,42 @@ function LLMAgent({ isRouteActive = true }) {
     // about from whichever page the reader is on — so the handler lives in the
     // layout and reads this registry instead of this component's state.
     const isLoadingRef = useRef(false);
+    /* What THIS effect last registered, so that only that may be cleared. The false-branch
+       used to read the live refs instead — trusting that a release nulls them first — and
+       that was a race: switching conversations releases the old run and starts a reattach,
+       and when the reattach repointed the refs before the release's `isLoading=false` had
+       flushed, the clear below deleted the mark of the conversation being OPENED, whose run
+       was alive. The queue then saw it as free and released a second turn onto it. */
+    const registeredAttachmentRef = useRef(null);
     useEffect(() => {
         isLoadingRef.current = isLoading;
         if (!isLoading) {
-            /* Only the conversation this component was just answering. A run the reader left
-               behind to ask something else is still being written on the server, and it stays
-               in the registry — and so keeps its dot in the sidebar — until its own request
-               settles and clears itself by id. Clearing the whole registry here would take
-               those marks down while the answers were still coming. */
-            const finished = runningConversationIdRef.current;
-            // A run with no conversation id — a guest, or a row the server never returned —
-            // is filed under the pending key and has to be released by that name, or it would
-            // sit in the registry forever making the app think something is still working.
-            if (finished) clearActiveRun(finished);
-            else clearPendingRun(activeStreamIdRef.current);
+            const registered = registeredAttachmentRef.current;
+            registeredAttachmentRef.current = null;
+            if (!registered) return;
+            /* Cleared only when the refs still describe the registered attachment — i.e. the
+               run genuinely settled in place (a reattach ends this way: no stream, flags come
+               down where they went up). A release nulls the refs first, and a newer attach
+               repoints them; in both cases the mark now belongs to a run that is still being
+               written and clears itself by id when its own request settles. */
+            const conversationUnchanged = String(runningConversationIdRef.current ?? '')
+                === String(registered.conversationId ?? '');
+            const streamUnchanged = (activeStreamIdRef.current ?? null)
+                === (registered.streamId ?? null);
+            if (!conversationUnchanged || !streamUnchanged) return;
+            /* A run with no conversation id — a guest, or a row the server never returned —
+               is filed under the pending key and has to be released by that name, or it would
+               sit in the registry forever making the app think something is still working. */
+            if (registered.conversationId != null) clearActiveRun(registered.conversationId);
+            else clearPendingRun(registered.streamId);
             return;
         }
         // A run id means an investigate run, which the server can be asked about
         // later; a plain answer is only saved against its history id.
+        registeredAttachmentRef.current = {
+            conversationId: runningConversationIdRef.current || null,
+            streamId: activeStreamIdRef.current ?? null,
+        };
         setActiveRun({
             kind: runIdRef.current ? 'investigate' : 'chat',
             runId: runIdRef.current || null,
@@ -2331,6 +2394,16 @@ function LLMAgent({ isRouteActive = true }) {
         const key = conversationId ? String(conversationId) : `session:${sessionId}`;
         if (resumingConversationRef.current === key) return;
         resumingConversationRef.current = key;
+        /* Whether some actual request already holds this conversation's registry mark — a run
+           released by New Chat or a background follow-up, whose own `finally` will clear it.
+           When the mark exists only because THIS reattach put it up (a reload orphan: the run
+           lives on the server alone, no client request owns anything), an abandoned reattach
+           must take the mark down itself, or the conversation reads as "answering" for the
+           life of the tab — every new question in it silently refused, its queue never
+           released, its sidebar dot permanent. */
+        const markExistedBefore = conversationId
+            ? isConversationRunning(conversationId)
+            : false;
         runningConversationIdRef.current = conversationId ? String(conversationId) : null;
         runningChatHistoryRef.current = Array.isArray(displayMessages) ? displayMessages : messages;
 
@@ -2429,7 +2502,36 @@ function LLMAgent({ isRouteActive = true }) {
                 const detail = await fetchConversationDetail(conversationId);
                 if (!stillMounted()) return true;
                 const saved = detail?.messages || [];
-                if (!isExchangeUnfinished(saved)) {
+                /* Finished THROUGH the turn being waited on — decided by identity, not by
+                   count. The local and server histories drift in length in both directions:
+                   a locally written error bubble the server never saved makes the local copy
+                   permanently longer, and server-side rows the client does not mirror make
+                   it shorter. Counting messages therefore either ignored a recovered answer
+                   forever (and wrote "lost" over it), or let an old finished history
+                   overwrite the queued question. The pending turn is identified by its user
+                   message: the server has answered it when that message appears with a
+                   non-empty assistant message after it. Scanned from the end, so asking the
+                   same question twice finds the latest asking. */
+                let pendingUserContent = null;
+                for (let i = messages.length - 1; i >= 0; i -= 1) {
+                    if (messages[i]?.role === 'user') {
+                        pendingUserContent = String(messages[i].content ?? '').trim();
+                        break;
+                    }
+                }
+                let turnAnswered = false;
+                if (pendingUserContent) {
+                    for (let i = saved.length - 1; i >= 0; i -= 1) {
+                        if (saved[i]?.role === 'user'
+                            && String(saved[i].content ?? '').trim() === pendingUserContent) {
+                            const following = saved[i + 1];
+                            turnAnswered = following?.role === 'assistant'
+                                && Boolean(String(following.content ?? '').trim());
+                            break;
+                        }
+                    }
+                }
+                if (!isExchangeUnfinished(saved) && turnAnswered) {
                     const next = [...saved];
                     const tail = next[next.length - 1];
                     if (tail?.role === 'assistant') {
@@ -2467,6 +2569,10 @@ function LLMAgent({ isRouteActive = true }) {
         try {
             for (let attempt = 0; attempt < RESUME_MAX_POLLS; attempt += 1) {
                 if (!stillMounted()) return;
+                /* A live submit has taken the view — the reader asked something new here, or a
+                   released follow-up landed on screen. That run owns the singleton state now;
+                   polling on top of it would write a second answer into its transcript. */
+                if (activeStreamIdRef.current) return;
                 let run = null;
                 let missing = false;
                 try {
@@ -2502,6 +2608,15 @@ function LLMAgent({ isRouteActive = true }) {
         } finally {
             if (resumingConversationRef.current === key) {
                 resumingConversationRef.current = null;
+            }
+            /* An abandoned reattach cleans up its own mark. "Abandoned" is: it put the mark up
+               (showWaiting ran, so the registry effect registered it), nothing else owns it
+               (it did not exist before), and the view has since moved elsewhere — the settle
+               paths leave `runningConversationIdRef` pointing here and are cleared by the
+               registry effect instead. */
+            if (placeholderAdded && !markExistedBefore && conversationId
+                && String(runningConversationIdRef.current ?? '') !== String(conversationId)) {
+                clearActiveRun(conversationId);
             }
         }
     }, [announceBackgroundCompletion, llmService, updateRunningChatHistory]);
@@ -2582,6 +2697,8 @@ function LLMAgent({ isRouteActive = true }) {
                 activeStreamId: activeStreamIdRef.current,
                 hasInitialQuery,
                 hasConversationId,
+                stateConversationId: location.state?.conversationId ?? null,
+                isResuming: Boolean(resumingConversationRef.current),
                 isInitialQueryTransition: initialQueryTransitionRef.current,
             });
 
@@ -2608,6 +2725,21 @@ function LLMAgent({ isRouteActive = true }) {
 
             if (nextActiveId) {
                 const targetId = String(nextActiveId);
+                /* Switching threads detaches the view from whatever run it was following. The
+                   run itself is released, not aborted: the server keeps writing it, its mark
+                   stays in the registry until its own request settles, and reopening its
+                   conversation reattaches by session id. Skipping this left the old stream
+                   painting into the singleton run state while the restore below repointed that
+                   state at the new thread — which is how one conversation's answer landed in
+                   another's transcript. (A stream on the conversation being opened never gets
+                   here: that is the address-upgrade case, skipped above.) A reattach counts
+                   too — it holds `isLoading` without a stream, and leaving it attached would
+                   strand the new conversation behind the old one's waiting state. */
+                if ((activeStreamIdRef.current || isLoadingRef.current
+                        || resumingConversationRef.current)
+                    && String(runningConversationIdRef.current ?? '') !== targetId) {
+                    cancelStreaming({ abort: false });
+                }
                 loadingConversationIdRef.current = targetId;
                 setLoadingConversationId(targetId);
                 setIsConversationLoading(true);
@@ -2619,23 +2751,41 @@ function LLMAgent({ isRouteActive = true }) {
                     const isSnapshotTarget = runSnapshot?.active
                         && String(runSnapshot.conversationId) === targetId;
                     const serverUnfinished = isExchangeUnfinished(serverMessages);
-                    const displayMessages = isSnapshotTarget && serverUnfinished
-                        ? mergeMessagesWithRunSnapshot(serverMessages, runSnapshot)
-                        : serverMessages;
+                    /* A turn can be in flight for this conversation that the server's history
+                       does not carry yet — a follow-up released in the background, or a run
+                       left behind by New Chat. The store holds its optimistic turn; showing
+                       the server's shorter copy instead would make the question the reader
+                       queued here look like it never existed. */
+                    const storedMessages = getStoredChatHistory(targetId);
+                    const storedAhead = isConversationRunning(targetId)
+                        && storedMessages.length > serverMessages.length
+                        && isExchangeUnfinished(storedMessages);
+                    const displayMessages = storedAhead
+                        ? storedMessages
+                        : (isSnapshotTarget && serverUnfinished
+                            ? mergeMessagesWithRunSnapshot(serverMessages, runSnapshot)
+                            : serverMessages);
                     sessionIdRef.current = getStoredSessionId(nextActiveId)
                         || runSnapshot?.sessionId
                         || null;
                     setChatHistory(displayMessages);
                     setActiveConversationIdState(String(nextActiveId));
                     activeConversationIdRef.current = String(nextActiveId);
-                    if (serverUnfinished) {
-                        // The path a plain reload takes. Fire and forget: it polls for minutes and
-                        // the restore must not wait on it. `displayMessages` retains all progress
-                        // received before the connection was interrupted.
+                    if (serverUnfinished || storedAhead) {
+                        /* The path a plain reload takes. Fire and forget: it polls for minutes
+                           and the restore must not wait on it. `displayMessages` retains all
+                           progress received before the connection was interrupted.
+
+                           Alive while the VIEW still shows this conversation — not while this
+                           effect instance does. The effect re-runs for reasons that have
+                           nothing to do with the reader (an address upgrade consuming router
+                           state, say), and tying the poll to `isMounted` let such a re-run
+                           kill the recovery of an answer the reader was still waiting for,
+                           with the waiting card up and nothing behind it. */
                         resumeUnfinishedRun(
                             nextActiveId,
-                            serverMessages,
-                            () => isMounted,
+                            storedAhead ? storedMessages : serverMessages,
+                            () => String(activeConversationIdRef.current ?? '') === targetId,
                             detail?.isInvestigate,
                             displayMessages,
                         );
@@ -2666,7 +2816,7 @@ function LLMAgent({ isRouteActive = true }) {
             isMounted = false;
         };
     }, [authLoading, isAuthenticated, location.state?.initialQuery, location.state?.conversationId,
-        routePublicId, resumeUnfinishedRun]);
+        routePublicId, resumeUnfinishedRun, cancelStreaming]);
 
     /* Reattach a run that has no conversation behind it.
      *
@@ -2716,29 +2866,6 @@ function LLMAgent({ isRouteActive = true }) {
         navigate(`/chat/${publicId}`, { replace: true });
     }, [location.pathname, activeConversationId, conversationsState, routePublicId, navigate]);
 
-    const cancelStreaming = useCallback((options = {}) => {
-        const { abort = true } = options;
-        if (abort && abortControllerRef.current) {
-            abortControllerRef.current.abort();
-        }
-        abortControllerRef.current = null;
-        activeStreamIdRef.current = null;
-        runningConversationIdRef.current = null;
-        runningChatHistoryRef.current = [];
-        dripRef.current?.stop();
-        setAnswerReady(false);
-        setIsLoading(false);
-        setIsProcessing(false);
-        setStreamingGroups([]);
-        setPreambleText('');
-        setStreamingStepName('');
-        thinkingStepsRef.current = [];
-        applyPendingClarification(null);
-        setClarificationDrafts({});
-        setClarificationError('');
-        setClarificationSubmitting(false);
-    }, []);
-
     useEffect(() => {
         if (!isAuthenticated) return;
         const conversationId = location.state?.conversationId;
@@ -2779,10 +2906,15 @@ function LLMAgent({ isRouteActive = true }) {
                 return;
             }
 
-            const preserveLiveRun = navigationAction === 'load-other';
-            if (!preserveLiveRun) {
-                cancelStreaming({ abort: false });
-            }
+            /* Opening any OTHER conversation detaches the view from the run it was following.
+               The run is released, not aborted — the server keeps writing it, its registry
+               mark stands until its own request settles, and coming back here reattaches by
+               session id. This used to preserve the live run's grip on the singleton view
+               state instead ("load-other"), which meant the conversation being opened could
+               not reattach to its own unfinished answer — and worse, a resume started for it
+               later repointed the running refs while the old stream still wrote through them,
+               landing one conversation's answer in another's transcript. */
+            cancelStreaming({ abort: false });
             loadingConversationIdRef.current = targetId;
             setLoadingConversationId(targetId);
             setIsConversationLoading(true);
@@ -2794,20 +2926,50 @@ function LLMAgent({ isRouteActive = true }) {
                 setActiveConversationId(nextId);
                 setActiveConversationIdState(nextId);
                 activeConversationIdRef.current = nextId;
-                if (!preserveLiveRun) {
-                    sessionIdRef.current = getStoredSessionId(nextId);
-                }
+                sessionIdRef.current = getStoredSessionId(nextId);
                 lastAutoSelectedRef.current = null;
                 setHoveredPubmedId(null);
-                setChatHistory(detail?.messages || []);
+                const serverMessages = detail?.messages || [];
+                /* Same rule as the route restore above: a turn in flight for this conversation
+                   may exist only in the store — a background follow-up, or a run New Chat left
+                   behind — and the server's shorter copy must not hide it. */
+                const storedMessages = getStoredChatHistory(nextId);
+                const storedAhead = isConversationRunning(nextId)
+                    && storedMessages.length > serverMessages.length
+                    && isExchangeUnfinished(storedMessages);
+                /* And the same run-snapshot merge as the route restore. Router state survives
+                   a reload, so a reload of a conversation opened from the sidebar lands HERE,
+                   not there — without the merge, the partial answer and progress streamed
+                   before the reload vanished until the poll recovered the finished run. */
+                const runSnapshot = initialRunSnapshotRef.current;
+                const isSnapshotTarget = runSnapshot?.active
+                    && String(runSnapshot.conversationId) === nextId;
+                const serverUnfinished = isExchangeUnfinished(serverMessages);
+                const displayMessages = storedAhead
+                    ? storedMessages
+                    : (isSnapshotTarget && serverUnfinished
+                        ? mergeMessagesWithRunSnapshot(serverMessages, runSnapshot)
+                        : serverMessages);
+                // The snapshot's session id is the only address left when the per-conversation
+                // store was emptied by the reload — same fallback as the route restore.
+                if (!sessionIdRef.current && isSnapshotTarget) {
+                    sessionIdRef.current = runSnapshot?.sessionId || null;
+                }
+                setChatHistory(displayMessages);
                 setSelectedMessageIndex(null);
                 setShowReloadPrompt(false);
-                if (!preserveLiveRun) {
-                    llmService.clearHistory();
-                    // The conversation may have been left mid-answer. Fire and forget: this polls
-                    // for minutes, and the load itself must not wait on it.
+                llmService.clearHistory();
+                if (serverUnfinished || storedAhead) {
+                    /* The conversation may have been left mid-answer. Fire and forget: this
+                       polls for minutes, and the load itself must not wait on it. Alive while
+                       the VIEW still shows this conversation, not while this effect instance
+                       does — see the route restore above for why. */
                     resumeUnfinishedRun(
-                        nextId, detail?.messages || [], () => isMounted, detail?.isInvestigate,
+                        nextId,
+                        storedAhead ? storedMessages : serverMessages,
+                        () => String(activeConversationIdRef.current ?? '') === nextId,
+                        detail?.isInvestigate,
+                        displayMessages,
                     );
                 }
             } catch (error) {
@@ -3361,7 +3523,15 @@ function LLMAgent({ isRouteActive = true }) {
            queued prompt names its own: it was written as a follow-up to a particular thread and
            has to land there even if the reader has since moved on to another one. */
         const targetConversationId = options.conversationId ?? activeConversationIdRef.current;
-        const shouldStartNewConversation = options.forceNewConversation || !targetConversationId;
+        /* "No conversation id" is not the same as "new conversation". A signed-out reader
+           never gets an id, so reading it that way made every guest follow-up start over:
+           the second question REPLACED the first exchange on screen — the answer the reader
+           was just looking at, gone. A new thread is one that was asked for (`New Chat`, the
+           home page hand-over) or one where there is genuinely nothing on screen to follow.
+           The agent's context never depended on this: it follows the session id, which is
+           kept either way. */
+        const shouldStartNewConversation = options.forceNewConversation
+            || (!targetConversationId && chatHistory.length === 0);
         /* A run in flight only blocks a second turn in the conversation that is running it —
            that one would race its own predecessor, and `submitOrQueue` holds it back instead.
            A question asked anywhere else is a different session with a different history id,
@@ -3489,6 +3659,15 @@ function LLMAgent({ isRouteActive = true }) {
         if (historyId) {
             runningConversationIdRef.current = String(historyId);
             runConversationId = String(historyId);
+            /* A follow-up queued in the moments before this row existed was filed with no
+               conversation. It was written against THIS thread — the only nameless one — so it
+               takes the row's id now, and stops being drawn under (or released into) whatever
+               other conversation the reader opens next. */
+            setQueuedPrompts((prev) => (prev.some((item) => item?.conversationId == null)
+                ? prev.map((item) => (item?.conversationId == null
+                    ? { ...item, conversationId: String(historyId) }
+                    : item))
+                : prev));
         }
         if (resetInvestigateSession) {
             sessionIdRef.current = null;
@@ -3543,6 +3722,11 @@ function LLMAgent({ isRouteActive = true }) {
         dripRef.current.reset();
         setAnswerReady(false);
         preambleRef.current = { text: '', index: -1 };
+        // A NEW run re-arms this conversation's completion notice — the announcement set
+        // de-duplicates per conversation, not per run.
+        if (runConversationId) {
+            backgroundCompletionNotifiedRef.current.delete(String(runConversationId));
+        }
 
         try {
             logDev('[LLM] submit', { input: inputText });
@@ -3961,6 +4145,18 @@ function LLMAgent({ isRouteActive = true }) {
                                     ? String(activeConversationIdRef.current) === String(previousRunningId)
                                     : !activeConversationIdRef.current;
                                 runningConversationIdRef.current = savedId;
+                                /* Same re-filing as after createConversation: a follow-up
+                                   queued while this thread had no row belongs to it. This is
+                                   the only place the id arrives when the row creation failed
+                                   or the reader is signed in without one — without it the
+                                   nameless entry stops matching the now-named thread, its
+                                   bubble vanishes, and it never releases. */
+                                setQueuedPrompts((prev) => (
+                                    prev.some((item) => item?.conversationId == null)
+                                        ? prev.map((item) => (item?.conversationId == null
+                                            ? { ...item, conversationId: savedId }
+                                            : item))
+                                        : prev));
                                 if (wasViewingRun) {
                                     setActiveConversationId(savedId);
                                     setActiveConversationIdState(savedId);
@@ -4997,46 +5193,280 @@ function LLMAgent({ isRouteActive = true }) {
     }, []);
 
     /**
-     * Release the oldest queued prompt once nothing is in flight.
+     * Answer a queued follow-up in a conversation the reader has left.
      *
-     * Guarded by a ref as well as by the flags: `handleSubmit` is async and does not flip
-     * `isLoading` until it has built the request, so two renders inside that window would
-     * otherwise send the same prompt twice. The guard is held for the whole run — the promise
-     * `handleSubmit` returns settles when the stream does — so the next one waits its turn.
+     * The view must not notice this run at all. Everything it touches is per-run or
+     * per-conversation — the registry mark, the conversation's stored messages, its stored
+     * session id — and none of it is the view's. The singletons (`activeStreamIdRef`,
+     * `isLoading`, the streaming panels, `sessionIdRef`, `runIdRef`) describe the run the VIEW
+     * follows; the released follow-up used to go through `handleSubmit` and take them all,
+     * which is exactly how one conversation's spinner, progress and answer smeared across
+     * whatever conversation was open when the queue let go.
+     *
+     * The reader can watch it anyway: its optimistic turn is in the store and its session id
+     * is stored, so opening its conversation reattaches through the same polling path a
+     * reload uses.
+     */
+    const runBackgroundTurn = async (entry) => {
+        const conversationId = String(entry.conversationId);
+        const streamId = `${Date.now()}-bg-${Math.random().toString(36).slice(2, 8)}`;
+        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const requestStartedAt = Date.now();
+        const requestSearchOptions = entry.searchOptions || null;
+        const investigateEnabled = Boolean(
+            requestSearchOptions?.investigateEnabled ?? isInvestigateConversation(conversationId),
+        );
+        /* Registered before anything asynchronous: the moment the queue entry is gone, the
+           registry is the only thing standing between this run and a second release onto the
+           same history id. */
+        setActiveRun({ kind: 'chat', runId: null, conversationId, key: streamId });
+        // A NEW run re-arms this conversation's completion notice: the set de-duplicates per
+        // conversation, and without this a second background follow-up finished silently.
+        backgroundCompletionNotifiedRef.current.delete(conversationId);
+
+        /* The stored copy can be frozen mid-exchange: a run released by New Chat stops
+           writing the store the moment the view lets go (its frames are dropped), so the
+           store still ends [question, empty assistant] after the server has long since
+           finished. Building on that would file this turn after a blank answer and send the
+           agent a truncated context. The release only happens once the previous run settled,
+           so the server's copy is whole — fetch it when the stored one is not. */
+        let base = getStoredChatHistory(conversationId);
+        if (!base.length || isExchangeUnfinished(base)) {
+            try {
+                const detail = await fetchConversationDetail(conversationId);
+                const serverBase = detail?.messages || [];
+                if (serverBase.length >= base.length) base = serverBase;
+            } catch (error) {
+                logDev('[LLM] background turn base refetch failed', error);
+            }
+        }
+        const userMessage = {
+            role: 'user',
+            content: entry.text,
+            references: [],
+            timestamp,
+            investigateMode: investigateEnabled,
+        };
+        let history = [...base, userMessage, {
+            role: 'assistant',
+            content: '',
+            references: [],
+            timestamp,
+            thinkingSteps: [],
+            thoughtDurationMs: null,
+            trajectory: null,
+            investigateMode: investigateEnabled,
+        }];
+        writeConversationMessages(conversationId, history);
+
+        const sessionId = getStoredSessionId(conversationId) || mintSessionId();
+        setStoredSessionId(conversationId, sessionId);
+        const localThinkingSteps = [];
+        let settled = false;
+        let succeeded = false;
+        const settleWith = (assistantMessage) => {
+            if (settled) return;
+            settled = true;
+            history = [...history.slice(0, -1), assistantMessage];
+            writeConversationMessages(conversationId, history);
+        };
+
+        try {
+            await llmService.chat(entry.text, new AbortController(), (update) => {
+                switch (update.type) {
+                    case 'step':
+                        if (update.step === 'Error') {
+                            settleWith({
+                                role: 'assistant',
+                                content: update.content,
+                                references: [],
+                                timestamp,
+                                thinkingSteps: [...localThinkingSteps],
+                                thoughtDurationMs: Date.now() - requestStartedAt,
+                                investigateMode: investigateEnabled,
+                            });
+                        } else if (update.step && String(update.content ?? '').trim()) {
+                            localThinkingSteps.push({ step: update.step, content: update.content });
+                        }
+                        break;
+                    /* 'final', not 'complete': the service names the finished-answer frame
+                       'final' (LLMAgent.jsx maps step 'Complete' to it), and listening for a
+                       frame that never comes left the stored transcript ending in an empty
+                       assistant bubble until the server copy was next fetched. */
+                    case 'final':
+                        if (update.sessionId) {
+                            setStoredSessionId(conversationId, update.sessionId);
+                        }
+                        succeeded = true;
+                        settleWith({
+                            role: 'assistant',
+                            content: update.answer,
+                            references: parseReferences(update.references),
+                            directCitations: parseDirectCitations(update.directCitations),
+                            timestamp,
+                            thinkingSteps: [...localThinkingSteps],
+                            thoughtDurationMs: Date.now() - requestStartedAt,
+                            trajectory: update.trajectory || null,
+                            investigateMode: investigateEnabled,
+                        });
+                        break;
+                    case 'saved': {
+                        const savedId = update.historyId ? String(update.historyId) : conversationId;
+                        if (update.sessionId) {
+                            setStoredSessionId(savedId, update.sessionId);
+                        }
+                        if (isAuthenticated) {
+                            fetchConversations()
+                                .then((list) => setConversationsState(list))
+                                .catch((error) => logDev('[LLM] Failed to refresh conversations', error));
+                        }
+                        break;
+                    }
+                    case 'error':
+                        settleWith({
+                            role: 'assistant',
+                            content: `Error: ${update.error}`,
+                            references: [],
+                            timestamp,
+                            thinkingSteps: [...localThinkingSteps],
+                            thoughtDurationMs: Date.now() - requestStartedAt,
+                            investigateMode: investigateEnabled,
+                        });
+                        break;
+                    default:
+                        break;
+                }
+            }, {
+                historyId: conversationId,
+                sessionId,
+                filters: Array.isArray(requestSearchOptions?.filters)
+                    ? requestSearchOptions.filters
+                    : undefined,
+                rankingMode: typeof requestSearchOptions?.rankingMode === 'string'
+                    ? requestSearchOptions.rankingMode
+                    : undefined,
+                investigateEnabled,
+                messagesOverride: [...base, userMessage].map((msg) => ({
+                    role: msg?.role,
+                    content: msg?.content,
+                })),
+            });
+        } catch (error) {
+            logDev('[LLM] background turn failed', error);
+            if (error?.response?.status === 429) {
+                setIsQueryLimitReached(true);
+            }
+            /* The stream dying does not mean the answer died — the agent keeps writing and
+               retains the run against its session id, which is the same recovery a reload
+               uses. Poll for a while; only a run the server says is gone gets an error
+               written into the transcript. Giving up while it still says "running" writes
+               nothing: the exchange stays visibly unfinished and opening the conversation
+               resumes it through the ordinary reattach path. */
+            let outcome = 'unknown';
+            for (let attempt = 0; attempt < 100 && !settled; attempt += 1) {
+                let run = null;
+                let missing = false;
+                try {
+                    run = await llmService.getRun({ sessionId });
+                } catch (pollError) {
+                    missing = pollError?.response?.status === 404;
+                }
+                if (run && (run.status === 'complete' || run.response)) {
+                    succeeded = true;
+                    settleWith({
+                        role: 'assistant',
+                        content: run.response || '',
+                        references: parseReferences(run.references),
+                        timestamp,
+                        thinkingSteps: [...localThinkingSteps],
+                        thoughtDurationMs: Date.now() - requestStartedAt,
+                        trajectory: run.trajectory || null,
+                        investigateMode: investigateEnabled,
+                    });
+                    outcome = 'recovered';
+                    break;
+                }
+                if (run?.status === 'error' || missing) {
+                    outcome = 'lost';
+                    break;
+                }
+                await new Promise((resolve) => setTimeout(resolve, RESUME_POLL_MS));
+            }
+            if (outcome === 'lost') {
+                settleWith({
+                    role: 'assistant',
+                    content: 'Sorry, I encountered an error while processing your request. Please try again.',
+                    references: [],
+                    timestamp,
+                    thinkingSteps: [...localThinkingSteps],
+                    thoughtDurationMs: Date.now() - requestStartedAt,
+                    investigateMode: investigateEnabled,
+                });
+            }
+        } finally {
+            refreshTierStatus();
+            clearActiveRun(conversationId);
+            // Only a real answer is announced as ready; an error or an unfinished turn
+            // saying "is ready" would send the reader to an answer that is not there.
+            if (succeeded) announceBackgroundCompletion(conversationId);
+        }
+    };
+    const stableRunBackgroundTurn = useStableCallback(runBackgroundTurn);
+
+    /**
+     * Release queued prompts as their conversations come free.
+     *
+     * Each entry waits on its OWN conversation, not on the view: a follow-up to the thread on
+     * screen is submitted normally once that thread is idle, and one to a thread the reader
+     * has left rides `runBackgroundTurn` without the view noticing. The registry revision is
+     * among the dependencies because "came free" is a registry event — a run finishing in the
+     * background changes no view state, and the queue used to sleep through it, releasing at
+     * whatever unrelated re-render happened next.
+     *
+     * `flushingQueueRef` guards the on-screen path only: `handleSubmit` is async and does not
+     * flip `isLoading` until it has built the request, so two renders inside that window would
+     * otherwise send the same prompt twice. The background path needs no such guard — its
+     * registry mark is set synchronously, before its entry's removal can re-run this effect.
      */
     const flushingQueueRef = useRef(false);
     useEffect(() => {
-        if (isLoading || isProcessing || isConversationLoading) return;
         if (!queuedPrompts.length || isLimitReachedEffective) return;
-        if (flushingQueueRef.current) return;
-        const [head] = queuedPrompts;
-        /* The foreground flags are not enough. `New Chat` mid-answer RELEASES the run — the
-           view stops following it, `isLoading` goes false — while the server carries on
-           writing, and the follow-up queued against that conversation survives the reset by
-           design. Without this the queue fired it the moment the view let go, putting two
-           turns on one history id: exactly the race the queue exists to prevent. */
-        if (isConversationRunning(head?.conversationId)) return;
-        flushingQueueRef.current = true;
-        const [next, ...rest] = queuedPrompts;
-        setQueuedPrompts(rest);
-        /* Into the conversation it was written against, not the one on screen. When that is
-           somewhere else the turn needs its own starting history too — `chatHistory` holds the
-           thread the reader is looking at, which is not the one this question continues. */
+        const viewBusy = isLoading || isProcessing || isConversationLoading
+            || flushingQueueRef.current;
+        const next = nextReleasableEntry(queuedPrompts, {
+            activeConversationId: activeConversationIdRef.current,
+            isConversationRunning,
+            /* An investigate follow-up can stop to ask a clarifying question, which only the
+               reader can answer — it must not run where nobody is watching. */
+            requiresScreen: (entry) => Boolean(
+                entry?.searchOptions?.investigateEnabled
+                ?? isInvestigateConversation(entry?.conversationId),
+            ),
+            viewBusy,
+        });
+        if (!next) return;
+        setQueuedPrompts((prev) => prev.filter((item) => item.id !== next.id));
+        /* Into the conversation it was written against, not the one on screen. */
         const { conversationId: targetId, onScreen: targetIsOnScreen } = releaseTargetFor(
             next, activeConversationIdRef.current,
         );
+        if (!targetIsOnScreen && targetId != null) {
+            stableRunBackgroundTurn(next);
+            return;
+        }
+        flushingQueueRef.current = true;
         Promise.resolve(
             stableSubmit(null, next.text, null, {
                 searchOptions: next.searchOptions,
                 ...(targetId == null ? {} : { conversationId: targetId }),
-                ...(targetIsOnScreen ? {} : { baseHistory: getStoredChatHistory(targetId) }),
             }),
         ).finally(() => {
             flushingQueueRef.current = false;
         });
     }, [
-        isLoading, isProcessing, isConversationLoading,
-        queuedPrompts, isLimitReachedEffective, stableSubmit,
+        isLoading, isProcessing, isConversationLoading, activeConversationId,
+        runRegistryRevision, queuedPrompts, isLimitReachedEffective,
+        stableSubmit, stableRunBackgroundTurn,
     ]);
 
     const stableRefresh = useStableCallback(handleRegenerateResponse);

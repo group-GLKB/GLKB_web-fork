@@ -52,18 +52,33 @@ export const shouldSkipConversationRestore = ({
     activeStreamId = null,
     hasInitialQuery = false,
     hasConversationId = false,
+    stateConversationId = null,
+    isResuming = false,
     isInitialQueryTransition = false,
 } = {}) => {
     const addressedByRoute = routeConversationId != null;
 
-    // The address bar catching up with the run already on screen. Not a request to load.
+    /* The address bar catching up with the run already on screen. Not a request to load.
+       A reattach counts as a run here: it deliberately has no stream — the answer is polled
+       for — and the same rename fires while it waits (opening a conversation upgrades /chat
+       to /chat/<public_id>). Reloading over it wiped the waiting card it had just put up. */
     const isOwnAddressUpgrade = addressedByRoute
-        && Boolean(activeStreamId)
+        && (Boolean(activeStreamId) || isResuming)
         && (
             sameId(routeConversationId, activeConversationId)
             || sameId(routeConversationId, runningConversationId)
         );
     if (isOwnAddressUpgrade) return true;
+
+    /* The same conversation handed over in router state: a sidebar click navigates with BOTH
+       the path and the state, and the state-driven loader does the full load — detail,
+       session id, reattach. Running this restore too made every switch load twice, and the
+       second `setChatHistory` landed after the reattach had put its waiting card up, wiping
+       it — the reader stared at a bare question while an answer was minutes from arriving. */
+    if (addressedByRoute && stateConversationId != null
+        && sameId(routeConversationId, stateConversationId)) {
+        return true;
+    }
 
     // Any other address is a reader asking for that conversation, and outranks the rest.
     if (addressedByRoute) return false;

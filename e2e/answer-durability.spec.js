@@ -112,6 +112,39 @@ test.describe('an answer survives', () => {
     });
 });
 
+test('a follow-up keeps the first exchange on screen', async ({ page }) => {
+    test.setTimeout(300000);
+    await page.goto('/');
+    await ask(page);
+    expect(await settled(page)).toBeGreaterThan(0);
+
+    /* The second question used to REPLACE the whole transcript. A guest has no conversation
+       id, and "no id" was read as "new conversation", so every follow-up started over — the
+       answer the reader was just looking at disappeared the moment they asked about it. */
+    const box = page.locator('textarea:not([aria-hidden="true"])').first();
+    await box.click();
+    await box.fill('Does BRCA1 interact with BRCA2?');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(3000);
+
+    let asked = await askedQuestions(page);
+    expect(asked).toHaveLength(2);
+    expect(asked[0]).toContain('BRCA1');
+
+    // Both exchanges are still there once the second answer lands.
+    const deadline = Date.now() + 120000;
+    let answers = 0;
+    while (Date.now() < deadline) {
+        await page.waitForTimeout(2000);
+        answers = await page.evaluate(() => Array.from(document.querySelectorAll(
+            '.message-card[data-message-role="assistant"] .markdown-body',
+        )).filter((node) => node.innerText.trim().length > 10).length);
+        if (answers >= 2) break;
+    }
+    expect(answers).toBe(2);
+    expect(await askedQuestions(page)).toHaveLength(2);
+});
+
 test('a new chat started mid-answer leaves the composer usable', async ({ page }) => {
     test.setTimeout(180000);
     await page.goto('/');

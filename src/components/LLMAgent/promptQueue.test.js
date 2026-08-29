@@ -8,6 +8,7 @@
  * drawn there too, in the wrong conversation, on the way.
  */
 import {
+    nextReleasableEntry,
     promptsForConversation,
     promptsSurvivingReset,
     queuedPromptOwner,
@@ -39,11 +40,18 @@ describe('which pending bubbles are on screen', () => {
     const queue = [entry('a', '42'), entry('b', '7'), entry('c', null), entry('d', '42')];
 
     it('shows only the ones waiting on this thread', () => {
-        expect(promptsForConversation(queue, '42').map((i) => i.id)).toEqual(['a', 'c', 'd']);
+        expect(promptsForConversation(queue, '42').map((i) => i.id)).toEqual(['a', 'd']);
     });
 
     it('does not leak one thread’s pending question into another', () => {
-        expect(promptsForConversation(queue, '7').map((i) => i.id)).toEqual(['b', 'c']);
+        expect(promptsForConversation(queue, '7').map((i) => i.id)).toEqual(['b']);
+    });
+
+    /* An unfiled entry belongs to the thread that has no name yet. Showing it under every
+       conversation — the old "null matches anything" — put a question queued moments before
+       its row arrived into whatever old conversation the reader opened next. */
+    it('does not show an unfiled entry under a named conversation', () => {
+        expect(promptsForConversation([entry('c', null)], '42')).toEqual([]);
     });
 
     it('keeps an unfiled entry visible wherever it was written', () => {
@@ -71,13 +79,18 @@ describe('where a released follow-up goes', () => {
             .toEqual({ conversationId: '42', onScreen: true });
     });
 
-    it('to whatever is open when it was never filed', () => {
+    it('holds an unfiled entry off screen while a named conversation is open', () => {
         expect(releaseTargetFor(entry('a', null), '7'))
+            .toEqual({ conversationId: null, onScreen: false });
+    });
+
+    it('keeps an unfiled entry on the nameless screen it was written on', () => {
+        expect(releaseTargetFor(entry('a', null), null))
             .toEqual({ conversationId: null, onScreen: true });
     });
 
     it('treats a missing entry as unfiled rather than throwing', () => {
-        expect(releaseTargetFor(undefined, '7'))
+        expect(releaseTargetFor(undefined, null))
             .toEqual({ conversationId: null, onScreen: true });
     });
 });
@@ -94,5 +107,109 @@ describe('starting a new chat', () => {
 
     it('survives a queue that is missing', () => {
         expect(promptsSurvivingReset(undefined)).toEqual([]);
+    });
+});
+
+describe('which entry is released next', () => {
+    const running = (...ids) => (id) => ids.map(String).includes(String(id));
+
+    it('waits while its own conversation is still answering', () => {
+        expect(nextReleasableEntry([entry('a', '42')], {
+            activeConversationId: '7',
+            isConversationRunning: running('42'),
+        })).toBeNull();
+    });
+
+    it('releases a follow-up to a finished thread the reader has left', () => {
+        const next = nextReleasableEntry([entry('a', '42')], {
+            activeConversationId: '7',
+            isConversationRunning: running(),
+        });
+        expect(next?.id).toBe('a');
+    });
+
+    /* The old release was head-of-line: one entry whose conversation was still busy held
+       back every entry behind it, including those whose conversations were long finished. */
+    it('lets a free conversation overtake a busy one', () => {
+        const next = nextReleasableEntry([entry('a', '42'), entry('b', '7')], {
+            activeConversationId: null,
+            isConversationRunning: running('42'),
+        });
+        expect(next?.id).toBe('b');
+    });
+
+    it('never reorders two follow-ups to the same conversation', () => {
+        const next = nextReleasableEntry([entry('a', '42'), entry('b', '42')], {
+            activeConversationId: '7',
+            isConversationRunning: running(),
+        });
+        expect(next?.id).toBe('a');
+    });
+
+    it('holds an on-screen entry while the view is busy', () => {
+        expect(nextReleasableEntry([entry('a', '42')], {
+            activeConversationId: '42',
+            isConversationRunning: running(),
+            viewBusy: true,
+        })).toBeNull();
+    });
+
+    it('releases an off-screen entry even while the view is busy', () => {
+        const next = nextReleasableEntry([entry('a', '42')], {
+            activeConversationId: '7',
+            isConversationRunning: running(),
+            viewBusy: true,
+        });
+        expect(next?.id).toBe('a');
+    });
+
+    it('holds an unfiled entry until the nameless screen is idle again', () => {
+        expect(nextReleasableEntry([entry('a', null)], {
+            activeConversationId: '7',
+            isConversationRunning: running(),
+        })).toBeNull();
+        expect(nextReleasableEntry([entry('a', null)], {
+            activeConversationId: null,
+            isConversationRunning: running(),
+            viewBusy: true,
+        })).toBeNull();
+        const next = nextReleasableEntry([entry('a', null)], {
+            activeConversationId: null,
+            isConversationRunning: running(),
+        });
+        expect(next?.id).toBe('a');
+    });
+
+    /* A deep-research follow-up can stop to ask the reader a clarifying question; run in the
+       background there is nobody to show it to, and the run would pause forever. */
+    it('holds an entry that needs the reader until its conversation is on screen', () => {
+        const needsScreen = (item) => item?.searchOptions?.investigateEnabled === true;
+        const investigate = { ...entry('a', '42'), searchOptions: { investigateEnabled: true } };
+        expect(nextReleasableEntry([investigate], {
+            activeConversationId: '7',
+            isConversationRunning: running(),
+            requiresScreen: needsScreen,
+        })).toBeNull();
+        const next = nextReleasableEntry([investigate], {
+            activeConversationId: '42',
+            isConversationRunning: running(),
+            requiresScreen: needsScreen,
+        });
+        expect(next?.id).toBe('a');
+    });
+
+    it('still releases an ordinary chat follow-up off screen', () => {
+        const needsScreen = (item) => item?.searchOptions?.investigateEnabled === true;
+        const next = nextReleasableEntry([entry('a', '42')], {
+            activeConversationId: '7',
+            isConversationRunning: running(),
+            requiresScreen: needsScreen,
+        });
+        expect(next?.id).toBe('a');
+    });
+
+    it('survives a queue that is missing', () => {
+        expect(nextReleasableEntry(undefined, {})).toBeNull();
+        expect(nextReleasableEntry([entry('a', '42')])).toBeTruthy();
     });
 });
