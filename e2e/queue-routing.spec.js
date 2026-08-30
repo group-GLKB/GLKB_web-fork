@@ -82,6 +82,14 @@ const settledAnswers = async (page, count) => {
 
 test('queued follow-ups in two conversations land in their own threads', async ({ page }) => {
     test.setTimeout(600000);
+    /* Learned from the app's own traffic, so the cleanup below always talks to the backend
+       the run actually used — a hardcoded host quietly deletes nothing (or worse, deletes
+       from the wrong deployment) the day the stack under test moves. */
+    let apiOrigin = null;
+    page.on('request', (request) => {
+        const match = request.url().match(/^(https?:\/\/[^/]+(?:\/reorg-api)?)\/api\/v1\//);
+        if (match) apiOrigin = match[1];
+    });
     await page.goto('/');
     const signedIn = await page.evaluate(() => Boolean(localStorage.getItem('access_token')));
     test.skip(!signedIn, 'needs TEST_TOKEN — the sidebar is the subject');
@@ -136,21 +144,26 @@ test('queued follow-ups in two conversations land in their own threads', async (
     /* Leave no residue: the two conversations this run created are deleted through the same
        API the app uses. The account is shared with humans checking the product by hand, and
        a sidebar full of nonce-tagged questions is noise they should never see. Deliberately
-       AFTER the assertions — a failing run keeps its data for investigation. */
-    const apiBase = process.env.GLKB_API_BASE
-        || 'https://jieliulab3.dcmb.med.umich.edu/reorg-api';
-    const token = await page.evaluate(() => localStorage.getItem('access_token'));
-    const listResponse = await page.request.get(
-        `${apiBase}/api/v1/new-llm-agent/history?limit=20`,
-        { headers: { Authorization: `Bearer ${token}` } },
-    );
-    const { histories = [] } = await listResponse.json();
-    for (const row of histories) {
-        if (String(row.leading_title || '').includes(NONCE)) {
-            await page.request.delete(
-                `${apiBase}/api/v1/new-llm-agent/history/${row.hid}`,
-                { headers: { Authorization: `Bearer ${token}` } },
-            );
+       AFTER the assertions — a failing run keeps its data for investigation — and never a
+       reason to fail a run whose assertions all passed. */
+    try {
+        const apiBase = process.env.GLKB_API_BASE || apiOrigin;
+        if (!apiBase) throw new Error('no API origin observed');
+        const token = await page.evaluate(() => localStorage.getItem('access_token'));
+        const listResponse = await page.request.get(
+            `${apiBase}/api/v1/new-llm-agent/history?limit=100`,
+            { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const { histories = [] } = await listResponse.json();
+        for (const row of histories) {
+            if (String(row.leading_title || '').includes(NONCE)) {
+                await page.request.delete(
+                    `${apiBase}/api/v1/new-llm-agent/history/${row.hid}`,
+                    { headers: { Authorization: `Bearer ${token}` } },
+                );
+            }
         }
+    } catch (error) {
+        console.warn(`[queue-routing] cleanup skipped: ${error.message}`);
     }
 });

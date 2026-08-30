@@ -132,6 +132,21 @@ describe('a run that starts before its conversation row exists', () => {
     });
 });
 
+describe('a named run that never had a provisional slot', () => {
+    /* Registering it used to vacate the shared pending slot anyway — taking down the mark of
+       whichever nameless run was using it, such as a signed-out recovery mid-answer. */
+    it('leaves the shared pending slot alone', () => {
+        setActiveRun({ ...chatRun(null), key: null });        // a nameless run, filed under pending
+        setActiveRun({ kind: 'chat', runId: null, conversationId: '42' });  // no key of its own
+        expect(isRunActive()).toBe(true);
+        expect(getRunningConversationIds()).toEqual(new Set(['42']));
+        clearActiveRun('42');
+        expect(isRunActive()).toBe(true);                     // the nameless run still counts
+        clearPendingRun();
+        expect(isRunActive()).toBe(false);
+    });
+});
+
 describe('which run is "the" run', () => {
     // `Map.set` on an existing key keeps its original position, so without a delete first the
     // most recently touched run was not the one reported.

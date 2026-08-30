@@ -89,8 +89,11 @@ export const setActiveRun = (run) => {
     const key = keyFor(run);
     // The conversation row is created after the run starts, so a run's first record is
     // provisional and this is where it acquires its real key. Without the delete the sidebar
-    // would show one conversation running twice.
-    if (run.conversationId != null) runs.delete(provisionalKey(run.key));
+    // would show one conversation running twice. Only a run that NAMES its provisional slot
+    // may vacate one: with no key, `provisionalKey` resolves to the shared '__pending__'
+    // slot, which belongs to whichever nameless run is using it — a signed-out recovery,
+    // say — and deleting it here took that run's mark down mid-answer.
+    if (run.conversationId != null && run.key != null) runs.delete(provisionalKey(run.key));
     const existing = runs.get(key);
     // Delete before set so insertion order tracks the most recent write, which is what
     // `getActiveRun` reports. `Map.set` on an existing key keeps its original position.

@@ -2477,6 +2477,10 @@ function LLMAgent({ isRouteActive = true }) {
                 kind: investigate ? 'investigate' : 'chat',
                 runId: null,
                 conversationId: String(conversationId),
+                // Its own key. `setActiveRun` re-keys by deleting `provisionalKey(key)`,
+                // and with no key that is the shared '__pending__' slot — where a signed-out
+                // recovery files ITS mark. Registering this one used to delete that one.
+                key: `resume:${key}`,
             });
         }
         const last = displayMessages[displayMessages.length - 1] || messages[messages.length - 1];
@@ -2568,9 +2572,10 @@ function LLMAgent({ isRouteActive = true }) {
             try {
                 const detail = await fetchConversationDetail(conversationId);
                 if (!stillMounted()) return true;
-                // A submit landed while this fetch was in flight; the live run owns the
-                // transcript now, and the old saved copy must not be written over it.
-                if (activeStreamIdRef.current) return true;
+                // A submit landed ON THIS THREAD while the fetch was in flight; the live run
+                // owns the transcript now, and the old saved copy must not overwrite it. A
+                // stream in some other thread is none of this recovery's business.
+                if (takenOverByLiveSubmit()) return true;
                 const saved = detail?.messages || [];
                 /* Finished THROUGH the turn being waited on — decided by identity, not by
                    count. The local and server histories drift in length in both directions:
@@ -2636,13 +2641,23 @@ function LLMAgent({ isRouteActive = true }) {
             return false;
         };
 
+        /* A live submit has taken THIS thread over — the reader asked something new here,
+           or a released follow-up landed on screen. That run owns the state now; polling on
+           top of it would write a second answer into its transcript. Scoped to this
+           conversation: a stream the reader started in a different thread must not kill this
+           one's recovery. */
+        const takenOverByLiveSubmit = () => Boolean(
+            activeStreamIdRef.current
+            && String(runningConversationIdRef.current ?? '') === String(conversationId ?? ''),
+        );
+        /* Whether the server's latest word was "still writing". An abandoned reattach only
+           takes its mark down when the run is NOT known to be live — clearing a live run's
+           mark let the queue release a second turn onto its history id. */
+        let lastPollSaidRunning = false;
         try {
             for (let attempt = 0; attempt < RESUME_MAX_POLLS; attempt += 1) {
                 if (!stillMounted()) return;
-                /* A live submit has taken the view — the reader asked something new here, or a
-                   released follow-up landed on screen. That run owns the singleton state now;
-                   polling on top of it would write a second answer into its transcript. */
-                if (activeStreamIdRef.current) return;
+                if (takenOverByLiveSubmit()) return;
                 let run = null;
                 let missing = false;
                 try {
@@ -2655,7 +2670,8 @@ function LLMAgent({ isRouteActive = true }) {
                 /* Re-checked AFTER the await too: a submit can land while getRun is in
                    flight, and applying the recovered OLD answer then would overwrite the new
                    turn's bubble and kill its streaming UI mid-run. */
-                if (activeStreamIdRef.current) return;
+                if (takenOverByLiveSubmit()) return;
+                lastPollSaidRunning = Boolean(run && run.status === 'running');
 
                 if (run && (run.status === 'complete' || run.response)) {
                     applyRun(run);
@@ -2683,16 +2699,17 @@ function LLMAgent({ isRouteActive = true }) {
             if (resumingConversationRef.current === key) {
                 resumingConversationRef.current = null;
             }
-            /* The reattach cleans up the mark it put up, on every exit — settle, abandon, or
-               timeout. Nothing else owns a reload orphan's mark, and the registry effect only
-               clears on an isLoading transition, which the fast path (answer found before any
-               waiting state) never makes. The one exception: a live submit that took this
-               conversation over mid-poll — its own finally owns the mark now. */
-            if (!markExistedBefore && conversationId) {
-                const cid = String(conversationId);
-                const takenOverByLiveRun = activeStreamIdRef.current
-                    && String(runningConversationIdRef.current ?? '') === cid;
-                if (!takenOverByLiveRun) clearActiveRun(cid);
+            /* The reattach cleans up the mark it put up, on every exit — settle, abandon,
+               or timeout. Nothing else owns a reload orphan's mark, and the registry effect
+               only clears on an isLoading transition, which the fast path (answer found
+               before any waiting state) never makes. Two exceptions: a live submit that took
+               this thread over owns the mark now; and a run the server just said is STILL
+               WRITING keeps its mark — the dot is telling the truth, and clearing it would
+               let the queue put a second turn on the busy history id. A stale mark left this
+               way is reconciled the next time the conversation is opened. */
+            if (!markExistedBefore && !takenOverByLiveSubmit() && !lastPollSaidRunning) {
+                if (conversationId) clearActiveRun(String(conversationId));
+                else clearPendingRun();
             }
         }
     }, [announceBackgroundCompletion, llmService, updateRunningChatHistory]);
@@ -2839,6 +2856,15 @@ function LLMAgent({ isRouteActive = true }) {
                     const storedAhead = isConversationRunning(targetId)
                         && storedMessages.length > serverMessages.length
                         && isExchangeUnfinished(storedMessages);
+                    /* A registry mark can outlive its run — a reattach abandoned while the
+                       server was still writing keeps the mark up on purpose. Opening the
+                       conversation is when the truth arrives: a finished history with no
+                       in-flight local turn means nothing is running here, and a stale mark
+                       would silently refuse (well, queue forever) every new question. */
+                    if (!serverUnfinished && !storedAhead && isConversationRunning(targetId)
+                        && String(runningConversationIdRef.current ?? '') !== targetId) {
+                        clearActiveRun(targetId);
+                    }
                     const displayMessages = storedAhead
                         ? storedMessages
                         : (isSnapshotTarget && serverUnfinished
@@ -3015,6 +3041,12 @@ function LLMAgent({ isRouteActive = true }) {
                 const storedAhead = isConversationRunning(nextId)
                     && storedMessages.length > serverMessages.length
                     && isExchangeUnfinished(storedMessages);
+                // Reconcile a stale mark on visit — see the route restore above.
+                if (!isExchangeUnfinished(serverMessages) && !storedAhead
+                    && isConversationRunning(nextId)
+                    && String(runningConversationIdRef.current ?? '') !== nextId) {
+                    clearActiveRun(nextId);
+                }
                 /* And the same run-snapshot merge as the route restore. Router state survives
                    a reload, so a reload of a conversation opened from the sidebar lands HERE,
                    not there — without the merge, the partial answer and progress streamed
@@ -3311,6 +3343,9 @@ function LLMAgent({ isRouteActive = true }) {
             if (liveRunSnapshotRef.current) {
                 writeActiveRunSnapshot(liveRunSnapshotRef.current);
             }
+            // The throttled conversation-store write holds up to 400ms of transcript; the
+            // page is going away, so it lands now or never.
+            flushConversationStoreWrite();
         };
         window.addEventListener('pagehide', flushSnapshot);
         return () => {
@@ -3321,7 +3356,7 @@ function LLMAgent({ isRouteActive = true }) {
             }
             flushSnapshot();
         };
-    }, []);
+    }, [flushConversationStoreWrite]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return undefined;
@@ -3885,15 +3920,22 @@ function LLMAgent({ isRouteActive = true }) {
                it to its own history and `resumeUnfinishedRun` collects it when the reader goes
                back. Aborting it instead would have destroyed a half-written answer every time
                someone started a second question. */
-            const replacesOwnRun = !previousRunWasLive
-                || (previousRunConversationId != null
-                    && String(previousRunConversationId) === String(runConversationId));
-            if (abortControllerRef.current && replacesOwnRun) {
-                abortControllerRef.current.abort();
-            }
+            /* The shared controller slot belongs to the run that owns the view — Stop aborts
+               whatever sits in it. A run detached during the createConversation round trip
+               reaching this line used to abort the reader's NEW live run and then install its
+               own controller in the slot, so Stop killed the detached answer instead. A
+               detached run keeps a private controller and touches nothing shared. */
             const abortController = new AbortController();
-            abortControllerRef.current = abortController;
-            await llmService.chat(inputText, abortControllerRef.current, (update) => {
+            if (activeStreamIdRef.current === streamId) {
+                const replacesOwnRun = !previousRunWasLive
+                    || (previousRunConversationId != null
+                        && String(previousRunConversationId) === String(runConversationId));
+                if (abortControllerRef.current && replacesOwnRun) {
+                    abortControllerRef.current.abort();
+                }
+                abortControllerRef.current = abortController;
+            }
+            await llmService.chat(inputText, abortController, (update) => {
                 const isActiveStream = activeStreamIdRef.current === streamId;
                 if (!isActiveStream && update.type !== 'saved') {
                     return;
@@ -4281,38 +4323,50 @@ function LLMAgent({ isRouteActive = true }) {
                         announceBackgroundCompletion();
                         break;
                     case 'saved': {
+                        /* The parts of 'saved' that belong to the RUN, not the view — the id
+                           it now answers to, the follow-ups queued against its nameless days,
+                           the session id a reattach will need — apply to a detached run too.
+                           This is the only place the id arrives at all when createConversation
+                           failed; keeping it behind `isActiveStream` left the run's answer
+                           unreachable from the row the server created. */
+                        const savedId = update.historyId ? String(update.historyId) : null;
+                        if (savedId) {
+                            runConversationId = savedId;
+                            setQueuedPrompts((prev) => (
+                                prev.some((item) => item?.conversationId == null)
+                                    ? prev.map((item) => (item?.conversationId == null
+                                        ? { ...item, conversationId: savedId }
+                                        : item))
+                                    : prev));
+                            const nextSessionId = update.sessionId || runSessionId;
+                            if (nextSessionId) {
+                                setStoredSessionId(savedId, nextSessionId);
+                            }
+                            if (!isActiveStream) {
+                                // The detached run's registry mark moves onto its row, so the
+                                // sidebar dot and the double-submit guard know its real name.
+                                setActiveRun({
+                                    kind: investigateEnabled ? 'investigate' : 'chat',
+                                    runId: null,
+                                    conversationId: savedId,
+                                    key: streamId,
+                                });
+                            }
+                        }
                         if (isActiveStream) {
-                            const savedId = update.historyId ? String(update.historyId) : null;
                             if (savedId) {
-                                runConversationId = savedId;
                                 const previousRunningId = runningConversationIdRef.current;
                                 const wasViewingRun = previousRunningId
                                     ? String(activeConversationIdRef.current) === String(previousRunningId)
                                     : !activeConversationIdRef.current;
                                 runningConversationIdRef.current = savedId;
-                                /* Same re-filing as after createConversation: a follow-up
-                                   queued while this thread had no row belongs to it. This is
-                                   the only place the id arrives when the row creation failed
-                                   or the reader is signed in without one — without it the
-                                   nameless entry stops matching the now-named thread, its
-                                   bubble vanishes, and it never releases. */
-                                setQueuedPrompts((prev) => (
-                                    prev.some((item) => item?.conversationId == null)
-                                        ? prev.map((item) => (item?.conversationId == null
-                                            ? { ...item, conversationId: savedId }
-                                            : item))
-                                        : prev));
                                 if (wasViewingRun) {
                                     setActiveConversationId(savedId);
                                     setActiveConversationIdState(savedId);
                                     activeConversationIdRef.current = savedId;
                                 }
-                            }
-                            if (savedId) {
-                                const nextSessionId = update.sessionId || sessionIdRef.current;
-                                if (nextSessionId) {
-                                    sessionIdRef.current = nextSessionId;
-                                    setStoredSessionId(savedId, nextSessionId);
+                                if (update.sessionId) {
+                                    sessionIdRef.current = update.sessionId;
                                 }
                             }
                             if (update.invocationId) {
@@ -4454,6 +4508,11 @@ function LLMAgent({ isRouteActive = true }) {
                registry effect stopped following it — and clearing only the row id left that
                provisional entry claiming a run for the life of the tab: the tab-close warning
                fired forever and the home composer never unlocked. */
+            /* The throttled store write may still be holding this run's finished answer;
+               hand it over before the marks come down — the tab-close warning disarms with
+               them, and a close inside the throttle window would persist a blank bubble
+               over an answer that had already arrived. */
+            flushConversationStoreWrite();
             if (runConversationId) clearActiveRun(runConversationId);
             clearPendingRun(streamId);
             /* A released run reaches here with the foreground belonging to a later one, so its
@@ -4931,12 +4990,15 @@ function LLMAgent({ isRouteActive = true }) {
             return (
             /* One message failing to draw costs that message, not the conversation. Without
                this, a single malformed answer unmounted the whole app — including the view
-               of every run still being written. Keyed by content length so a card that threw
-               on a half-arrived streamed fragment retries as the rest of the text lands. */
+               of every run still being written. The reset key ticks when the message
+               SETTLES or its attachments land (the final text, references, trajectory) —
+               those are the updates that can fix a bad fragment. Not content length: that
+               changes on every streamed tick, and a deterministically broken card would
+               re-throw thirty times a second for the length of the answer. */
             <ErrorBoundary
                 key={`${activeConversationId || 'new'}:${index}`}
                 label={`message ${index}`}
-                resetKey={message?.content?.length ?? 0}
+                resetKey={`${message?.thoughtDurationMs ?? ''}:${message?.references?.length ?? 0}:${message?.trajectory ? 1 : 0}:${message?.content ? 1 : 0}`}
                 fallback={(
                     <Box className="message-card message-card-failed" sx={{ p: 2, color: 'text.secondary' }}>
                         This message could not be displayed.
@@ -5332,7 +5394,14 @@ function LLMAgent({ isRouteActive = true }) {
            history id, and the run the reader left keeps being written. */
         const targetConversationId = activeConversationIdRef.current;
         const targetBusy = isConversationRunning(targetConversationId)
-            || (isLoading && isViewingRunningConversation);
+            || (isLoading && isViewingRunningConversation)
+            /* The nameless thread mid-recovery, before the first poll has flipped any flag: a
+               guest's reattach holds no registry mark (there is no conversation to mark) and
+               no isLoading yet, but a submit here would start a second turn on the very
+               session the recovery is polling. */
+            || (targetConversationId == null
+                && Boolean(resumingConversationRef.current)
+                && !runningConversationIdRef.current);
         if (!targetBusy) {
             stableSubmit(event, null, null, { searchOptions });
             return;
@@ -5601,7 +5670,11 @@ function LLMAgent({ isRouteActive = true }) {
     useEffect(() => {
         if (!queuedPrompts.length || isLimitReachedEffective) return;
         const viewBusy = isLoading || isProcessing || isConversationLoading
-            || flushingQueueRef.current;
+            || flushingQueueRef.current
+            // The nameless thread counts as busy while its recovery is polling — the flags
+            // only flip after the first poll answers. See submitOrQueue.
+            || Boolean(resumingConversationRef.current && !activeConversationIdRef.current
+                && !runningConversationIdRef.current);
         const next = nextReleasableEntry(queuedPrompts, {
             activeConversationId: activeConversationIdRef.current,
             isConversationRunning,
