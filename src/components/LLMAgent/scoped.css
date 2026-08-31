@@ -735,9 +735,9 @@
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    line-height: 16px;
+    line-height: 20px;
     border-radius: 18px;
-    padding: 4px 8px 4px 0;
+    padding: 2px 8px 2px 0;
 }
 
 .investigate-summary-row.can-toggle {
@@ -751,8 +751,15 @@
 .investigate-summary-icon,
 .investigate-summary-chevron {
     font-size: 16px !important;
-    color: var(--color-text-tertiary);
     transition: transform 0.2s ease;
+}
+
+.investigate-summary-icon {
+    color: var(--color-brand-primary);
+}
+
+.investigate-summary-chevron {
+    color: var(--color-text-tertiary);
 }
 
 .investigate-summary-chevron.expanded {
