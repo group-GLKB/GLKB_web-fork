@@ -1516,8 +1516,8 @@ const MessageCard = React.memo(function MessageCard({
                                     sx={{
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '6px',
-                                        padding: '4px 0',
+                                        gap: '4px',
+                                        padding: isLoading ? '4px 0' : '2px 0',
                                         borderRadius: '18px',
                                         cursor: canToggleThoughts ? 'pointer' : 'default',
                                         '&:hover': canToggleThoughts ? { backgroundColor: 'rgba(0, 0, 0, 0.04)' } : undefined,
@@ -1529,9 +1529,10 @@ const MessageCard = React.memo(function MessageCard({
                                             ? `loading-step-label${stepLabelPhase !== 'idle' ? ` loading-step-label--${stepLabelPhase}` : ''}`
                                             : undefined}
                                         sx={{
-                                            fontFamily: 'DM Sans, sans-serif',
-                                            fontSize: '16px',
+                                            fontFamily: isLoading ? 'DM Sans, sans-serif' : 'Geist, sans-serif',
+                                            fontSize: isLoading ? '16px' : '12px',
                                             fontWeight: isLoading ? 400 : 600,
+                                            lineHeight: isLoading ? 'normal' : '20px',
                                             color: isLoading ? 'transparent' : 'var(--color-text-tertiary)',
                                             WebkitTextFillColor: isLoading ? 'transparent' : undefined,
                                         }}

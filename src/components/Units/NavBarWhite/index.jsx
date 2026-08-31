@@ -443,6 +443,8 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
     ), [openLoginModal]);
 
     const userDisplayName = storedProfile.name || user?.username || user?.email || 'Account';
+    const normalizedUserTier = `${user?.tier || 'free'}`.trim().toLowerCase();
+    const userPlanLabel = `${normalizedUserTier.charAt(0).toUpperCase()}${normalizedUserTier.slice(1)} plan`;
     const isUserMenuOpen = Boolean(userMenuAnchorEl);
     const isRecentMenuOpen = Boolean(recentMenuAnchorEl);
     const bookmarkedConversationIds = useMemo(
@@ -607,7 +609,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                 {...linkProps}
                 sx={{
                     width: '100%',
-                    minHeight: 36,
+                    minHeight: item.secondaryLabel ? 44 : 36,
                     mb: item.noBottomMargin ? 0 : 2,
                     py: 0,
                     borderRadius: 1,
@@ -633,7 +635,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                 <ListItemIcon
                     sx={{
                         minWidth: 0,
-                        mr: 1.5,
+                        mr: item.secondaryLabel ? 2 : 1.5,
                         justifyContent: 'center',
                         color: 'inherit',
                     }}
@@ -657,14 +659,25 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                 </ListItemIcon>
                 <ListItemText
                     primary={item.label}
+                    secondary={item.secondaryLabel}
                     primaryTypographyProps={{
                         fontFamily: 'Geist, sans-serif',
-                        fontWeight: 500,
-                        fontSize: '16px',
-                        lineHeight: '28px',
-                        color: 'var(--color-text-secondary)',
+                        fontWeight: item.secondaryLabel ? 600 : 500,
+                        fontSize: item.secondaryLabel ? '14px' : '16px',
+                        lineHeight: item.secondaryLabel ? '22px' : '20px',
+                        color: item.secondaryLabel
+                            ? 'var(--color-text-tertiary)'
+                            : 'var(--color-text-secondary)',
+                    }}
+                    secondaryTypographyProps={{
+                        fontFamily: 'Geist, sans-serif',
+                        fontWeight: 400,
+                        fontSize: '14px',
+                        lineHeight: '22px',
+                        color: 'var(--color-text-tertiary)',
                     }}
                     sx={{
+                        my: 0,
                         opacity: open ? 1 : 0,
                         width: open ? 'auto' : 0,
                         overflow: 'hidden',
@@ -875,10 +888,10 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                 className="sidebar-recent-title"
                                 sx={{
                                     fontFamily: 'Geist, sans-serif',
-                                    fontWeight: 500,
+                                    fontWeight: 600,
                                     fontSize: '12px',
-                                    lineHeight: '16px',
-                                    color: 'var(--color-grey-400)',
+                                    lineHeight: '20px',
+                                    color: 'var(--color-text-tertiary)',
                                     textTransform: 'none',
                                 }}
                             >
@@ -945,8 +958,8 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                         borderRadius: '4px',
                                                         fontFamily: 'Geist, sans-serif',
                                                         fontSize: '12px',
-                                                        fontWeight: isActiveRecent ? 500 : 400,
-                                                        lineHeight: '16px',
+                                                        fontWeight: 400,
+                                                        lineHeight: '20px',
                                                         color: isActiveRecent ? 'var(--color-brand-primary)' : 'var(--color-text-secondary)',
                                                         textAlign: 'left',
                                                         cursor: 'pointer',
@@ -1035,8 +1048,9 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                         }}
                                     />
                                 ) : (
-                                    <PersonIcon sx={{ fontSize: 22 }} />
+                                    <PersonIcon sx={{ fontSize: 20 }} />
                                 ),
+                                secondaryLabel: userPlanLabel,
                                 onClick: handleOpenUserMenu,
                                 iconBoxSx: {
                                     backgroundColor: 'var(--color-background-muted)',
