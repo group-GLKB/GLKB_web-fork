@@ -22,7 +22,7 @@ const ChatSearchBar = ({
     onSubmit,
     onStop,
 }) => {
-    const isMobileViewport = useMediaQuery('(max-width:700px)');
+    const isMobileViewport = useMediaQuery('(max-width:767px)');
     /* Two different situations wear the same `isLoading`, and the field stays usable in both.
 
        THIS conversation is answering: a submit is queued by the parent, so a follow-up that
@@ -88,13 +88,13 @@ const ChatSearchBar = ({
                     width: '100%',
                     '& .MuiInputBase-root': {
                         borderRadius: '16px',
-                        minHeight: { xs: '44px', sm: '52px' },
+                        minHeight: isMobileViewport ? '44px' : '52px',
                         height: 'auto',
                         alignItems: 'center',
                         paddingLeft: '20px',
                         paddingRight: '60px !important',
-                        paddingTop: { xs: '8px', sm: '10px' },
-                        paddingBottom: { xs: '8px', sm: '10px' },
+                        paddingTop: isMobileViewport ? '8px' : '10px',
+                        paddingBottom: isMobileViewport ? '8px' : '10px',
                         fontFamily: 'Geist, sans-serif',
                         fontSize: '14px',
                         color: 'var(--color-text-primary)',

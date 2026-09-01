@@ -18,7 +18,8 @@ body[data-sidebar-overlay="true"] .app-layout-content {
     pointer-events: auto;
 }
 
-@media (max-width: 532px) {
+/* Keep the CSS fallback aligned with AppLayout and NavBarWhite's phone query. */
+@media (max-width: 767px) {
     body[data-has-sidebar="true"] {
         --sidebar-width: 0px;
     }

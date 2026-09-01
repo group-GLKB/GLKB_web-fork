@@ -8,6 +8,7 @@
  * drawn there too, in the wrong conversation, on the way.
  */
 import {
+    claimQueuedPrompts,
     nextReleasableEntry,
     promptsForConversation,
     promptsSurvivingReset,
@@ -15,7 +16,12 @@ import {
     releaseTargetFor,
 } from './promptQueue';
 
-const entry = (id, conversationId) => ({ id, text: `q${id}`, conversationId });
+const entry = (id, conversationId, runKey = null) => ({
+    id,
+    text: `q${id}`,
+    conversationId,
+    runKey,
+});
 
 describe('filing a follow-up under its thread', () => {
     it('uses the conversation that owns the run', () => {
@@ -58,6 +64,12 @@ describe('which pending bubbles are on screen', () => {
         expect(promptsForConversation(queue, null).map((i) => i.id)).toEqual(['c']);
     });
 
+    it('shows only the nameless queue owned by the run on screen', () => {
+        const pending = [entry('a', null, 'run-a'), entry('b', null, 'run-b')];
+        expect(promptsForConversation(pending, null, 'run-a').map((i) => i.id)).toEqual(['a']);
+        expect(promptsForConversation(pending, null, 'run-b').map((i) => i.id)).toEqual(['b']);
+    });
+
     it('matches a numeric row id against its string form', () => {
         expect(promptsForConversation([entry('a', 42)], '42').map((i) => i.id)).toEqual(['a']);
     });
@@ -89,9 +101,38 @@ describe('where a released follow-up goes', () => {
             .toEqual({ conversationId: null, onScreen: true });
     });
 
+    it('does not treat another nameless run as the same screen', () => {
+        expect(releaseTargetFor(entry('a', null, 'run-a'), null, 'run-b'))
+            .toEqual({ conversationId: null, onScreen: false });
+        expect(releaseTargetFor(entry('a', null, 'run-a'), null, 'run-a'))
+            .toEqual({ conversationId: null, onScreen: true });
+    });
+
     it('treats a missing entry as unfiled rather than throwing', () => {
         expect(releaseTargetFor(undefined, null))
             .toEqual({ conversationId: null, onScreen: true });
+    });
+});
+
+describe('when a new conversation receives its saved id', () => {
+    it('claims only the queue owned by that run', () => {
+        const queue = [
+            entry('a', null, 'run-a'),
+            entry('b', null, 'run-b'),
+            entry('c', 'existing'),
+        ];
+        const claimed = claimQueuedPrompts(queue, 'run-a', '42');
+        expect(claimed.map((item) => [item.id, item.conversationId])).toEqual([
+            ['a', '42'],
+            ['b', null],
+            ['c', 'existing'],
+        ]);
+    });
+
+    it('keeps all follow-ups from the same run together', () => {
+        const queue = [entry('a', null, 'run-a'), entry('b', null, 'run-a')];
+        expect(claimQueuedPrompts(queue, 'run-a', '42').map((item) => item.conversationId))
+            .toEqual(['42', '42']);
     });
 });
 
@@ -99,6 +140,11 @@ describe('starting a new chat', () => {
     it('drops what was waiting on the chat being left', () => {
         const queue = [entry('a', '42'), entry('b', null)];
         expect(promptsSurvivingReset(queue).map((i) => i.id)).toEqual(['a']);
+    });
+
+    it('drops only the provisional queue belonging to the chat being left', () => {
+        const queue = [entry('a', null, 'run-a'), entry('b', null, 'run-b')];
+        expect(promptsSurvivingReset(queue, 'run-a').map((i) => i.id)).toEqual(['b']);
     });
 
     it('keeps a follow-up owed to a conversation that is still being written', () => {
@@ -178,6 +224,16 @@ describe('which entry is released next', () => {
             isConversationRunning: running(),
         });
         expect(next?.id).toBe('a');
+    });
+
+    it('does not release a queue owned by another nameless run', () => {
+        const queue = [entry('a', null, 'run-a'), entry('b', null, 'run-b')];
+        const next = nextReleasableEntry(queue, {
+            activeConversationId: null,
+            activeRunKey: 'run-b',
+            isConversationRunning: running(),
+        });
+        expect(next?.id).toBe('b');
     });
 
     /* A deep-research follow-up can stop to ask the reader a clarifying question; run in the

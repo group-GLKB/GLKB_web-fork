@@ -260,6 +260,31 @@
     }
 }
 
+/* Once all four pills no longer fit on one line, keep a stable centred 2 × 2
+   arrangement. Container sizing also covers a narrow desktop content area. */
+@container (max-width: 639px) {
+    .homepage-pills {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
+        justify-content: center;
+        gap: 16px;
+    }
+
+    .homepage-pill {
+        width: 100%;
+        min-width: 0;
+        height: 100%;
+        justify-content: center;
+    }
+
+    .homepage-pill-label {
+        min-width: 0;
+        white-space: normal;
+        text-align: center;
+    }
+}
+
 @media (min-width: 2000px) {
     .homepage-hero-search {
         max-width: 720px;
@@ -380,15 +405,15 @@
     align-items: stretch;
 }
 
-/* Figma 800:22889 — one line: the icon, then the label. The older phone design
-   stacked them, which is why these were full-width and column. */
+/* Figma 800:22889 — keep each pill's icon and label together, centred inside
+   the two-column mobile grid. Very narrow screens may wrap the label. */
 .HomePageRoot.is-phone-device .homepage-pill {
     width: 100%;
     height: 100%;
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 8px;
     min-width: 0;
 }
@@ -396,16 +421,14 @@
 .HomePageRoot.is-phone-device .homepage-pill-icon {
     flex: 0 0 auto;
     width: auto;
-    justify-content: flex-start;
+    justify-content: center;
 }
 
 .HomePageRoot.is-phone-device .homepage-pill-label {
     min-width: 0;
-    /* The longest label fits on one line at this width; clipping it with an
-       ellipsis reads worse than the wrap it replaced. */
-    white-space: nowrap;
-    justify-content: flex-start;
-    text-align: left;
+    white-space: normal;
+    justify-content: center;
+    text-align: center;
 }
 
 .homepage-examples-item:hover {

@@ -1000,7 +1000,7 @@
     border-radius: 16px;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 767px) {
     .clarify-float { padding: 0 24px; }
 }
 
@@ -1945,6 +1945,13 @@
 
 .markdown-body p {
     margin: 0 0 16px;
+}
+
+/* A lead-in body paragraph and the unordered list it introduces form one
+   content group. Limit this to top-level paragraphs so headings, blockquotes,
+   list-item paragraphs and ordered lists keep their existing rhythm. */
+.markdown-body > p:has(+ ul) {
+    margin-bottom: 4px;
 }
 
 /* h1 is rare in an answer but the vendored sheet gives it 2em and a bottom rule. */
