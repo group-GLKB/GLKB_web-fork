@@ -47,7 +47,6 @@ const setSessionValue = (key, value) => {
     window.sessionStorage.setItem(key, value);
 };
 
-const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
 const parseNaiveUtcDate = (value) => {
@@ -183,11 +182,11 @@ const AccountPage = () => {
     const [proActionLoading, setProActionLoading] = useState(false);
     const [proActionMessage, setProActionMessage] = useState('');
     const [proActionError, setProActionError] = useState('');
-    const [isPhoneDevice, setIsPhoneDevice] = useState(false);
+    const [isPhoneDevice, setIsPhoneDevice] = useState(isPhoneViewport);
 
     useEffect(() => {
         const evaluateIsPhone = () => {
-            setIsPhoneDevice(isPhoneUa() && isPhoneViewport());
+            setIsPhoneDevice(isPhoneViewport());
         };
 
         evaluateIsPhone();

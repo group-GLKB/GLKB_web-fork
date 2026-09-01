@@ -17,6 +17,7 @@ import {
 import {
   Bookmark as BookmarkIcon,
   BookmarkBorder as BookmarkBorderIcon,
+  Close as CloseIcon,
   DeleteOutline as DeleteOutlineIcon,
   DriveFileRenameOutline as DriveFileRenameOutlineIcon,
   InfoOutlined as InfoOutlinedIcon,
@@ -82,6 +83,7 @@ import { trackGtagEvent } from '../../../utils/gtag';
 import { useAuth } from '../../Auth/AuthContext';
 
 const drawerWidth = 240;
+const mobileDrawerWidth = 280;
 const collapsedWidth = 64;
 const compactRailWidth = 52;
 const MAX_RECENT_COUNT = 50;
@@ -422,6 +424,12 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
         ].filter((item) => !(DEBUG_HIDE_EXPLORE && item.label === 'Explore'))
     ), []);
 
+    const displayedMiddleItems = isCompactSidebar
+        ? ['Library', 'History', 'API']
+            .map((label) => middleItems.find((item) => item.label === label))
+            .filter(Boolean)
+        : middleItems;
+
     const bottomItems = useMemo(() => (
         [
             { label: 'About', to: '/about', icon: <InfoOutlinedIcon sx={{ fontSize: 22 }} /> },
@@ -755,8 +763,8 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                     className="sidebar-logo-link"
                                     sx={{
                                         p: 0,
-                                        width: 36,
-                                        height: 36,
+                                        width: isCompactSidebar ? 24 : 36,
+                                        height: isCompactSidebar ? 24 : 36,
                                         borderRadius: '50%',
                                         '&:hover': {
                                             backgroundColor: 'rgba(1, 105, 176, 0.04)',
@@ -795,7 +803,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                             alt="GLKB logo"
                                             className="sidebar-logo-image"
                                             sx={{
-                                                height: 36,
+                                                height: isCompactSidebar ? 24 : 36,
                                                 width: 'auto',
                                                 objectFit: 'contain',
                                             }}
@@ -822,7 +830,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                     opacity: open ? 1 : 0,
                                     width: open ? 'auto' : 0,
                                     overflow: 'hidden',
-                                    marginLeft: '12px',
+                                    marginLeft: isCompactSidebar ? '2px' : '12px',
                                     textDecoration: 'none',
                                     color: 'inherit',
                                     transition: 'opacity 0.2s ease, width 0.2s ease',
@@ -833,7 +841,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                     src={logoWordmark}
                                     alt="GLKB"
                                     sx={{
-                                        height: 36,
+                                        height: isCompactSidebar ? 24 : 36,
                                         width: 'auto',
                                         transform: 'translateY(1px)',
                                         objectFit: 'contain'
@@ -850,8 +858,8 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                         }}
                                         size="small"
                                         sx={{
-                                            width: 36,
-                                            height: 36,
+                                            width: isCompactSidebar ? 24 : 36,
+                                            height: isCompactSidebar ? 24 : 36,
                                             ml: 'auto',
                                             borderRadius: '4px',
                                             color: 'var(--color-grey-600)',
@@ -861,7 +869,9 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                             },
                                         }}
                                     >
-                                        <SidebarLeftIcon style={{ width: 20, height: 20 }} />
+                                        {isCompactSidebar
+                                            ? <CloseIcon sx={{ width: 20, height: 20 }} />
+                                            : <SidebarLeftIcon style={{ width: 20, height: 20 }} />}
                                     </IconButton>
                                 </HintTooltip>
                             )}
@@ -869,13 +879,13 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                     )}
                 </Box>
                 <Divider sx={{ display: 'none', borderColor: 'var(--color-border-default)' }} />
-                <List sx={{ px: 0, pt: 3, pb: 0 }}>
+                <List sx={{ px: 0, pt: isCompactSidebar ? 2 : 3, pb: 0 }}>
                     {topItems.map((item) => renderNavItem(item))}
                 </List>
                 <Divider sx={{ mx: 0, borderColor: 'var(--color-border-default)' }} />
                 <Box className="sidebar-scroll">
                     <List sx={{ px: 0, pt: 2, pb: 0 }}>
-                        {middleItems.map((item) => renderNavItem(item))}
+                        {displayedMiddleItems.map((item) => renderNavItem(item))}
                     </List>
                     <Divider sx={{ mx: 0, borderColor: 'var(--color-border-default)' }} />
                     {/* <Divider sx={{ mx: 3.5, borderColor: 'var(--color-border-default)' }} />
@@ -953,7 +963,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                         border: 'none',
                                                         backgroundColor: isActiveRecent ? 'var(--color-brand-soft)' : 'transparent',
                                                         padding: '4px 8px',
-                                                        paddingRight: isLoadingRecent ? '36px' : '8px',
+                                                        paddingRight: isLoadingRecent || isCompactSidebar ? '36px' : '8px',
                                                         margin: '-4px 0',
                                                         borderRadius: '4px',
                                                         fontFamily: 'Geist, sans-serif',
@@ -1009,8 +1019,8 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                         height: 24,
                                                         borderRadius: '8px',
                                                         color: 'var(--color-grey-900)',
-                                                        opacity: 0,
-                                                        pointerEvents: 'none',
+                                                        opacity: isCompactSidebar ? 1 : 0,
+                                                        pointerEvents: isCompactSidebar ? 'auto' : 'none',
                                                         transition: 'opacity 0.16s ease, background-color 0.16s ease',
                                                         '&:hover': {
                                                             backgroundColor: 'rgba(1, 105, 176, 0.1)',
@@ -1121,16 +1131,15 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                     }}
                     BackdropProps={{
                         sx: {
-                            backgroundColor: 'rgba(17, 24, 39, 0.18)',
+                            backgroundColor: 'rgba(0, 0, 0, 0.32)',
                         },
                     }}
                     PaperProps={{
                         sx: {
-                            width: `${drawerWidth}px`,
-                            borderTopRightRadius: '16px',
-                            borderBottomRightRadius: '16px',
-                            boxShadow: '0 10px 28px rgba(22, 69, 99, 0.22)',
-                            borderRight: 'none',
+                            width: `${mobileDrawerWidth}px`,
+                            borderRadius: 0,
+                            boxShadow: 'none',
+                            borderRight: '1px solid var(--color-border-default)',
                             overflow: 'hidden',
                         },
                     }}

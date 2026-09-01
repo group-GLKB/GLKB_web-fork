@@ -79,7 +79,7 @@
 
 .history-section-title {
     font-family: 'Geist', sans-serif;
-    font-weight: 700;
+    font-weight: 600;
     font-size: 14px;
     color: var(--color-text-secondary);
     margin-top: 16px;
@@ -111,7 +111,7 @@
 .history-search-input:-ms-input-placeholder,
 .history-search-input::-ms-input-placeholder {
     color: var(--color-text-tertiary);
-    font-family: 'Geist, sans-serif';
+    font-family: 'Geist', sans-serif;
 }
 
 .history-search-input:focus {
@@ -305,7 +305,7 @@
 .history-mobile-select-title {
     font-family: 'Geist', sans-serif !important;
     font-size: 16px !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
     color: var(--color-text-secondary);
 }
 
@@ -325,10 +325,32 @@
         padding: 0;
     }
 
-    .history-meta-row {
-        padding: 0;
-        height: auto;
+    .history-title-row {
+        width: 100%;
         min-height: 36px;
+        justify-content: space-between;
+    }
+
+    .history-title.MuiTypography-root {
+        font-size: 20px;
+        line-height: 28px;
+    }
+
+    .history-title-select-toggle {
+        height: 36px;
+        padding: 0 12px;
+        border: 1px solid var(--color-border-default);
+        border-radius: 8px;
+        background: var(--color-background-subtle);
+        text-decoration: none;
+    }
+
+    .history-search {
+        margin-top: 16px;
+    }
+
+    .history-meta-row {
+        display: none;
     }
 
     .history-select-toolbar-mobile-only {
@@ -388,18 +410,18 @@
     min-width: 0;
     font-family: 'Geist', sans-serif;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     line-height: 16px;
-    color: var(--color-text-tertiary);
+    color: var(--color-text-secondary);
     white-space: nowrap;
 }
 
 .history-mobile-select-action {
     flex: 0 0 auto;
-    height: 28px;
-    padding: 0 10px;
+    height: 44px;
+    padding: 0 16px;
     border: none;
-    border-radius: var(--radius-2, 8px);
+    border-radius: var(--radius-3, 12px);
     background-color: var(--color-background-muted);
     font-family: 'Geist', sans-serif;
     font-size: 12px;
@@ -408,6 +430,15 @@
     color: var(--color-text-secondary);
     cursor: pointer;
     white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+    .history-mobile-select-bar {
+        min-height: 89px;
+        margin: 0 -24px -16px;
+        padding: 12px 16px 33px;
+        box-sizing: border-box;
+    }
 }
 
 .history-mobile-select-action.is-danger {

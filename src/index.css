@@ -1,4 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist:ital,wght@0,100..900;1,100..900&family=Open+Sans:ital,wght@0,300..900;1,300..900&family=DM+Sans:ital,wght@0,300..900;1,300..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+/* Geist is a variable family: load the complete 100–900 axis for both normal
+   and italic faces. Geist Mono is used for keys/code and needs the same full
+   axis instead of silently falling back to a system monospace face. */
+@import url('https://fonts.googleapis.com/css2?family=Geist:ital,wght@0,100..900;1,100..900&family=Geist+Mono:ital,wght@0,100..900;1,100..900&family=Open+Sans:ital,wght@0,300..900;1,300..900&family=DM+Sans:ital,wght@0,300..900;1,300..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@600;700&display=swap');
 @import './styles/tokens.css';
 
@@ -34,4 +37,16 @@ body,
 
 *::-webkit-scrollbar-corner {
     background: transparent !important;
+}
+
+body {
+    font-family: var(--font-family-sans);
+    font-weight: 400;
+}
+
+button,
+input,
+textarea,
+select {
+    font-family: inherit;
 }

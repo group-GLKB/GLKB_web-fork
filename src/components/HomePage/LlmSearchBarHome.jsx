@@ -12,7 +12,6 @@ import {
   Box,
   Button,
   Drawer,
-  IconButton,
   Paper,
   Popper,
   TextField,
@@ -23,6 +22,8 @@ import { INVESTIGATE_ENABLED } from '../../config/features';
 import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { ReactComponent as SearchOptionsIcon } from '../../img/llm/search_options.svg';
+import { ReactComponent as SearchOptionsCloseIcon } from '../../img/llm/search_options_close.svg';
+import { ReactComponent as SearchOptionsCollapseIcon } from '../../img/llm/search_options_collapse.svg';
 import { trackGtagEvent } from '../../utils/gtag';
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
@@ -225,148 +226,76 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         setSortBy(defaultSortBy);
     };
 
-    const optionChipSx = (isActive, { equalWidth = false, fixedWidth } = {}) => ({
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '40px',
-        minWidth: equalWidth ? 0 : `${fixedWidth || 72}px`,
-        padding: '0 8px',
-        borderRadius: '8px',
-        backgroundColor: isActive ? 'var(--color-background-surface)' : 'transparent',
-        boxShadow: isActive ? '0px 2px 2px rgba(0, 0, 0, 0.10)' : 'none',
-        fontFamily: 'DM Sans, sans-serif',
-        fontWeight: isActive ? 900 : 600,
-        fontSize: '14px',
-        lineHeight: '16px',
-        color: isActive ? 'var(--color-brand-primary)' : 'var(--color-grey-600)',
-        textTransform: 'none',
-        cursor: 'pointer',
-        '&:hover': {
-            backgroundColor: isActive ? 'var(--color-background-surface)' : 'rgba(255, 255, 255, 0.35)',
-            boxShadow: isActive ? '0px 2px 2px rgba(0, 0, 0, 0.10)' : 'none',
-        },
-        whiteSpace: 'nowrap',
-        flex: equalWidth ? '1 0 0' : '0 0 auto',
-    });
-
     const searchOptionsPanel = (
-        <>
-            <Box
-                sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    py: 2,
-                }}
-            >
-                <Box sx={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 900, fontSize: '20px', lineHeight: '24px', color: 'var(--color-text-secondary)' }}>
-                    Search Options
-                </Box>
-                <IconButton onClick={closeSearchOptions} size="small" sx={{ color: 'var(--color-grey-600)' }}>
-                    <CloseIcon fontSize="small" />
-                </IconButton>
-            </Box>
+        <div className="home-search-options-panel">
+            <header className="home-search-options-header">
+                <h2>Search Options</h2>
+                <button type="button" aria-label="Close search options" onClick={closeSearchOptions}>
+                    <SearchOptionsCloseIcon />
+                </button>
+            </header>
 
-            <Box sx={{ borderTop: '1px solid var(--color-border-default)', mx: '-24px' }} />
+            <section className="home-search-options-section is-article-type">
+                <div className="home-search-options-section-heading">
+                    <h3>Article Type</h3>
+                    <span className="home-search-options-collapse" aria-hidden="true">
+                        <SearchOptionsCollapseIcon />
+                    </span>
+                </div>
+                <div className="home-search-options-segmented is-article-type">
+                    {paperTypeOptions.map((option) => (
+                        <button
+                            key={option.value}
+                            type="button"
+                            aria-pressed={option.value === paperType}
+                            className={option.value === paperType ? 'is-active' : ''}
+                            onClick={() => {
+                                trackGtagEvent('home_article_type_select_click', { value: option.value });
+                                setPaperType(option.value);
+                            }}
+                        >
+                            {option.label}
+                        </button>
+                    ))}
+                </div>
+                <p>Search every article</p>
+            </section>
 
-            <Box sx={{ pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2.25 }}>
-                <Box>
-                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: 'var(--color-text-secondary)' }}>
-                        Article Type
-                    </Box>
-                    <Box sx={{ backgroundColor: 'var(--color-background-subtle)', borderRadius: '10px', p: '4px', display: 'flex', gap: 0, justifyContent: 'space-between' }}>
-                        {paperTypeOptions.map((option) => (
-                            <Box
-                                key={option.value}
-                                role="button"
-                                onClick={() => {
-                                    trackGtagEvent('home_article_type_select_click', {
-                                        value: option.value,
-                                    });
-                                    setPaperType(option.value);
-                                }}
-                                sx={optionChipSx(option.value === paperType, { fixedWidth: option.width })}
-                            >
-                                {option.label}
-                            </Box>
-                        ))}
-                    </Box>
-                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: 'var(--color-grey-400)' }}>
-                        Search every article
-                    </Box>
-                </Box>
+            <div className="home-search-options-divider" />
 
-                <Box sx={{ borderTop: '1px solid var(--color-border-default)', mx: '-24px' }} />
+            <section className="home-search-options-section is-sort-by">
+                <div className="home-search-options-section-heading">
+                    <h3>Sort by</h3>
+                    <span className="home-search-options-collapse" aria-hidden="true">
+                        <SearchOptionsCollapseIcon />
+                    </span>
+                </div>
+                <div className="home-search-options-segmented is-sort-by">
+                    {sortOptions.map((option) => (
+                        <button
+                            key={option.value}
+                            type="button"
+                            aria-pressed={option.value === sortBy}
+                            className={option.value === sortBy ? 'is-active' : ''}
+                            onClick={() => {
+                                trackGtagEvent('home_sort_mode_select_click', { value: option.value });
+                                setSortBy(option.value);
+                            }}
+                        >
+                            {option.label}
+                        </button>
+                    ))}
+                </div>
+                <p>Best matches for your query</p>
+            </section>
 
-                <Box>
-                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: 'var(--color-text-secondary)' }}>
-                        Sort by
-                    </Box>
-                    <Box sx={{ backgroundColor: 'var(--color-background-subtle)', borderRadius: '10px', p: '4px', display: 'flex', gap: 0, justifyContent: 'space-between' }}>
-                        {sortOptions.map((option) => (
-                            <Box
-                                key={option.value}
-                                role="button"
-                                onClick={() => {
-                                    trackGtagEvent('home_sort_mode_select_click', {
-                                        value: option.value,
-                                    });
-                                    setSortBy(option.value);
-                                }}
-                                sx={optionChipSx(option.value === sortBy, { equalWidth: true })}
-                            >
-                                {option.label}
-                            </Box>
-                        ))}
-                    </Box>
-                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: 'var(--color-grey-400)' }}>
-                        Best matches for your query
-                    </Box>
-                </Box>
-            </Box>
-
-            <Box sx={{ mt: 'auto', pt: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
-                <Box
-                    role="button"
-                    onClick={handleResetSearchOptions}
-                    sx={{
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontWeight: 900,
-                        fontSize: '14px',
-                        lineHeight: '16px',
-                        color: 'var(--color-grey-600)',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                    }}
-                >
-                    Reset
-                </Box>
-                <Box
-                    role="button"
-                    onClick={closeSearchOptions}
-                    sx={{
-                        flex: 1,
-                        minWidth: '140px',
-                        height: '40px',
-                        borderRadius: '999px',
-                        backgroundColor: 'var(--color-brand-primary)',
-                        color: 'var(--color-neutral-white)',
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontWeight: 900,
-                        fontSize: '14px',
-                        lineHeight: '16px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                    }}
-                >
-                    Done
-                </Box>
-            </Box>
-        </>
+            <footer className="home-search-options-footer">
+                <div>
+                    <button type="button" className="home-search-options-reset" onClick={handleResetSearchOptions}>Reset</button>
+                    <button type="button" className="home-search-options-done" onClick={closeSearchOptions}>Done</button>
+                </div>
+            </footer>
+        </div>
     );
 
     return (
@@ -445,34 +374,34 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     ? 'Ask about the biomedical literature...'
                                     : 'Ask a question about the biomedical literature...')}
                             multiline
-                            minRows={3}
+                            minRows={1}
                             maxRows={9}
                             disabled={isInputLocked}
                             sx={{
-                                minHeight: { xs: '148px', sm: '152px' },
+                                minHeight: { xs: '148px', sm: '120px' },
                                 width: '100%',
                                 '& .MuiInputBase-root': {
                                     borderRadius: '16px',
-                                    minHeight: { xs: '148px', sm: '152px' },
+                                    minHeight: { xs: '148px', sm: '120px' },
                                     backgroundColor: 'var(--color-background-subtle)',
                                     alignItems: 'flex-start',
                                     paddingLeft: '20px',
                                     paddingRight: '20px !important',
-                                    paddingTop: '16.5px',
-                                    paddingBottom: '58px',
+                                    paddingTop: { xs: '16.5px', sm: '20px' },
+                                    paddingBottom: { xs: '58px', sm: '52px' },
                                     fontFamily: 'Geist, sans-serif',
-                                    fontSize: '16px',
+                                    fontSize: '14px',
                                     color: 'var(--color-text-primary)',
                                     '& fieldset': {
                                         border: 'none',
                                     },
                                 },
                                 '& .MuiInputBase-input': {
-                                    lineHeight: '26px',
+                                    lineHeight: '22px',
                                     padding: '0 !important',
                                 },
                                 '& .MuiInputBase-input::placeholder': {
-                                    color: 'var(--color-grey-300)',
+                                    color: 'var(--color-text-tertiary)',
                                     opacity: 1,
                                 },
                                 '& .MuiOutlinedInput-notchedOutline': {
@@ -700,13 +629,18 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             anchor="bottom"
                             open={mobileOptionsOpen}
                             onClose={closeSearchOptions}
+                            ModalProps={{
+                                BackdropProps: {
+                                    sx: { backgroundColor: 'rgba(0, 0, 0, 0.32)' },
+                                },
+                            }}
                             PaperProps={{
                                 sx: {
                                     borderTopLeftRadius: '24px',
                                     borderTopRightRadius: '24px',
                                     backgroundColor: 'var(--color-background-surface)',
-                                    px: 3,
-                                    pb: 2,
+                                    px: 0,
+                                    pb: 0,
                                     pt: 0,
                                     minHeight: '300px',
                                     display: 'flex',
@@ -726,17 +660,21 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             onClose={closeSearchOptions}
                             ModalProps={{
                                 keepMounted: true,
+                                BackdropProps: {
+                                    sx: { backgroundColor: 'rgba(0, 0, 0, 0.32)' },
+                                },
                             }}
                             PaperProps={{
                                 sx: {
-                                    width: '369px',
+                                    width: '363px',
                                     maxWidth: '92vw',
                                     backgroundColor: 'var(--color-background-surface)',
-                                    px: 3,
-                                    pb: 3,
+                                    px: 0,
+                                    pb: 0,
                                     pt: 0,
                                     display: 'flex',
                                     flexDirection: 'column',
+                                    boxShadow: 'none',
                                 },
                             }}
                         >

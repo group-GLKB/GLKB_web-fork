@@ -1,6 +1,6 @@
-import './scoped.css';
 // import github.css
 import './github-markdown-light.css';
+import './scoped.css';
 
 import React, {
   useCallback,
@@ -154,6 +154,7 @@ import CiteDialog from '../Units/CiteDialog';
 import ErrorBoundary from '../Units/ErrorBoundary';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import ChatSearchBar from './ChatSearchBar';
+import { repairOrphanSingleItemMarkdown } from './markdownRendering';
 import stepLabels from './step.json';
 
 const formatDuration = (durationMs) => {
@@ -458,7 +459,6 @@ const FALLBACK_MAX_LEFT_PERCENT = 80;
 const FALLBACK_COLLAPSE_THRESHOLD = 84;
 const DEBUG_FORCE_LIMIT_WARNING = false;
 const MOBILE_HEADER_NEW_CHAT_EVENT = 'glkb-mobile-header-new-chat';
-const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
 const areMessagesEqual = (left, right) => {
@@ -1706,9 +1706,11 @@ const MessageCard = React.memo(function MessageCard({
                                                 {stripUnresolvedCitations(
                                                     bindMarkersToLinks(
                                                         stripCitationsBlock(
-                                                            isLoading
-                                                                ? tidyStreamingText(message.content)
-                                                                : message.content,
+                                                            repairOrphanSingleItemMarkdown(
+                                                                isLoading
+                                                                    ? tidyStreamingText(message.content)
+                                                                    : message.content,
+                                                            ),
                                                         ),
                                                         citationsByMarker,
                                                     ),
@@ -1922,7 +1924,7 @@ function LLMAgent({ isRouteActive = true }) {
     const [isDraggingSplit, setIsDraggingSplit] = useState(false);
     const [dragIndicatorY, setDragIndicatorY] = useState(0);
     const [isReferencesCollapsed, setIsReferencesCollapsed] = useState(false);
-    const [isPhoneDevice, setIsPhoneDevice] = useState(false);
+    const [isPhoneDevice, setIsPhoneDevice] = useState(isPhoneViewport);
     const [isMobileReferencesDrawerOpen, setIsMobileReferencesDrawerOpen] = useState(false);
     const [conversationsState, setConversationsState] = useState(() => getConversations());
     const [activeConversationId, setActiveConversationIdState] = useState(
@@ -2262,7 +2264,7 @@ function LLMAgent({ isRouteActive = true }) {
 
     useEffect(() => {
         const evaluateIsPhone = () => {
-            setIsPhoneDevice(isPhoneUa() && isPhoneViewport());
+            setIsPhoneDevice(isPhoneViewport());
         };
 
         evaluateIsPhone();
@@ -5799,7 +5801,7 @@ function LLMAgent({ isRouteActive = true }) {
                     sx={{
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '20px',
-                        fontWeight: 700,
+                        fontWeight: 600,
                         color: 'var(--color-grey-900)',
                     }}
                 >
@@ -5865,7 +5867,7 @@ function LLMAgent({ isRouteActive = true }) {
                                         sx={{
                                             fontFamily: 'DM Sans, sans-serif',
                                             fontSize: '12px',
-                                            fontWeight: 700,
+                                            fontWeight: 600,
                                             color: 'var(--color-text-tertiary)',
                                             textTransform: 'uppercase',
                                             letterSpacing: '0.03em',
@@ -6244,7 +6246,7 @@ function LLMAgent({ isRouteActive = true }) {
                                                                 fontSize: '14px',
                                                                 fontWeight: 600,
                                                                 lineHeight: '18px',
-                                                                color: 'var(--color-grey-900)',
+                                                                color: 'var(--color-text-primary)',
                                                                 overflow: 'hidden',
                                                                 textOverflow: 'ellipsis',
                                                                 whiteSpace: 'nowrap',

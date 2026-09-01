@@ -28,7 +28,6 @@ const SIDEBAR_OPEN_EVENT = 'glkb-open-sidebar';
 const MOBILE_HEADER_NEW_CHAT_EVENT = 'glkb-mobile-header-new-chat';
 const MOBILE_HEADER_VISIBILITY_EVENT = 'glkb-mobile-header-visibility';
 
-const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
 const getPageTitleByPath = (pathname) => {
@@ -51,7 +50,7 @@ const getPageTitleByPath = (pathname) => {
 const AppLayout = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const [isPhoneDevice, setIsPhoneDevice] = useState(false);
+    const [isPhoneDevice, setIsPhoneDevice] = useState(isPhoneViewport);
     const [isMobileHeaderHidden, setIsMobileHeaderHidden] = useState(false);
     const isAboutPage = location.pathname.startsWith('/about');
     const isBlogPage = location.pathname.startsWith('/blog');
@@ -90,7 +89,7 @@ const AppLayout = () => {
 
     useEffect(() => {
         const evaluateIsPhone = () => {
-            setIsPhoneDevice(isPhoneUa() && isPhoneViewport());
+            setIsPhoneDevice(isPhoneViewport());
         };
 
         evaluateIsPhone();
