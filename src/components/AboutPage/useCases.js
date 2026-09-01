@@ -1,65 +1,55 @@
 /**
- * The use-case tabs, from Figma 604:7445.
- *
- * The frame specifies four tabs but works only one of them through: the sample
- * answer, and the references beside it, exist for Drug Target Investigation
- * alone. The other three carry no copy in the design, so they carry none here.
+ * The use-case tabs and the worked candidate-target example from Figma 604:7446.
  */
 export const USE_CASES = [
     {
-        id: 'drug-target',
-        label: 'Drug Target Investigation',
-        lede: 'Assess candidate targets by mechanism, human genetic evidence, known modulators, '
-            + 'and clinical stage. Cited and ranked, without manual review.',
-        question: 'What is the evidence for DYRK1A as a therapeutic target for Type 2 diabetes?',
+        id: 'candidate-target',
+        label: 'Understanding a Candidate Target',
+        lede: 'Connect mechanistic studies, human genetic evidence, pharmacological findings, and clinical development to understand the biological rationale for a candidate target.',
+        question: 'What is known about DYRK1A as a therapeutic target in type 2 diabetes?',
         answer: [
-            'Summary: why DYRK1A is considered a (β‑cell–regenerative) therapeutic target in T2D',
-            'The core rationale is that pharmacologic inhibition of DYRK1A can unlock adult human β‑cell cycle entry, increasing β‑cell replication markers and—at least in preclinical xenograft models—increasing actual human β‑cell mass and improving/reversing hyperglycemia. Foundational work identified harmine (a DYRK1A inhibitor) as a human β‑cell mitogen and linked the effect to NFAT signaling 25751815. A second line of work using 5‑iodotubercidin (5‑IT) supported DYRK-family inhibition as a strategy to increase human β‑cell proliferation 26953159. More recent studies refine the target biology (DYRK1A and DYRK1B both matter) and show synergy with GLP‑1 receptor agonism in vivo 31821176, 38985854',
-            '',
-            'Mechanism / MoA (what DYRK1A inhibition is doing)',
-            '1) Human β‑cell proliferation / regeneration',
-            '• Harmine analogs were identified as human β‑cell mitogenic compounds 25751815',
-            '• DYRK1A was proposed as the key target and NFAT transcription factors as mediators of the proliferative program 25751815',
-            '• Independently, 5‑IT was shown to “strongly and selectively” increase human β‑cell proliferation in vitro and in vivo, with kinome profiling pointing to DYRK/CLK family inhibition; and the β‑cell proliferation effect was suppressed by FK506, consistent with a calcineurin–NFAT axis 26953159',
-            '2) Target refinement: DYRK1A is central, but DYRK1B may be required for maximal effect',
-            '• A combined pharmacologic + genetic approach “confirms that DYRK1A is a central target” 31821176',
-            '• The same study reports “inhibition of both DYRK1A and DYRK1B is required for induction of maximal rates of human β cell proliferation” 31821176',
-            '3) In vivo functional effect in human islet xenografts + GLP‑1 synergy',
-            '• In mice with human islet grafts, a DYRK1A inhibitor + exendin‑4 (GLP‑1RA) increased actual human β‑cell mass “four- to sevenfold… and reverses diabetes” 38985854, with mechanisms including “enhanced human β cell proliferation, function, and survival” 38985854',
-            'Translational point: the most compelling efficacy evidence is still preclinical, but it is in a human-tissue-in-vivo setting.',
-            'Human genetic evidence (how strong is it?)',
-            'What’s strong',
-            'Directional genetic validation is substantial, but largely from dosage/LoF syndromes and model systems rather than common T2D GWAS hits.',
-            '• In mice, lowering gene dosage supports the idea that DYRK1A is a β‑cell mass regulator: “changes in Dyrk1a gene dosage in mice strongly modulate glycaemia and circulating insulin levels” and haploinsufficiency caused “severe glucose intolerance, reduced beta cell mass and decreased beta cell proliferation” 24477974',
-            'What’s limited / not yet compelling',
-            '• Direct human common-variant (GWAS) evidence for DYRK1A in T2D risk is not clearly established from the evidence retrieved here. In the GLKB graph, DYRK1A→T2D shows up as literature co-occurrence rather than a curated genetic association.',
-            '• There are human syndromes involving DYRK1A dosage (e.g., haploinsufficiency syndromes; trisomy 21 increases DYRK1A dosage), but linking those cleanly to T2D protection/risk is complex and may be confounded by broader syndrome physiology.',
-            'If you want, I can run a focused PubMed/GWAS Catalog-style query in GLKB specifically for DYRK1A AND “genome-wide association” AND “type 2 diabetes” and summarize whether any reproducible human loci implicate the gene.',
-            'Known inhibitors used as tool compounds (and where they stand)',
-            'Widely used DYRK1A tool inhibitors in the diabetes β‑cell literature',
-            '• Harmine (natural product; also known for other activities such as MAO inhibition): identified as a lead human β‑cell mitogen, with DYRK1A as “likely target” 25751815',
-            '• 5‑iodotubercidin (5‑IT): increased human β‑cell proliferation and mapped by kinome profiling to DYRK/CLK inhibition 26953159',
-            'More “drug-discovery” oriented DYRK1A inhibitor series (preclinical)',
-            'Multiple medicinal chemistry programs exist (harmine analogs; other scaffolds), but none are established as approved antidiabetic drugs based on the evidence set above. (Several DYRK1A inhibitor chemotypes are being developed more broadly in neuro/oncology; diabetes efforts focus on β‑cell selectivity and safety.)',
+            { type: 'paragraph', text: 'DYRK1A in type 2 diabetes (T2D): what’s known' },
+            { type: 'heading', text: '1) Rationale: β-cell failure in T2D makes β-cell regeneration attractive' },
+            { type: 'paragraph', text: 'A major therapeutic idea in T2D is to\u00A0increase functional pancreatic β-cell mass. Multiple groups have identified\u00A0DYRK1A inhibition\u00A0as a way to unlock adult human β-cell cell-cycle entry, a process that is normally very limited.' },
+            { type: 'heading', text: '2) Key experimental evidence supporting DYRK1A as a target' },
+            {
+                type: 'list',
+                items: [
+                    'Harmine and DYRK1A/NFAT axis (foundational evidence)\u00A0A high-throughput screen identified harmine analogs as\u00A0human β-cell mitogens, and the study proposes\u00A0DYRK1A as the likely target\u00A0with\u00A0NFAT transcription factors as mediators, with in vivo models showing increased β-cell proliferation, increased islet mass, and improved glycemic control\u00A01.',
+                    'More robust proliferation via combination strategies (DYRK1A + TGFβ/SMAD pathway inhibition)\u00A0DYRK1A inhibitors alone drive modest proliferation; combining DYRK1A inhibition with\u00A0TGFβ superfamily/SMAD pathway inhibition\u00A0yielded substantially higher adult human β-cell proliferation and increased β-cell numbers, while noting preservation of differentiated function, and including β cells from people with T2D\u00A03.',
+                    'Synergy with existing T2D drug class (GLP-1 receptor agonists + DYRK1A inhibitors)\u00A0GLP-1R agonists don’t typically increase human β-cell proliferation, while DYRK1A inhibitors do but modestly and with limited β-cell specificity. Combining the two classes\u00A0synergistically increased human β-cell replication, increased β-cell numbers, and extended to improved insulin secretion and glycemic control in mouse transplantation models; effects were also seen in β cells from individuals with T2D\u00A04.',
+                    'Small-molecule series consistent with DYRK1A being a key driver\u00A0Aminopyrazine compounds (described as acting via combined DYRK1A and GSK3B inhibition) stimulated robust proliferation in adult human islets and improved glycemic control in diabetic mice, with multiple lines of evidence pointing to Dyrk1a as the key target\u00A02.',
+                ],
+            },
+            { type: 'paragraph', text: '3) What the GLKB knowledge graph shows (structured vs. literature co-mention)' },
+            { type: 'paragraph', text: 'In GLKB,\u00A0there is no curated GeneToDiseaseAssociation edge\u00A0recorded between DYRK1A and T2D (i.e., not a genetics/causal association entry in the KG for this pair).' },
+            { type: 'paragraph', text: 'But DYRK1A and “Diabetes Mellitus, Type 2”\u00A0co-occur in the literature\u00A0with\u00A014 articles\u00A0captured as co-mentions (GLKB Cooccur edge; source PubMed).' },
+            { type: 'paragraph', text: '4) Therapeutic implications and main open challenges' },
+            { type: 'paragraph', text: 'Most mature concept:\u00A0DYRK1A inhibition as a\u00A0β-cell regenerative strategy\u00A0(alone or in combinations).' },
+            { type: 'paragraph', text: 'Key translational challenges repeatedly implied by the experimental literature:' },
+            { type: 'paragraph', text: 'Achieving\u00A0β-cell specificity\u00A0(DYRK1A is broadly expressed; systemic inhibition raises off-target risk).' },
+            { type: 'paragraph', text: 'Ensuring\u00A0durable function\u00A0and avoiding unwanted proliferation/dedifferentiation (some studies explicitly test for preserved β-cell differentiated function in combinations).' },
+            { type: 'paragraph', text: 'Moving from short-term in vivo models (often islet transplant systems) to\u00A0longer-term safety/efficacy\u00A0studies.ng additional inhibitor series and any emerging early clinical programs, if present).' },
         ],
-        // The design repeats one reference three times and fills its quote with
-        // lorem ipsum, so the quote is left out rather than shipped as filler.
         references: [
             {
-                title: 'A high-throughput chemical screen reveals that harmine-mediated inhibition of DYRK1A increases human pancreatic beta cell replication',
+                title: 'A high-throughput chemical screen reveals that harmine-mediated inhibition of DYRK1A increases human pancreatic beta cell replication.',
                 meta: 'Peng Wang et al. · 2015 · Nat Med',
+                quote: '“Here, using a high-throughput small-molecule screen (HTS), we find that analogs of the small molecule harmine function as a new class of human beta cell mitogenic ...”',
                 pmid: '25751815',
                 citations: 188,
             },
             {
-                title: 'A high-throughput chemical screen reveals that harmine-mediated inhibition of DYRK1A increases human pancreatic beta cell replication',
-                meta: 'Peng Wang et al. · 2015 · Nat Med',
-                pmid: '25751815',
-                citations: 188,
+                title: 'Inhibition of DYRK1A and GSK3B induces human β-cell proliferation.',
+                meta: 'Weijun Shen et al. · 2015 · Nat Commun',
+                quote: '“Here we report aminopyrazine compounds that stimulate robust β-cell proliferation in adult primary islets, most likely as a result of combined inhibition of ...”',
+                pmid: '26496802',
+                citations: 75,
             },
             {
-                title: 'A high-throughput chemical screen reveals that harmine-mediated inhibition of DYRK1A increases human pancreatic beta cell replication',
-                meta: 'Peng Wang et al. · 2015 · Nat Med',
+                title: 'Combined Inhibition of DYRK1A, SMAD, and Trithorax Pathways Synergizes to Induce Robust Replication in Adult Human Beta Cells.',
+                meta: 'Peng Wang et al. · 2019\u00A0·\u00A0Cell Metab',
+                quote: '“Here, we demonstrate that combined pharmacologic inhibition of DYRK1A and transforming growth factor beta superfamily (TGFβSF)/SMAD signaling generates...”',
                 pmid: '25751815',
                 citations: 188,
             },

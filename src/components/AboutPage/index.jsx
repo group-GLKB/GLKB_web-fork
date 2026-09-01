@@ -39,6 +39,8 @@ import browserSecure from '../../img/about/v2/browser/secure.svg';
 import browserTabShape from '../../img/about/v2/browser/tab.svg';
 import browserTabClose from '../../img/about/v2/browser/tab-close.svg';
 import browserActions from '../../img/about/v2/browser/toolbar-actions.svg';
+import useCaseBookmark from '../../img/about/v2/use-cases/bookmark.svg';
+import useCaseQuote from '../../img/about/v2/use-cases/quote.svg';
 import browserFavicon from '../../img/GLKB_logo_icon.png';
 import { useAuth } from '../Auth/AuthContext';
 import { posts } from '../Blog/posts';
@@ -319,25 +321,33 @@ const AboutPage = () => {
                         {activeUseCase.lede ? (
                             <p className="about-use-lede">{activeUseCase.lede}</p>
                         ) : null}
-                        {/* Only Drug Target Investigation carries a sample in the frame. */}
+                        {/* The first tab is the worked example supplied by the design. */}
                         {activeUseCase.answer ? (
                         <div className="about-sample">
-                            <div className="about-sample-question">Q: {activeUseCase.question}</div>
+                            <div className="about-sample-question-bar">
+                                <div className="about-sample-question">Q: {activeUseCase.question}</div>
+                            </div>
                             <div className="about-sample-body">
                                 <div className="about-sample-answer">
-                                    {activeUseCase.answer.map((block) => (
-                                        <p
-                                            key={block.slice(0, 40)}
-                                            className={block.startsWith('•') ? 'about-sample-bullet' : undefined}
-                                        >
-                                            {block}
-                                        </p>
-                                    ))}
+                                    <div className="about-sample-answer-content">
+                                        {activeUseCase.answer.map((block, index) => {
+                                            const key = `${block.type}-${block.text?.slice(0, 40) || index}`;
+                                            if (block.type === 'heading') {
+                                                return <p className="about-sample-answer-heading" key={key}>{block.text}</p>;
+                                            }
+                                            if (block.type === 'list') {
+                                                return (
+                                                    <ul className="about-sample-answer-list" key={key}>
+                                                        {block.items.map((item) => <li key={item.slice(0, 48)}>{item}</li>)}
+                                                    </ul>
+                                                );
+                                            }
+                                            return <p key={key}>{block.text}</p>;
+                                        })}
+                                    </div>
                                 </div>
                                 <aside className="about-sample-references">
                                     <h3 className="about-sample-references-title">References</h3>
-                                    {/* Keyed by position: the frame lists the same
-                                        paper three times, so the PMID is not unique. */}
                                     {activeUseCase.references.map((reference, index) => (
                                         // eslint-disable-next-line react/no-array-index-key
                                         <div className="about-reference" key={`${reference.pmid}-${index}`}>
@@ -345,10 +355,16 @@ const AboutPage = () => {
                                             <div className="about-reference-body">
                                                 <p className="about-reference-title">{reference.title}</p>
                                                 <p className="about-reference-meta">{reference.meta}</p>
-                                                <p className="about-reference-quote">{reference.quote}</p>
-                                                <p className="about-reference-pmid">
-                                                    {`PubMed ID: ${reference.pmid} · ${reference.citations} Citations`}
-                                                </p>
+                                                <div className="about-reference-quote">{reference.quote}</div>
+                                                <div className="about-reference-footer">
+                                                    <p className="about-reference-pmid">
+                                                        {`PubMed ID: ${reference.pmid} · ${reference.citations} Citations`}
+                                                    </p>
+                                                    <span className="about-reference-actions" aria-hidden="true">
+                                                        <img src={useCaseQuote} alt="" />
+                                                        <img src={useCaseBookmark} alt="" />
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
