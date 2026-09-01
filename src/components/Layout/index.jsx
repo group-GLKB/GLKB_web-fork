@@ -59,10 +59,11 @@ const AppLayout = () => {
         || location.pathname.startsWith('/terms');
     const isAccountPage = location.pathname.startsWith('/account');
     const isChatPage = location.pathname.startsWith('/chat');
-    // Settings stands on its own, as About, the blog and the notices do: its
-    // section nav is a rail already, and two rails side by side spend 300px to
-    // say the same thing twice. That nav carries its own way back to the app.
-    const hideSidebar = isAboutPage || isBlogPage || isLegalPage || isAccountPage;
+    // Desktop Settings has its own section rail, so a second permanent app rail
+    // would duplicate it. On phones that section rail is intentionally hidden;
+    // keep the app's temporary drawer mounted so the mobile header menu is live.
+    const hideSidebar = isAboutPage || isBlogPage || isLegalPage
+        || (isAccountPage && !isPhoneDevice);
     const showMobileHeader = isPhoneDevice && !isAboutPage && !isBlogPage && !isLegalPage
         && !isMobileHeaderHidden;
 

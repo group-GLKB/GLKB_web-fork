@@ -35,7 +35,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const [mobileOptionsOpen, setMobileOptionsOpen] = useState(false);
     const [desktopOptionsOpen, setDesktopOptionsOpen] = useState(false);
     const navigate = useNavigate();
-    const isMobileLayout = useMediaQuery('(max-width:600px)');
+    // The app shell and HomePage both switch at 767px. A separate 600px
+    // threshold mixed the mobile page with the PC search controls.
+    const isMobileLayout = useMediaQuery('(max-width:767px)');
     const inputTimeoutRef = React.useRef(null);
     const hasTrackedInputRef = React.useRef(false);
     const lastPrefillRef = React.useRef(undefined);
@@ -378,17 +380,17 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             maxRows={9}
                             disabled={isInputLocked}
                             sx={{
-                                minHeight: { xs: '148px', sm: '120px' },
+                                minHeight: isMobileLayout ? '148px' : '120px',
                                 width: '100%',
                                 '& .MuiInputBase-root': {
                                     borderRadius: '16px',
-                                    minHeight: { xs: '148px', sm: '120px' },
+                                    minHeight: isMobileLayout ? '148px' : '120px',
                                     backgroundColor: 'var(--color-background-subtle)',
                                     alignItems: 'flex-start',
                                     paddingLeft: '20px',
                                     paddingRight: '20px !important',
-                                    paddingTop: { xs: '16.5px', sm: '20px' },
-                                    paddingBottom: { xs: '58px', sm: '52px' },
+                                    paddingTop: isMobileLayout ? '16.5px' : '20px',
+                                    paddingBottom: isMobileLayout ? '58px' : '52px',
                                     fontFamily: 'Geist, sans-serif',
                                     fontSize: '14px',
                                     color: 'var(--color-text-primary)',
@@ -433,7 +435,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 sx={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: { xs: '8px', sm: '12px' },
+                                    gap: isMobileLayout ? '8px' : '12px',
                                     minWidth: 0,
                                     pointerEvents: 'auto',
                                 }}
@@ -501,11 +503,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 sx={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: { xs: '8px', sm: '16px' },
+                                    gap: isMobileLayout ? '8px' : '16px',
                                     minWidth: 0,
                                     // With Investigate hidden this is the row's only child, so
                                     // `space-between` alone would park it on the left.
-                                    marginLeft: { xs: INVESTIGATE_ENABLED ? 0 : 'auto', sm: 'auto' },
+                                    marginLeft: isMobileLayout && INVESTIGATE_ENABLED ? 0 : 'auto',
                                     pointerEvents: 'auto',
                                 }}
                             >
@@ -521,7 +523,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         openSearchOptions();
                                     }}
                                     sx={{
-                                        display: { xs: 'inline-flex', sm: 'none' },
+                                        display: isMobileLayout ? 'inline-flex' : 'none',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '4px',
@@ -551,7 +553,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 {!searchOptionsLocked && (
                                 <Button
                                     sx={{
-                                        display: { xs: 'none', sm: 'inline-flex' },
+                                        display: isMobileLayout ? 'none' : 'inline-flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '4px',
@@ -598,8 +600,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     className="search-button-big"
                                     onClick={() => { if (!isInputLocked) navigateToLLMAgent(llmQuery.trim()); }}
                                     sx={{
-                                        height: { xs: '32px', sm: '32px' },
-                                        width: { xs: '32px', sm: '32px' },
+                                        height: '32px',
+                                        width: '32px',
                                         borderRadius: '8px',
                                         backgroundColor: llmQuery.trim() && !isInputLocked ? 'var(--color-brand-primary)' : 'var(--color-brand-muted)',
                                         display: 'flex',

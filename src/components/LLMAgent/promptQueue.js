@@ -26,6 +26,20 @@ const sameId = (a, b) => (
     a != null && b != null && String(a) === String(b)
 );
 
+/* A conversation may not have a history id yet, but it already has a unique stream/session
+   key. Treat two missing keys as the one legacy nameless thread; otherwise they must match.
+   Without this second coordinate every simultaneously-created conversation looked like the
+   same `conversationId: null` thread until its Saved frame arrived. */
+const sameRunKey = (a, b) => (
+    a == null ? b == null : sameId(a, b)
+);
+
+const isEntryOnScreen = (entry, activeConversationId, activeRunKey) => {
+    const conversationId = entry?.conversationId ?? null;
+    if (conversationId != null) return sameId(conversationId, activeConversationId);
+    return activeConversationId == null && sameRunKey(entry?.runKey, activeRunKey);
+};
+
 /**
  * The conversation to file a newly queued follow-up under.
  *
@@ -43,13 +57,26 @@ export const queuedPromptOwner = (runningConversationId, activeConversationId) =
  * row exists, or a guest's only thread. It used to be shown under EVERY conversation ("no
  * conversation id" read as "matches anything"), so a question queued moments before its row
  * arrived appeared to be pending in whatever old conversation the reader opened next. */
-export const promptsForConversation = (queue, activeConversationId) => (
+export const promptsForConversation = (queue, activeConversationId, activeRunKey = null) => (
     (Array.isArray(queue) ? queue : []).filter((item) => (
-        item?.conversationId == null
-            ? activeConversationId == null
-            : sameId(item.conversationId, activeConversationId)
+        isEntryOnScreen(item, activeConversationId, activeRunKey)
     ))
 );
+
+/** Move only one provisional run's queue onto the history id delivered by its Saved frame.
+ *
+ * Several new conversations can be streaming before any has a history id. Mapping every null
+ * entry here lets whichever Saved frame arrives first steal the other conversations' bubbles
+ * and later submit them with the wrong history. */
+export const claimQueuedPrompts = (queue, runKey, conversationId) => {
+    const entries = Array.isArray(queue) ? queue : [];
+    if (conversationId == null) return entries;
+    return entries.map((item) => (
+        item?.conversationId == null && sameRunKey(item?.runKey, runKey)
+            ? { ...item, conversationId: String(conversationId), runKey: null }
+            : item
+    ));
+};
 
 /**
  * Where a released entry goes.
@@ -59,13 +86,11 @@ export const promptsForConversation = (queue, activeConversationId) => (
  * this question follows on from. A nameless entry is on screen only while the screen shows the
  * nameless thread — `nextReleasableEntry` holds it back otherwise.
  */
-export const releaseTargetFor = (entry, activeConversationId) => {
+export const releaseTargetFor = (entry, activeConversationId, activeRunKey = null) => {
     const conversationId = entry?.conversationId ?? null;
     return {
         conversationId,
-        onScreen: conversationId == null
-            ? activeConversationId == null
-            : sameId(conversationId, activeConversationId),
+        onScreen: isEntryOnScreen(entry, activeConversationId, activeRunKey),
     };
 };
 
@@ -84,6 +109,7 @@ export const releaseTargetFor = (entry, activeConversationId) => {
  */
 export const nextReleasableEntry = (queue, {
     activeConversationId = null,
+    activeRunKey = null,
     isConversationRunning = () => false,
     requiresScreen = () => false,
     viewBusy = false,
@@ -93,7 +119,9 @@ export const nextReleasableEntry = (queue, {
         const target = entry?.conversationId ?? null;
         if (target == null) {
             // The nameless thread: releasable only where it was written, when that screen is idle.
-            if (activeConversationId == null && !viewBusy) return entry;
+            if (isEntryOnScreen(entry, activeConversationId, activeRunKey) && !viewBusy) {
+                return entry;
+            }
             continue;
         }
         if (isConversationRunning(target)) continue;
@@ -112,10 +140,12 @@ export const nextReleasableEntry = (queue, {
 /**
  * What survives starting a new chat.
  *
- * The entries with no thread of their own were written against the chat being cleared and go
- * with it. One queued against a named conversation does not: that conversation is still being
- * written and will still take its follow-up.
+ * The provisional entries owned by the run being cleared go with it. Other nameless runs may
+ * exist concurrently and keep their own queues; named conversations always survive because
+ * they are still being written and will still take their follow-ups.
  */
-export const promptsSurvivingReset = (queue) => (
-    (Array.isArray(queue) ? queue : []).filter((item) => item?.conversationId != null)
+export const promptsSurvivingReset = (queue, departingRunKey = null) => (
+    (Array.isArray(queue) ? queue : []).filter((item) => (
+        item?.conversationId != null || !sameRunKey(item?.runKey, departingRunKey)
+    ))
 );

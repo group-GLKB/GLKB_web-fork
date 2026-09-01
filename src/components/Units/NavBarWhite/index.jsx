@@ -198,7 +198,9 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
     const navigate = useNavigate();
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
-    const isCompactSidebar = useMediaQuery('(max-width:532px)');
+    // Must match AppLayout's phone breakpoint. Using 532px here left a
+    // 533–767px interval with both the mobile header and permanent PC sidebar.
+    const isCompactSidebar = useMediaQuery('(max-width:767px)');
     const previousPathRef = useRef(location.pathname);
     const [open, setOpen] = useState(() => {
         if (typeof window === 'undefined') {

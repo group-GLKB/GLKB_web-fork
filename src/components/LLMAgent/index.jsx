@@ -71,6 +71,7 @@ import { resolveClarifyRound } from './clarifyRound';
 import { mintSessionId } from './sessionId';
 import { makeDrip } from './streamDrip';
 import {
+    claimQueuedPrompts,
     nextReleasableEntry,
     promptsForConversation,
     promptsSurvivingReset,
@@ -3116,6 +3117,9 @@ function LLMAgent({ isRouteActive = true }) {
            `activeStreamIdRef` to null, which is what detaches the frames from this view; the
            registry entry stays until the request itself settles, so the conversation keeps its
            working dot in the sidebar meanwhile. */
+        const departingRunKey = activeConversationIdRef.current == null
+            ? (activeStreamIdRef.current ?? resumingConversationRef.current ?? null)
+            : null;
         cancelStreaming({ abort: !options.keepRunning });
         clearActiveRunSnapshot();
         liveRunSnapshotRef.current = null;
@@ -3139,10 +3143,10 @@ function LLMAgent({ isRouteActive = true }) {
         setActiveConversationIdState(null);
         activeConversationIdRef.current = null;
         setActiveConversationId(null);
-        /* Starting a new chat drops the questions that were waiting on the chat being left —
-           the ones with no thread of their own — and keeps those queued against a named
-           conversation, which is still being written and will still take its follow-up. */
-        setQueuedPrompts(promptsSurvivingReset);
+        /* Starting a new chat drops only the provisional questions owned by the chat being
+           left. Another simultaneously-created nameless run can have its own queue, and named
+           conversations are still being written and will still take their follow-ups. */
+        setQueuedPrompts((prev) => promptsSurvivingReset(prev, departingRunKey));
         llmService.clearHistory();
     }, [cancelStreaming, llmService]);
 
@@ -3807,15 +3811,12 @@ function LLMAgent({ isRouteActive = true }) {
                 });
                 writeConversationMessages(String(historyId), optimisticRunHistory);
             }
-            /* A follow-up queued in the moments before this row existed was filed with no
-               conversation. It was written against THIS thread — the only nameless one — so it
-               takes the row's id now, and stops being drawn under (or released into) whatever
-               other conversation the reader opens next. */
-            setQueuedPrompts((prev) => (prev.some((item) => item?.conversationId == null)
-                ? prev.map((item) => (item?.conversationId == null
-                    ? { ...item, conversationId: String(historyId) }
-                    : item))
-                : prev));
+            /* A follow-up queued before this row existed is filed under the run's stream key.
+               Several new conversations can be nameless at once, so only THIS run's entries
+               may take the new history id. */
+            setQueuedPrompts((prev) => (
+                claimQueuedPrompts(prev, streamId, String(historyId))
+            ));
         }
         /* The session id this RUN will use. For the attached run it is the shared ref —
            frame handlers keep updating that. A run released during the row's round trip must
@@ -4336,11 +4337,8 @@ function LLMAgent({ isRouteActive = true }) {
                         if (savedId) {
                             runConversationId = savedId;
                             setQueuedPrompts((prev) => (
-                                prev.some((item) => item?.conversationId == null)
-                                    ? prev.map((item) => (item?.conversationId == null
-                                        ? { ...item, conversationId: savedId }
-                                        : item))
-                                    : prev));
+                                claimQueuedPrompts(prev, streamId, savedId)
+                            ));
                             const nextSessionId = update.sessionId || runSessionId;
                             if (nextSessionId) {
                                 setStoredSessionId(savedId, nextSessionId);
@@ -5050,7 +5048,13 @@ function LLMAgent({ isRouteActive = true }) {
             happened to be, so a question queued in one conversation appeared to be pending in
             another — and then was sent there. An entry queued before its row existed has no
             conversation to be shown under yet, and belongs to whatever is open. */}
-        {promptsForConversation(queuedPrompts, activeConversationId).map((item) => (
+        {promptsForConversation(
+            queuedPrompts,
+            activeConversationId,
+            activeConversationId == null
+                ? (activeStreamIdRef.current ?? resumingConversationRef.current ?? null)
+                : null,
+        ).map((item) => (
             <Container
                 key={item.id}
                 className="message-pair queued-prompt"
@@ -5409,6 +5413,15 @@ function LLMAgent({ isRouteActive = true }) {
             stableSubmit(event, null, null, { searchOptions });
             return;
         }
+        const ownerConversationId = isViewingRunningConversation
+            ? queuedPromptOwner(
+                runningConversationIdRef.current,
+                activeConversationIdRef.current,
+            )
+            : (targetConversationId != null ? String(targetConversationId) : null);
+        const ownerRunKey = ownerConversationId == null
+            ? (activeStreamIdRef.current ?? resumingConversationRef.current ?? null)
+            : null;
         queueSeqRef.current += 1;
         setQueuedPrompts((prev) => [...prev, {
             id: `q-${queueSeqRef.current}`,
@@ -5416,12 +5429,11 @@ function LLMAgent({ isRouteActive = true }) {
             // The thread this is a follow-up TO — see promptQueue.js. When the view is
             // following the run, the run's own id is the most current name for it; when the
             // busy thread is being answered in the background, the screen's id is.
-            conversationId: isViewingRunningConversation
-                ? queuedPromptOwner(
-                    runningConversationIdRef.current,
-                    activeConversationIdRef.current,
-                )
-                : (targetConversationId != null ? String(targetConversationId) : null),
+            conversationId: ownerConversationId,
+            // Before Saved gives the run a history id this is the only value that separates
+            // two simultaneously-created conversations. It scopes the pending bubble, its
+            // eventual id migration, and its release back into the composer that owns it.
+            runKey: ownerRunKey,
             // Captured now rather than read at send time: they describe the turn the reader
             // meant to ask for.
             searchOptions,
@@ -5680,6 +5692,9 @@ function LLMAgent({ isRouteActive = true }) {
                 && !runningConversationIdRef.current);
         const next = nextReleasableEntry(queuedPrompts, {
             activeConversationId: activeConversationIdRef.current,
+            activeRunKey: activeConversationIdRef.current == null
+                ? (activeStreamIdRef.current ?? resumingConversationRef.current ?? null)
+                : null,
             isConversationRunning,
             /* An investigate follow-up can stop to ask a clarifying question, which only the
                reader can answer — it must not run where nobody is watching. */
@@ -5693,7 +5708,11 @@ function LLMAgent({ isRouteActive = true }) {
         setQueuedPrompts((prev) => prev.filter((item) => item.id !== next.id));
         /* Into the conversation it was written against, not the one on screen. */
         const { conversationId: targetId, onScreen: targetIsOnScreen } = releaseTargetFor(
-            next, activeConversationIdRef.current,
+            next,
+            activeConversationIdRef.current,
+            activeConversationIdRef.current == null
+                ? (activeStreamIdRef.current ?? resumingConversationRef.current ?? null)
+                : null,
         );
         if (!targetIsOnScreen && targetId != null) {
             stableRunBackgroundTurn(next);
