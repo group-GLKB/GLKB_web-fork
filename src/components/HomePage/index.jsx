@@ -46,7 +46,6 @@ import LlmSearchBar from './LlmSearchBarHome';
 // const { Search } = Input;
 const DEBUG_FORCE_LIMIT_WARNING = false;
 
-const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
 
@@ -59,7 +58,7 @@ const HomePage = () => {
     const [prefillQuery, setPrefillQuery] = useState('');
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
     const [queryLimitTotal, setQueryLimitTotal] = useState(10);
-    const [isPhoneDevice, setIsPhoneDevice] = useState(false);
+    const [isPhoneDevice, setIsPhoneDevice] = useState(isPhoneViewport);
     const [isAgentRunActive, setIsAgentRunActive] = useState(() => isRunActive());
     const { isAuthenticated, loading, openLoginModal } = useAuth();
     const navigate = useNavigate();
@@ -118,7 +117,7 @@ const HomePage = () => {
 
     useEffect(() => {
         const evaluateIsPhone = () => {
-            setIsPhoneDevice(isPhoneUa() && isPhoneViewport());
+            setIsPhoneDevice(isPhoneViewport());
         };
 
         evaluateIsPhone();
@@ -324,23 +323,23 @@ const HomePage = () => {
                                     className="glkb-title"
                                     sx={{
                                         fontFamily: 'Geist, sans-serif',
-                                        fontWeight: 800,
-                                        fontSize: isPhoneDevice ? '30px' : '40px',
-                                        lineHeight: isPhoneDevice ? 1.2 : '48px',
+                                        fontWeight: isPhoneDevice ? 700 : 800,
+                                        fontSize: isPhoneDevice ? '32px' : '40px',
+                                        lineHeight: isPhoneDevice ? '40px' : '48px',
                                     }}
                                 >
                                     <span style={{ color: 'var(--color-text-primary)' }}>Ask.</span>{' '}
-                                    <span style={{ color: 'var(--color-brand-primary)' }}>Analyze</span>
-                                    <span style={{ color: 'var(--color-text-primary)' }}>. Cite.</span>
+                                    <span style={{ color: 'var(--color-brand-primary)' }}>Analyze.</span>{' '}
+                                    <span style={{ color: 'var(--color-text-primary)' }}>Cite.</span>
                                 </Typography>
                                 <Typography
                                     className="glkb-subtitle"
                                     sx={{
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 400,
-                                        fontSize: '14px',
+                                        fontSize: isPhoneDevice ? '12px' : '14px',
                                         color: 'var(--color-text-tertiary)',
-                                        lineHeight: '22px',
+                                        lineHeight: isPhoneDevice ? '20px' : '22px',
                                     }}
                                 >
                                     Weeks of research, done in minutes.
@@ -459,7 +458,7 @@ const HomePage = () => {
                         <div className="footer">
                             <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
                                 <p className="homepage-footer-line">
-                                    © 2026 GLKB – Genomic Literature Knowledge Base | glkb.org
+                                    © 2025 GLKB – Genomic Literature Knowledge Base | glkb.org
                                 </p>
                                 <p className="homepage-footer-line">
                                     Developed and maintained by the <a className="homepage-lab-link" href="https://jieliu6.github.io/" target="_blank" rel="noopener noreferrer">Jie Liu Lab</a>, Department of Computational Medicine and Bioinformatics, University of Michigan.

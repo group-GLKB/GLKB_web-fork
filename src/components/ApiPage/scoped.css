@@ -28,25 +28,19 @@
     min-height: 0;
     min-width: 0;
     box-sizing: border-box;
-    /* Named so the header's own spacing can subtract it — see .api-header. */
-    --api-content-gap: 24px;
+    --api-content-gap: 48px;
     gap: var(--api-content-gap);
-    padding: 24px 80px 48px;
+    padding: 24px clamp(40px, 8vw, 96px) 48px;
 }
 
 .app-layout-content.has-mobile-header .api-content {
     padding: 16px 24px 32px;
 }
 
-/* 48 between the header block and the content under it, which is what History
-   (.history-search) and Library (.library-tabs-row) both set. The flex gap here is
-   the spacing between sections — 24, and 20 under 1440 — so the header made do with
-   whichever of those applied and the page sat tighter than the others at every width.
-   Subtracting the gap rather than hard-coding a number keeps it 48 at both. */
 .api-header {
     display: flex;
     flex-direction: column;
-    margin-bottom: calc(48px - var(--api-content-gap, 24px));
+    margin-bottom: 0;
 }
 
 .api-header-top {
@@ -67,14 +61,14 @@
     font-weight: 600 !important;
     font-size: 24px !important;
     line-height: 32px !important;
-    color: var(--color-text-primary);
+    color: var(--color-text-secondary);
 }
 
 .api-subtitle {
     font-family: 'Geist', sans-serif !important;
     font-weight: 400 !important;
     font-size: 14px !important;
-    line-height: 20px !important;
+    line-height: 22px !important;
     color: var(--color-text-tertiary);
 }
 
@@ -112,7 +106,7 @@
     font-weight: 600 !important;
     font-size: 20px !important;
     line-height: 28px !important;
-    color: var(--color-text-primary);
+    color: var(--color-text-secondary);
 }
 
 .api-keys-toolbar {
@@ -131,13 +125,15 @@
 .api-keys-count-pill {
     display: inline-flex;
     align-items: center;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: var(--color-background-subtle);
+    height: 24px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: var(--color-background-muted);
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 500;
-    color: var(--color-text-tertiary);
+    line-height: 18px;
+    color: var(--color-text-secondary);
 }
 
 .api-keys-error {
@@ -171,24 +167,59 @@
     color: var(--color-red-900);
 }
 
-/* Figma specs this as a text action with a blue glyph, not a filled button. */
-.api-keys-create {
+.api-keys-toolbar-actions,
+.api-usage-actions {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
+    gap: 0;
+}
+
+.api-toolbar-action,
+.api-usage-actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 28px;
+    padding: 4px 12px;
     border-radius: 8px;
     border: none;
     background: transparent;
     color: var(--color-text-secondary);
     font-family: 'Geist', sans-serif;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
+    line-height: 16px;
     cursor: pointer;
 }
 
-.api-keys-create:hover {
+.api-toolbar-action:hover:not(:disabled),
+.api-usage-actions button:hover:not(:disabled) {
     background: var(--color-background-subtle);
+}
+
+.api-toolbar-action:disabled,
+.api-usage-actions button:disabled,
+.api-keys-mobile-toolbar button:disabled,
+.api-usage-mobile-actions button:disabled {
+    color: var(--color-text-tertiary);
+    cursor: not-allowed;
+    opacity: 0.52;
+}
+
+.api-toolbar-action svg,
+.api-usage-actions button svg {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    color: var(--color-brand-primary);
+}
+
+.api-toolbar-action:disabled svg,
+.api-usage-actions button:disabled svg,
+.api-keys-mobile-toolbar button:disabled svg,
+.api-usage-mobile-actions button:disabled svg {
+    color: var(--color-text-tertiary);
 }
 
 .api-keys-create-icon {
@@ -207,31 +238,35 @@
     max-height: 480px;
     overflow-y: auto;
     overflow-x: auto;
-    border-radius: 12px;
+    border-radius: 16px;
     background: var(--color-background-surface);
     border: 1px solid var(--color-border-default);
 }
 
 .api-keys-table {
     width: max-content;
-    min-width: 100%;
+    min-width: max(100%, 1008px);
 }
 
 .api-keys-table-row {
     display: grid;
-    grid-template-columns: minmax(200px, 1.4fr) 110px 120px 100px 90px 90px 90px 90px 40px;
+    grid-template-columns: 120px 80px 80px 80px 48px 48px 48px 48px 16px;
     min-width: max-content;
     align-items: center;
-    gap: 16px;
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--color-border-subtle);
+    column-gap: 49px;
+    min-height: 86px;
+    padding: 24px;
+    border-bottom: 1px solid var(--color-border-default);
     font-family: 'Geist', sans-serif;
-    font-size: 12px;
+    font-size: 14px;
+    line-height: 22px;
     color: var(--color-text-secondary);
 }
 
 .api-keys-table-row.api-keys-table-empty {
     grid-template-columns: 1fr;
+    min-width: 1008px;
+    min-height: 258px;
     justify-content: center;
     text-align: center;
     color: var(--color-text-tertiary);
@@ -246,13 +281,15 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    background: var(--color-grey-25);
+    min-height: 44px;
+    background: var(--color-background-subtle);
     font-size: 12px;
     font-weight: 600;
+    line-height: 20px;
     color: var(--color-text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    padding: 10px 20px;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 12px 24px;
 }
 
 .api-keys-col {
@@ -265,15 +302,16 @@
 .api-keys-col--key {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0;
     white-space: normal;
 }
 
 .api-keys-col--key-name {
     font-family: 'Geist', sans-serif;
     font-weight: 600;
-    font-size: 12px;
-    color: var(--color-text-primary);
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--color-text-secondary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -282,7 +320,8 @@
 .api-keys-col--key-value {
     font-family: 'Geist Mono', 'Menlo', 'SFMono-Regular', 'Consolas', monospace;
     font-size: 12px;
-    color: var(--color-grey-400);
+    line-height: 16px;
+    color: var(--color-text-tertiary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -293,15 +332,17 @@
 }
 
 .api-usage-metric {
-    font-family: 'Geist Mono', 'Menlo', 'SFMono-Regular', 'Consolas', monospace;
-    font-size: 12px;
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    line-height: 22px;
     color: var(--color-text-secondary);
 }
 
 .api-usage-metric-empty {
     font-family: 'Geist', sans-serif;
-    font-size: 12px;
-    color: var(--color-grey-300);
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--color-text-secondary);
 }
 
 .api-keys-col--actions {
@@ -312,7 +353,9 @@
 
 .api-keys-row-menu-button.MuiIconButton-root {
     color: var(--color-text-tertiary);
-    padding: 4px;
+    width: 16px;
+    height: 16px;
+    padding: 0;
 }
 
 .api-keys-row-menu-button.MuiIconButton-root:hover {
@@ -323,14 +366,37 @@
 .api-keys-row-menu .MuiPaper-root {
     border-radius: 8px;
     border: 1px solid var(--color-border-default);
-    box-shadow: 0 4px 16px rgba(12, 16, 24, 0.08);
+    background: var(--color-background-subtle);
+    box-shadow: none;
+    padding: 4px;
+}
+
+.api-keys-row-menu .MuiList-root {
+    padding: 0;
 }
 
 .api-keys-row-menu .MuiMenuItem-root {
+    display: flex;
+    gap: 4px;
+    min-width: 0;
+    min-height: 20px;
+    padding: 4px;
+    border-radius: 4px;
     font-family: 'Geist', sans-serif;
-    font-size: 12px;
+    font-size: 10px;
+    font-weight: 400;
+    line-height: 12px;
     color: var(--color-text-secondary);
-    min-width: 140px;
+}
+
+.api-keys-row-menu .MuiMenuItem-root:hover {
+    background: var(--color-background-muted);
+}
+
+.api-keys-row-menu-icon {
+    width: 12px;
+    height: 12px;
+    flex: 0 0 12px;
 }
 
 .api-keys-row-menu .MuiMenuItem-root.is-danger {
@@ -340,14 +406,15 @@
 .api-keys-status {
     display: inline-flex;
     align-items: center;
-    padding: 3px 10px;
-    border-radius: 999px;
+    padding: 4px 8px;
+    border-radius: 4px;
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 600;
     background: var(--color-background-subtle);
     color: var(--color-text-tertiary);
-    gap: 6px;
+    line-height: 16px;
+    gap: 8px;
     white-space: nowrap;
 }
 
@@ -385,9 +452,10 @@
 .api-usage-stat-tile {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 16px 20px;
-    border-radius: 12px;
+    gap: 4px;
+    min-height: 86px;
+    padding: 12px;
+    border-radius: 16px;
     border: 1px solid var(--color-border-default);
     background: var(--color-background-surface);
 }
@@ -395,15 +463,17 @@
 .api-usage-stat-label {
     font-family: 'Geist', sans-serif;
     font-weight: 500;
-    font-size: 12px;
+    font-size: 14px;
+    line-height: 18px;
     color: var(--color-text-tertiary);
 }
 
 .api-usage-stat-value {
     font-family: 'Geist', sans-serif;
-    font-weight: 700;
-    font-size: 24px;
-    color: var(--color-text-primary);
+    font-weight: 500;
+    font-size: 32px;
+    line-height: 40px;
+    color: var(--color-text-secondary);
 }
 
 .api-keys-mobile-list {
@@ -512,7 +582,7 @@
 .api-keys-mobile-page-drawer-title {
     font-family: 'Geist', sans-serif;
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--color-text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -610,36 +680,28 @@
 .api-keys-notice {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 14px 20px;
-    border-radius: 10px;
+    gap: 8px;
+    width: fit-content;
+    max-width: 100%;
+    padding: 12px 16px;
+    border-radius: 12px;
     border: 1px solid var(--color-border-default);
-    background: var(--color-brand-subtle);
+    background: var(--color-background-subtle);
     color: var(--color-text-secondary);
     font-family: 'Geist', sans-serif;
-    font-size: 12px;
+    font-size: 14px;
+    line-height: 22px;
 }
 
 .api-keys-notice-label {
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .api-keys-notice-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: var(--color-background-surface);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 1px 2px rgba(12, 16, 24, 0.06);
+    width: 20px;
+    height: 20px;
     color: var(--color-brand-primary);
     flex-shrink: 0;
-}
-
-.api-keys-notice-icon-svg {
-    width: 16px;
-    height: 16px;
 }
 
 .api-keys-dialog {
@@ -649,18 +711,18 @@
 }
 
 .api-keys-dialog-root .MuiDialog-paper {
-    width: 480px;
+    width: 416px;
     max-width: calc(100% - 32px);
     margin: 16px;
     border-radius: 16px;
-    padding: 32px;
-    box-shadow: 0 8px 32px rgba(12, 16, 24, 0.12);
+    padding: 24px;
+    box-shadow: none;
     overflow: visible;
 }
 
 .api-keys-dialog-root .MuiDialogTitle-root {
     padding: 0;
-    margin: 0 0 24px;
+    margin: 0 0 16px;
 }
 
 .api-keys-dialog-root .MuiDialogContent-root {
@@ -671,7 +733,7 @@
 
 .api-keys-dialog-root .MuiDialogActions-root {
     padding: 0;
-    margin-top: 24px;
+    margin-top: 16px;
 }
 
 .api-keys-dialog-title {
@@ -688,9 +750,10 @@
     align-items: center;
     justify-content: space-between;
     font-family: 'Geist', sans-serif;
-    font-weight: 700;
+    font-weight: 600;
     font-size: 16px;
-    color: var(--color-text-primary);
+    line-height: 20px;
+    color: var(--color-text-secondary);
 }
 
 .api-keys-dialog-close {
@@ -716,15 +779,17 @@
 
 .api-keys-confirm-text {
     font-family: 'Geist', sans-serif !important;
-    font-size: 14px !important;
-    line-height: 1.6 !important;
-    color: var(--color-text-secondary);
+    display: flex;
+    flex-direction: column;
+    font-size: 12px !important;
+    line-height: 20px !important;
+    color: var(--color-text-tertiary);
 }
 
 .api-keys-field {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .api-keys-field-label {
@@ -735,13 +800,13 @@
 }
 
 .api-keys-input {
-    height: 44px;
-    border-radius: 8px;
+    height: 48px;
+    border-radius: 12px;
     background: var(--color-background-surface);
 }
 
 .api-keys-input .MuiInputBase-input {
-    padding: 10px 14px;
+    padding: 13px 12px;
     font-family: 'Geist', sans-serif;
     font-size: 14px;
     color: var(--color-text-primary);
@@ -753,7 +818,8 @@
 }
 
 .api-keys-input.MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline {
-    border-color: var(--color-border-default);
+    border-color: var(--color-border-strong);
+    border-radius: 12px;
 }
 
 .api-keys-input.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
@@ -764,7 +830,8 @@
 .api-keys-field-hint {
     font-family: 'Geist', sans-serif;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 400;
+    line-height: 20px;
     color: var(--color-text-tertiary);
 }
 
@@ -778,14 +845,18 @@
     padding: 0;
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
+    gap: 8px;
     margin-top: 0;
+}
+
+.api-create-actions {
+    justify-content: space-between;
 }
 
 .api-keys-dialog-button {
     border-radius: 8px !important;
     padding: 8px 16px !important;
-    min-height: 36px;
+    min-height: 34px;
     font-family: 'Geist', sans-serif !important;
     font-size: 12px !important;
     font-weight: 600 !important;
@@ -815,15 +886,18 @@
 }
 
 .api-keys-dialog-button.is-primary.Mui-disabled {
-    opacity: 0.6;
+    border: 0 !important;
+    background: var(--color-background-muted) !important;
+    color: var(--color-text-tertiary) !important;
+    opacity: 1;
 }
 
 .api-keys-dialog-button.is-danger,
 .api-keys-dialog-button.is-danger:hover,
 .api-keys-dialog-button.is-danger.MuiButton-root:hover {
     color: var(--color-neutral-white) !important;
-    background: var(--color-red-700) !important;
-    border-color: var(--color-red-700) !important;
+    background: var(--color-status-error) !important;
+    border-color: var(--color-status-error) !important;
 }
 
 .api-keys-dialog-button.is-secondary {
@@ -840,15 +914,15 @@
 .api-keys-created {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
 }
 
 .api-keys-created-description {
     margin: 0;
     font-family: 'Geist', sans-serif;
-    font-size: 14px;
-    color: var(--color-text-secondary);
-    line-height: 1.6;
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    line-height: 20px;
 }
 
 .api-keys-created-key-row {
@@ -857,14 +931,14 @@
     gap: 0;
     padding: 0;
     border-radius: 10px;
-    border: 1px solid var(--color-brand-primary);
+    border: 1px solid var(--color-border-strong);
     background: var(--color-background-surface);
     overflow: hidden;
 }
 
 .api-keys-created-key {
     flex: 1;
-    padding: 10px 14px;
+    padding: 8px 12px;
     font-family: 'Geist Mono', 'Menlo', 'SFMono-Regular', monospace;
     font-size: 12px;
     font-weight: 400;
@@ -885,10 +959,11 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    align-self: stretch;
-    gap: 6px;
-    padding: 8px 14px;
-    border-radius: 0 9px 9px 0;
+    align-self: auto;
+    gap: 4px;
+    margin: 4px;
+    padding: 8px 12px;
+    border-radius: 8px;
     border: none;
     background: var(--color-brand-primary);
     color: var(--color-neutral-white);
@@ -904,15 +979,15 @@
 }
 
 .api-keys-created-permissions {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .api-keys-created-permissions-label {
     font-family: 'Geist', sans-serif;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--color-text-secondary);
 }
 
@@ -923,26 +998,93 @@
     color: var(--color-text-tertiary);
 }
 
-@media (max-width: 1600px) {
-    .api-content {
-        padding: 22px 56px 40px;
-    }
+.api-limit-dialog-root .MuiDialogContent-root {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.api-limit-target-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-text-secondary);
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    line-height: 20px;
+}
+
+.api-limit-target-key {
+    overflow: hidden;
+    max-width: 132px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: var(--color-background-muted);
+    color: var(--color-text-tertiary);
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    line-height: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.api-limit-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 48px;
+    padding: 0 12px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 12px;
+    color: var(--color-text-secondary);
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+}
+
+.api-limit-input-wrap:focus-within {
+    border-color: var(--color-brand-primary);
+    box-shadow: 0 0 0 2px rgba(21, 93, 252, 0.12);
+}
+
+.api-limit-input-wrap input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font: inherit;
+    appearance: textfield;
+}
+
+.api-limit-input-wrap input::-webkit-inner-spin-button,
+.api-limit-input-wrap input::-webkit-outer-spin-button {
+    margin: 0;
+    appearance: none;
+}
+
+.api-limit-input-wrap input::placeholder {
+    color: var(--color-text-tertiary);
+}
+
+.api-limit-hint {
+    color: var(--color-text-tertiary);
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    line-height: 20px;
 }
 
 @media (max-width: 1440px) {
     .api-content {
-        padding: 20px 40px 36px;
-        --api-content-gap: 20px;
+        padding: 24px clamp(40px, 8vw, 96px) 48px;
+        --api-content-gap: 48px;
     }
+}
 
-    .api-keys-toolbar {
-        flex-wrap: wrap;
-        align-items: flex-start;
-        gap: 12px;
-    }
-
-    .api-keys-table {
-        min-width: 900px;
+@media (max-width: 1360px) {
+    .api-content {
+        padding-right: 40px;
+        padding-left: 40px;
     }
 }
 
@@ -957,5 +1099,407 @@
 @media (max-width: 1200px) {
     .api-content {
         padding: 20px 24px 32px;
+    }
+}
+
+@media (max-width: 767px) {
+    .api-content,
+    .app-layout-content.has-mobile-header .api-content {
+        --api-content-gap: 0;
+        gap: 0;
+        padding: 16px 0 32px;
+    }
+
+    .api-header {
+        margin: 0;
+        padding: 0 24px 24px;
+    }
+
+    .api-header-top {
+        align-items: center;
+    }
+
+    .api-title {
+        font-size: 20px !important;
+        line-height: 28px !important;
+    }
+
+    .api-subtitle {
+        display: none;
+    }
+
+    .api-docs-button.MuiButton-root {
+        min-width: 0;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 16px;
+    }
+
+    .api-docs-button.MuiButton-root .MuiButton-startIcon {
+        margin-right: 8px;
+    }
+
+    .api-section {
+        gap: 0;
+        margin-bottom: 32px;
+    }
+
+    .api-keys-toolbar,
+    .api-usage-toolbar {
+        padding: 0 24px 8px;
+    }
+
+    .api-section-title {
+        font-size: 16px !important;
+        line-height: 20px !important;
+        color: var(--color-text-secondary);
+    }
+
+    .api-keys-count-row {
+        gap: 8px;
+    }
+
+    .api-keys-count-pill {
+        height: 24px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        background: var(--color-background-muted);
+        color: var(--color-text-secondary);
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 16px;
+    }
+
+    .api-keys-toolbar-actions {
+        display: none;
+    }
+
+    .api-usage-actions--desktop {
+        display: none;
+    }
+
+    .api-keys-mobile-list {
+        width: calc(100% - 48px);
+        margin: 0 24px;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+    }
+
+    .api-keys-mobile-item {
+        border-bottom-color: var(--color-border-default);
+    }
+
+    .api-keys-mobile-row {
+        min-height: 72px;
+        padding: 16px 8px 16px 0;
+        grid-template-columns: minmax(0, 1fr) 80px 20px;
+        gap: 16px;
+        align-items: center;
+    }
+
+    .api-keys-mobile-main {
+        gap: 4px;
+    }
+
+    .api-keys-mobile-name {
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 18px;
+        color: var(--color-text-secondary);
+    }
+
+    .api-keys-mobile-key {
+        font-size: 12px;
+        line-height: 16px;
+        color: var(--color-text-tertiary);
+    }
+
+    .api-keys-mobile-side {
+        gap: 4px;
+    }
+
+    .api-keys-status {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 16px;
+    }
+
+    .api-keys-mobile-last-used {
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 16px;
+        color: var(--color-text-tertiary);
+    }
+
+    .api-keys-mobile-chevron {
+        margin: 0;
+        font-size: 20px !important;
+        color: var(--color-text-tertiary);
+    }
+
+    .api-keys-mobile-empty {
+        font-size: 12px;
+        line-height: 20px;
+    }
+
+    .api-keys-mobile-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 0 16px;
+        min-height: 44px;
+    }
+
+    .api-keys-mobile-toolbar button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 36px;
+        padding: 8px 12px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--color-text-secondary);
+        font-family: 'Geist', sans-serif;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 16px;
+    }
+
+    .api-keys-mobile-toolbar svg {
+        width: 20px;
+        height: 20px;
+        color: var(--color-brand-primary);
+    }
+
+    .api-usage-stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        padding: 0 16px;
+    }
+
+    .api-usage-stat-tile {
+        gap: 4px;
+        padding: 12px;
+        border-radius: 16px;
+    }
+
+    .api-usage-stat-label {
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 18px;
+        color: var(--color-text-tertiary);
+    }
+
+    .api-usage-stat-value {
+        font-size: 32px;
+        font-weight: 500;
+        line-height: 40px;
+        color: var(--color-text-secondary);
+    }
+
+    .api-usage-mobile-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 44px;
+        padding: 0 16px;
+    }
+
+    .api-usage-mobile-actions button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 36px;
+        padding: 8px 12px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--color-text-secondary);
+        font-family: 'Geist', sans-serif;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 16px;
+        cursor: pointer;
+    }
+
+    .api-usage-mobile-actions svg {
+        width: 20px;
+        height: 20px;
+        color: var(--color-brand-primary);
+    }
+
+    .api-keys-notice {
+        margin: 0 16px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        background: var(--color-background-subtle);
+        font-size: 14px;
+        line-height: 22px;
+    }
+
+    .api-keys-notice-label {
+        font-weight: 600;
+    }
+
+    .api-keys-mobile-page-drawer {
+        width: 100%;
+        max-height: min(88vh, 760px);
+        border-top-left-radius: 24px;
+        border-top-right-radius: 24px;
+    }
+
+    .api-keys-mobile-page-drawer-body {
+        padding: 0;
+    }
+
+    .api-keys-mobile-page-drawer-handle {
+        width: 44px;
+        height: 4px;
+        margin: 8px auto 12px;
+        border-radius: 4px;
+        background: var(--color-grey-300);
+    }
+
+    .api-keys-mobile-page-drawer-header {
+        margin: 0;
+        padding: 20px 16px;
+        border-bottom: 1px solid var(--color-border-subtle);
+    }
+
+    .api-keys-mobile-page-drawer-head-main {
+        gap: 4px;
+    }
+
+    .api-keys-mobile-page-drawer-heading {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .api-keys-mobile-page-drawer-title {
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 20px;
+    }
+
+    .api-keys-mobile-page-drawer-title-line {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .api-keys-mobile-page-drawer-title-line .api-keys-action.is-icon {
+        width: 20px;
+        height: 20px;
+        padding: 2px;
+        color: var(--color-text-tertiary);
+    }
+
+    .api-keys-mobile-page-drawer-title-line .api-keys-action.is-icon svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .api-keys-mobile-page-drawer-key {
+        overflow: hidden;
+        color: var(--color-text-tertiary);
+        font-family: 'Geist Mono', monospace;
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 16px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .api-keys-mobile-detail-grid {
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .api-keys-mobile-detail-card {
+        min-width: 0;
+        padding: 12px;
+        border: 1px solid var(--color-border-default);
+        border-radius: 16px;
+        background: var(--color-background-surface);
+    }
+
+    .api-keys-mobile-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        margin-bottom: 4px;
+        color: var(--color-text-tertiary);
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 18px;
+        letter-spacing: 0;
+        text-transform: none;
+    }
+
+    .api-keys-mobile-label svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    .api-keys-mobile-value {
+        overflow: hidden;
+        color: var(--color-text-secondary);
+        font-size: 20px;
+        font-weight: 600;
+        line-height: 28px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .api-keys-mobile-value.is-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .api-keys-mobile-value-status-dot {
+        width: 6px;
+        height: 6px;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        background: var(--color-grey-300);
+    }
+
+    .api-keys-mobile-value.is-status.is-active .api-keys-mobile-value-status-dot {
+        background: var(--color-status-active);
+    }
+
+    .api-keys-mobile-actions {
+        margin: 0 12px;
+        padding: 16px 0 34px;
+        border-top: 1px solid var(--color-border-default);
+        gap: 12px;
+    }
+
+    .api-keys-mobile-actions .api-keys-action {
+        height: 44px;
+        padding: 12px;
+        border: 0;
+        border-radius: 12px;
+        background: var(--color-background-muted);
+        color: var(--color-text-secondary);
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 18px;
+    }
+
+    .api-keys-mobile-actions .api-keys-action.is-danger {
+        background: var(--color-status-error);
+        color: var(--color-text-inverse);
     }
 }

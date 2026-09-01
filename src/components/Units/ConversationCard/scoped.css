@@ -67,6 +67,11 @@
         padding-right: 0;
     }
 
+    .history-item {
+        gap: 12px;
+        padding: 16px 4px;
+    }
+
     /* On a phone the checkbox cannot hang in a gutter, because there is none: the
        list runs to the 24px page margin, so `left: -32px` put it at -44 — visible
        in the DOM, off the side of the screen, and select mode looked like it had

@@ -56,7 +56,6 @@ import { nodeStyle } from '../Graph/nodeStyle';
 import ConversationCard from '../Units/ConversationCard';
 
 const DEBUG_HIDE_EXPLORE = true;
-const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 const MOBILE_HEADER_VISIBILITY_EVENT = 'glkb-mobile-header-visibility';
 
@@ -199,7 +198,7 @@ const History = () => {
     const [selectedIds, setSelectedIds] = useState([]);
     const [selectedGraphIds, setSelectedGraphIds] = useState([]);
     const [isDeleting, setIsDeleting] = useState(false);
-    const [isPhoneDevice, setIsPhoneDevice] = useState(false);
+    const [isPhoneDevice, setIsPhoneDevice] = useState(isPhoneViewport);
     const [conversationBookmarks, setConversationBookmarks] = useState([]);
     const [graphBookmarks, setGraphBookmarks] = useState([]);
     /* Every conversation that is working, not just the newest: a reader can leave one answer
@@ -302,7 +301,7 @@ const History = () => {
 
     useEffect(() => {
         const evaluateIsPhone = () => {
-            setIsPhoneDevice(isPhoneUa() && isPhoneViewport());
+            setIsPhoneDevice(isPhoneViewport());
         };
 
         evaluateIsPhone();
@@ -625,7 +624,7 @@ const History = () => {
                         {(
                             <Box className="history-header">
                                 <Box className="history-title-row">
-                                    <Typography sx={{
+                                    <Typography className="history-title" sx={{
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 600,
                                         fontSize: '24px',
@@ -634,6 +633,15 @@ const History = () => {
                                     }}>
                                         History
                                     </Typography>
+                                    {isPhoneDevice && (
+                                        <button
+                                            type="button"
+                                            className="history-select-toggle history-title-select-toggle"
+                                            onClick={handleToggleSelectMode}
+                                        >
+                                            {selectMode ? 'Exit Select' : 'Select'}
+                                        </button>
+                                    )}
                                 </Box>
                                 <Typography sx={{
                                     marginTop: '4px',
