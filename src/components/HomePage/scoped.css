@@ -234,8 +234,9 @@
 }
 
 .homepage-pill-icon svg {
-    font-size: 16px;
-    color: inherit;
+    display: block;
+    width: 16px;
+    height: 16px;
 }
 
 .homepage-pill-label {

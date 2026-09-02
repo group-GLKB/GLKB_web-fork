@@ -28,10 +28,10 @@ import {
   Typography,
 } from '@mui/material';
 
-import { ReactComponent as PillEntityInsightsIcon } from '../../img/llm/pill_entity_insights.svg';
-import { ReactComponent as PillLiteratureDiscoveryIcon } from '../../img/llm/pill_literature_discovery.svg';
-import { ReactComponent as PillMechanismsIcon } from '../../img/llm/pill_mechanisms.svg';
-import { ReactComponent as PillResearchTrendIcon } from '../../img/llm/pill_research_trend.svg';
+import { ReactComponent as PillBuildEvidenceIcon } from '../../img/llm/pill_build_evidence.svg';
+import { ReactComponent as PillCheckClaimIcon } from '../../img/llm/pill_check_claim.svg';
+import { ReactComponent as PillCompareOptionsIcon } from '../../img/llm/pill_compare_options.svg';
+import { ReactComponent as PillFocusHypothesisIcon } from '../../img/llm/pill_focus_hypothesis.svg';
 import {
   getGuestTier,
   getMyTier,
@@ -67,21 +67,14 @@ const HomePage = () => {
     const heroInnerRef = useRef(null);
     const [heroTopOffset, setHeroTopOffset] = useState(null);
     const iconMap = {
-        lightbulb: <PillEntityInsightsIcon />,
-        chart: <PillResearchTrendIcon />,
-        book: <PillMechanismsIcon />,
-        knowledge: <PillLiteratureDiscoveryIcon />,
-    };
-    const iconColorMap = {
-        lightbulb: '#FBBF7A',
-        chart: '#08B046',
-        book: '#BD7AFB',
-        knowledge: 'var(--color-brand-primary)',
+        lightbulb: <PillFocusHypothesisIcon />,
+        chart: <PillCompareOptionsIcon />,
+        book: <PillCheckClaimIcon />,
+        knowledge: <PillBuildEvidenceIcon />,
     };
     const pills = (exampleSchema.pills || []).map((pill) => ({
         ...pill,
-        icon: iconMap[pill.icon] || <PillEntityInsightsIcon />,
-        iconColor: iconColorMap[pill.icon] || 'var(--color-grey-800)',
+        icon: iconMap[pill.icon] || <PillFocusHypothesisIcon />,
     }));
     const activePill = pills.find((pill) => pill.id === showExamples);
     const isHomeLimitReachedEffective = isQueryLimitReached || DEBUG_FORCE_LIMIT_WARNING;
@@ -444,7 +437,7 @@ const HomePage = () => {
                                                 setShowExamples((current) => current === pill.id ? undefined : pill.id);
                                             }}
                                         >
-                                            <span className="homepage-pill-icon" style={{ color: pill.iconColor }}>{pill.icon}</span>
+                                            <span className="homepage-pill-icon">{pill.icon}</span>
                                             <span className="homepage-pill-label">{pill.label}</span>
                                         </Box>
                                     ))}
