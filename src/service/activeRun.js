@@ -132,11 +132,22 @@ export const setActiveRun = (run) => {
     // slot, which belongs to whichever nameless run is using it — a signed-out recovery,
     // say — and deleting it here took that run's mark down mid-answer.
     if (run.conversationId != null && run.key != null) runs.delete(provisionalKey(run.key));
+    // A new run in a conversation this session had written off makes it live again.
+    if (run.conversationId != null) settledThisSession.delete(String(run.conversationId));
     const existing = runs.get(key);
     // Delete before set so insertion order tracks the most recent write, which is what
     // `getActiveRun` reports. `Map.set` on an existing key keeps its original position.
     runs.delete(key);
-    const record = { startedAt: existing?.startedAt ?? Date.now(), ...run };
+    /* `recovered` says "nobody in this tab owns this mark" — it was read back from disk, or
+       taken from the server's word. A live caller reaching here DOES own it and will take it
+       down in its own `finally`, so the flag comes off unless the caller asks for it. It used
+       to be dropped implicitly by the spread, which left a resumed conversation's mark looking
+       live to `reconcileRunsWithServer` — and therefore unclearable. */
+    const record = {
+        startedAt: existing?.startedAt ?? Date.now(),
+        ...run,
+        recovered: run.recovered === true,
+    };
     runs.set(key, record);
     /* Written through so the next page load knows this conversation was being answered, and at
        which session id to pick the answer up. A provisional run has no conversation to file it
@@ -204,6 +215,21 @@ export const clearPendingRun = (key) => {
  *
  * @param {Array<{id: *, isAnswering?: boolean, sessionId?: string, isInvestigate?: boolean}>} summaries
  */
+/* Conversations this session has established are NOT being answered, whatever the server
+   still says. `is_answering` is bounded on the backend now, but a client that has just
+   polled the run itself and found it finished or gone knows sooner and more precisely — and
+   without this the next list refresh put the mark straight back up, which is what made a
+   conversation unaskable for the life of the tab. Session-scoped on purpose: a genuinely new
+   run in the same conversation calls `setActiveRun`, which takes it off the list. */
+const settledThisSession = new Set();
+
+export const forgetRun = (conversationId) => {
+    if (conversationId == null) return;
+    const key = String(conversationId);
+    settledThisSession.add(key);
+    clearActiveRun(key);
+};
+
 export const reconcileRunsWithServer = (summaries) => {
     if (!Array.isArray(summaries)) return;
     let changed = false;
@@ -211,7 +237,7 @@ export const reconcileRunsWithServer = (summaries) => {
         if (summary?.id == null) return;
         const key = String(summary.id);
         const existing = runs.get(key);
-        if (summary.isAnswering) {
+        if (summary.isAnswering && !settledThisSession.has(key)) {
             if (existing) {
                 // Keep the mark; top up the address if this is the first time one arrived.
                 if (!existing.sessionId && summary.sessionId) {

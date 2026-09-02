@@ -50,6 +50,7 @@ import {
   updateApiKeyName,
   updateApiKeyStatus,
 } from '../../service/ApiKeys';
+import { withServerTimezone } from '../../utils/serverTime';
 
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
@@ -64,14 +65,16 @@ const maskKeyValue = (value) => {
 
 const formatDateYmd = (value) => {
     if (!value) return '-';
-    const date = new Date(value);
+    // The API writes naive UTC with no designator; `new Date()` would read it as local time.
+    // See utils/serverTime.js — a key created at 22:00 UTC showed tomorrow's date without it.
+    const date = new Date(withServerTimezone(value));
     if (Number.isNaN(date.getTime())) return value;
     return date.toISOString().slice(0, 10);
 };
 
 const formatRelativeTime = (value) => {
     if (!value) return 'Never';
-    const date = new Date(value);
+    const date = new Date(withServerTimezone(value));
     if (Number.isNaN(date.getTime())) return value;
     const diffMs = Date.now() - date.getTime();
     const seconds = Math.max(0, Math.floor(diffMs / 1000));

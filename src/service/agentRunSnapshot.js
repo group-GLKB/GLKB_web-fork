@@ -41,8 +41,16 @@ const SNAPSHOT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
    go; the newest are the ones anybody is still waiting on. */
 const MAX_SNAPSHOTS = 6;
 
-/** The slot a run files under. A run with no conversation is the guest's, and there is one. */
-const slotFor = (conversationId) => (conversationId ? String(conversationId) : '__guest__');
+/* The slot a run files under.
+ *
+ * A run with no conversation of its own is a guest's, and a browser has one of those at a
+ * time. A signed-in run passes through the same shape for the length of the
+ * `createConversation` round trip, though, and its write into this slot was never cleaned up
+ * — so a guest slot could hold a stranger's transcript, and `readActiveRunSnapshot()` (the
+ * newest across all slots) could hand it to a mount that had no business seeing it. Whoever
+ * writes here last owns it; `releaseGuestSlot` is how a run hands it back on acquiring an id. */
+const GUEST_SLOT = '__guest__';
+const slotFor = (conversationId) => (conversationId ? String(conversationId) : GUEST_SLOT);
 
 /* Which snapshot is the newest, when two were written in the same millisecond — which the
    throttled writer does whenever two runs tick together. `savedAt` alone leaves that a tie, and
@@ -91,17 +99,27 @@ const readAll = () => {
         try { storage.removeItem(ACTIVE_RUN_SNAPSHOT_KEY); } catch (e) { /* nothing to do */ }
     }
 
-    // The old single slot, folded in under its own conversation and then retired.
+    /* The old single slot, folded in under its own conversation and then retired.
+    
+       Written to the new key BEFORE the old one is removed, and persisted unconditionally.
+       It used to be removed first and written back only `if (pruned)` — which is false on a
+       fresh upgrade, when there is nothing stale to prune — so the migrated run was handed to
+       whichever caller happened to read first and then existed nowhere. `PersistentAgentSurface`
+       calls `shouldResumeAgentInBackground()` during render and keeps only the boolean, so on a
+       non-chat page that first reader threw the run away before the chat component ever asked. */
+    let migrated = false;
     try {
         const legacyRaw = storage.getItem(LEGACY_SNAPSHOT_KEY);
         if (legacyRaw) {
-            storage.removeItem(LEGACY_SNAPSHOT_KEY);
             const legacy = JSON.parse(legacyRaw);
             const slot = slotFor(legacy?.conversationId);
-            if (isRestorable(legacy) && !stored[slot]) stored[slot] = legacy;
+            if (isRestorable(legacy) && !stored[slot]) {
+                stored[slot] = legacy;
+                migrated = true;
+            }
         }
     } catch (error) {
-        try { storage.removeItem(LEGACY_SNAPSHOT_KEY); } catch (e) { /* nothing to do */ }
+        migrated = false;
     }
 
     const live = {};
@@ -110,7 +128,11 @@ const readAll = () => {
         if (isRestorable(stored[slot])) live[slot] = stored[slot];
         else pruned = true;
     });
-    if (pruned) writeAll(live);
+    if (pruned || migrated) writeAll(live);
+    if (migrated || storage.getItem(LEGACY_SNAPSHOT_KEY)) {
+        // Only once the new copy is safely stored.
+        try { storage.removeItem(LEGACY_SNAPSHOT_KEY); } catch (e) { /* nothing to do */ }
+    }
     return live;
 };
 
@@ -203,6 +225,19 @@ export const writeActiveRunSnapshot = (snapshot) => {
  * run can be in flight: clearing the lot when one of them finishes takes down the record of
  * the others, which are still being written.
  */
+/**
+ * Hand back the no-conversation slot, for a run that has just been given an id.
+ *
+ * Called when a snapshot moves from the guest slot to a real one, so the interim copy does
+ * not linger as the newest snapshot in the store.
+ */
+export const releaseGuestSlot = () => {
+    const snapshots = readAll();
+    if (!(GUEST_SLOT in snapshots)) return;
+    delete snapshots[GUEST_SLOT];
+    writeAll(snapshots);
+};
+
 export const clearActiveRunSnapshot = (conversationId) => {
     const storage = getSessionStorage();
     if (!storage) return;

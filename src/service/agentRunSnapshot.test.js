@@ -2,6 +2,7 @@ import {
     ACTIVE_RUN_SNAPSHOT_KEY,
     LEGACY_SNAPSHOT_KEY,
     clearActiveRunSnapshot,
+    releaseGuestSlot,
     readActiveRunSnapshot,
     readActiveRunSnapshotFor,
     readAllActiveRunSnapshots,
@@ -193,5 +194,81 @@ describe('the single slot this replaced', () => {
             version: 2, active: true, conversationId: '42', savedAt: 0,
         }));
         expect(readActiveRunSnapshot()).toBeNull();
+    });
+});
+
+
+/**
+ * The migration has to SURVIVE being read.
+ *
+ * It used to remove the old key and write the new one only `if (pruned)` — which is false on
+ * a fresh upgrade, when there is nothing stale to prune. So the migrated run was handed to
+ * whichever caller read first and then existed nowhere. `PersistentAgentSurface` calls
+ * `shouldResumeAgentInBackground()` during render and keeps only the boolean, so on any
+ * non-chat page that first reader threw the run away before the chat component ever asked.
+ */
+describe('the migration persists', () => {
+    const legacy = () => ({
+        version: 2,
+        active: true,
+        conversationId: '42',
+        sessionId: 'web_old',
+        savedAt: Date.now(),
+    });
+
+    it('survives a reader that only wants the boolean', () => {
+        sessionStorage.setItem(LEGACY_SNAPSHOT_KEY, JSON.stringify(legacy()));
+
+        expect(shouldResumeAgentInBackground()).toBe(true);   // the first, discarding reader
+
+        expect(readActiveRunSnapshotFor('42')).toEqual(expect.objectContaining({
+            conversationId: '42', sessionId: 'web_old',
+        }));
+    });
+
+    it('is written under the new key before the old one is dropped', () => {
+        sessionStorage.setItem(LEGACY_SNAPSHOT_KEY, JSON.stringify(legacy()));
+        readActiveRunSnapshot();
+        expect(sessionStorage.getItem(ACTIVE_RUN_SNAPSHOT_KEY)).toContain('web_old');
+        expect(sessionStorage.getItem(LEGACY_SNAPSHOT_KEY)).toBeNull();
+    });
+
+    it('does not resurrect a stale legacy record', () => {
+        sessionStorage.setItem(LEGACY_SNAPSHOT_KEY, JSON.stringify({
+            ...legacy(), savedAt: 0,
+        }));
+        expect(readActiveRunSnapshot()).toBeNull();
+        expect(sessionStorage.getItem(LEGACY_SNAPSHOT_KEY)).toBeNull();
+    });
+});
+
+/**
+ * A signed-in run has no conversation for the length of the `createConversation` round trip,
+ * so it writes into the same slot a guest uses. That interim copy has to be handed back when
+ * the id arrives — otherwise it lingers as the newest snapshot in the store and a later mount
+ * restores a stranger's transcript from it.
+ */
+describe('the no-conversation slot', () => {
+    it('is released when the run acquires an id', () => {
+        writeActiveRunSnapshot({
+            conversationId: null,
+            messages: [{ role: 'user', content: 'asked before the row existed' }],
+        });
+        writeActiveRunSnapshot({
+            conversationId: '9',
+            messages: [{ role: 'user', content: 'asked before the row existed' }],
+        });
+
+        releaseGuestSlot();
+
+        expect(readActiveRunSnapshotFor(null)).toBeNull();
+        expect(readActiveRunSnapshotFor('9')).not.toBeNull();
+        expect(readActiveRunSnapshot().conversationId).toBe('9');
+    });
+
+    it('releasing it when empty is harmless', () => {
+        writeActiveRunSnapshot({ conversationId: '9', messages: [{ role: 'user', content: 'x' }] });
+        releaseGuestSlot();
+        expect(readActiveRunSnapshotFor('9')).not.toBeNull();
     });
 });
