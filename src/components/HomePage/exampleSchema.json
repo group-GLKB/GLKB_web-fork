@@ -6,49 +6,55 @@
     ],
     "pills": [
         {
-            "id": "insights",
-            "label": "Entity Insights",
-            "panelTitle": "Entity Insights",
+            "id": "focus-hypothesis",
+            "label": "Focus My Hypothesis",
+            "panelTitle": "Focus My Hypothesis",
             "icon": "lightbulb",
             "examples": [
-                "What genes are most strongly associated with pancreatic cancer, and what evidence supports each association?",
-                "How does PD-1/PD-L1 signaling contribute to immune evasion and immunotherapy response in pancreatic cancer?",
-                "Which inflammatory pathways are associated with increased risk of colorectal cancer?",
-                "What genes are implicated in cystic fibrosis-related pancreatic disease, and how do they interact?"
+                "Which genes and pathways make oxidative stress–driven neuron loss in Parkinson’s disease testable?",
+                "How can TREM2 microglial signaling in Alzheimer’s disease be framed as a testable hypothesis?",
+                "How can autophagy and drug response in KRAS-driven pancreatic cancer be framed as a testable hypothesis?",
+                "How can IL-6/STAT3-driven drug resistance in colorectal cancer be framed as a testable hypothesis?",
+                "Which SLE subtypes show type I interferon signaling?"
             ]
         },
         {
-            "id": "disease",
-            "label": "Research Trend",
-            "panelTitle": "Research Trend",
+            "id": "compare-options",
+            "label": "Compare My Options",
+            "panelTitle": "Compare My Options",
             "icon": "chart",
             "examples": [
-                "What research trends are emerging around KRAS mutations and pancreatic cancer progression?",
-                "What are the major research trends in single-cell studies of pancreatic cancer tumor microenvironment?",
-                "How has the literature on microbiome involvement in colorectal cancer evolved, and what mechanisms are most often discussed?",
-                "What trends are emerging in studies linking inflammation, fibrosis, and pancreatic cancer progression?"
+                "Which gene—EGFR, ALK, or KRAS—offers the clearest NSCLC teaching case?",
+                "Which CML resistance case is clearer: imatinib or dasatinib?",
+                "Which gene—APOE, TREM2, or ABCA7—offers the strongest Alzheimer’s lipid biology thesis?",
+                "Which gene—LDLR, APOB, or PCSK9—offers the strongest familial hypercholesterolemia thesis?",
+                "Which pathway should we prioritize in ulcerative colitis: JAK–STAT or NF-κB?"
             ]
         },
         {
-            "id": "literature",
-            "label": "Mechanism Links",
-            "panelTitle": "Mechanisms and Relationships",
+            "id": "check-claim",
+            "label": "Check a Claim",
+            "panelTitle": "Check a Claim",
             "icon": "book",
             "examples": [
-                "What evidence connects KRAS mutations with immune evasion in pancreatic cancer?",
-                "What evidence links type 2 diabetes with pancreatic cancer risk?",
-                "How are cancer-associated fibroblasts related to immune suppression in pancreatic ductal adenocarcinoma?"
+                "Does p53 loss cause chemotherapy resistance across cancers?",
+                "Are metformin’s anticancer effects mainly mediated by AMPK?",
+                "Does ACE2 expression alone determine SARS-CoV-2 tissue tropism?",
+                "Do PARP inhibitors benefit tumors with “BRCAness” beyond BRCA1/2 mutations?",
+                "Should IL-17 blockade work in Crohn’s disease?"
             ]
         },
         {
-            "id": "usecases",
-            "label": "Literature Discovery",
-            "panelTitle": "Literature Discovery",
+            "id": "build-evidence",
+            "label": "Build My Evidence",
+            "panelTitle": "Build My Evidence",
             "icon": "knowledge",
             "examples": [
-                "Find papers that study KRAS mutations in pancreatic ductal adenocarcinoma.",
-                "Find papers linking BRCA2 mutations with pancreatic cancer susceptibility.",
-                "Find papers about microbiome changes in colorectal cancer progression."
+                "How does CFTR mutation class affect modulator response?",
+                "How does RFX6 dysfunction link beta-cell identity to type 2 diabetes?",
+                "What evidence supports LRRK2-related inflammation in Parkinson’s disease?",
+                "What evidence supports Fyn inhibition in Alzheimer’s disease?",
+                "What evidence supports combining STING agonists with checkpoint blockade in melanoma?"
             ]
         }
     ]
