@@ -169,7 +169,7 @@ function buildEmailHtml(recipient, severity, failures, runId, repo) {
     </div>
 
     <div style="padding:14px 28px;background:#f7f7f7;font-size:11px;color:#aaa;border-top:1px solid #eee">
-      GLKB Monitoring · Automated Playwright test run · dev.glkb.org
+      GLKB Monitoring · Automated Playwright test run · glkb.org
     </div>
   </div>
 </body>
