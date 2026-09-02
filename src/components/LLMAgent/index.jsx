@@ -4646,6 +4646,22 @@ function LLMAgent({ isRouteActive = true }) {
                         setStreamingStepName('');
                         updateRunningChatHistory(prev => {
                             const newHistory = [...prev];
+                            const last = newHistory[newHistory.length - 1];
+                            /* An error that arrives AFTER an answer does not get to delete
+                               it. A late failure — the history write failing once the report
+                               is already on screen, a connection dropping during teardown —
+                               says something about storage, not about the answer, and this
+                               assignment is destructive: the answer exists nowhere else the
+                               reader can reach, and `updateRunningChatHistory` persists the
+                               overwrite to the conversation store on its way past. Report
+                               the failure alongside the answer instead of on top of it. */
+                            if (last?.role === 'assistant' && last.content) {
+                                newHistory[newHistory.length - 1] = {
+                                    ...last,
+                                    streamError: update.error,
+                                };
+                                return newHistory;
+                            }
                             const errorMessage = {
                                 role: 'assistant',
                                 content: `Error: ${update.error}`,
