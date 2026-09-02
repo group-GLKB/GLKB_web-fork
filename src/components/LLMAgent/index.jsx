@@ -68,6 +68,7 @@ import ClarifyPanel, { getClarificationQuestionKey } from './ClarifyPanel';
 import ReferenceHoverCard from './ReferenceHoverCard';
 import { getBookmarks, toggleBookmark } from '../../utils/bookmarks';
 import { resolveClarifyRound } from './clarifyRound';
+import { sortReferences } from './referenceSort';
 import { mintSessionId } from './sessionId';
 import { makeDrip } from './streamDrip';
 import {
@@ -5497,21 +5498,12 @@ function LLMAgent({ isRouteActive = true }) {
         }
     }, [hoveredPubmedId, enrichedReferences]);
 
-    const sortedReferences = useMemo(() => {
-        const sorted = enrichedReferences.map((reference, originalIndex) => ({ reference, originalIndex }));
-        const getCitationSortValue = (value) => {
-            const num = Number(value);
-            return Number.isFinite(num) ? num : -1;
-        };
-        if (sortOption === 'Citations') {
-            sorted.sort(({ reference: a }, { reference: b }) => (
-                getCitationSortValue(b.citation_count) - getCitationSortValue(a.citation_count)
-            ));
-        } else {
-            sorted.sort(({ reference: a }, { reference: b }) => (a.year || 0) - (b.year || 0));
-        }
-        return sorted;
-    }, [enrichedReferences, sortOption]);
+    // Oldest first by year, most-cited first by citations — see ./referenceSort.js for why the
+    // year comparator could not stay inline.
+    const sortedReferences = useMemo(() => sortReferences(
+        enrichedReferences.map((reference, originalIndex) => ({ reference, originalIndex })),
+        sortOption,
+    ), [enrichedReferences, sortOption]);
     const isExportDisabled = sortedReferences.length === 0;
 
     const handleExportReferences = () => {
