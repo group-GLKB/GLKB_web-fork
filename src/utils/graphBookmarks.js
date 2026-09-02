@@ -4,6 +4,7 @@ import {
   removeFavoriteGraph,
 } from '../service/Favorites';
 import { getGraphHistoryDetail } from '../service/GraphHistory';
+import { toIsoUtc } from './serverTime';
 
 const STORAGE_KEY = 'glkbGraphBookmarks';
 
@@ -16,8 +17,10 @@ const normalizeGraph = (entry) => {
         ghid,
         title: entry.title || '',
         endpointType: entry.endpoint_type || entry.endpointType || '',
-        createdAt: entry.created_at || entry.createdAt || null,
-        updatedAt: entry.last_accessed_time || entry.updatedAt || entry.created_at || entry.createdAt || null,
+        createdAt: toIsoUtc(entry.created_at || entry.createdAt),
+        updatedAt: toIsoUtc(
+            entry.last_accessed_time || entry.updatedAt || entry.created_at || entry.createdAt,
+        ),
         terms: Array.isArray(entry.terms) ? entry.terms : [],
     };
 };

@@ -37,6 +37,7 @@ import {
     subscribeToNotifyPrefs,
 } from '../../service/notifications';
 import { AVATARS, avatarById } from './avatars';
+import { parseServerTime } from '../../utils/serverTime';
 
 const getSessionValue = (key) => {
     if (typeof window === 'undefined') return '';
@@ -49,14 +50,10 @@ const setSessionValue = (key, value) => {
 
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
-const parseNaiveUtcDate = (value) => {
-    if (!value || typeof value !== 'string') return null;
-    const trimmed = value.trim();
-    if (!trimmed) return null;
-    const hasTimezone = /[zZ]|[+-]\d{2}:?\d{2}$/.test(trimmed);
-    const parsed = new Date(hasTimezone ? trimmed : `${trimmed}Z`);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-};
+/* The same rule the rest of the app uses — see utils/serverTime.js. This was a third private
+   copy of it, and its own test for "already says which clock it is on" was unanchored on the
+   `Z` branch, so any value containing a z anywhere counted as timezoned. */
+const parseNaiveUtcDate = parseServerTime;
 
 const formatResetTime = (value) => {
     const parsed = parseNaiveUtcDate(value);

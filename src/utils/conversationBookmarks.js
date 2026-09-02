@@ -3,6 +3,7 @@ import {
   listFavoriteChats,
   removeFavoriteChat,
 } from '../service/Favorites';
+import { toIsoUtc } from './serverTime';
 
 const STORAGE_KEY = 'glkbConversationBookmarks';
 
@@ -15,8 +16,8 @@ const normalizeSession = (session) => {
         hid: hid ?? null,
         title: session.leading_title || session.title || 'New Chat',
         leadingTitle: session.leading_title || session.title || 'New Chat',
-        createdAt: session.created_at || session.createdAt || null,
-        updatedAt: session.last_accessed_time || session.updatedAt || null,
+        createdAt: toIsoUtc(session.created_at || session.createdAt),
+        updatedAt: toIsoUtc(session.last_accessed_time || session.updatedAt),
         messageCount: session.message_count ?? messages.length,
         messages,
     };
