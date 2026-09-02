@@ -4,11 +4,17 @@ import {
   getGraphHistoryDetail,
   listGraphHistories,
 } from '../service/GraphHistory';
+import { serverTimeMs, toIsoUtc } from './serverTime';
 
 const STORAGE_KEY = 'glkbGraphHistories';
 
+/* Newest first, stable on a tie, and unreadable timestamps last — same rule and same reason as
+   the conversation list. See utils/serverTime.js for the two clocks this reconciles. */
 const sortGraphHistories = (list) => (
-    [...list].sort((a, b) => new Date(b?.updatedAt || 0) - new Date(a?.updatedAt || 0))
+    [...list]
+        .map((item, index) => ({ item, index, at: serverTimeMs(item?.updatedAt) ?? 0 }))
+        .sort((a, b) => (b.at - a.at) || (a.index - b.index))
+        .map(({ item }) => item)
 );
 
 const normalizeGraphSummary = (entry) => {
@@ -20,8 +26,10 @@ const normalizeGraphSummary = (entry) => {
         ghid,
         title: entry.title || '',
         endpointType: entry.endpoint_type || entry.endpointType || '',
-        createdAt: entry.created_at || entry.createdAt || null,
-        updatedAt: entry.last_accessed_time || entry.updatedAt || entry.created_at || entry.createdAt || null,
+        createdAt: toIsoUtc(entry.created_at || entry.createdAt),
+        updatedAt: toIsoUtc(
+            entry.last_accessed_time || entry.updatedAt || entry.created_at || entry.createdAt,
+        ),
         terms: Array.isArray(entry.terms) ? entry.terms : [],
     };
 };

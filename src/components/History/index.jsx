@@ -54,6 +54,7 @@ import {
 import { useAuth } from '../Auth/AuthContext';
 import { nodeStyle } from '../Graph/nodeStyle';
 import ConversationCard from '../Units/ConversationCard';
+import { withServerTimezone } from '../../utils/serverTime';
 
 const DEBUG_HIDE_EXPLORE = true;
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
@@ -61,7 +62,7 @@ const MOBILE_HEADER_VISIBILITY_EVENT = 'glkb-mobile-header-visibility';
 
 const formatTimestamp = (value) => {
     if (!value) return '';
-    const date = new Date(value);
+    const date = new Date(withServerTimezone(value));
     if (Number.isNaN(date.getTime())) return '';
     return date.toLocaleString([], {
         month: 'short',
@@ -84,7 +85,10 @@ const parseTimestamp = (value) => {
             return numeric < 1e12 ? numeric * 1000 : numeric;
         }
     }
-    const parsed = new Date(value);
+    /* A datetime the API wrote carries no timezone designator, and `new Date()` would read it
+       as local time — hours away from the instant it names, and hours away from the ISO-UTC
+       timestamps this app writes for itself. See utils/serverTime.js. */
+    const parsed = new Date(withServerTimezone(value));
     const time = parsed.getTime();
     return Number.isNaN(time) ? null : time;
 };

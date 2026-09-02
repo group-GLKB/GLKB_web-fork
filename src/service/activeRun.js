@@ -23,10 +23,36 @@
  * still refused is a second turn in the SAME conversation, which would race its own
  * predecessor; that one is queued instead.
  */
+import { clearRunInFlight, getRunsInFlight, markRunInFlight } from './runRecovery';
+
 const listeners = new Set();
 
 /** conversationId (string) -> run record. Insertion-ordered, so the last is the newest. */
 const runs = new Map();
+
+/* What was still being answered when this page last existed.
+ *
+ * This registry is module state, so a reload used to empty it — and everything that reads it
+ * then said "nothing is running here". The sidebar lost its working dots; the restore stopped
+ * trusting the conversation's locally stored turn over the server's shorter copy; and the
+ * guard that keeps a second turn off a busy history id went quiet on precisely the runs it
+ * exists to protect. The durable record (see runRecovery.js) is read back here so a reload
+ * picks the registry up where it left off.
+ *
+ * These entries are a claim, not proof: the server may have finished while the page was away.
+ * Opening the conversation reconciles them — the restore clears a mark whose history has come
+ * back finished — and runRecovery ages them out on its own. */
+getRunsInFlight().forEach((record) => {
+    if (!record?.conversationId) return;
+    runs.set(String(record.conversationId), {
+        kind: record.kind || 'chat',
+        runId: null,
+        conversationId: String(record.conversationId),
+        sessionId: record.sessionId || null,
+        startedAt: record.startedAt || Date.now(),
+        recovered: true,
+    });
+});
 
 /* A run started before its conversation row exists has no conversation to be keyed on, so it
    is filed under its own stream id until the row arrives. It used to share one `__pending__`
@@ -75,6 +101,18 @@ export const isConversationRunning = (conversationId) => (
 );
 
 /**
+ * The session id a conversation's run can be reattached at, if this registry knows one.
+ *
+ * The per-conversation session store is the usual source; this covers the run recovered from
+ * the durable record, whose id arrived with it.
+ */
+export const getRunSessionId = (conversationId) => (
+    conversationId != null
+        ? (runs.get(String(conversationId))?.sessionId || null)
+        : null
+);
+
+/**
  * Record a run, or move the one that had no conversation id yet onto the id it just got.
  *
  * `kind` is 'investigate' or 'chat'; `runId` is only present for the former.
@@ -98,7 +136,18 @@ export const setActiveRun = (run) => {
     // Delete before set so insertion order tracks the most recent write, which is what
     // `getActiveRun` reports. `Map.set` on an existing key keeps its original position.
     runs.delete(key);
-    runs.set(key, { startedAt: existing?.startedAt ?? Date.now(), ...run });
+    const record = { startedAt: existing?.startedAt ?? Date.now(), ...run };
+    runs.set(key, record);
+    /* Written through so the next page load knows this conversation was being answered, and at
+       which session id to pick the answer up. A provisional run has no conversation to file it
+       under yet; it is recorded when `saved` gives it one. */
+    if (record.conversationId != null) {
+        markRunInFlight({
+            conversationId: record.conversationId,
+            sessionId: record.sessionId ?? existing?.sessionId ?? null,
+            kind: record.kind || 'chat',
+        });
+    }
     notify();
 };
 
@@ -111,11 +160,18 @@ export const setActiveRun = (run) => {
 export const clearActiveRun = (conversationId) => {
     if (conversationId == null) {
         if (!runs.size) return;
+        runs.forEach((run, key) => {
+            if (!isProvisional(key)) clearRunInFlight(key);
+        });
         runs.clear();
         notify();
         return;
     }
     const key = String(conversationId);
+    /* The durable record goes even when this registry has nothing under that key: after a
+       reload the mark may exist only on disk, and the restore that finds a finished history
+       is exactly the caller that needs to be able to take it down. */
+    clearRunInFlight(key);
     if (!runs.delete(key)) return;
     notify();
 };
@@ -130,6 +186,67 @@ export const clearActiveRun = (conversationId) => {
 export const clearPendingRun = (key) => {
     if (!runs.delete(provisionalKey(key))) return;
     notify();
+};
+
+/**
+ * Bring the registry into line with what the server says is still being answered.
+ *
+ * A mark here can outlive its run: the page was away while the answer landed, or the record
+ * was written by a tab that has since closed. And a run can exist that this tab never saw —
+ * a question asked in another window, or on another device. The conversation list carries
+ * `is_answering` for exactly this, so a refresh can settle both directions at once.
+ *
+ * Only RECOVERED marks are removed. A mark that a live request in this tab put up belongs to
+ * that request, whose own `finally` takes it down: the `saved` frame arrives (and refreshes
+ * this list) a moment before the stream finishes settling, so clearing on the server's word
+ * would free the conversation while its own run was still writing — and let a queued follow-up
+ * race it. That is the bug this registry exists to prevent.
+ *
+ * @param {Array<{id: *, isAnswering?: boolean, sessionId?: string, isInvestigate?: boolean}>} summaries
+ */
+export const reconcileRunsWithServer = (summaries) => {
+    if (!Array.isArray(summaries)) return;
+    let changed = false;
+    summaries.forEach((summary) => {
+        if (summary?.id == null) return;
+        const key = String(summary.id);
+        const existing = runs.get(key);
+        if (summary.isAnswering) {
+            if (existing) {
+                // Keep the mark; top up the address if this is the first time one arrived.
+                if (!existing.sessionId && summary.sessionId) {
+                    existing.sessionId = summary.sessionId;
+                    markRunInFlight({
+                        conversationId: key,
+                        sessionId: summary.sessionId,
+                        kind: existing.kind || 'chat',
+                    });
+                }
+                return;
+            }
+            runs.set(key, {
+                kind: summary.isInvestigate ? 'investigate' : 'chat',
+                runId: null,
+                conversationId: key,
+                sessionId: summary.sessionId || null,
+                startedAt: Date.now(),
+                recovered: true,
+            });
+            markRunInFlight({
+                conversationId: key,
+                sessionId: summary.sessionId || null,
+                kind: summary.isInvestigate ? 'investigate' : 'chat',
+            });
+            changed = true;
+            return;
+        }
+        if (existing?.recovered) {
+            runs.delete(key);
+            clearRunInFlight(key);
+            changed = true;
+        }
+    });
+    if (changed) notify();
 };
 
 export const subscribeToActiveRun = (listener) => {

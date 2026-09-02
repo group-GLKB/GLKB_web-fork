@@ -92,6 +92,7 @@ import { useAuth } from '../Auth/AuthContext';
 import { nodeStyle } from '../Graph/nodeStyle';
 import CiteDialog from '../Units/CiteDialog';
 import ConversationCard from '../Units/ConversationCard';
+import { toIsoUtc, withServerTimezone } from '../../utils/serverTime';
 
 const formatMessageCount = (conversation) => {
     const count = typeof conversation?.messageCount === 'number' ? conversation.messageCount : 0;
@@ -161,7 +162,10 @@ const parseTimestamp = (value) => {
             return numeric < 1e12 ? numeric * 1000 : numeric;
         }
     }
-    const parsed = new Date(value);
+    /* A datetime the API wrote carries no timezone designator, and `new Date()` would read it
+       as local time — hours away from the instant it names, and hours away from the ISO-UTC
+       timestamps this app writes for itself. See utils/serverTime.js. */
+    const parsed = new Date(withServerTimezone(value));
     const time = parsed.getTime();
     return Number.isNaN(time) ? null : time;
 };
@@ -291,8 +295,10 @@ const normalizeFolderChat = (session) => {
         hid,
         leadingTitle: session?.leading_title || session?.title || 'New Chat',
         title: session?.leading_title || session?.title || 'New Chat',
-        createdAt: session?.created_at || null,
-        updatedAt: session?.last_accessed_time || session?.updatedAt || session?.created_at || null,
+        createdAt: toIsoUtc(session?.created_at),
+        updatedAt: toIsoUtc(
+            session?.last_accessed_time || session?.updatedAt || session?.created_at,
+        ),
         messageCount: session?.message_count ?? messages.length,
         // `sessions[].is_investigate` on /fav/chat and the folder listings.
         isInvestigate: session?.is_investigate === true,
@@ -332,8 +338,11 @@ const normalizeFolderGraph = (entry) => {
         ghid,
         title: entry?.title || '',
         endpointType: entry?.endpoint_type || entry?.endpointType || '',
-        createdAt: entry?.created_at || entry?.createdAt || null,
-        updatedAt: entry?.last_accessed_time || entry?.updatedAt || entry?.created_at || entry?.createdAt || null,
+        createdAt: toIsoUtc(entry?.created_at || entry?.createdAt),
+        updatedAt: toIsoUtc(
+            entry?.last_accessed_time || entry?.updatedAt
+            || entry?.created_at || entry?.createdAt,
+        ),
         terms: Array.isArray(entry?.terms) ? entry.terms : [],
     };
 };
