@@ -1,26 +1,27 @@
 /**
  * The order the References panel puts papers in.
  *
- * BY YEAR, OLDEST FIRST. A reference list read top to bottom is a story about how the finding
- * developed, so it starts at the beginning.
+ * BY YEAR, NEWEST FIRST. A reader scanning a reference list wants to know what the current
+ * literature says before what the 2015 literature said, so the most recent paper leads.
  *
- * The comparator this replaces was `(a.year || 0) - (b.year || 0)`, and it had two faults.
+ * This was the behaviour until 2026-07-15, when `8b23956` ("style updates") flipped the
+ * comparator to oldest-first alongside a refactor of its argument shape. Nothing else in that
+ * commit suggests the reversal was deliberate.
  *
- * It returned NaN for any year that was not a bare number, and a comparator that returns NaN
- * is treated as "these two are equal" — so a single unparseable year did not just misplace one
- * row, it silently turned the whole sort into a no-op. What the reader then saw was the order
- * the agent had sent, which is `ORDER BY coalesce(a.pubdate, 0) DESC` (glkb-agent
- * `my_agent/tools.py`): newest first, the exact opposite of what the control says it does, and
- * with nothing on screen to suggest the sort had stopped working. `year` arrives in more than
- * one shape — a Neo4j integer on the graph path, a four-digit string from the PubMed
- * enrichment, and a full date string (`2019 Mar 15`, `2019-03-15`) from any provider that
- * fills `date` rather than `pubdate` — so this was reachable, not theoretical. The sibling
- * Citations comparator was given exactly this guard (`getCitationSortValue`) and the year one
- * was not, which is the shape of a bug someone met once and fixed on one side only.
+ * The comparator also could not survive its own input. `(a.year || 0) - (b.year || 0)` returns
+ * NaN for any year that is not a bare number, and a comparator that returns NaN is read as
+ * "these two are equal" — so a single unparseable year would not misplace one row, it would
+ * turn the whole sort into a no-op and leave the list in whatever order it arrived in, under a
+ * control still labelled Year and with nothing on screen to say the sort had stopped working.
+ * `year` arrives in more than one shape: a Neo4j integer on the graph path, a four-digit string
+ * from the PubMed enrichment, and a full date string (`2019 Mar 15`, `2019-03-15`) from any
+ * provider that fills `date` rather than `pubdate`. The sibling Citations comparator was given
+ * exactly this guard (`getCitationSortValue`) and the year one was not — a bug met once and
+ * fixed on one side only.
  *
- * And `|| 0` sent a reference with no year to the FRONT: a paper Neo4j could not resolve
- * carries `date: null`, and undated rows led the list ahead of every real paper. An unknown
- * year is not the year 0; it goes last.
+ * And `|| 0` decided where an unknown year belongs by accident rather than on purpose. A paper
+ * Neo4j could not resolve carries `date: null`; it is not a paper from the year 0, and it goes
+ * last whichever way the years are running.
  *
  * Its own module, with no imports, so the rule can be tested without pulling the whole app in.
  */
@@ -46,18 +47,18 @@ export const getReferenceYear = (value) => {
 };
 
 /**
- * Oldest first, with unknown years last, and stable within a year.
+ * Newest first, with unknown years last, and stable within a year.
  *
- * Stability matters: papers from the same year keep the order the agent chose for them, which
- * is its own relevance judgement and better than an arbitrary reshuffle.
+ * Stability matters: papers sharing a year keep the order the agent chose for them, which is
+ * its own relevance judgement and better than an arbitrary reshuffle.
  */
-export const compareByYearAscending = (a, b) => {
+export const compareByYearDescending = (a, b) => {
     const left = getReferenceYear(a?.year);
     const right = getReferenceYear(b?.year);
     if (left === null && right === null) return 0;
     if (left === null) return 1;
     if (right === null) return -1;
-    return left - right;
+    return right - left;
 };
 
 /** Most-cited first. Anything that is not a number — `N/A` on an enriched row — goes last. */
@@ -79,7 +80,7 @@ export const sortReferences = (wrapped, sortOption) => {
     const items = Array.isArray(wrapped) ? [...wrapped] : [];
     const compare = sortOption === 'Citations'
         ? compareByCitationsDescending
-        : compareByYearAscending;
+        : compareByYearDescending;
     items.sort(({ reference: a }, { reference: b }) => compare(a, b));
     return items;
 };

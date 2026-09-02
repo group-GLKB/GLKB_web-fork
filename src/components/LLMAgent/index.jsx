@@ -5498,8 +5498,8 @@ function LLMAgent({ isRouteActive = true }) {
         }
     }, [hoveredPubmedId, enrichedReferences]);
 
-    // Oldest first by year, most-cited first by citations — see ./referenceSort.js for why the
-    // year comparator could not stay inline.
+    // Newest first by year, most-cited first by citations — see ./referenceSort.js for why
+    // the year comparator could not stay inline.
     const sortedReferences = useMemo(() => sortReferences(
         enrichedReferences.map((reference, originalIndex) => ({ reference, originalIndex })),
         sortOption,
