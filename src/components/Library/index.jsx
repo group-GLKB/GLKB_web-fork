@@ -18,16 +18,13 @@ import {
     // so every card in the bookmarked-graphs and shared-maps lists crashed on render —
     // the Library page white-screened for anyone who had saved a map.
     AccessTimeRounded as MetaIcon,
-    Bookmark as BookmarkIcon,
     Close as CloseIcon,
     ChevronRight as ChevronRightIcon,
-    DeleteOutline as DeleteOutlineIcon,
-    DriveFileRenameOutline as DriveFileRenameOutlineIcon,
-    FileCopyOutlined as FileCopyOutlinedIcon,
     FolderOutlined as FolderOutlinedIcon,
     FormatQuoteOutlined as FormatQuoteOutlinedIcon,
     KeyboardArrowDown as KeyboardArrowDownIcon,
     MoreHoriz as MoreHorizIcon,
+    MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
 import {
     Box,
@@ -47,9 +44,14 @@ import {
     Typography,
 } from '@mui/material';
 
-import { ContextMenu, ContextMenuItem } from '../Units/ContextMenu';
+import {
+    ContextMenu,
+    ContextMenuBookmarkIcon,
+    ContextMenuDeleteIcon,
+    ContextMenuItem,
+    ContextMenuRenameIcon,
+} from '../Units/ContextMenu';
 
-import { ReactComponent as FolderOpenIcon } from '../../img/folder_open.svg';
 import { ReactComponent as FolderIcon } from '../../img/folder.svg';
 import { ReactComponent as ChatIcon } from '../../img/llm/chat_message.svg';
 import { ReactComponent as ShareIcon } from '../../img/llm/graph_share.svg';
@@ -58,7 +60,6 @@ import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import { ReactComponent as BookIcon } from '../../img/navbar/book_4.svg';
 import {
     createFavoriteFolder,
-    duplicateFavoriteFolder,
     getFavoriteFolder,
     listFavoriteFolders,
     removeFavoriteFolder,
@@ -503,7 +504,7 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                 open={isMenuOpen}
                 onClose={handleCloseMenu}
             >
-                <ContextMenuItem icon={<BookmarkIcon />} onClick={handleRemoveBookmark}>
+                <ContextMenuItem icon={<ContextMenuBookmarkIcon />} onClick={handleRemoveBookmark}>
                     Remove bookmark
                 </ContextMenuItem>
                 {onManageFolders && (
@@ -519,7 +520,7 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
     );
 };
 
-const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) => {
+const LibraryFolderManagerItem = ({ folder, isActive, itemCount, onDelete, onRename, onOpen }) => {
     const [menuAnchorEl, setMenuAnchorEl] = useState(null);
     const isMenuOpen = Boolean(menuAnchorEl);
 
@@ -532,59 +533,38 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
         setMenuAnchorEl(null);
     };
 
-    const handleOpen = () => {
-        if (onOpen) {
-            onOpen(folder);
-        }
-    };
-
     return (
         <div
-            className="library-folder-card"
-            role="button"
-            tabIndex={0}
-            onClick={handleOpen}
-            onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    handleOpen();
-                }
-            }}
+            className={`library-folder-manager-row${isMenuOpen ? ' is-menu-open' : ''}`}
         >
-            <div className="library-folder-top">
-                <div className="library-folder-icon">
-                    <FolderOpenIcon className="library-folder-icon-image" />
-                </div>
-                <div className="library-folder-menu-slot">
-                    <IconButton
-                        size="small"
-                        className="library-folder-menu"
-                        onClick={handleOpenMenu}
-                        aria-label="Open folder menu"
-                        sx={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: '8px',
-                            color: 'var(--color-text-secondary)',
-                        }}
-                    >
-                        <MoreHorizIcon sx={{ fontSize: 12 }} />
-                    </IconButton>
-                </div>
-            </div>
-            <div className="library-folder-title" title={folder?.name || ''}>
-                {folder?.name || 'Untitled folder'}
-            </div>
-            <div className="library-folder-meta">
-                {folder?.chat_count ?? 0} chats / {folder?.ref_count ?? 0} references
-            </div>
+            <button
+                type="button"
+                className={`library-folder-manager-item${isActive ? ' is-active' : ''}`}
+                onClick={() => onOpen?.(folder)}
+            >
+                <span className="library-folder-manager-icon">
+                    <FolderIcon style={{ width: 16, height: 16 }} />
+                </span>
+                <span className="library-folder-manager-label">{folder?.name || 'Untitled folder'}</span>
+                <span className="library-folder-manager-count">{itemCount}</span>
+            </button>
+            <IconButton
+                size="small"
+                className="library-folder-manager-context-button"
+                onClick={handleOpenMenu}
+                aria-label={`Open ${folder?.name || 'folder'} menu`}
+                aria-haspopup="menu"
+                aria-expanded={isMenuOpen ? 'true' : undefined}
+            >
+                <MoreVertIcon />
+            </IconButton>
             <ContextMenu
                 anchorEl={menuAnchorEl}
                 open={isMenuOpen}
                 onClose={handleCloseMenu}
             >
                 <ContextMenuItem
-                    icon={<DriveFileRenameOutlineIcon />}
+                    icon={<ContextMenuRenameIcon />}
                     onClick={() => {
                         handleCloseMenu();
                         if (onRename) {
@@ -595,18 +575,7 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                     Rename
                 </ContextMenuItem>
                 <ContextMenuItem
-                    icon={<FileCopyOutlinedIcon />}
-                    onClick={() => {
-                        handleCloseMenu();
-                        if (onDuplicate) {
-                            onDuplicate(folder);
-                        }
-                    }}
-                >
-                    Duplicate
-                </ContextMenuItem>
-                <ContextMenuItem
-                    icon={<DeleteOutlineIcon />}
+                    icon={<ContextMenuDeleteIcon />}
                     danger
                     onClick={() => {
                         handleCloseMenu();
@@ -927,6 +896,11 @@ const Library = () => {
         try {
             if (folderRenameTarget?.fid) {
                 await updateFavoriteFolder(folderRenameTarget.fid, nameToUse);
+                if (String(selectedFolderId) === String(folderRenameTarget.fid)) {
+                    setFolderDetail((current) => (
+                        current ? { ...current, name: nameToUse } : current
+                    ));
+                }
             } else {
                 await createFavoriteFolder(nameToUse);
             }
@@ -941,19 +915,15 @@ const Library = () => {
         if (!folder?.fid) return;
         try {
             await removeFavoriteFolder(folder.fid);
+            if (String(selectedFolderId) === String(folder.fid)) {
+                setSelectedFolderId(null);
+                setFolderDetail(null);
+                setMobileFolderDrawerOpen(false);
+                navigate('/library', { replace: true });
+            }
             await refreshFolders();
         } catch (error) {
             // Ignore delete failures.
-        }
-    };
-
-    const handleDuplicateFolder = async (folder) => {
-        if (!folder?.fid) return;
-        try {
-            await duplicateFavoriteFolder(folder.fid);
-            await refreshFolders();
-        } catch (error) {
-            // Ignore duplicate failures.
         }
     };
 
@@ -1454,18 +1424,15 @@ const Library = () => {
                         <div className="library-folder-manager-list">
                             {folders.length > 0 ? (
                                 folders.map((folder) => (
-                                    <button
+                                    <LibraryFolderManagerItem
                                         key={folder.fid}
-                                        type="button"
-                                        className={`library-folder-manager-item${String(selectedFolderId) === String(folder.fid) ? ' is-active' : ''}`}
-                                        onClick={() => handleSelectFolder(folder.fid)}
-                                    >
-                                        <span className="library-folder-manager-icon">
-                                            <FolderIcon style={{ width: 16, height: 16 }} />
-                                        </span>
-                                        <span className="library-folder-manager-label">{folder?.name || 'Untitled folder'}</span>
-                                        <span className="library-folder-manager-count">{getFolderItemCount(folder)}</span>
-                                    </button>
+                                        folder={folder}
+                                        isActive={String(selectedFolderId) === String(folder.fid)}
+                                        itemCount={getFolderItemCount(folder)}
+                                        onOpen={(item) => handleSelectFolder(item.fid)}
+                                        onRename={handleOpenFolderDialog}
+                                        onDelete={handleDeleteFolder}
+                                    />
                                 ))
                             ) : (
                                 <>
@@ -1545,18 +1512,15 @@ const Library = () => {
                             <div className="library-folder-manager-list library-folder-manager-list-mobile">
                                 {folders.length > 0 ? (
                                     folders.map((folder) => (
-                                        <button
+                                        <LibraryFolderManagerItem
                                             key={folder.fid}
-                                            type="button"
-                                            className={`library-folder-manager-item${String(selectedFolderId) === String(folder.fid) ? ' is-active' : ''}`}
-                                            onClick={() => handleSelectFolder(folder.fid)}
-                                        >
-                                            <span className="library-folder-manager-icon">
-                                                <FolderIcon style={{ width: 16, height: 16 }} />
-                                            </span>
-                                            <span className="library-folder-manager-label">{folder?.name || 'Untitled folder'}</span>
-                                            <span className="library-folder-manager-count">{getFolderItemCount(folder)}</span>
-                                        </button>
+                                            folder={folder}
+                                            isActive={String(selectedFolderId) === String(folder.fid)}
+                                            itemCount={getFolderItemCount(folder)}
+                                            onOpen={(item) => handleSelectFolder(item.fid)}
+                                            onRename={handleOpenFolderDialog}
+                                            onDelete={handleDeleteFolder}
+                                        />
                                     ))
                                 ) : (
                                     <>
