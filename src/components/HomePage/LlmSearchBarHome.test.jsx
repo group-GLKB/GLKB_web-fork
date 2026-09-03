@@ -23,6 +23,18 @@ jest.mock('../../utils/gtag', () => ({ trackGtagEvent: jest.fn() }));
 jest.mock('../../config/features', () => ({
     get INVESTIGATE_ENABLED() { return mockInvestigateFlag; },
 }));
+// The picker fetches its catalogue. Left real it would reach axios, fail, and settle on the
+// fallback list at an arbitrary moment — so `model` would race `submit()` rather than being
+// wrong in a reproducible way. Resolved synchronously here instead.
+jest.mock('../../service/models', () => ({
+    fetchModelCatalog: () => Promise.resolve({
+        models: [{ id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', description: 'Balanced.' }],
+        defaultModel: 'gpt-5.6-terra',
+    }),
+    modelLabel: (id) => id,
+    getModelPref: () => '',
+    setModelPref: jest.fn(),
+}));
 
 // MUI's useMediaQuery needs matchMedia; default to the desktop layout.
 beforeAll(() => {
@@ -89,6 +101,9 @@ describe('with Investigate off', () => {
             filters: ['review'],
             rankingMode: 'default',
             investigateEnabled: false,
+            // Empty: these submits happen before the picker's catalogue resolves, and an
+            // absent model is exactly what the chat then omits, leaving the server's default.
+            model: '',
         });
     });
 });
@@ -120,6 +135,9 @@ describe('with Investigate on', () => {
             filters: [],
             rankingMode: 'default',
             investigateEnabled: true,
+            // Empty: these submits happen before the picker's catalogue resolves, and an
+            // absent model is exactly what the chat then omits, leaving the server's default.
+            model: '',
         });
     });
 
@@ -135,6 +153,9 @@ describe('with Investigate on', () => {
             filters: [],
             rankingMode: 'default',
             investigateEnabled: false,
+            // Empty: these submits happen before the picker's catalogue resolves, and an
+            // absent model is exactly what the chat then omits, leaving the server's default.
+            model: '',
         });
     });
 });

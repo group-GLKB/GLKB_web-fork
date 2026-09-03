@@ -2812,3 +2812,18 @@ button.ip-notify.active { background: var(--color-brand-muted); color: var(--col
     outline: 2px solid var(--color-brand-primary);
     outline-offset: 1px;
 }
+
+/* The composer's control row. The picker that sits in it styles itself
+   (`components/Units/ModelPicker`); this is only the shelf it stands on. */
+.composer-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px 10px 20px;
+}
+
+@media (max-width: 767px) {
+    .composer-controls {
+        padding: 0 10px 8px 14px;
+    }
+}

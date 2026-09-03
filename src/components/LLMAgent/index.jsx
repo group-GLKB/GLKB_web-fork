@@ -124,6 +124,7 @@ import {
     setNotifyPref,
     subscribeToNotifyPrefs,
 } from '../../service/notifications';
+import { getModelPref, setModelPref, subscribeToModelPref } from '../../service/models';
 import {
     clearActiveRun,
     clearPendingRun,
@@ -2003,6 +2004,20 @@ function LLMAgent({ isRouteActive = true }) {
     const [chatInvestigateEnabled, setChatInvestigateEnabled] = useState(
         () => Boolean(initialRunSnapshot?.investigate),
     );
+    /* Which model answers the next question.
+
+       Seeded from localStorage, so a reader's choice survives a reload, and '' until the
+       picker reports what the deployment defaults to. Two setters on purpose: a click is
+       remembered, a resolved default is not — storing the default would pin today's id and
+       a later server-side change would never reach this reader. Same cross-tab
+       subscription as the notify preference above, for the same reason: the value is in
+       localStorage and another tab can move it. */
+    const [chatModel, setChatModel] = useState(() => getModelPref());
+    useEffect(() => subscribeToModelPref(setChatModel), []);
+    const handleModelChange = useCallback((modelId) => {
+        setChatModel(modelId);
+        setModelPref(modelId);
+    }, []);
     const investigateFunnelRef = useRef(initialRunSnapshot?.investigateFunnel || emptyFunnel());
     const investigatePhaseRef = useRef(initialRunSnapshot?.investigatePhase || 'searching');
     const investigatePercentRef = useRef(initialRunSnapshot?.investigatePercent ?? null);
@@ -3634,6 +3649,12 @@ function LLMAgent({ isRouteActive = true }) {
             if (searchOptions?.investigateEnabled) {
                 setChatInvestigateEnabled(true);
             }
+            // Adopt the model the home page's picker was showing, so the chip here names what
+            // this first turn actually ran on. Normally the same value is already in
+            // localStorage (both pickers write it), but the handover must not depend on that.
+            if (searchOptions?.model) {
+                setChatModel(searchOptions.model);
+            }
             /* Asked even while another conversation is answering. This used to be behind
                `if (!isLoading)`, so a question handed over from the home page during a run was
                dropped without a word — the reader watched their question sit there and nothing
@@ -3936,6 +3957,12 @@ function LLMAgent({ isRouteActive = true }) {
                 : undefined,
             maxArticles: Number.isFinite(Number(requestSearchOptions?.maxArticles))
                 ? Number(requestSearchOptions.maxArticles)
+                : undefined,
+            // Kept so a clarify retry re-runs on the model the original run used. Without it
+            // `prior.model` below is always undefined and the restarted run silently drops to
+            // the server default — the same question answered by a different model.
+            model: typeof requestSearchOptions?.model === 'string' && requestSearchOptions.model
+                ? requestSearchOptions.model
                 : undefined,
         };
 
@@ -4687,6 +4714,10 @@ function LLMAgent({ isRouteActive = true }) {
                 filters: Array.isArray(requestSearchOptions?.filters) ? requestSearchOptions.filters : undefined,
                 rankingMode: typeof requestSearchOptions?.rankingMode === 'string' ? requestSearchOptions.rankingMode : undefined,
                 investigateEnabled,
+                // The turn's OWN model, off the options bag rather than off `chatModel`: a
+                // queued follow-up must send the model that was showing when the reader hit
+                // send, not whatever the picker moved to while it waited in the queue.
+                model: requestSearchOptions?.model || undefined,
                 notifyEmail: (investigateEnabled && notifyEmailEnabled)
                     ? (getUserNotifyEmail() || undefined)
                     : undefined,
@@ -4957,6 +4988,9 @@ function LLMAgent({ isRouteActive = true }) {
                             filters: prior.filters,
                             rankingMode: prior.rankingMode,
                             maxArticles: prior.maxArticles,
+                            // A restarted clarify run is the SAME question; re-running it on a
+                            // different model would silently change the answer's provenance.
+                            model: prior.model,
                         },
                     });
                 } else {
@@ -5948,6 +5982,10 @@ function LLMAgent({ isRouteActive = true }) {
                     ? requestSearchOptions.rankingMode
                     : undefined,
                 investigateEnabled,
+                // The turn's OWN model, off the options bag rather than off `chatModel`: a
+                // queued follow-up must send the model that was showing when the reader hit
+                // send, not whatever the picker moved to while it waited in the queue.
+                model: requestSearchOptions?.model || undefined,
                 messagesOverride: [...base, userMessage].map((msg) => ({
                     role: msg?.role,
                     content: msg?.content,
@@ -6780,9 +6818,17 @@ function LLMAgent({ isRouteActive = true }) {
                                                         isRunElsewhere={isLoading && !isViewingRunningConversation}
                                                         isQueryLimitReached={isLimitReachedEffective}
                                                         investigateEnabled={chatInvestigateEnabled}
+                                                        model={chatModel}
+                                                        onModelChange={handleModelChange}
+                                                        onModelResolveDefault={setChatModel}
                                                         onSubmit={(event) => submitOrQueue(event, {
                                                             investigateEnabled: chatInvestigateEnabled,
                                                             ...(initialSearchOptionsRef.current || {}),
+                                                            // AFTER the spread: the home page's options seeded this
+                                                            // conversation, but the picker is the live control and a
+                                                            // reader who moved it must not be overridden by what they
+                                                            // arrived with.
+                                                            model: chatModel,
                                                         })}
                                                         onStop={handleStopStreaming}
                                                     />
