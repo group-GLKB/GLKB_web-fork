@@ -10,6 +10,12 @@ const BLOG_CONTENT = path.resolve(__dirname, 'src/components/Blog/content');
  * jest cannot load untransformed — webpack handles them fine, so this is a test
  * concern alone. The list is derived rather than hand-written: naming the forty
  * or so packages by hand goes stale the moment a transitive dependency changes.
+ *
+ * axios is a root for the same reason (it is `type: module` since 1.x). Tests used
+ * to get away without it because every module that reached axios was mocked, so the
+ * real one was never loaded — which made the next component to import an
+ * axios-backed service fail in a way that pointed at the component rather than at
+ * this list. Transforming it is cheaper than mocking a service per test.
  */
 const esmPackages = (roots) => {
     const seen = new Set();
@@ -66,7 +72,7 @@ module.exports = {
         configure: (jestConfig) => ({
             ...jestConfig,
             transformIgnorePatterns: [
-                `[/\\\\]node_modules[/\\\\](?!(${esmPackages(['react-markdown', 'remark-gfm'])})[/\\\\]).+\\.(js|mjs|jsx|ts|tsx)$`,
+                `[/\\\\]node_modules[/\\\\](?!(${esmPackages(['react-markdown', 'remark-gfm', 'axios'])})[/\\\\]).+\\.(js|mjs|jsx|ts|tsx)$`,
                 '^.+\\.module\\.(css|sass|scss)$',
             ],
             moduleNameMapper: {

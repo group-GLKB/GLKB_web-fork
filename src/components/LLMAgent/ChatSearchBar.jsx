@@ -9,6 +9,7 @@ import {
 
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { trackGtagEvent } from '../../utils/gtag';
+import ModelPicker from '../Units/ModelPicker';
 
 const ChatSearchBar = ({
     userInput,
@@ -19,6 +20,12 @@ const ChatSearchBar = ({
     // Investigate is fixed for the life of a session, so the bar reports the
     // mode for analytics but no longer renders a toggle.
     investigateEnabled = false,
+    // Which model answers the next question. Per-turn, unlike `investigateEnabled`:
+    // the picker is right here in the composer, so a reader can change it between two
+    // turns of one conversation and expects the next answer to honour the change.
+    model,
+    onModelChange,
+    onModelResolveDefault,
     onSubmit,
     onStop,
 }) => {
@@ -207,6 +214,20 @@ const ChatSearchBar = ({
                     ),
                 }}
             />
+            {/* Sits below the field rather than in the endAdornment: the adornment is the
+                send/stop cluster, and a model name is long enough that putting it there
+                would fight the placeholder for the same row. */}
+            <div className="composer-controls">
+                <ModelPicker
+                    value={model}
+                    onChange={onModelChange}
+                    onResolveDefault={onModelResolveDefault}
+                    // Left usable while an answer streams. A follow-up typed mid-answer is
+                    // queued by the parent, and it should be able to name its own model —
+                    // the choice applies to the NEXT request, never to the one in flight.
+                    disabled={isQueryLimitReached}
+                />
+            </div>
         </Box>
         </div>
     );

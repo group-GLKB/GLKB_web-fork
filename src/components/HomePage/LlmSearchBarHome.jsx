@@ -25,10 +25,18 @@ import { ReactComponent as SearchOptionsIcon } from '../../img/llm/search_option
 import { ReactComponent as SearchOptionsCloseIcon } from '../../img/llm/search_options_close.svg';
 import { ReactComponent as SearchOptionsCollapseIcon } from '../../img/llm/search_options_collapse.svg';
 import { trackGtagEvent } from '../../utils/gtag';
+import ModelPicker from '../Units/ModelPicker';
+import { getModelPref, setModelPref } from '../../service/models';
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
     const [investigateEnabled, setInvestigateEnabled] = useState(false);
+    /* The model the first question will run on.
+
+       Persisted through the same helper the chat composer reads, so a choice made here is
+       the choice the conversation continues with — the two pickers are one preference, not
+       two that can disagree once the reader lands on /chat. */
+    const [model, setModel] = useState(() => getModelPref());
     const [sortBy, setSortBy] = useState('Default');
     const [paperType, setPaperType] = useState('All types');
     const [isOpen, setIsOpen] = useState(false);
@@ -110,7 +118,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         // controls are not rendered, so send the defaults rather than whatever the user
         // happened to pick before turning Investigate on.
         if (investigateEnabled) {
-            return { filters: [], rankingMode: 'default', investigateEnabled: true };
+            // `model` survives this branch while filters/rankingMode do not: deep research
+            // ignores the search-mode knobs but does honour the model, mapping it onto the
+            // tier that writes the report.
+            return { filters: [], rankingMode: 'default', investigateEnabled: true, model };
         }
 
         let rankingMode = 'default';
@@ -125,6 +136,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             filters,
             rankingMode,
             investigateEnabled,
+            model,
         };
     };
 
@@ -498,6 +510,27 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 </Button>
                             </Box>
                             )}
+
+                            {/* Outside the INVESTIGATE_ENABLED block: the model choice is
+                                offered whether or not this deployment exposes Investigate. */}
+                            <Box
+                                sx={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    minWidth: 0,
+                                    pointerEvents: 'auto',
+                                }}
+                            >
+                                <ModelPicker
+                                    value={model}
+                                    onChange={(modelId) => {
+                                        setModel(modelId);
+                                        setModelPref(modelId);
+                                    }}
+                                    onResolveDefault={setModel}
+                                    disabled={isInputLocked}
+                                />
+                            </Box>
 
                             <Box
                                 sx={{

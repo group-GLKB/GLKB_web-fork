@@ -47,6 +47,35 @@ describe('ordinary chat', () => {
     });
 });
 
+describe('model selection', () => {
+    it('sends the chosen model', async () => {
+        await run({ model: 'gpt-5.6-sol' });
+        expect(sentPayload().model).toBe('gpt-5.6-sol');
+    });
+
+    it('sends it on the investigate path too', async () => {
+        // The one option that crosses the pipeline boundary: chat and Investigate share a
+        // composer, so they share its picker. The agent maps the id onto deep research's
+        // report-writing tier. Nothing here persists onto the conversation, so unlike
+        // `filters` this cannot leak into a later turn.
+        await run({ model: 'gpt-5.6-sol', investigateEnabled: true });
+        expect(sentPayload().model).toBe('gpt-5.6-sol');
+    });
+
+    it('omits the field when no model was chosen, so the server default applies', async () => {
+        // Omitted is NOT the same as sending the default's id: the agent reads an absent
+        // field as "follow my config", and a sent id as a pin. A client that echoed the
+        // default back would freeze it at whatever it was when the page loaded.
+        await run({ filters: [] });
+        expect(sentPayload()).not.toHaveProperty('model');
+    });
+
+    it('omits a blank model rather than sending an empty string', async () => {
+        await run({ model: '   ' });
+        expect(sentPayload()).not.toHaveProperty('model');
+    });
+});
+
 describe('investigate (deep research)', () => {
     it('parses the Started frame instead of dropping it on a missing phase constant', async () => {
         const updates = [];
