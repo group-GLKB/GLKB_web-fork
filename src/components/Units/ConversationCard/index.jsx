@@ -7,10 +7,6 @@ import React, {
 } from 'react';
 
 import {
-  Bookmark as BookmarkIcon,
-  BookmarkBorder as BookmarkBorderIcon,
-  DeleteOutline as DeleteOutlineIcon,
-  DriveFileRenameOutline as DriveFileRenameOutlineIcon,
   FolderOutlined as FolderOutlinedIcon,
   MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
@@ -21,7 +17,13 @@ import {
   Typography,
 } from '@mui/material';
 
-import { ContextMenu, ContextMenuItem } from '../ContextMenu';
+import {
+    ContextMenu,
+    ContextMenuBookmarkIcon,
+    ContextMenuDeleteIcon,
+    ContextMenuItem,
+    ContextMenuRenameIcon,
+} from '../ContextMenu';
 import ConversationRunStatus from '../ConversationRunStatus';
 
 const getDefaultTitle = (conversation) => (
@@ -68,7 +70,6 @@ const ConversationCard = ({
     const resolvedBookmarkLabel = bookmarkLabel != null
         ? bookmarkLabel
         : (isBookmarked ? 'Remove bookmark' : 'Bookmark');
-    const BookmarkMenuIcon = isBookmarked ? BookmarkIcon : BookmarkBorderIcon;
 
     useEffect(() => {
         if (!isEditing) {
@@ -275,14 +276,14 @@ const ConversationCard = ({
                 >
                     {onRename && (
                         <ContextMenuItem
-                            icon={<DriveFileRenameOutlineIcon />}
+                            icon={<ContextMenuRenameIcon />}
                             onClick={handleStartRename}
                         >
                             Rename
                         </ContextMenuItem>
                     )}
                     {onBookmark && (
-                        <ContextMenuItem icon={<BookmarkMenuIcon />} onClick={handleBookmark}>
+                        <ContextMenuItem icon={<ContextMenuBookmarkIcon />} onClick={handleBookmark}>
                             {resolvedBookmarkLabel}
                         </ContextMenuItem>
                     )}
@@ -298,7 +299,7 @@ const ConversationCard = ({
                         </ContextMenuItem>
                     )}
                     {onDelete && (
-                        <ContextMenuItem icon={<DeleteOutlineIcon />} danger onClick={handleDelete}>
+                        <ContextMenuItem icon={<ContextMenuDeleteIcon />} danger onClick={handleDelete}>
                             Delete
                         </ContextMenuItem>
                     )}

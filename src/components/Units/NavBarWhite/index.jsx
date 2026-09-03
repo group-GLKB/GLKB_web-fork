@@ -15,11 +15,7 @@ import {
 } from 'react-router-dom';
 
 import {
-  Bookmark as BookmarkIcon,
-  BookmarkBorder as BookmarkBorderIcon,
   Close as CloseIcon,
-  DeleteOutline as DeleteOutlineIcon,
-  DriveFileRenameOutline as DriveFileRenameOutlineIcon,
   InfoOutlined as InfoOutlinedIcon,
   Menu as MenuIcon,
   MoreHoriz as MoreHorizIcon,
@@ -41,7 +37,13 @@ import {
   useMediaQuery,
 } from '@mui/material';
 
-import { ContextMenu, ContextMenuItem } from '../ContextMenu';
+import {
+  ContextMenu,
+  ContextMenuBookmarkIcon,
+  ContextMenuDeleteIcon,
+  ContextMenuItem,
+  ContextMenuRenameIcon,
+} from '../ContextMenu';
 import ConversationRunStatus from '../ConversationRunStatus';
 import {
   styled,
@@ -80,6 +82,7 @@ import {
   toggleConversationBookmark,
 } from '../../../utils/conversationBookmarks';
 import { trackGtagEvent } from '../../../utils/gtag';
+import { prioritizeRunningConversations } from '../../../utils/recentConversations';
 import { useAuth } from '../../Auth/AuthContext';
 
 const drawerWidth = 240;
@@ -464,6 +467,11 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
     const isRecentBookmarked = recentMenuConversation
         ? bookmarkedConversationIds.has(String(recentMenuConversation?.id ?? recentMenuConversation?.hid ?? ''))
         : false;
+    const displayedRecentConversations = useMemo(
+        () => prioritizeRunningConversations(recentConversations, runningConversationIds)
+            .slice(0, maxRecentCount),
+        [maxRecentCount, recentConversations, runningConversationIds],
+    );
     const isHomeRoute = location.pathname === '/';
 
     const handleOpenUserMenu = (event) => {
@@ -910,7 +918,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                 Recent
                             </Typography>
                             <Box className="sidebar-recent-list">
-                                {recentConversations.slice(0, maxRecentCount).map((conversation) => (
+                                {displayedRecentConversations.map((conversation) => (
                                     (() => {
                                         const isEditingRecent = String(editingRecentId) === String(conversation.id);
                                         const isActiveRecent = isActiveConversation(conversation);
@@ -923,10 +931,10 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                     width: 'calc(100% + 16px)',
                                                     marginLeft: '-8px',
                                                     minHeight: 16,
-                                                    '&:hover .recent-entry-button, &:focus-within .recent-entry-button': {
+                                                    '&:hover .recent-entry-button, &:has(.recent-more-button:focus-visible) .recent-entry-button': {
                                                         paddingRight: '36px',
                                                     },
-                                                    '&:hover .recent-more-button, &:focus-within .recent-more-button': {
+                                                    '&:hover .recent-more-button, & .recent-more-button:focus-visible': {
                                                         opacity: 1,
                                                         pointerEvents: 'auto',
                                                     },
@@ -1161,16 +1169,16 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                 open={isRecentMenuOpen}
                 onClose={handleCloseRecentMenu}
             >
-                <ContextMenuItem icon={<DriveFileRenameOutlineIcon />} onClick={handleRenameRecent}>
+                <ContextMenuItem icon={<ContextMenuRenameIcon />} onClick={handleRenameRecent}>
                     Rename
                 </ContextMenuItem>
                 <ContextMenuItem
-                    icon={isRecentBookmarked ? <BookmarkIcon /> : <BookmarkBorderIcon />}
+                    icon={<ContextMenuBookmarkIcon />}
                     onClick={handleBookmarkRecent}
                 >
                     {isRecentBookmarked ? 'Remove bookmark' : 'Bookmark'}
                 </ContextMenuItem>
-                <ContextMenuItem icon={<DeleteOutlineIcon />} danger onClick={handleDeleteRecent}>
+                <ContextMenuItem icon={<ContextMenuDeleteIcon />} danger onClick={handleDeleteRecent}>
                     Delete
                 </ContextMenuItem>
             </ContextMenu>

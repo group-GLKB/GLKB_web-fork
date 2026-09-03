@@ -363,46 +363,6 @@
     color: var(--color-text-secondary);
 }
 
-.api-keys-row-menu .MuiPaper-root {
-    border-radius: 8px;
-    border: 1px solid var(--color-border-default);
-    background: var(--color-background-subtle);
-    box-shadow: none;
-    padding: 4px;
-}
-
-.api-keys-row-menu .MuiList-root {
-    padding: 0;
-}
-
-.api-keys-row-menu .MuiMenuItem-root {
-    display: flex;
-    gap: 4px;
-    min-width: 0;
-    min-height: 20px;
-    padding: 4px;
-    border-radius: 4px;
-    font-family: 'Geist', sans-serif;
-    font-size: 10px;
-    font-weight: 400;
-    line-height: 12px;
-    color: var(--color-text-secondary);
-}
-
-.api-keys-row-menu .MuiMenuItem-root:hover {
-    background: var(--color-background-muted);
-}
-
-.api-keys-row-menu-icon {
-    width: 12px;
-    height: 12px;
-    flex: 0 0 12px;
-}
-
-.api-keys-row-menu .MuiMenuItem-root.is-danger {
-    color: var(--color-status-error-text);
-}
-
 .api-keys-status {
     display: inline-flex;
     align-items: center;

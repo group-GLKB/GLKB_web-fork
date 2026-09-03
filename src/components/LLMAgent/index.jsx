@@ -4160,6 +4160,11 @@ function LLMAgent({ isRouteActive = true }) {
            still writing keeps its registry mark, because taking it down would free the
            conversation for a second turn onto a history id that is still busy. */
         let streamOutcome = 'ok';
+        /* Saved refreshes the server-backed ordering. Keep this run marked active until that
+           refresh has landed: Complete can arrive before the request below resolves, and
+           removing the mark first briefly drops the row into the stale server order before
+           the refreshed list moves it back to the top. */
+        let savedConversationRefresh = null;
         try {
             logDev('[LLM] submit', { input: inputText });
 
@@ -4657,7 +4662,7 @@ function LLMAgent({ isRouteActive = true }) {
                             }
                         }
                         if (isAuthenticated) {
-                            fetchConversations()
+                            savedConversationRefresh = fetchConversations()
                                 .then((list) => setConversationsState(list))
                                 .catch((error) => logDev('[LLM] Failed to refresh conversations', error));
                         }
@@ -4870,6 +4875,10 @@ function LLMAgent({ isRouteActive = true }) {
                them, and a close inside the throttle window would persist a blank bubble
                over an answer that had already arrived. */
             flushConversationStoreWrite();
+            /* Do not remove the loading-first priority while the Saved refresh is still using
+               the old remote order. Its failure is already handled above, so this wait never
+               prevents the run mark from being released on an API error. */
+            if (savedConversationRefresh) await savedConversationRefresh;
             /* 'unknown' means the stream dropped and the server still called the run live.
                Its mark stays: the answer is coming, the sidebar should say so, and a second
                turn must not start on that history id meanwhile. Everything else — finished,
@@ -5885,6 +5894,7 @@ function LLMAgent({ isRouteActive = true }) {
             trajectory: null,
             investigateMode: investigateEnabled,
         }];
+        let savedConversationRefresh = null;
         writeConversationMessages(conversationId, history);
 
         const localThinkingSteps = [];
@@ -5942,7 +5952,7 @@ function LLMAgent({ isRouteActive = true }) {
                             setStoredSessionId(savedId, update.sessionId);
                         }
                         if (isAuthenticated) {
-                            fetchConversations()
+                            savedConversationRefresh = fetchConversations()
                                 .then((list) => setConversationsState(list))
                                 .catch((error) => logDev('[LLM] Failed to refresh conversations', error));
                         }
@@ -6035,6 +6045,9 @@ function LLMAgent({ isRouteActive = true }) {
             }
         } finally {
             refreshTierStatus();
+            /* Match the foreground path: keep this row in the loading-first partition until
+               the server-backed Recent order has caught up with the completed turn. */
+            if (savedConversationRefresh) await savedConversationRefresh;
             clearActiveRun(conversationId);
             // Only a real answer is announced as ready; an error or an unfinished turn
             // saying "is ready" would send the reader to an answer that is not there.

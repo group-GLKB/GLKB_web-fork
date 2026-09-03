@@ -27,8 +27,6 @@ import {
   DialogTitle,
   Drawer,
   IconButton,
-  Menu,
-  MenuItem,
   TextField,
   Typography,
 } from '@mui/material';
@@ -37,11 +35,15 @@ import { SHOW_API_DOCS } from '../../config/features';
 import { ReactComponent as AddFundsIcon } from '../../img/api/add_funds.svg';
 import { ReactComponent as BillingIcon } from '../../img/api/billing.svg';
 import { ReactComponent as ConnectKeyIcon } from '../../img/api/connect_key.svg';
-import { ReactComponent as DeleteIcon } from '../../img/api/delete.svg';
 import { ReactComponent as InfoIcon } from '../../img/api/info.svg';
 import { ReactComponent as RevokeIcon } from '../../img/api/revoke.svg';
 import { ReactComponent as SetLimitIcon } from '../../img/api/set_limit.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
+import {
+  ContextMenu,
+  ContextMenuDeleteIcon,
+  ContextMenuItem,
+} from '../Units/ContextMenu';
 import {
   createApiKey,
   deleteApiKey,
@@ -768,33 +770,32 @@ const ApiPage = () => {
                         </span>
                     </div>
 
-                    <Menu
+                    <ContextMenu
                         anchorEl={rowMenuAnchorEl}
                         open={Boolean(rowMenuAnchorEl)}
                         onClose={handleRowMenuClose}
-                        className="api-keys-row-menu"
-                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                     >
-                        <MenuItem onClick={() => { const target = rowMenuTarget; handleRowMenuClose(); handleLimitOpen(target); }}>
-                            <SetLimitIcon className="api-keys-row-menu-icon" />
+                        <ContextMenuItem
+                            icon={<SetLimitIcon />}
+                            onClick={() => { const target = rowMenuTarget; handleRowMenuClose(); handleLimitOpen(target); }}
+                        >
                             Set limit
-                        </MenuItem>
-                        <MenuItem
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                            icon={<RevokeIcon />}
                             onClick={() => { const target = rowMenuTarget; handleRowMenuClose(); handleStatusToggle(target); }}
                             disabled={statusUpdatingId === rowMenuTarget?.id}
                         >
-                            <RevokeIcon className="api-keys-row-menu-icon" />
                             {rowMenuTarget?.status === 1 ? 'Revoke' : 'Activate'}
-                        </MenuItem>
-                        <MenuItem
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                            icon={<ContextMenuDeleteIcon />}
+                            danger
                             onClick={() => { const target = rowMenuTarget; handleRowMenuClose(); handleDelete(target); }}
-                            className="is-danger"
                         >
-                            <DeleteIcon className="api-keys-row-menu-icon" />
                             Delete
-                        </MenuItem>
-                    </Menu>
+                        </ContextMenuItem>
+                    </ContextMenu>
 
                     <Dialog
                         open={createOpen}

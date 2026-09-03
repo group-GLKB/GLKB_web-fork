@@ -1973,13 +1973,20 @@
    inventing sizes the frame does not contain to separate them would cost more than it buys. */
 .markdown-body h1,
 .markdown-body h2 {
-    margin: 24px 0 12px;
     padding-bottom: 0;
     border-bottom: none;
     font-size: 16px;
     font-weight: 600;
     line-height: 20px;
     color: var(--color-text-secondary);
+}
+
+.markdown-body h1 {
+    margin: 24px 0 12px;
+}
+
+.markdown-body h2 {
+    margin: 16px 0 8px;
 }
 
 .markdown-body h3,
@@ -1995,6 +2002,10 @@
 
 .markdown-body > *:first-child {
     margin-top: 0;
+}
+
+.markdown-body > h2:first-child {
+    margin-top: 16px !important;
 }
 
 /* ---- lists
