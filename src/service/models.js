@@ -28,7 +28,12 @@ const CATALOG_ENDPOINT = '/api/v1/new-llm-agent/models';
 
 /** Used only when the catalogue cannot be reached. */
 export const FALLBACK_MODELS = [
-    { id: 'gpt-5.2', label: 'GPT-5.2', description: 'Balanced reasoning and speed.' },
+    {
+        id: 'gpt-5.6-terra',
+        label: 'GPT-5.6 Terra',
+        short_label: '5.6 Terra',
+        description: 'Balanced depth and speed.',
+    },
 ];
 
 let catalogPromise = null;
@@ -113,9 +118,17 @@ export const subscribeToModelPref = (listener) => {
     };
 };
 
-/** The short name to print for an id, falling back to the id itself. */
-export const modelLabel = (modelId, models) => {
+/**
+ * The name to print for an id, falling back to the id itself.
+ *
+ * `short` asks for the catalogue's abbreviated form, for a chip with no room for the full
+ * one. It falls back to the full label rather than truncating: a backend older than this
+ * build sends no `short_label`, and a full name that overflows still reads better than
+ * "GPT-5.…".
+ */
+export const modelLabel = (modelId, models, { short = false } = {}) => {
     const list = Array.isArray(models) ? models : (catalogCache?.models || FALLBACK_MODELS);
     const hit = list.find((entry) => entry?.id === modelId);
-    return hit?.label || modelId || '';
+    if (!hit) return modelId || '';
+    return (short && hit.short_label) || hit.label || modelId || '';
 };

@@ -21,14 +21,27 @@ import { fetchModelCatalog } from '../../../service/models';
 jest.mock('../../../utils/gtag', () => ({ trackGtagEvent: jest.fn() }));
 jest.mock('../../../service/models', () => ({
     fetchModelCatalog: jest.fn(),
-    modelLabel: (id, models) => (models || []).find((m) => m.id === id)?.label || id,
+    modelLabel: (id, models, { short = false } = {}) => {
+        const hit = (models || []).find((m) => m.id === id);
+        if (!hit) return id;
+        return (short && hit.short_label) || hit.label || id;
+    },
 }));
+
+/** MUI's useMediaQuery needs matchMedia; `matches` is what the tests below steer. */
+const setViewport = (narrow) => {
+    window.matchMedia = (query) => ({
+        matches: narrow, media: query, onchange: null,
+        addListener: () => {}, removeListener: () => {},
+        addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
+    });
+};
 
 const CATALOG = {
     models: [
-        { id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol', description: 'Most capable.' },
-        { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', description: 'Balanced.' },
-        { id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna', description: 'Fastest.' },
+        { id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol', short_label: '5.6 Sol', description: 'Most capable.' },
+        { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', short_label: '5.6 Terra', description: 'Balanced.' },
+        { id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna', short_label: '5.6 Luna', description: 'Fastest.' },
     ],
     defaultModel: 'gpt-5.6-terra',
 };
@@ -36,6 +49,7 @@ const CATALOG = {
 beforeEach(() => {
     fetchModelCatalog.mockReset();
     fetchModelCatalog.mockResolvedValue(CATALOG);
+    setViewport(false);
 });
 
 const setup = (props = {}) => {
@@ -132,4 +146,47 @@ it('is not operable once the query limit is reached', async () => {
     expect(trigger).toBeDisabled();
     fireEvent.click(trigger);
     expect(screen.queryByRole('option')).not.toBeInTheDocument();
+});
+
+
+describe('a chip with no room for the full name', () => {
+    it('abbreviates on a narrow viewport', async () => {
+        // Four controls share the composer's row on a phone. Left at full width the chip is
+        // the one that truncates, and "GPT-5.…" names no model at all.
+        setViewport(true);
+        setup({ value: 'gpt-5.6-terra' });
+        expect(await screen.findByText('5.6 Terra')).toBeInTheDocument();
+        expect(screen.queryByText('GPT-5.6 Terra')).not.toBeInTheDocument();
+    });
+
+    it('still announces the full name to a screen reader', async () => {
+        setViewport(true);
+        setup({ value: 'gpt-5.6-terra' });
+        expect(await screen.findByRole('button', { name: 'Model: GPT-5.6 Terra' }))
+            .toBeInTheDocument();
+    });
+
+    it('keeps full names in the panel, where there is room to compare', async () => {
+        setViewport(true);
+        setup({ value: 'gpt-5.6-terra' });
+        fireEvent.click(await screen.findByRole('button'));
+        const options = await screen.findAllByRole('option');
+        expect(options.map((o) => o.textContent)).toEqual([
+            'GPT-5.6 SolMost capable.',
+            'GPT-5.6 TerraDefaultBalanced.',
+            'GPT-5.6 LunaFastest.',
+        ]);
+    });
+
+    it('falls back to the full name when the catalogue carries no short one', async () => {
+        // A backend older than this build sends no `short_label`. An overflowing full name
+        // still reads better than an abbreviation invented in the client.
+        setViewport(true);
+        fetchModelCatalog.mockResolvedValue({
+            models: [{ id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', description: 'Balanced.' }],
+            defaultModel: 'gpt-5.6-terra',
+        });
+        setup({ value: 'gpt-5.6-terra' });
+        expect(await screen.findByText('GPT-5.6 Terra')).toBeInTheDocument();
+    });
 });

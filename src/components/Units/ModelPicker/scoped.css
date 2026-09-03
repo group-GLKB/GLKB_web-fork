@@ -9,8 +9,12 @@
    second scale: that is the same kind of control (a label, a chevron, a panel of options
    with the current one marked). */
 .model-picker-trigger {
-    min-width: 0;
     max-width: 220px;
+    /* Does NOT shrink. Squeezed in a narrow control row it truncates to "GPT-5…", which
+       tells the reader nothing — and naming the model is the entire job of this chip. The
+       row's other controls absorb the squeeze instead; the search-options chip beside it
+       already ellipsises by design. */
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     gap: 2px;

@@ -511,27 +511,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             </Box>
                             )}
 
-                            {/* Outside the INVESTIGATE_ENABLED block: the model choice is
-                                offered whether or not this deployment exposes Investigate. */}
-                            <Box
-                                sx={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    minWidth: 0,
-                                    pointerEvents: 'auto',
-                                }}
-                            >
-                                <ModelPicker
-                                    value={model}
-                                    onChange={(modelId) => {
-                                        setModel(modelId);
-                                        setModelPref(modelId);
-                                    }}
-                                    onResolveDefault={setModel}
-                                    disabled={isInputLocked}
-                                />
-                            </Box>
-
                             <Box
                                 sx={{
                                     display: 'inline-flex',
@@ -544,6 +523,20 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     pointerEvents: 'auto',
                                 }}
                             >
+                                {/* Beside Search Options, and NOT behind `searchOptionsLocked`
+                                    with it: Investigate withdraws the search-mode controls
+                                    because deep research discards filters and ranking, but it
+                                    does honour the model — so this one stays offered. */}
+                                <ModelPicker
+                                    value={model}
+                                    onChange={(modelId) => {
+                                        setModel(modelId);
+                                        setModelPref(modelId);
+                                    }}
+                                    onResolveDefault={setModel}
+                                    disabled={isInputLocked}
+                                />
+
                                 {!searchOptionsLocked && (
                                 <Box
                                     onMouseDown={(event) => {

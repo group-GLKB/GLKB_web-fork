@@ -27,7 +27,7 @@ import React, { useEffect, useRef, useState } from 'react';
 
 import CheckIcon from '@mui/icons-material/Check';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { ClickAwayListener, Popper } from '@mui/material';
+import { ClickAwayListener, Popper, useMediaQuery } from '@mui/material';
 
 import { fetchModelCatalog, modelLabel } from '../../../service/models';
 import { trackGtagEvent } from '../../../utils/gtag';
@@ -42,6 +42,11 @@ const ModelPicker = ({
     const [defaultModel, setDefaultModel] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const anchorRef = useRef(null);
+    /* The composer's control row fits four things on a phone and truncates the widest of
+       them. 767px is the app shell's own breakpoint, so the chip abbreviates exactly when
+       the layout around it switches. The PANEL always shows full names — it has the room,
+       and that is where a reader compares options. */
+    const isNarrow = useMediaQuery('(max-width:767px)');
     // The resolve is reported at most once per mount. Without the latch a parent that
     // re-renders on the reported value would report it again on every render.
     const resolvedRef = useRef(false);
@@ -80,10 +85,14 @@ const ModelPicker = ({
                 disabled={disabled}
                 aria-haspopup="listbox"
                 aria-expanded={isOpen}
+                // The full name, always — an abbreviated chip must not abbreviate what a
+                // screen reader announces.
                 aria-label={`Model: ${modelLabel(selected, models)}`}
                 onClick={() => setIsOpen((prev) => !prev)}
             >
-                <span className="model-picker-trigger-label">{modelLabel(selected, models)}</span>
+                <span className="model-picker-trigger-label">
+                    {modelLabel(selected, models, { short: isNarrow })}
+                </span>
                 <ChevronRightIcon className={`model-picker-chevron${isOpen ? ' expanded' : ''}`} />
             </button>
 
