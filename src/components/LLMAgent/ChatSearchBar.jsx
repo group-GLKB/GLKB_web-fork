@@ -52,6 +52,14 @@ const ChatSearchBar = ({
     // clear the field and the stop control is there again. There is nothing here to stop when
     // the run belongs to another thread.
     const showStop = isLoading && !isRunElsewhere && !canSend;
+    const trackInvestigateSubmit = (inputMethod) => {
+        if (!pipelineIsDeepResearch) return;
+        trackGtagEvent('investigate_question_submit', {
+            source: 'chat_searchbar',
+            input_method: inputMethod,
+            queued: Boolean(isLoading && !isRunElsewhere),
+        });
+    };
     const placeholder = isRunElsewhere
         ? (isMobileViewport ? 'Ask something new…' : 'Ask a new question — the other answer keeps writing')
         : (isLoading
@@ -91,6 +99,7 @@ const ChatSearchBar = ({
                     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent?.isComposing) {
                         e.preventDefault();
                         if (canSend) {
+                            trackInvestigateSubmit('enter');
                             onSubmit?.(e);
                         }
                     }
@@ -189,6 +198,7 @@ const ChatSearchBar = ({
                                             investigate: Boolean(investigateEnabled),
                                             queued: false,
                                         });
+                                        trackInvestigateSubmit('button');
                                         onSubmit?.(event);
                                     }}
                                     sx={{

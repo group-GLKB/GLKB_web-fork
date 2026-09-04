@@ -140,7 +140,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         };
     };
 
-    const navigateToLLMAgent = (query = '') => {
+    const navigateToLLMAgent = (query = '', inputMethod = 'button') => {
         // Clear input timeout to prevent search_input event after submission
         if (inputTimeoutRef.current) {
             clearTimeout(inputTimeoutRef.current);
@@ -153,6 +153,13 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             filters: searchOptions.filters.join(','),
             investigate_enabled: searchOptions.investigateEnabled,
         });
+        if (query && searchOptions.investigateEnabled) {
+            trackGtagEvent('investigate_question_submit', {
+                source: 'home_searchbar',
+                input_method: inputMethod,
+                queued: false,
+            });
+        }
         if (query) {
             navigate('/chat', {
                 state: {
@@ -461,13 +468,16 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     onClick={(event) => {
                                         event.preventDefault();
                                         event.stopPropagation();
-                                        setInvestigateEnabled((prev) => {
-                                            const next = !prev;
-                                            trackGtagEvent('home_investigate_toggle_click', {
-                                                enabled: next,
+                                        const next = !investigateEnabled;
+                                        if (next) {
+                                            trackGtagEvent('home_investigate_enable_click', {
+                                                source: 'home_searchbar',
                                             });
-                                            return next;
+                                        }
+                                        trackGtagEvent('home_investigate_toggle_click', {
+                                            enabled: next,
                                         });
+                                        setInvestigateEnabled(next);
                                     }}
                                     sx={{
                                         alignItems: 'center',
@@ -628,7 +638,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     aria-label="Start chat"
                                     aria-disabled={isInputLocked}
                                     className="search-button-big"
-                                    onClick={() => { if (!isInputLocked) navigateToLLMAgent(llmQuery.trim()); }}
+                                    onClick={() => { if (!isInputLocked) navigateToLLMAgent(llmQuery.trim(), 'button'); }}
                                     sx={{
                                         height: '32px',
                                         width: '32px',
@@ -748,7 +758,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         trackGtagEvent('home_search_submit_enter', {
                             ranking_mode: buildSearchOptionsPayload().rankingMode,
                         });
-                        navigateToLLMAgent(llmQuery.trim());
+                        navigateToLLMAgent(llmQuery.trim(), 'enter');
                     }
                 }}
             />

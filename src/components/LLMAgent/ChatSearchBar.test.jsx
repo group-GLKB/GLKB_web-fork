@@ -4,6 +4,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import ChatSearchBar from './ChatSearchBar';
+import { trackGtagEvent } from '../../utils/gtag';
 
 jest.mock('../../utils/gtag', () => ({ trackGtagEvent: jest.fn() }));
 // The composer embeds the model picker, which fetches a catalogue. Faked so these tests are
@@ -26,6 +27,10 @@ beforeAll(() => {
         addListener: () => {}, removeListener: () => {},
         addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
     }));
+});
+
+beforeEach(() => {
+    trackGtagEvent.mockClear();
 });
 
 const setup = (props = {}) => {
@@ -147,6 +152,32 @@ describe('ChatSearchBar while an answer is streaming', () => {
 });
 
 describe('ChatSearchBar when nothing is running', () => {
+    it('tracks a question in a resolved Investigate conversation', () => {
+        const { onSubmit } = setup({
+            userInput: 'what is TP53?',
+            investigateEnabled: false,
+            pipelineIsDeepResearch: true,
+        });
+        fireEvent.keyDown(field(), { key: 'Enter' });
+
+        expect(trackGtagEvent).toHaveBeenCalledWith('investigate_question_submit', {
+            source: 'chat_searchbar',
+            input_method: 'enter',
+            queued: false,
+        });
+        expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not emit the Investigate question event in an ordinary conversation', () => {
+        setup({ userInput: 'what is TP53?', pipelineIsDeepResearch: false });
+        fireEvent.keyDown(field(), { key: 'Enter' });
+
+        expect(trackGtagEvent).not.toHaveBeenCalledWith(
+            'investigate_question_submit',
+            expect.anything(),
+        );
+    });
+
     it('sends on Enter as before', () => {
         const { onSubmit } = setup({ userInput: 'what is TP53?' });
         fireEvent.keyDown(field(), { key: 'Enter' });

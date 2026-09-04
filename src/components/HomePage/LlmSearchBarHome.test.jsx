@@ -12,6 +12,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import LlmSearchBarHome from './LlmSearchBarHome';
+import { trackGtagEvent } from '../../utils/gtag';
 
 const mockNavigate = jest.fn();
 // A getter rather than a value: babel compiles the component's named import down to a property
@@ -53,6 +54,7 @@ beforeAll(() => {
 
 beforeEach(() => {
     mockNavigate.mockClear();
+    trackGtagEvent.mockClear();
     mockInvestigateFlag = true;
 });
 
@@ -115,6 +117,33 @@ describe('with Investigate off', () => {
 });
 
 describe('with Investigate on', () => {
+    it('tracks entering the mode, but not switching it back off', () => {
+        setup();
+        fireEvent.click(investigateButton());
+        fireEvent.click(investigateButton());
+
+        expect(trackGtagEvent).toHaveBeenCalledWith('home_investigate_enable_click', {
+            source: 'home_searchbar',
+        });
+        expect(trackGtagEvent.mock.calls.filter(
+            ([eventName]) => eventName === 'home_investigate_enable_click',
+        )).toHaveLength(1);
+    });
+
+    it('tracks an Investigate question submitted from the home search box', () => {
+        setup();
+        const field = screen.getByPlaceholderText('Ask a question about the biomedical literature...');
+        fireEvent.change(field, { target: { value: 'what is TP53?' } });
+        fireEvent.click(investigateButton());
+        fireEvent.keyDown(field, { key: 'Enter' });
+
+        expect(trackGtagEvent).toHaveBeenCalledWith('investigate_question_submit', {
+            source: 'home_searchbar',
+            input_method: 'enter',
+            queued: false,
+        });
+    });
+
     it('removes the trigger entirely', () => {
         setup();
         fireEvent.click(investigateButton());
