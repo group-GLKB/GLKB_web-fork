@@ -9,30 +9,62 @@ import {
 
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { trackGtagEvent } from '../../utils/gtag';
+import ModelPicker from '../Units/ModelPicker';
 
 const ChatSearchBar = ({
     userInput,
     setUserInput,
     isLoading,
+    isRunElsewhere = false,
     isQueryLimitReached = false,
     // Investigate is fixed for the life of a session, so the bar reports the
     // mode for analytics but no longer renders a toggle.
     investigateEnabled = false,
+    // Which model answers the next question. Per-turn, unlike `investigateEnabled`:
+    // the picker is right here in the composer, so a reader can change it between two
+    // turns of one conversation and expects the next answer to honour the change.
+    model,
+    onModelChange,
+    onModelResolveDefault,
+    // Resolved by the parent, which is the only place that can see both signals — see the
+    // comment at the call site. Not derived from `investigateEnabled` above: that one is
+    // for analytics and is false for a reopened investigate conversation.
+    pipelineIsDeepResearch = false,
     onSubmit,
     onStop,
 }) => {
-    const isMobileViewport = useMediaQuery('(max-width:700px)');
-    // The field stayed disabled for the whole run — up to a minute — so a follow-up that
-    // occurred to the reader mid-answer had to be held in their head. It is writable now, and
-    // `onSubmit` queues rather than sends while a run is in flight (the parent decides which).
-    const canSend = Boolean(userInput.trim()) && !isQueryLimitReached;
+    const isMobileViewport = useMediaQuery('(max-width:767px)');
+    /* Two different situations wear the same `isLoading`, and the field stays usable in both.
+
+       THIS conversation is answering: a submit is queued by the parent, so a follow-up that
+       occurs to the reader mid-answer leaves their hands at once instead of being held in
+       their head for the length of a run. A second turn here really would race the first.
+
+       ANOTHER conversation is answering (`isRunElsewhere`): nothing is racing. That run has
+       its own session and its own history id, and the backend locks per history id — so this
+       question simply starts, and the other answer goes on being written. The field used to
+       be disabled here, which meant "New Chat" during a run led to a composer that could not
+       be typed in. */
+    const canType = !isQueryLimitReached;
+    const canSend = Boolean(userInput.trim()) && canType;
     // Stop is what the button offers when there is nothing to send. Typing turns it back into
     // send, which is also how a reader gets out of a queued follow-up they no longer want:
-    // clear the field and the stop control is there again.
-    const showStop = isLoading && !canSend;
-    const placeholder = isLoading
-        ? (isMobileViewport ? 'Ask next…' : 'Ask a follow-up — it will send when this answer finishes')
-        : (isMobileViewport ? 'Ask more...' : 'Ask a question about the biomedical literature...');
+    // clear the field and the stop control is there again. There is nothing here to stop when
+    // the run belongs to another thread.
+    const showStop = isLoading && !isRunElsewhere && !canSend;
+    const trackInvestigateSubmit = (inputMethod) => {
+        if (!pipelineIsDeepResearch) return;
+        trackGtagEvent('investigate_question_submit', {
+            source: 'chat_searchbar',
+            input_method: inputMethod,
+            queued: Boolean(isLoading && !isRunElsewhere),
+        });
+    };
+    const placeholder = isRunElsewhere
+        ? (isMobileViewport ? 'Ask something new…' : 'Ask a new question — the other answer keeps writing')
+        : (isLoading
+            ? (isMobileViewport ? 'Ask next…' : 'Ask a follow-up — it will send when this answer finishes')
+            : (isMobileViewport ? 'Ask more...' : 'Ask a question about the biomedical literature...'));
 
     return (
         <div className="chat-header">
@@ -53,8 +85,11 @@ const ChatSearchBar = ({
                 className="input-form"
                 size="small"
                 value={userInput}
-                onChange={(e) => setUserInput(e.target.value)}
-                disabled={isQueryLimitReached}
+                onChange={(e) => {
+                    if (!canType) return;
+                    setUserInput(e.target.value);
+                }}
+                disabled={!canType}
                 variant="outlined"
                 placeholder={placeholder}
                 multiline
@@ -64,6 +99,7 @@ const ChatSearchBar = ({
                     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent?.isComposing) {
                         e.preventDefault();
                         if (canSend) {
+                            trackInvestigateSubmit('enter');
                             onSubmit?.(e);
                         }
                     }
@@ -72,13 +108,13 @@ const ChatSearchBar = ({
                     width: '100%',
                     '& .MuiInputBase-root': {
                         borderRadius: '16px',
-                        minHeight: { xs: '44px', sm: '52px' },
+                        minHeight: isMobileViewport ? '44px' : '52px',
                         height: 'auto',
                         alignItems: 'center',
                         paddingLeft: '20px',
                         paddingRight: '60px !important',
-                        paddingTop: { xs: '8px', sm: '10px' },
-                        paddingBottom: { xs: '8px', sm: '10px' },
+                        paddingTop: isMobileViewport ? '8px' : '10px',
+                        paddingBottom: isMobileViewport ? '8px' : '10px',
                         fontFamily: 'Geist, sans-serif',
                         fontSize: '14px',
                         color: 'var(--color-text-primary)',
@@ -106,7 +142,7 @@ const ChatSearchBar = ({
                                 gap: 1,
                             }}
                         >
-                            {userInput !== '' && !isQueryLimitReached && (
+                            {userInput !== '' && !isQueryLimitReached && !isLoading && (
                                 <CloseIcon
                                     onMouseDown={(event) => {
                                         event.preventDefault();
@@ -124,6 +160,9 @@ const ChatSearchBar = ({
                             )}
                             {showStop ? (
                                 <Box
+                                    component="button"
+                                    type="button"
+                                    aria-label="Stop generating"
                                     onClick={() => {
                                         trackGtagEvent('chat_stop_click', { source: 'chat_searchbar' });
                                         onStop?.();
@@ -135,6 +174,8 @@ const ChatSearchBar = ({
                                         // Same brand-muted square as the idle send button — the
                                         // near-black fill it used to have belonged to no palette here.
                                         backgroundColor: 'var(--color-brand-muted)',
+                                        border: 'none',
+                                        padding: 0,
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -146,13 +187,18 @@ const ChatSearchBar = ({
                                 </Box>
                             ) : (
                                 <Box
+                                    component="button"
+                                    type="button"
+                                    aria-label={isLoading ? 'Send when this answer finishes' : 'Send'}
+                                    aria-disabled={!canSend}
                                     onClick={(event) => {
                                         if (!canSend) return;
                                         trackGtagEvent('chat_submit_click', {
                                             source: 'chat_searchbar',
                                             investigate: Boolean(investigateEnabled),
-                                            queued: Boolean(isLoading),
+                                            queued: false,
                                         });
+                                        trackInvestigateSubmit('button');
                                         onSubmit?.(event);
                                     }}
                                     sx={{
@@ -160,6 +206,8 @@ const ChatSearchBar = ({
                                         height: 32,
                                         borderRadius: '8px',
                                         backgroundColor: canSend ? 'var(--color-brand-primary)' : 'var(--color-brand-muted)',
+                                        border: 'none',
+                                        padding: 0,
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -180,6 +228,21 @@ const ChatSearchBar = ({
                     ),
                 }}
             />
+            {/* Sits below the field rather than in the endAdornment: the adornment is the
+                send/stop cluster, and a model name is long enough that putting it there
+                would fight the placeholder for the same row. */}
+            <div className="composer-controls">
+                <ModelPicker
+                    value={model}
+                    onChange={onModelChange}
+                    onResolveDefault={onModelResolveDefault}
+                    pipeline={pipelineIsDeepResearch ? 'deep_research' : 'chat'}
+                    // Left usable while an answer streams. A follow-up typed mid-answer is
+                    // queued by the parent, and it should be able to name its own model —
+                    // the choice applies to the NEXT request, never to the one in flight.
+                    disabled={isQueryLimitReached}
+                />
+            </div>
         </Box>
         </div>
     );

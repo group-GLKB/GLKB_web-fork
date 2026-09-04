@@ -12,6 +12,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import LlmSearchBarHome from './LlmSearchBarHome';
+import { trackGtagEvent } from '../../utils/gtag';
 
 const mockNavigate = jest.fn();
 // A getter rather than a value: babel compiles the component's named import down to a property
@@ -22,6 +23,24 @@ jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
 jest.mock('../../utils/gtag', () => ({ trackGtagEvent: jest.fn() }));
 jest.mock('../../config/features', () => ({
     get INVESTIGATE_ENABLED() { return mockInvestigateFlag; },
+}));
+// The picker fetches its catalogue. Left real it would reach axios, fail, and settle on the
+// fallback list at an arbitrary moment — so `model` would race `submit()` rather than being
+// wrong in a reproducible way. Resolved synchronously here instead.
+jest.mock('../../service/models', () => ({
+    ...jest.requireActual('../../service/models'),
+    fetchModelCatalog: () => Promise.resolve({
+        models: [{
+            id: 'gpt-5.6-terra',
+            label: 'GPT-5.6 Terra',
+            description: 'Balanced.',
+            pipelines: ['chat', 'deep_research'],
+        }],
+        defaultModel: 'gpt-5.6-terra',
+        defaultsByPipeline: { chat: 'gpt-5.6-terra', deep_research: 'gpt-5.6-terra' },
+    }),
+    getModelPref: () => '',
+    setModelPref: jest.fn(),
 }));
 
 // MUI's useMediaQuery needs matchMedia; default to the desktop layout.
@@ -35,12 +54,15 @@ beforeAll(() => {
 
 beforeEach(() => {
     mockNavigate.mockClear();
+    trackGtagEvent.mockClear();
     mockInvestigateFlag = true;
 });
 
 // `setOpen` is called from an effect on mount, so it is required even though the autocomplete
 // popup is irrelevant here.
-const setup = () => render(<LlmSearchBarHome setOpen={() => {}} autocompleteOptions={[]} />);
+const setup = (props = {}) => render(
+    <LlmSearchBarHome setOpen={() => {}} autocompleteOptions={[]} {...props} />,
+);
 
 // Matched outside the drawers on purpose: the option chips inside them carry the very same
 // labels once the drawer has been opened, so a plain by-role query finds several elements.
@@ -87,11 +109,41 @@ describe('with Investigate off', () => {
             filters: ['review'],
             rankingMode: 'default',
             investigateEnabled: false,
+            // Empty: these submits happen before the picker's catalogue resolves, and an
+            // absent model is exactly what the chat then omits, leaving the server's default.
+            model: '',
         });
     });
 });
 
 describe('with Investigate on', () => {
+    it('tracks entering the mode, but not switching it back off', () => {
+        setup();
+        fireEvent.click(investigateButton());
+        fireEvent.click(investigateButton());
+
+        expect(trackGtagEvent).toHaveBeenCalledWith('home_investigate_enable_click', {
+            source: 'home_searchbar',
+        });
+        expect(trackGtagEvent.mock.calls.filter(
+            ([eventName]) => eventName === 'home_investigate_enable_click',
+        )).toHaveLength(1);
+    });
+
+    it('tracks an Investigate question submitted from the home search box', () => {
+        setup();
+        const field = screen.getByPlaceholderText('Ask a question about the biomedical literature...');
+        fireEvent.change(field, { target: { value: 'what is TP53?' } });
+        fireEvent.click(investigateButton());
+        fireEvent.keyDown(field, { key: 'Enter' });
+
+        expect(trackGtagEvent).toHaveBeenCalledWith('investigate_question_submit', {
+            source: 'home_searchbar',
+            input_method: 'enter',
+            queued: false,
+        });
+    });
+
     it('removes the trigger entirely', () => {
         setup();
         fireEvent.click(investigateButton());
@@ -118,6 +170,9 @@ describe('with Investigate on', () => {
             filters: [],
             rankingMode: 'default',
             investigateEnabled: true,
+            // Empty: these submits happen before the picker's catalogue resolves, and an
+            // absent model is exactly what the chat then omits, leaving the server's default.
+            model: '',
         });
     });
 
@@ -133,6 +188,9 @@ describe('with Investigate on', () => {
             filters: [],
             rankingMode: 'default',
             investigateEnabled: false,
+            // Empty: these submits happen before the picker's catalogue resolves, and an
+            // absent model is exactly what the chat then omits, leaving the server's default.
+            model: '',
         });
     });
 });
@@ -144,5 +202,58 @@ describe('with INVESTIGATE_ENABLED off', () => {
         expect(investigateButton()).toBeNull();
         fireEvent.click(optionsTrigger());
         expect(drawerIsOpen()).toBe(true);
+    });
+});
+
+describe('while another Agent conversation is answering', () => {
+    /* This box used to be locked whenever any run was in flight, and New Chat during a run
+       sends the reader to this page — so the one place they were sent to get away from a busy
+       conversation was itself a dead end reading "A conversation is still loading". A question
+       asked here opens its own conversation with its own history id, and the backend locks per
+       history id, so it does not race the answer already being written. */
+    const PLACEHOLDER = 'Ask a new question — the other answer keeps writing';
+
+    it('stays usable and says the other answer is not being interrupted', () => {
+        setup({ isAgentRunActive: true });
+        expect(screen.getByPlaceholderText(PLACEHOLDER)).not.toBeDisabled();
+        expect(investigateButton()).not.toBeDisabled();
+    });
+
+    it('starts the new conversation on Enter', () => {
+        setup({ isAgentRunActive: true });
+        const field = screen.getByPlaceholderText(PLACEHOLDER);
+        fireEvent.change(field, { target: { value: 'what is TP53?' } });
+        fireEvent.keyDown(field, { key: 'Enter' });
+        expect(mockNavigate).toHaveBeenCalledWith('/chat', expect.objectContaining({
+            state: expect.objectContaining({ initialQuery: 'what is TP53?' }),
+        }));
+    });
+
+    it('starts it from the button too', () => {
+        setup({ isAgentRunActive: true });
+        const field = screen.getByPlaceholderText(PLACEHOLDER);
+        fireEvent.change(field, { target: { value: 'what is BRCA1?' } });
+        const start = screen.getByRole('button', { name: /start chat/i, hidden: true });
+        expect(start).toHaveAttribute('aria-disabled', 'false');
+        fireEvent.click(start);
+        expect(mockNavigate).toHaveBeenCalledWith('/chat', expect.objectContaining({
+            state: expect.objectContaining({ initialQuery: 'what is BRCA1?' }),
+        }));
+    });
+});
+
+describe('when the quota is gone', () => {
+    // A different matter entirely: there is no run to start, so the box really is locked.
+    it('locks every entry point and does not navigate', () => {
+        setup({ isQueryLimitReached: true });
+
+        const field = document.querySelector('textarea:not([aria-hidden="true"])');
+        expect(field).toBeDisabled();
+        expect(investigateButton()).toBeDisabled();
+
+        const start = screen.getByRole('button', { name: /start chat/i, hidden: true });
+        expect(start).toHaveAttribute('aria-disabled', 'true');
+        fireEvent.click(start);
+        expect(mockNavigate).not.toHaveBeenCalled();
     });
 });

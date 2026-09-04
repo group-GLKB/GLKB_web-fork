@@ -7,7 +7,12 @@
  * silently filters the NEXT ordinary chat turn in the same conversation.
  */
 import axios from '../utils/axiosConfig';
-import { extractFunnelMetrics, INVESTIGATE_MAX_REFERENCES, LLMAgentService } from './LLMAgent';
+import {
+    extractFunnelMetrics,
+    INVESTIGATE_MAX_REFERENCES,
+    LLMAgentService,
+    PHASE_PERCENT_FLOOR,
+} from './LLMAgent';
 
 jest.mock('../utils/axiosConfig', () => ({ __esModule: true, default: { post: jest.fn() } }));
 
@@ -42,7 +47,64 @@ describe('ordinary chat', () => {
     });
 });
 
+describe('model selection', () => {
+    it('sends the chosen model', async () => {
+        await run({ model: 'gpt-5.6-sol' });
+        expect(sentPayload().model).toBe('gpt-5.6-sol');
+    });
+
+    it('sends it on the investigate path too', async () => {
+        // The one option that crosses the pipeline boundary: chat and Investigate share a
+        // composer, so they share its picker. The agent maps the id onto deep research's
+        // report-writing tier. Nothing here persists onto the conversation, so unlike
+        // `filters` this cannot leak into a later turn.
+        await run({ model: 'gpt-5.6-sol', investigateEnabled: true });
+        expect(sentPayload().model).toBe('gpt-5.6-sol');
+    });
+
+    it('omits the field when no model was chosen, so the server default applies', async () => {
+        // Omitted is NOT the same as sending the default's id: the agent reads an absent
+        // field as "follow my config", and a sent id as a pin. A client that echoed the
+        // default back would freeze it at whatever it was when the page loaded.
+        await run({ filters: [] });
+        expect(sentPayload()).not.toHaveProperty('model');
+    });
+
+    it('omits a blank model rather than sending an empty string', async () => {
+        await run({ model: '   ' });
+        expect(sentPayload()).not.toHaveProperty('model');
+    });
+});
+
 describe('investigate (deep research)', () => {
+    it('parses the Started frame instead of dropping it on a missing phase constant', async () => {
+        const updates = [];
+        axios.post.mockImplementationOnce(async (_url, _payload, config) => {
+            config.onDownloadProgress({
+                target: {
+                    responseText: 'data: {"step":"Started","run_id":"run-1","session_id":"session-1"}\n\n',
+                },
+            });
+            return { data: '' };
+        });
+
+        const svc = new LLMAgentService();
+        await svc.chat(
+            'does X help?',
+            new AbortController(),
+            (update) => updates.push(update),
+            { investigateEnabled: true },
+        );
+
+        expect(updates).toContainEqual(expect.objectContaining({
+            type: 'started',
+            runId: 'run-1',
+            sessionId: 'session-1',
+            phase: 'searching',
+            percent: PHASE_PERCENT_FLOOR.searching,
+        }));
+    });
+
     it('carries neither filters nor ranking_mode', async () => {
         await run({ investigateEnabled: true, filters: ['review'], rankingMode: 'high_impact' });
         expect(sentPayload()).not.toHaveProperty('filters');

@@ -633,7 +633,7 @@
     padding: 6px 14px;
     font-family: 'DM Sans', sans-serif;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
 }
@@ -735,9 +735,9 @@
     font-family: 'Geist', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    line-height: 16px;
+    line-height: 20px;
     border-radius: 18px;
-    padding: 4px 8px 4px 0;
+    padding: 2px 8px 2px 0;
 }
 
 .investigate-summary-row.can-toggle {
@@ -751,8 +751,15 @@
 .investigate-summary-icon,
 .investigate-summary-chevron {
     font-size: 16px !important;
-    color: var(--color-text-tertiary);
     transition: transform 0.2s ease;
+}
+
+.investigate-summary-icon {
+    color: var(--color-brand-primary);
+}
+
+.investigate-summary-chevron {
+    color: var(--color-text-tertiary);
 }
 
 .investigate-summary-chevron.expanded {
@@ -993,7 +1000,7 @@
     border-radius: 16px;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 767px) {
     .clarify-float { padding: 0 24px; }
 }
 
@@ -1329,7 +1336,7 @@
 
 .investigate-funnel-chip strong {
     color: var(--color-text-secondary);
-    font-weight: 700;
+    font-weight: 600;
     font-size: 12px;
 }
 
@@ -1940,6 +1947,13 @@
     margin: 0 0 16px;
 }
 
+/* A lead-in body paragraph and the unordered list it introduces form one
+   content group. Limit this to top-level paragraphs so headings, blockquotes,
+   list-item paragraphs and ordered lists keep their existing rhythm. */
+.markdown-body > p:has(+ ul) {
+    margin-bottom: 4px;
+}
+
 /* h1 is rare in an answer but the vendored sheet gives it 2em and a bottom rule. */
 /* ---- headings
    The message frame (45:2243) declares exactly one heading token, h5 at 16/20, and none of
@@ -1952,20 +1966,27 @@
    every time. So there are two levels in practice, and the frame has exactly two emphasis
    steps to spend on them:
    
-       h2  ->  h5               16/20 SemiBold, text/primary
+       h2  ->  h5               16/20 SemiBold, text/secondary
        h3  ->  body-emphasized  14/22 SemiBold, text/secondary
    
    h1 joins h2 and h4-h6 join h3: four occurrences between them in twenty conversations, and
    inventing sizes the frame does not contain to separate them would cost more than it buys. */
 .markdown-body h1,
 .markdown-body h2 {
-    margin: 24px 0 12px;
     padding-bottom: 0;
     border-bottom: none;
     font-size: 16px;
     font-weight: 600;
     line-height: 20px;
-    color: var(--color-text-primary);
+    color: var(--color-text-secondary);
+}
+
+.markdown-body h1 {
+    margin: 24px 0 12px;
+}
+
+.markdown-body h2 {
+    margin: 16px 0 8px;
 }
 
 .markdown-body h3,
@@ -1981,6 +2002,10 @@
 
 .markdown-body > *:first-child {
     margin-top: 0;
+}
+
+.markdown-body > h2:first-child {
+    margin-top: 16px !important;
 }
 
 /* ---- lists
@@ -2071,7 +2096,7 @@
 
 .markdown-body table th {
     font-weight: 600;
-    color: var(--color-text-primary);
+    color: var(--color-text-secondary);
     background-color: var(--color-background-subtle);
     white-space: nowrap;
 }
@@ -2120,7 +2145,33 @@
 
 .markdown-body strong {
     font-weight: 600;
-    color: var(--color-text-primary);
+    color: var(--color-text-secondary);
+}
+
+@media (max-width: 767px) {
+    .markdown-body,
+    .markdown-body p,
+    .markdown-body li,
+    .markdown-body ul li,
+    .markdown-body ol li {
+        font-family: 'Geist', sans-serif;
+        font-size: 16px;
+        line-height: 26px;
+        color: var(--color-text-secondary);
+    }
+
+    .markdown-body h1,
+    .markdown-body h2,
+    .markdown-body h3,
+    .markdown-body h4,
+    .markdown-body h5,
+    .markdown-body h6 {
+        font-family: 'Geist', sans-serif;
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 26px;
+        color: var(--color-text-primary);
+    }
 }
 
 .message-wrapper.user .message,
@@ -2323,7 +2374,7 @@ button.ip-notify.active { background: var(--color-brand-muted); color: var(--col
 .ip-counter-value {
     font-family: 'DM Sans', sans-serif;
     font-size: 24px;
-    font-weight: 700;
+    font-weight: 600;
     line-height: 1.2;
     color: var(--color-text-primary);
     /* tabular figures so a counting number does not jitter its own column */
@@ -2760,4 +2811,19 @@ button.ip-notify.active { background: var(--color-brand-muted); color: var(--col
 .queued-prompt-remove:focus-visible {
     outline: 2px solid var(--color-brand-primary);
     outline-offset: 1px;
+}
+
+/* The composer's control row. The picker that sits in it styles itself
+   (`components/Units/ModelPicker`); this is only the shelf it stands on. */
+.composer-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px 10px 20px;
+}
+
+@media (max-width: 767px) {
+    .composer-controls {
+        padding: 0 10px 8px 14px;
+    }
 }

@@ -1,46 +1,32 @@
-/**
- * The item options menu, from Figma 176:8771 — the popover behind the ⋮ button on a History
- * conversation (176:12766) and a Library reference (176:8622).
- *
- * It existed five times over before this, once per place that needed it, and had drifted in all
- * the ways copies drift: three different row heights, two different icon gutters, a divider
- * above Delete that the design does not draw, and a 176px minimum width on a menu whose widest
- * label is "Remove bookmark". Everything here comes from the frame:
- *
- *   paper   surface, 1px border/default, radius/2, padding space/1, and no shadow — the design
- *           separates the menu from the page with the border alone
- *   width   whatever the labels need; the frame sets none
- *   row     20 tall, space/1 of padding, space/1 gap, radius/1, background/subtle when hovered
- *   icon    12
- *   label   caption — 10/12 regular — in text/secondary
- *   danger  status/error text, on the icon as well as the label
- *
- * Composition rather than an items array: the menus differ in what they offer and when, and a
- * list of props describing a row is a worse way to say that than a row.
- */
+/** Shared item-options menu from Figma 176:12870. */
 import React from 'react';
 import { ListItemIcon, ListItemText, Menu, MenuItem } from '@mui/material';
+import { ReactComponent as ContextMenuBookmarkIcon } from '../../../img/context_menu/bookmark.svg';
+import { ReactComponent as ContextMenuDeleteIcon } from '../../../img/context_menu/delete.svg';
+import { ReactComponent as ContextMenuRenameIcon } from '../../../img/context_menu/rename.svg';
 
-/** Figma 176:8771. */
+export {
+    ContextMenuBookmarkIcon,
+    ContextMenuDeleteIcon,
+    ContextMenuRenameIcon,
+};
+
 const PAPER_SX = {
     borderRadius: 'var(--radius-2, 8px)',
     border: '1px solid var(--color-border-default)',
-    backgroundColor: 'var(--color-background-surface)',
-    padding: '4px',
-    // The frame draws no shadow. A border at this size reads as a menu on its own, and a
-    // shadow under a 20px row looks like a mistake rather than elevation.
+    backgroundColor: 'var(--color-background-subtle)',
+    padding: 0,
     boxShadow: 'none',
 };
 
 const LIST_SX = {
-    // The paper's 4px is the padding; MUI's own would double it.
     padding: 0,
 };
 
 const LABEL_SX = {
     fontFamily: 'Geist, sans-serif',
-    fontSize: '10px',
-    lineHeight: '12px',
+    fontSize: '14px',
+    lineHeight: '22px',
     fontWeight: 400,
 };
 
@@ -65,22 +51,28 @@ export const ContextMenuItem = ({ icon, children, danger = false, ...rest }) => 
         <MenuItem
             {...rest}
             sx={{
-                minHeight: 20,
-                height: 20,
-                padding: '0 4px',
-                gap: '4px',
+                minHeight: 38,
+                height: 38,
+                padding: '8px 16px',
+                gap: '8px',
                 borderRadius: 'var(--radius-1, 4px)',
                 color,
-                '&:hover': { backgroundColor: 'var(--color-background-subtle)' },
+                '&:hover, &.Mui-focusVisible, &.Mui-selected, &.Mui-selected:hover': {
+                    backgroundColor: 'var(--color-background-normal)',
+                },
                 ...(rest.sx || {}),
             }}
         >
             {icon ? (
-                // The 4px flex gap is the entire gutter in Figma. This is deliberately inline:
-                // MUI's injected ListItemIcon rule otherwise wins the cascade and reserves 56px.
                 <ListItemIcon
                     style={{ minWidth: 0 }}
-                    sx={{ color, '& .MuiSvgIcon-root': { fontSize: 12 } }}
+                    sx={{
+                        width: 16,
+                        height: 16,
+                        flex: '0 0 16px',
+                        color,
+                        '& svg': { width: 16, height: 16, fontSize: 16 },
+                    }}
                 >
                     {icon}
                 </ListItemIcon>

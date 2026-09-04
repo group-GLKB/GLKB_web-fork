@@ -12,7 +12,6 @@ import {
   Box,
   Button,
   Drawer,
-  IconButton,
   Paper,
   Popper,
   TextField,
@@ -23,22 +22,45 @@ import { INVESTIGATE_ENABLED } from '../../config/features';
 import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { ReactComponent as SearchOptionsIcon } from '../../img/llm/search_options.svg';
+import { ReactComponent as SearchOptionsCloseIcon } from '../../img/llm/search_options_close.svg';
+import { ReactComponent as SearchOptionsCollapseIcon } from '../../img/llm/search_options_collapse.svg';
 import { trackGtagEvent } from '../../utils/gtag';
+import ModelPicker from '../Units/ModelPicker';
+import { getModelPref, setModelPref } from '../../service/models';
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
     const [investigateEnabled, setInvestigateEnabled] = useState(false);
+    /* The model the first question will run on.
+
+       Persisted through the same helper the chat composer reads, so a choice made here is
+       the choice the conversation continues with — the two pickers are one preference, not
+       two that can disagree once the reader lands on /chat. */
+    const [model, setModel] = useState(() => getModelPref());
     const [sortBy, setSortBy] = useState('Default');
     const [paperType, setPaperType] = useState('All types');
     const [isOpen, setIsOpen] = useState(false);
     const [mobileOptionsOpen, setMobileOptionsOpen] = useState(false);
     const [desktopOptionsOpen, setDesktopOptionsOpen] = useState(false);
     const navigate = useNavigate();
-    const isMobileLayout = useMediaQuery('(max-width:600px)');
+    // The app shell and HomePage both switch at 767px. A separate 600px
+    // threshold mixed the mobile page with the PC search controls.
+    const isMobileLayout = useMediaQuery('(max-width:767px)');
     const inputTimeoutRef = React.useRef(null);
     const hasTrackedInputRef = React.useRef(false);
     const lastPrefillRef = React.useRef(undefined);
     const isQueryLimitReached = Boolean(props.isQueryLimitReached);
+    const isAgentRunActive = Boolean(props.isAgentRunActive);
+    /* An answer being written somewhere else does NOT lock this box.
+
+       It used to: New Chat during a run sends the reader here, and here they met a disabled
+       field reading "A conversation is still loading" with no way forward — the same dead end
+       the chat composer had, in the one place the reader was sent to escape it. A question
+       asked here opens its own conversation with its own history id, and the backend locks per
+       history id, so it does not race the answer already being written.
+
+       The quota is a different matter and still locks: there is no run to start at all. */
+    const isInputLocked = isQueryLimitReached;
     useEffect(() => {
         // console.log(props);
         props.setOpen(isOpen);
@@ -96,7 +118,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         // controls are not rendered, so send the defaults rather than whatever the user
         // happened to pick before turning Investigate on.
         if (investigateEnabled) {
-            return { filters: [], rankingMode: 'default', investigateEnabled: true };
+            // `model` survives this branch while filters/rankingMode do not: deep research
+            // ignores the search-mode knobs but does honour the model, mapping it onto the
+            // tier that writes the report.
+            return { filters: [], rankingMode: 'default', investigateEnabled: true, model };
         }
 
         let rankingMode = 'default';
@@ -111,10 +136,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             filters,
             rankingMode,
             investigateEnabled,
+            model,
         };
     };
 
-    const navigateToLLMAgent = (query = '') => {
+    const navigateToLLMAgent = (query = '', inputMethod = 'button') => {
         // Clear input timeout to prevent search_input event after submission
         if (inputTimeoutRef.current) {
             clearTimeout(inputTimeoutRef.current);
@@ -127,6 +153,13 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             filters: searchOptions.filters.join(','),
             investigate_enabled: searchOptions.investigateEnabled,
         });
+        if (query && searchOptions.investigateEnabled) {
+            trackGtagEvent('investigate_question_submit', {
+                source: 'home_searchbar',
+                input_method: inputMethod,
+                queued: false,
+            });
+        }
         if (query) {
             navigate('/chat', {
                 state: {
@@ -214,148 +247,76 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         setSortBy(defaultSortBy);
     };
 
-    const optionChipSx = (isActive, { equalWidth = false, fixedWidth } = {}) => ({
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '40px',
-        minWidth: equalWidth ? 0 : `${fixedWidth || 72}px`,
-        padding: '0 8px',
-        borderRadius: '8px',
-        backgroundColor: isActive ? 'var(--color-background-surface)' : 'transparent',
-        boxShadow: isActive ? '0px 2px 2px rgba(0, 0, 0, 0.10)' : 'none',
-        fontFamily: 'DM Sans, sans-serif',
-        fontWeight: isActive ? 900 : 600,
-        fontSize: '14px',
-        lineHeight: '16px',
-        color: isActive ? 'var(--color-brand-primary)' : 'var(--color-grey-600)',
-        textTransform: 'none',
-        cursor: 'pointer',
-        '&:hover': {
-            backgroundColor: isActive ? 'var(--color-background-surface)' : 'rgba(255, 255, 255, 0.35)',
-            boxShadow: isActive ? '0px 2px 2px rgba(0, 0, 0, 0.10)' : 'none',
-        },
-        whiteSpace: 'nowrap',
-        flex: equalWidth ? '1 0 0' : '0 0 auto',
-    });
-
     const searchOptionsPanel = (
-        <>
-            <Box
-                sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    py: 2,
-                }}
-            >
-                <Box sx={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 900, fontSize: '20px', lineHeight: '24px', color: 'var(--color-text-secondary)' }}>
-                    Search Options
-                </Box>
-                <IconButton onClick={closeSearchOptions} size="small" sx={{ color: 'var(--color-grey-600)' }}>
-                    <CloseIcon fontSize="small" />
-                </IconButton>
-            </Box>
+        <div className="home-search-options-panel">
+            <header className="home-search-options-header">
+                <h2>Search Options</h2>
+                <button type="button" aria-label="Close search options" onClick={closeSearchOptions}>
+                    <SearchOptionsCloseIcon />
+                </button>
+            </header>
 
-            <Box sx={{ borderTop: '1px solid var(--color-border-default)', mx: '-24px' }} />
+            <section className="home-search-options-section is-article-type">
+                <div className="home-search-options-section-heading">
+                    <h3>Article Type</h3>
+                    <span className="home-search-options-collapse" aria-hidden="true">
+                        <SearchOptionsCollapseIcon />
+                    </span>
+                </div>
+                <div className="home-search-options-segmented is-article-type">
+                    {paperTypeOptions.map((option) => (
+                        <button
+                            key={option.value}
+                            type="button"
+                            aria-pressed={option.value === paperType}
+                            className={option.value === paperType ? 'is-active' : ''}
+                            onClick={() => {
+                                trackGtagEvent('home_article_type_select_click', { value: option.value });
+                                setPaperType(option.value);
+                            }}
+                        >
+                            {option.label}
+                        </button>
+                    ))}
+                </div>
+                <p>Search every article</p>
+            </section>
 
-            <Box sx={{ pt: 2.5, display: 'flex', flexDirection: 'column', gap: 2.25 }}>
-                <Box>
-                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: 'var(--color-text-secondary)' }}>
-                        Article Type
-                    </Box>
-                    <Box sx={{ backgroundColor: 'var(--color-background-subtle)', borderRadius: '10px', p: '4px', display: 'flex', gap: 0, justifyContent: 'space-between' }}>
-                        {paperTypeOptions.map((option) => (
-                            <Box
-                                key={option.value}
-                                role="button"
-                                onClick={() => {
-                                    trackGtagEvent('home_article_type_select_click', {
-                                        value: option.value,
-                                    });
-                                    setPaperType(option.value);
-                                }}
-                                sx={optionChipSx(option.value === paperType, { fixedWidth: option.width })}
-                            >
-                                {option.label}
-                            </Box>
-                        ))}
-                    </Box>
-                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: 'var(--color-grey-400)' }}>
-                        Search every article
-                    </Box>
-                </Box>
+            <div className="home-search-options-divider" />
 
-                <Box sx={{ borderTop: '1px solid var(--color-border-default)', mx: '-24px' }} />
+            <section className="home-search-options-section is-sort-by">
+                <div className="home-search-options-section-heading">
+                    <h3>Sort by</h3>
+                    <span className="home-search-options-collapse" aria-hidden="true">
+                        <SearchOptionsCollapseIcon />
+                    </span>
+                </div>
+                <div className="home-search-options-segmented is-sort-by">
+                    {sortOptions.map((option) => (
+                        <button
+                            key={option.value}
+                            type="button"
+                            aria-pressed={option.value === sortBy}
+                            className={option.value === sortBy ? 'is-active' : ''}
+                            onClick={() => {
+                                trackGtagEvent('home_sort_mode_select_click', { value: option.value });
+                                setSortBy(option.value);
+                            }}
+                        >
+                            {option.label}
+                        </button>
+                    ))}
+                </div>
+                <p>Best matches for your query</p>
+            </section>
 
-                <Box>
-                    <Box sx={{ mb: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '16px', lineHeight: '24px', color: 'var(--color-text-secondary)' }}>
-                        Sort by
-                    </Box>
-                    <Box sx={{ backgroundColor: 'var(--color-background-subtle)', borderRadius: '10px', p: '4px', display: 'flex', gap: 0, justifyContent: 'space-between' }}>
-                        {sortOptions.map((option) => (
-                            <Box
-                                key={option.value}
-                                role="button"
-                                onClick={() => {
-                                    trackGtagEvent('home_sort_mode_select_click', {
-                                        value: option.value,
-                                    });
-                                    setSortBy(option.value);
-                                }}
-                                sx={optionChipSx(option.value === sortBy, { equalWidth: true })}
-                            >
-                                {option.label}
-                            </Box>
-                        ))}
-                    </Box>
-                    <Box sx={{ mt: 1, fontFamily: 'DM Sans, sans-serif', fontWeight: 500, fontSize: '14px', lineHeight: '16px', color: 'var(--color-grey-400)' }}>
-                        Best matches for your query
-                    </Box>
-                </Box>
-            </Box>
-
-            <Box sx={{ mt: 'auto', pt: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
-                <Box
-                    role="button"
-                    onClick={handleResetSearchOptions}
-                    sx={{
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontWeight: 900,
-                        fontSize: '14px',
-                        lineHeight: '16px',
-                        color: 'var(--color-grey-600)',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                    }}
-                >
-                    Reset
-                </Box>
-                <Box
-                    role="button"
-                    onClick={closeSearchOptions}
-                    sx={{
-                        flex: 1,
-                        minWidth: '140px',
-                        height: '40px',
-                        borderRadius: '999px',
-                        backgroundColor: 'var(--color-brand-primary)',
-                        color: 'var(--color-neutral-white)',
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontWeight: 900,
-                        fontSize: '14px',
-                        lineHeight: '16px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                    }}
-                >
-                    Done
-                </Box>
-            </Box>
-        </>
+            <footer className="home-search-options-footer">
+                <div>
+                    <button type="button" className="home-search-options-reset" onClick={handleResetSearchOptions}>Reset</button>
+                    <button type="button" className="home-search-options-done" onClick={closeSearchOptions}>Done</button>
+                </div>
+            </footer>
+        </div>
     );
 
     return (
@@ -379,15 +340,15 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 freeSolo
                 fullWidth
                 open={!mobileOptionsOpen && !desktopOptionsOpen && isOpen}
-                disabled={isQueryLimitReached}
+                disabled={isInputLocked}
                 options={props.autocompleteOptions || []}
                 filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
                 onChange={(event, newValue) => {
-                    if (isQueryLimitReached) return;
+                    if (isInputLocked) return;
                     setLlmQuery(newValue || '');
                 }}
                 onInputChange={(event, newInputValue) => {
-                    if (isQueryLimitReached) return;
+                    if (isInputLocked) return;
                     setLlmQuery(newInputValue || '');
                 }}
                 openOnFocus
@@ -407,7 +368,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 }}
                 inputValue={llmQuery}
                 onOpen={() => {
-                    if (isQueryLimitReached) {
+                    if (isInputLocked) {
                         return;
                     }
                     setIsOpen(true);
@@ -426,38 +387,42 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             {...params}
                             /* Figma 800:22889 shortens this on a phone, where the
                                long form wraps to two lines. */
-                            placeholder={isMobileLayout
-                                ? 'Ask about the biomedical literature...'
-                                : 'Ask a question about the biomedical literature...'}
+                            placeholder={isAgentRunActive
+                                ? (isMobileLayout
+                                    ? 'Ask something new\u2026'
+                                    : 'Ask a new question \u2014 the other answer keeps writing')
+                                : (isMobileLayout
+                                    ? 'Ask about the biomedical literature...'
+                                    : 'Ask a question about the biomedical literature...')}
                             multiline
-                            minRows={3}
+                            minRows={1}
                             maxRows={9}
-                            disabled={isQueryLimitReached}
+                            disabled={isInputLocked}
                             sx={{
-                                minHeight: { xs: '148px', sm: '152px' },
+                                minHeight: isMobileLayout ? '148px' : '120px',
                                 width: '100%',
                                 '& .MuiInputBase-root': {
                                     borderRadius: '16px',
-                                    minHeight: { xs: '148px', sm: '152px' },
+                                    minHeight: isMobileLayout ? '148px' : '120px',
                                     backgroundColor: 'var(--color-background-subtle)',
                                     alignItems: 'flex-start',
                                     paddingLeft: '20px',
                                     paddingRight: '20px !important',
-                                    paddingTop: '16.5px',
-                                    paddingBottom: '58px',
+                                    paddingTop: isMobileLayout ? '16.5px' : '20px',
+                                    paddingBottom: isMobileLayout ? '58px' : '52px',
                                     fontFamily: 'Geist, sans-serif',
-                                    fontSize: '16px',
+                                    fontSize: '14px',
                                     color: 'var(--color-text-primary)',
                                     '& fieldset': {
                                         border: 'none',
                                     },
                                 },
                                 '& .MuiInputBase-input': {
-                                    lineHeight: '26px',
+                                    lineHeight: '22px',
                                     padding: '0 !important',
                                 },
                                 '& .MuiInputBase-input::placeholder': {
-                                    color: 'var(--color-grey-300)',
+                                    color: 'var(--color-text-tertiary)',
                                     opacity: 1,
                                 },
                                 '& .MuiOutlinedInput-notchedOutline': {
@@ -489,12 +454,13 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 sx={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: { xs: '8px', sm: '12px' },
+                                    gap: isMobileLayout ? '8px' : '12px',
                                     minWidth: 0,
                                     pointerEvents: 'auto',
                                 }}
                             >
                                 <Button
+                                    disabled={isInputLocked}
                                     onMouseDown={(event) => {
                                         event.preventDefault();
                                         event.stopPropagation();
@@ -502,13 +468,16 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     onClick={(event) => {
                                         event.preventDefault();
                                         event.stopPropagation();
-                                        setInvestigateEnabled((prev) => {
-                                            const next = !prev;
-                                            trackGtagEvent('home_investigate_toggle_click', {
-                                                enabled: next,
+                                        const next = !investigateEnabled;
+                                        if (next) {
+                                            trackGtagEvent('home_investigate_enable_click', {
+                                                source: 'home_searchbar',
                                             });
-                                            return next;
+                                        }
+                                        trackGtagEvent('home_investigate_toggle_click', {
+                                            enabled: next,
                                         });
+                                        setInvestigateEnabled(next);
                                     }}
                                     sx={{
                                         alignItems: 'center',
@@ -556,14 +525,32 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 sx={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: { xs: '8px', sm: '16px' },
+                                    gap: isMobileLayout ? '8px' : '16px',
                                     minWidth: 0,
                                     // With Investigate hidden this is the row's only child, so
                                     // `space-between` alone would park it on the left.
-                                    marginLeft: { xs: INVESTIGATE_ENABLED ? 0 : 'auto', sm: 'auto' },
+                                    marginLeft: isMobileLayout && INVESTIGATE_ENABLED ? 0 : 'auto',
                                     pointerEvents: 'auto',
                                 }}
                             >
+                                {/* Beside Search Options, and NOT behind `searchOptionsLocked`
+                                    with it: Investigate withdraws the search-mode controls
+                                    because deep research discards filters and ranking, but it
+                                    does honour the model — so this one stays offered. */}
+                                <ModelPicker
+                                    value={model}
+                                    onChange={(modelId) => {
+                                        setModel(modelId);
+                                        setModelPref(modelId);
+                                    }}
+                                    onResolveDefault={setModel}
+                                    // Toggling Investigate re-filters the list. A model the
+                                    // reader picked for chat and that deep research does not
+                                    // offer is swapped for the pipeline's default, visibly.
+                                    pipeline={investigateEnabled ? 'deep_research' : 'chat'}
+                                    disabled={isInputLocked}
+                                />
+
                                 {!searchOptionsLocked && (
                                 <Box
                                     onMouseDown={(event) => {
@@ -576,7 +563,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         openSearchOptions();
                                     }}
                                     sx={{
-                                        display: { xs: 'inline-flex', sm: 'none' },
+                                        display: isMobileLayout ? 'inline-flex' : 'none',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '4px',
@@ -606,7 +593,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 {!searchOptionsLocked && (
                                 <Button
                                     sx={{
-                                        display: { xs: 'none', sm: 'inline-flex' },
+                                        display: isMobileLayout ? 'none' : 'inline-flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '4px',
@@ -649,17 +636,18 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 <Box
                                     role="button"
                                     aria-label="Start chat"
+                                    aria-disabled={isInputLocked}
                                     className="search-button-big"
-                                    onClick={() => { navigateToLLMAgent(llmQuery.trim()); }}
+                                    onClick={() => { if (!isInputLocked) navigateToLLMAgent(llmQuery.trim(), 'button'); }}
                                     sx={{
-                                        height: { xs: '32px', sm: '32px' },
-                                        width: { xs: '32px', sm: '32px' },
+                                        height: '32px',
+                                        width: '32px',
                                         borderRadius: '8px',
-                                        backgroundColor: llmQuery.trim() && !isQueryLimitReached ? 'var(--color-brand-primary)' : 'var(--color-brand-muted)',
+                                        backgroundColor: llmQuery.trim() && !isInputLocked ? 'var(--color-brand-primary)' : 'var(--color-brand-muted)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        cursor: 'pointer',
+                                        cursor: isInputLocked ? 'not-allowed' : 'pointer',
                                         transition: 'transform 120ms ease',
                                         boxShadow: 'none',
                                         '&:hover': {
@@ -670,7 +658,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 >
                                     <SearchArrowIcon
                                         style={{
-                                            color: llmQuery.trim() && !isQueryLimitReached ? 'var(--color-neutral-white)' : 'var(--color-brand-primary)',
+                                            color: llmQuery.trim() && !isInputLocked ? 'var(--color-neutral-white)' : 'var(--color-brand-primary)',
                                             width: '16px',
                                             height: '16px',
                                         }}
@@ -683,13 +671,18 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             anchor="bottom"
                             open={mobileOptionsOpen}
                             onClose={closeSearchOptions}
+                            ModalProps={{
+                                BackdropProps: {
+                                    sx: { backgroundColor: 'rgba(0, 0, 0, 0.32)' },
+                                },
+                            }}
                             PaperProps={{
                                 sx: {
                                     borderTopLeftRadius: '24px',
                                     borderTopRightRadius: '24px',
                                     backgroundColor: 'var(--color-background-surface)',
-                                    px: 3,
-                                    pb: 2,
+                                    px: 0,
+                                    pb: 0,
                                     pt: 0,
                                     minHeight: '300px',
                                     display: 'flex',
@@ -709,17 +702,21 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             onClose={closeSearchOptions}
                             ModalProps={{
                                 keepMounted: true,
+                                BackdropProps: {
+                                    sx: { backgroundColor: 'rgba(0, 0, 0, 0.32)' },
+                                },
                             }}
                             PaperProps={{
                                 sx: {
-                                    width: '369px',
+                                    width: '363px',
                                     maxWidth: '92vw',
                                     backgroundColor: 'var(--color-background-surface)',
-                                    px: 3,
-                                    pb: 3,
+                                    px: 0,
+                                    pb: 0,
                                     pt: 0,
                                     display: 'flex',
                                     flexDirection: 'column',
+                                    boxShadow: 'none',
                                 },
                             }}
                         >
@@ -752,7 +749,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     </Box>
                 )}
                 onKeyDown={(e) => {
-                    if (isQueryLimitReached) {
+                    if (isInputLocked) {
                         e.preventDefault();
                         return;
                     }
@@ -761,7 +758,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         trackGtagEvent('home_search_submit_enter', {
                             ranking_mode: buildSearchOptionsPayload().rankingMode,
                         });
-                        navigateToLLMAgent(llmQuery.trim());
+                        navigateToLLMAgent(llmQuery.trim(), 'enter');
                     }
                 }}
             />

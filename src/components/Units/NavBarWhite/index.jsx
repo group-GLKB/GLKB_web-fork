@@ -1,6 +1,7 @@
 import './scoped.css';
 
 import React, {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -14,10 +15,7 @@ import {
 } from 'react-router-dom';
 
 import {
-  Bookmark as BookmarkIcon,
-  BookmarkBorder as BookmarkBorderIcon,
-  DeleteOutline as DeleteOutlineIcon,
-  DriveFileRenameOutline as DriveFileRenameOutlineIcon,
+  Close as CloseIcon,
   InfoOutlined as InfoOutlinedIcon,
   Menu as MenuIcon,
   MoreHoriz as MoreHorizIcon,
@@ -39,7 +37,14 @@ import {
   useMediaQuery,
 } from '@mui/material';
 
-import { ContextMenu, ContextMenuItem } from '../ContextMenu';
+import {
+  ContextMenu,
+  ContextMenuBookmarkIcon,
+  ContextMenuDeleteIcon,
+  ContextMenuItem,
+  ContextMenuRenameIcon,
+} from '../ContextMenu';
+import ConversationRunStatus from '../ConversationRunStatus';
 import {
   styled,
   useTheme,
@@ -61,6 +66,7 @@ import {
 } from '../../../img/navbar/sidebar.left.svg';
 import userAccountIcon from '../../../img/user/ic_outline-account-circle.svg';
 import userLogoutIcon from '../../../img/user/mynaui_logout.svg';
+import { getRunningConversationIds, subscribeToActiveRun } from '../../../service/activeRun';
 import {
   fetchConversations,
   getActiveConversationId,
@@ -68,6 +74,7 @@ import {
   removeConversation,
   setActiveConversationId,
   updateConversationTitle,
+  chatPathForConversation,
 } from '../../../utils/chatHistory';
 import {
   fetchConversationBookmarks,
@@ -75,9 +82,11 @@ import {
   toggleConversationBookmark,
 } from '../../../utils/conversationBookmarks';
 import { trackGtagEvent } from '../../../utils/gtag';
+import { prioritizeRunningConversations } from '../../../utils/recentConversations';
 import { useAuth } from '../../Auth/AuthContext';
 
 const drawerWidth = 240;
+const mobileDrawerWidth = 280;
 const collapsedWidth = 64;
 const compactRailWidth = 52;
 const MAX_RECENT_COUNT = 50;
@@ -192,13 +201,15 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
     const navigate = useNavigate();
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
-    const isCompactSidebar = useMediaQuery('(max-width:532px)');
+    // Must match AppLayout's phone breakpoint. Using 532px here left a
+    // 533–767px interval with both the mobile header and permanent PC sidebar.
+    const isCompactSidebar = useMediaQuery('(max-width:767px)');
     const previousPathRef = useRef(location.pathname);
     const [open, setOpen] = useState(() => {
         if (typeof window === 'undefined') {
             return true;
         }
-        if (location.pathname === '/chat' && !isSmallScreen) {
+        if (location.pathname.startsWith('/chat') && !isSmallScreen) {
             return true;
         }
         const storedOpen = window.localStorage.getItem('sidebar-open');
@@ -217,6 +228,27 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
     const [editingRecentTitle, setEditingRecentTitle] = useState('');
     const [conversationBookmarks, setConversationBookmarks] = useState([]);
     const [storedProfile, setStoredProfile] = useState(() => getStoredAccountProfile());
+    /* Every conversation that is working, not just the newest one: a reader can leave an answer
+       to write itself and ask something else, so more than one row can be in flight at a time
+       and each of them needs its own dot. */
+    const [runningConversationIds, setRunningConversationIds] = useState(
+        () => getRunningConversationIds(),
+    );
+    const isConversationRunning = useCallback(
+        (id) => id != null && runningConversationIds.has(String(id)),
+        [runningConversationIds],
+    );
+
+    useEffect(() => subscribeToActiveRun(
+        () => setRunningConversationIds(getRunningConversationIds()),
+    ), []);
+
+    useEffect(() => {
+        if (isConversationRunning(recentMenuConversation?.id)) {
+            setRecentMenuAnchorEl(null);
+            setRecentMenuConversation(null);
+        }
+    }, [isConversationRunning, recentMenuConversation]);
 
     useEffect(() => {
         if (isSmallScreen) {
@@ -224,7 +256,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
             return;
         }
 
-        if (location.pathname === '/chat') {
+        if (location.pathname.startsWith('/chat')) {
             setOpen(true);
             return;
         }
@@ -397,6 +429,12 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
         ].filter((item) => !(DEBUG_HIDE_EXPLORE && item.label === 'Explore'))
     ), []);
 
+    const displayedMiddleItems = isCompactSidebar
+        ? ['Library', 'History', 'API']
+            .map((label) => middleItems.find((item) => item.label === label))
+            .filter(Boolean)
+        : middleItems;
+
     const bottomItems = useMemo(() => (
         [
             { label: 'About', to: '/about', icon: <InfoOutlinedIcon sx={{ fontSize: 22 }} /> },
@@ -418,6 +456,8 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
     ), [openLoginModal]);
 
     const userDisplayName = storedProfile.name || user?.username || user?.email || 'Account';
+    const normalizedUserTier = `${user?.tier || 'free'}`.trim().toLowerCase();
+    const userPlanLabel = `${normalizedUserTier.charAt(0).toUpperCase()}${normalizedUserTier.slice(1)} plan`;
     const isUserMenuOpen = Boolean(userMenuAnchorEl);
     const isRecentMenuOpen = Boolean(recentMenuAnchorEl);
     const bookmarkedConversationIds = useMemo(
@@ -427,6 +467,11 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
     const isRecentBookmarked = recentMenuConversation
         ? bookmarkedConversationIds.has(String(recentMenuConversation?.id ?? recentMenuConversation?.hid ?? ''))
         : false;
+    const displayedRecentConversations = useMemo(
+        () => prioritizeRunningConversations(recentConversations, runningConversationIds)
+            .slice(0, maxRecentCount),
+        [maxRecentCount, recentConversations, runningConversationIds],
+    );
     const isHomeRoute = location.pathname === '/';
 
     const handleOpenUserMenu = (event) => {
@@ -458,6 +503,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const handleOpenRecentMenu = (event, conversation) => {
         event.stopPropagation();
+        if (isConversationRunning(conversation?.id)) return;
         setRecentMenuAnchorEl(event.currentTarget);
         setRecentMenuConversation(conversation);
     };
@@ -516,12 +562,16 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const handleDeleteRecent = async () => {
         if (!recentMenuConversation?.id) return;
+        if (isConversationRunning(recentMenuConversation.id)) {
+            handleCloseRecentMenu();
+            return;
+        }
         trackGtagEvent('recent_delete_click', { source: 'sidebar_recent_menu' });
         const idToDelete = String(recentMenuConversation.id);
         const deletingActiveConversation = String(activeConversationId) === idToDelete;
         try {
             await removeConversation(idToDelete);
-            if (deletingActiveConversation && location.pathname === '/chat') {
+            if (deletingActiveConversation && location.pathname.startsWith('/chat')) {
                 navigate('/');
             }
         } catch (error) {
@@ -548,7 +598,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const isActiveConversation = (conversation) => {
         if (!conversation?.id) return false;
-        if (location.pathname !== '/chat') return false;
+        if (!location.pathname.startsWith('/chat')) return false;
         return String(conversation.id) === String(activeConversationId || '');
     };
 
@@ -577,7 +627,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                 {...linkProps}
                 sx={{
                     width: '100%',
-                    minHeight: 36,
+                    minHeight: item.secondaryLabel ? 44 : 36,
                     mb: item.noBottomMargin ? 0 : 2,
                     py: 0,
                     borderRadius: 1,
@@ -603,7 +653,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                 <ListItemIcon
                     sx={{
                         minWidth: 0,
-                        mr: 1.5,
+                        mr: item.secondaryLabel ? 2 : 1.5,
                         justifyContent: 'center',
                         color: 'inherit',
                     }}
@@ -627,14 +677,25 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                 </ListItemIcon>
                 <ListItemText
                     primary={item.label}
+                    secondary={item.secondaryLabel}
                     primaryTypographyProps={{
                         fontFamily: 'Geist, sans-serif',
-                        fontWeight: 500,
-                        fontSize: '16px',
-                        lineHeight: '28px',
-                        color: 'var(--color-text-secondary)',
+                        fontWeight: item.secondaryLabel ? 600 : 500,
+                        fontSize: item.secondaryLabel ? '14px' : '16px',
+                        lineHeight: item.secondaryLabel ? '22px' : '20px',
+                        color: item.secondaryLabel
+                            ? 'var(--color-text-tertiary)'
+                            : 'var(--color-text-secondary)',
+                    }}
+                    secondaryTypographyProps={{
+                        fontFamily: 'Geist, sans-serif',
+                        fontWeight: 400,
+                        fontSize: '14px',
+                        lineHeight: '22px',
+                        color: 'var(--color-text-tertiary)',
                     }}
                     sx={{
+                        my: 0,
                         opacity: open ? 1 : 0,
                         width: open ? 'auto' : 0,
                         overflow: 'hidden',
@@ -712,8 +773,8 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                     className="sidebar-logo-link"
                                     sx={{
                                         p: 0,
-                                        width: 36,
-                                        height: 36,
+                                        width: isCompactSidebar ? 24 : 36,
+                                        height: isCompactSidebar ? 24 : 36,
                                         borderRadius: '50%',
                                         '&:hover': {
                                             backgroundColor: 'rgba(1, 105, 176, 0.04)',
@@ -752,7 +813,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                             alt="GLKB logo"
                                             className="sidebar-logo-image"
                                             sx={{
-                                                height: 36,
+                                                height: isCompactSidebar ? 24 : 36,
                                                 width: 'auto',
                                                 objectFit: 'contain',
                                             }}
@@ -779,7 +840,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                     opacity: open ? 1 : 0,
                                     width: open ? 'auto' : 0,
                                     overflow: 'hidden',
-                                    marginLeft: '12px',
+                                    marginLeft: isCompactSidebar ? '2px' : '12px',
                                     textDecoration: 'none',
                                     color: 'inherit',
                                     transition: 'opacity 0.2s ease, width 0.2s ease',
@@ -790,7 +851,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                     src={logoWordmark}
                                     alt="GLKB"
                                     sx={{
-                                        height: 36,
+                                        height: isCompactSidebar ? 24 : 36,
                                         width: 'auto',
                                         transform: 'translateY(1px)',
                                         objectFit: 'contain'
@@ -807,8 +868,8 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                         }}
                                         size="small"
                                         sx={{
-                                            width: 36,
-                                            height: 36,
+                                            width: isCompactSidebar ? 24 : 36,
+                                            height: isCompactSidebar ? 24 : 36,
                                             ml: 'auto',
                                             borderRadius: '4px',
                                             color: 'var(--color-grey-600)',
@@ -818,7 +879,9 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                             },
                                         }}
                                     >
-                                        <SidebarLeftIcon style={{ width: 20, height: 20 }} />
+                                        {isCompactSidebar
+                                            ? <CloseIcon sx={{ width: 20, height: 20 }} />
+                                            : <SidebarLeftIcon style={{ width: 20, height: 20 }} />}
                                     </IconButton>
                                 </HintTooltip>
                             )}
@@ -826,13 +889,13 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                     )}
                 </Box>
                 <Divider sx={{ display: 'none', borderColor: 'var(--color-border-default)' }} />
-                <List sx={{ px: 0, pt: 3, pb: 0 }}>
+                <List sx={{ px: 0, pt: isCompactSidebar ? 2 : 3, pb: 0 }}>
                     {topItems.map((item) => renderNavItem(item))}
                 </List>
                 <Divider sx={{ mx: 0, borderColor: 'var(--color-border-default)' }} />
                 <Box className="sidebar-scroll">
                     <List sx={{ px: 0, pt: 2, pb: 0 }}>
-                        {middleItems.map((item) => renderNavItem(item))}
+                        {displayedMiddleItems.map((item) => renderNavItem(item))}
                     </List>
                     <Divider sx={{ mx: 0, borderColor: 'var(--color-border-default)' }} />
                     {/* <Divider sx={{ mx: 3.5, borderColor: 'var(--color-border-default)' }} />
@@ -845,32 +908,33 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                 className="sidebar-recent-title"
                                 sx={{
                                     fontFamily: 'Geist, sans-serif',
-                                    fontWeight: 500,
+                                    fontWeight: 600,
                                     fontSize: '12px',
-                                    lineHeight: '16px',
-                                    color: 'var(--color-grey-400)',
+                                    lineHeight: '20px',
+                                    color: 'var(--color-text-tertiary)',
                                     textTransform: 'none',
                                 }}
                             >
                                 Recent
                             </Typography>
                             <Box className="sidebar-recent-list">
-                                {recentConversations.slice(0, maxRecentCount).map((conversation) => (
+                                {displayedRecentConversations.map((conversation) => (
                                     (() => {
                                         const isEditingRecent = String(editingRecentId) === String(conversation.id);
                                         const isActiveRecent = isActiveConversation(conversation);
+                                        const isLoadingRecent = isConversationRunning(conversation.id);
                                         return (
                                             <Box
                                                 key={conversation.id}
                                                 sx={{
                                                     position: 'relative',
-                                                    width: isActiveRecent ? 'calc(100% + 16px)' : '100%',
-                                                    marginLeft: isActiveRecent ? '-8px' : 0,
+                                                    width: 'calc(100% + 16px)',
+                                                    marginLeft: '-8px',
                                                     minHeight: 16,
-                                                    '&:hover .recent-entry-button, &:focus-within .recent-entry-button': {
+                                                    '&:hover .recent-entry-button, &:has(.recent-more-button:focus-visible) .recent-entry-button': {
                                                         paddingRight: '36px',
                                                     },
-                                                    '&:hover .recent-more-button, &:focus-within .recent-more-button': {
+                                                    '&:hover .recent-more-button, & .recent-more-button:focus-visible': {
                                                         opacity: 1,
                                                         pointerEvents: 'auto',
                                                     },
@@ -899,19 +963,23 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                         if (isEditingRecent) return;
                                                         setActiveConversationId(conversation.id);
                                                         setActiveConversationIdState(conversation.id);
-                                                        navigate('/chat', { state: { conversationId: conversation.id } });
+                                                        navigate(
+                                                            chatPathForConversation(conversation),
+                                                            { state: { conversationId: conversation.id } },
+                                                        );
                                                     }}
                                                     sx={{
                                                         width: '100%',
                                                         border: 'none',
                                                         backgroundColor: isActiveRecent ? 'var(--color-brand-soft)' : 'transparent',
-                                                        padding: isActiveRecent ? '4px 8px' : 0,
-                                                        margin: isActiveRecent ? '-4px 0' : 0,
-                                                        borderRadius: isActiveRecent ? '4px' : 0,
+                                                        padding: '4px 8px',
+                                                        paddingRight: isLoadingRecent || isCompactSidebar ? '36px' : '8px',
+                                                        margin: '-4px 0',
+                                                        borderRadius: '4px',
                                                         fontFamily: 'Geist, sans-serif',
                                                         fontSize: '12px',
-                                                        fontWeight: isActiveRecent ? 500 : 400,
-                                                        lineHeight: '16px',
+                                                        fontWeight: 400,
+                                                        lineHeight: '20px',
                                                         color: isActiveRecent ? 'var(--color-brand-primary)' : 'var(--color-text-secondary)',
                                                         textAlign: 'left',
                                                         cursor: 'pointer',
@@ -935,7 +1003,18 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                 >
                                                     {isEditingRecent ? undefined : getConversationTitle(conversation)}
                                                 </Box>
-                                                <IconButton
+                                                {isLoadingRecent ? (
+                                                    <Box
+                                                        sx={{
+                                                            position: 'absolute',
+                                                            right: 6,
+                                                            top: '50%',
+                                                            transform: 'translateY(-50%)',
+                                                        }}
+                                                    >
+                                                        <ConversationRunStatus />
+                                                    </Box>
+                                                ) : <IconButton
                                                     size="small"
                                                     className="recent-more-button"
                                                     onClick={(event) => handleOpenRecentMenu(event, conversation)}
@@ -950,8 +1029,8 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                         height: 24,
                                                         borderRadius: '8px',
                                                         color: 'var(--color-grey-900)',
-                                                        opacity: 0,
-                                                        pointerEvents: 'none',
+                                                        opacity: isCompactSidebar ? 1 : 0,
+                                                        pointerEvents: isCompactSidebar ? 'auto' : 'none',
                                                         transition: 'opacity 0.16s ease, background-color 0.16s ease',
                                                         '&:hover': {
                                                             backgroundColor: 'rgba(1, 105, 176, 0.1)',
@@ -959,7 +1038,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                     }}
                                                 >
                                                     <MoreHorizIcon sx={{ fontSize: 12 }} />
-                                                </IconButton>
+                                                </IconButton>}
                                             </Box>
                                         );
                                     })()
@@ -989,8 +1068,9 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                         }}
                                     />
                                 ) : (
-                                    <PersonIcon sx={{ fontSize: 22 }} />
+                                    <PersonIcon sx={{ fontSize: 20 }} />
                                 ),
+                                secondaryLabel: userPlanLabel,
                                 onClick: handleOpenUserMenu,
                                 iconBoxSx: {
                                     backgroundColor: 'var(--color-background-muted)',
@@ -1061,16 +1141,15 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                     }}
                     BackdropProps={{
                         sx: {
-                            backgroundColor: 'rgba(17, 24, 39, 0.18)',
+                            backgroundColor: 'rgba(0, 0, 0, 0.32)',
                         },
                     }}
                     PaperProps={{
                         sx: {
-                            width: `${drawerWidth}px`,
-                            borderTopRightRadius: '16px',
-                            borderBottomRightRadius: '16px',
-                            boxShadow: '0 10px 28px rgba(22, 69, 99, 0.22)',
-                            borderRight: 'none',
+                            width: `${mobileDrawerWidth}px`,
+                            borderRadius: 0,
+                            boxShadow: 'none',
+                            borderRight: '1px solid var(--color-border-default)',
                             overflow: 'hidden',
                         },
                     }}
@@ -1090,16 +1169,16 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                 open={isRecentMenuOpen}
                 onClose={handleCloseRecentMenu}
             >
-                <ContextMenuItem icon={<DriveFileRenameOutlineIcon />} onClick={handleRenameRecent}>
+                <ContextMenuItem icon={<ContextMenuRenameIcon />} onClick={handleRenameRecent}>
                     Rename
                 </ContextMenuItem>
                 <ContextMenuItem
-                    icon={isRecentBookmarked ? <BookmarkIcon /> : <BookmarkBorderIcon />}
+                    icon={<ContextMenuBookmarkIcon />}
                     onClick={handleBookmarkRecent}
                 >
                     {isRecentBookmarked ? 'Remove bookmark' : 'Bookmark'}
                 </ContextMenuItem>
-                <ContextMenuItem icon={<DeleteOutlineIcon />} danger onClick={handleDeleteRecent}>
+                <ContextMenuItem icon={<ContextMenuDeleteIcon />} danger onClick={handleDeleteRecent}>
                     Delete
                 </ContextMenuItem>
             </ContextMenu>

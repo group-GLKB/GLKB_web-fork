@@ -23,6 +23,7 @@ import {
 import { ReactComponent as ChatIcon } from '../../img/llm/chat_message.svg';
 import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
 import { ReactComponent as MapIcon } from '../../img/llm/graph_share.svg';
+import { getRunningConversationIds, subscribeToActiveRun } from '../../service/activeRun';
 import {
     forgetInvestigateConversations,
     getInvestigateConversationIds,
@@ -33,6 +34,7 @@ import {
   removeConversation,
   setActiveConversationId,
   updateConversationTitle,
+  chatPathForConversation,
 } from '../../utils/chatHistory';
 import {
   fetchConversationBookmarks,
@@ -52,15 +54,15 @@ import {
 import { useAuth } from '../Auth/AuthContext';
 import { nodeStyle } from '../Graph/nodeStyle';
 import ConversationCard from '../Units/ConversationCard';
+import { withServerTimezone } from '../../utils/serverTime';
 
 const DEBUG_HIDE_EXPLORE = true;
-const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 const MOBILE_HEADER_VISIBILITY_EVENT = 'glkb-mobile-header-visibility';
 
 const formatTimestamp = (value) => {
     if (!value) return '';
-    const date = new Date(value);
+    const date = new Date(withServerTimezone(value));
     if (Number.isNaN(date.getTime())) return '';
     return date.toLocaleString([], {
         month: 'short',
@@ -83,7 +85,10 @@ const parseTimestamp = (value) => {
             return numeric < 1e12 ? numeric * 1000 : numeric;
         }
     }
-    const parsed = new Date(value);
+    /* A datetime the API wrote carries no timezone designator, and `new Date()` would read it
+       as local time — hours away from the instant it names, and hours away from the ISO-UTC
+       timestamps this app writes for itself. See utils/serverTime.js. */
+    const parsed = new Date(withServerTimezone(value));
     const time = parsed.getTime();
     return Number.isNaN(time) ? null : time;
 };
@@ -197,9 +202,24 @@ const History = () => {
     const [selectedIds, setSelectedIds] = useState([]);
     const [selectedGraphIds, setSelectedGraphIds] = useState([]);
     const [isDeleting, setIsDeleting] = useState(false);
-    const [isPhoneDevice, setIsPhoneDevice] = useState(false);
+    const [isPhoneDevice, setIsPhoneDevice] = useState(isPhoneViewport);
     const [conversationBookmarks, setConversationBookmarks] = useState([]);
     const [graphBookmarks, setGraphBookmarks] = useState([]);
+    /* Every conversation that is working, not just the newest: a reader can leave one answer
+       to write itself and ask something else, so several rows can be in flight at once. A row
+       that is running still may not be deleted or bulk-selected — that part is unchanged, it
+       just applies to each of them now. */
+    const [runningConversationIds, setRunningConversationIds] = useState(
+        () => getRunningConversationIds(),
+    );
+    const isConversationRunning = useCallback(
+        (id) => id != null && runningConversationIds.has(String(id)),
+        [runningConversationIds],
+    );
+
+    useEffect(() => subscribeToActiveRun(
+        () => setRunningConversationIds(getRunningConversationIds()),
+    ), []);
 
     /* Which of these were investigate runs, so the row can carry the microscope the design
        gives them (176:8230).
@@ -264,7 +284,9 @@ const History = () => {
         [filteredHistoryItems]
     );
 
-    const filteredIds = filteredChatItems.map((item) => item.id);
+    const filteredIds = filteredChatItems
+        .map((item) => item.id)
+        .filter((id) => !isConversationRunning(id));
     const selectedIdSet = new Set(selectedIds);
     const selectedFilteredCount = filteredIds.filter((id) => selectedIdSet.has(id)).length;
     const selectedCount = selectedIds.length;
@@ -283,7 +305,7 @@ const History = () => {
 
     useEffect(() => {
         const evaluateIsPhone = () => {
-            setIsPhoneDevice(isPhoneUa() && isPhoneViewport());
+            setIsPhoneDevice(isPhoneViewport());
         };
 
         evaluateIsPhone();
@@ -420,7 +442,11 @@ const History = () => {
     const handleOpenConversation = (conversationId) => {
         if (selectMode) return;
         setActiveConversationId(conversationId);
-        navigate('/chat', { state: { conversationId } });
+        const conversation = conversations.find((c) => String(c.id) === String(conversationId));
+        const path = chatPathForConversation(conversation);
+        // The state is still passed: it is what opens a conversation whose row predates
+        // `public_id`, and it is harmless when the path already names one.
+        navigate(path, { state: { conversationId } });
     };
 
     const handleOpenGraph = (history) => {
@@ -439,6 +465,7 @@ const History = () => {
     };
 
     const handleToggleConversationSelection = (conversationId, forceSelectMode = false) => {
+        if (isConversationRunning(conversationId)) return;
         if (!selectMode) {
             if (!forceSelectMode) return;
             setSelectMode(true);
@@ -475,7 +502,11 @@ const History = () => {
     const handleDeleteSelected = async () => {
         if (selectedCount === 0 || isDeleting) return;
         setIsDeleting(true);
-        const idsToDelete = [...selectedIds];
+        const idsToDelete = selectedIds.filter((id) => !isConversationRunning(id));
+        if (idsToDelete.length === 0) {
+            setIsDeleting(false);
+            return;
+        }
         await Promise.allSettled(idsToDelete.map((id) => removeConversation(id)));
         forgetInvestigateConversations(idsToDelete);
         setConversations((prev) => prev.filter((conversation) => !idsToDelete.includes(conversation.id)));
@@ -545,6 +576,7 @@ const History = () => {
     const handleDeleteConversation = async (conversation) => {
         if (!conversation?.id) return;
         const idToDelete = String(conversation.id);
+        if (isConversationRunning(idToDelete)) return;
         try {
             await removeConversation(idToDelete);
         } catch (error) {
@@ -572,6 +604,11 @@ const History = () => {
     }, [conversations]);
 
     useEffect(() => {
+        if (!runningConversationIds.size) return;
+        setSelectedIds((prev) => prev.filter((id) => !isConversationRunning(id)));
+    }, [runningConversationIds, isConversationRunning]);
+
+    useEffect(() => {
         setSelectedGraphIds((prev) => prev.filter((id) => graphHistories.some((history) => String(history.id) === String(id))));
     }, [graphHistories]);
 
@@ -591,7 +628,7 @@ const History = () => {
                         {(
                             <Box className="history-header">
                                 <Box className="history-title-row">
-                                    <Typography sx={{
+                                    <Typography className="history-title" sx={{
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 600,
                                         fontSize: '24px',
@@ -600,6 +637,15 @@ const History = () => {
                                     }}>
                                         History
                                     </Typography>
+                                    {isPhoneDevice && (
+                                        <button
+                                            type="button"
+                                            className="history-select-toggle history-title-select-toggle"
+                                            onClick={handleToggleSelectMode}
+                                        >
+                                            {selectMode ? 'Exit Select' : 'Select'}
+                                        </button>
+                                    )}
                                 </Box>
                                 <Typography sx={{
                                     marginTop: '4px',
@@ -826,6 +872,7 @@ const History = () => {
                                         onRename={handleRenameConversation}
                                         onBookmark={handleBookmarkConversation}
                                         onDelete={handleDeleteConversation}
+                                        isLoadingConversation={isConversationRunning(item.id)}
                                     />
                                 ) : (
                                     <ConversationCard

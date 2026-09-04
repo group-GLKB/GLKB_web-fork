@@ -1,4 +1,5 @@
 import axios from '../utils/axiosConfig';
+import { PHASE_PERCENT_FLOOR } from './investigatePhases';
 import { humanizeTrace } from './traceLabel';
 
 const DEFAULT_STREAM_ENDPOINT = '/api/v1/new-llm-agent/stream';
@@ -444,6 +445,13 @@ export class LLMAgentService {
                 if (typeof options.rankingMode === 'string' && options.rankingMode.trim()) {
                     payload.ranking_mode = options.rankingMode.trim();
                 }
+            }
+            // Sent on BOTH paths, unlike filters/ranking_mode above. Chat and Investigate share
+            // one composer, so they share its picker, and the agent maps the id onto whichever
+            // pipeline is running: the chat agent's own model, or deep research's report-writing
+            // tier. Omitted when blank, which the agent reads as "use your configured default".
+            if (typeof options.model === 'string' && options.model.trim()) {
+                payload.model = options.model.trim();
             }
             // Backend PR #31: email when Deep Research hits Complete
             if (

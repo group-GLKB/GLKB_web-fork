@@ -15,9 +15,8 @@ import {
   Close as CloseIcon,
   ContentCopyOutlined as ContentCopyOutlinedIcon,
   Edit as EditIcon,
-  MoreHoriz as MoreHorizIcon,
-  OpenInNew as OpenInNewIcon,
-  Security as SecurityIcon,
+  MoreVert as MoreVertIcon,
+  NorthEast as NorthEastIcon,
 } from '@mui/icons-material';
 import {
   Box,
@@ -28,14 +27,23 @@ import {
   DialogTitle,
   Drawer,
   IconButton,
-  Menu,
-  MenuItem,
   TextField,
   Typography,
 } from '@mui/material';
 
 import { SHOW_API_DOCS } from '../../config/features';
+import { ReactComponent as AddFundsIcon } from '../../img/api/add_funds.svg';
+import { ReactComponent as BillingIcon } from '../../img/api/billing.svg';
+import { ReactComponent as ConnectKeyIcon } from '../../img/api/connect_key.svg';
+import { ReactComponent as InfoIcon } from '../../img/api/info.svg';
+import { ReactComponent as RevokeIcon } from '../../img/api/revoke.svg';
+import { ReactComponent as SetLimitIcon } from '../../img/api/set_limit.svg';
 import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
+import {
+  ContextMenu,
+  ContextMenuDeleteIcon,
+  ContextMenuItem,
+} from '../Units/ContextMenu';
 import {
   createApiKey,
   deleteApiKey,
@@ -44,8 +52,8 @@ import {
   updateApiKeyName,
   updateApiKeyStatus,
 } from '../../service/ApiKeys';
+import { withServerTimezone } from '../../utils/serverTime';
 
-const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
 const maskKeyValue = (value) => {
@@ -59,14 +67,16 @@ const maskKeyValue = (value) => {
 
 const formatDateYmd = (value) => {
     if (!value) return '-';
-    const date = new Date(value);
+    // The API writes naive UTC with no designator; `new Date()` would read it as local time.
+    // See utils/serverTime.js — a key created at 22:00 UTC showed tomorrow's date without it.
+    const date = new Date(withServerTimezone(value));
     if (Number.isNaN(date.getTime())) return value;
     return date.toISOString().slice(0, 10);
 };
 
 const formatRelativeTime = (value) => {
     if (!value) return 'Never';
-    const date = new Date(value);
+    const date = new Date(withServerTimezone(value));
     if (Number.isNaN(date.getTime())) return value;
     const diffMs = Date.now() - date.getTime();
     const seconds = Math.max(0, Math.floor(diffMs / 1000));
@@ -90,6 +100,18 @@ const formatUsageCost = (value) => Number(value || 0).toLocaleString('en-US', {
     maximumFractionDigits: 2,
 });
 
+const formatCompactUsageValue = (value) => Number(value || 0).toLocaleString('en-US', {
+    maximumFractionDigits: 2,
+});
+
+const formatOptionalUsageInteger = (value) => (
+    value == null ? '—' : formatUsageInteger(value)
+);
+
+const formatOptionalUsageCost = (value) => (
+    value == null ? '—' : `$${formatUsageCost(value)}`
+);
+
 const centsToDollars = (value) => Number(value || 0) / 100;
 
 const normalizeKey = (entry) => ({
@@ -103,7 +125,7 @@ const normalizeKey = (entry) => ({
 const ApiPage = () => {
     const navigate = useNavigate();
     const [keys, setKeys] = useState([]);
-    const [isPhoneDevice, setIsPhoneDevice] = useState(false);
+    const [isPhoneDevice, setIsPhoneDevice] = useState(isPhoneViewport);
     const [mobileDrawerKeyId, setMobileDrawerKeyId] = useState(null);
     const [loadingKeys, setLoadingKeys] = useState(false);
     const [loadingUsage, setLoadingUsage] = useState(false);
@@ -129,6 +151,10 @@ const ApiPage = () => {
     const [isCopySuccess, setIsCopySuccess] = useState(false);
     const [rowMenuAnchorEl, setRowMenuAnchorEl] = useState(null);
     const [rowMenuTarget, setRowMenuTarget] = useState(null);
+    const [limitOpen, setLimitOpen] = useState(false);
+    const [limitTarget, setLimitTarget] = useState(null);
+    const [limitValue, setLimitValue] = useState('');
+    const [keyLimits, setKeyLimits] = useState({});
     const copySuccessTimerRef = useRef(null);
 
     const keyCounts = useMemo(() => {
@@ -206,7 +232,7 @@ const ApiPage = () => {
 
     useEffect(() => {
         const evaluateIsPhone = () => {
-            setIsPhoneDevice(isPhoneUa() && isPhoneViewport());
+            setIsPhoneDevice(isPhoneViewport());
         };
 
         evaluateIsPhone();
@@ -327,6 +353,36 @@ const ApiPage = () => {
         setRowMenuTarget(null);
     };
 
+    const handleLimitOpen = (entry) => {
+        if (!entry) return;
+        setLimitTarget(entry);
+        setLimitValue(keyLimits[entry.id] == null ? '' : String(keyLimits[entry.id]));
+        setLimitOpen(true);
+    };
+
+    const handleLimitClose = () => {
+        setLimitOpen(false);
+        setLimitTarget(null);
+        setLimitValue('');
+    };
+
+    const handleLimitSave = () => {
+        const parsed = Number(limitValue);
+        if (!limitTarget || !Number.isFinite(parsed) || parsed <= 0) return;
+        setKeyLimits((current) => ({ ...current, [limitTarget.id]: parsed }));
+        handleLimitClose();
+    };
+
+    const handleLimitRemove = () => {
+        if (!limitTarget) return;
+        setKeyLimits((current) => {
+            const next = { ...current };
+            delete next[limitTarget.id];
+            return next;
+        });
+        handleLimitClose();
+    };
+
     const handleCopy = async (value) => {
         try {
             await navigator.clipboard.writeText(value);
@@ -381,7 +437,7 @@ const ApiPage = () => {
                                 <Button
                                     className="api-docs-button"
                                     onClick={() => navigate('/api-docs/overview')}
-                                    startIcon={<OpenInNewIcon sx={{ fontSize: 16 }} />}
+                                    startIcon={<NorthEastIcon sx={{ fontSize: 16 }} />}
                                 >
                                     API Docs
                                 </Button>
@@ -397,18 +453,24 @@ const ApiPage = () => {
                                     {keyCounts.total} key{keyCounts.total === 1 ? '' : 's'} &middot; {keyCounts.active} active
                                 </span>
                             </div>
-                            <button
-                                className="api-keys-create"
-                                type="button"
-                                onClick={() => {
-                                    setCreateOpen(true);
-                                    setCreatedKey(null);
-                                    setCreateError('');
-                                }}
-                            >
-                                <AddIcon className="api-keys-create-icon" />
-                                Create key
-                            </button>
+                            <div className="api-keys-toolbar-actions">
+                                <button className="api-toolbar-action" type="button" disabled>
+                                    <ConnectKeyIcon />
+                                    Connect key
+                                </button>
+                                <button
+                                    className="api-toolbar-action api-keys-create"
+                                    type="button"
+                                    onClick={() => {
+                                        setCreateOpen(true);
+                                        setCreatedKey(null);
+                                        setCreateError('');
+                                    }}
+                                >
+                                    <AddIcon className="api-keys-create-icon" />
+                                    Create key
+                                </button>
+                            </div>
                         </Box>
 
                         {keysError && (
@@ -481,7 +543,7 @@ const ApiPage = () => {
                                                     onClick={(event) => handleRowMenuOpen(event, entry)}
                                                     aria-label="Row actions"
                                                 >
-                                                    <MoreHorizIcon fontSize="small" />
+                                                    <MoreVertIcon fontSize="small" />
                                                 </IconButton>
                                             </span>
                                         </div>
@@ -491,35 +553,54 @@ const ApiPage = () => {
                         )}
 
                         {isPhoneDevice && (
-                            <div className="api-keys-mobile-list" role="list">
-                                {(loadingKeys || loadingUsage) && (
-                                    <div className="api-keys-mobile-empty">Loading keys...</div>
-                                )}
-                                {!loadingKeys && !loadingUsage && mergedKeys.length === 0 && (
-                                    <div className="api-keys-mobile-empty">No API keys yet.</div>
-                                )}
-                                {!loadingKeys && !loadingUsage && mergedKeys.map((entry) => (
-                                    <div className="api-keys-mobile-item" key={entry.id} role="listitem">
-                                        <button
-                                            type="button"
-                                            className="api-keys-mobile-row"
-                                            onClick={() => setMobileDrawerKeyId(entry.id)}
-                                        >
-                                            <span className="api-keys-mobile-main">
-                                                <span className="api-keys-mobile-name">{entry.name}</span>
-                                                <span className="api-keys-mobile-key">{entry.value}</span>
-                                            </span>
-                                            <span className="api-keys-mobile-side">
-                                                <span className={`api-keys-status ${entry.status === 1 ? 'is-active' : ''}`}>
-                                                    {entry.statusLabel}
+                            <>
+                                <div className="api-keys-mobile-list" role="list">
+                                    {(loadingKeys || loadingUsage) && (
+                                        <div className="api-keys-mobile-empty">Loading keys...</div>
+                                    )}
+                                    {!loadingKeys && !loadingUsage && mergedKeys.length === 0 && (
+                                        <div className="api-keys-mobile-empty">No API keys yet.</div>
+                                    )}
+                                    {!loadingKeys && !loadingUsage && mergedKeys.map((entry) => (
+                                        <div className="api-keys-mobile-item" key={entry.id} role="listitem">
+                                            <button
+                                                type="button"
+                                                className="api-keys-mobile-row"
+                                                onClick={() => setMobileDrawerKeyId(entry.id)}
+                                            >
+                                                <span className="api-keys-mobile-main">
+                                                    <span className="api-keys-mobile-name">{entry.name}</span>
+                                                    <span className="api-keys-mobile-key">{entry.value}</span>
                                                 </span>
-                                                <span className="api-keys-mobile-last-used">{entry.lastUsedLabel}</span>
-                                            </span>
-                                            <ChevronRightIcon className="api-keys-mobile-chevron" />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
+                                                <span className="api-keys-mobile-side">
+                                                    <span className={`api-keys-status ${entry.status === 1 ? 'is-active' : ''}`}>
+                                                        {entry.statusLabel}
+                                                    </span>
+                                                    <span className="api-keys-mobile-last-used">{entry.lastUsedLabel}</span>
+                                                </span>
+                                                <ChevronRightIcon className="api-keys-mobile-chevron" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="api-keys-mobile-toolbar">
+                                    <button type="button" disabled>
+                                        <ConnectKeyIcon />
+                                        Connect key
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setCreateOpen(true);
+                                            setCreatedKey(null);
+                                            setCreateError('');
+                                        }}
+                                    >
+                                        <AddIcon />
+                                        Create key
+                                    </button>
+                                </div>
+                            </>
                         )}
 
                         {isPhoneDevice && (
@@ -527,24 +608,35 @@ const ApiPage = () => {
                                 anchor="bottom"
                                 open={Boolean(mobileDrawerEntry)}
                                 onClose={() => setMobileDrawerKeyId(null)}
+                                ModalProps={{
+                                    BackdropProps: {
+                                        sx: { backgroundColor: 'rgba(0, 0, 0, 0.32)' },
+                                    },
+                                }}
                                 PaperProps={{ className: 'api-keys-mobile-page-drawer' }}
                             >
                                 {mobileDrawerEntry && (
                                     <div className="api-keys-mobile-page-drawer-body">
+                                        <div className="api-keys-mobile-page-drawer-handle" aria-hidden="true" />
                                         <div className="api-keys-mobile-page-drawer-header">
                                             <div className="api-keys-mobile-page-drawer-head-main">
-                                                <span className="api-keys-mobile-page-drawer-title">{mobileDrawerEntry.name}</span>
-                                                <button
-                                                    type="button"
-                                                    className="api-keys-action is-icon"
-                                                    onClick={() => {
-                                                        setMobileDrawerKeyId(null);
-                                                        handleEdit(mobileDrawerEntry);
-                                                    }}
-                                                    aria-label="Edit API key"
-                                                >
-                                                    <EditIcon fontSize="small" />
-                                                </button>
+                                                <span className="api-keys-mobile-page-drawer-heading">
+                                                    <span className="api-keys-mobile-page-drawer-title-line">
+                                                        <span className="api-keys-mobile-page-drawer-title">{mobileDrawerEntry.name}</span>
+                                                        <button
+                                                            type="button"
+                                                            className="api-keys-action is-icon"
+                                                            onClick={() => {
+                                                                setMobileDrawerKeyId(null);
+                                                                handleEdit(mobileDrawerEntry);
+                                                            }}
+                                                            aria-label="Edit API key"
+                                                        >
+                                                            <EditIcon fontSize="small" />
+                                                        </button>
+                                                    </span>
+                                                    <span className="api-keys-mobile-page-drawer-key">{mobileDrawerEntry.value}</span>
+                                                </span>
                                             </div>
                                             <button
                                                 type="button"
@@ -556,49 +648,48 @@ const ApiPage = () => {
                                             </button>
                                         </div>
                                         <div className="api-keys-mobile-detail-grid">
-                                            <div>
-                                                <span className="api-keys-mobile-label">Status</span>
-                                                <span className={`api-keys-status ${mobileDrawerEntry.status === 1 ? 'is-active' : ''}`}>
-                                                    {mobileDrawerEntry.statusLabel}
+                                            <div className="api-keys-mobile-detail-card">
+                                                <span className="api-keys-mobile-label">Status <ChevronRightIcon /></span>
+                                                <span className={`api-keys-mobile-value is-status ${mobileDrawerEntry.status === 1 ? 'is-active' : ''}`}>
+                                                    <span className="api-keys-mobile-value-status-dot" />{mobileDrawerEntry.statusLabel}
                                                 </span>
                                             </div>
-                                            <div>
-                                                <span className="api-keys-mobile-label">Last Used</span>
+                                            <div className="api-keys-mobile-detail-card">
+                                                <span className="api-keys-mobile-label">Limit <ChevronRightIcon /></span>
+                                                <span className="api-keys-mobile-value">—</span>
+                                            </div>
+                                            <div className="api-keys-mobile-detail-card">
+                                                <span className="api-keys-mobile-label">Last used</span>
                                                 <span className="api-keys-mobile-value">{mobileDrawerEntry.lastUsedLabel}</span>
                                             </div>
-                                            <div>
+                                            <div className="api-keys-mobile-detail-card">
                                                 <span className="api-keys-mobile-label">Created</span>
                                                 <span className="api-keys-mobile-value">{mobileDrawerEntry.createdLabel}</span>
                                             </div>
-                                            <div>
-                                                <span className="api-keys-mobile-label">Key</span>
-                                                <span className="api-keys-mobile-value api-keys-mobile-value-key">{mobileDrawerEntry.value}</span>
-                                            </div>
-                                            <div>
+                                            <div className="api-keys-mobile-detail-card">
                                                 <span className="api-keys-mobile-label">Query</span>
-                                                <span className="api-keys-mobile-value">{formatUsageInteger(mobileDrawerEntry.usage?.queryCount)}</span>
+                                                <span className="api-keys-mobile-value">{formatOptionalUsageInteger(mobileDrawerEntry.usage?.queryCount)}</span>
                                             </div>
-                                            <div>
+                                            <div className="api-keys-mobile-detail-card">
                                                 <span className="api-keys-mobile-label">Request</span>
-                                                <span className="api-keys-mobile-value">{formatUsageInteger(mobileDrawerEntry.usage?.requests)}</span>
+                                                <span className="api-keys-mobile-value">{formatOptionalUsageInteger(mobileDrawerEntry.usage?.requests)}</span>
                                             </div>
-                                            <div>
+                                            <div className="api-keys-mobile-detail-card">
                                                 <span className="api-keys-mobile-label">Token</span>
-                                                <span className="api-keys-mobile-value">{formatUsageInteger(mobileDrawerEntry.usage?.token)}</span>
+                                                <span className="api-keys-mobile-value">{formatOptionalUsageInteger(mobileDrawerEntry.usage?.token)}</span>
                                             </div>
-                                            <div>
+                                            <div className="api-keys-mobile-detail-card">
                                                 <span className="api-keys-mobile-label">Cost</span>
-                                                <span className="api-keys-mobile-value">${formatUsageCost(mobileDrawerEntry.usage?.apiCost)}</span>
+                                                <span className="api-keys-mobile-value">{formatOptionalUsageCost(mobileDrawerEntry.usage?.apiCost)}</span>
                                             </div>
                                         </div>
                                         <div className="api-keys-mobile-actions">
                                             <button
                                                 type="button"
                                                 className="api-keys-action"
-                                                onClick={() => handleStatusToggle(mobileDrawerEntry)}
-                                                disabled={statusUpdatingId === mobileDrawerEntry.id}
+                                                onClick={() => setMobileDrawerKeyId(null)}
                                             >
-                                                {mobileDrawerEntry.status === 1 ? 'Disable' : 'Enable'}
+                                                Cancel
                                             </button>
                                             <button
                                                 type="button"
@@ -620,6 +711,16 @@ const ApiPage = () => {
                     <Box className="api-section">
                         <Box className="api-usage-toolbar">
                             <Typography className="api-section-title">Usage this month</Typography>
+                            <div className="api-usage-actions api-usage-actions--desktop">
+                                <button type="button" disabled>
+                                    <AddFundsIcon />
+                                    Add funds
+                                </button>
+                                <button type="button" disabled>
+                                    <BillingIcon />
+                                    Billing
+                                </button>
+                            </div>
                         </Box>
                         <div className="api-usage-stats-grid">
                             <div className="api-usage-stat-tile">
@@ -632,48 +733,69 @@ const ApiPage = () => {
                             </div>
                             <div className="api-usage-stat-tile">
                                 <span className="api-usage-stat-label">Total Cost</span>
-                                <span className="api-usage-stat-value">${formatUsageCost(usageTotals.cost)}</span>
+                                <span className="api-usage-stat-value">
+                                    {isPhoneDevice
+                                        ? formatCompactUsageValue(usageTotals.cost)
+                                        : `$${formatUsageCost(usageTotals.cost)}`}
+                                </span>
                             </div>
                             <div className="api-usage-stat-tile">
                                 <span className="api-usage-stat-label">Balance</span>
-                                <span className="api-usage-stat-value">${formatUsageCost(usageSummary.balanceRemaining)}</span>
+                                <span className="api-usage-stat-value">
+                                    ${isPhoneDevice
+                                        ? formatCompactUsageValue(usageSummary.balanceRemaining)
+                                        : formatUsageCost(usageSummary.balanceRemaining)}
+                                </span>
                             </div>
                         </div>
+                        {isPhoneDevice && (
+                            <div className="api-usage-mobile-actions">
+                                <button type="button" disabled>
+                                    <AddFundsIcon />
+                                    Add funds
+                                </button>
+                                <button type="button" disabled>
+                                    <BillingIcon />
+                                    Billing
+                                </button>
+                            </div>
+                        )}
                     </Box>
 
                     <div className="api-keys-notice">
-                        <div className="api-keys-notice-icon">
-                            <SecurityIcon className="api-keys-notice-icon-svg" />
-                        </div>
+                        <InfoIcon className="api-keys-notice-icon" />
                         <span>
                             <span className="api-keys-notice-label">Security notice</span>
                             : Never expose API keys in client-side code or public repos. Use server-side environment variables.
                         </span>
                     </div>
 
-                    <Menu
+                    <ContextMenu
                         anchorEl={rowMenuAnchorEl}
                         open={Boolean(rowMenuAnchorEl)}
                         onClose={handleRowMenuClose}
-                        className="api-keys-row-menu"
                     >
-                        <MenuItem onClick={() => { handleRowMenuClose(); handleEdit(rowMenuTarget); }}>
-                            <EditIcon fontSize="small" sx={{ mr: 1 }} />
-                            Rename
-                        </MenuItem>
-                        <MenuItem
+                        <ContextMenuItem
+                            icon={<SetLimitIcon />}
+                            onClick={() => { const target = rowMenuTarget; handleRowMenuClose(); handleLimitOpen(target); }}
+                        >
+                            Set limit
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                            icon={<RevokeIcon />}
                             onClick={() => { const target = rowMenuTarget; handleRowMenuClose(); handleStatusToggle(target); }}
                             disabled={statusUpdatingId === rowMenuTarget?.id}
                         >
-                            {rowMenuTarget?.status === 1 ? 'Disable' : 'Enable'}
-                        </MenuItem>
-                        <MenuItem
+                            {rowMenuTarget?.status === 1 ? 'Revoke' : 'Activate'}
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                            icon={<ContextMenuDeleteIcon />}
+                            danger
                             onClick={() => { const target = rowMenuTarget; handleRowMenuClose(); handleDelete(target); }}
-                            className="is-danger"
                         >
                             Delete
-                        </MenuItem>
-                    </Menu>
+                        </ContextMenuItem>
+                    </ContextMenu>
 
                     <Dialog
                         open={createOpen}
@@ -683,7 +805,7 @@ const ApiPage = () => {
                     >
                         <DialogTitle className="api-keys-dialog-title">
                             <div className="api-keys-dialog-header">
-                                <span>{createdKey ? 'Save your key' : 'Create New API Key'}</span>
+                                <span>{createdKey ? 'Save your key' : 'Create new key'}</span>
                                 <button
                                     type="button"
                                     className="api-keys-dialog-close"
@@ -706,20 +828,25 @@ const ApiPage = () => {
                                         fullWidth
                                         value={createName}
                                         onChange={(event) => setCreateName(event.target.value)}
-                                        placeholder="e.g. Production Server"
+                                        placeholder="e.g., Production Server"
                                         error={Boolean(createError)}
                                         helperText={createError}
                                         FormHelperTextProps={{ className: 'api-keys-field-error' }}
                                         InputProps={{ className: 'api-keys-input' }}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter' && createName.trim() && !createLoading) {
+                                                handleCreateSubmit();
+                                            }
+                                        }}
                                     />
-                                    <div className="api-keys-field-hint">Your key will be shown once after creation</div>
                                 </div>
                             )}
                             {createdKey && (
                                 <div className="api-keys-created">
                                     <p className="api-keys-created-description">
-                                        Please save your secret key in a safe place since <strong>you won&apos;t be able to view it again</strong>. Keep it secure, as
-                                        anyone with your API key can make requests on your behalf. If you do lose it, you&apos;ll need to generate a new one.
+                                        Copy and store it securely now. Anyone with it can act on your behalf.
+                                        {' '}
+                                        <strong>You won&apos;t be able to view this key again.</strong>
                                     </p>
                                     <div className="api-keys-created-key-row">
                                         <div className="api-keys-created-key">{createdKey.value}</div>
@@ -742,31 +869,25 @@ const ApiPage = () => {
                                         </button>
                                     </div>
                                     <div className="api-keys-created-permissions">
-                                        <div className="api-keys-created-permissions-label">Permissions</div>
-                                        <div className="api-keys-created-permissions-value">Read and write API resources</div>
+                                        <span className="api-keys-created-permissions-label">Permissions:</span>
+                                        <span className="api-keys-created-permissions-value">Read and write API resources</span>
                                     </div>
                                 </div>
                             )}
                         </DialogContent>
-                        <DialogActions className="api-keys-dialog-actions">
+                        <DialogActions className={`api-keys-dialog-actions ${!createdKey ? 'api-create-actions' : ''}`}>
                             {!createdKey && (
-                                <Button
-                                    onClick={() => setCreateOpen(false)}
-                                    className="api-keys-dialog-button"
-                                    variant="outlined"
-                                >
-                                    Cancel
-                                </Button>
-                            )}
-                            {!createdKey && (
-                                <Button
-                                    onClick={handleCreateSubmit}
-                                    disabled={createLoading}
-                                    className="api-keys-dialog-button is-primary"
-                                    variant="contained"
-                                >
-                                    Create Key
-                                </Button>
+                                <>
+                                    <div className="api-keys-field-hint">Your key will be shown once after creation.</div>
+                                    <Button
+                                        onClick={handleCreateSubmit}
+                                        disabled={createLoading || !createName.trim()}
+                                        className="api-keys-dialog-button is-primary"
+                                        variant="contained"
+                                    >
+                                        Next
+                                    </Button>
+                                </>
                             )}
                             {createdKey && (
                                 <Button
@@ -788,7 +909,7 @@ const ApiPage = () => {
                     >
                         <DialogTitle className="api-keys-dialog-title">
                             <div className="api-keys-dialog-header">
-                                <span>Delete API Key</span>
+                                <span>Delete API key</span>
                                 <button
                                     type="button"
                                     className="api-keys-dialog-close"
@@ -802,10 +923,8 @@ const ApiPage = () => {
                         </DialogTitle>
                         <DialogContent className="api-keys-dialog">
                             <Typography className="api-keys-confirm-text">
-                                Are you sure you want to delete
-                                {' '}
-                                <strong>{deleteTarget?.name || 'this API key'}</strong>
-                                ? This action cannot be undone.
+                                Are you sure you want to delete {deleteTarget?.name || 'this API key'}?
+                                <strong>This action can&apos;t be undone.</strong>
                             </Typography>
                         </DialogContent>
                         <DialogActions className="api-keys-dialog-actions">
@@ -824,6 +943,72 @@ const ApiPage = () => {
                                 variant="contained"
                             >
                                 Delete
+                            </Button>
+                        </DialogActions>
+                    </Dialog>
+
+                    <Dialog
+                        open={limitOpen}
+                        onClose={handleLimitClose}
+                        className="api-keys-dialog-root api-limit-dialog-root"
+                        maxWidth={false}
+                    >
+                        <DialogTitle className="api-keys-dialog-title">
+                            <div className="api-keys-dialog-header">
+                                <span>Set limit</span>
+                                <button
+                                    type="button"
+                                    className="api-keys-dialog-close"
+                                    onClick={handleLimitClose}
+                                    aria-label="Close"
+                                >
+                                    <CloseIcon fontSize="small" />
+                                </button>
+                            </div>
+                        </DialogTitle>
+                        <DialogContent className="api-keys-dialog">
+                            <div className="api-limit-target-row">
+                                <span>For {limitTarget?.name || 'API key'}</span>
+                                <span className="api-limit-target-key">{limitTarget?.value}</span>
+                            </div>
+                            <div className="api-limit-input-wrap">
+                                <span aria-hidden="true">$</span>
+                                <input
+                                    autoFocus
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    inputMode="decimal"
+                                    value={limitValue}
+                                    onChange={(event) => setLimitValue(event.target.value)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter' && Number(limitValue) > 0) handleLimitSave();
+                                    }}
+                                    placeholder="Enter spend cap here"
+                                    aria-label="Spend cap"
+                                />
+                            </div>
+                            <div className="api-limit-hint">
+                                {keyLimits[limitTarget?.id] == null
+                                    ? 'The key pauses once usage reaches this amount.'
+                                    : `Current usage: $${formatUsageCost(limitTarget?.usage?.apiCost)} of $${formatCompactUsageValue(keyLimits[limitTarget?.id])}`}
+                            </div>
+                        </DialogContent>
+                        <DialogActions className="api-keys-dialog-actions">
+                            <Button onClick={handleLimitClose} className="api-keys-dialog-button is-secondary">
+                                Cancel
+                            </Button>
+                            {keyLimits[limitTarget?.id] != null && (
+                                <Button onClick={handleLimitRemove} className="api-keys-dialog-button is-secondary">
+                                    Remove Limit
+                                </Button>
+                            )}
+                            <Button
+                                onClick={handleLimitSave}
+                                disabled={!Number.isFinite(Number(limitValue)) || Number(limitValue) <= 0}
+                                className="api-keys-dialog-button is-primary"
+                            >
+                                Save
                             </Button>
                         </DialogActions>
                     </Dialog>

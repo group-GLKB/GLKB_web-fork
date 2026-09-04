@@ -1,6 +1,7 @@
 import './scoped.css';
 
 import React, {
+    useCallback,
     useEffect,
     useMemo,
     useState,
@@ -13,16 +14,17 @@ import {
 } from 'react-router-dom';
 
 import {
-    Bookmark as BookmarkIcon,
+    // The saved-item cards' timestamp icon. It was referenced as an undefined `MetaIcon`,
+    // so every card in the bookmarked-graphs and shared-maps lists crashed on render —
+    // the Library page white-screened for anyone who had saved a map.
+    AccessTimeRounded as MetaIcon,
     Close as CloseIcon,
     ChevronRight as ChevronRightIcon,
-    DeleteOutline as DeleteOutlineIcon,
-    DriveFileRenameOutline as DriveFileRenameOutlineIcon,
-    FileCopyOutlined as FileCopyOutlinedIcon,
     FolderOutlined as FolderOutlinedIcon,
     FormatQuoteOutlined as FormatQuoteOutlinedIcon,
     KeyboardArrowDown as KeyboardArrowDownIcon,
     MoreHoriz as MoreHorizIcon,
+    MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
 import {
     Box,
@@ -42,9 +44,15 @@ import {
     Typography,
 } from '@mui/material';
 
-import { ContextMenu, ContextMenuItem } from '../Units/ContextMenu';
+import {
+    ContextMenu,
+    ContextMenuBookmarkIcon,
+    ContextMenuDeleteIcon,
+    ContextMenuItem,
+    ContextMenuRenameIcon,
+} from '../Units/ContextMenu';
 
-import { ReactComponent as FolderOpenIcon } from '../../img/folder_open.svg';
+import { ReactComponent as FolderIcon } from '../../img/folder.svg';
 import { ReactComponent as ChatIcon } from '../../img/llm/chat_message.svg';
 import { ReactComponent as ShareIcon } from '../../img/llm/graph_share.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
@@ -52,7 +60,6 @@ import { ReactComponent as AddIcon } from '../../img/navbar/add.svg';
 import { ReactComponent as BookIcon } from '../../img/navbar/book_4.svg';
 import {
     createFavoriteFolder,
-    duplicateFavoriteFolder,
     getFavoriteFolder,
     listFavoriteFolders,
     removeFavoriteFolder,
@@ -61,6 +68,7 @@ import {
     updateFavoriteGraphFolder,
     updateFavoriteReferenceFolder,
 } from '../../service/Favorites';
+import { getRunningConversationIds, subscribeToActiveRun } from '../../service/activeRun';
 import {
     fetchBookmarks,
     getBookmarks,
@@ -69,6 +77,7 @@ import {
 import {
     setActiveConversationId,
     updateConversationTitle,
+  chatPathForConversation,
 } from '../../utils/chatHistory';
 import {
     fetchConversationBookmarks,
@@ -84,6 +93,7 @@ import { useAuth } from '../Auth/AuthContext';
 import { nodeStyle } from '../Graph/nodeStyle';
 import CiteDialog from '../Units/CiteDialog';
 import ConversationCard from '../Units/ConversationCard';
+import { toIsoUtc, withServerTimezone } from '../../utils/serverTime';
 
 const formatMessageCount = (conversation) => {
     const count = typeof conversation?.messageCount === 'number' ? conversation.messageCount : 0;
@@ -100,7 +110,6 @@ const SORT_DATE = 'date';
 const ENTRY_PREVIEW_LIMIT = 5;
 const DEFAULT_FOLDER_NAME = 'New Folder';
 const DEBUG_HIDE_EXPLORE = true;
-const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
 const getConversationTitle = (conversation) => (
@@ -154,7 +163,10 @@ const parseTimestamp = (value) => {
             return numeric < 1e12 ? numeric * 1000 : numeric;
         }
     }
-    const parsed = new Date(value);
+    /* A datetime the API wrote carries no timezone designator, and `new Date()` would read it
+       as local time — hours away from the instant it names, and hours away from the ISO-UTC
+       timestamps this app writes for itself. See utils/serverTime.js. */
+    const parsed = new Date(withServerTimezone(value));
     const time = parsed.getTime();
     return Number.isNaN(time) ? null : time;
 };
@@ -284,8 +296,10 @@ const normalizeFolderChat = (session) => {
         hid,
         leadingTitle: session?.leading_title || session?.title || 'New Chat',
         title: session?.leading_title || session?.title || 'New Chat',
-        createdAt: session?.created_at || null,
-        updatedAt: session?.last_accessed_time || session?.updatedAt || session?.created_at || null,
+        createdAt: toIsoUtc(session?.created_at),
+        updatedAt: toIsoUtc(
+            session?.last_accessed_time || session?.updatedAt || session?.created_at,
+        ),
         messageCount: session?.message_count ?? messages.length,
         // `sessions[].is_investigate` on /fav/chat and the folder listings.
         isInvestigate: session?.is_investigate === true,
@@ -325,8 +339,11 @@ const normalizeFolderGraph = (entry) => {
         ghid,
         title: entry?.title || '',
         endpointType: entry?.endpoint_type || entry?.endpointType || '',
-        createdAt: entry?.created_at || entry?.createdAt || null,
-        updatedAt: entry?.last_accessed_time || entry?.updatedAt || entry?.created_at || entry?.createdAt || null,
+        createdAt: toIsoUtc(entry?.created_at || entry?.createdAt),
+        updatedAt: toIsoUtc(
+            entry?.last_accessed_time || entry?.updatedAt
+            || entry?.created_at || entry?.createdAt,
+        ),
         terms: Array.isArray(entry?.terms) ? entry.terms : [],
     };
 };
@@ -487,7 +504,7 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
                 open={isMenuOpen}
                 onClose={handleCloseMenu}
             >
-                <ContextMenuItem icon={<BookmarkIcon />} onClick={handleRemoveBookmark}>
+                <ContextMenuItem icon={<ContextMenuBookmarkIcon />} onClick={handleRemoveBookmark}>
                     Remove bookmark
                 </ContextMenuItem>
                 {onManageFolders && (
@@ -503,7 +520,7 @@ const LibraryReferenceCard = ({ entry, onOpen, onRemoveBookmark, onCite, onManag
     );
 };
 
-const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) => {
+const LibraryFolderManagerItem = ({ folder, isActive, itemCount, onDelete, onRename, onOpen }) => {
     const [menuAnchorEl, setMenuAnchorEl] = useState(null);
     const isMenuOpen = Boolean(menuAnchorEl);
 
@@ -516,59 +533,38 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
         setMenuAnchorEl(null);
     };
 
-    const handleOpen = () => {
-        if (onOpen) {
-            onOpen(folder);
-        }
-    };
-
     return (
         <div
-            className="library-folder-card"
-            role="button"
-            tabIndex={0}
-            onClick={handleOpen}
-            onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    handleOpen();
-                }
-            }}
+            className={`library-folder-manager-row${isMenuOpen ? ' is-menu-open' : ''}`}
         >
-            <div className="library-folder-top">
-                <div className="library-folder-icon">
-                    <FolderOpenIcon className="library-folder-icon-image" />
-                </div>
-                <div className="library-folder-menu-slot">
-                    <IconButton
-                        size="small"
-                        className="library-folder-menu"
-                        onClick={handleOpenMenu}
-                        aria-label="Open folder menu"
-                        sx={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: '8px',
-                            color: 'var(--color-text-secondary)',
-                        }}
-                    >
-                        <MoreHorizIcon sx={{ fontSize: 12 }} />
-                    </IconButton>
-                </div>
-            </div>
-            <div className="library-folder-title" title={folder?.name || ''}>
-                {folder?.name || 'Untitled folder'}
-            </div>
-            <div className="library-folder-meta">
-                {folder?.chat_count ?? 0} chats / {folder?.ref_count ?? 0} references
-            </div>
+            <button
+                type="button"
+                className={`library-folder-manager-item${isActive ? ' is-active' : ''}`}
+                onClick={() => onOpen?.(folder)}
+            >
+                <span className="library-folder-manager-icon">
+                    <FolderIcon style={{ width: 16, height: 16 }} />
+                </span>
+                <span className="library-folder-manager-label">{folder?.name || 'Untitled folder'}</span>
+                <span className="library-folder-manager-count">{itemCount}</span>
+            </button>
+            <IconButton
+                size="small"
+                className="library-folder-manager-context-button"
+                onClick={handleOpenMenu}
+                aria-label={`Open ${folder?.name || 'folder'} menu`}
+                aria-haspopup="menu"
+                aria-expanded={isMenuOpen ? 'true' : undefined}
+            >
+                <MoreVertIcon />
+            </IconButton>
             <ContextMenu
                 anchorEl={menuAnchorEl}
                 open={isMenuOpen}
                 onClose={handleCloseMenu}
             >
                 <ContextMenuItem
-                    icon={<DriveFileRenameOutlineIcon />}
+                    icon={<ContextMenuRenameIcon />}
                     onClick={() => {
                         handleCloseMenu();
                         if (onRename) {
@@ -579,18 +575,7 @@ const LibraryFolderCard = ({ folder, onDelete, onDuplicate, onRename, onOpen }) 
                     Rename
                 </ContextMenuItem>
                 <ContextMenuItem
-                    icon={<FileCopyOutlinedIcon />}
-                    onClick={() => {
-                        handleCloseMenu();
-                        if (onDuplicate) {
-                            onDuplicate(folder);
-                        }
-                    }}
-                >
-                    Duplicate
-                </ContextMenuItem>
-                <ContextMenuItem
-                    icon={<DeleteOutlineIcon />}
+                    icon={<ContextMenuDeleteIcon />}
                     danger
                     onClick={() => {
                         handleCloseMenu();
@@ -631,8 +616,21 @@ const Library = () => {
     const { isAuthenticated, loading } = useAuth();
     const [sortOption, setSortOption] = useState(SORT_DATE);
     const [searchQuery, setSearchQuery] = useState('');
-    const [isPhoneDevice, setIsPhoneDevice] = useState(false);
+    const [isPhoneDevice, setIsPhoneDevice] = useState(isPhoneViewport);
     const [mobileFolderDrawerOpen, setMobileFolderDrawerOpen] = useState(false);
+    // Several conversations can be working at once, so this is a membership test rather
+    // than a comparison against the one run there used to be.
+    const [runningConversationIds, setRunningConversationIds] = useState(
+        () => getRunningConversationIds(),
+    );
+    const isConversationRunning = useCallback(
+        (id) => id != null && runningConversationIds.has(String(id)),
+        [runningConversationIds],
+    );
+
+    useEffect(() => subscribeToActiveRun(
+        () => setRunningConversationIds(getRunningConversationIds()),
+    ), []);
 
     const [selectedFolderId, setSelectedFolderId] = useState(() => {
         const params = new URLSearchParams(location.search);
@@ -642,7 +640,7 @@ const Library = () => {
 
     useEffect(() => {
         const evaluateIsPhone = () => {
-            setIsPhoneDevice(isPhoneUa() && isPhoneViewport());
+            setIsPhoneDevice(isPhoneViewport());
         };
 
         evaluateIsPhone();
@@ -799,10 +797,16 @@ const Library = () => {
         setSelectedCitation(null);
     };
 
-    const handleOpenConversation = (conversationId) => {
+    /** Takes the bookmark row, so the conversation's own URL is available. */
+    const handleOpenConversation = (conversation) => {
+        const conversationId = conversation?.id ?? conversation;
         if (!conversationId) return;
         setActiveConversationId(String(conversationId));
-        navigate('/chat', { state: { conversationId: String(conversationId) } });
+        // The bookmark payload spells it either way depending on which endpoint filled it.
+        const publicId = conversation?.publicId || conversation?.public_id || null;
+        navigate(chatPathForConversation({ publicId }), {
+            state: { conversationId: String(conversationId) },
+        });
     };
 
     const handleOpenGraph = (graph) => {
@@ -892,6 +896,11 @@ const Library = () => {
         try {
             if (folderRenameTarget?.fid) {
                 await updateFavoriteFolder(folderRenameTarget.fid, nameToUse);
+                if (String(selectedFolderId) === String(folderRenameTarget.fid)) {
+                    setFolderDetail((current) => (
+                        current ? { ...current, name: nameToUse } : current
+                    ));
+                }
             } else {
                 await createFavoriteFolder(nameToUse);
             }
@@ -906,19 +915,15 @@ const Library = () => {
         if (!folder?.fid) return;
         try {
             await removeFavoriteFolder(folder.fid);
+            if (String(selectedFolderId) === String(folder.fid)) {
+                setSelectedFolderId(null);
+                setFolderDetail(null);
+                setMobileFolderDrawerOpen(false);
+                navigate('/library', { replace: true });
+            }
             await refreshFolders();
         } catch (error) {
             // Ignore delete failures.
-        }
-    };
-
-    const handleDuplicateFolder = async (folder) => {
-        if (!folder?.fid) return;
-        try {
-            await duplicateFavoriteFolder(folder.fid);
-            await refreshFolders();
-        } catch (error) {
-            // Ignore duplicate failures.
         }
     };
 
@@ -1169,9 +1174,6 @@ const Library = () => {
             || folders.find((folder) => String(folder.fid) === String(selectedFolderId))?.name
             || 'Folder')
         : null;
-    const mobileFolderStatusLabel = isFolderView
-        ? (selectedFolderName || 'Folder')
-        : 'All Items';
     const getFolderItemCount = (folder) => (
         (folder?.chat_count ?? 0)
         + (folder?.ref_count ?? 0)
@@ -1422,32 +1424,45 @@ const Library = () => {
                         <div className="library-folder-manager-list">
                             {folders.length > 0 ? (
                                 folders.map((folder) => (
-                                    <button
+                                    <LibraryFolderManagerItem
                                         key={folder.fid}
-                                        type="button"
-                                        className={`library-folder-manager-item${String(selectedFolderId) === String(folder.fid) ? ' is-active' : ''}`}
-                                        onClick={() => handleSelectFolder(folder.fid)}
-                                    >
-                                        <span className="library-folder-manager-icon">
-                                            <FolderOpenIcon style={{ width: 16, height: 16 }} />
-                                        </span>
-                                        <span className="library-folder-manager-label">{folder?.name || 'Untitled folder'}</span>
-                                        <span className="library-folder-manager-count">{getFolderItemCount(folder)}</span>
-                                    </button>
+                                        folder={folder}
+                                        isActive={String(selectedFolderId) === String(folder.fid)}
+                                        itemCount={getFolderItemCount(folder)}
+                                        onOpen={(item) => handleSelectFolder(item.fid)}
+                                        onRename={handleOpenFolderDialog}
+                                        onDelete={handleDeleteFolder}
+                                    />
                                 ))
                             ) : (
-                                <div className="library-folder-manager-empty">No folders yet.</div>
+                                <>
+                                    <button
+                                        type="button"
+                                        className="library-folder-manager-item library-folder-manager-empty-add"
+                                        onClick={() => handleOpenFolderDialog()}
+                                    >
+                                        <span className="library-folder-manager-icon">
+                                            <AddIcon style={{ width: 16, height: 16 }} />
+                                        </span>
+                                        <span className="library-folder-manager-label">Add new folder</span>
+                                    </button>
+                                    <div className="library-folder-manager-empty">
+                                        Group chats and references by project or topic.
+                                    </div>
+                                </>
                             )}
-                            <button
-                                type="button"
-                                className="library-folder-manager-item library-folder-manager-add"
-                                onClick={() => handleOpenFolderDialog()}
-                            >
-                                <span className="library-folder-manager-icon">
-                                    <AddIcon style={{ width: 16, height: 16 }} />
-                                </span>
-                                <span className="library-folder-manager-label">Add new folder</span>
-                            </button>
+                            {folders.length > 0 && (
+                                <button
+                                    type="button"
+                                    className="library-folder-manager-item library-folder-manager-add"
+                                    onClick={() => handleOpenFolderDialog()}
+                                >
+                                    <span className="library-folder-manager-icon">
+                                        <AddIcon style={{ width: 16, height: 16 }} />
+                                    </span>
+                                    <span className="library-folder-manager-label">Add new folder</span>
+                                </button>
+                            )}
                         </div>
                     </Box>
                     </Box>
@@ -1489,37 +1504,52 @@ const Library = () => {
                                 <span className="library-folder-manager-icon">
                                     <BookIcon style={{ width: 16, height: 16 }} />
                                 </span>
-                                <span className="library-folder-manager-label">All Items</span>
+                                <span className="library-folder-manager-label">
+                                    {activeTab === REFERENCES_TAB ? 'All References' : 'All Chats'}
+                                </span>
                                 <span className="library-folder-manager-count">{allItemsCount}</span>
                             </button>
                             <div className="library-folder-manager-list library-folder-manager-list-mobile">
                                 {folders.length > 0 ? (
                                     folders.map((folder) => (
-                                        <button
+                                        <LibraryFolderManagerItem
                                             key={folder.fid}
-                                            type="button"
-                                            className={`library-folder-manager-item${String(selectedFolderId) === String(folder.fid) ? ' is-active' : ''}`}
-                                            onClick={() => handleSelectFolder(folder.fid)}
-                                        >
-                                            <span className="library-folder-manager-icon">
-                                                <FolderOpenIcon style={{ width: 16, height: 16 }} />
-                                            </span>
-                                            <span className="library-folder-manager-label">{folder?.name || 'Untitled folder'}</span>
-                                            <span className="library-folder-manager-count">{getFolderItemCount(folder)}</span>
-                                        </button>
+                                            folder={folder}
+                                            isActive={String(selectedFolderId) === String(folder.fid)}
+                                            itemCount={getFolderItemCount(folder)}
+                                            onOpen={(item) => handleSelectFolder(item.fid)}
+                                            onRename={handleOpenFolderDialog}
+                                            onDelete={handleDeleteFolder}
+                                        />
                                     ))
                                 ) : (
-                                    <div className="library-folder-manager-empty">No folders yet.</div>
+                                    <>
+                                        <button
+                                            type="button"
+                                            className="library-folder-manager-item library-folder-manager-empty-add"
+                                            onClick={() => handleOpenFolderDialog()}
+                                        >
+                                            <span className="library-folder-manager-icon">
+                                                <AddIcon style={{ width: 16, height: 16 }} />
+                                            </span>
+                                            <span className="library-folder-manager-label">Add new folder</span>
+                                        </button>
+                                        <div className="library-folder-manager-empty">
+                                            Group chats and references by project or topic.
+                                        </div>
+                                    </>
                                 )}
                             </div>
-                            <button
-                                type="button"
-                                className="library-mobile-folder-new-button"
-                                onClick={() => handleOpenFolderDialog()}
-                            >
-                                <AddIcon style={{ width: 16, height: 16 }} />
-                                New Folder
-                            </button>
+                            {folders.length > 0 && (
+                                <button
+                                    type="button"
+                                    className="library-mobile-folder-new-button"
+                                    onClick={() => handleOpenFolderDialog()}
+                                >
+                                    <AddIcon style={{ width: 16, height: 16 }} />
+                                    New Folder
+                                </button>
+                            )}
                         </div>
                     </Drawer>
                 )}
@@ -1528,26 +1558,26 @@ const Library = () => {
                         <Box className="library-title-bar">
                             <Box className="library-title-row">
                                 <Typography className="library-title">
-                                    {selectedFolderName || 'Library'}
+                                    {isPhoneDevice ? 'Library' : (selectedFolderName || 'Library')}
                                 </Typography>
                             </Box>
-                        </Box>
-                        <Typography className="library-subtitle">
-                            Your personal research workspace.
-                        </Typography>
-                        {isPhoneDevice && (
-                            <Box className="library-folder-status-row">
-                                <span className="library-folder-status-label">{mobileFolderStatusLabel}</span>
+                            {isPhoneDevice && (
                                 <button
                                     type="button"
                                     className="library-folder-status-button"
                                     onClick={() => setMobileFolderDrawerOpen(true)}
                                 >
-                                    <span>{folders.length} folders</span>
-                                    <KeyboardArrowDownIcon sx={{ fontSize: 12 }} />
+                                    <span>
+                                        {selectedFolderName
+                                            || (activeTab === REFERENCES_TAB ? 'All References' : 'All Chats')}
+                                    </span>
+                                    <KeyboardArrowDownIcon sx={{ fontSize: 16 }} />
                                 </button>
-                            </Box>
-                        )}
+                            )}
+                        </Box>
+                        <Typography className="library-subtitle">
+                            Your personal research workspace.
+                        </Typography>
                         <Box className="library-tabs-row">
                             {!isPhoneDevice && (
                                 <Typography className="library-count">
@@ -1598,11 +1628,6 @@ const Library = () => {
                                 </button>
                             )}
                         </div>
-                        {isPhoneDevice && (
-                            <Box className="library-mobile-sort-row">
-                                {librarySortControl}
-                            </Box>
-                        )}
                     </Box>
                     <Box className="library-scroll">
                         {isSearching && !hasSearchResults && canRenderList ? (
@@ -1672,12 +1697,13 @@ const Library = () => {
                                                                     <span>{formatMessageCount(conversation)}</span>
                                                                 </div>
                                                             )}
-                                                            onOpen={(item) => handleOpenConversation(item.id)}
+                                                            onOpen={(item) => handleOpenConversation(item)}
                                                             onRename={handleRenameConversation}
                                                             onBookmark={handleBookmarkConversation}
                                                             onManageFolders={handleManageChatFolders}
                                                             isBookmarked
                                                             bookmarkLabel="Remove bookmark"
+                                                            isLoadingConversation={isConversationRunning(conversation.id)}
                                                         />
                                                     </div>
                                                 ))}
@@ -1846,12 +1872,13 @@ const Library = () => {
                                                                 <span>{formatMessageCount(conversation)}</span>
                                                             </div>
                                                         )}
-                                                        onOpen={(item) => handleOpenConversation(item.id)}
+                                                        onOpen={(item) => handleOpenConversation(item)}
                                                         onRename={handleRenameConversation}
                                                         onBookmark={handleBookmarkConversation}
                                                         onManageFolders={handleManageChatFolders}
                                                         isBookmarked
                                                         bookmarkLabel="Remove bookmark"
+                                                        isLoadingConversation={isConversationRunning(conversation.id)}
                                                     />
                                                 </div>
                                             ))}

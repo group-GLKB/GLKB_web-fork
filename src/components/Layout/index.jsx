@@ -1,6 +1,7 @@
 import './scoped.css';
 
 import React, {
+  Suspense,
   useEffect,
   useLayoutEffect,
   useState,
@@ -20,13 +21,13 @@ import logoWordmark from '../../img/navbar/logo.png';
 import { isRunActive } from '../../service/activeRun';
 import { trackGtagEvent } from '../../utils/gtag';
 import LoginModal from '../Auth/LoginModal';
+import PersistentAgentSurface from './PersistentAgentSurface';
 import NavBarWhite from '../Units/NavBarWhite';
 
 const SIDEBAR_OPEN_EVENT = 'glkb-open-sidebar';
 const MOBILE_HEADER_NEW_CHAT_EVENT = 'glkb-mobile-header-new-chat';
 const MOBILE_HEADER_VISIBILITY_EVENT = 'glkb-mobile-header-visibility';
 
-const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
 const getPageTitleByPath = (pathname) => {
@@ -49,7 +50,7 @@ const getPageTitleByPath = (pathname) => {
 const AppLayout = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const [isPhoneDevice, setIsPhoneDevice] = useState(false);
+    const [isPhoneDevice, setIsPhoneDevice] = useState(isPhoneViewport);
     const [isMobileHeaderHidden, setIsMobileHeaderHidden] = useState(false);
     const isAboutPage = location.pathname.startsWith('/about');
     const isBlogPage = location.pathname.startsWith('/blog');
@@ -58,10 +59,11 @@ const AppLayout = () => {
         || location.pathname.startsWith('/terms');
     const isAccountPage = location.pathname.startsWith('/account');
     const isChatPage = location.pathname.startsWith('/chat');
-    // Settings stands on its own, as About, the blog and the notices do: its
-    // section nav is a rail already, and two rails side by side spend 300px to
-    // say the same thing twice. That nav carries its own way back to the app.
-    const hideSidebar = isAboutPage || isBlogPage || isLegalPage || isAccountPage;
+    // Desktop Settings has its own section rail, so a second permanent app rail
+    // would duplicate it. On phones that section rail is intentionally hidden;
+    // keep the app's temporary drawer mounted so the mobile header menu is live.
+    const hideSidebar = isAboutPage || isBlogPage || isLegalPage
+        || (isAccountPage && !isPhoneDevice);
     const showMobileHeader = isPhoneDevice && !isAboutPage && !isBlogPage && !isLegalPage
         && !isMobileHeaderHidden;
 
@@ -88,7 +90,7 @@ const AppLayout = () => {
 
     useEffect(() => {
         const evaluateIsPhone = () => {
-            setIsPhoneDevice(isPhoneUa() && isPhoneViewport());
+            setIsPhoneDevice(isPhoneViewport());
         };
 
         evaluateIsPhone();
@@ -150,7 +152,23 @@ const AppLayout = () => {
             )}
             {!hideSidebar && <NavBarWhite hideCompactRail={showMobileHeader || isMobileHeaderHidden} />}
             <div className={`app-layout-content${showMobileHeader ? ' has-mobile-header' : ''}`}>
-                <Outlet />
+                {/*
+                  The Agent owns live SSE/XHR callbacks and a large amount of in-flight state.
+                  Mount it once with the app shell instead of once with the /chat route: route
+                  changes now hide its view but cannot tear down the request or its state. This
+                  covers ordinary chat and Investigate with the same lifecycle.
+                */}
+                <PersistentAgentSurface active={isChatPage}>
+                    {/* The boundary sits HERE, around the routed page only, and not around the
+                        whole router. A lazy page suspending inside a boundary that also
+                        contained the Agent would hide the Agent's view along with it — the one
+                        thing this layout exists to keep alive. `null` rather than a spinner:
+                        these chunks come off the same origin and a flashed placeholder reads
+                        worse than the half-beat it replaces. */}
+                    <Suspense fallback={null}>
+                        <Outlet />
+                    </Suspense>
+                </PersistentAgentSurface>
             </div>
             {/* Sign-in lives in an overlay so it can appear over any page. */}
             <LoginModal />

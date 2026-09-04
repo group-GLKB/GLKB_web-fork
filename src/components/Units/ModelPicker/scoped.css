@@ -1,0 +1,154 @@
+/* Which model answers the question — the chip and the panel it opens.
+
+   Its own file rather than a block in a feature's stylesheet: the picker is used by both
+   the chat composer and the home search bar, and styles that lived in
+   `components/LLMAgent/scoped.css` would reach the home page only for as long as the chat
+   module happens to be in the same bundle.
+
+   Sized against `.references-scope-*` in the chat's stylesheet rather than inventing a
+   second scale: that is the same kind of control (a label, a chevron, a panel of options
+   with the current one marked). */
+.model-picker-trigger {
+    max-width: 220px;
+    /* Does NOT shrink. Squeezed in a narrow control row it truncates to "GPT-5…", which
+       tells the reader nothing — and naming the model is the entire job of this chip. The
+       row's other controls absorb the squeeze instead; the search-options chip beside it
+       already ellipsises by design. */
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 6px 4px 8px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--color-text-tertiary);
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    cursor: pointer;
+    transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.model-picker-trigger:hover:not(:disabled) {
+    background-color: var(--color-background-muted);
+    color: var(--color-text-secondary);
+}
+
+.model-picker-trigger:disabled {
+    cursor: default;
+    opacity: 0.55;
+}
+
+.model-picker-trigger-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.model-picker-chevron {
+    width: 14px !important;
+    height: 14px !important;
+    color: inherit;
+    transform: rotate(90deg);
+    transition: transform 0.16s ease;
+    flex-shrink: 0;
+}
+
+.model-picker-chevron.expanded {
+    transform: rotate(-90deg);
+}
+
+/* Above the composer, which is itself z-index 10 (`.chat-header`). */
+.model-picker-layer {
+    z-index: 1300;
+}
+
+.model-picker-panel {
+    width: 320px;
+    /* Tall enough for the whole catalogue without scrolling — a picker that hides its
+       last row behind a scrollbar makes the cheapest and the most capable options the
+       two hardest to find. Still capped, so a longer catalogue scrolls rather than
+       running off the top of the window. */
+    max-height: min(420px, calc(100vh - 220px));
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    border: 1px solid var(--color-border-default);
+    border-radius: 12px;
+    background-color: var(--color-background-surface);
+    box-shadow: 0 8px 24px rgba(20, 27, 38, 0.12);
+}
+
+.model-picker-option {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+
+.model-picker-option:hover {
+    background-color: var(--color-background-subtle);
+}
+
+.model-picker-option-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.model-picker-option-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-text-primary);
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 18px;
+}
+
+.model-picker-option-badge {
+    padding: 0 5px;
+    border-radius: 4px;
+    background-color: var(--color-brand-muted);
+    color: var(--color-brand-primary);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.model-picker-option-description {
+    color: var(--color-text-tertiary);
+    font-family: 'Geist', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 15px;
+}
+
+.model-picker-check {
+    width: 16px !important;
+    height: 16px !important;
+    margin-top: 1px;
+    color: var(--color-brand-primary);
+    flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+    .model-picker-panel {
+        width: min(320px, calc(100vw - 48px));
+    }
+}

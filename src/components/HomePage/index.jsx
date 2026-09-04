@@ -28,15 +28,16 @@ import {
   Typography,
 } from '@mui/material';
 
-import { ReactComponent as PillEntityInsightsIcon } from '../../img/llm/pill_entity_insights.svg';
-import { ReactComponent as PillLiteratureDiscoveryIcon } from '../../img/llm/pill_literature_discovery.svg';
-import { ReactComponent as PillMechanismsIcon } from '../../img/llm/pill_mechanisms.svg';
-import { ReactComponent as PillResearchTrendIcon } from '../../img/llm/pill_research_trend.svg';
+import { ReactComponent as PillBuildEvidenceIcon } from '../../img/llm/pill_build_evidence.svg';
+import { ReactComponent as PillCheckClaimIcon } from '../../img/llm/pill_check_claim.svg';
+import { ReactComponent as PillCompareOptionsIcon } from '../../img/llm/pill_compare_options.svg';
+import { ReactComponent as PillFocusHypothesisIcon } from '../../img/llm/pill_focus_hypothesis.svg';
 import {
   getGuestTier,
   getMyTier,
   isFreePlanLimitReached,
 } from '../../service/Tier';
+import { isRunActive, subscribeToActiveRun } from '../../service/activeRun';
 import { trackGtagEvent } from '../../utils/gtag';
 import { useAuth } from '../Auth/AuthContext';
 import exampleSchema from './exampleSchema.json';
@@ -45,7 +46,6 @@ import LlmSearchBar from './LlmSearchBarHome';
 // const { Search } = Input;
 const DEBUG_FORCE_LIMIT_WARNING = false;
 
-const isPhoneUa = () => /Android|iPhone|iPod|Windows Phone|Mobile/i.test(window.navigator.userAgent || '');
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
 
@@ -58,7 +58,8 @@ const HomePage = () => {
     const [prefillQuery, setPrefillQuery] = useState('');
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
     const [queryLimitTotal, setQueryLimitTotal] = useState(10);
-    const [isPhoneDevice, setIsPhoneDevice] = useState(false);
+    const [isPhoneDevice, setIsPhoneDevice] = useState(isPhoneViewport);
+    const [isAgentRunActive, setIsAgentRunActive] = useState(() => isRunActive());
     const { isAuthenticated, loading, openLoginModal } = useAuth();
     const navigate = useNavigate();
     const examplePanelRef = useRef(null);
@@ -66,21 +67,14 @@ const HomePage = () => {
     const heroInnerRef = useRef(null);
     const [heroTopOffset, setHeroTopOffset] = useState(null);
     const iconMap = {
-        lightbulb: <PillEntityInsightsIcon />,
-        chart: <PillResearchTrendIcon />,
-        book: <PillMechanismsIcon />,
-        knowledge: <PillLiteratureDiscoveryIcon />,
-    };
-    const iconColorMap = {
-        lightbulb: '#FBBF7A',
-        chart: '#08B046',
-        book: '#BD7AFB',
-        knowledge: 'var(--color-brand-primary)',
+        lightbulb: <PillFocusHypothesisIcon />,
+        chart: <PillCompareOptionsIcon />,
+        book: <PillCheckClaimIcon />,
+        knowledge: <PillBuildEvidenceIcon />,
     };
     const pills = (exampleSchema.pills || []).map((pill) => ({
         ...pill,
-        icon: iconMap[pill.icon] || <PillEntityInsightsIcon />,
-        iconColor: iconColorMap[pill.icon] || 'var(--color-grey-800)',
+        icon: iconMap[pill.icon] || <PillFocusHypothesisIcon />,
     }));
     const activePill = pills.find((pill) => pill.id === showExamples);
     const isHomeLimitReachedEffective = isQueryLimitReached || DEBUG_FORCE_LIMIT_WARNING;
@@ -88,6 +82,10 @@ const HomePage = () => {
     const displayedQueryLimit = Number.isFinite(Number(queryLimitTotal)) && Number(queryLimitTotal) > 0
         ? Number(queryLimitTotal)
         : 10;
+
+    useEffect(() => subscribeToActiveRun(
+        (run) => setIsAgentRunActive(Boolean(run)),
+    ), []);
 
     // const [focused, setFocused] = useState(false);
     // const theme = useTheme();
@@ -112,7 +110,7 @@ const HomePage = () => {
 
     useEffect(() => {
         const evaluateIsPhone = () => {
-            setIsPhoneDevice(isPhoneUa() && isPhoneViewport());
+            setIsPhoneDevice(isPhoneViewport());
         };
 
         evaluateIsPhone();
@@ -318,23 +316,23 @@ const HomePage = () => {
                                     className="glkb-title"
                                     sx={{
                                         fontFamily: 'Geist, sans-serif',
-                                        fontWeight: 800,
-                                        fontSize: isPhoneDevice ? '30px' : '40px',
-                                        lineHeight: isPhoneDevice ? 1.2 : '48px',
+                                        fontWeight: isPhoneDevice ? 700 : 800,
+                                        fontSize: isPhoneDevice ? '32px' : '40px',
+                                        lineHeight: isPhoneDevice ? '40px' : '48px',
                                     }}
                                 >
                                     <span style={{ color: 'var(--color-text-primary)' }}>Ask.</span>{' '}
-                                    <span style={{ color: 'var(--color-brand-primary)' }}>Analyze</span>
-                                    <span style={{ color: 'var(--color-text-primary)' }}>. Cite.</span>
+                                    <span style={{ color: 'var(--color-brand-primary)' }}>Analyze.</span>{' '}
+                                    <span style={{ color: 'var(--color-text-primary)' }}>Cite.</span>
                                 </Typography>
                                 <Typography
                                     className="glkb-subtitle"
                                     sx={{
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 400,
-                                        fontSize: '14px',
+                                        fontSize: isPhoneDevice ? '12px' : '14px',
                                         color: 'var(--color-text-tertiary)',
-                                        lineHeight: '22px',
+                                        lineHeight: isPhoneDevice ? '20px' : '22px',
                                     }}
                                 >
                                     Weeks of research, done in minutes.
@@ -367,6 +365,7 @@ const HomePage = () => {
                                             prefillQuery={prefillQuery}
                                             autocompleteOptions={exampleSchema.autocomplete || []}
                                             isQueryLimitReached={showHomeLimitWarning}
+                                            isAgentRunActive={isAgentRunActive}
                                         />
                                         {activePill && (
                                             <Paper className="homepage-examples-panel" ref={examplePanelRef}>
@@ -438,7 +437,7 @@ const HomePage = () => {
                                                 setShowExamples((current) => current === pill.id ? undefined : pill.id);
                                             }}
                                         >
-                                            <span className="homepage-pill-icon" style={{ color: pill.iconColor }}>{pill.icon}</span>
+                                            <span className="homepage-pill-icon">{pill.icon}</span>
                                             <span className="homepage-pill-label">{pill.label}</span>
                                         </Box>
                                     ))}
@@ -452,7 +451,7 @@ const HomePage = () => {
                         <div className="footer">
                             <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
                                 <p className="homepage-footer-line">
-                                    © 2026 GLKB – Genomic Literature Knowledge Base | glkb.org
+                                    © 2025 GLKB – Genomic Literature Knowledge Base | glkb.org
                                 </p>
                                 <p className="homepage-footer-line">
                                     Developed and maintained by the <a className="homepage-lab-link" href="https://jieliu6.github.io/" target="_blank" rel="noopener noreferrer">Jie Liu Lab</a>, Department of Computational Medicine and Bioinformatics, University of Michigan.

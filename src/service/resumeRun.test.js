@@ -1,4 +1,4 @@
-import { isExchangeUnfinished } from './resumeRun';
+import { getLiveConversationNavigationAction, isExchangeUnfinished } from './resumeRun';
 
 describe('isExchangeUnfinished', () => {
     it('is false for an empty or missing conversation', () => {
@@ -39,5 +39,31 @@ describe('isExchangeUnfinished', () => {
     it('does not trip over a malformed tail', () => {
         expect(isExchangeUnfinished([{ role: 'user', content: 'q' }, null])).toBe(false);
         expect(isExchangeUnfinished(['nonsense'])).toBe(false);
+    });
+});
+
+describe('live conversation navigation', () => {
+    it('loads normally when no run owns the controller', () => {
+        expect(getLiveConversationNavigationAction({
+            requestedConversationId: '2',
+            activeConversationId: '1',
+            hasLiveRun: false,
+        })).toBe('load');
+    });
+
+    it('keeps the existing stream when History opens the same conversation', () => {
+        expect(getLiveConversationNavigationAction({
+            requestedConversationId: 42,
+            activeConversationId: '42',
+            hasLiveRun: true,
+        })).toBe('continue-current');
+    });
+
+    it('loads another conversation without handing it ownership of the live run', () => {
+        expect(getLiveConversationNavigationAction({
+            requestedConversationId: '2',
+            activeConversationId: '1',
+            hasLiveRun: true,
+        })).toBe('load-other');
     });
 });

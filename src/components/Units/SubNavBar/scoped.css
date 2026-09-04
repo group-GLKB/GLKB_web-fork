@@ -12,11 +12,11 @@
 }
 
 
-button {
+.sub-navigation-bar button {
 
     padding: 0px;
-    font-family: "Open Sans", sans-serif;
-    font-weight: 700;
+    font-family: 'Geist', sans-serif;
+    font-weight: 600;
     font-size: 12px;
     cursor: pointer;
     background-color: white;
@@ -25,7 +25,7 @@ button {
 
 }
 
-#subnavbarbutton {
+.sub-navigation-bar #subnavbarbutton {
     width: 90px;
     height: 36px;
     transition: background-color 0.15s ease-in, color 0.15s ease-in;
@@ -34,15 +34,15 @@ button {
     justify-content: center;
 }
 
-.active {
+.sub-navigation-bar .active {
     background-color: #0169B0;
     color: #F4F6FE;
 }
 
-.nonactive {
+.sub-navigation-bar .nonactive {
     color: #A7AABD;
 }
 
-.nonactive:hover {
+.sub-navigation-bar .nonactive:hover {
     background-color: #EDF5FE;
 }

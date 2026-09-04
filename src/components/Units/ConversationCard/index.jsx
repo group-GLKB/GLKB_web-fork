@@ -7,10 +7,6 @@ import React, {
 } from 'react';
 
 import {
-  Bookmark as BookmarkIcon,
-  BookmarkBorder as BookmarkBorderIcon,
-  DeleteOutline as DeleteOutlineIcon,
-  DriveFileRenameOutline as DriveFileRenameOutlineIcon,
   FolderOutlined as FolderOutlinedIcon,
   MoreVert as MoreVertIcon,
 } from '@mui/icons-material';
@@ -21,7 +17,14 @@ import {
   Typography,
 } from '@mui/material';
 
-import { ContextMenu, ContextMenuItem } from '../ContextMenu';
+import {
+    ContextMenu,
+    ContextMenuBookmarkIcon,
+    ContextMenuDeleteIcon,
+    ContextMenuItem,
+    ContextMenuRenameIcon,
+} from '../ContextMenu';
+import ConversationRunStatus from '../ConversationRunStatus';
 
 const getDefaultTitle = (conversation) => (
     conversation?.leadingTitle || conversation?.title || 'Untitled conversation'
@@ -49,6 +52,7 @@ const ConversationCard = ({
     bookmarkLabel,
     folderLabel = 'Add to folder',
     menuDisabled = false,
+    isLoadingConversation = false,
 }) => {
     const resolvedTitle = useMemo(
         () => (title !== undefined ? title : getDefaultTitle(conversation)),
@@ -66,7 +70,6 @@ const ConversationCard = ({
     const resolvedBookmarkLabel = bookmarkLabel != null
         ? bookmarkLabel
         : (isBookmarked ? 'Remove bookmark' : 'Bookmark');
-    const BookmarkMenuIcon = isBookmarked ? BookmarkIcon : BookmarkBorderIcon;
 
     useEffect(() => {
         if (!isEditing) {
@@ -74,9 +77,15 @@ const ConversationCard = ({
         }
     }, [isEditing, resolvedTitle]);
 
+    useEffect(() => {
+        if (isLoadingConversation) {
+            setMenuAnchorEl(null);
+        }
+    }, [isLoadingConversation]);
+
     const handleOpenMenu = (event) => {
         event.stopPropagation();
-        if (!hasMenu || menuDisabled || isEditing) return;
+        if (!hasMenu || menuDisabled || isEditing || isLoadingConversation) return;
         setMenuAnchorEl(event.currentTarget);
     };
 
@@ -128,7 +137,7 @@ const ConversationCard = ({
     };
 
     const handleDelete = async () => {
-        if (!onDelete) return;
+        if (!onDelete || isLoadingConversation) return;
         try {
             await onDelete(conversation);
         } catch (error) {
@@ -140,6 +149,7 @@ const ConversationCard = ({
     const handleCardClick = () => {
         if (isEditing) return;
         if (selectMode) {
+            if (isLoadingConversation) return;
             if (onToggleSelect) {
                 onToggleSelect(conversation?.id);
             }
@@ -158,10 +168,12 @@ const ConversationCard = ({
                 <Checkbox
                     className="history-row-checkbox"
                     checked={isSelected}
+                    disabled={isLoadingConversation}
                     onClick={(event) => {
                         event.stopPropagation();
                     }}
                     onChange={() => {
+                        if (isLoadingConversation) return;
                         if (onToggleSelect) {
                             onToggleSelect(conversation?.id, true);
                         }
@@ -221,7 +233,9 @@ const ConversationCard = ({
                                 </Typography>
                             )
                         )}
-                        {hasMenu && (
+                        {isLoadingConversation ? (
+                            <ConversationRunStatus />
+                        ) : hasMenu && (
                             <IconButton
                                 size="small"
                                 className={`history-item-more${alwaysShowMenuButton ? ' is-always-visible' : ''}`}
@@ -253,7 +267,7 @@ const ConversationCard = ({
                     ))}
                 </Box>
             </div>
-            {hasMenu && (
+            {hasMenu && !isLoadingConversation && (
                 <ContextMenu
                     anchorEl={menuAnchorEl}
                     open={isMenuOpen}
@@ -262,14 +276,14 @@ const ConversationCard = ({
                 >
                     {onRename && (
                         <ContextMenuItem
-                            icon={<DriveFileRenameOutlineIcon />}
+                            icon={<ContextMenuRenameIcon />}
                             onClick={handleStartRename}
                         >
                             Rename
                         </ContextMenuItem>
                     )}
                     {onBookmark && (
-                        <ContextMenuItem icon={<BookmarkMenuIcon />} onClick={handleBookmark}>
+                        <ContextMenuItem icon={<ContextMenuBookmarkIcon />} onClick={handleBookmark}>
                             {resolvedBookmarkLabel}
                         </ContextMenuItem>
                     )}
@@ -285,7 +299,7 @@ const ConversationCard = ({
                         </ContextMenuItem>
                     )}
                     {onDelete && (
-                        <ContextMenuItem icon={<DeleteOutlineIcon />} danger onClick={handleDelete}>
+                        <ContextMenuItem icon={<ContextMenuDeleteIcon />} danger onClick={handleDelete}>
                             Delete
                         </ContextMenuItem>
                     )}

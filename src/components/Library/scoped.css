@@ -93,6 +93,13 @@
     padding-right: 4px;
 }
 
+.library-folder-manager-row {
+    position: relative;
+    width: 100%;
+    height: 32px;
+    flex: 0 0 32px;
+}
+
 .library-folder-manager-item {
     box-sizing: border-box;
     border: none;
@@ -115,6 +122,69 @@
 
 .library-folder-manager-item:hover {
     background-color: var(--color-background-subtle);
+}
+
+.library-folder-manager-row.is-menu-open .library-folder-manager-item {
+    background-color: var(--color-background-subtle);
+    padding-right: 36px;
+}
+
+.library-folder-manager-row:hover .library-folder-manager-item,
+.library-folder-manager-row:has(.library-folder-manager-context-button:focus-visible) .library-folder-manager-item {
+    padding-right: 36px;
+}
+
+.library-folder-manager-context-button.MuiIconButton-root {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border-radius: 4px;
+    color: var(--color-text-secondary);
+    background-color: var(--color-background-normal);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.16s ease, background-color 0.16s ease;
+}
+
+.library-folder-manager-context-button .MuiSvgIcon-root {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
+
+.library-folder-manager-context-button.MuiIconButton-root:hover {
+    background-color: var(--color-background-normal);
+}
+
+.library-folder-manager-row:hover .library-folder-manager-context-button,
+.library-folder-manager-row:has(.library-folder-manager-context-button:focus-visible) .library-folder-manager-context-button,
+.library-folder-manager-row.is-menu-open .library-folder-manager-context-button {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.library-folder-manager-row:hover .library-folder-manager-count,
+.library-folder-manager-row:has(.library-folder-manager-context-button:focus-visible) .library-folder-manager-count,
+.library-folder-manager-row.is-menu-open .library-folder-manager-count {
+    opacity: 0;
+}
+
+@media (hover: none) {
+    .library-folder-manager-row .library-folder-manager-item {
+        padding-right: 36px;
+    }
+
+    .library-folder-manager-row .library-folder-manager-context-button {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .library-folder-manager-row .library-folder-manager-count {
+        opacity: 0;
+    }
 }
 
 /* The selected folder — and "All Items", which is the default selection —
@@ -164,8 +234,23 @@
 .library-folder-manager-empty {
     font-family: 'Geist', sans-serif;
     font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
     color: var(--color-text-tertiary);
-    padding: 4px 10px;
+    padding: 0 12px;
+}
+
+.library-folder-manager-empty-add {
+    height: 32px;
+    border: 1px dashed var(--color-border-strong);
+    color: var(--color-text-secondary);
+    background-color: var(--color-background-surface);
+}
+
+.library-folder-manager-empty-add:hover {
+    border-color: var(--color-brand-primary);
+    color: var(--color-brand-primary);
+    background-color: var(--color-brand-soft);
 }
 
 .library-header {
@@ -479,7 +564,7 @@
 .library-folder-status-label {
     font-family: 'Geist', sans-serif;
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--color-text-secondary);
     white-space: nowrap;
     overflow: hidden;
@@ -544,7 +629,7 @@
 .library-mobile-folder-drawer-title {
     font-family: 'Geist', sans-serif;
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--color-text-secondary);
 }
 
@@ -580,7 +665,7 @@
     color: var(--color-brand-primary);
     font-family: 'Geist', sans-serif;
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 600;
     padding: 10px 12px;
     display: inline-flex;
     align-items: center;
@@ -598,9 +683,9 @@
     border: 1px solid var(--color-brand-primary) !important;
     background-color: var(--color-background-surface);
     color: var(--color-brand-primary);
-    font-family: 'Geist, sans-serif';
+    font-family: 'Geist', sans-serif;
     font-size: 14px;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
     padding: 8px;
     gap: 6px;
     text-transform: none;
@@ -629,7 +714,7 @@
     flex-direction: column;
     gap: 0;
     min-height: 80px;
-    font-family: 'Geist, sans-serif';
+    font-family: 'Geist', sans-serif;
     transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
@@ -671,7 +756,7 @@
 
 .library-folder-title {
     font-family: 'Geist';
-    font-weight: 700;
+    font-weight: 600;
     font-size: 16px;
     color: var(--color-text-secondary);
     white-space: nowrap;
@@ -872,8 +957,9 @@
 }
 
 .library-empty-text {
-    font-family: 'Geist, sans-serif';
-    font-size: 14px;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    line-height: 20px;
     color: var(--color-text-tertiary);
 }
 
@@ -990,7 +1076,7 @@
 }
 
 .library-chat-title {
-    font-family: 'Geist, sans-serif';
+    font-family: 'Geist', sans-serif;
     font-weight: 600;
     font-size: 14px;
     color: var(--color-text-secondary);
@@ -1000,7 +1086,7 @@
 }
 
 .library-chat-subtitle {
-    font-family: 'Geist, sans-serif';
+    font-family: 'Geist', sans-serif;
     font-weight: 400;
     font-size: 12px;
     color: var(--color-text-tertiary);
@@ -1053,6 +1139,34 @@
         padding: 16px 24px;
     }
 
+    .library-title-bar {
+        min-height: 36px;
+    }
+
+    .library-title {
+        font-size: 20px !important;
+        line-height: 28px !important;
+    }
+
+    .library-folder-status-button {
+        height: 36px;
+        padding: 0 12px;
+        border-radius: 8px;
+        border-color: var(--color-border-default);
+        background: var(--color-background-subtle);
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 16px;
+    }
+
+    .library-folder-status-button svg {
+        color: var(--color-brand-primary);
+    }
+
+    .library-search {
+        margin-top: 16px;
+    }
+
     .library-tabs-row {
         margin-top: 0;
         margin-bottom: 16px;
@@ -1061,6 +1175,22 @@
 
     .library-sort {
         gap: 6px;
+    }
+
+    .library-reference-list .history-item-row .history-item {
+        padding: 0 4px;
+    }
+
+    .library-entry-title {
+        display: -webkit-box;
+        overflow: hidden;
+        white-space: normal;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+    }
+
+    .library-entry-more.MuiIconButton-root {
+        opacity: 1;
     }
 }
 /* Figma 176:10342 / 176:10344 — dialog actions are a muted pair, not MUI's
@@ -1118,9 +1248,9 @@
     min-width: 0;
     font-family: 'Geist', sans-serif;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     line-height: 16px;
-    color: var(--color-text-tertiary);
+    color: var(--color-text-secondary);
     white-space: nowrap;
 }
 
@@ -1143,5 +1273,27 @@
        also has. One download per screen. */
     .library-mobile-sort-row .library-sort-download {
         display: none;
+    }
+
+    .library-mobile-bar {
+        min-height: 89px;
+        margin: 0 -24px -16px;
+        padding: 12px 16px 33px;
+        box-sizing: border-box;
+    }
+
+    .library-mobile-bar .library-segmented {
+        width: 171px;
+        height: 44px;
+        padding: 4px;
+        border: 0;
+        border-radius: 12px;
+    }
+
+    .library-mobile-bar .library-segmented-option {
+        flex: 1 1 0;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-weight: 600;
     }
 }
