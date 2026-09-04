@@ -8,9 +8,17 @@
  * the same two switches, and both write the same preferences, so a choice made here is the one
  * Settings shows afterwards.
  *
- * Browser notifications need the reader's permission, which can only be requested from a gesture.
- * That request therefore happens on Notify me rather than on the switch, and a refusal turns the
- * switch back off with a line saying so instead of leaving it on and silently never firing.
+ * EACH SWITCH APPLIES AS IT IS MOVED. It read as a form for a while — the switches were a draft
+ * and nothing was written until Notify me — which made "Notify me" a confirm button in a panel
+ * that does not look like a form: moving Email off and closing the panel left email notifications
+ * ON, and there was nothing on screen to say so. A switch that has already taken effect is also
+ * what Settings does with the same two preferences, and the chip behind this panel re-reads them
+ * live, so the effect is visible the moment the switch moves (Notify me -> Notify on). What is
+ * left at the bottom is Done, which only closes.
+ *
+ * Browser notifications need the reader's permission, which can only be requested from a user
+ * gesture — the switch itself is one, so the request happens there. A refusal turns the switch
+ * back off with a line saying so, rather than leaving it on and silently never firing.
  */
 import React, { useEffect, useState } from 'react';
 import { ClickAwayListener, Popper } from '@mui/material';
@@ -24,6 +32,7 @@ import {
     NOTIFY_EMAIL_KEY,
     requestBrowserNotifyPermission,
     setNotifyPref,
+    subscribeToNotifyPrefs,
 } from '../../service/notifications';
 import { Switch } from '../Units/Switch';
 
@@ -42,44 +51,58 @@ const NotifyRow = ({ icon, label, checked, onChange }) => (
 );
 
 const NotifyPopover = ({ anchorEl, open, onClose }) => {
-    // Seeded from the stored preferences, then held locally: the design has a Not now, and a
-    // choice the reader can back out of cannot be written as they make it.
-    const [draft, setDraft] = useState(() => getNotifyPrefs());
+    // A view of the stored preferences, not a draft of them: every write goes through
+    // setNotifyPref, and this state is refreshed from what was actually stored — including
+    // writes from Settings or from another tab while the panel is open.
+    const [prefs, setPrefs] = useState(() => getNotifyPrefs());
     const [error, setError] = useState('');
+
+    useEffect(() => subscribeToNotifyPrefs(setPrefs), []);
 
     useEffect(() => {
         if (!open) return;
-        setDraft(getNotifyPrefs());
+        setPrefs(getNotifyPrefs());
         setError('');
     }, [open]);
 
     if (!open || !anchorEl) return null;
 
-    const confirm = async () => {
-        // An address the server can mail. Without one the switch would be on and silent.
-        if (draft.email && !getUserNotifyEmail()) {
-            setDraft((prev) => ({ ...prev, email: false }));
+    const toggleEmail = (next) => {
+        setError('');
+        // An address the server can mail. Without one the switch would be on and silent, so the
+        // refusal happens here, where the switch is, instead of at a later confirm step.
+        if (next && !getUserNotifyEmail()) {
             setError('Sign in with an email address to be notified by email.');
+            setPrefs((prev) => ({ ...prev, email: false }));
             return;
         }
-        if (draft.browser) {
-            // A permission string, not a boolean — 'denied' is perfectly truthy, so comparing
-            // against 'granted' is the only check that actually rejects a refusal.
-            const permission = await requestBrowserNotifyPermission();
-            if (permission !== 'granted') {
-                // Saying nothing here would leave a switch on that can never fire.
-                setDraft((prev) => ({ ...prev, browser: false }));
-                setError(permission === 'denied'
-                    ? 'Your browser is blocking notifications for this site. Allow them in its site settings first.'
-                    : 'Your browser did not allow notifications.');
-                setNotifyPref(NOTIFY_BROWSER_KEY, false);
-                setNotifyPref(NOTIFY_EMAIL_KEY, draft.email);
-                return;
-            }
+        setNotifyPref(NOTIFY_EMAIL_KEY, next);
+        setPrefs((prev) => ({ ...prev, email: next }));
+    };
+
+    const toggleBrowser = async (next) => {
+        setError('');
+        if (!next) {
+            setNotifyPref(NOTIFY_BROWSER_KEY, false);
+            setPrefs((prev) => ({ ...prev, browser: false }));
+            return;
         }
-        setNotifyPref(NOTIFY_BROWSER_KEY, draft.browser);
-        setNotifyPref(NOTIFY_EMAIL_KEY, draft.email);
-        onClose();
+        // Shown on straight away: the permission prompt is modal and the switch it came from
+        // should already be in the position that raised it.
+        setPrefs((prev) => ({ ...prev, browser: true }));
+        // A permission string, not a boolean — 'denied' is perfectly truthy, so comparing
+        // against 'granted' is the only check that actually rejects a refusal.
+        const permission = await requestBrowserNotifyPermission();
+        if (permission !== 'granted') {
+            // Saying nothing here would leave a switch on that can never fire.
+            setNotifyPref(NOTIFY_BROWSER_KEY, false);
+            setPrefs((prev) => ({ ...prev, browser: false }));
+            setError(permission === 'denied'
+                ? 'Your browser is blocking notifications for this site. Allow them in its site settings first.'
+                : 'Your browser did not allow notifications.');
+            return;
+        }
+        setNotifyPref(NOTIFY_BROWSER_KEY, true);
     };
 
     return (
@@ -101,28 +124,25 @@ const NotifyPopover = ({ anchorEl, open, onClose }) => {
                         <NotifyRow
                             icon={<MailOutlineIcon />}
                             label="Email"
-                            checked={draft.email}
-                            onChange={(next) => setDraft((prev) => ({ ...prev, email: next }))}
+                            checked={prefs.email}
+                            onChange={toggleEmail}
                         />
                         <NotifyRow
                             icon={<NotificationsNoneOutlinedIcon />}
                             label="Browser Notification"
-                            checked={draft.browser}
-                            onChange={(next) => {
-                                setError('');
-                                setDraft((prev) => ({ ...prev, browser: next }));
-                            }}
+                            checked={prefs.browser}
+                            onChange={toggleBrowser}
                         />
                     </div>
 
                     {error ? <p className="notify-pop-error">{error}</p> : null}
 
                     <div className="notify-pop-actions">
-                        <button type="button" className="notify-pop-dismiss" onClick={onClose}>
-                            Not now
-                        </button>
-                        <button type="button" className="notify-pop-confirm" onClick={confirm}>
-                            Notify me
+                        {/* Only closes. It carries no choice of its own, so it must not read as
+                            one — a second button here (the old Not now) would suggest the
+                            switches above could still be backed out of. */}
+                        <button type="button" className="notify-pop-confirm" onClick={onClose}>
+                            Done
                         </button>
                     </div>
                 </div>

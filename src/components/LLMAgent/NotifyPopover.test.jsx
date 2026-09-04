@@ -2,11 +2,16 @@
  * "Get notified when it's ready" — Figma 44:5967.
  *
  * What matters here is not the popover's shape but its contract with the rest of the app: it is
- * a second view of the same two preferences Settings owns, it must not write them until the
- * reader confirms, and it must not leave a switch on that can never fire.
+ * a second view of the same two preferences Settings owns, each switch takes effect as it is
+ * moved, and it must not leave a switch on that can never fire.
+ *
+ * The switches used to be a draft that only reached storage on "Notify me", which made that
+ * button a confirm step in a panel that does not look like a form — closing after moving a
+ * switch silently discarded the change, including turning email OFF. Several tests below exist
+ * to keep that behaviour from coming back.
  */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import NotifyPopover from './NotifyPopover';
@@ -21,7 +26,6 @@ const open = (props = {}) => render(
 );
 
 const rowSwitch = (label) => screen.getByLabelText(label);
-const confirm = () => fireEvent.click(screen.getByText('Notify me'));
 
 beforeEach(() => {
     window.localStorage.clear();
@@ -44,7 +48,7 @@ describe('what it offers', () => {
             <NotifyPopover anchorEl={document.body} open={false} onClose={() => {}} />,
         );
         expect(container).toBeEmptyDOMElement();
-        expect(screen.queryByText('Notify me')).not.toBeInTheDocument();
+        expect(screen.queryByText('Done')).not.toBeInTheDocument();
     });
 
     it('opens showing the preferences already stored', () => {
@@ -53,37 +57,56 @@ describe('what it offers', () => {
         expect(rowSwitch('Email')).toBeChecked();
         expect(rowSwitch('Browser Notification')).not.toBeChecked();
     });
+
+    /** One button, and it decides nothing — the switches have already decided. */
+    it('offers no confirm step', () => {
+        open();
+        expect(screen.getByText('Done')).toBeInTheDocument();
+        expect(screen.queryByText('Notify me')).not.toBeInTheDocument();
+        expect(screen.queryByText('Not now')).not.toBeInTheDocument();
+    });
 });
 
-describe('confirming', () => {
-    /** The frame has a Not now, so a choice has to be one the reader can back out of. */
-    it('writes nothing while the switches are being moved', () => {
+describe('applying', () => {
+    it('writes the preference as the switch is moved', () => {
         open();
         fireEvent.click(rowSwitch('Email'));
-        expect(getNotifyPrefs().email).toBe(false);
-    });
-
-    it('writes both preferences on Notify me', () => {
-        open();
-        fireEvent.click(rowSwitch('Email'));
-        confirm();
         expect(getNotifyPrefs().email).toBe(true);
     });
 
-    it('closes on Notify me', () => {
-        const onClose = jest.fn();
-        open({ onClose });
-        confirm();
-        expect(onClose).toHaveBeenCalled();
+    /** The half that used to be lost in silence: a reader turning notifications OFF. */
+    it('writes an OFF as readily as an ON', () => {
+        window.localStorage.setItem(NOTIFY_EMAIL_KEY, '1');
+        open();
+        fireEvent.click(rowSwitch('Email'));
+        expect(getNotifyPrefs().email).toBe(false);
     });
 
-    it('closes on Not now, leaving the preferences alone', () => {
+    it('closes on Done, keeping what the switches already wrote', () => {
         const onClose = jest.fn();
         open({ onClose });
         fireEvent.click(rowSwitch('Email'));
-        fireEvent.click(screen.getByText('Not now'));
+        fireEvent.click(screen.getByText('Done'));
         expect(onClose).toHaveBeenCalled();
-        expect(getNotifyPrefs().email).toBe(false);
+        expect(getNotifyPrefs().email).toBe(true);
+    });
+
+    it('keeps them through a click-away too, which has no button to press', () => {
+        open();
+        fireEvent.click(rowSwitch('Email'));
+        fireEvent.click(document.body);
+        expect(getNotifyPrefs().email).toBe(true);
+    });
+
+    it('asks for permission on the browser switch itself, which is the gesture', async () => {
+        global.Notification = {
+            permission: 'default',
+            requestPermission: jest.fn().mockResolvedValue('granted'),
+        };
+        open();
+        fireEvent.click(rowSwitch('Browser Notification'));
+        await waitFor(() => expect(getNotifyPrefs().browser).toBe(true));
+        expect(global.Notification.requestPermission).toHaveBeenCalled();
     });
 });
 
@@ -92,9 +115,9 @@ describe('choices that cannot be honoured', () => {
         window.localStorage.setItem('user', JSON.stringify({}));
         open();
         fireEvent.click(rowSwitch('Email'));
-        confirm();
         expect(screen.getByText(/Sign in with an email address/)).toBeInTheDocument();
         expect(getNotifyPrefs().email).toBe(false);
+        expect(rowSwitch('Email')).not.toBeChecked();
     });
 
     /**
@@ -109,8 +132,8 @@ describe('choices that cannot be honoured', () => {
         };
         open();
         fireEvent.click(rowSwitch('Browser Notification'));
-        confirm();
         expect(await screen.findByText(/blocking notifications for this site/)).toBeInTheDocument();
         expect(window.localStorage.getItem(NOTIFY_BROWSER_KEY)).not.toBe('1');
+        expect(rowSwitch('Browser Notification')).not.toBeChecked();
     });
 });
