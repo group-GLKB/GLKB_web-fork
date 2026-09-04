@@ -222,6 +222,9 @@ const ChatSearchBar = ({
                     value={model}
                     onChange={onModelChange}
                     onResolveDefault={onModelResolveDefault}
+                    // Investigate is fixed for the life of a session here, so this does not
+                    // change under the reader mid-conversation.
+                    pipeline={investigateEnabled ? 'deep_research' : 'chat'}
                     // Left usable while an answer streams. A follow-up typed mid-answer is
                     // queued by the parent, and it should be able to name its own model —
                     // the choice applies to the NEXT request, never to the one in flight.

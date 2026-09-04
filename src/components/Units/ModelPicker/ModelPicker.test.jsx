@@ -19,13 +19,12 @@ import ModelPicker from '.';
 import { fetchModelCatalog } from '../../../service/models';
 
 jest.mock('../../../utils/gtag', () => ({ trackGtagEvent: jest.fn() }));
+// Only the network call is faked. `forPipeline` and `modelLabel` are the real ones, so the
+// filtering and abbreviation rules under test here are the shipped implementations rather
+// than a second copy that can agree with a broken original.
 jest.mock('../../../service/models', () => ({
+    ...jest.requireActual('../../../service/models'),
     fetchModelCatalog: jest.fn(),
-    modelLabel: (id, models, { short = false } = {}) => {
-        const hit = (models || []).find((m) => m.id === id);
-        if (!hit) return id;
-        return (short && hit.short_label) || hit.label || id;
-    },
 }));
 
 /** MUI's useMediaQuery needs matchMedia; `matches` is what the tests below steer. */
@@ -37,13 +36,15 @@ const setViewport = (narrow) => {
     });
 };
 
+const BOTH = ['chat', 'deep_research'];
 const CATALOG = {
     models: [
-        { id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol', short_label: '5.6 Sol', description: 'Most capable.' },
-        { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', short_label: '5.6 Terra', description: 'Balanced.' },
-        { id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna', short_label: '5.6 Luna', description: 'Fastest.' },
+        { id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol', short_label: '5.6 Sol', description: 'Most capable.', pipelines: BOTH },
+        { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', short_label: '5.6 Terra', description: 'Balanced.', pipelines: BOTH },
+        { id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna', short_label: '5.6 Luna', description: 'Fastest.', pipelines: ['chat'] },
     ],
     defaultModel: 'gpt-5.6-terra',
+    defaultsByPipeline: { chat: 'gpt-5.6-terra', deep_research: 'gpt-5.6-terra' },
 };
 
 beforeEach(() => {
@@ -65,8 +66,9 @@ it('shows the deployment default when the reader has chosen nothing', async () =
     const { onResolveDefault } = setup({ value: '' });
     expect(await screen.findByText('GPT-5.6 Terra')).toBeInTheDocument();
     // Reported up, so the request can carry the id explicitly rather than relying on two
-    // services independently agreeing on what "unspecified" means.
-    expect(onResolveDefault).toHaveBeenCalledWith('gpt-5.6-terra');
+    // services independently agreeing on what "unspecified" means. `waitFor` because the
+    // report happens in an effect, i.e. one render after the chip already reads correctly.
+    await waitFor(() => expect(onResolveDefault).toHaveBeenCalledWith('gpt-5.6-terra'));
 });
 
 it('shows the stored choice instead of the default', async () => {
@@ -187,6 +189,56 @@ describe('a chip with no room for the full name', () => {
             defaultModel: 'gpt-5.6-terra',
         });
         setup({ value: 'gpt-5.6-terra' });
+        expect(await screen.findByText('GPT-5.6 Terra')).toBeInTheDocument();
+    });
+});
+
+
+describe('pipeline eligibility', () => {
+    it('offers every model on chat', async () => {
+        setup({ value: '', pipeline: 'chat' });
+        expect(await screen.findByRole('button')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button'));
+        expect((await screen.findAllByRole('option')).map((o) => o.textContent)).toEqual([
+            'GPT-5.6 SolMost capable.',
+            'GPT-5.6 TerraDefaultBalanced.',
+            'GPT-5.6 LunaFastest.',
+        ]);
+    });
+
+    it('hides the chat-only model on deep research', async () => {
+        // Deep research escalates a load-bearing claim from the cheap tier to the heavy tier
+        // to get a BETTER judgement. A cheap-class model in the heavy slot collapses that
+        // two-tier check into one, so it is not offered rather than offered and warned about.
+        setup({ value: '', pipeline: 'deep_research' });
+        fireEvent.click(await screen.findByRole('button'));
+        const labels = (await screen.findAllByRole('option')).map((o) => o.textContent);
+        expect(labels).toHaveLength(2);
+        expect(labels.join(' ')).not.toContain('Luna');
+    });
+
+    it('swaps a model the pipeline does not offer, and says so through onResolveDefault', async () => {
+        // The reader picked Luna for chat, then turned Investigate on. Sending it would be a
+        // 400 they cannot act on; substituting silently would be worse. The chip changes.
+        const { onResolveDefault } = setup({ value: 'gpt-5.6-luna', pipeline: 'deep_research' });
+        expect(await screen.findByText('GPT-5.6 Terra')).toBeInTheDocument();
+        await waitFor(() => expect(onResolveDefault).toHaveBeenCalledWith('gpt-5.6-terra'));
+    });
+
+    it('does not swap a model the pipeline does offer', async () => {
+        const { onResolveDefault } = setup({ value: 'gpt-5.6-sol', pipeline: 'deep_research' });
+        expect(await screen.findByText('GPT-5.6 Sol')).toBeInTheDocument();
+        expect(onResolveDefault).not.toHaveBeenCalled();
+    });
+
+    it('treats a row with no pipelines field as eligible everywhere', async () => {
+        // A backend older than this build sends no `pipelines`. Hiding every model would be a
+        // worse failure than offering one the request path might refuse.
+        fetchModelCatalog.mockResolvedValue({
+            models: [{ id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', description: 'Balanced.' }],
+            defaultModel: 'gpt-5.6-terra',
+        });
+        setup({ value: '', pipeline: 'deep_research' });
         expect(await screen.findByText('GPT-5.6 Terra')).toBeInTheDocument();
     });
 });

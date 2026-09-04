@@ -534,6 +534,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         setModelPref(modelId);
                                     }}
                                     onResolveDefault={setModel}
+                                    // Toggling Investigate re-filters the list. A model the
+                                    // reader picked for chat and that deep research does not
+                                    // offer is swapped for the pipeline's default, visibly.
+                                    pipeline={investigateEnabled ? 'deep_research' : 'chat'}
                                     disabled={isInputLocked}
                                 />
 

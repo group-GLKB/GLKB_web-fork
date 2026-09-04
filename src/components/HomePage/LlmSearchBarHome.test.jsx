@@ -27,11 +27,17 @@ jest.mock('../../config/features', () => ({
 // fallback list at an arbitrary moment — so `model` would race `submit()` rather than being
 // wrong in a reproducible way. Resolved synchronously here instead.
 jest.mock('../../service/models', () => ({
+    ...jest.requireActual('../../service/models'),
     fetchModelCatalog: () => Promise.resolve({
-        models: [{ id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', description: 'Balanced.' }],
+        models: [{
+            id: 'gpt-5.6-terra',
+            label: 'GPT-5.6 Terra',
+            description: 'Balanced.',
+            pipelines: ['chat', 'deep_research'],
+        }],
         defaultModel: 'gpt-5.6-terra',
+        defaultsByPipeline: { chat: 'gpt-5.6-terra', deep_research: 'gpt-5.6-terra' },
     }),
-    modelLabel: (id) => id,
     getModelPref: () => '',
     setModelPref: jest.fn(),
 }));

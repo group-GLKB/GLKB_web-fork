@@ -29,17 +29,20 @@ import CheckIcon from '@mui/icons-material/Check';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { ClickAwayListener, Popper, useMediaQuery } from '@mui/material';
 
-import { fetchModelCatalog, modelLabel } from '../../../service/models';
+import { fetchModelCatalog, forPipeline, modelLabel } from '../../../service/models';
 import { trackGtagEvent } from '../../../utils/gtag';
 
 const ModelPicker = ({
     value,
     onChange,
     onResolveDefault,
+    // Which pipeline the next question runs on. Deep research offers a subset — the gate
+    // escalates a load-bearing claim from the cheap tier to the heavy tier to get a BETTER
+    // judgement, so a cheap-class model in the heavy slot collapses that check to one tier.
+    pipeline = 'chat',
     disabled = false,
 }) => {
-    const [models, setModels] = useState([]);
-    const [defaultModel, setDefaultModel] = useState('');
+    const [catalog, setCatalog] = useState(null);
     const [isOpen, setIsOpen] = useState(false);
     const anchorRef = useRef(null);
     /* The composer's control row fits four things on a phone and truncates the widest of
@@ -47,29 +50,39 @@ const ModelPicker = ({
        the layout around it switches. The PANEL always shows full names — it has the room,
        and that is where a reader compares options. */
     const isNarrow = useMediaQuery('(max-width:767px)');
-    // The resolve is reported at most once per mount. Without the latch a parent that
-    // re-renders on the reported value would report it again on every render.
-    const resolvedRef = useRef(false);
 
     useEffect(() => {
         let cancelled = false;
-        fetchModelCatalog().then((catalog) => {
-            if (cancelled) return;
-            setModels(catalog.models);
-            setDefaultModel(catalog.defaultModel);
-            if (!value && !resolvedRef.current) {
-                resolvedRef.current = true;
-                onResolveDefault?.(catalog.defaultModel);
-            }
+        fetchModelCatalog().then((fetched) => {
+            if (!cancelled) setCatalog(fetched);
         });
         return () => { cancelled = true; };
-        // Deliberately mount-only. `value` is read above but must not re-trigger the fetch:
-        // the catalogue is cached in the service module anyway, and re-running this on every
-        // keystroke-driven parent render would re-report the default.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const selected = value || defaultModel;
+    const { models, defaultModel } = forPipeline(catalog, pipeline);
+    const eligible = models.some((m) => m.id === value);
+
+    /* Two reasons the parent may be holding the wrong id, and both are reported the same
+       way — as a resolved default, which the parent stores in state but NOT in storage:
+
+         * it holds nothing yet, and the catalogue has just told us what the server uses;
+         * it holds a model this pipeline does not offer, because the reader chose it for
+           chat and then turned Investigate on.
+
+       The second is a substitution, which is exactly what this feature refuses to do
+       silently elsewhere. It is acceptable here only because it is VISIBLE: the chip
+       re-renders with the new name before anything is sent. The alternative — sending a
+       model the pipeline will reject — is a 400 the reader cannot act on. */
+    useEffect(() => {
+        if (!defaultModel) return;
+        if (value && eligible) return;
+        onResolveDefault?.(defaultModel);
+        // `onResolveDefault` is left out on purpose: parents pass an inline arrow, so
+        // including it would re-run this on every render.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [defaultModel, value, eligible]);
+
+    const selected = eligible ? value : defaultModel;
     // Before the catalogue lands there is nothing honest to show, and a chip reading
     // "GPT-…" that changes under the reader is worse than one that appears a moment late.
     if (!selected) return null;

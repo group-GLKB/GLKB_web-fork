@@ -33,6 +33,8 @@ export const FALLBACK_MODELS = [
         label: 'GPT-5.6 Terra',
         short_label: '5.6 Terra',
         description: 'Balanced depth and speed.',
+        // Every pipeline, so the fallback is never the reason a picker renders empty.
+        pipelines: ['chat', 'deep_research'],
     },
 ];
 
@@ -58,6 +60,10 @@ export const fetchModelCatalog = () => {
             catalogCache = {
                 models,
                 defaultModel: response?.data?.default_model || models[0].id,
+                // Per pipeline, because deep research offers a subset: a client that had to
+                // pick the fallback itself would be making a policy decision the agent
+                // already made.
+                defaultsByPipeline: response?.data?.default_model_by_pipeline || {},
             };
             return catalogCache;
         })
@@ -65,7 +71,11 @@ export const fetchModelCatalog = () => {
             // Not cached: a failure here is usually transient, and the next
             // mount should get a real answer rather than this stand-in.
             catalogPromise = null;
-            return { models: FALLBACK_MODELS, defaultModel: FALLBACK_MODELS[0].id };
+            return {
+                models: FALLBACK_MODELS,
+                defaultModel: FALLBACK_MODELS[0].id,
+                defaultsByPipeline: {},
+            };
         });
 
     return catalogPromise;
@@ -131,4 +141,20 @@ export const modelLabel = (modelId, models, { short = false } = {}) => {
     const hit = list.find((entry) => entry?.id === modelId);
     if (!hit) return modelId || '';
     return (short && hit.short_label) || hit.label || modelId || '';
+};
+
+/**
+ * The rows a pipeline may run, and the default for it.
+ *
+ * A row with no `pipelines` is treated as eligible everywhere — a backend older than this
+ * build sends no such field, and silently hiding every model would be a worse failure than
+ * offering one the request path then refuses.
+ */
+export const forPipeline = (catalog, pipeline) => {
+    const rows = (catalog?.models || []).filter(
+        (m) => !Array.isArray(m.pipelines) || m.pipelines.includes(pipeline),
+    );
+    const preferred = catalog?.defaultsByPipeline?.[pipeline] || catalog?.defaultModel;
+    const usable = rows.some((m) => m.id === preferred) ? preferred : rows[0]?.id || '';
+    return { models: rows, defaultModel: usable };
 };
