@@ -6819,6 +6819,22 @@ function LLMAgent({ isRouteActive = true }) {
                                                         isQueryLimitReached={isLimitReachedEffective}
                                                         investigateEnabled={chatInvestigateEnabled}
                                                         model={chatModel}
+                                                        /* Which pipeline the NEXT question runs on, and it is the
+                                                           union of two signals on purpose. `chatInvestigateEnabled`
+                                                           is only ever set by the home-page handover, so a reader who
+                                                           reopens an investigate conversation from History has it
+                                                           false — while `runBackgroundTurn` resolves the same
+                                                           question from `isInvestigateConversation`. The two
+                                                           genuinely disagree there (see the note in the recap), and
+                                                           for the PICKER the conservative side is clear: if either
+                                                           path could send a deep-research request, do not offer a
+                                                           model deep research will refuse. Being wrong this way costs
+                                                           a hidden option; the other way costs a 400 the reader
+                                                           cannot act on. */
+                                                        pipelineIsDeepResearch={
+                                                            chatInvestigateEnabled
+                                                            || isInvestigateConversation(activeConversationId)
+                                                        }
                                                         onModelChange={handleModelChange}
                                                         onModelResolveDefault={setChatModel}
                                                         onSubmit={(event) => submitOrQueue(event, {

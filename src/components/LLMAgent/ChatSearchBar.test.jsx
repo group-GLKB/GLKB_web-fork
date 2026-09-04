@@ -6,6 +6,19 @@ import '@testing-library/jest-dom';
 import ChatSearchBar from './ChatSearchBar';
 
 jest.mock('../../utils/gtag', () => ({ trackGtagEvent: jest.fn() }));
+// The composer embeds the model picker, which fetches a catalogue. Faked so these tests are
+// about the composer, and so the picker's rows are known when the pipeline test reads them.
+jest.mock('../../service/models', () => ({
+    ...jest.requireActual('../../service/models'),
+    fetchModelCatalog: () => Promise.resolve({
+        models: [
+            { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', short_label: '5.6 Terra', description: 'Balanced.', pipelines: ['chat', 'deep_research'] },
+            { id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna', short_label: '5.6 Luna', description: 'Fastest.', pipelines: ['chat'] },
+        ],
+        defaultModel: 'gpt-5.6-terra',
+        defaultsByPipeline: { chat: 'gpt-5.6-terra', deep_research: 'gpt-5.6-terra' },
+    }),
+}));
 
 beforeAll(() => {
     window.matchMedia = window.matchMedia || ((query) => ({
@@ -148,5 +161,34 @@ describe('ChatSearchBar when nothing is running', () => {
     it('shows no stop control', () => {
         setup({ userInput: '' });
         expect(screen.queryByTitle('Stop')).not.toBeInTheDocument();
+    });
+});
+
+
+describe('which models the composer offers', () => {
+    const openPicker = async () => {
+        const chip = await screen.findByRole('button', { name: /^Model: / });
+        fireEvent.click(chip);
+        return (await screen.findAllByRole('option')).map((o) => o.textContent);
+    };
+
+    it('offers the chat-only model on an ordinary conversation', async () => {
+        setup({ pipelineIsDeepResearch: false });
+        expect((await openPicker()).join(' ')).toContain('Luna');
+    });
+
+    it('hides it once the conversation is a deep-research one', async () => {
+        // Includes the case the parent resolves from `isInvestigateConversation`: a reader
+        // who reopens an investigate conversation from History. Offering a model deep
+        // research refuses would produce a 400 they cannot act on.
+        setup({ pipelineIsDeepResearch: true });
+        expect((await openPicker()).join(' ')).not.toContain('Luna');
+    });
+
+    it('does not read the analytics-only `investigateEnabled` for this', async () => {
+        // That prop is false for a reopened investigate conversation, which is exactly the
+        // case this feature has to get right — so the pipeline comes from its own prop.
+        setup({ investigateEnabled: false, pipelineIsDeepResearch: true });
+        expect((await openPicker()).join(' ')).not.toContain('Luna');
     });
 });
