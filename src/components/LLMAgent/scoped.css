@@ -1004,6 +1004,19 @@
     .clarify-float { padding: 0 24px; }
 }
 
+/* The inset the clarify panel above has always assumed. `.chat-header`'s base padding is
+   56px a side, which on a 390px screen spends 112px of 390 on margins — and left the
+   floating clarify panel 64px wider than the input box it is supposed to line up with,
+   against the stated intent two rules up ("that padding is responsive, so this tracks it at
+   each breakpoint"). It matters more now that the model chip shares the field's row: at 56px
+   the phone composer left 114px to type in. */
+@media (max-width: 767px) {
+    .chat-container .chat-header {
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+}
+
 @media (min-width: 981px) {
     /* At this width the composer is not inset by padding but narrowed outright —
        `.chat-container .chat-header { width: calc(100% - 48px) }`, centred by align-self. The
@@ -2731,9 +2744,10 @@ button.ip-notify.active { background: var(--color-brand-muted); color: var(--col
     width: 100%;
 }
 
-.notify-pop-dismiss,
 .notify-pop-confirm {
     height: 32px;
+    font-weight: 600;
+    color: var(--color-brand-primary);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -2748,17 +2762,6 @@ button.ip-notify.active { background: var(--color-brand-muted); color: var(--col
     white-space: nowrap;
 }
 
-.notify-pop-dismiss {
-    font-weight: 500;
-    color: var(--color-text-tertiary);
-}
-
-.notify-pop-confirm {
-    font-weight: 600;
-    color: var(--color-brand-primary);
-}
-
-.notify-pop-dismiss:hover,
 .notify-pop-confirm:hover {
     text-decoration: underline;
 }
@@ -2813,17 +2816,3 @@ button.ip-notify.active { background: var(--color-brand-muted); color: var(--col
     outline-offset: 1px;
 }
 
-/* The composer's control row. The picker that sits in it styles itself
-   (`components/Units/ModelPicker`); this is only the shelf it stands on. */
-.composer-controls {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0 12px 10px 20px;
-}
-
-@media (max-width: 767px) {
-    .composer-controls {
-        padding: 0 10px 8px 14px;
-    }
-}

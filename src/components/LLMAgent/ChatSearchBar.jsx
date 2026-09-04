@@ -71,7 +71,6 @@ const ChatSearchBar = ({
         <Box sx={{
             width: '100%',
             display: 'flex',
-            gap: 2,
             margin: '0 auto',
             backgroundColor: 'var(--color-background-subtle)',
             borderRadius: '16px',
@@ -79,7 +78,6 @@ const ChatSearchBar = ({
             borderStyle: 'solid',
             borderColor: 'var(--color-border-default)',
             boxShadow: 'none',
-            flexDirection: 'column',
         }}>
             <TextField
                 className="input-form"
@@ -112,7 +110,14 @@ const ChatSearchBar = ({
                         height: 'auto',
                         alignItems: 'center',
                         paddingLeft: '20px',
-                        paddingRight: '60px !important',
+                        /* The end cluster (model chip, clear, send) is a flex sibling of the
+                           textarea rather than an overlay, so the field's own right padding is
+                           just the gap to the composer's edge. It used to be 60px to clear an
+                           absolutely-positioned send button — a reservation that could only ever
+                           be right for one cluster width, and the chip's width depends on the
+                           model's name. */
+                        paddingRight: '12px !important',
+                        gap: '8px',
                         paddingTop: isMobileViewport ? '8px' : '10px',
                         paddingBottom: isMobileViewport ? '8px' : '10px',
                         fontFamily: 'Geist, sans-serif',
@@ -137,11 +142,27 @@ const ChatSearchBar = ({
                             display="flex"
                             alignItems="center"
                             sx={{
-                                position: 'absolute',
-                                right: 12,
                                 gap: 1,
+                                // The textarea is what gives way when the row is tight; this
+                                // cluster is all fixed-size controls.
+                                flexShrink: 0,
                             }}
                         >
+                            {/* On the field's own row, left of send — where the home page's bar
+                                puts it too. It had a control row of its own under the field for
+                                a while, which cost the composer 54px of height for one chip and
+                                left the chip stranded in a band of empty space. */}
+                            <ModelPicker
+                                value={model}
+                                onChange={onModelChange}
+                                onResolveDefault={onModelResolveDefault}
+                                pipeline={pipelineIsDeepResearch ? 'deep_research' : 'chat'}
+                                // Left usable while an answer streams. A follow-up typed
+                                // mid-answer is queued by the parent, and it should be able to
+                                // name its own model — the choice applies to the NEXT request,
+                                // never to the one in flight.
+                                disabled={isQueryLimitReached}
+                            />
                             {userInput !== '' && !isQueryLimitReached && !isLoading && (
                                 <CloseIcon
                                     onMouseDown={(event) => {
@@ -228,21 +249,6 @@ const ChatSearchBar = ({
                     ),
                 }}
             />
-            {/* Sits below the field rather than in the endAdornment: the adornment is the
-                send/stop cluster, and a model name is long enough that putting it there
-                would fight the placeholder for the same row. */}
-            <div className="composer-controls">
-                <ModelPicker
-                    value={model}
-                    onChange={onModelChange}
-                    onResolveDefault={onModelResolveDefault}
-                    pipeline={pipelineIsDeepResearch ? 'deep_research' : 'chat'}
-                    // Left usable while an answer streams. A follow-up typed mid-answer is
-                    // queued by the parent, and it should be able to name its own model —
-                    // the choice applies to the NEXT request, never to the one in flight.
-                    disabled={isQueryLimitReached}
-                />
-            </div>
         </Box>
         </div>
     );
