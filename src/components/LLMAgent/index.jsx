@@ -427,10 +427,18 @@ const RESUME_MAX_POLLS = 300;      // 15 minutes
 const RESUME_LOST_MESSAGE =
     'This answer could not be recovered after the page was reloaded. Please ask again.';
 
-/* What a stopped run leaves behind, on both sides. The backend writes the same sentence into
-   chat history (`_save_stopped_answer`), so the local copy and the stored one agree and a
-   reload does not replace one with the other. */
-const STOPPED_BY_USER_TEXT = '_This investigation was stopped before it finished._';
+/* What a stopped run leaves behind, on both sides.
+
+   The backend writes the same sentences into chat history (`app/core/stopped.py`), so the copy
+   on screen and the copy in history agree and a reload does not swap one for the other.
+
+   Two of them, because the two products are not the same thing to a reader: Investigate is a
+   multi-minute research run they watched, chat is an answer. Calling a stopped chat turn an
+   "investigation" is how the first version of this got noticed. */
+const STOPPED_BY_USER_TEXT = {
+    chat: '_This answer was stopped before it finished._',
+    investigate: '_This investigation was stopped before it finished._',
+};
 
 const PUBMED_ESUMMARY_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi';
 const PLACEHOLDER_PMID_PREFIX = 'PMID ';
@@ -2061,6 +2069,11 @@ function LLMAgent({ isRouteActive = true }) {
     const investigateDisplayFunnelRef = useRef(
         initialRunSnapshot?.investigateDisplayFunnel || emptyFunnel(),
     );
+    /* Which pipeline the turn in flight is on. Stop is a stable callback with no access to
+       the submit-time options, and the two pipelines differ in both the router that owns the
+       relay task and the sentence a stopped run leaves behind — so the running turn has to
+       leave its own name somewhere Stop can read it. */
+    const runningInvestigateRef = useRef(Boolean(initialRunSnapshot?.investigate));
     const investigatePhaseRef = useRef(initialRunSnapshot?.investigatePhase || 'searching');
     const investigatePercentRef = useRef(initialRunSnapshot?.investigatePercent ?? null);
     const investigateKeywordsRef = useRef(initialRunSnapshot?.investigateKeywords || []);
@@ -4206,6 +4219,7 @@ function LLMAgent({ isRouteActive = true }) {
         setInvestigateDetail({});
         investigateFunnelRef.current = emptyFunnel();
         investigateDisplayFunnelRef.current = emptyFunnel();
+        runningInvestigateRef.current = investigateEnabled;
         investigatePhaseRef.current = 'planning';
         investigatePercentRef.current = investigateEnabled ? PHASE_PERCENT_FLOOR.planning : null;
         investigateKeywordsRef.current = [];
@@ -5433,11 +5447,11 @@ function LLMAgent({ isRouteActive = true }) {
     const handleStopStreaming = useCallback(() => {
         /* Tell the SERVER to stop before letting go of the view.
 
-           Aborting the stream only detaches this tab. Both the backend relay and the agent
-           run are decoupled from the socket on purpose — that is what lets a report survive
-           a closed tab — so Stop used to leave a deep-research run grinding through the
-           remaining minutes of an answer nobody would ever read, at full token cost, while
-           the UI showed nothing.
+           Aborting the stream only detaches this tab. On BOTH pipelines the backend relay
+           and the agent run are decoupled from the socket on purpose — that is what lets an
+           answer survive a closed tab — so Stop used to leave the run grinding on at full
+           token cost while the UI showed nothing, and leave the conversation's exchange
+           unfinished, which is what keeps the sidebar's "still answering" mark up.
 
            Fired before the abort, and deliberately not awaited: the button must feel
            instant, and the request carries its own run id so it does not depend on any
@@ -5445,8 +5459,9 @@ function LLMAgent({ isRouteActive = true }) {
            finished a moment earlier, or its id may have been evicted — so a failure is
            logged and ignored rather than blocking the user from stopping their view. */
         const runId = runIdRef.current;
+        const investigate = Boolean(runningInvestigateRef.current);
         if (runId) {
-            llmService.cancelRun(runId).catch((error) => {
+            llmService.cancelRun(runId, { investigate }).catch((error) => {
                 logDev('cancelRun failed', error);
             });
         }
@@ -5455,16 +5470,20 @@ function LLMAgent({ isRouteActive = true }) {
 
            Deep research reveals its report only at the very end, so a run stopped mid-way
            leaves an assistant bubble with no text in it — which reads as a broken answer
-           rather than as the thing the reader just asked for. The server writes the same
-           note into the conversation for the same reason, so the two copies agree and a
-           reload does not swap one for the other. A run that had already streamed text
-           keeps it: partial work is still worth reading. */
+           rather than as the thing the reader just asked for. Chat can reach the same state
+           if it is stopped before the first token. The server writes the same sentence into
+           the conversation for the same reason, so the two copies agree and a reload does
+           not swap one for the other. A run that had already streamed text keeps it: partial
+           work is still worth reading. */
         updateRunningChatHistory((prev) => {
             if (!prev.length) return prev;
             const last = prev[prev.length - 1];
             if (last?.role !== 'assistant' || String(last.content || '').trim()) return prev;
             const next = [...prev];
-            next[next.length - 1] = { ...last, content: STOPPED_BY_USER_TEXT };
+            next[next.length - 1] = {
+                ...last,
+                content: STOPPED_BY_USER_TEXT[investigate ? 'investigate' : 'chat'],
+            };
             return next;
         });
     }, [llmService, updateRunningChatHistory]);

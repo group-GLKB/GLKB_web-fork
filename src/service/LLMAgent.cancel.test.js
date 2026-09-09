@@ -1,10 +1,15 @@
 /**
  * Stopping a run on the SERVER, not just in this tab.
  *
- * Both the backend relay and the agent run are detached from the client socket on purpose —
- * that is what lets a report survive a closed tab. The cost was that Stop only stopped the
- * reader's view: a deep-research run went on spending tokens and minutes producing an answer
- * nobody would ever read. `cancelRun` is the request that closes that gap.
+ * On BOTH pipelines the backend relay and the agent run are detached from the client socket on
+ * purpose — that is what lets an answer survive a closed tab. The cost was that Stop only
+ * stopped the reader's view: the run went on spending tokens producing an answer nobody would
+ * read, and the conversation's exchange stayed unfinished, which is what the sidebar reads as
+ * "still answering".
+ *
+ * Chat and deep research have separate routers, and the cancel must reach the one that owns
+ * the relay task — cancelling the agent alone leaves the other service's task parked on a
+ * stream that will never produce another frame. That routing is most of what is pinned here.
  */
 import axios from '../utils/axiosConfig';
 import { LLMAgentService } from './LLMAgent';
@@ -16,11 +21,18 @@ const svc = () => new LLMAgentService();
 beforeEach(() => { axios.post.mockReset(); });
 
 describe('cancelRun', () => {
-    it('posts to the run cancel endpoint', async () => {
+    it('posts to the chat router by default', async () => {
         axios.post.mockResolvedValueOnce({ data: { ok: true, was_running: true } });
         await svc().cancelRun('3f9c0a');
 
         expect(axios.post).toHaveBeenCalledTimes(1);
+        expect(axios.post.mock.calls[0][0]).toBe('/api/v1/new-llm-agent/run/3f9c0a/cancel');
+    });
+
+    it('posts to the deep-research router for an investigate run', async () => {
+        axios.post.mockResolvedValueOnce({ data: { ok: true, was_running: true } });
+        await svc().cancelRun('3f9c0a', { investigate: true });
+
         expect(axios.post.mock.calls[0][0]).toBe('/api/v1/deep-research/run/3f9c0a/cancel');
     });
 
@@ -33,7 +45,11 @@ describe('cancelRun', () => {
     it('escapes the run id rather than pasting it into the path', async () => {
         axios.post.mockResolvedValueOnce({ data: {} });
         await svc().cancelRun('a/b?c');
-        expect(axios.post.mock.calls[0][0]).toBe('/api/v1/deep-research/run/a%2Fb%3Fc/cancel');
+        expect(axios.post.mock.calls[0][0]).toBe('/api/v1/new-llm-agent/run/a%2Fb%3Fc/cancel');
+
+        axios.post.mockResolvedValueOnce({ data: {} });
+        await svc().cancelRun('a/b?c', { investigate: true });
+        expect(axios.post.mock.calls[1][0]).toBe('/api/v1/deep-research/run/a%2Fb%3Fc/cancel');
     });
 
     it('does nothing without a run id', async () => {

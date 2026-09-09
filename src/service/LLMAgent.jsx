@@ -536,20 +536,28 @@ export class LLMAgentService {
     }
 
     /**
-     * Stop a deep-research run on the server.
+     * Stop a run on the server.
      *
-     * Aborting the SSE only detaches this tab: both the backend relay and the agent run are
-     * deliberately decoupled from the socket so a report survives a closed tab, which meant
-     * Stop left the run spending tokens and minutes on an answer nobody would read.
+     * Aborting the SSE only detaches this tab: on BOTH pipelines the backend relay and the
+     * agent run are decoupled from the socket so an answer survives a closed tab. Stop
+     * therefore left the run spending tokens and minutes on an answer nobody would read —
+     * and, worse, left the conversation's exchange unfinished, which is what the sidebar
+     * reads as "still answering".
+     *
+     * The two products have separate routers, and the cancel has to reach the one that owns
+     * the relay task: cancelling the agent alone leaves the OTHER service's task parked on a
+     * stream that will never produce another frame. Hence `investigate`.
      *
      * Best-effort by nature — the run may have finished a moment earlier, the id may have
      * been evicted — so a failure here must never stop the UI from letting go. The caller
      * aborts the stream regardless.
      */
-    async cancelRun(runId) {
+    async cancelRun(runId, { investigate = false } = {}) {
         if (!runId) return null;
-        const base = resolveInvestigateUrl(INVESTIGATE_RUN_ENDPOINT, '/api/v1/deep-research/run');
-        const endpoint = `${base.replace(/\/+$/, '')}/${encodeURIComponent(runId)}/cancel`;
+        const endpoint = investigate
+            ? `${resolveInvestigateUrl(INVESTIGATE_RUN_ENDPOINT, '/api/v1/deep-research/run')
+                .replace(/\/+$/, '')}/${encodeURIComponent(runId)}/cancel`
+            : `/api/v1/new-llm-agent/run/${encodeURIComponent(runId)}/cancel`;
         const response = await axios.post(endpoint, null, {
             headers: { Accept: 'application/json' },
         });
