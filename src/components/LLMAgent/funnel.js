@@ -32,3 +32,24 @@ export const mergeFunnel = (prev, next) => {
         cited: keep(base.cited, next.cited),
     };
 };
+
+/**
+ * The funnel a FINISHED message keeps: the larger of what the agent reported and what the
+ * panel actually showed.
+ *
+ * These are two different numbers, by design. The live panel does not render the agent's
+ * count verbatim — an unknown counter ramps while its phase runs, and Retrieved deliberately
+ * settles on `real + ramp` (see RAMP_RANGE in InvestigateProgress). The settled summary chips
+ * read the raw funnel. So the moment a run ended, Retrieved dropped by the whole ramp in
+ * front of the reader: ~4,000 to ~1,300, the one direction a cumulative counter must never
+ * move.
+ *
+ * `mergeFunnel` is per-column `Math.max`, so this can only ever hold the larger figure and a
+ * settled message can never show less than its own run displayed.
+ *
+ * Note what this is NOT: the display reading must never be fed back to the counters as their
+ * `value`, or the ramp bonus would be added to a number that already contains it, once per
+ * frame. The agent's own counts stay the counters' input; this is only what gets frozen onto
+ * the message at the end.
+ */
+export const settleFunnel = (agentFunnel, displayFunnel) => mergeFunnel(agentFunnel, displayFunnel);

@@ -535,6 +535,27 @@ export class LLMAgentService {
         throw new Error('getRun requires runId or sessionId');
     }
 
+    /**
+     * Stop a deep-research run on the server.
+     *
+     * Aborting the SSE only detaches this tab: both the backend relay and the agent run are
+     * deliberately decoupled from the socket so a report survives a closed tab, which meant
+     * Stop left the run spending tokens and minutes on an answer nobody would read.
+     *
+     * Best-effort by nature — the run may have finished a moment earlier, the id may have
+     * been evicted — so a failure here must never stop the UI from letting go. The caller
+     * aborts the stream regardless.
+     */
+    async cancelRun(runId) {
+        if (!runId) return null;
+        const base = resolveInvestigateUrl(INVESTIGATE_RUN_ENDPOINT, '/api/v1/deep-research/run');
+        const endpoint = `${base.replace(/\/+$/, '')}/${encodeURIComponent(runId)}/cancel`;
+        const response = await axios.post(endpoint, null, {
+            headers: { Accept: 'application/json' },
+        });
+        return response.data;
+    }
+
     async getAnswer(question) {
         try {
             const response = await axios.post('/api/v1/new-llm-agent/chat', {

@@ -2816,3 +2816,109 @@ button.ip-notify.active { background: var(--color-brand-muted); color: var(--col
     outline-offset: 1px;
 }
 
+
+/* ── markdown tables ─────────────────────────────────────────────────────────────────────
+   Answers put repeated, comparable facts in a table now (the agent's instruction and the
+   deep-research section writer both ask for one), so the table had to stop looking like an
+   afterthought. What was there came from the vendored GitHub stylesheet: 1px boxes around
+   every cell, and — the actual bug — `td:not(:first-child) { text-align: right }`, which
+   right-aligned every column after the first whether or not the markdown said so. A
+   two-column "Gene | Notes" table had its prose hard against the right edge.
+
+   The rules below are scoped to `.markdown-body` and live here rather than in the vendored
+   file so an upstream refresh of that file cannot silently take them away; scoped.css is
+   imported after it, so equal specificity resolves this way. */
+
+/* The scroll container the `table` renderer wraps every table in. A wide table scrolls
+   inside its own box — the message column must never scroll sideways as a whole. */
+.markdown-table-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    margin: 20px 0;
+    border: 1px solid var(--color-border-default);
+    border-radius: 10px;
+    /* Momentum scrolling on trackpads/touch without a visible scrollbar eating a row. */
+    -webkit-overflow-scrolling: touch;
+}
+
+.markdown-body .markdown-table-scroll table {
+    margin: 0;
+    width: 100%;
+    /* `auto`, not `fixed`: column widths should follow the content, and a gene-symbol column
+       next to a sentence column looks wrong at equal widths. `min-width` keeps a wide table
+       from being squeezed into unreadable columns — past this it scrolls instead. */
+    table-layout: auto;
+    min-width: max-content;
+    border-collapse: collapse;
+    border-spacing: 0;
+    background-color: var(--color-background-surface);
+    font-size: 14px;
+    line-height: 20px;
+}
+
+/* One horizontal rule between rows, and none around the outside — the container draws that.
+   Cell-by-cell boxes read as a spreadsheet; this reads as a table in a document. */
+.markdown-body .markdown-table-scroll th,
+.markdown-body .markdown-table-scroll td {
+    border: 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+    padding: 10px 16px;
+    /* GFM's own alignment wins: react-markdown puts `text-align` inline on a cell when the
+       delimiter row asks for it (`:---`, `:---:`, `---:`), and inline style beats this. What
+       this replaces is the vendored rule that forced right-alignment on every column but the
+       first regardless of what the author wrote. */
+    text-align: left;
+    vertical-align: top;
+}
+
+.markdown-body .markdown-table-scroll thead th {
+    background-color: var(--color-grey-25);
+    border-bottom: 1px solid var(--color-border-default);
+    color: var(--color-text-primary);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.markdown-body .markdown-table-scroll tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.markdown-body .markdown-table-scroll tbody tr {
+    background-color: transparent;
+    border-top: 0;
+}
+
+.markdown-body .markdown-table-scroll tbody tr:hover {
+    background-color: var(--color-grey-25);
+}
+
+/* Figures line up digit-for-digit down a column, which is most of what makes a table of
+   counts readable at a glance. */
+.markdown-body .markdown-table-scroll td {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Cells hold short prose and inline citations; neither should inherit paragraph margins. */
+.markdown-body .markdown-table-scroll td > :first-child,
+.markdown-body .markdown-table-scroll th > :first-child {
+    margin-top: 0;
+}
+
+.markdown-body .markdown-table-scroll td > :last-child,
+.markdown-body .markdown-table-scroll th > :last-child {
+    margin-bottom: 0;
+}
+
+/* An inline citation inside a cell must not stretch the row. */
+.markdown-body .markdown-table-scroll .inline-citation-number {
+    vertical-align: baseline;
+}
+
+@media (max-width: 767px) {
+    .markdown-body .markdown-table-scroll th,
+    .markdown-body .markdown-table-scroll td {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+}

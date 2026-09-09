@@ -622,13 +622,12 @@
   border: 1px solid #ececf1;
 }
 
-.markdown-body table tr td:not(:first-child) {
-  text-align: right;
-}
-
-.markdown-body table tr th:not(:first-child) {
-  text-align: right;
-}
+/* Removed: `table tr td:not(:first-child) { text-align: right }` and its `th` twin.
+   They forced every column after the first to the right regardless of what the markdown
+   asked for, so a "Gene | Notes" table had its prose hard against the right edge — and they
+   out-specified the scoped rules in scoped.css that set the sane default. GFM alignment
+   (`:---`, `:---:`, `---:`) arrives as an inline style on the cell and is honoured as-is;
+   an unaligned column falls back to the `text-align: left` above. */
 
 .markdown-body table td>:last-child {
   margin-bottom: 0;
