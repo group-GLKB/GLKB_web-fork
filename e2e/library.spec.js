@@ -24,7 +24,9 @@ test('Library: bookmarked chat and reference surface there, and group into a fol
   await expect(firstCard).toBeVisible({ timeout: 10000 });
   const chatTitle = (await firstCard.locator('.history-title').innerText()).trim();
   await firstCard.click();
-  await page.waitForURL('**/chat');
+  // An existing conversation opens straight to its own /chat/<id> URL, never passing through
+  // a bare /chat — a plain "**/chat" glob never lands here.
+  await page.waitForURL(/\/chat(\/|$)/);
 
   // Bookmark the chat from the header.
   const chatHeader = page.locator('.llm-header');
@@ -40,11 +42,23 @@ test('Library: bookmarked chat and reference surface there, and group into a fol
      to work around by anything other than using the identifier that's consistent everywhere. */
   const firstReferenceWrapper = page.locator('.references-list .reference-entry-wrapper').first();
   await expect(firstReferenceWrapper).toBeVisible({ timeout: 15000 });
+  // A settle beat: this card can still be mid-(re)render for a moment after appearing, and a
+  // click during that window doesn't reliably reach the handler.
+  await page.waitForTimeout(1500);
   const pmid = await firstReferenceWrapper.getAttribute('data-pubmed-id');
-  await firstReferenceWrapper.locator('.reference-card-actions .reference-card-icon-btn').first().click();
+  const bookmarkResp = page.waitForResponse((r) => r.url().includes('/api/v1/fav/reference') && r.request().method() === 'POST', { timeout: 15000 });
+  /* force: true — the button's position is confirmed correct (its tooltip shows right where
+     Playwright clicks), but the click was seen to land without firing the handler while that
+     tooltip was mid-appear; forcing skips Playwright's actionability wait that click() would
+     otherwise spend contending with the tooltip's own transition. */
+  await firstReferenceWrapper.locator('.reference-card-actions .reference-card-icon-btn').first().click({ force: true });
+  const resp = await bookmarkResp;
+  expect(resp.ok(), `reference bookmark POST returned ${resp.status()}`).toBeTruthy();
 
-  // Both should now show up in Library.
+  // Both should now show up in Library. Reloaded once to rule out the page's own bookmark
+  // fetch racing the POST above rather than genuinely missing the new bookmark.
   await page.goto('/library');
+  await page.reload();
   await expect(page.locator('.library-page')).toBeVisible({ timeout: 5000 });
 
   await page.getByRole('tab', { name: 'Chat' }).click();
@@ -67,7 +81,7 @@ test('Library: bookmarked chat and reference surface there, and group into a fol
 
   // Add the reference to it — still on the References tab from the check above.
   await libraryRefRow.locator('.library-entry-more').click();
-  await page.getByText('Add to folder').click();
+  await page.getByText('Add to folder', { exact: true }).click();
   const manageDialog = page.getByRole('dialog').filter({ hasText: 'Manage folders' });
   await expect(manageDialog).toBeVisible({ timeout: 5000 });
   await manageDialog.getByText(folderName, { exact: true }).locator('xpath=..').locator('input[type="checkbox"]').click();
@@ -78,7 +92,7 @@ test('Library: bookmarked chat and reference surface there, and group into a fol
   await page.getByRole('tab', { name: 'Chat' }).click();
   await libraryChatRow.hover();
   await libraryChatRow.locator('.history-item-more').click();
-  await page.getByText('Add to folder').click();
+  await page.getByText('Add to folder', { exact: true }).click();
   await expect(manageDialog).toBeVisible({ timeout: 5000 });
   await manageDialog.getByText(folderName, { exact: true }).locator('xpath=..').locator('input[type="checkbox"]').click();
   await manageDialog.getByRole('button', { name: 'Save' }).click();
@@ -90,15 +104,38 @@ test('Library: bookmarked chat and reference surface there, and group into a fol
   await page.getByRole('tab', { name: 'Reference' }).click();
   await expect(libraryRefRow).toBeVisible({ timeout: 10000 });
 
-  /* Cleanup: un-bookmark both from "All Items" (the same UI action a user would take). The
-     folder itself is left in place — there is no UI to delete it yet (create-only, reported
-     separately); once that's added this test should delete it here too. A transient
-     "list is refetching" state also satisfies not.toBeVisible() for a single poll, the same
-     false pass api-keys.spec.js hit on delete — confirming again once the refetch has had
-     time to settle catches a removal that didn't really land. */
+  // Rename it, then delete it — both now live behind the folder row's own "⋮" menu.
+  const renamedFolderName = `${folderName}-renamed`;
+  const folderRow = page.locator('.library-folder-manager-row').filter({ hasText: folderName });
+  await folderRow.hover();
+  await folderRow.getByRole('button', { name: `Open ${folderName} menu` }).click();
+  await page.getByText('Rename', { exact: true }).click();
+  const renameDialog = page.getByRole('dialog').filter({ hasText: 'Rename Folder' });
+  await expect(renameDialog).toBeVisible({ timeout: 5000 });
+  await renameDialog.getByLabel('Folder name').fill(renamedFolderName);
+  await renameDialog.getByRole('button', { name: 'Save' }).click();
+  await expect(renameDialog).not.toBeVisible({ timeout: 5000 });
+  // Not also checking that folderName's nav item disappears: renamedFolderName is folderName
+  // plus a suffix, so it still matches a hasText substring filter for the old name.
+  const renamedFolderNavItem = page.locator('.library-folder-manager-item').filter({ hasText: renamedFolderName });
+  await expect(renamedFolderNavItem).toBeVisible({ timeout: 10000 });
+
+  /* Same false-pass risk as the bookmark removals below: a transient "list is refetching"
+     state satisfies not.toBeVisible() for a single poll even when the delete hasn't actually
+     landed yet (this is what bit api-keys.spec.js's delete step), so confirm again once the
+     refetch has had time to settle. */
+  const renamedFolderRow = page.locator('.library-folder-manager-row').filter({ hasText: renamedFolderName });
+  await renamedFolderRow.hover();
+  await renamedFolderRow.getByRole('button', { name: `Open ${renamedFolderName} menu` }).click();
+  await page.getByText('Delete', { exact: true }).click();
+  await expect(renamedFolderNavItem).not.toBeVisible({ timeout: 5000 });
+  await page.waitForTimeout(2000);
+  await expect(renamedFolderNavItem).toHaveCount(0);
+
+  // Cleanup: un-bookmark both from "All Items" (the same UI action a user would take).
   await page.locator('.library-folder-manager-item').filter({ hasText: 'All Items' }).click();
   await libraryRefRow.locator('.library-entry-more').click();
-  await page.getByText('Remove bookmark').click();
+  await page.getByText('Remove bookmark', { exact: true }).click();
   await expect(libraryRefRow).not.toBeVisible({ timeout: 5000 });
   await page.waitForTimeout(2000);
   await expect(libraryRefRow).toHaveCount(0);
@@ -106,7 +143,7 @@ test('Library: bookmarked chat and reference surface there, and group into a fol
   await page.getByRole('tab', { name: 'Chat' }).click();
   await libraryChatRow.hover();
   await libraryChatRow.locator('.history-item-more').click();
-  await page.getByText('Remove bookmark').click();
+  await page.getByText('Remove bookmark', { exact: true }).click();
   await expect(libraryChatRow).not.toBeVisible({ timeout: 5000 });
   await page.waitForTimeout(2000);
   await expect(libraryChatRow).toHaveCount(0);

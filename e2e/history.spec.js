@@ -6,7 +6,8 @@ test('History page shows conversation after chat', async ({ page }) => {
   const input = page.locator('.llm-searchbar textarea').first();
   await input.fill('What is BRCA1?');
   await input.press('Enter');
-  await page.waitForURL('**/chat');
+  // Each conversation now gets its own /chat/<id> URL, so a bare "**/chat" match never lands.
+  await page.waitForURL(/\/chat(\/|$)/);
 
   // Wait for AI response to complete
   const response = page.locator('.markdown-body').first();
