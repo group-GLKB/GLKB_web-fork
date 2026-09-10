@@ -6,6 +6,7 @@ import {
     readActiveRunSnapshot,
     readActiveRunSnapshotFor,
     readAllActiveRunSnapshots,
+    removeQueuedPromptFromSnapshot,
     shouldResumeAgentInBackground,
     writeActiveRunSnapshot,
 } from './agentRunSnapshot';
@@ -139,6 +140,26 @@ describe('more than one run at a time', () => {
         expect(readActiveRunSnapshotFor('1').streamingStepName).toBe('Searching');
         expect(readActiveRunSnapshotFor('2').streamingStepName).toBe('Screening papers');
         expect(readAllActiveRunSnapshots()).toHaveLength(2);
+    });
+
+    it('does not restore a dequeued prompt when conversations are revisited', () => {
+        writeActiveRunSnapshot({
+            ...snapshotFor('1', 'Searching'),
+            queuedPrompts: [{ id: 'q-1', text: 'follow-up one' }],
+        });
+        writeActiveRunSnapshot({
+            ...snapshotFor('2', 'Screening papers'),
+            // Deliberately the same legacy id: removal must stay scoped to conversation 1.
+            queuedPrompts: [{ id: 'q-1', text: 'follow-up two' }],
+        });
+
+        expect(removeQueuedPromptFromSnapshot('1', 'q-1')).toBe(true);
+        expect(readActiveRunSnapshotFor('1').queuedPrompts).toEqual([]);
+        expect(readActiveRunSnapshotFor('2').queuedPrompts).toEqual([
+            { id: 'q-1', text: 'follow-up two' },
+        ]);
+        // Repeated reads model switching away and back; the consumed entry stays gone.
+        expect(readActiveRunSnapshotFor('1').queuedPrompts).toEqual([]);
     });
 
     it('clearing one leaves the others alone', () => {
