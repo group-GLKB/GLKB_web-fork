@@ -84,6 +84,7 @@ import {
 import { trackGtagEvent } from '../../../utils/gtag';
 import { prioritizeRunningConversations } from '../../../utils/recentConversations';
 import { useAuth } from '../../Auth/AuthContext';
+import { avatarById } from '../../AccountPage/avatars';
 
 const drawerWidth = 240;
 const mobileDrawerWidth = 280;
@@ -456,6 +457,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
     ), [openLoginModal]);
 
     const userDisplayName = storedProfile.name || user?.username || user?.email || 'Account';
+    const userAvatarPreset = avatarById(user?.avatar_id);
     const normalizedUserTier = `${user?.tier || 'free'}`.trim().toLowerCase();
     const userPlanLabel = `${normalizedUserTier.charAt(0).toUpperCase()}${normalizedUserTier.slice(1)} plan`;
     const isUserMenuOpen = Boolean(userMenuAnchorEl);
@@ -1055,7 +1057,11 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                         ) : (
                             renderNavItem({
                                 label: userDisplayName,
-                                icon: storedProfile.avatar ? (
+                                icon: userAvatarPreset ? (
+                                    userAvatarPreset.render({
+                                        className: 'sidebar-profile-avatar',
+                                    })
+                                ) : storedProfile.avatar ? (
                                     <Box
                                         component="img"
                                         src={storedProfile.avatar}
@@ -1063,7 +1069,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                         sx={{
                                             width: '100%',
                                             height: '100%',
-                                            borderRadius: '50%',
+                                            borderRadius: '4px',
                                             objectFit: 'cover',
                                         }}
                                     />
@@ -1075,7 +1081,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                 iconBoxSx: {
                                     backgroundColor: 'var(--color-background-muted)',
                                     color: 'var(--color-text-tertiary)',
-                                    borderRadius: '50%',
+                                    borderRadius: '4px',
                                 },
                                 noBottomMargin: true,
                             })

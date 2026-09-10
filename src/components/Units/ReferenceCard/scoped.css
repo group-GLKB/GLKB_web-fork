@@ -101,9 +101,13 @@
     min-width: 0;
 }
 
+.reference-card-quote-content.has-toggle {
+    padding-right: 18px;
+}
+
 .reference-card-quote-text {
     margin: 0;
-    padding-right: 18px;
+    padding-right: 0;
     color: var(--color-text-secondary);
     font-size: 12px;
     line-height: 20px;
@@ -119,8 +123,8 @@
 }
 
 /* No chevron rendered means the text can use the full width. */
-.reference-card-quote-text--no-toggle {
-    padding-right: 0;
+.reference-card-quote-text--additional {
+    margin-top: 4px;
 }
 
 .reference-card-evidence-toggle.MuiIconButton-root {

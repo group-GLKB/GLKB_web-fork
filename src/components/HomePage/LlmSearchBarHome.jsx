@@ -70,6 +70,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const inputTimeoutRef = React.useRef(null);
     const hasTrackedInputRef = React.useRef(false);
     const lastPrefillRef = React.useRef(undefined);
+    const queryOriginRef = React.useRef('typed');
     const isQueryLimitReached = Boolean(props.isQueryLimitReached);
     const isAgentRunActive = Boolean(props.isAgentRunActive);
     /* An answer being written somewhere else does NOT lock this box.
@@ -114,6 +115,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         if (props.prefillQuery !== lastPrefillRef.current) {
             lastPrefillRef.current = props.prefillQuery;
             setLlmQuery(props.prefillQuery);
+            if (props.prefillQuery.trim()) queryOriginRef.current = 'example';
         }
     }, [props.prefillQuery]);
 
@@ -174,6 +176,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             hasTrackedInputRef.current = true;
         }
         const searchOptions = buildSearchOptionsPayload();
+        const queryMethod = queryOriginRef.current === 'example' ? 'example' : inputMethod;
         trackGtagEvent('home_search_submit_click', {
             has_query: Boolean(query),
             ranking_mode: searchOptions.rankingMode,
@@ -183,7 +186,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         if (query && searchOptions.investigateEnabled) {
             trackGtagEvent('investigate_question_submit', {
                 source: 'home_searchbar',
-                input_method: inputMethod,
+                input_method: queryMethod,
                 queued: false,
             });
         }
@@ -192,6 +195,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 state: {
                     initialQuery: query,
                     initialSearchOptions: searchOptions,
+                    initialQueryMethod: queryMethod,
                 },
             });
         } else {
@@ -372,10 +376,12 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
                 onChange={(event, newValue) => {
                     if (isInputLocked) return;
+                    if (newValue) queryOriginRef.current = 'example';
                     setLlmQuery(newValue || '');
                 }}
-                onInputChange={(event, newInputValue) => {
+                onInputChange={(event, newInputValue, reason) => {
                     if (isInputLocked) return;
+                    if (reason === 'input') queryOriginRef.current = 'typed';
                     setLlmQuery(newInputValue || '');
                 }}
                 openOnFocus

@@ -167,13 +167,21 @@ const ReferenceCard = ({
                 {hasEvidence && (
                     <div className="reference-card-quote">
                         <span className="reference-card-quote-bar" />
-                        <div className="reference-card-quote-content">
+                        <div className={`reference-card-quote-content${showQuoteToggle ? ' has-toggle' : ''}`}>
                             <p
                                 ref={quoteTextRef}
-                                className={`reference-card-quote-text${isEvidenceOpen ? ' reference-card-quote-text--clamped-off' : ''}${showQuoteToggle ? '' : ' reference-card-quote-text--no-toggle'}`}
+                                className={`reference-card-quote-text${isEvidenceOpen ? ' reference-card-quote-text--clamped-off' : ''}`}
                             >
                                 “{evidenceItems[0].quote}”
                             </p>
+                            {isEvidenceOpen && evidenceItems.slice(1).map((item, idx) => (
+                                <p
+                                    className="reference-card-quote-text reference-card-quote-text--clamped-off reference-card-quote-text--additional"
+                                    key={`${pubmedId}-evidence-${idx}`}
+                                >
+                                    “{item.quote}”
+                                </p>
+                            ))}
                             {showQuoteToggle && (
                                 <Tooltip title={isEvidenceOpen ? 'Collapse excerpts' : 'Expand excerpts'} arrow>
                                     <IconButton
@@ -247,13 +255,6 @@ const ReferenceCard = ({
                         </a>
                     </div>
                 </div>
-
-                {isEvidenceOpen && evidenceItems.slice(1).map((item, idx) => (
-                    <div className="reference-card-quote" key={`${pubmedId}-evidence-${idx}`}>
-                        <span className="reference-card-quote-bar" />
-                        <p className="reference-card-quote-text reference-card-quote-text--clamped-off">“{item.quote}”</p>
-                    </div>
-                ))}
             </div>
         </div>
     );

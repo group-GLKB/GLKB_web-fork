@@ -115,6 +115,7 @@ import {
   getConversationBookmarks,
   toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
+import { createQuerySubmitSuccessTracker } from '../../utils/gtag';
 import { useAuth } from '../Auth/AuthContext';
 import {
     NOTIFY_EMAIL_KEY,
@@ -1867,6 +1868,10 @@ const MessageCard = React.memo(function MessageCard({
 
 function LLMAgent({ isRouteActive = true }) {
     const location = useLocation();
+    /* SSE callbacks belong to the render that started the request. Read route visibility
+       through a ref so a long Investigate run can tell that the reader has since left /chat. */
+    const isRouteActiveRef = useRef(isRouteActive);
+    isRouteActiveRef.current = isRouteActive;
     /* The conversation this page is showing, taken from the address bar.
     
        Before this existed the id lived only in router state and sessionStorage, so a link
@@ -2374,6 +2379,7 @@ function LLMAgent({ isRouteActive = true }) {
 
     // Conversations already announced. A Set, not a slot: several runs can be in flight.
     const backgroundCompletionNotifiedRef = useRef(new Set());
+    const backgroundClarificationNotifiedRef = useRef(new Set());
     /**
      * @param {*} [forConversationId] The conversation that finished, when the caller knows it.
      *
@@ -3582,6 +3588,14 @@ function LLMAgent({ isRouteActive = true }) {
                The registry knows the difference: a released run keeps its mark until its own
                request settles. */
             const snapshotKey = snapshotConversationIdRef.current;
+            /* Releasing the view can happen inside the throttle window. Flush the in-memory
+               snapshot before clearing it; otherwise a quick switch loses the only copy of
+               Investigate progress (and of a clarification that arrived just before it). */
+            if (snapshotKey !== undefined
+                && isConversationRunning(snapshotKey)
+                && liveRunSnapshotRef.current) {
+                writeActiveRunSnapshot(liveRunSnapshotRef.current);
+            }
             liveRunSnapshotRef.current = null;
             initialRunSnapshotRef.current = null;
             /* `undefined` means this mount owns no slot — either nothing has been written
@@ -3748,12 +3762,14 @@ function LLMAgent({ isRouteActive = true }) {
             initialQueryTransitionRef.current = true;
             const query = location.state.initialQuery;
             const searchOptions = location.state.initialSearchOptions || null;
+            const queryMethod = location.state.initialQueryMethod || 'button';
             // Consuming the query means REMOVING it. React Router keeps navigation state in
             // `history.state`, which the browser restores on reload, but the ref that says it has
             // already been used is component state and does not survive one. So a refresh re-ran
             // the question: a second full agent run, billed again, while the first run's answer —
             // which the server was still writing to history — was never shown.
             const { initialQuery: _consumedQuery, initialSearchOptions: _consumedOptions,
+                    initialQueryMethod: _consumedQueryMethod,
                     ...restState } = location.state;
             navigate(location.pathname, {
                 replace: true,
@@ -3780,6 +3796,7 @@ function LLMAgent({ isRouteActive = true }) {
             handleSubmit(null, query, null, {
                 forceNewConversation: true,
                 searchOptions,
+                queryMethod,
             });
         }
     }, [location.state, location.pathname, location.key, navigate, isLoading, startNewConversation]);
@@ -4057,6 +4074,7 @@ function LLMAgent({ isRouteActive = true }) {
 
         const requestSearchOptions = options.searchOptions || initialSearchOptionsRef.current || null;
         initialSearchOptionsRef.current = null;
+        const trackQuerySubmitSuccess = createQuerySubmitSuccessTracker(options.queryMethod);
         const investigateEnabled = Boolean(
             requestSearchOptions?.investigateEnabled ?? chatInvestigateEnabled,
         );
@@ -4284,6 +4302,84 @@ function LLMAgent({ isRouteActive = true }) {
            removing the mark first briefly drops the row into the stale server order before
            the refreshed list moves it back to the top. */
         let savedConversationRefresh = null;
+        const detachedSnapshot = (patch = {}) => {
+            if (!runConversationId) return false;
+            const existing = readActiveRunSnapshotFor(runConversationId) || {};
+            const storedMessages = getStoredChatHistory(runConversationId);
+            return writeActiveRunSnapshot({
+                ...existing,
+                conversationId: String(runConversationId),
+                messages: storedMessages.length
+                    ? storedMessages
+                    : (existing.messages?.length ? existing.messages : optimisticRunHistory),
+                sessionId: patch.sessionId || existing.sessionId || runSessionId || null,
+                investigate: investigateEnabled,
+                ...patch,
+            });
+        };
+        const persistDetachedCompletion = (update = {}) => {
+            if (!runConversationId) return false;
+            const existing = readActiveRunSnapshotFor(runConversationId) || {};
+            const storedMessages = getStoredChatHistory(runConversationId);
+            const base = storedMessages.length
+                ? storedMessages
+                : (existing.messages?.length ? existing.messages : optimisticRunHistory);
+            const assistantMessage = {
+                role: 'assistant',
+                content: update.answer ?? update.response ?? '',
+                references: parseReferences(update.references),
+                directCitations: parseDirectCitations(
+                    update.directCitations ?? update.direct_citations,
+                ),
+                timestamp,
+                thinkingSteps: existing.thinkingSteps || [],
+                thoughtDurationMs: Date.now() - requestStartedAt,
+                trajectory: update.trajectory || null,
+                investigateMode: investigateEnabled,
+                ...(investigateEnabled ? {
+                    investigateFunnel: settleFunnel(
+                        existing.investigateFunnel || emptyFunnel(),
+                        existing.investigateDisplayFunnel || emptyFunnel(),
+                    ),
+                    investigatePhase: existing.investigatePhase || 'verifying',
+                    investigatePercent: 100,
+                    investigateKeywords: existing.investigateKeywords || [],
+                    investigatePapers: existing.investigatePapers || [],
+                } : {}),
+            };
+            const next = [...base];
+            if (next[next.length - 1]?.role === 'assistant') {
+                next[next.length - 1] = assistantMessage;
+            } else {
+                next.push(assistantMessage);
+            }
+            writeConversationMessages(runConversationId, next);
+            clearActiveRunSnapshot(runConversationId);
+            announceBackgroundCompletion(runConversationId);
+            return true;
+        };
+        const persistDetachedFailure = (errorText) => {
+            if (!runConversationId) return false;
+            const storedMessages = getStoredChatHistory(runConversationId);
+            const next = [...(storedMessages.length ? storedMessages : optimisticRunHistory)];
+            const assistantMessage = {
+                role: 'assistant',
+                content: errorText,
+                references: [],
+                timestamp,
+                thinkingSteps: [],
+                thoughtDurationMs: Date.now() - requestStartedAt,
+                investigateMode: investigateEnabled,
+            };
+            if (next[next.length - 1]?.role === 'assistant') {
+                next[next.length - 1] = assistantMessage;
+            } else {
+                next.push(assistantMessage);
+            }
+            writeConversationMessages(runConversationId, next);
+            clearActiveRunSnapshot(runConversationId);
+            return true;
+        };
         try {
             logDev('[LLM] submit', { input: inputText });
 
@@ -4330,14 +4426,32 @@ function LLMAgent({ isRouteActive = true }) {
                 abortControllerRef.current = abortController;
             }
             await llmService.chat(inputText, abortController, (update) => {
+                trackQuerySubmitSuccess(update);
                 const isActiveStream = activeStreamIdRef.current === streamId;
-                if (!isActiveStream && update.type !== 'saved') {
+                if (!isActiveStream
+                    && !['started', 'clarification', 'final', 'saved', 'error'].includes(update.type)) {
                     return;
                 }
                 logDev('[LLM] update', update);
                 switch (update.type) {
                     case 'started':
-                        if (!isActiveStream) return;
+                        if (!isActiveStream) {
+                            if (runConversationId) {
+                                setActiveRun({
+                                    kind: investigateEnabled ? 'investigate' : 'chat',
+                                    runId: update.runId || null,
+                                    conversationId: String(runConversationId),
+                                    sessionId: update.sessionId || runSessionId || null,
+                                    key: streamId,
+                                });
+                                detachedSnapshot({
+                                    runId: update.runId || null,
+                                    sessionId: update.sessionId || runSessionId || null,
+                                    investigatePhase: update.phase || 'planning',
+                                });
+                            }
+                            return;
+                        }
                         if (update.sessionId) {
                             sessionIdRef.current = update.sessionId;
                         }
@@ -4376,7 +4490,26 @@ function LLMAgent({ isRouteActive = true }) {
                         }
                         break;
                     case 'clarification':
-                        if (!isActiveStream) return;
+                        {
+                            const round = {
+                                invocationId: update.invocationId || null,
+                                stage: update.stage || null,
+                                sessionId: update.sessionId || runSessionId || null,
+                                reason: update.reason || '',
+                                questions: Array.isArray(update.questions) ? update.questions : [],
+                            };
+                            if (!isActiveStream) {
+                                detachedSnapshot({
+                                    pendingClarification: round,
+                                    clarificationDrafts: buildClarificationDrafts(update.questions),
+                                });
+                                announceBackgroundClarification(runConversationId, round);
+                                return;
+                            }
+                            if (!isRouteActiveRef.current) {
+                                announceBackgroundClarification(runConversationId, round);
+                            }
+                        }
                         if (update.sessionId) {
                             sessionIdRef.current = update.sessionId;
                         }
@@ -4662,7 +4795,10 @@ function LLMAgent({ isRouteActive = true }) {
                         break;
                     }
                     case 'final':
-                        if (!isActiveStream) return;
+                        if (!isActiveStream) {
+                            persistDetachedCompletion(update);
+                            return;
+                        }
                         // The whole message is replaced below with the authoritative final data.
                         dripRef.current.stop();
                         if (update.sessionId) {
@@ -4788,7 +4924,12 @@ function LLMAgent({ isRouteActive = true }) {
                         break;
                     }
                     case 'error': // unsure if this is used
-                        if (!isActiveStream) return;
+                        if (!isActiveStream) {
+                            streamOutcome = 'lost';
+                            persistDetachedFailure(`Error: ${update.error}`);
+                            return;
+                        }
+                        streamOutcome = 'lost';
                         applyPendingClarification(null);
                         setClarificationDrafts({});
                         setClarificationError('');
@@ -4825,6 +4966,8 @@ function LLMAgent({ isRouteActive = true }) {
                             newHistory[newHistory.length - 1] = errorMessage;
                             return newHistory;
                         });
+                        break;
+                    default:
                         break;
                 }
             }, {
@@ -4914,9 +5057,16 @@ function LLMAgent({ isRouteActive = true }) {
                exchange visibly unfinished, for the reattach path to collect. */
             const pollSessionId = runSessionId || sessionIdRef.current;
             let outcome = 'unknown';
-            if (pollSessionId && activeStreamIdRef.current === streamId) {
+            const canRecoverDetached = () => Boolean(
+                runConversationId && isConversationRunning(runConversationId),
+            );
+            if (pollSessionId
+                && (activeStreamIdRef.current === streamId || canRecoverDetached())) {
                 for (let attempt = 0; attempt < 100; attempt += 1) {
-                    if (activeStreamIdRef.current !== streamId) { outcome = 'released'; break; }
+                    if (activeStreamIdRef.current !== streamId && !canRecoverDetached()) {
+                        outcome = 'released';
+                        break;
+                    }
                     let run = null;
                     let missing = false;
                     try {
@@ -4925,8 +5075,16 @@ function LLMAgent({ isRouteActive = true }) {
                     } catch (pollError) {
                         missing = pollError?.response?.status === 404;
                     }
-                    if (activeStreamIdRef.current !== streamId) { outcome = 'released'; break; }
+                    if (activeStreamIdRef.current !== streamId && !canRecoverDetached()) {
+                        outcome = 'released';
+                        break;
+                    }
                     if (run && (run.status === 'complete' || run.response)) {
+                        if (activeStreamIdRef.current !== streamId) {
+                            persistDetachedCompletion(run);
+                            outcome = 'recovered';
+                            break;
+                        }
                         applyPendingClarification(null);
                         setIsProcessing(false);
                         setStreamingStepName('');
@@ -4979,6 +5137,10 @@ function LLMAgent({ isRouteActive = true }) {
                     newHistory[newHistory.length - 1] = errorMessage;
                     return newHistory;
                 });
+            } else if (outcome === 'lost') {
+                persistDetachedFailure(
+                    'Sorry, I encountered an error while processing your request. Please try again.',
+                );
             }
             streamOutcome = outcome;
         } finally {
@@ -5012,7 +5174,9 @@ function LLMAgent({ isRouteActive = true }) {
                frames — `complete` included — were dropped and nothing has told the reader their
                answer landed. That notification is most of what makes leaving a run to finish a
                usable thing to do. */
-            if (activeStreamIdRef.current !== streamId && runConversationId) {
+            if (activeStreamIdRef.current !== streamId
+                && runConversationId
+                && (streamOutcome === 'ok' || streamOutcome === 'recovered')) {
                 announceBackgroundCompletion(runConversationId);
             }
             if (activeStreamIdRef.current === streamId) {
@@ -5720,7 +5884,7 @@ function LLMAgent({ isRouteActive = true }) {
         }
     }, [hoveredPubmedId, enrichedReferences]);
 
-    // Newest first by year, most-cited first by citations — see ./referenceSort.js for why
+    // Oldest first by year, most-cited first by citations — see ./referenceSort.js for why
     // the year comparator could not stay inline.
     const sortedReferences = useMemo(() => sortReferences(
         enrichedReferences.map((reference, originalIndex) => ({ reference, originalIndex })),
@@ -5931,7 +6095,7 @@ function LLMAgent({ isRouteActive = true }) {
      * the thread on screen, and holding a question against a run the reader cannot see would
      * fire it at a moment they have no reason to expect.
      */
-    const submitOrQueue = useCallback((event, searchOptions) => {
+    const submitOrQueue = useCallback((event, searchOptions, queryMethod = 'button') => {
         event?.preventDefault?.();
         const text = userInput.trim();
         if (!text || isLimitReachedEffective) return;
@@ -5953,7 +6117,7 @@ function LLMAgent({ isRouteActive = true }) {
                 && Boolean(resumingConversationRef.current)
                 && !runningConversationIdRef.current);
         if (!targetBusy) {
-            stableSubmit(event, null, null, { searchOptions });
+            stableSubmit(event, null, null, { searchOptions, queryMethod });
             return;
         }
         const ownerConversationId = isViewingRunningConversation
@@ -5980,6 +6144,7 @@ function LLMAgent({ isRouteActive = true }) {
             // Captured now rather than read at send time: they describe the turn the reader
             // meant to ask for.
             searchOptions,
+            queryMethod,
         }]);
         setUserInput('');
     }, [userInput, isLoading, isViewingRunningConversation, isLimitReachedEffective, stableSubmit]);
@@ -6024,6 +6189,17 @@ function LLMAgent({ isRouteActive = true }) {
         )));
     }, []);
 
+    const announceBackgroundClarification = useCallback((forConversationId, round) => {
+        const notificationKey = [
+            forConversationId || 'current',
+            round?.invocationId || 'unknown',
+            round?.stage || 'unknown',
+        ].join(':');
+        if (backgroundClarificationNotifiedRef.current.has(notificationKey)) return;
+        backgroundClarificationNotifiedRef.current.add(notificationKey);
+        message.info('Investigate needs your input. Return to the conversation to continue.');
+    }, []);
+
     /**
      * Answer a queued follow-up in a conversation the reader has left.
      *
@@ -6045,6 +6221,7 @@ function LLMAgent({ isRouteActive = true }) {
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const requestStartedAt = Date.now();
         const requestSearchOptions = entry.searchOptions || null;
+        const trackQuerySubmitSuccess = createQuerySubmitSuccessTracker(entry.queryMethod);
         const investigateEnabled = Boolean(
             requestSearchOptions?.investigateEnabled ?? isInvestigateConversation(conversationId),
         );
@@ -6108,6 +6285,7 @@ function LLMAgent({ isRouteActive = true }) {
 
         try {
             await llmService.chat(entry.text, new AbortController(), (update) => {
+                trackQuerySubmitSuccess(update);
                 switch (update.type) {
                     case 'step':
                         if (update.step === 'Error') {
@@ -6314,6 +6492,7 @@ function LLMAgent({ isRouteActive = true }) {
         Promise.resolve(
             stableSubmit(null, next.text, null, {
                 searchOptions: next.searchOptions,
+                queryMethod: next.queryMethod,
                 ...(targetId == null ? {} : { conversationId: targetId }),
             }),
         ).finally(() => {
@@ -7042,7 +7221,7 @@ function LLMAgent({ isRouteActive = true }) {
                                                         effort={chatEffort}
                                                         efforts={effortCatalog}
                                                         onEffortChange={handleEffortChange}
-                                                        onSubmit={(event) => {
+                                                        onSubmit={(event, submissionMeta) => {
                                                             /* The level is chat's: on a deep-research conversation it is
                                                                withheld, exactly as the chip is. The model is sent at every
                                                                level — a level supplies the picker's DEFAULT, not a pin, so
@@ -7058,7 +7237,7 @@ function LLMAgent({ isRouteActive = true }) {
                                                                 // arrived with.
                                                                 model: chatModel,
                                                                 effort: (!deepResearch && chatEffort) ? chatEffort : undefined,
-                                                            });
+                                                            }, submissionMeta?.queryMethod || 'button');
                                                         }}
                                                         onStop={handleStopStreaming}
                                                     />
