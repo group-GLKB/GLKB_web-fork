@@ -30,7 +30,7 @@ import ModelPicker from '../Units/ModelPicker';
 import { fetchModelCatalog, getModelPref, setModelPref } from '../../service/models';
 import {
     EFFORT_QUICK,
-    fixedModelFor,
+    defaultModelFor,
     getEffortPref,
     isQuickAvailable,
     setEffortPref,
@@ -82,11 +82,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
 
        The quota is a different matter and still locks: there is no run to start at all. */
     const isInputLocked = isQueryLimitReached;
-    // Quick is chat's level. It is hidden while Investigate is on (deep research refuses it),
-    // and its model is fixed, so the picker locks onto that id while it is on.
+    // Quick is chat's level, hidden while Investigate is on (deep research refuses it). Its
+    // model is a DEFAULT the picker shows, not a lock — see service/effort.js.
     const quickOffered = isQuickAvailable(efforts, 'chat') && !investigateEnabled;
     const quickOn = quickOffered && effort === EFFORT_QUICK;
-    const lockedModel = quickOn ? fixedModelFor(efforts, effort) : '';
+    const levelDefaultModel = quickOn ? defaultModelFor(efforts, effort) : '';
     useEffect(() => {
         // console.log(props);
         props.setOpen(isOpen);
@@ -162,9 +162,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             filters,
             rankingMode,
             investigateEnabled,
-            // A level that fixes its model sends NONE: the agent refuses a conflicting one
-            // rather than substituting, and '' is exactly what the service omits.
-            model: lockedModel ? '' : model,
+            model,
             effort: quickOn ? EFFORT_QUICK : undefined,
         };
     };
@@ -619,7 +617,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     because deep research discards filters and ranking, but it
                                     does honour the model — so this one stays offered. */}
                                 <ModelPicker
-                                    value={lockedModel || model}
+                                    value={model}
                                     onChange={(modelId) => {
                                         setModel(modelId);
                                         setModelPref(modelId);
@@ -629,9 +627,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     // reader picked for chat and that deep research does not
                                     // offer is swapped for the pipeline's default, visibly.
                                     pipeline={investigateEnabled ? 'deep_research' : 'chat'}
-                                    // Locked, not hidden, while a level fixes the model: the chip
-                                    // then SHOWS the model the level will run on.
-                                    disabled={isInputLocked || Boolean(lockedModel)}
+                                    defaultModelOverride={levelDefaultModel}
+                                    disabled={isInputLocked}
                                 />
 
                                 {!searchOptionsLocked && (

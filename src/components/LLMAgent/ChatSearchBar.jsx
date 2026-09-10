@@ -10,7 +10,7 @@ import {
 
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { trackGtagEvent } from '../../utils/gtag';
-import { EFFORT_QUICK, fixedModelFor, isQuickAvailable } from '../../service/effort';
+import { EFFORT_QUICK, defaultModelFor, isQuickAvailable } from '../../service/effort';
 import ModelPicker from '../Units/ModelPicker';
 
 const ChatSearchBar = ({
@@ -65,9 +65,10 @@ const ChatSearchBar = ({
     // and then refused.
     const quickOffered = !pipelineIsDeepResearch && isQuickAvailable(efforts, 'chat');
     const quickOn = quickOffered && effort === EFFORT_QUICK;
-    // A level that fixes its model locks the picker onto that id while it is on. The stored
-    // model is untouched, so turning Quick off brings the reader's own choice back.
-    const lockedModel = quickOn ? fixedModelFor(efforts, effort) : '';
+    // The level's default model, shown by the picker when the reader has chosen none. Not a
+    // lock: the picker stays operable, and Quick with another model is a request the agent
+    // honours — the level buys latency, the model buys cost.
+    const levelDefaultModel = quickOn ? defaultModelFor(efforts, effort) : '';
     const trackInvestigateSubmit = (inputMethod) => {
         if (!pipelineIsDeepResearch) return;
         trackGtagEvent('investigate_question_submit', {
@@ -217,15 +218,16 @@ const ChatSearchBar = ({
                                 </Box>
                             )}
                             <ModelPicker
-                                value={lockedModel || model}
+                                value={model}
                                 onChange={onModelChange}
                                 onResolveDefault={onModelResolveDefault}
                                 pipeline={pipelineIsDeepResearch ? 'deep_research' : 'chat'}
+                                defaultModelOverride={levelDefaultModel}
                                 // Left usable while an answer streams. A follow-up typed
                                 // mid-answer is queued by the parent, and it should be able to
                                 // name its own model — the choice applies to the NEXT request,
-                                // never to the one in flight. Locked while a level fixes it.
-                                disabled={isQueryLimitReached || Boolean(lockedModel)}
+                                // never to the one in flight.
+                                disabled={isQueryLimitReached}
                             />
                             {userInput !== '' && !isQueryLimitReached && !isLoading && (
                                 <CloseIcon

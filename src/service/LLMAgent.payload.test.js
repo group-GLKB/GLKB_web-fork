@@ -212,10 +212,11 @@ describe('effort level', () => {
         expect(sentPayload()).not.toHaveProperty('effort');
     });
 
-    it('sends no model beside a level that fixes its own', async () => {
-        // The composer drops the model for such a level; the service must not re-add one.
-        await run({ filters: [], effort: 'quick', model: undefined });
+    it('carries a level and a model together', async () => {
+        // A level supplies the picker's default, it does not pin — so "Quick with the best
+        // model" reaches the agent as both fields, and the agent honours both.
+        await run({ filters: [], effort: 'quick', model: 'gpt-5.6-sol' });
         expect(sentPayload().effort).toBe('quick');
-        expect(sentPayload()).not.toHaveProperty('model');
+        expect(sentPayload().model).toBe('gpt-5.6-sol');
     });
 });

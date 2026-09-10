@@ -7,7 +7,7 @@
 import {
     CHAT_EFFORT_KEY,
     effortsFor,
-    fixedModelFor,
+    defaultModelFor,
     getEffortPref,
     isQuickAvailable,
     setEffortPref,
@@ -15,8 +15,8 @@ import {
 } from './effort';
 
 const EFFORTS = [
-    { id: 'quick', label: 'Quick', pipelines: ['chat'], model: 'gpt-5.6-luna', max_tool_rounds: 2 },
-    { id: 'standard', label: 'Standard', pipelines: ['chat', 'deep_research'], model: null },
+    { id: 'quick', label: 'Quick', pipelines: ['chat'], default_model: 'gpt-5.6-luna', max_tool_rounds: 2 },
+    { id: 'standard', label: 'Standard', pipelines: ['chat', 'deep_research'], default_model: null },
 ];
 
 beforeEach(() => {
@@ -71,10 +71,12 @@ describe('the catalogue helpers', () => {
         expect(isQuickAvailable([])).toBe(false);
     });
 
-    it('names the model a level fixes, and nothing for one that does not', () => {
-        expect(fixedModelFor(EFFORTS, 'quick')).toBe('gpt-5.6-luna');
-        expect(fixedModelFor(EFFORTS, 'standard')).toBe('');
-        expect(fixedModelFor(EFFORTS, '')).toBe('');
-        expect(fixedModelFor([], 'quick')).toBe('');
+    it("names a level's default model, and nothing for a level with no preference", () => {
+        // A default the picker SHOWS, not a lock: the request still carries whatever the
+        // picker ends up on, and the agent honours an explicit choice at any level.
+        expect(defaultModelFor(EFFORTS, 'quick')).toBe('gpt-5.6-luna');
+        expect(defaultModelFor(EFFORTS, 'standard')).toBe('');
+        expect(defaultModelFor(EFFORTS, '')).toBe('');
+        expect(defaultModelFor([], 'quick')).toBe('');
     });
 });
