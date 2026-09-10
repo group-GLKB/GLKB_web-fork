@@ -1,5 +1,6 @@
 import React from 'react';
 
+import BoltIcon from '@mui/icons-material/Bolt';
 import CloseIcon from '@mui/icons-material/Close';
 import {
   Box,
@@ -9,6 +10,7 @@ import {
 
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { trackGtagEvent } from '../../utils/gtag';
+import { EFFORT_QUICK, fixedModelFor, isQuickAvailable } from '../../service/effort';
 import ModelPicker from '../Units/ModelPicker';
 
 const ChatSearchBar = ({
@@ -26,6 +28,12 @@ const ChatSearchBar = ({
     model,
     onModelChange,
     onModelResolveDefault,
+    // How hard the next question is worked (service/effort.js); '' is standard. Per-turn,
+    // like the model. `efforts` is the agent's catalogue of levels: with none offered the
+    // chip is not rendered, so an older agent is never shown a level it cannot honour.
+    effort = '',
+    onEffortChange,
+    efforts = [],
     // Resolved by the parent, which is the only place that can see both signals — see the
     // comment at the call site. Not derived from `investigateEnabled` above: that one is
     // for analytics and is false for a reopened investigate conversation.
@@ -52,6 +60,14 @@ const ChatSearchBar = ({
     // clear the field and the stop control is there again. There is nothing here to stop when
     // the run belongs to another thread.
     const showStop = isLoading && !isRunElsewhere && !canSend;
+    // Quick is chat's level. Deep research is its own level in all but name and refuses
+    // `quick`, so on an Investigate conversation the chip is withdrawn rather than offered
+    // and then refused.
+    const quickOffered = !pipelineIsDeepResearch && isQuickAvailable(efforts, 'chat');
+    const quickOn = quickOffered && effort === EFFORT_QUICK;
+    // A level that fixes its model locks the picker onto that id while it is on. The stored
+    // model is untouched, so turning Quick off brings the reader's own choice back.
+    const lockedModel = quickOn ? fixedModelFor(efforts, effort) : '';
     const trackInvestigateSubmit = (inputMethod) => {
         if (!pipelineIsDeepResearch) return;
         trackGtagEvent('investigate_question_submit', {
@@ -152,16 +168,64 @@ const ChatSearchBar = ({
                                 puts it too. It had a control row of its own under the field for
                                 a while, which cost the composer 54px of height for one chip and
                                 left the chip stranded in a band of empty space. */}
+                            {quickOffered && (
+                                <Box
+                                    component="button"
+                                    type="button"
+                                    className="effort-quick-chip"
+                                    aria-pressed={quickOn}
+                                    aria-label={quickOn ? 'Quick on' : 'Quick off'}
+                                    title={quickOn
+                                        ? 'Quick is on: an answer in seconds from GLKB alone, at most two search rounds'
+                                        : 'Quick: an answer in seconds from GLKB alone'}
+                                    disabled={isQueryLimitReached}
+                                    onMouseDown={(event) => event.preventDefault()}
+                                    onClick={() => {
+                                        const next = !quickOn;
+                                        trackGtagEvent('chat_quick_toggle_click', {
+                                            source: 'chat_searchbar',
+                                            enabled: next,
+                                        });
+                                        onEffortChange?.(next ? EFFORT_QUICK : '');
+                                    }}
+                                    sx={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        height: 32,
+                                        padding: '4px 8px',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        cursor: isQueryLimitReached ? 'default' : 'pointer',
+                                        background: quickOn ? 'var(--color-brand-muted)' : 'transparent',
+                                        color: quickOn ? 'var(--color-brand-primary)' : 'var(--color-text-tertiary)',
+                                        fontFamily: 'Geist, sans-serif',
+                                        fontWeight: 600,
+                                        fontSize: '12px',
+                                        lineHeight: '16px',
+                                        whiteSpace: 'nowrap',
+                                        flexShrink: 0,
+                                        '&:hover': {
+                                            background: quickOn ? 'var(--color-blue-200)' : 'var(--color-background-subtle)',
+                                            color: quickOn ? 'var(--color-blue-600)' : 'var(--color-grey-600)',
+                                        },
+                                        '&:disabled': { opacity: 0.6 },
+                                    }}
+                                >
+                                    <BoltIcon sx={{ fontSize: 16 }} />
+                                    Quick
+                                </Box>
+                            )}
                             <ModelPicker
-                                value={model}
+                                value={lockedModel || model}
                                 onChange={onModelChange}
                                 onResolveDefault={onModelResolveDefault}
                                 pipeline={pipelineIsDeepResearch ? 'deep_research' : 'chat'}
                                 // Left usable while an answer streams. A follow-up typed
                                 // mid-answer is queued by the parent, and it should be able to
                                 // name its own model — the choice applies to the NEXT request,
-                                // never to the one in flight.
-                                disabled={isQueryLimitReached}
+                                // never to the one in flight. Locked while a level fixes it.
+                                disabled={isQueryLimitReached || Boolean(lockedModel)}
                             />
                             {userInput !== '' && !isQueryLimitReached && !isLoading && (
                                 <CloseIcon

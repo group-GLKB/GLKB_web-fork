@@ -453,6 +453,15 @@ export class LLMAgentService {
             if (typeof options.model === 'string' && options.model.trim()) {
                 payload.model = options.model.trim();
             }
+            // The effort level (service/effort.js). Chat only: deep research is its own level
+            // in all but name and refuses `quick` with a 400, so the field is withheld there
+            // just as filters/ranking_mode are. Omitted when blank, which the agent reads as
+            // `standard`. A level that fixes its model arrives here with NO model — the
+            // composer dropped it, because the agent refuses a conflicting one rather than
+            // substituting.
+            if (!investigateEnabled && typeof options.effort === 'string' && options.effort.trim()) {
+                payload.effort = options.effort.trim();
+            }
             // Backend PR #31: email when Deep Research hits Complete
             if (
                 investigateEnabled &&

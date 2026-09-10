@@ -124,7 +124,13 @@ import {
     setNotifyPref,
     subscribeToNotifyPrefs,
 } from '../../service/notifications';
-import { getModelPref, setModelPref, subscribeToModelPref } from '../../service/models';
+import { fetchModelCatalog, getModelPref, setModelPref, subscribeToModelPref } from '../../service/models';
+import {
+    fixedModelFor,
+    getEffortPref,
+    setEffortPref,
+    subscribeToEffortPref,
+} from '../../service/effort';
 import {
     clearActiveRun,
     clearPendingRun,
@@ -2050,6 +2056,25 @@ function LLMAgent({ isRouteActive = true }) {
     const handleModelChange = useCallback((modelId) => {
         setChatModel(modelId);
         setModelPref(modelId);
+    }, []);
+    /* How hard the next question is worked (service/effort.js): '' is standard, 'quick' the
+       seconds-long level. Same storage discipline as the model: a click is remembered and
+       another tab's click reaches this one. The catalogue of levels is read once so the
+       composer can tell whether this deployment offers Quick at all, and which model it
+       fixes — a level that fixes its model must send none. */
+    const [chatEffort, setChatEffort] = useState(() => getEffortPref());
+    useEffect(() => subscribeToEffortPref(setChatEffort), []);
+    const handleEffortChange = useCallback((effortId) => {
+        setChatEffort(effortId);
+        setEffortPref(effortId);
+    }, []);
+    const [effortCatalog, setEffortCatalog] = useState([]);
+    useEffect(() => {
+        let cancelled = false;
+        fetchModelCatalog().then((catalog) => {
+            if (!cancelled) setEffortCatalog(Array.isArray(catalog?.efforts) ? catalog.efforts : []);
+        });
+        return () => { cancelled = true; };
     }, []);
     const investigateFunnelRef = useRef(initialRunSnapshot?.investigateFunnel || emptyFunnel());
     /* What the funnel counters actually SHOWED, as opposed to what the agent reported.
@@ -4043,6 +4068,9 @@ function LLMAgent({ isRouteActive = true }) {
             model: typeof requestSearchOptions?.model === 'string' && requestSearchOptions.model
                 ? requestSearchOptions.model
                 : undefined,
+            effort: typeof requestSearchOptions?.effort === 'string' && requestSearchOptions.effort
+                ? requestSearchOptions.effort
+                : undefined,
         };
 
         // Create new user message
@@ -4799,6 +4827,8 @@ function LLMAgent({ isRouteActive = true }) {
                 // queued follow-up must send the model that was showing when the reader hit
                 // send, not whatever the picker moved to while it waited in the queue.
                 model: requestSearchOptions?.model || undefined,
+                // The turn's own level, same discipline as the model above.
+                effort: requestSearchOptions?.effort || undefined,
                 notifyEmail: (investigateEnabled && notifyEmailEnabled)
                     ? (getUserNotifyEmail() || undefined)
                     : undefined,
@@ -6960,15 +6990,29 @@ function LLMAgent({ isRouteActive = true }) {
                                                         }
                                                         onModelChange={handleModelChange}
                                                         onModelResolveDefault={setChatModel}
-                                                        onSubmit={(event) => submitOrQueue(event, {
-                                                            investigateEnabled: chatInvestigateEnabled,
-                                                            ...(initialSearchOptionsRef.current || {}),
-                                                            // AFTER the spread: the home page's options seeded this
-                                                            // conversation, but the picker is the live control and a
-                                                            // reader who moved it must not be overridden by what they
-                                                            // arrived with.
-                                                            model: chatModel,
-                                                        })}
+                                                        effort={chatEffort}
+                                                        efforts={effortCatalog}
+                                                        onEffortChange={handleEffortChange}
+                                                        onSubmit={(event) => {
+                                                            /* The level is chat's: on a deep-research conversation it is
+                                                               withheld, exactly as the chip is. A level that fixes its
+                                                               model (Quick → Luna) sends NO model, because the agent
+                                                               refuses a conflicting one rather than substituting. */
+                                                            const deepResearch = chatInvestigateEnabled
+                                                                || isInvestigateConversation(activeConversationId);
+                                                            const effort = (!deepResearch && chatEffort) ? chatEffort : undefined;
+                                                            const lockedModel = effort ? fixedModelFor(effortCatalog, effort) : '';
+                                                            submitOrQueue(event, {
+                                                                investigateEnabled: chatInvestigateEnabled,
+                                                                ...(initialSearchOptionsRef.current || {}),
+                                                                // AFTER the spread: the home page's options seeded this
+                                                                // conversation, but the picker is the live control and a
+                                                                // reader who moved it must not be overridden by what they
+                                                                // arrived with.
+                                                                model: lockedModel ? undefined : chatModel,
+                                                                effort,
+                                                            });
+                                                        }}
                                                         onStop={handleStopStreaming}
                                                     />
                                                     </div>

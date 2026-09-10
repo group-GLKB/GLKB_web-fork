@@ -6,6 +6,7 @@ import React, {
 import { useNavigate } from 'react-router-dom';
 
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
+import BoltIcon from '@mui/icons-material/Bolt';
 import CloseIcon from '@mui/icons-material/Close';
 import {
   Autocomplete,
@@ -26,7 +27,14 @@ import { ReactComponent as SearchOptionsCloseIcon } from '../../img/llm/search_o
 import { ReactComponent as SearchOptionsCollapseIcon } from '../../img/llm/search_options_collapse.svg';
 import { trackGtagEvent } from '../../utils/gtag';
 import ModelPicker from '../Units/ModelPicker';
-import { getModelPref, setModelPref } from '../../service/models';
+import { fetchModelCatalog, getModelPref, setModelPref } from '../../service/models';
+import {
+    EFFORT_QUICK,
+    fixedModelFor,
+    getEffortPref,
+    isQuickAvailable,
+    setEffortPref,
+} from '../../service/effort';
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
@@ -37,6 +45,19 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
        the choice the conversation continues with — the two pickers are one preference, not
        two that can disagree once the reader lands on /chat. */
     const [model, setModel] = useState(() => getModelPref());
+    /* How hard the first question is worked (service/effort.js). Persisted through the same
+       helper the chat composer reads, for the same reason as the model above. `efforts` is the
+       agent's catalogue of levels; until it arrives, or on an agent that predates levels, no
+       chip is offered. */
+    const [effort, setEffort] = useState(() => getEffortPref());
+    const [efforts, setEfforts] = useState([]);
+    useEffect(() => {
+        let cancelled = false;
+        fetchModelCatalog().then((catalog) => {
+            if (!cancelled) setEfforts(Array.isArray(catalog?.efforts) ? catalog.efforts : []);
+        });
+        return () => { cancelled = true; };
+    }, []);
     const [sortBy, setSortBy] = useState('Default');
     const [paperType, setPaperType] = useState('All types');
     const [isOpen, setIsOpen] = useState(false);
@@ -61,6 +82,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
 
        The quota is a different matter and still locks: there is no run to start at all. */
     const isInputLocked = isQueryLimitReached;
+    // Quick is chat's level. It is hidden while Investigate is on (deep research refuses it),
+    // and its model is fixed, so the picker locks onto that id while it is on.
+    const quickOffered = isQuickAvailable(efforts, 'chat') && !investigateEnabled;
+    const quickOn = quickOffered && effort === EFFORT_QUICK;
+    const lockedModel = quickOn ? fixedModelFor(efforts, effort) : '';
     useEffect(() => {
         // console.log(props);
         props.setOpen(isOpen);
@@ -136,7 +162,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             filters,
             rankingMode,
             investigateEnabled,
-            model,
+            // A level that fixes its model sends NONE: the agent refuses a conflicting one
+            // rather than substituting, and '' is exactly what the service omits.
+            model: lockedModel ? '' : model,
+            effort: quickOn ? EFFORT_QUICK : undefined,
         };
     };
 
@@ -449,7 +478,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 pointerEvents: 'none',
                             }}
                         >
-                            {INVESTIGATE_ENABLED && (
+                            {(INVESTIGATE_ENABLED || quickOffered) && (
                             <Box
                                 sx={{
                                     display: 'inline-flex',
@@ -459,6 +488,57 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     pointerEvents: 'auto',
                                 }}
                             >
+                                {quickOffered && (
+                                <Button
+                                    disabled={isInputLocked}
+                                    aria-pressed={quickOn}
+                                    onMouseDown={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                    }}
+                                    onClick={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        const next = !quickOn;
+                                        trackGtagEvent('home_quick_toggle_click', { enabled: next });
+                                        setEffort(next ? EFFORT_QUICK : '');
+                                        setEffortPref(next ? EFFORT_QUICK : '');
+                                    }}
+                                    sx={{
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '4px',
+                                        height: '32px',
+                                        padding: '4px 8px',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        background: quickOn ? 'var(--color-brand-muted)' : 'transparent',
+                                        color: quickOn ? 'var(--color-brand-primary)' : 'var(--color-text-tertiary)',
+                                        fontFamily: 'Geist, sans-serif',
+                                        fontWeight: 600,
+                                        fontSize: '12px',
+                                        lineHeight: '16px',
+                                        textTransform: 'none',
+                                        minWidth: 0,
+                                        whiteSpace: 'nowrap',
+                                        boxShadow: 'none !important',
+                                        transition: 'background-color 0.18s ease, color 0.18s ease',
+                                        '& .MuiButton-startIcon': { margin: 0 },
+                                        '&:hover': {
+                                            border: 'none',
+                                            background: quickOn ? 'var(--color-blue-200)' : 'var(--color-background-subtle)',
+                                            color: quickOn ? 'var(--color-blue-600)' : 'var(--color-grey-600)',
+                                        },
+                                    }}
+                                    startIcon={<BoltIcon style={{ width: '18px', height: '18px' }} />}
+                                    title={quickOn
+                                        ? 'Quick is on: an answer in seconds from GLKB alone, at most two search rounds'
+                                        : 'Quick: an answer in seconds from GLKB alone'}
+                                >
+                                    Quick
+                                </Button>
+                                )}
+                                {INVESTIGATE_ENABLED && (
                                 <Button
                                     disabled={isInputLocked}
                                     onMouseDown={(event) => {
@@ -518,6 +598,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 >
                                     Investigate
                                 </Button>
+                                )}
                             </Box>
                             )}
 
@@ -529,7 +610,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     minWidth: 0,
                                     // With Investigate hidden this is the row's only child, so
                                     // `space-between` alone would park it on the left.
-                                    marginLeft: isMobileLayout && INVESTIGATE_ENABLED ? 0 : 'auto',
+                                    marginLeft: isMobileLayout && (INVESTIGATE_ENABLED || quickOffered) ? 0 : 'auto',
                                     pointerEvents: 'auto',
                                 }}
                             >
@@ -538,7 +619,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     because deep research discards filters and ranking, but it
                                     does honour the model — so this one stays offered. */}
                                 <ModelPicker
-                                    value={model}
+                                    value={lockedModel || model}
                                     onChange={(modelId) => {
                                         setModel(modelId);
                                         setModelPref(modelId);
@@ -548,7 +629,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     // reader picked for chat and that deep research does not
                                     // offer is swapped for the pipeline's default, visibly.
                                     pipeline={investigateEnabled ? 'deep_research' : 'chat'}
-                                    disabled={isInputLocked}
+                                    // Locked, not hidden, while a level fixes the model: the chip
+                                    // then SHOWS the model the level will run on.
+                                    disabled={isInputLocked || Boolean(lockedModel)}
                                 />
 
                                 {!searchOptionsLocked && (
