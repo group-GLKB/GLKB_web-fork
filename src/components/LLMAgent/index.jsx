@@ -146,6 +146,7 @@ import {
     readActiveRunSnapshot,
     readActiveRunSnapshotFor,
     releaseGuestSlot,
+    removeQueuedPromptFromSnapshot,
     writeActiveRunSnapshot,
 } from '../../service/agentRunSnapshot';
 import { shouldSkipConversationRestore } from '../../service/conversationRestore';
@@ -1911,8 +1912,18 @@ function LLMAgent({ isRouteActive = true }) {
     const restoreQueuedPrompts = useCallback((entries) => {
         if (!Array.isArray(entries) || !entries.length) return;
         setQueuedPrompts((prev) => {
-            const known = new Set(prev.map((item) => item?.id));
-            const missing = entries.filter((item) => item?.id && !known.has(item.id));
+            const identityFor = (item) => [
+                item?.conversationId ?? '',
+                item?.runKey ?? '',
+                item?.id ?? '',
+            ].map(String).join('\u0000');
+            /* q-N was historically only unique inside one mount. After a reload, two
+               conversation snapshots can legitimately both contain q-1; treating the id as
+               global made one conversation borrow the other's de-duplication state. */
+            const known = new Set(prev.map(identityFor));
+            const missing = entries.filter((item) => (
+                item?.id && !known.has(identityFor(item))
+            ));
             if (!missing.length) return prev;
             missing.forEach((item) => {
                 const n = Number(String(item?.id || '').replace(/^q-/, ''));
@@ -5609,7 +5620,7 @@ function LLMAgent({ isRouteActive = true }) {
                         className="queued-prompt-remove"
                         title="Remove from queue"
                         aria-label={`Remove queued question: ${item.text}`}
-                        onClick={() => removeQueuedPrompt(item.id)}
+                        onClick={() => removeQueuedPrompt(item)}
                     >
                         <CloseIcon sx={{ fontSize: 16 }} />
                     </button>
@@ -5974,8 +5985,44 @@ function LLMAgent({ isRouteActive = true }) {
         setUserInput('');
     }, [userInput, isLoading, isViewingRunningConversation, isLimitReachedEffective, stableSubmit]);
 
-    const removeQueuedPrompt = useCallback((id) => {
-        setQueuedPrompts((prev) => prev.filter((item) => item.id !== id));
+    const removeQueuedPrompt = useCallback((entry) => {
+        if (!entry?.id) return;
+        /* A pending snapshot write reads the latest ref when its timer fires. Update that ref
+           first, otherwise the timer can put the consumed prompt straight back after the
+           durable copy below removed it. */
+        const liveSnapshot = liveRunSnapshotRef.current;
+        const sameSnapshot = liveSnapshot
+            && String(liveSnapshot.conversationId ?? '')
+                === String(entry.conversationId ?? '');
+        if (sameSnapshot && Array.isArray(liveSnapshot.queuedPrompts)) {
+            liveRunSnapshotRef.current = {
+                ...liveSnapshot,
+                queuedPrompts: liveSnapshot.queuedPrompts.filter(
+                    (item) => item?.id !== entry.id,
+                ),
+            };
+        }
+        const initialSnapshot = initialRunSnapshotRef.current;
+        const sameInitialSnapshot = initialSnapshot
+            && String(initialSnapshot.conversationId ?? '')
+                === String(entry.conversationId ?? '');
+        if (sameInitialSnapshot && Array.isArray(initialSnapshot.queuedPrompts)) {
+            initialRunSnapshotRef.current = {
+                ...initialSnapshot,
+                queuedPrompts: initialSnapshot.queuedPrompts.filter(
+                    (item) => item?.id !== entry.id,
+                ),
+            };
+        }
+        removeQueuedPromptFromSnapshot(entry.conversationId ?? null, entry.id);
+        /* Match the exact entry object as well as its scoped identity. Legacy snapshots can
+           contain the same q-N id in two conversations, and removing one must not eat both. */
+        setQueuedPrompts((prev) => prev.filter((item) => (
+            item !== entry
+            && !(item?.id === entry.id
+                && String(item?.conversationId ?? '') === String(entry.conversationId ?? '')
+                && String(item?.runKey ?? '') === String(entry.runKey ?? ''))
+        )));
     }, []);
 
     /**
@@ -6248,7 +6295,10 @@ function LLMAgent({ isRouteActive = true }) {
             viewBusy,
         });
         if (!next) return;
-        setQueuedPrompts((prev) => prev.filter((item) => item.id !== next.id));
+        /* Remove it from memory AND from its conversation snapshot before starting the turn.
+           Otherwise switching away and back restores this already-consumed entry and submits
+           one duplicate on every visit. */
+        removeQueuedPrompt(next);
         /* Into the conversation it was written against, not the one on screen. */
         const { conversationId: targetId, onScreen: targetIsOnScreen } = releaseTargetFor(
             next,
@@ -6273,7 +6323,7 @@ function LLMAgent({ isRouteActive = true }) {
     }, [
         isLoading, isProcessing, isConversationLoading, activeConversationId,
         runRegistryRevision, queuedPrompts, isLimitReachedEffective,
-        stableSubmit, stableRunBackgroundTurn,
+        stableSubmit, stableRunBackgroundTurn, removeQueuedPrompt,
     ]);
 
     const stableRefresh = useStableCallback(handleRegenerateResponse);

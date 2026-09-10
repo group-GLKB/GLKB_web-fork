@@ -219,6 +219,27 @@ export const writeActiveRunSnapshot = (snapshot) => {
 };
 
 /**
+ * Remove one queued prompt from the snapshot that owns it.
+ *
+ * Dequeueing used to update React state only. The old snapshot therefore restored the prompt
+ * the next time its conversation was opened, and every trip between two busy conversations
+ * submitted the same follow-up once more. Keep this scoped to one snapshot: queue ids from an
+ * older tab can repeat in another conversation.
+ */
+export const removeQueuedPromptFromSnapshot = (conversationId, promptId) => {
+    if (!promptId) return false;
+    const snapshots = readAll();
+    const slot = slotFor(conversationId);
+    const snapshot = snapshots[slot];
+    if (!snapshot || !Array.isArray(snapshot.queuedPrompts)) return false;
+
+    const queuedPrompts = snapshot.queuedPrompts.filter((item) => item?.id !== promptId);
+    if (queuedPrompts.length === snapshot.queuedPrompts.length) return false;
+    snapshots[slot] = { ...snapshot, queuedPrompts };
+    return writeAll(snapshots);
+};
+
+/**
  * Forget one run's snapshot, or every one when called with nothing.
  *
  * The no-argument form is what a hard reset uses. Passing an id matters now that more than one
