@@ -51,14 +51,22 @@ export const AVATARS = PRESETS.map(({ id, glyph, fill }) => ({
     id,
     fill,
     glyph,
-    render: ({ className } = {}) => (
-        <span className={className} style={{ backgroundColor: fill }}>
+    render: ({ className, style } = {}) => (
+        <span
+            className={className}
+            style={{ backgroundColor: fill, borderRadius: '4px', ...style }}
+        >
             <img src={glyph} alt="" />
         </span>
     ),
 }));
 
 /** The preset for a stored id, or null when the user has not chosen one. */
-export const avatarById = (id) => AVATARS.find((avatar) => avatar.id === id) || null;
+export const avatarById = (id) => {
+    if (id === null || id === undefined || id === '') return null;
+    const normalizedId = Number(id);
+    if (!Number.isInteger(normalizedId)) return null;
+    return AVATARS.find((avatar) => avatar.id === normalizedId) || null;
+};
 
 export default AVATARS;

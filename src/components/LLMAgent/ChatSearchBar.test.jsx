@@ -182,6 +182,13 @@ describe('ChatSearchBar when nothing is running', () => {
         const { onSubmit } = setup({ userInput: 'what is TP53?' });
         fireEvent.keyDown(field(), { key: 'Enter' });
         expect(onSubmit).toHaveBeenCalledTimes(1);
+        expect(onSubmit).toHaveBeenCalledWith(expect.anything(), { queryMethod: 'enter' });
+    });
+
+    it('labels a send-button submission separately', () => {
+        const { onSubmit } = setup({ userInput: 'what is BRCA1?' });
+        fireEvent.click(screen.getByTitle('Send'));
+        expect(onSubmit).toHaveBeenCalledWith(expect.anything(), { queryMethod: 'button' });
     });
 
     it('shows the plain send title, not the queued one', () => {

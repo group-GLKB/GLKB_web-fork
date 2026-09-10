@@ -25,7 +25,13 @@ describe('preset profile pictures', () => {
 
     it('looks presets up by id, and answers null for none', () => {
         expect(avatarById(7).id).toBe(7);
+        expect(avatarById('7').id).toBe(7);
         expect(avatarById(null)).toBeNull();
         expect(avatarById(17)).toBeNull();
+    });
+
+    it('renders the Figma rounded-square tile even outside Settings CSS', () => {
+        const mark = AVATARS[0].render();
+        expect(mark.props.style.borderRadius).toBe('4px');
     });
 });

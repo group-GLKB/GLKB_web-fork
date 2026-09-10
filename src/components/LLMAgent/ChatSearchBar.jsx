@@ -114,7 +114,7 @@ const ChatSearchBar = ({
                         e.preventDefault();
                         if (canSend) {
                             trackInvestigateSubmit('enter');
-                            onSubmit?.(e);
+                            onSubmit?.(e, { queryMethod: 'enter' });
                         }
                     }
                 }}
@@ -284,7 +284,7 @@ const ChatSearchBar = ({
                                             queued: false,
                                         });
                                         trackInvestigateSubmit('button');
-                                        onSubmit?.(event);
+                                        onSubmit?.(event, { queryMethod: 'button' });
                                     }}
                                     sx={{
                                         width: 32,

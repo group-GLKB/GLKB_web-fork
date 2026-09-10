@@ -1,12 +1,9 @@
 /**
  * The order the References panel puts papers in.
  *
- * BY YEAR, NEWEST FIRST. A reader scanning a reference list wants to know what the current
- * literature says before what the 2015 literature said, so the most recent paper leads.
- *
- * This was the behaviour until 2026-07-15, when `8b23956` ("style updates") flipped the
- * comparator to oldest-first alongside a refactor of its argument shape. Nothing else in that
- * commit suggests the reversal was deliberate.
+ * BY YEAR, OLDEST FIRST. This is the bibliography order selected for the product: it makes the
+ * development of a claim readable chronologically, while the Citation option remains the way
+ * to put the most influential papers first.
  *
  * The comparator also could not survive its own input. `(a.year || 0) - (b.year || 0)` returns
  * NaN for any year that is not a bare number, and a comparator that returns NaN is read as
@@ -47,26 +44,59 @@ export const getReferenceYear = (value) => {
 };
 
 /**
- * Newest first, with unknown years last, and stable within a year.
+ * Oldest first, with unknown years last, and stable within a year.
  *
  * Stability matters: papers sharing a year keep the order the agent chose for them, which is
  * its own relevance judgement and better than an arbitrary reshuffle.
  */
-export const compareByYearDescending = (a, b) => {
+export const compareByYearAscending = (a, b) => {
     const left = getReferenceYear(a?.year);
     const right = getReferenceYear(b?.year);
     if (left === null && right === null) return 0;
     if (left === null) return 1;
     if (right === null) return -1;
-    return right - left;
+    return left - right;
 };
 
-/** Most-cited first. Anything that is not a number — `N/A` on an enriched row — goes last. */
+/**
+ * Citation providers do not agree on a scalar shape. Besides numbers, the API has returned
+ * strings such as `1,234`, `1 234`, and `1,234 citations`. Treat those as the count the reader
+ * sees; a genuinely missing value (`N/A`, empty, null) still belongs at the end.
+ */
+export const getCitationSortValue = (value) => {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+    if (value == null) return null;
+    /* Neo4j integers can survive JSON serialization as {low, high}. Counts are non-negative,
+       but keep the full 64-bit composition instead of silently sorting only by the low word. */
+    if (typeof value === 'object') {
+        if (typeof value.toNumber === 'function') {
+            try {
+                const converted = value.toNumber();
+                return Number.isFinite(converted) ? converted : null;
+            } catch (error) {
+                return null;
+            }
+        }
+        if (Number.isFinite(Number(value.low)) && Number.isFinite(Number(value.high))) {
+            return (Number(value.high) * 0x100000000) + (Number(value.low) >>> 0);
+        }
+        if ('$numberLong' in value) return getCitationSortValue(value.$numberLong);
+        return null;
+    }
+    const normalized = String(value).trim();
+    if (!normalized) return null;
+    const match = normalized.replace(/[,_\s]/g, '').match(/-?\d+(?:\.\d+)?/);
+    if (!match) return null;
+    const parsed = Number(match[0]);
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
+/** Most-cited first. Anything without a readable count goes last. */
 export const compareByCitationsDescending = (a, b) => {
-    const left = Number(a?.citation_count);
-    const right = Number(b?.citation_count);
-    const leftValue = Number.isFinite(left) ? left : -1;
-    const rightValue = Number.isFinite(right) ? right : -1;
+    const left = getCitationSortValue(a?.citation_count);
+    const right = getCitationSortValue(b?.citation_count);
+    const leftValue = left ?? -1;
+    const rightValue = right ?? -1;
     return rightValue - leftValue;
 };
 
@@ -80,7 +110,7 @@ export const sortReferences = (wrapped, sortOption) => {
     const items = Array.isArray(wrapped) ? [...wrapped] : [];
     const compare = sortOption === 'Citations'
         ? compareByCitationsDescending
-        : compareByYearDescending;
+        : compareByYearAscending;
     items.sort(({ reference: a }, { reference: b }) => compare(a, b));
     return items;
 };
