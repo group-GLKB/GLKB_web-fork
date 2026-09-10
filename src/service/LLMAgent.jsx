@@ -453,6 +453,15 @@ export class LLMAgentService {
             if (typeof options.model === 'string' && options.model.trim()) {
                 payload.model = options.model.trim();
             }
+            // The effort level (service/effort.js). Chat only: deep research is its own level
+            // in all but name and refuses `quick` with a 400, so the field is withheld there
+            // just as filters/ranking_mode are. Omitted when blank, which the agent reads as
+            // `standard`. A level that fixes its model arrives here with NO model — the
+            // composer dropped it, because the agent refuses a conflicting one rather than
+            // substituting.
+            if (!investigateEnabled && typeof options.effort === 'string' && options.effort.trim()) {
+                payload.effort = options.effort.trim();
+            }
             // Backend PR #31: email when Deep Research hits Complete
             if (
                 investigateEnabled &&
@@ -533,6 +542,35 @@ export class LLMAgentService {
             return response.data;
         }
         throw new Error('getRun requires runId or sessionId');
+    }
+
+    /**
+     * Stop a run on the server.
+     *
+     * Aborting the SSE only detaches this tab: on BOTH pipelines the backend relay and the
+     * agent run are decoupled from the socket so an answer survives a closed tab. Stop
+     * therefore left the run spending tokens and minutes on an answer nobody would read —
+     * and, worse, left the conversation's exchange unfinished, which is what the sidebar
+     * reads as "still answering".
+     *
+     * The two products have separate routers, and the cancel has to reach the one that owns
+     * the relay task: cancelling the agent alone leaves the OTHER service's task parked on a
+     * stream that will never produce another frame. Hence `investigate`.
+     *
+     * Best-effort by nature — the run may have finished a moment earlier, the id may have
+     * been evicted — so a failure here must never stop the UI from letting go. The caller
+     * aborts the stream regardless.
+     */
+    async cancelRun(runId, { investigate = false } = {}) {
+        if (!runId) return null;
+        const endpoint = investigate
+            ? `${resolveInvestigateUrl(INVESTIGATE_RUN_ENDPOINT, '/api/v1/deep-research/run')
+                .replace(/\/+$/, '')}/${encodeURIComponent(runId)}/cancel`
+            : `/api/v1/new-llm-agent/run/${encodeURIComponent(runId)}/cancel`;
+        const response = await axios.post(endpoint, null, {
+            headers: { Accept: 'application/json' },
+        });
+        return response.data;
     }
 
     async getAnswer(question) {

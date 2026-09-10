@@ -8,9 +8,21 @@
  * the same two switches, and both write the same preferences, so a choice made here is the one
  * Settings shows afterwards.
  *
- * Browser notifications need the reader's permission, which can only be requested from a gesture.
- * That request therefore happens on Notify me rather than on the switch, and a refusal turns the
- * switch back off with a line saying so instead of leaving it on and silently never firing.
+ * THE SWITCHES ARE A DRAFT. Nothing reaches storage until Done, and Not now (or a click away)
+ * leaves the stored preferences exactly as they were. The panel is a small form and is built
+ * like one: two switches and two buttons, one of which commits and one of which does not.
+ *
+ * This is deliberately not the "each switch applies as it is moved" behaviour that sat here for
+ * a few days. That version had no way to back out of a switch — a reader who opened the panel to
+ * look at it and moved a switch to see what it said had already changed their preferences — and
+ * it left Done as a button that did nothing but close. What it did solve is worth keeping in
+ * mind: a draft discarded on close is silent, so the discard is given a name (Not now) rather
+ * than being left to a click on the page behind.
+ *
+ * Browser notifications need the reader's permission, which can only be requested from a user
+ * gesture — pressing Done is one, so the request happens there, before anything is written. A
+ * refusal turns the switch back off with a line saying so and holds the panel open, rather than
+ * storing a preference that could never fire.
  */
 import React, { useEffect, useState } from 'react';
 import { ClickAwayListener, Popper } from '@mui/material';
@@ -42,8 +54,9 @@ const NotifyRow = ({ icon, label, checked, onChange }) => (
 );
 
 const NotifyPopover = ({ anchorEl, open, onClose }) => {
-    // Seeded from the stored preferences, then held locally: the design has a Not now, and a
-    // choice the reader can back out of cannot be written as they make it.
+    // Seeded from the stored preferences, then held locally: a choice the reader can back out
+    // of with Not now cannot be written as they make it. Re-seeded on every open, so the panel
+    // always starts from what is actually stored — including a write Settings made meanwhile.
     const [draft, setDraft] = useState(() => getNotifyPrefs());
     const [error, setError] = useState('');
 
@@ -72,6 +85,8 @@ const NotifyPopover = ({ anchorEl, open, onClose }) => {
                 setError(permission === 'denied'
                     ? 'Your browser is blocking notifications for this site. Allow them in its site settings first.'
                     : 'Your browser did not allow notifications.');
+                // The email half of the same press still stands: it was honourable, and asking
+                // for it again would be asking the reader to repeat a choice that worked.
                 setNotifyPref(NOTIFY_BROWSER_KEY, false);
                 setNotifyPref(NOTIFY_EMAIL_KEY, draft.email);
                 return;
@@ -102,7 +117,10 @@ const NotifyPopover = ({ anchorEl, open, onClose }) => {
                             icon={<MailOutlineIcon />}
                             label="Email"
                             checked={draft.email}
-                            onChange={(next) => setDraft((prev) => ({ ...prev, email: next }))}
+                            onChange={(next) => {
+                                setError('');
+                                setDraft((prev) => ({ ...prev, email: next }));
+                            }}
                         />
                         <NotifyRow
                             icon={<NotificationsNoneOutlinedIcon />}
@@ -118,11 +136,14 @@ const NotifyPopover = ({ anchorEl, open, onClose }) => {
                     {error ? <p className="notify-pop-error">{error}</p> : null}
 
                     <div className="notify-pop-actions">
+                        {/* The discard, named. A draft thrown away by clicking on the page
+                            behind is a change the reader cannot tell they lost; this is the
+                            way out that says what it does. */}
                         <button type="button" className="notify-pop-dismiss" onClick={onClose}>
                             Not now
                         </button>
                         <button type="button" className="notify-pop-confirm" onClick={confirm}>
-                            Notify me
+                            Done
                         </button>
                     </div>
                 </div>

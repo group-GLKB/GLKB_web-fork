@@ -1,8 +1,10 @@
 /**
  * Which model answers the next question.
  *
- * Sits in a control row under the composer's text field, the way ChatGPT's picker does —
- * a chip showing the current model, opening a panel of the deployment's catalogue.
+ * A chip showing the current model, opening a panel of the deployment's catalogue. It rides
+ * in the composer's own row — inside the chat field, left of send; on the home bar, in the
+ * control group beside Search Options — rather than on a row of its own, which cost the chat
+ * composer 54px of height to say one model's name.
  *
  * The catalogue is FETCHED, never hardcoded here: the agent owns the list and the backend
  * proxies it (`GET /api/v1/new-llm-agent/models`). A picker with its own copy eventually
@@ -45,10 +47,11 @@ const ModelPicker = ({
     const [catalog, setCatalog] = useState(null);
     const [isOpen, setIsOpen] = useState(false);
     const anchorRef = useRef(null);
-    /* The composer's control row fits four things on a phone and truncates the widest of
-       them. 767px is the app shell's own breakpoint, so the chip abbreviates exactly when
-       the layout around it switches. The PANEL always shows full names — it has the room,
-       and that is where a reader compares options. */
+    /* On a phone the chip shares its row with the placeholder and the send button, and it
+       is the one that must not be truncated (see .model-picker-trigger). 767px is the app
+       shell's own breakpoint, so the chip abbreviates exactly when the layout around it
+       switches. The PANEL always shows full names — it has the room, and that is where a
+       reader compares options. */
     const isNarrow = useMediaQuery('(max-width:767px)');
 
     useEffect(() => {

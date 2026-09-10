@@ -14,8 +14,9 @@ test('AI Chat returns a non-empty response', { timeout: 150000 }, async ({ page 
   await input.fill('What molecular pathways link IL6 signaling to inflammatory responses?');
   await input.press('Enter');
 
-  // Wait for navigation to /chat
-  await page.waitForURL('**/chat');
+  // Wait for navigation to /chat — each conversation now gets its own /chat/<id> URL, so a
+  // bare "**/chat" match never lands once an id is assigned.
+  await page.waitForURL(/\/chat(\/|$)/);
 
   // Wait for AI response — the assistant's reply is the second .markdown-body
   const response = page.locator('.markdown-body').nth(1);
@@ -88,6 +89,16 @@ test('AI Chat returns a non-empty response', { timeout: 150000 }, async ({ page 
   await cardActions.nth(1).click(); // cite
   await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5000 });
   await page.keyboard.press('Escape');
+
+  // Reference sort toggle (Citation/Year) can be switched — not checking the resulting order,
+  // just that both options are actually selectable.
+  const sortToggle = page.locator('.references-sort-toggle');
+  const citationSort = sortToggle.getByRole('button', { name: 'Citation' });
+  const yearSort = sortToggle.getByRole('button', { name: 'Year' });
+  await citationSort.click();
+  await expect(citationSort).toHaveClass(/Mui-selected/);
+  await yearSort.click();
+  await expect(yearSort).toHaveClass(/Mui-selected/);
 
   // Downloading all references produces a BibTeX file
   const exportDownload = page.waitForEvent('download');

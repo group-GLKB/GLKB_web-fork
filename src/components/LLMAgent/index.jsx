@@ -62,7 +62,7 @@ import {
   Typography,
 } from '@mui/material';
 
-import { emptyFunnel, mergeFunnel } from './funnel';
+import { emptyFunnel, mergeFunnel, settleFunnel } from './funnel';
 import InvestigateProgress, { formatElapsed } from './InvestigateProgress';
 import ClarifyPanel, { getClarificationQuestionKey } from './ClarifyPanel';
 import ReferenceHoverCard from './ReferenceHoverCard';
@@ -124,7 +124,13 @@ import {
     setNotifyPref,
     subscribeToNotifyPrefs,
 } from '../../service/notifications';
-import { getModelPref, setModelPref, subscribeToModelPref } from '../../service/models';
+import { fetchModelCatalog, getModelPref, setModelPref, subscribeToModelPref } from '../../service/models';
+import {
+    fixedModelFor,
+    getEffortPref,
+    setEffortPref,
+    subscribeToEffortPref,
+} from '../../service/effort';
 import {
     clearActiveRun,
     clearPendingRun,
@@ -426,6 +432,20 @@ const RESUME_POLL_MS = 3000;
 const RESUME_MAX_POLLS = 300;      // 15 minutes
 const RESUME_LOST_MESSAGE =
     'This answer could not be recovered after the page was reloaded. Please ask again.';
+
+/* What a stopped run leaves behind, on both sides.
+
+   The backend writes the same sentences into chat history (`app/core/stopped.py`), so the copy
+   on screen and the copy in history agree and a reload does not swap one for the other.
+
+   Two of them, because the two products are not the same thing to a reader: Investigate is a
+   multi-minute research run they watched, chat is an answer. Calling a stopped chat turn an
+   "investigation" is how the first version of this got noticed. */
+const STOPPED_BY_USER_TEXT = {
+    chat: '_This answer was stopped before it finished._',
+    investigate: '_This investigation was stopped before it finished._',
+};
+
 const PUBMED_ESUMMARY_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi';
 const PLACEHOLDER_PMID_PREFIX = 'PMID ';
 
@@ -1042,6 +1062,7 @@ const MessageCard = React.memo(function MessageCard({
     onUpdateClarificationDraft,
     onSubmitClarification,
     onSkipClarification,
+    onDisplayFunnel,
     showReloadPrompt,
     onReloadLatest,
     onStop,
@@ -1466,6 +1487,14 @@ const MessageCard = React.memo(function MessageCard({
                                    title becomes "Report ready" — then the panel gives way to the
                                    "Investigated for m:ss" summary row when the run closes. */
                                 done={resolvedPhase === 'summary'}
+                                /* A clarify round PAUSES the run: the harness is blocked on
+                                   the user's answer and nothing is being retrieved, read or
+                                   written. Everything that conveys motion has to stop with
+                                   it — the counters, the bar's creep, the clock — or the
+                                   panel claims progress that is not happening while the
+                                   reader is being asked to supply the missing piece. */
+                                paused={Boolean(pendingClarification)}
+                                onDisplayFunnel={onDisplayFunnel}
                                 expanded={investigateExpanded}
                                 onToggleExpanded={() => setInvestigateExpanded((prev) => !prev)}
                             />
@@ -1657,6 +1686,16 @@ const MessageCard = React.memo(function MessageCard({
                                             <ReactMarkdown
                                                 remarkPlugins={REMARK_PLUGINS}
                                                 components={{
+                                                    /* Wide tables scroll inside their own box.
+                                                       Without this a table with more columns
+                                                       than the message column can hold widens
+                                                       the whole answer and puts a horizontal
+                                                       scrollbar under the entire conversation. */
+                                                    table: ({ node, ...props }) => (
+                                                        <div className="markdown-table-scroll">
+                                                            <table {...props} />
+                                                        </div>
+                                                    ),
                                                     a: ({ href, children, title, ...props }) => {
                                                         const isPubMedReference = href?.includes('pubmed.ncbi.nlm.nih.gov');
                                                         const referenceNumber = isPubMedReference ? getReferenceNumber(href) : null;
@@ -2018,7 +2057,48 @@ function LLMAgent({ isRouteActive = true }) {
         setChatModel(modelId);
         setModelPref(modelId);
     }, []);
+    /* How hard the next question is worked (service/effort.js): '' is standard, 'quick' the
+       seconds-long level. Same storage discipline as the model: a click is remembered and
+       another tab's click reaches this one. The catalogue of levels is read once so the
+       composer can tell whether this deployment offers Quick at all, and which model it
+       fixes — a level that fixes its model must send none. */
+    const [chatEffort, setChatEffort] = useState(() => getEffortPref());
+    useEffect(() => subscribeToEffortPref(setChatEffort), []);
+    const handleEffortChange = useCallback((effortId) => {
+        setChatEffort(effortId);
+        setEffortPref(effortId);
+    }, []);
+    const [effortCatalog, setEffortCatalog] = useState([]);
+    useEffect(() => {
+        let cancelled = false;
+        fetchModelCatalog().then((catalog) => {
+            if (!cancelled) setEffortCatalog(Array.isArray(catalog?.efforts) ? catalog.efforts : []);
+        });
+        return () => { cancelled = true; };
+    }, []);
     const investigateFunnelRef = useRef(initialRunSnapshot?.investigateFunnel || emptyFunnel());
+    /* What the funnel counters actually SHOWED, as opposed to what the agent reported.
+       Kept apart from `investigateFunnelRef` for two reasons, and they pull in opposite
+       directions:
+
+       The panel's counters do not render the agent's number verbatim. An unknown counter
+       ramps while its phase runs, and Retrieved deliberately settles on `real + ramp` (see
+       RAMP_RANGE in InvestigateProgress). So when the run ended and the live panel gave way
+       to the summary chips — which read the agent's raw funnel — Retrieved dropped from
+       ~4,000 to ~1,300 in front of the reader. The chips read this instead, so the number
+       the run finished on is the number it keeps.
+
+       And it must NOT be fed back in as the counters' `value`: the ramp bonus would be
+       added to a figure that already contains it, once per frame. `investigateFunnelRef`
+       stays the agent's own counts and remains what drives the counters. */
+    const investigateDisplayFunnelRef = useRef(
+        initialRunSnapshot?.investigateDisplayFunnel || emptyFunnel(),
+    );
+    /* Which pipeline the turn in flight is on. Stop is a stable callback with no access to
+       the submit-time options, and the two pipelines differ in both the router that owns the
+       relay task and the sentence a stopped run leaves behind — so the running turn has to
+       leave its own name somewhere Stop can read it. */
+    const runningInvestigateRef = useRef(Boolean(initialRunSnapshot?.investigate));
     const investigatePhaseRef = useRef(initialRunSnapshot?.investigatePhase || 'searching');
     const investigatePercentRef = useRef(initialRunSnapshot?.investigatePercent ?? null);
     const investigateKeywordsRef = useRef(initialRunSnapshot?.investigateKeywords || []);
@@ -2080,6 +2160,25 @@ function LLMAgent({ isRouteActive = true }) {
     const pendingClarificationRef = useRef(initialRunSnapshot?.pendingClarification || null);
     // The ONLY way to set the pending round: the ref and the state must never disagree, or the
     // panel would render one round while submit answers another.
+    /* One counter reporting the figure it is showing. Merged monotonically, so a counter
+       that is mid-animation cannot lower a number a later frame already raised, and a
+       remount (which resets the ramp) cannot walk one backwards either. */
+    const onDisplayFunnel = useCallback((columnKey, shownValue) => {
+        if (!columnKey || !Number.isFinite(Number(shownValue))) return;
+        const current = investigateDisplayFunnelRef.current || emptyFunnel();
+        const previous = current[columnKey];
+        const next = Number(shownValue);
+        if (previous != null && previous >= next) return;
+        investigateDisplayFunnelRef.current = { ...current, [columnKey]: next };
+    }, []);
+
+    /* The funnel a FINISHED message keeps — the larger of the agent's counts and what the
+       panel actually showed. The rule and the reason live in `funnel.js:settleFunnel`. */
+    const settledFunnel = useCallback(
+        () => settleFunnel(investigateFunnelRef.current, investigateDisplayFunnelRef.current),
+        [],
+    );
+
     const applyPendingClarification = useCallback((next) => {
         pendingClarificationRef.current = next || null;
         setPendingClarification(next || null);
@@ -2619,7 +2718,7 @@ function LLMAgent({ isRouteActive = true }) {
                 trajectory: run.trajectory || null,
                 investigateMode: investigate,
                 ...(investigate ? {
-                    investigateFunnel: { ...investigateFunnelRef.current },
+                    investigateFunnel: settledFunnel(),
                     investigatePercent: 100,
                     investigatePhase: 'summary',
                     investigateKeywords: [...(investigateKeywordsRef.current || [])],
@@ -2689,7 +2788,7 @@ function LLMAgent({ isRouteActive = true }) {
                             ...(investigate ? {
                                 investigateMode: true,
                                 investigateFunnel: tail.investigateFunnel
-                                    || { ...investigateFunnelRef.current },
+                                    || settledFunnel(),
                                 investigatePhase: tail.investigatePhase || 'summary',
                                 investigatePercent: tail.investigatePercent ?? 100,
                                 investigateKeywords: tail.investigateKeywords
@@ -2824,7 +2923,7 @@ function LLMAgent({ isRouteActive = true }) {
                 else clearPendingRun();
             }
         }
-    }, [announceBackgroundCompletion, llmService, updateRunningChatHistory]);
+    }, [announceBackgroundCompletion, llmService, settledFunnel, updateRunningChatHistory]);
 
     useEffect(() => {
         if (authLoading) return undefined;
@@ -3548,6 +3647,11 @@ function LLMAgent({ isRouteActive = true }) {
             streamingStepName,
             investigatePhase,
             investigateFunnel,
+            /* The counters' own reading, so a reload does not walk Retrieved backwards: the
+               ramp restarts from zero in a fresh panel, and without this the restored run
+               would settle on the agent's smaller raw count. Read from the ref rather than
+               state — nothing re-renders when a counter animates, and it should not. */
+            investigateDisplayFunnel: investigateDisplayFunnelRef.current,
             investigateStartedAt,
             investigatePercent,
             investigateKeywords,
@@ -3964,6 +4068,9 @@ function LLMAgent({ isRouteActive = true }) {
             model: typeof requestSearchOptions?.model === 'string' && requestSearchOptions.model
                 ? requestSearchOptions.model
                 : undefined,
+            effort: typeof requestSearchOptions?.effort === 'string' && requestSearchOptions.effort
+                ? requestSearchOptions.effort
+                : undefined,
         };
 
         // Create new user message
@@ -4139,6 +4246,8 @@ function LLMAgent({ isRouteActive = true }) {
         setInvestigatePapers([]);
         setInvestigateDetail({});
         investigateFunnelRef.current = emptyFunnel();
+        investigateDisplayFunnelRef.current = emptyFunnel();
+        runningInvestigateRef.current = investigateEnabled;
         investigatePhaseRef.current = 'planning';
         investigatePercentRef.current = investigateEnabled ? PHASE_PERCENT_FLOOR.planning : null;
         investigateKeywordsRef.current = [];
@@ -4573,7 +4682,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 trajectory: update.trajectory || null,
                                 investigateMode: investigateEnabled,
-                                investigateFunnel: { ...investigateFunnelRef.current },
+                                investigateFunnel: settledFunnel(),
                                 investigatePhase: investigatePhaseRef.current || 'verifying',
                                 investigatePercent: mergePercentMonotonic(
                                     investigatePercentRef.current,
@@ -4718,6 +4827,8 @@ function LLMAgent({ isRouteActive = true }) {
                 // queued follow-up must send the model that was showing when the reader hit
                 // send, not whatever the picker moved to while it waited in the queue.
                 model: requestSearchOptions?.model || undefined,
+                // The turn's own level, same discipline as the model above.
+                effort: requestSearchOptions?.effort || undefined,
                 notifyEmail: (investigateEnabled && notifyEmailEnabled)
                     ? (getUserNotifyEmail() || undefined)
                     : undefined,
@@ -4748,7 +4859,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 trajectory: run.trajectory || null,
                                 investigateMode: true,
-                                investigateFunnel: { ...investigateFunnelRef.current },
+                                investigateFunnel: settledFunnel(),
                                 investigatePhase: 'verifying',
                                 investigatePercent: investigatePercentRef.current ?? 100,
                                 investigateKeywords: [...(investigateKeywordsRef.current || [])],
@@ -5046,7 +5157,7 @@ function LLMAgent({ isRouteActive = true }) {
                         thoughtDurationMs: last.thoughtDurationMs || null,
                         trajectory: run.trajectory || null,
                         investigateMode: true,
-                        investigateFunnel: { ...investigateFunnelRef.current },
+                        investigateFunnel: settledFunnel(),
                         investigatePhase: 'verifying',
                         investigatePercent: investigatePercentRef.current ?? 100,
                         investigateKeywords: [...(investigateKeywordsRef.current || [])],
@@ -5077,6 +5188,7 @@ function LLMAgent({ isRouteActive = true }) {
         announceBackgroundCompletion,
         isLoading,
         llmService,
+        settledFunnel,
         updateRunningChatHistory,
     ]);
 
@@ -5363,8 +5475,48 @@ function LLMAgent({ isRouteActive = true }) {
     };
 
     const handleStopStreaming = useCallback(() => {
+        /* Tell the SERVER to stop before letting go of the view.
+
+           Aborting the stream only detaches this tab. On BOTH pipelines the backend relay
+           and the agent run are decoupled from the socket on purpose — that is what lets an
+           answer survive a closed tab — so Stop used to leave the run grinding on at full
+           token cost while the UI showed nothing, and leave the conversation's exchange
+           unfinished, which is what keeps the sidebar's "still answering" mark up.
+
+           Fired before the abort, and deliberately not awaited: the button must feel
+           instant, and the request carries its own run id so it does not depend on any
+           state the abort is about to clear. Best-effort by nature — the run may have
+           finished a moment earlier, or its id may have been evicted — so a failure is
+           logged and ignored rather than blocking the user from stopping their view. */
+        const runId = runIdRef.current;
+        const investigate = Boolean(runningInvestigateRef.current);
+        if (runId) {
+            llmService.cancelRun(runId, { investigate }).catch((error) => {
+                logDev('cancelRun failed', error);
+            });
+        }
         if (abortControllerRef.current) abortControllerRef.current.abort();
-    }, []);
+        /* Say the run was stopped, when there is nothing else to show.
+
+           Deep research reveals its report only at the very end, so a run stopped mid-way
+           leaves an assistant bubble with no text in it — which reads as a broken answer
+           rather than as the thing the reader just asked for. Chat can reach the same state
+           if it is stopped before the first token. The server writes the same sentence into
+           the conversation for the same reason, so the two copies agree and a reload does
+           not swap one for the other. A run that had already streamed text keeps it: partial
+           work is still worth reading. */
+        updateRunningChatHistory((prev) => {
+            if (!prev.length) return prev;
+            const last = prev[prev.length - 1];
+            if (last?.role !== 'assistant' || String(last.content || '').trim()) return prev;
+            const next = [...prev];
+            next[next.length - 1] = {
+                ...last,
+                content: STOPPED_BY_USER_TEXT[investigate ? 'investigate' : 'chat'],
+            };
+            return next;
+        });
+    }, [llmService, updateRunningChatHistory]);
 
     const renderMessages = () => {
         // Only the last assistant card is the one being written, and every use of the live-run
@@ -5418,6 +5570,7 @@ function LLMAgent({ isRouteActive = true }) {
                 onUpdateClarificationDraft={updateClarificationDraft}
                 onSubmitClarification={submitClarification}
                 onSkipClarification={submitClarification}
+                onDisplayFunnel={onDisplayFunnel}
                 refresh={stableRefresh}
                 copy={stableCopy}
                 save={stableSave}
@@ -6837,15 +6990,29 @@ function LLMAgent({ isRouteActive = true }) {
                                                         }
                                                         onModelChange={handleModelChange}
                                                         onModelResolveDefault={setChatModel}
-                                                        onSubmit={(event) => submitOrQueue(event, {
-                                                            investigateEnabled: chatInvestigateEnabled,
-                                                            ...(initialSearchOptionsRef.current || {}),
-                                                            // AFTER the spread: the home page's options seeded this
-                                                            // conversation, but the picker is the live control and a
-                                                            // reader who moved it must not be overridden by what they
-                                                            // arrived with.
-                                                            model: chatModel,
-                                                        })}
+                                                        effort={chatEffort}
+                                                        efforts={effortCatalog}
+                                                        onEffortChange={handleEffortChange}
+                                                        onSubmit={(event) => {
+                                                            /* The level is chat's: on a deep-research conversation it is
+                                                               withheld, exactly as the chip is. A level that fixes its
+                                                               model (Quick → Luna) sends NO model, because the agent
+                                                               refuses a conflicting one rather than substituting. */
+                                                            const deepResearch = chatInvestigateEnabled
+                                                                || isInvestigateConversation(activeConversationId);
+                                                            const effort = (!deepResearch && chatEffort) ? chatEffort : undefined;
+                                                            const lockedModel = effort ? fixedModelFor(effortCatalog, effort) : '';
+                                                            submitOrQueue(event, {
+                                                                investigateEnabled: chatInvestigateEnabled,
+                                                                ...(initialSearchOptionsRef.current || {}),
+                                                                // AFTER the spread: the home page's options seeded this
+                                                                // conversation, but the picker is the live control and a
+                                                                // reader who moved it must not be overridden by what they
+                                                                // arrived with.
+                                                                model: lockedModel ? undefined : chatModel,
+                                                                effort,
+                                                            });
+                                                        }}
                                                         onStop={handleStopStreaming}
                                                     />
                                                     </div>

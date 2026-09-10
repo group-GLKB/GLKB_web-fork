@@ -227,7 +227,7 @@ const FUNNEL_COLUMNS = [
  * later changes instantly. While the value is unknown but its phase has started, it shows the
  * decelerating fake ramp described above.
  */
-const FunnelCounter = ({ value, label, columnKey, ticking, reduced }) => {
+const FunnelCounter = ({ value, label, columnKey, ticking, reduced, onDisplay }) => {
     const [shown, setShown] = useState(null);
     const hasAnimatedRef = useRef(false);
     const rafRef = useRef(null);
@@ -289,7 +289,17 @@ const FunnelCounter = ({ value, label, columnKey, ticking, reduced }) => {
         const step = (now) => {
             if (!alive) return;
             const r = rampRef.current;
-            if (r.startedAt === null) r.startedAt = now;
+            if (r.startedAt === null) {
+                /* Resume the curve where it stopped, not where wall-clock thinks it should
+                   be. This runs on the first tick of a run AND on the first tick after a
+                   clarify pause. Anchoring to `now` on a resume would restart the curve at
+                   zero and freeze the counter for as long as the pause lasted; keeping the
+                   original anchor would fast-forward the whole pause in one jump. So solve
+                   the curve for the time that produces the value already on screen:
+                   value = ceiling * (1 - e^(-t/tau))  =>  t = -tau * ln(1 - value/ceiling).  */
+                const ratio = Math.min(0.999, Math.max(0, r.value / r.ceiling));
+                r.startedAt = now + r.tauMs * Math.log(1 - ratio);   // log(...) is negative
+            }
             if (now >= r.nextAt) {
                 // where the curve says we should be by now
                 const ideal = r.ceiling * (1 - Math.exp(-(now - r.startedAt) / r.tauMs));
@@ -308,8 +318,25 @@ const FunnelCounter = ({ value, label, columnKey, ticking, reduced }) => {
         return () => {
             alive = false;
             if (rafRef.current) cancelAnimationFrame(rafRef.current);
+            /* Drop the time anchor so a resume re-derives it from the value on screen. Without
+               this a clarify round — which can last as long as the reader takes to answer —
+               would be counted as ramp time and the counter would leap on the way back. */
+            if (rampRef.current) rampRef.current.startedAt = null;
         };
     }, [ticking, value, reduced, config.min, config.max, config.tauMin, config.tauMax]);
+
+    /* Tell the parent what this counter is showing, so the finished message can keep the
+       figure the reader watched rather than the agent's raw count (which is smaller for
+       Retrieved by the whole ramp). One effect on `shown` rather than a call beside each of
+       the four `setShown` sites — those are inside animation frames, and four call sites
+       would be four chances to drift. The parent keeps the maximum, so reporting an
+       in-progress animation frame is harmless. */
+    const onDisplayRef = useRef(onDisplay);
+    onDisplayRef.current = onDisplay;
+    useEffect(() => {
+        if (shown === null || shown === undefined) return;
+        if (typeof onDisplayRef.current === 'function') onDisplayRef.current(columnKey, shown);
+    }, [shown, columnKey]);
 
     const text = (shown === null || shown === undefined) ? '–' : Number(shown).toLocaleString();
     return (
@@ -488,6 +515,17 @@ const InvestigateProgress = ({
     label = '',
     startedAt = null,
     done = false,
+    /* The run is suspended waiting on the reader — a clarify round. Everything that conveys
+       motion holds still: the counters, the bar's creep, the clock. The panel is not
+       "finished" (that is `done`), it is stopped mid-way with the reader holding the next
+       move, and animating through that claims progress that is not happening. */
+    paused = false,
+    /* Reports what a counter is actually SHOWING, per column. The parent keeps the highest
+       reading and freezes THAT onto the finished message, so the summary chips cannot show
+       less than the panel did — Retrieved used to drop by thousands the instant the run
+       ended, because the chips read the agent's raw count while the counter had been
+       showing `real + ramp`. */
+    onDisplayFunnel,
     expanded = true,
     onToggleExpanded,
 }) => {
@@ -504,7 +542,10 @@ const InvestigateProgress = ({
     const safeFunnel = funnel || {};
     const meta = INVESTIGATE_PHASE_META[phase] || INVESTIGATE_PHASE_META.planning;
     const idx = phaseIndex(phase);
-    const elapsedSeconds = useElapsedSeconds(startedAt, !done);
+    // Stops for a clarify round too: the seconds a reader spends answering the question are
+    // not seconds the run spent investigating, and a clock running against a stopped run is
+    // the most visible claim of progress the panel makes.
+    const elapsedSeconds = useElapsedSeconds(startedAt, !done && !paused);
 
     // ── header title: fade to blank, swap, fade back in (not a crossfade) ──
     const [shownTitle, setShownTitle] = useState(meta.title);
@@ -548,6 +589,9 @@ const InvestigateProgress = ({
             setBarPct(100);
             return undefined;
         }
+        // Paused: hold the bar exactly where the run left it. Not reset, not eased — the run
+        // has not lost ground, it is waiting, and it resumes from here.
+        if (paused) return undefined;
         if (reduced) {
             barRef.current = Math.max(barRef.current, targetRef.current);
             setBarPct(barRef.current);
@@ -570,7 +614,7 @@ const InvestigateProgress = ({
         };
         raf = requestAnimationFrame(tick);
         return () => { if (raf) cancelAnimationFrame(raf); };
-    }, [done, reduced]);
+    }, [done, reduced, paused]);
 
     useEffect(() => { setDetailExpanded(false); }, [phase]);
 
@@ -698,8 +742,9 @@ const InvestigateProgress = ({
                             columnKey={col.key}
                             label={col.label}
                             value={safeFunnel[col.key] ?? null}
-                            ticking={!done && idx >= phaseIndex(col.filledFrom)}
+                            ticking={!done && !paused && idx >= phaseIndex(col.filledFrom)}
                             reduced={reduced}
+                            onDisplay={onDisplayFunnel}
                         />
                     ))}
                 </Box>

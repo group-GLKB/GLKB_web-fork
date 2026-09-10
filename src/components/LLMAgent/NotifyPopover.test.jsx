@@ -2,11 +2,17 @@
  * "Get notified when it's ready" — Figma 44:5967.
  *
  * What matters here is not the popover's shape but its contract with the rest of the app: it is
- * a second view of the same two preferences Settings owns, it must not write them until the
- * reader confirms, and it must not leave a switch on that can never fire.
+ * a second view of the same two preferences Settings owns, the switches are a DRAFT until Done,
+ * and it must not leave a switch on that can never fire.
+ *
+ * The panel spent a few days applying each switch as it was moved. That removed the confirm
+ * step, and with it any way to back out: a reader who opened the panel to look at it and
+ * flicked a switch to see what it said had already changed their preferences. The draft is
+ * back, and so is the button that discards it — a draft thrown away by clicking on the page
+ * behind is a change the reader cannot tell they lost, so the discard has a name.
  */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import NotifyPopover from './NotifyPopover';
@@ -21,7 +27,6 @@ const open = (props = {}) => render(
 );
 
 const rowSwitch = (label) => screen.getByLabelText(label);
-const confirm = () => fireEvent.click(screen.getByText('Notify me'));
 
 beforeEach(() => {
     window.localStorage.clear();
@@ -44,7 +49,7 @@ describe('what it offers', () => {
             <NotifyPopover anchorEl={document.body} open={false} onClose={() => {}} />,
         );
         expect(container).toBeEmptyDOMElement();
-        expect(screen.queryByText('Notify me')).not.toBeInTheDocument();
+        expect(screen.queryByText('Done')).not.toBeInTheDocument();
     });
 
     it('opens showing the preferences already stored', () => {
@@ -53,48 +58,98 @@ describe('what it offers', () => {
         expect(rowSwitch('Email')).toBeChecked();
         expect(rowSwitch('Browser Notification')).not.toBeChecked();
     });
+
+    /** Two buttons: one commits the draft, one throws it away. */
+    it('offers both a commit and a named discard', () => {
+        open();
+        expect(screen.getByText('Done')).toBeInTheDocument();
+        expect(screen.getByText('Not now')).toBeInTheDocument();
+    });
 });
 
-describe('confirming', () => {
-    /** The frame has a Not now, so a choice has to be one the reader can back out of. */
-    it('writes nothing while the switches are being moved', () => {
+describe('the switches are a draft', () => {
+    it('moves the switch on screen without writing anything', () => {
         open();
         fireEvent.click(rowSwitch('Email'));
+        expect(rowSwitch('Email')).toBeChecked();
         expect(getNotifyPrefs().email).toBe(false);
     });
 
-    it('writes both preferences on Notify me', () => {
-        open();
-        fireEvent.click(rowSwitch('Email'));
-        confirm();
-        expect(getNotifyPrefs().email).toBe(true);
-    });
-
-    it('closes on Notify me', () => {
+    it('writes both preferences on Done, and closes', async () => {
         const onClose = jest.fn();
         open({ onClose });
-        confirm();
+        fireEvent.click(rowSwitch('Email'));
+        fireEvent.click(screen.getByText('Done'));
+        await waitFor(() => expect(getNotifyPrefs().email).toBe(true));
         expect(onClose).toHaveBeenCalled();
     });
 
-    it('closes on Not now, leaving the preferences alone', () => {
+    /** The half a confirm step exists for: turning something OFF is a choice too. */
+    it('writes an OFF on Done as readily as an ON', async () => {
+        window.localStorage.setItem(NOTIFY_EMAIL_KEY, '1');
+        open();
+        fireEvent.click(rowSwitch('Email'));
+        fireEvent.click(screen.getByText('Done'));
+        await waitFor(() => expect(getNotifyPrefs().email).toBe(false));
+    });
+
+    it('discards the draft on Not now', () => {
         const onClose = jest.fn();
         open({ onClose });
         fireEvent.click(rowSwitch('Email'));
         fireEvent.click(screen.getByText('Not now'));
-        expect(onClose).toHaveBeenCalled();
         expect(getNotifyPrefs().email).toBe(false);
+        expect(onClose).toHaveBeenCalled();
+    });
+
+    it('discards it on a click-away too, which presses no button', () => {
+        open();
+        fireEvent.click(rowSwitch('Email'));
+        fireEvent.click(document.body);
+        expect(getNotifyPrefs().email).toBe(false);
+    });
+
+    /** Reopening must not resurrect an abandoned draft. */
+    it('re-seeds from storage every time it opens', () => {
+        const { rerender } = render(
+            <NotifyPopover anchorEl={document.body} open onClose={() => {}} />,
+        );
+        fireEvent.click(rowSwitch('Email'));
+        expect(rowSwitch('Email')).toBeChecked();
+
+        rerender(<NotifyPopover anchorEl={document.body} open={false} onClose={() => {}} />);
+        rerender(<NotifyPopover anchorEl={document.body} open onClose={() => {}} />);
+        expect(rowSwitch('Email')).not.toBeChecked();
+    });
+
+    it('asks for browser permission on Done, which is the gesture that carries it', async () => {
+        global.Notification = {
+            permission: 'default',
+            requestPermission: jest.fn().mockResolvedValue('granted'),
+        };
+        open();
+        fireEvent.click(rowSwitch('Browser Notification'));
+        expect(global.Notification.requestPermission).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByText('Done'));
+        await waitFor(() => expect(getNotifyPrefs().browser).toBe(true));
+        expect(global.Notification.requestPermission).toHaveBeenCalled();
     });
 });
 
 describe('choices that cannot be honoured', () => {
-    it('refuses email when the account has no address, and says why', () => {
+    it('refuses email on Done when the account has no address, and says why', async () => {
         window.localStorage.setItem('user', JSON.stringify({}));
-        open();
+        const onClose = jest.fn();
+        open({ onClose });
         fireEvent.click(rowSwitch('Email'));
-        confirm();
-        expect(screen.getByText(/Sign in with an email address/)).toBeInTheDocument();
+        fireEvent.click(screen.getByText('Done'));
+
+        expect(await screen.findByText(/Sign in with an email address/)).toBeInTheDocument();
         expect(getNotifyPrefs().email).toBe(false);
+        expect(rowSwitch('Email')).not.toBeChecked();
+        // Held open: closing on a refusal would look like the choice had been accepted.
+        expect(onClose).not.toHaveBeenCalled();
     });
 
     /**
@@ -109,8 +164,26 @@ describe('choices that cannot be honoured', () => {
         };
         open();
         fireEvent.click(rowSwitch('Browser Notification'));
-        confirm();
+        fireEvent.click(screen.getByText('Done'));
+
         expect(await screen.findByText(/blocking notifications for this site/)).toBeInTheDocument();
         expect(window.localStorage.getItem(NOTIFY_BROWSER_KEY)).not.toBe('1');
+        expect(rowSwitch('Browser Notification')).not.toBeChecked();
+    });
+
+    it('still honours the email half of a press the browser half refused', async () => {
+        global.Notification = {
+            permission: 'default',
+            requestPermission: jest.fn().mockResolvedValue('denied'),
+        };
+        open();
+        fireEvent.click(rowSwitch('Email'));
+        fireEvent.click(rowSwitch('Browser Notification'));
+        fireEvent.click(screen.getByText('Done'));
+
+        // Asking the reader to make the email choice again would be asking them to repeat one
+        // that worked.
+        await waitFor(() => expect(getNotifyPrefs().email).toBe(true));
+        expect(getNotifyPrefs().browser).toBe(false);
     });
 });

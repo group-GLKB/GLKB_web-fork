@@ -653,3 +653,120 @@ describe('the fake ramp shown before a real number arrives', () => {
         }
     });
 });
+
+// ── paused: a clarify round stops the run, so the panel must stop too ────────────────────────
+/**
+ * When the harness asks a clarifying question the run SUSPENDS: nothing is retrieved, read or
+ * written until the reader answers. The panel went on animating through that — counters
+ * climbing, bar creeping, clock running — which claims progress that is not happening, and
+ * inflates the elapsed time with however long the reader took to answer.
+ */
+describe('while a clarify round is pending', () => {
+    const retrieved = () => Number(
+        String(document.querySelectorAll('.ip-counter-value')[0].textContent).replace(/,/g, ''),
+    );
+    const elapsedText = () => document.querySelector('.ip-elapsed').textContent;
+
+    it('holds the funnel counters still', () => {
+        const { rerender } = setup({ phase: 'searching' });
+        act(() => { jest.advanceTimersByTime(20000); });
+        const before = retrieved();
+        expect(before).toBeGreaterThan(1);
+
+        rerender(panel({ phase: 'searching', paused: true }));
+        act(() => { jest.advanceTimersByTime(60000); });
+        expect(retrieved()).toBe(before);
+    });
+
+    it('holds the progress bar still', () => {
+        const { rerender } = setup({ phase: 'searching', percent: 10 });
+        act(() => { jest.advanceTimersByTime(4000); });
+        const before = barWidth();
+
+        rerender(panel({ phase: 'searching', percent: 10, paused: true }));
+        act(() => { jest.advanceTimersByTime(60000); });
+        expect(barWidth()).toBe(before);
+    });
+
+    it('stops the elapsed clock', () => {
+        const startedAt = Date.now();
+        const { rerender } = setup({ phase: 'searching', startedAt });
+        act(() => { jest.advanceTimersByTime(10_000); });
+        const before = elapsedText();
+
+        rerender(panel({ phase: 'searching', startedAt, paused: true }));
+        act(() => { jest.advanceTimersByTime(120_000); });
+        expect(elapsedText()).toBe(before);
+    });
+
+    it('resumes the ramp from where it stopped, without a jump for the pause', () => {
+        /* The curve is anchored to a start time. Left anchored across a pause, the whole
+           pause would be fast-forwarded in one step the moment the run resumed. */
+        const { rerender } = setup({ phase: 'searching' });
+        act(() => { jest.advanceTimersByTime(20000); });
+        const beforePause = retrieved();
+
+        rerender(panel({ phase: 'searching', paused: true }));
+        act(() => { jest.advanceTimersByTime(300_000); });   // a long think
+        rerender(panel({ phase: 'searching', paused: false }));
+        act(() => { jest.advanceTimersByTime(500); });
+
+        const afterResume = retrieved();
+        expect(afterResume).toBeGreaterThanOrEqual(beforePause);
+        // A resumed ramp keeps its pace; it does not leap five minutes of curve at once.
+        const stepInFiveMinutes = afterResume - beforePause;
+        expect(stepInFiveMinutes).toBeLessThan(beforePause);
+    });
+});
+
+// ── reporting what the counter actually shows ────────────────────────────────────────────────
+/**
+ * The panel does not render the agent's raw number: Retrieved settles on `real + ramp`. When
+ * the run ended, the panel gave way to summary chips that read the raw funnel, and Retrieved
+ * fell by the whole ramp in front of the reader. `onDisplayFunnel` is how the finished message
+ * learns what was on screen so it can keep the larger figure.
+ */
+describe('onDisplayFunnel', () => {
+    it('reports each counter as it renders', () => {
+        const seen = [];
+        setup({ phase: 'searching', onDisplayFunnel: (key, value) => seen.push([key, value]) });
+        act(() => { jest.advanceTimersByTime(5000); });
+
+        const retrievedReports = seen.filter(([key]) => key === 'retrieved');
+        expect(retrievedReports.length).toBeGreaterThan(0);
+        expect(retrievedReports.every(([, value]) => Number.isFinite(value))).toBe(true);
+    });
+
+    it('reports the ramped figure for Retrieved, not the agent count', () => {
+        const seen = [];
+        const onDisplayFunnel = (key, value) => seen.push([key, value]);
+        const { rerender } = setup({ phase: 'searching', onDisplayFunnel });
+        act(() => { jest.advanceTimersByTime(20000); });
+
+        rerender(panel({
+            phase: 'screening',
+            funnel: { retrieved: 4472, screened: null, extracted: null, cited: null },
+            percent: 14,
+            onDisplayFunnel,
+        }));
+        act(() => { jest.advanceTimersByTime(3000); });
+
+        const highest = Math.max(...seen.filter(([k]) => k === 'retrieved').map(([, v]) => v));
+        // The whole point: what was displayed exceeds the agent's own number.
+        expect(highest).toBeGreaterThan(4472);
+    });
+
+    it('never reports a null', () => {
+        const seen = [];
+        setup({ phase: 'planning', onDisplayFunnel: (key, value) => seen.push([key, value]) });
+        act(() => { jest.advanceTimersByTime(3000); });
+        expect(seen.every(([, value]) => value !== null && value !== undefined)).toBe(true);
+    });
+
+    it('is optional — the panel renders without it', () => {
+        expect(() => {
+            setup({ phase: 'searching' });
+            act(() => { jest.advanceTimersByTime(5000); });
+        }).not.toThrow();
+    });
+});
