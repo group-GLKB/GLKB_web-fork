@@ -3,8 +3,8 @@
  *
  * Offered only when the agent's catalogue lists the level for chat; withdrawn on an Investigate
  * conversation, where deep research would refuse it; and, while on, it locks the model picker
- * onto the model the level fixes — the reader can see what Quick will run on, and the request
- * sends no model of its own.
+ * to the model the level defaults to — the reader can see what Quick will run on, and can still
+ * choose another: the level buys latency, the model buys cost, and the agent honours both.
  */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -28,8 +28,8 @@ jest.mock('../../service/models', () => ({
 }));
 
 const EFFORTS = [
-    { id: 'quick', label: 'Quick', short_label: 'Quick', description: 'Seconds.', pipelines: ['chat'], model: 'gpt-5.6-luna', max_tool_rounds: 2 },
-    { id: 'standard', label: 'Standard', short_label: 'Standard', description: 'Half a minute.', pipelines: ['chat', 'deep_research'], model: null, max_tool_rounds: null },
+    { id: 'quick', label: 'Quick', short_label: 'Quick', description: 'Seconds.', pipelines: ['chat'], default_model: 'gpt-5.6-luna', max_tool_rounds: 2 },
+    { id: 'standard', label: 'Standard', short_label: 'Standard', description: 'Half a minute.', pipelines: ['chat', 'deep_research'], default_model: null, max_tool_rounds: null },
 ];
 
 beforeAll(() => {
@@ -92,14 +92,22 @@ it('reports the level on a click, and clears it on the next', () => {
     expect(second).toHaveBeenLastCalledWith('');
 });
 
-it("locks the model picker onto the level's model while Quick is on", async () => {
-    setup({ effort: 'quick' });
+it("shows the level's default model while Quick is on, and leaves it selectable", async () => {
+    // `model: ''` is a reader who has chosen nothing — the only case a default applies to.
+    setup({ effort: 'quick', model: '' });
     await waitFor(() => expect(modelChip()).toHaveAccessibleName('Model: GPT-5.6 Luna'));
-    expect(modelChip()).toBeDisabled();
+    // Operable: "Quick with the best model" is a request the agent honours, so the reader
+    // must be able to make it.
+    expect(modelChip()).not.toBeDisabled();
 });
 
-it("gives the picker back, with the reader's own model, when Quick is off", async () => {
-    setup({ effort: '' });
+it("keeps a model the reader chose, rather than overriding it with the level's default", async () => {
+    setup({ effort: 'quick', model: 'gpt-5.6-terra' });
+    await waitFor(() => expect(modelChip()).toHaveAccessibleName('Model: GPT-5.6 Terra'));
+});
+
+it('falls back to the pipeline default when no level is on', async () => {
+    setup({ effort: '', model: '' });
     await waitFor(() => expect(modelChip()).toHaveAccessibleName('Model: GPT-5.6 Terra'));
     expect(modelChip()).not.toBeDisabled();
 });

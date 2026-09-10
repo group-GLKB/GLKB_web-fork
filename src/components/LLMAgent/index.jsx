@@ -127,7 +127,6 @@ import {
 } from '../../service/notifications';
 import { fetchModelCatalog, getModelPref, setModelPref, subscribeToModelPref } from '../../service/models';
 import {
-    fixedModelFor,
     getEffortPref,
     setEffortPref,
     subscribeToEffortPref,
@@ -7224,13 +7223,11 @@ function LLMAgent({ isRouteActive = true }) {
                                                         onEffortChange={handleEffortChange}
                                                         onSubmit={(event, submissionMeta) => {
                                                             /* The level is chat's: on a deep-research conversation it is
-                                                               withheld, exactly as the chip is. A level that fixes its
-                                                               model (Quick → Luna) sends NO model, because the agent
-                                                               refuses a conflicting one rather than substituting. */
+                                                               withheld, exactly as the chip is. The model is sent at every
+                                                               level — a level supplies the picker's DEFAULT, not a pin, so
+                                                               whatever the chip shows is what the reader asked for. */
                                                             const deepResearch = chatInvestigateEnabled
                                                                 || isInvestigateConversation(activeConversationId);
-                                                            const effort = (!deepResearch && chatEffort) ? chatEffort : undefined;
-                                                            const lockedModel = effort ? fixedModelFor(effortCatalog, effort) : '';
                                                             submitOrQueue(event, {
                                                                 investigateEnabled: chatInvestigateEnabled,
                                                                 ...(initialSearchOptionsRef.current || {}),
@@ -7238,8 +7235,8 @@ function LLMAgent({ isRouteActive = true }) {
                                                                 // conversation, but the picker is the live control and a
                                                                 // reader who moved it must not be overridden by what they
                                                                 // arrived with.
-                                                                model: lockedModel ? undefined : chatModel,
-                                                                effort,
+                                                                model: chatModel,
+                                                                effort: (!deepResearch && chatEffort) ? chatEffort : undefined,
                                                             }, submissionMeta?.queryMethod || 'button');
                                                         }}
                                                         onStop={handleStopStreaming}

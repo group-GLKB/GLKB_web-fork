@@ -11,10 +11,12 @@
  * rounds of tool calls. `standard` is the turn as it always ran, and is what an absent field
  * means, so the preference stores '' for it rather than the word.
  *
- * A level may FIX its model (Quick runs on Luna whatever the picker showed). The composer reads
- * `fixedModelFor` to lock the picker onto that id while the level is on, and to omit `model`
- * from the request — the agent refuses a conflicting model with a 400 rather than quietly
- * substituting, so the client must not send one.
+ * A level SUGGESTS a model rather than pinning one: Quick defaults to Luna, and a reader who
+ * picks another model gets it at Quick's tool budget. The two controls buy different things —
+ * measured 2026-09-10, the model is the cost lever (12x between Terra and Luna at the same
+ * level) and the level is the latency lever (-36% on the same model) — so the composer keeps
+ * the picker operable and only uses `defaultModelFor` to decide what it SHOWS when the reader
+ * has chosen nothing.
  *
  * The choice persists in localStorage exactly as the model choice does (service/models.js):
  * it outlasts a session, and `subscribe` keeps the two composers and every tab in step.
@@ -88,11 +90,17 @@ export const findEffort = (efforts, effortId) => (
     (Array.isArray(efforts) ? efforts : []).find((row) => row?.id === effortId) || null
 );
 
-/** The model a level always runs on, or '' when the level leaves the choice to the picker. */
-export const fixedModelFor = (efforts, effortId) => {
+/**
+ * What the picker should show at this level when the reader has chosen no model, or '' when
+ * the level expresses no preference and the pipeline's own default applies.
+ *
+ * A suggestion, never a lock: the request still carries whatever the picker ends up on, and
+ * the agent honours an explicit choice at any level.
+ */
+export const defaultModelFor = (efforts, effortId) => {
     if (!effortId) return '';
     const row = findEffort(efforts, effortId);
-    return typeof row?.model === 'string' ? row.model : '';
+    return typeof row?.default_model === 'string' ? row.default_model : '';
 };
 
 /** Whether this deployment offers Quick on the given pipeline. */

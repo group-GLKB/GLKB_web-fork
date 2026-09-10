@@ -1,10 +1,10 @@
 /**
  * The Quick chip on the home search bar.
  *
- * Quick is chat's level: with it on, the handover to /chat carries `effort: 'quick'` and NO
- * model (the level fixes Luna, and the agent refuses a conflicting model rather than
- * substituting). It is hidden while Investigate is on, because deep research refuses it, and it
- * is not offered at all when the agent's catalogue lists no levels.
+ * Quick is chat's level: with it on, the handover to /chat carries `effort: 'quick'` and the
+ * model the picker is showing — which defaults to the level's own (Luna) but stays the reader's
+ * to change. It is hidden while Investigate is on, because deep research refuses it, and it is
+ * not offered at all when the agent's catalogue lists no levels.
  */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -14,8 +14,8 @@ import LlmSearchBarHome from './LlmSearchBarHome';
 
 const mockNavigate = jest.fn();
 let mockEfforts = [
-    { id: 'quick', label: 'Quick', short_label: 'Quick', description: 'Seconds.', pipelines: ['chat'], model: 'gpt-5.6-luna', max_tool_rounds: 2 },
-    { id: 'standard', label: 'Standard', short_label: 'Standard', description: 'Half a minute.', pipelines: ['chat', 'deep_research'], model: null, max_tool_rounds: null },
+    { id: 'quick', label: 'Quick', short_label: 'Quick', description: 'Seconds.', pipelines: ['chat'], default_model: 'gpt-5.6-luna', max_tool_rounds: 2 },
+    { id: 'standard', label: 'Standard', short_label: 'Standard', description: 'Half a minute.', pipelines: ['chat', 'deep_research'], default_model: null, max_tool_rounds: null },
 ];
 jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
 jest.mock('../../utils/gtag', () => ({ trackGtagEvent: jest.fn() }));
@@ -65,7 +65,8 @@ it('sends the level and no model once Quick is on', async () => {
 
     const options = submit();
     expect(options.effort).toBe('quick');
-    expect(options.model).toBe('');
+    // The reader had Terra stored, so that is what goes — a level defaults, it does not pin.
+    expect(options.model).toBe('gpt-5.6-terra');
     expect(options.investigateEnabled).toBe(false);
     // Remembered for the chat composer, which reads the same preference.
     expect(window.localStorage.getItem('glkb_chat_effort')).toBe('quick');
@@ -79,13 +80,14 @@ it('sends neither the level nor a locked model while Quick is off', async () => 
     expect(options.model).toBe('gpt-5.6-terra');
 });
 
-it('locks the model picker onto Luna while Quick is on', async () => {
+it('leaves the model picker operable while Quick is on', async () => {
     setup();
     await waitFor(() => expect(quickChip()).toBeInTheDocument());
     fireEvent.click(quickChip());
     const picker = screen.getByRole('button', { name: /^Model:/, hidden: true });
-    await waitFor(() => expect(picker).toHaveAccessibleName('Model: GPT-5.6 Luna'));
-    expect(picker).toBeDisabled();
+    // This reader has Terra stored, so the level's default does not displace it.
+    await waitFor(() => expect(picker).toHaveAccessibleName('Model: GPT-5.6 Terra'));
+    expect(picker).not.toBeDisabled();
 });
 
 it('withdraws the chip while Investigate is on, and sends no level', async () => {
