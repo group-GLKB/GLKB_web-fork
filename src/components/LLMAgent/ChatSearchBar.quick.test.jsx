@@ -1,13 +1,9 @@
 /**
- * The Quick chip in the chat composer.
- *
- * Offered only when the agent's catalogue lists the level for chat; withdrawn on an Investigate
- * conversation, where deep research would refuse it; and, while on, it locks the model picker
- * to the model the level defaults to — the reader can see what Quick will run on, and can still
- * choose another: the level buys latency, the model buys cost, and the agent honours both.
+ * The Quick control is hidden in the chat composer. Existing effort/model behavior
+ * remains unchanged; model selection and normal submission stay available.
  */
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import ChatSearchBar from './ChatSearchBar';
@@ -63,10 +59,9 @@ const setup = (props = {}) => {
 const quickChip = () => screen.queryByRole('button', { name: /^quick (on|off)$/i });
 const modelChip = () => screen.getByRole('button', { name: /^Model:/ });
 
-it('offers Quick when the catalogue lists it for chat', () => {
+it('hides Quick even when the catalogue lists it for chat', () => {
     setup();
-    expect(quickChip()).toBeInTheDocument();
-    expect(quickChip()).toHaveAttribute('aria-pressed', 'false');
+    expect(quickChip()).not.toBeInTheDocument();
 });
 
 it('is not offered when the agent lists no levels', () => {
@@ -81,15 +76,10 @@ it('is withdrawn on an Investigate conversation, where deep research refuses it'
     expect(quickChip()).not.toBeInTheDocument();
 });
 
-it('reports the level on a click, and clears it on the next', () => {
-    const { onEffortChange } = setup();
-    fireEvent.click(quickChip());
-    expect(onEffortChange).toHaveBeenLastCalledWith('quick');
-
-    // Re-render with the level on, as the parent would after storing it.
-    const { onEffortChange: second } = setup({ effort: 'quick' });
-    fireEvent.click(screen.getAllByRole('button', { name: /^quick on$/i })[0]);
-    expect(second).toHaveBeenLastCalledWith('');
+it('also hides Quick when an existing preference is enabled', () => {
+    const { onEffortChange } = setup({ effort: 'quick' });
+    expect(quickChip()).not.toBeInTheDocument();
+    expect(onEffortChange).not.toHaveBeenCalled();
 });
 
 it("shows the level's default model while Quick is on, and leaves it selectable", async () => {
