@@ -14,6 +14,7 @@ import '@testing-library/jest-dom';
 
 import InvestigateProgress, { formatElapsed } from './InvestigateProgress';
 import { PHASE_PERCENT_FLOOR } from '../../service/investigatePhases';
+import { readActiveRunSnapshotFor, writeActiveRunSnapshot } from '../../service/agentRunSnapshot';
 
 const panel = (props = {}) => (
     <InvestigateProgress
@@ -39,6 +40,27 @@ afterEach(() => { jest.runOnlyPendingTimers(); jest.useRealTimers(); });
 
 // ── re-created over a run already in flight ─────────────────────────────────────────────────
 describe('a panel created over a run that is already going', () => {
+    it('keeps animated counts through a snapshot round-trip while another conversation is viewed', () => {
+        sessionStorage.clear();
+        const snapshot = { conversationId: 'a', investigate: true, investigateDisplayFunnel: {} };
+        const first = setup({ phase: 'searching', onDisplayFunnel: (key, value) => {
+            snapshot.investigateDisplayFunnel[key] = value;
+        } });
+        act(() => { jest.advanceTimersByTime(8000); });
+        const before = Number(document.querySelector('.ip-counter-value').textContent.replace(/,/g, ''));
+        expect(before).toBeGreaterThan(1);
+        writeActiveRunSnapshot(snapshot);
+        first.unmount();
+        writeActiveRunSnapshot({ conversationId: 'b', investigate: true,
+            investigateDisplayFunnel: { retrieved: 99999 } });
+        const restored = readActiveRunSnapshotFor('a');
+        const resumed = setup({ phase: 'searching', getDisplayFunnel: () => restored.investigateDisplayFunnel });
+        expect(Number(document.querySelector('.ip-counter-value').textContent.replace(/,/g, ''))).toBe(before);
+        act(() => { jest.advanceTimersByTime(500); });
+        expect(Number(document.querySelector('.ip-counter-value').textContent.replace(/,/g, ''))).toBeGreaterThanOrEqual(before);
+        resumed.unmount();
+        sessionStorage.clear();
+    });
     /* The reader reloads, or leaves the conversation and comes back. The card is destroyed and
        built again, and before this the new one opened at nothing and replayed the whole thing:
        measured in a browser, Retrieved went "– 741 1,290 1,549 1,618 1,621" and the bar went

@@ -158,8 +158,8 @@ import {
     writeActiveRunSnapshot,
 } from '../../service/agentRunSnapshot';
 import { shouldSkipConversationRestore } from '../../service/conversationRestore';
-import { isInvestigateConversation, markInvestigateConversation } from '../../utils/investigateConversations';
-import { resolveConversationMode } from './conversationMode';
+import { markInvestigateConversation } from '../../utils/investigateConversations';
+import { resolveConversationMode, readSubmittedMode, recordSubmittedMode, normalizePendingMode, resolveQueuedSearchOptions } from './conversationMode';
 import { useQueueDispatch } from './useQueueDispatch';
 import { holdRecentPriority } from '../../service/recentPriority';
 import {
@@ -387,7 +387,7 @@ const getConversationInvestigateMode = (conversationId, messages = []) => resolv
     ),
     snapshot: readActiveRunSnapshotFor(conversationId),
     messages,
-    marked: isInvestigateConversation(conversationId),
+    submittedMode: readSubmittedMode(conversationId),
 });
 
 /**
@@ -421,7 +421,7 @@ const mergeMessagesWithRunSnapshot = (messages, snapshot) => {
     } else if (tail?.role === 'user') {
         base.push(liveAssistant);
     }
-    return base;
+    return normalizePendingMode(base, getConversationInvestigateMode(snapshot?.conversationId, base));
 };
 
 const getStoredProcessingFlag = () => {
@@ -488,6 +488,8 @@ const areMessagesEqual = (left, right) => {
             thoughtDurationMs: leftMsg?.thoughtDurationMs,
             trajectory: leftMsg?.trajectory,
             invocationId: leftMsg?.invocationId,
+            investigateMode: leftMsg?.investigateMode,
+            modeSource: leftMsg?.modeSource,
         });
         const rightSignature = JSON.stringify({
             role: rightMsg?.role,
@@ -498,6 +500,8 @@ const areMessagesEqual = (left, right) => {
             thoughtDurationMs: rightMsg?.thoughtDurationMs,
             trajectory: rightMsg?.trajectory,
             invocationId: rightMsg?.invocationId,
+            investigateMode: rightMsg?.investigateMode,
+            modeSource: rightMsg?.modeSource,
         });
         if (leftSignature !== rightSignature) return false;
     }
@@ -2143,7 +2147,9 @@ function LLMAgent({ isRouteActive = true }) {
        the submit-time options, and the two pipelines differ in both the router that owns the
        relay task and the sentence a stopped run leaves behind — so the running turn has to
        leave its own name somewhere Stop can read it. */
-    const runningInvestigateRef = useRef(Boolean(initialRunSnapshot?.investigate));
+    const runningInvestigateRef = useRef(getConversationInvestigateMode(
+        initialRunSnapshot?.conversationId, initialRunSnapshot?.messages || [],
+    ));
     const investigatePhaseRef = useRef(initialRunSnapshot?.investigatePhase || 'searching');
     const investigatePercentRef = useRef(initialRunSnapshot?.investigatePercent ?? null);
     const investigateKeywordsRef = useRef(initialRunSnapshot?.investigateKeywords || []);
@@ -2232,6 +2238,12 @@ function LLMAgent({ isRouteActive = true }) {
         const next = Number(shownValue);
         if (previous != null && previous >= next) return;
         investigateDisplayFunnelRef.current = { ...current, [columnKey]: next };
+        // Counters animate without a parent render: keep the pending snapshot current too.
+        // Otherwise switching/closing between server frames persists an old (often empty) count.
+        const snapshot = liveRunSnapshotRef.current;
+        if (snapshot && String(snapshot.conversationId ?? '') === String(runningConversationIdRef.current ?? '')) {
+            snapshot.investigateDisplayFunnel = investigateDisplayFunnelRef.current;
+        }
     }, []);
 
     /* The same readings, handed back to a panel that is being CREATED over a run already in
@@ -2387,6 +2399,7 @@ function LLMAgent({ isRouteActive = true }) {
         // The throttled store write may still be holding this run's newest messages; hand
         // them over before the refs stop naming their conversation.
         flushConversationStoreWrite();
+        if (liveRunSnapshotRef.current) writeActiveRunSnapshot(liveRunSnapshotRef.current);
         if (abort && abortControllerRef.current) {
             abortControllerRef.current.abort();
         }
@@ -2784,11 +2797,40 @@ function LLMAgent({ isRouteActive = true }) {
         runningConversationIdRef.current = conversationId ? String(conversationId) : null;
         runningChatHistoryRef.current = Array.isArray(displayMessages) ? displayMessages : messages;
 
-        /* Which kind of run to reattach to. The conversation record answers this now
-           (chat_histories.is_investigate); the local mark is the fallback for rows the
-           server has not labelled, and for servers that do not carry the column yet. */
-        const investigate = isInvestigateHint === true
-            || isInvestigateConversation(conversationId);
+        // Use the same pipeline resolution for reconnects and new follow-ups. Historical
+        // icon marks and run IDs do not identify the current request's pipeline.
+        const investigate = resolveConversationMode({
+            conversationId,
+            conversation: conversationId == null ? null : {
+                id: conversationId, isInvestigate: isInvestigateHint, messages,
+            },
+            messages,
+            snapshot: readActiveRunSnapshotFor(conversationId),
+            submittedMode: readSubmittedMode(conversationId),
+        });
+        runningChatHistoryRef.current = normalizePendingMode(runningChatHistoryRef.current, investigate);
+        // Restore this run's own presentation BEFORE mounting its counters. The previous
+        // conversation's global refs are not a source of progress for this one.
+        const candidateSnapshot = readActiveRunSnapshotFor(conversationId);
+        const progressSnapshot = candidateSnapshot
+            && String(candidateSnapshot.conversationId ?? '') === String(conversationId ?? '')
+            ? candidateSnapshot : null;
+        investigateDisplayFunnelRef.current = investigate
+            ? (progressSnapshot?.investigateDisplayFunnel || emptyFunnel()) : emptyFunnel();
+        investigateFunnelRef.current = investigate
+            ? (progressSnapshot?.investigateFunnel || emptyFunnel()) : emptyFunnel();
+        investigatePhaseRef.current = investigate ? (progressSnapshot?.investigatePhase || 'planning') : 'planning';
+        investigatePercentRef.current = investigate ? (progressSnapshot?.investigatePercent ?? null) : null;
+        investigateKeywordsRef.current = investigate ? (progressSnapshot?.investigateKeywords || []) : [];
+        investigatePapersRef.current = investigate ? (progressSnapshot?.investigatePapers || []) : [];
+        investigateDetailRef.current = investigate ? (progressSnapshot?.investigateDetail || {}) : {};
+        setInvestigateFunnel(investigateFunnelRef.current);
+        setInvestigatePhase(investigatePhaseRef.current);
+        setInvestigatePercent(investigatePercentRef.current);
+        setInvestigateKeywords(investigateKeywordsRef.current);
+        setInvestigatePapers(investigatePapersRef.current);
+        setInvestigateDetail(investigateDetailRef.current);
+        setInvestigateStartedAt(investigate ? (progressSnapshot?.investigateStartedAt || Date.now()) : null);
         /* Which product Stop must cancel. The two pipelines have separate routers, and this
            ref was only ever written by a submit — so Stop on a reattached investigate run
            called the CHAT cancel endpoint, which knows nothing about the deep-research relay
@@ -2826,6 +2868,8 @@ function LLMAgent({ isRouteActive = true }) {
                     trajectory: null,
                     investigateMode: investigate,
                 }]);
+            } else {
+                updateRunningChatHistory((prev) => normalizePendingMode(prev, investigate));
             }
             setIsLoading(true);
             setIsProcessing(true);
@@ -2964,7 +3008,7 @@ function LLMAgent({ isRouteActive = true }) {
                             } : {}),
                         };
                     }
-                    updateRunningChatHistory(next);
+                    updateRunningChatHistory(normalizePendingMode(next, investigate));
                     setIsLoading(false);
                     setIsProcessing(false);
                     setStreamingStepName('');
@@ -3309,11 +3353,14 @@ function LLMAgent({ isRouteActive = true }) {
                            nothing put it back, which turned "I'll look at the other thread
                            while I think" into a run that could never be resumed and a
                            conversation that stayed unanswered for good. */
-                        applyPendingClarification(runSnapshot.pendingClarification || null);
-                        setClarificationDrafts(runSnapshot.clarificationDrafts || {});
+                        const restoreInvestigate = getConversationInvestigateMode(targetId);
+                        applyPendingClarification(restoreInvestigate ? (runSnapshot.pendingClarification || null) : null);
+                        setClarificationDrafts(restoreInvestigate ? (runSnapshot.clarificationDrafts || {}) : {});
                         restoreQueuedPrompts(runSnapshot.queuedPrompts);
                     }
-                    setChatHistory(displayMessages);
+                    setChatHistory(serverUnfinished || storedAhead
+                        ? normalizePendingMode(displayMessages, getConversationInvestigateMode(targetId))
+                        : displayMessages);
                     setActiveConversationIdState(String(nextActiveId));
                     activeConversationIdRef.current = String(nextActiveId);
                     if (storedAnswered) {
@@ -3530,11 +3577,14 @@ function LLMAgent({ isRouteActive = true }) {
                 if (isSnapshotTarget) {
                     // The paused clarify round comes back with its conversation — see the
                     // route restore above.
-                    applyPendingClarification(runSnapshot.pendingClarification || null);
-                    setClarificationDrafts(runSnapshot.clarificationDrafts || {});
+                    const restoreInvestigate = getConversationInvestigateMode(nextId);
+                    applyPendingClarification(restoreInvestigate ? (runSnapshot.pendingClarification || null) : null);
+                    setClarificationDrafts(restoreInvestigate ? (runSnapshot.clarificationDrafts || {}) : {});
                     restoreQueuedPrompts(runSnapshot.queuedPrompts);
                 }
-                setChatHistory(displayMessages);
+                setChatHistory(serverUnfinished || storedAhead
+                    ? normalizePendingMode(displayMessages, getConversationInvestigateMode(nextId))
+                    : displayMessages);
                 setSelectedMessageIndex(null);
                 setShowReloadPrompt(false);
                 llmService.clearHistory();
@@ -4284,6 +4334,7 @@ function LLMAgent({ isRouteActive = true }) {
             references: [],
             timestamp: t || timestamp,
             investigateMode: investigateEnabled,
+            modeSource: 'submitted',
         };
 
         /* Paint before waiting on anything.
@@ -4318,6 +4369,10 @@ function LLMAgent({ isRouteActive = true }) {
         const targetIsOnScreen = shouldStartNewConversation
             || String(targetConversationId) === String(activeConversationIdRef.current);
         if (targetIsOnScreen) setChatHistory(optimisticRunHistory);
+        // These effects can run before the asynchronous conversation creation finishes.
+        // Never publish the preceding run's pipeline as this request's snapshot/registry mode.
+        runningInvestigateRef.current = investigateEnabled;
+        if (!shouldStartNewConversation) recordSubmittedMode(targetConversationId, investigateEnabled);
         // Only when the text came from the box. Every caller that passes `input` is resending
         // something else — an edited message or a retry — and the box may now
         // hold a draft the reader is in the middle of writing. It could not before, because the
@@ -4336,6 +4391,7 @@ function LLMAgent({ isRouteActive = true }) {
                 setConversationsState(nextList);
                 setConversations(nextList);
                 historyId = conversation?.id || null;
+                recordSubmittedMode(historyId, investigateEnabled);
                 /* Only while this run still owns the view. The reader can hit New Chat (or
                    open another conversation) during this round trip; the release nulled these
                    refs — or a newer run owns them — and repointing them from this stale
@@ -5068,6 +5124,7 @@ function LLMAgent({ isRouteActive = true }) {
                         const savedId = update.historyId ? String(update.historyId) : null;
                         if (savedId) {
                             runConversationId = savedId;
+                            recordSubmittedMode(savedId, investigateEnabled);
                             setQueuedPrompts((prev) => (
                                 claimQueuedPrompts(prev, streamId, savedId)
                             ));
@@ -6396,6 +6453,7 @@ function LLMAgent({ isRouteActive = true }) {
             // Captured now rather than read at send time: they describe the turn the reader
             // meant to ask for.
             searchOptions,
+            pipelineVersion: 1,
             queryMethod,
         }]);
         setUserInput('');
@@ -6473,11 +6531,12 @@ function LLMAgent({ isRouteActive = true }) {
         const streamId = `${Date.now()}-bg-${Math.random().toString(36).slice(2, 8)}`;
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const requestStartedAt = Date.now();
-        const requestSearchOptions = entry.searchOptions || null;
+        const requestSearchOptions = resolveQueuedSearchOptions(entry, getConversationInvestigateMode(conversationId));
         const trackQuerySubmitSuccess = createQuerySubmitSuccessTracker(entry.queryMethod);
         const investigateEnabled = Boolean(
             requestSearchOptions?.investigateEnabled ?? getConversationInvestigateMode(conversationId),
         );
+        recordSubmittedMode(conversationId, investigateEnabled);
         /* Settled before the run is registered, because the registry records it: it is the
            address this answer can be collected at after the page goes away. */
         const sessionId = getStoredSessionId(conversationId) || mintSessionId();
@@ -6485,7 +6544,7 @@ function LLMAgent({ isRouteActive = true }) {
         /* Registered before anything asynchronous: the moment the queue entry is gone, the
            registry is the only thing standing between this run and a second release onto the
            same history id. */
-        setActiveRun({ kind: 'chat', runId: null, conversationId, sessionId, key: streamId });
+        setActiveRun({ kind: investigateEnabled ? 'investigate' : 'chat', runId: null, conversationId, sessionId, key: streamId });
         // A NEW run re-arms this conversation's completion notice: the set de-duplicates per
         // conversation, and without this a second background follow-up finished silently.
         backgroundCompletionNotifiedRef.current.delete(conversationId);
@@ -6512,6 +6571,7 @@ function LLMAgent({ isRouteActive = true }) {
             references: [],
             timestamp,
             investigateMode: investigateEnabled,
+            modeSource: 'submitted',
         };
         let history = [...base, userMessage, {
             role: 'assistant',
@@ -6715,8 +6775,7 @@ function LLMAgent({ isRouteActive = true }) {
             /* An investigate follow-up can stop to ask a clarifying question, which only the
                reader can answer — it must not run where nobody is watching. */
             requiresScreen: (entry) => Boolean(
-                entry?.searchOptions?.investigateEnabled
-                ?? getConversationInvestigateMode(entry?.conversationId),
+                resolveQueuedSearchOptions(entry, getConversationInvestigateMode(entry?.conversationId)).investigateEnabled,
             ),
             viewBusy,
         });
@@ -6739,7 +6798,7 @@ function LLMAgent({ isRouteActive = true }) {
         }
         dispatch(targetId ?? '__guest__', () =>
             stableSubmit(null, next.text, null, {
-                searchOptions: next.searchOptions,
+                searchOptions: resolveQueuedSearchOptions(next, getConversationInvestigateMode(targetId)),
                 queryMethod: next.queryMethod,
                 ...(targetId == null ? {} : { conversationId: targetId }),
             }),
