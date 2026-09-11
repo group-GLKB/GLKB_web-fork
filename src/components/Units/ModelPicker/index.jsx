@@ -46,6 +46,11 @@ const ModelPicker = ({
     // (service/effort.js), which is a suggestion rather than a lock: the row stays selectable
     // and any other row can still be picked. Empty means the pipeline's default applies.
     defaultModelOverride = '',
+    /* Told when the menu opens and closes. The composer it sits in may have a popup of its own
+       — the home page's example list — that has to step aside rather than stack underneath
+       this one; that composer suppresses its popup while this is open, exactly as it does for
+       the Search Options drawers. Optional: a composer with nothing to hide passes nothing. */
+    onOpenChange,
     disabled = false,
 }) => {
     const [catalog, setCatalog] = useState(null);
@@ -65,6 +70,14 @@ const ModelPicker = ({
         });
         return () => { cancelled = true; };
     }, []);
+
+    /* Reported through a ref so a parent passing an inline arrow — all of them do — cannot
+       make this fire on every render; what matters is the transition, not the identity. */
+    const onOpenChangeRef = useRef(onOpenChange);
+    onOpenChangeRef.current = onOpenChange;
+    useEffect(() => {
+        onOpenChangeRef.current?.(isOpen);
+    }, [isOpen]);
 
     const { models, defaultModel: pipelineDefault } = forPipeline(catalog, pipeline);
     // The override only counts if this pipeline actually offers it, so a level whose default is

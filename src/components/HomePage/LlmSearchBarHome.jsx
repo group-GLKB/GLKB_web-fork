@@ -62,6 +62,12 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const [isOpen, setIsOpen] = useState(false);
     const [mobileOptionsOpen, setMobileOptionsOpen] = useState(false);
     const [desktopOptionsOpen, setDesktopOptionsOpen] = useState(false);
+    /* The model menu belongs on this list for the same reason the two Search Options drawers
+       do: it opens over the composer, and the example list must not be drawn underneath it.
+       Stopping the chip's click (below) keeps a click at REST from opening the examples; this
+       is the other half — the examples are often already open, because focusing the box opens
+       them, and then the menu lands on top of a list the reader cannot use. */
+    const [modelMenuOpen, setModelMenuOpen] = useState(false);
     const navigate = useNavigate();
     // The app shell and HomePage both switch at 767px. A separate 600px
     // threshold mixed the mobile page with the PC search controls.
@@ -368,7 +374,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             <Autocomplete
                 freeSolo
                 fullWidth
-                open={!mobileOptionsOpen && !desktopOptionsOpen && isOpen}
+                open={!mobileOptionsOpen && !desktopOptionsOpen && !modelMenuOpen && isOpen}
                 disabled={isInputLocked}
                 options={props.autocompleteOptions || []}
                 filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
@@ -619,7 +625,26 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 {/* Beside Search Options, and NOT behind `searchOptionsLocked`
                                     with it: Investigate withdraws the search-mode controls
                                     because deep research discards filters and ranking, but it
-                                    does honour the model — so this one stays offered. */}
+                                    does honour the model — so this one stays offered.
+
+                                    Wrapped in the same click guard the other controls in this
+                                    row carry. The row sits inside the Autocomplete, whose root
+                                    focuses the input on any click it sees, and `openOnFocus`
+                                    then drops the example list open — so opening the model
+                                    menu also popped the examples open underneath it, over the
+                                    very menu the reader was aiming at. `preventDefault` on
+                                    mousedown is what keeps the focus from moving; stopping the
+                                    click is what keeps the Autocomplete from opening. */}
+                                <Box
+                                    onMouseDown={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                    }}
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                    }}
+                                    sx={{ display: 'inline-flex', minWidth: 0 }}
+                                >
                                 <ModelPicker
                                     value={model}
                                     onChange={(modelId) => {
@@ -632,8 +657,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     // offer is swapped for the pipeline's default, visibly.
                                     pipeline={investigateEnabled ? 'deep_research' : 'chat'}
                                     defaultModelOverride={levelDefaultModel}
+                                    onOpenChange={setModelMenuOpen}
                                     disabled={isInputLocked}
                                 />
+                                </Box>
 
                                 {!searchOptionsLocked && (
                                 <Box

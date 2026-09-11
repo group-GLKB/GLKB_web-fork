@@ -92,6 +92,47 @@ const submit = () => {
     return mockNavigate.mock.calls[0][1].state.initialSearchOptions;
 };
 
+// The chips live INSIDE the Autocomplete, whose root focuses the input on any click it sees;
+// `openOnFocus` then drops the example list open. Every control in that row has to stop its
+// click from getting there, or opening it also opens the examples — underneath the very menu
+// the reader is aiming at.
+const modelTrigger = () => document.querySelector('button.model-picker-trigger');
+const exampleListIsOpen = () => Boolean(document.querySelector('.homepage-autocomplete-listbox'));
+
+describe('the controls in the composer row', () => {
+    it('opens the model menu without opening the example list', async () => {
+        setup({ autocompleteOptions: ['What is TP53?'] });
+        await waitFor(() => expect(modelTrigger()).not.toBeNull());
+        expect(exampleListIsOpen()).toBe(false);
+
+        fireEvent.click(modelTrigger());
+
+        expect(document.querySelector('.model-picker-panel')).not.toBeNull();
+        expect(exampleListIsOpen()).toBe(false);
+        expect(screen.queryByText('What is TP53?')).toBeNull();
+    });
+
+    it('hides an example list that was already open when the menu opens', async () => {
+        // The reader's screenshot: focusing the box opens the examples, and the model menu
+        // then landed on top of them — two popups stacked over each other.
+        setup({ autocompleteOptions: ['What is TP53?'] });
+        await waitFor(() => expect(modelTrigger()).not.toBeNull());
+        fireEvent.focus(screen.getByPlaceholderText('Ask a question about the biomedical literature...'));
+        await waitFor(() => expect(exampleListIsOpen()).toBe(true));
+
+        fireEvent.click(modelTrigger());
+
+        expect(document.querySelector('.model-picker-panel')).not.toBeNull();
+        expect(exampleListIsOpen()).toBe(false);
+    });
+
+    it('does the same for Search Options and Investigate', () => {
+        setup({ autocompleteOptions: ['What is TP53?'] });
+        fireEvent.click(investigateButton());
+        expect(exampleListIsOpen()).toBe(false);
+    });
+});
+
 describe('with Investigate off', () => {
     it('carries the typed submit method through the route handoff', () => {
         setup();
