@@ -63,6 +63,10 @@ import {
 } from '@mui/material';
 
 import { emptyFunnel, mergeFunnel, settleFunnel } from './funnel';
+/* What a stopped run leaves on screen, and the rule for when it is written — shared, because
+   three paths reach it now (the live Stop, a stopped reattach, and a poll that finds the run
+   already cancelled) and a reader can meet more than one of them in a single run. */
+import { keepsWhatItWrote, stoppedMessageFor, withStoppedMessage } from './stopped';
 import InvestigateProgress, { formatElapsed } from './InvestigateProgress';
 import ClarifyPanel, { getClarificationQuestionKey } from './ClarifyPanel';
 import ReferenceHoverCard from './ReferenceHoverCard';
@@ -89,6 +93,7 @@ import {
   INVESTIGATE_PHASE_ORDER,
   LLMAgentService,
   PHASE_PERCENT_FLOOR,
+  extractProgress,
   inferInvestigatePhase,
 } from '../../service/LLMAgent';
 import { getCurrentUser } from '../../service/Auth';
@@ -433,19 +438,6 @@ const RESUME_POLL_MS = 3000;
 const RESUME_MAX_POLLS = 300;      // 15 minutes
 const RESUME_LOST_MESSAGE =
     'This answer could not be recovered after the page was reloaded. Please ask again.';
-
-/* What a stopped run leaves behind, on both sides.
-
-   The backend writes the same sentences into chat history (`app/core/stopped.py`), so the copy
-   on screen and the copy in history agree and a reload does not swap one for the other.
-
-   Two of them, because the two products are not the same thing to a reader: Investigate is a
-   multi-minute research run they watched, chat is an answer. Calling a stopped chat turn an
-   "investigation" is how the first version of this got noticed. */
-const STOPPED_BY_USER_TEXT = {
-    chat: '_This answer was stopped before it finished._',
-    investigate: '_This investigation was stopped before it finished._',
-};
 
 const PUBMED_ESUMMARY_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi';
 const PLACEHOLDER_PMID_PREFIX = 'PMID ';
@@ -2164,6 +2156,23 @@ function LLMAgent({ isRouteActive = true }) {
     // The conversation whose answer is currently being recovered, so the two restore
     // paths cannot both poll for it and overwrite each other's result.
     const resumingConversationRef = useRef(null);
+    /* Stop, for the two states in which the view is following a run it cannot abort.
+     *
+     * Stop worked by aborting the SSE, which assumes the view owns a socket. It does not,
+     * twice over: a submit spends its first moments on the conversation round trip and the
+     * quota check before the stream opens, and a REATTACHED run (a reload, a conversation
+     * reopened, a dropped connection) is polled and never streamed at all. In both states
+     * `abortControllerRef` is null, so Stop wrote its "stopped" sentence and changed nothing
+     * else — the panel carried on counting, and when the run finished the poll wrote the
+     * finished report straight over the sentence. That is the reader's "I pressed stop and it
+     * kept going".
+     *
+     * These two are how Stop reaches those states: the reattach loop checks its key on every
+     * pass, and a submit acts on its own the moment the run announces itself — the first
+     * point at which there is a name to cancel by.
+     */
+    const stoppedResumeKeyRef = useRef(null);
+    const stopRequestedStreamRef = useRef(null);
     // The clarify round's identifiers, mirrored out of React state.
     //
     // The panel is answered by POSTing to /clarify with (session_id, invocation_id, stage). Issue
@@ -2578,6 +2587,80 @@ function LLMAgent({ isRouteActive = true }) {
         refreshTierStatus();
     }, [refreshTierStatus]);
 
+    /* The run's own position, as the SERVER reports it, applied to the live progress panel.
+     *
+     * A reattached view is polling, not streaming, so it receives no progress frames at all.
+     * Before this, the panel showed whatever the tab had saved at the moment the page went
+     * away — frozen there for the rest of the run — and showed nothing at all where there was
+     * no saved copy to restore: a second device, a cleared tab, a conversation opened from the
+     * list. A fifteen-minute run then spent fourteen of those minutes claiming to be on the
+     * phase it was on when the reader pressed reload, and its finished card kept the stale
+     * counters, because the funnel it settles with is the one held here.
+     *
+     * The agent folds its progress frames into the run record now (`service/run_store.py`),
+     * and this is where that snapshot lands. Read through `extractProgress`, which is the same
+     * extractor the SSE path uses, so the two routes cannot drift.
+     *
+     * Merged, never assigned: `mergeFunnel` and the monotonic percent/phase helpers are the
+     * same ones the stream applies, so a poll that arrives with less than the stream already
+     * showed cannot walk the panel backwards.
+     */
+    const applyRunProgress = useCallback((run, investigate) => {
+        if (!run || run.status !== 'running') return;
+        /* The run's id, learned from the poll. A reattached view has none of its own — the
+           reload destroyed it — and Stop needs it to reach the server.
+
+           Safe to assign rather than fill in: every caller is polling the run the view is
+           actually following (by its session id, or by this very ref), and a view that lets
+           go of a run clears the ref in `cancelStreaming`, so there is no older run's id
+           here to protect. */
+        if (run.run_id) runIdRef.current = run.run_id;
+        if (!investigate) return;
+        const progress = extractProgress(run.progress);
+        if (!progress) return;
+
+        // The run's real start, so the header clock reads the run's age rather than the
+        // reattach's. Only when this view has no start of its own: a restored snapshot's is
+        // just as true and is already on screen.
+        if (progress.startedAt) setInvestigateStartedAt((prev) => prev || progress.startedAt);
+
+        const nextPhase = mergePhaseMonotonic(investigatePhaseRef.current, progress.phase);
+        if (nextPhase && nextPhase !== investigatePhaseRef.current) {
+            investigatePhaseRef.current = nextPhase;
+            setInvestigatePhase(nextPhase);
+        }
+        if (progress.funnel) {
+            investigateFunnelRef.current = mergeFunnel(investigateFunnelRef.current, progress.funnel);
+            setInvestigateFunnel({ ...investigateFunnelRef.current });
+        }
+        const nextPct = mergePercentMonotonic(
+            investigatePercentRef.current,
+            progress.percent ?? PHASE_PERCENT_FLOOR[nextPhase],
+        );
+        investigatePercentRef.current = nextPct;
+        setInvestigatePercent(nextPct);
+        if (progress.keywords) {
+            investigateKeywordsRef.current = mergeLiveKeywords(
+                investigateKeywordsRef.current, progress.keywords,
+            );
+            setInvestigateKeywords([...investigateKeywordsRef.current]);
+        }
+        if (progress.papers) {
+            investigatePapersRef.current = mergeLivePapers(
+                investigatePapersRef.current, progress.papers,
+            );
+            setInvestigatePapers([...investigatePapersRef.current]);
+        }
+        if (progress.detail && Object.keys(progress.detail).length) {
+            investigateDetailRef.current = {
+                ...(investigateDetailRef.current || {}), ...progress.detail,
+            };
+            setInvestigateDetail({ ...investigateDetailRef.current });
+        }
+        // Not "Still answering": the server has just said what it is doing.
+        if (progress.label) setStreamingStepName(progress.label);
+    }, []);
+
     // Reattach to a run that was still going when the page was reloaded.
     //
     // The server does not stop when the browser goes away: the agent finishes the run and the
@@ -2636,6 +2719,11 @@ function LLMAgent({ isRouteActive = true }) {
         const key = conversationId ? String(conversationId) : `session:${sessionId}`;
         if (resumingConversationRef.current === key) return;
         resumingConversationRef.current = key;
+        /* A Stop belongs to the reattach it was aimed at. Cleared as a new one starts, so a
+           key left behind by a run that has already settled cannot stop its successor before
+           it has polled once. (A run stopped on the server answers the next poll with
+           `cancelled`, which settles it here anyway.) */
+        stoppedResumeKeyRef.current = null;
         /* Whether some actual request already holds this conversation's registry mark — a run
            released by New Chat or a background follow-up, whose own `finally` will clear it.
            When the mark exists only because THIS reattach put it up (a reload orphan: the run
@@ -2654,6 +2742,11 @@ function LLMAgent({ isRouteActive = true }) {
            server has not labelled, and for servers that do not carry the column yet. */
         const investigate = isInvestigateHint === true
             || isInvestigateConversation(conversationId);
+        /* Which product Stop must cancel. The two pipelines have separate routers, and this
+           ref was only ever written by a submit — so Stop on a reattached investigate run
+           called the CHAT cancel endpoint, which knows nothing about the deep-research relay
+           and left it running. */
+        runningInvestigateRef.current = investigate;
         /* Marked NOW, not at the first successful poll: between opening the conversation and
            that poll, the registry said nothing was running here, so a submit or a queue
            release could put a second turn on a history id the server was still answering. */
@@ -2723,6 +2816,16 @@ function LLMAgent({ isRouteActive = true }) {
             setIsLoading(false);
             setIsProcessing(false);
             setStreamingStepName('');
+        };
+
+        /* End a reattached turn the reader stopped. The sentence goes in only when there is
+           nothing else to show, exactly as the live path does it (STOPPED_BY_USER_TEXT): a
+           run that had already written something keeps it. The backend writes the same
+           sentence into the conversation, so a later reload reads the same thing. */
+        const settleStopped = () => {
+            settle(keepsWhatItWrote(runningChatHistoryRef.current)
+                ? {}
+                : { content: stoppedMessageFor(investigate) });
         };
 
         const applyRun = (run) => {
@@ -2857,6 +2960,15 @@ function LLMAgent({ isRouteActive = true }) {
             for (let attempt = 0; attempt < RESUME_MAX_POLLS; attempt += 1) {
                 if (!stillMounted()) return;
                 if (takenOverByLiveSubmit()) return;
+                /* The reader pressed Stop. This loop IS the run as far as the view is
+                   concerned — there is no socket to abort — so it has to end itself, and
+                   before `showWaiting()` below can raise the waiting state again. */
+                if (stoppedResumeKeyRef.current === key) {
+                    stoppedResumeKeyRef.current = null;
+                    turnSettled = true;
+                    settleStopped();
+                    return;
+                }
                 /* No address to ask the agent at, so the history is the only witness. The
                    first pass looks without touching anything, as the run-store path does; the
                    waiting line goes up only once the history has confirmed the turn really is
@@ -2885,7 +2997,21 @@ function LLMAgent({ isRouteActive = true }) {
                    turn's bubble and kill its streaming UI mid-run. */
                 if (takenOverByLiveSubmit()) return;
                 lastPollSaidRunning = Boolean(run && run.status === 'running');
+                /* Where the run actually is, and the id Stop needs. Both are things only the
+                   server knows once the stream is gone: without the first the panel sits on
+                   the position it had when the page went away, and without the second Stop
+                   cannot tell the server anything. */
+                applyRunProgress(run, investigate);
 
+                if (run?.status === 'cancelled') {
+                    /* Someone stopped this run — this reader a moment ago, or another tab.
+                       It was neither complete nor an error, so the loop used to poll it for
+                       the full fifteen minutes and then write "could not be recovered" over
+                       a run that had been stopped on purpose. */
+                    turnSettled = true;
+                    settleStopped();
+                    return;
+                }
                 if (run && (run.status === 'complete' || run.response)) {
                     applyRun(run);
                     turnSettled = true;
@@ -2939,7 +3065,8 @@ function LLMAgent({ isRouteActive = true }) {
                 else clearPendingRun();
             }
         }
-    }, [announceBackgroundCompletion, llmService, settledFunnel, updateRunningChatHistory]);
+    }, [announceBackgroundCompletion, applyRunProgress, llmService, settledFunnel,
+        updateRunningChatHistory]);
 
     useEffect(() => {
         if (authLoading) return undefined;
@@ -4066,6 +4193,10 @@ function LLMAgent({ isRouteActive = true }) {
             : (shouldStartNewConversation ? [] : chatHistory);
         const streamId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         activeStreamIdRef.current = streamId;
+        // A Stop aimed at the PREVIOUS run must not follow this one, which the reader has
+        // only just asked for.
+        stopRequestedStreamRef.current = null;
+        stoppedResumeKeyRef.current = null;
 
         setShowReloadPrompt(false);
 
@@ -4457,6 +4588,36 @@ function LLMAgent({ isRouteActive = true }) {
                         }
                         if (update.runId) {
                             runIdRef.current = update.runId;
+                        }
+                        /* Stop was pressed while this submit was still in its pre-stream work
+                           — the conversation round trip, the session mint, the quota check.
+                           There was no socket to abort then, so Stop did nothing whatever and
+                           the run went on to answer a question the reader had withdrawn:
+                           measured against the stand-in agent, the composer was still
+                           offering Stop twenty seconds later with the panel counting up.
+
+                           Acted on HERE rather than before the request goes out, because this
+                           is the first moment the run has a name, and cancelling it by that
+                           name is what makes the rest fall into place: the backend stops its
+                           relay and writes the stopped note into the conversation, so the
+                           question and its answer survive a reload. Refusing to send the
+                           request at all does stop the run sooner, but it leaves a
+                           conversation row the server has never heard of — and the restore,
+                           reading an empty history over a local one, then takes the reader's
+                           question off the screen. The run is a second old here; there is
+                           nothing of substance to save by being faster. */
+                        if (stopRequestedStreamRef.current === streamId) {
+                            stopRequestedStreamRef.current = null;
+                            if (update.runId) {
+                                llmService.cancelRun(update.runId, {
+                                    investigate: investigateEnabled,
+                                }).catch((error) => logDev('cancelRun (pre-stream stop) failed', error));
+                            }
+                            abortController.abort();
+                            updateRunningChatHistory((prev) => withStoppedMessage(prev, {
+                                investigate: investigateEnabled,
+                            }));
+                            return;
                         }
                         if (update.phase) {
                             investigatePhaseRef.current = update.phase;
@@ -5079,6 +5240,16 @@ function LLMAgent({ isRouteActive = true }) {
                         outcome = 'released';
                         break;
                     }
+                    // The stream is gone but the run is not: keep the panel moving with what
+                    // the server says, instead of freezing it on the last frame that arrived.
+                    applyRunProgress(run, investigateEnabled);
+                    if (run?.status === 'cancelled') {
+                        // Stopped on purpose — by this reader or another tab. Not an error:
+                        // saying "something went wrong" about a deliberate Stop is how the
+                        // reader ends up asking the same expensive question again.
+                        outcome = 'stopped';
+                        break;
+                    }
                     if (run && (run.status === 'complete' || run.response)) {
                         if (activeStreamIdRef.current !== streamId) {
                             persistDetachedCompletion(run);
@@ -5121,6 +5292,17 @@ function LLMAgent({ isRouteActive = true }) {
                at a still page wondering whether anything is happening. */
             if (outcome === 'unknown' && activeStreamIdRef.current === streamId) {
                 setStreamingStepName('Still answering — this will appear when it finishes');
+            }
+            if (outcome === 'stopped' && activeStreamIdRef.current === streamId) {
+                /* Same sentence, same rule as the live Stop: only where the bubble is empty,
+                   because partial work is still worth reading. */
+                updateRunningChatHistory((prev) => withStoppedMessage(prev, {
+                    investigate: investigateEnabled,
+                    patch: {
+                        thinkingSteps: thinkingStepsRef.current,
+                        thoughtDurationMs: Date.now() - requestStartedAt,
+                    },
+                }));
             }
             if (outcome === 'lost' && activeStreamIdRef.current === streamId) {
                 updateRunningChatHistory(prev => {
@@ -5307,6 +5489,10 @@ function LLMAgent({ isRouteActive = true }) {
             const forConversationId = runningConversationIdRef.current;
             try {
                 const run = await llmService.getRun({ runId: runIdRef.current });
+                /* This poll runs whenever the view is loading without owning a reattach —
+                   a backgrounded tab, an SSE that died quietly — so it is also the only
+                   thing watching the run in those states. Keep the panel current from it. */
+                applyRunProgress(run, Boolean(runningInvestigateRef.current));
                 if (!(run && (run.status === 'complete' || run.response))) return;
                 if (String(runningConversationIdRef.current ?? '')
                     !== String(forConversationId ?? '')) return;
@@ -5360,6 +5546,7 @@ function LLMAgent({ isRouteActive = true }) {
         };
     }, [
         announceBackgroundCompletion,
+        applyRunProgress,
         isLoading,
         llmService,
         settledFunnel,
@@ -5668,8 +5855,53 @@ function LLMAgent({ isRouteActive = true }) {
             llmService.cancelRun(runId, { investigate }).catch((error) => {
                 logDev('cancelRun failed', error);
             });
+        } else if (sessionIdRef.current) {
+            /* A reattached view polls by SESSION id and may not have been told the run id
+               yet — the reload destroyed the one it had. Without this, Stop on such a view
+               told the server nothing at all and the run carried on spending minutes and
+               tokens on an answer nobody would read. One extra round trip, best-effort. */
+            const sessionId = sessionIdRef.current;
+            llmService.getRun({ sessionId })
+                .then((run) => (run?.run_id
+                    ? llmService.cancelRun(run.run_id, { investigate })
+                    : null))
+                .catch((error) => logDev('cancelRun by session failed', error));
         }
         if (abortControllerRef.current) abortControllerRef.current.abort();
+        /* The two views that own no socket — see `stoppedResumeKeyRef`. The reattach loop
+           reads its key on the next pass and settles the turn; a submit still waiting for
+           its stream stops the run on its `Started` frame, which is the first moment the
+           run has a name to be cancelled by. */
+        if (resumingConversationRef.current) {
+            stoppedResumeKeyRef.current = resumingConversationRef.current;
+        }
+        if (activeStreamIdRef.current) stopRequestedStreamRef.current = activeStreamIdRef.current;
+        if (!abortControllerRef.current && !activeStreamIdRef.current) {
+            /* A REATTACHED run: nothing to abort, and no request of its own that will ever
+               reach a `finally`, so do here what the stream's own would have done. Left out,
+               the reader's Stop produced a stopped message under a progress panel that kept
+               counting — for up to three seconds before the reattach loop woke, and forever
+               in a view that had no loop either.
+
+               Deliberately NOT the pre-stream case (`activeStreamIdRef` still set): that
+               submit is alive and will unwind through its own `finally` the moment its
+               conversation round trip returns. Tearing the view down from here instead left
+               `isLoading` false with a submit still running, and the conversation-restore
+               effect — which stands back only while a run owns the view — then replaced the
+               reader's question with whatever it decided to open. */
+            dripRef.current?.stop();
+            setAnswerReady(false);
+            setIsLoading(false);
+            setIsProcessing(false);
+            setStreamingStepName('');
+            applyPendingClarification(null);
+            setClarificationDrafts({});
+            setClarificationError('');
+            setClarificationSubmitting(false);
+            const stoppedConversationId = runningConversationIdRef.current;
+            if (stoppedConversationId) forgetRun(String(stoppedConversationId));
+            else clearPendingRun();
+        }
         /* Say the run was stopped, when there is nothing else to show.
 
            Deep research reveals its report only at the very end, so a run stopped mid-way
@@ -5679,18 +5911,8 @@ function LLMAgent({ isRouteActive = true }) {
            the conversation for the same reason, so the two copies agree and a reload does
            not swap one for the other. A run that had already streamed text keeps it: partial
            work is still worth reading. */
-        updateRunningChatHistory((prev) => {
-            if (!prev.length) return prev;
-            const last = prev[prev.length - 1];
-            if (last?.role !== 'assistant' || String(last.content || '').trim()) return prev;
-            const next = [...prev];
-            next[next.length - 1] = {
-                ...last,
-                content: STOPPED_BY_USER_TEXT[investigate ? 'investigate' : 'chat'],
-            };
-            return next;
-        });
-    }, [llmService, updateRunningChatHistory]);
+        updateRunningChatHistory((prev) => withStoppedMessage(prev, { investigate }));
+    }, [applyPendingClarification, llmService, updateRunningChatHistory]);
 
     const renderMessages = () => {
         // Only the last assistant card is the one being written, and every use of the live-run
