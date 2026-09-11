@@ -96,6 +96,21 @@ describe('sorting by year', () => {
 });
 
 describe('sorting by citations', () => {
+    it('renumbers each order while keeping the same paper identity for inline links', () => {
+        const refs = wrap([
+            { url: 'paper-a', year: 2020, citation_count: 5 },
+            { url: 'paper-b', year: 2024, citation_count: 100 },
+            { url: 'paper-c', year: 2010, citation_count: 20 },
+        ]);
+        const citationOrder = sortReferences(refs, 'Citations');
+        expect(citationOrder.map(({ reference, displayNumber }) => [reference.url, displayNumber]))
+            .toEqual([['paper-b', 1], ['paper-c', 2], ['paper-a', 3]]);
+        const yearOrder = sortReferences(refs, 'Year');
+        expect(yearOrder.map(({ reference, displayNumber }) => [reference.url, displayNumber]))
+            .toEqual([['paper-c', 1], ['paper-a', 2], ['paper-b', 3]]);
+        expect(refs.map(({ originalIndex }) => originalIndex)).toEqual([0, 1, 2]);
+        expect(refs.every((item) => item.displayNumber === undefined)).toBe(true);
+    });
     it('sorts publication citation counts from highest to lowest, retaining citation numbers', () => {
         const sorted = sortReferences(wrap([
             { citation_count: 3 }, { citation_count: 90 }, { citation_count: 20 },

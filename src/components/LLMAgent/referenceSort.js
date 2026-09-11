@@ -3,7 +3,7 @@
  *
  * BY YEAR, OLDEST FIRST. This is the bibliography order selected for the product: it makes the
  * development of a claim readable chronologically. Citation sorts by publication citation
- * count, most-cited first, while retaining the numbers used by inline references.
+ * count, most-cited first. Display numbers follow the resulting order.
  *
  * The comparator also could not survive its own input. `(a.year || 0) - (b.year || 0)` returns
  * NaN for any year that is not a bare number, and a comparator that returns NaN is read as
@@ -103,8 +103,8 @@ export const compareByCitationsDescending = (a, b) => {
 /**
  * Order references for the panel.
  *
- * Takes and returns `{ reference, originalIndex }` wrappers: the index is the citation number
- * the answer text refers to, so it has to survive the reordering.
+ * Keep originalIndex as the stable identity and assign displayNumber after sorting.
+ * Inline links and the panel must use the same ordering, without mutating saved references.
  */
 export const sortReferences = (wrapped, sortOption) => {
     const items = Array.isArray(wrapped) ? [...wrapped] : [];
@@ -114,7 +114,7 @@ export const sortReferences = (wrapped, sortOption) => {
     } else {
         items.sort(({ reference: a }, { reference: b }) => compareByYearAscending(a, b));
     }
-    return items;
+    return items.map((item, index) => ({ ...item, displayNumber: index + 1 }));
 };
 
 export default sortReferences;

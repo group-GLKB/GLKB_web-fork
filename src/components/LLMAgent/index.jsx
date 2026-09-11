@@ -1048,9 +1048,25 @@ const NO_KEYWORDS = [];
 const NO_PAPERS = [];
 const NO_DETAIL = {};
 
+const enrichReferenceSummaries = (references, summaries) => references.map((ref) => {
+    const pmid = extractPmidFromReference(ref);
+    const summary = pmid && isPlaceholderPmidReference(ref) ? summaries[pmid] : null;
+    if (!summary) return ref;
+    return {
+        ...ref, pmid,
+        title: summary.title || ref.title,
+        journal: summary.journal || ref.journal,
+        year: summary.year || ref.year,
+        authors: summary.authors || ref.authors,
+        citation_count: 'N/A',
+    };
+});
+
 const MessageCard = React.memo(function MessageCard({
     index,
     message,
+    referenceSortOption,
+    referenceSummaryMap,
     totalMessages,
     isProcessing,
     streamingGroups,
@@ -1116,12 +1132,18 @@ const MessageCard = React.memo(function MessageCard({
         return order;
     }, [message.references, message.content]);
 
+    const numberedReferences = useMemo(() => sortReferences(
+        enrichReferenceSummaries(message.references || [], referenceSummaryMap || {})
+            .map((reference, originalIndex) => ({ reference, originalIndex })),
+        referenceSortOption,
+    ), [message.references, referenceSummaryMap, referenceSortOption]);
+
     const getReferenceNumber = (href) => {
         const pmid = pmidFromHref(href);
-        const referenceIndex = (message.references || []).findIndex(
-            (reference) => extractPmidFromReference(reference) === pmid
+        const match = numberedReferences.find(
+            ({ reference }) => extractPmidFromReference(reference) === pmid
         );
-        if (referenceIndex >= 0) return referenceIndex + 1;
+        if (match) return match.displayNumber;
         return streamingNumberByPmid?.get(pmid) ?? null;
     };
     const allowUserEdit = !interactionLocked;
@@ -5967,6 +5989,8 @@ function LLMAgent({ isRouteActive = true }) {
             <MessageCard
                 index={index}
                 message={message}
+                referenceSortOption={sortOption}
+                referenceSummaryMap={referenceSummaryMap}
                 totalMessages={chatHistory.length}
                 isProcessing={isStreamingCard}
                 streamingGroups={isStreamingCard ? streamingGroups : NO_GROUPS}
@@ -6098,23 +6122,7 @@ function LLMAgent({ isRouteActive = true }) {
     }, [references, referenceSummaryMap]);
 
     const enrichedReferences = useMemo(
-        () => references.map((ref) => {
-            const pmid = extractPmidFromReference(ref);
-            if (!pmid || !isPlaceholderPmidReference(ref)) return ref;
-
-            const summary = referenceSummaryMap[pmid];
-            if (!summary) return ref;
-
-            return {
-                ...ref,
-                pmid,
-                title: summary.title || ref.title,
-                journal: summary.journal || ref.journal,
-                year: summary.year || ref.year,
-                authors: summary.authors || ref.authors,
-                citation_count: 'N/A',
-            };
-        }),
+        () => enrichReferenceSummaries(references, referenceSummaryMap),
         [references, referenceSummaryMap]
     );
 
@@ -6129,8 +6137,7 @@ function LLMAgent({ isRouteActive = true }) {
         }
     }, [hoveredPubmedId, enrichedReferences]);
 
-    // Oldest first by year, inline reference number first by citations — see ./referenceSort.js for why
-    // the year comparator could not stay inline.
+    // Use the same enriched order for the panel and the inline citation display numbers.
     const sortedReferences = useMemo(() => sortReferences(
         enrichedReferences.map((reference, originalIndex) => ({ reference, originalIndex })),
         sortOption,
@@ -7567,7 +7574,7 @@ function LLMAgent({ isRouteActive = true }) {
 
                                                                 {sortedReferences.length > 0 ? (
                                                                     <div ref={referencesListRef} className="references-list" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-                                                                        {sortedReferences.map(({ reference: ref, originalIndex }) => {
+                                                                        {sortedReferences.map(({ reference: ref, originalIndex, displayNumber }) => {
                                                                             const url = [
                                                                                 ref.title,
                                                                                 ref.url,
@@ -7593,7 +7600,7 @@ function LLMAgent({ isRouteActive = true }) {
                                                                                         handleClick={handleClick}
                                                                                         onCiteClick={handleCiteClick}
                                                                                         isHighlighted={isHighlighted}
-                                                                                        index={originalIndex + 1}
+                                                                                        index={displayNumber}
                                                                                     />
                                                                                 </div>
                                                                             );
@@ -7698,7 +7705,7 @@ function LLMAgent({ isRouteActive = true }) {
 
                                                     {sortedReferences.length > 0 ? (
                                                         <div ref={referencesListRef} className="references-list" style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingLeft: '16px', paddingRight: '16px' }}>
-                                                            {sortedReferences.map(({ reference: ref, originalIndex }) => {
+                                                            {sortedReferences.map(({ reference: ref, originalIndex, displayNumber }) => {
                                                                 const url = [
                                                                     ref.title,
                                                                     ref.url,
@@ -7723,7 +7730,7 @@ function LLMAgent({ isRouteActive = true }) {
                                                                             handleClick={handleClick}
                                                                             onCiteClick={handleCiteClick}
                                                                             isHighlighted={isHighlighted}
-                                                                            index={originalIndex + 1}
+                                                                            index={displayNumber}
                                                                         />
                                                                     </div>
                                                                 );
