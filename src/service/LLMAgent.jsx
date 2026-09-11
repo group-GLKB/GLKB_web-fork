@@ -165,6 +165,40 @@ export const normalizePercent = (value) => {
     return Math.max(0, Math.min(100, Math.round(num)));
 };
 
+/**
+ * The live position of a run, read back from `GET /run` rather than off the stream.
+ *
+ * A reader who reloads (or opens the conversation on another device) is no longer on the
+ * socket the progress frames travel down, and the poll that replaces it used to answer
+ * "still running" and nothing else. So the panel sat on whatever the tab had saved — frozen
+ * at the phase and the counters of the moment the page went away — or, with nothing saved,
+ * empty at zero, for the rest of a run that can take fifteen minutes. Both are what the
+ * reader means by "it started again".
+ *
+ * The agent now folds its progress frames into the run record (`service/run_store.py`), and
+ * this reads that snapshot back through the SAME extractors the SSE path uses, so the panel
+ * cannot disagree with itself depending on how the frame arrived.
+ *
+ * `started_at` is the agent's epoch SECONDS; the panel's clock is in milliseconds.
+ */
+export const extractProgress = (progress) => {
+    if (!progress || typeof progress !== 'object') return null;
+    const detail = progress.detail && typeof progress.detail === 'object' ? progress.detail : {};
+    const startedAtSeconds = Number(progress.started_at);
+    return {
+        phase: progress.phase || detail.phase || null,
+        funnel: extractFunnelMetrics(progress),
+        keywords: extractKeywords(progress),
+        papers: extractPapers(progress),
+        percent: normalizePercent(progress.percent ?? detail.percent ?? null),
+        label: progress.label || detail.label || '',
+        detail,
+        startedAt: Number.isFinite(startedAtSeconds) && startedAtSeconds > 0
+            ? Math.round(startedAtSeconds * 1000)
+            : null,
+    };
+};
+
 /** Infer investigate phase label from step/content text (Figma stages). */
 export const inferInvestigatePhase = (step = '', content = '') => {
     const text = `${step} ${content}`.toLowerCase();
