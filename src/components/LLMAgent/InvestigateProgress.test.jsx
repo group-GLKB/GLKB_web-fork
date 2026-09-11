@@ -37,6 +37,56 @@ const stepTexts = () => Array.from(document.querySelectorAll('.ip-step-label')).
 beforeEach(() => { jest.useFakeTimers(); });
 afterEach(() => { jest.runOnlyPendingTimers(); jest.useRealTimers(); });
 
+// ── re-created over a run already in flight ─────────────────────────────────────────────────
+describe('a panel created over a run that is already going', () => {
+    /* The reader reloads, or leaves the conversation and comes back. The card is destroyed and
+       built again, and before this the new one opened at nothing and replayed the whole thing:
+       measured in a browser, Retrieved went "– 741 1,290 1,549 1,618 1,621" and the bar went
+       "2 12 18 20 22" on a run that had been sitting at 1,621 / 22% the entire time. That reads
+       as the investigation having started over. */
+    const goingRun = {
+        phase: 'reading',
+        percent: 22,
+        funnel: { retrieved: 1621, screened: 180, extracted: null, cited: null },
+        getDisplayFunnel: () => ({ retrieved: 1788, screened: 180 }),
+    };
+
+    it('opens the bar where the run is, not at the planning floor', () => {
+        setup(goingRun);
+        expect(barWidth()).toBeGreaterThanOrEqual(22);
+    });
+
+    it('opens each counter at the number the reader was already looking at', () => {
+        setup(goingRun);
+        const shown = Array.from(document.querySelectorAll('.ip-counter-value'))
+            .map((n) => n.textContent);
+        expect(shown[0]).toBe('1,788');       // not '–', and not counted up from zero
+        expect(shown[1]).toBe('180');
+        expect(shown[2]).toBe('–');           // nothing was showing here yet
+    });
+
+    it('never drops below what it was showing when the real count is smaller', () => {
+        // Retrieved displays `real + ramp`, and a remount has no ramp of its own — so the
+        // agent's raw 1,621 must not pull the counter back from the 1,788 on screen.
+        setup(goingRun);
+        act(() => { jest.advanceTimersByTime(1200); });
+        expect(document.querySelector('.ip-counter-value').textContent).toBe('1,788');
+    });
+
+    it('without a seed, a fresh panel settles on the agent\u2019s own count', () => {
+        // The seed is what makes a remount different. A panel with none — a run being watched
+        // from the start — is unchanged: it counts up to the real number and stops there.
+        setup({ ...goingRun, getDisplayFunnel: undefined });
+        act(() => { jest.advanceTimersByTime(1200); });
+        expect(document.querySelector('.ip-counter-value').textContent).toBe('1,621');
+    });
+
+    it('opens at the planning floor when nothing says otherwise', () => {
+        setup();
+        expect(barWidth()).toBeCloseTo(PHASE_PERCENT_FLOOR.planning, 1);
+    });
+});
+
 // ── mounts alive ────────────────────────────────────────────────────────────────────────────
 describe('on mount, before any progress frame', () => {
     it('already shows a phase, a bar and the four counters', () => {

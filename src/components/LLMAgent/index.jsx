@@ -1058,6 +1058,7 @@ const MessageCard = React.memo(function MessageCard({
     onSubmitClarification,
     onSkipClarification,
     onDisplayFunnel,
+    getDisplayFunnel,
     showReloadPrompt,
     onReloadLatest,
     onStop,
@@ -1490,6 +1491,7 @@ const MessageCard = React.memo(function MessageCard({
                                    reader is being asked to supply the missing piece. */
                                 paused={Boolean(pendingClarification)}
                                 onDisplayFunnel={onDisplayFunnel}
+                                getDisplayFunnel={getDisplayFunnel}
                                 expanded={investigateExpanded}
                                 onToggleExpanded={() => setInvestigateExpanded((prev) => !prev)}
                             />
@@ -2197,6 +2199,16 @@ function LLMAgent({ isRouteActive = true }) {
         if (previous != null && previous >= next) return;
         investigateDisplayFunnelRef.current = { ...current, [columnKey]: next };
     }, []);
+
+    /* The same readings, handed back to a panel that is being CREATED over a run already in
+       flight — after a reload, or after the reader left this conversation and came back. The
+       card unmounts on both, and a fresh counter opened at nothing and counted up to the truth
+       all over again, which is the "it starts from the beginning" the reader sees.
+
+       A stable function, not the object: the object changes on every animation frame, and a
+       prop that changes at that rate would re-render every message in the conversation. The
+       panel calls it once, when its counters are created. */
+    const getDisplayFunnel = useCallback(() => investigateDisplayFunnelRef.current, []);
 
     /* The funnel a FINISHED message keeps — the larger of the agent's counts and what the
        panel actually showed. The rule and the reason live in `funnel.js:settleFunnel`. */
@@ -5969,6 +5981,7 @@ function LLMAgent({ isRouteActive = true }) {
                 onSubmitClarification={submitClarification}
                 onSkipClarification={submitClarification}
                 onDisplayFunnel={onDisplayFunnel}
+                getDisplayFunnel={getDisplayFunnel}
                 refresh={stableRefresh}
                 copy={stableCopy}
                 save={stableSave}
