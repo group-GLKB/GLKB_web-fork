@@ -45,7 +45,12 @@ export const IMAGES = {
     'fig-09-search-mode.svg': fig09,
 };
 
-export const posts = [investigateArticle, glkbArticle].map(parseArticle);
+export const posts = [investigateArticle, glkbArticle].map((source) => {
+    const post = parseArticle(source);
+    // Reuse the first body figure for cards everywhere (About and Read next).
+    const firstImage = source.match(/!\[[^\]]*\]\(([^)]+)\)/)?.[1];
+    return { ...post, thumb: IMAGES[firstImage] };
+});
 
 export const getPost = (slug) => posts.find((post) => post.slug === slug) || null;
 

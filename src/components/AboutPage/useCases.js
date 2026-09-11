@@ -55,9 +55,6 @@ export const USE_CASES = [
             },
         ],
     },
-    { id: 'deg', label: 'DEG Annotation' },
-    { id: 'gwas', label: 'GWAS Interpretation' },
-    { id: 'prioritization', label: 'Gene Prioritization' },
 ];
 
 export default USE_CASES;
