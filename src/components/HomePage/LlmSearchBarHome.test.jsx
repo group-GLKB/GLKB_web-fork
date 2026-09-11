@@ -93,6 +93,20 @@ const submit = () => {
 };
 
 describe('with Investigate off', () => {
+    it('carries the typed submit method through the route handoff', () => {
+        setup();
+        const field = screen.getByPlaceholderText('Ask a question about the biomedical literature...');
+        fireEvent.change(field, { target: { value: 'what is TP53?' } });
+        fireEvent.keyDown(field, { key: 'Enter' });
+        expect(mockNavigate.mock.calls[0][1].state.initialQueryMethod).toBe('enter');
+    });
+
+    it('labels a submitted prefill as an example query', () => {
+        setup({ prefillQuery: 'Example TP53 question' });
+        fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
+        expect(mockNavigate.mock.calls[0][1].state.initialQueryMethod).toBe('example');
+    });
+
     it('opens the drawer, showing Article Type and Sort by', () => {
         setup();
         expect(drawerIsOpen()).toBe(false);

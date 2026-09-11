@@ -116,8 +116,10 @@ export const AuthProvider = ({ children }) => {
   const updateAvatar = async (avatarId) => {
     const result = await AuthService.updateAvatar(avatarId);
 
-    if (result.success && result.user) {
-      setUser(result.user);
+    if (result.success) {
+      setUser((currentUser) => (
+        result.user || (currentUser ? { ...currentUser, avatar_id: avatarId } : currentUser)
+      ));
     }
 
     return result;

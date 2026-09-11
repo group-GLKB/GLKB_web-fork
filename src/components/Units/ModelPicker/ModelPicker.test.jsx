@@ -242,3 +242,68 @@ describe('pipeline eligibility', () => {
         expect(await screen.findByText('GPT-5.6 Terra')).toBeInTheDocument();
     });
 });
+
+describe("an effort level's default model", () => {
+    it('is what the picker shows when the reader has chosen nothing', async () => {
+        const { onResolveDefault } = setup({ value: '', defaultModelOverride: 'gpt-5.6-luna' });
+        await waitFor(() => expect(onResolveDefault).toHaveBeenCalledWith('gpt-5.6-luna'));
+    });
+
+    it('is ignored when the pipeline does not offer it', async () => {
+        // Luna is chat-only. A level whose default is chat-only must never leave deep research
+        // showing a model the request path would refuse.
+        const { onResolveDefault } = setup({
+            value: '', pipeline: 'deep_research', defaultModelOverride: 'gpt-5.6-luna',
+        });
+        await waitFor(() => expect(onResolveDefault).toHaveBeenCalledWith('gpt-5.6-terra'));
+    });
+
+    it('replaces a default the picker itself resolved earlier', async () => {
+        /* The parent keeps ONE piece of state for "the model", so a resolved default and a
+           deliberate choice look identical from outside. Turning a level on has to move the
+           first and not the second — this is the first. */
+        const { onResolveDefault, view } = setup({ value: '' });
+        await waitFor(() => expect(onResolveDefault).toHaveBeenCalledWith('gpt-5.6-terra'));
+
+        // The parent wrote that back, and now a level arrives with its own default.
+        view.rerender(
+            <ModelPicker
+                value="gpt-5.6-terra"
+                defaultModelOverride="gpt-5.6-luna"
+                onChange={() => {}}
+                onResolveDefault={onResolveDefault}
+            />,
+        );
+        await waitFor(() => expect(onResolveDefault).toHaveBeenLastCalledWith('gpt-5.6-luna'));
+    });
+
+    it('never replaces a model the reader picked', async () => {
+        const onResolveDefault = jest.fn();
+        const view = render(
+            <ModelPicker value="" onChange={() => {}} onResolveDefault={onResolveDefault} />,
+        );
+        await waitFor(() => expect(onResolveDefault).toHaveBeenCalledWith('gpt-5.6-terra'));
+
+        fireEvent.click(screen.getByRole('button', { name: /^Model:/ }));
+        fireEvent.click(await screen.findByRole('option', { name: /GPT-5.6 Sol/ }));
+
+        onResolveDefault.mockClear();
+        view.rerender(
+            <ModelPicker
+                value="gpt-5.6-sol"
+                defaultModelOverride="gpt-5.6-luna"
+                onChange={() => {}}
+                onResolveDefault={onResolveDefault}
+            />,
+        );
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(onResolveDefault).not.toHaveBeenCalled();
+    });
+
+    /* The residual, recorded rather than fixed: clicking the row ALREADY showing is a no-op by
+       design (see "does not re-report the model already in use" above), so it reaches neither
+       `onChange` nor storage — the app could not honour it across a reload either. A level's
+       default can therefore still move a reader who "confirmed" the shown model by clicking it.
+       Changing that means making a no-op click write to storage, which that older test forbids
+       on purpose. */
+});

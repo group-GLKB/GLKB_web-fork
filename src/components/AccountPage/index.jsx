@@ -113,7 +113,7 @@ const AccountPage = () => {
     );
 
     // null until the user picks one; the row renders the default in that case.
-    const avatarId = user?.avatar_id ?? null;
+    const avatarId = avatarById(user?.avatar_id)?.id ?? null;
 
     // A picture chosen on another device is not in the cached login payload, so
     // read the user back once on arrival.

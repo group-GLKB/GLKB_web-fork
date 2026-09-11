@@ -1,5 +1,6 @@
 import React from 'react';
 
+import BoltIcon from '@mui/icons-material/Bolt';
 import CloseIcon from '@mui/icons-material/Close';
 import {
   Box,
@@ -9,6 +10,7 @@ import {
 
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { trackGtagEvent } from '../../utils/gtag';
+import { EFFORT_QUICK, defaultModelFor, isQuickAvailable } from '../../service/effort';
 import ModelPicker from '../Units/ModelPicker';
 
 const ChatSearchBar = ({
@@ -26,6 +28,12 @@ const ChatSearchBar = ({
     model,
     onModelChange,
     onModelResolveDefault,
+    // How hard the next question is worked (service/effort.js); '' is standard. Per-turn,
+    // like the model. `efforts` is the agent's catalogue of levels: with none offered the
+    // chip is not rendered, so an older agent is never shown a level it cannot honour.
+    effort = '',
+    onEffortChange,
+    efforts = [],
     // Resolved by the parent, which is the only place that can see both signals — see the
     // comment at the call site. Not derived from `investigateEnabled` above: that one is
     // for analytics and is false for a reopened investigate conversation.
@@ -52,6 +60,15 @@ const ChatSearchBar = ({
     // clear the field and the stop control is there again. There is nothing here to stop when
     // the run belongs to another thread.
     const showStop = isLoading && !isRunElsewhere && !canSend;
+    // Quick is chat's level. Deep research is its own level in all but name and refuses
+    // `quick`, so on an Investigate conversation the chip is withdrawn rather than offered
+    // and then refused.
+    const quickOffered = !pipelineIsDeepResearch && isQuickAvailable(efforts, 'chat');
+    const quickOn = quickOffered && effort === EFFORT_QUICK;
+    // The level's default model, shown by the picker when the reader has chosen none. Not a
+    // lock: the picker stays operable, and Quick with another model is a request the agent
+    // honours — the level buys latency, the model buys cost.
+    const levelDefaultModel = quickOn ? defaultModelFor(efforts, effort) : '';
     const trackInvestigateSubmit = (inputMethod) => {
         if (!pipelineIsDeepResearch) return;
         trackGtagEvent('investigate_question_submit', {
@@ -71,7 +88,6 @@ const ChatSearchBar = ({
         <Box sx={{
             width: '100%',
             display: 'flex',
-            gap: 2,
             margin: '0 auto',
             backgroundColor: 'var(--color-background-subtle)',
             borderRadius: '16px',
@@ -79,7 +95,6 @@ const ChatSearchBar = ({
             borderStyle: 'solid',
             borderColor: 'var(--color-border-default)',
             boxShadow: 'none',
-            flexDirection: 'column',
         }}>
             <TextField
                 className="input-form"
@@ -100,7 +115,7 @@ const ChatSearchBar = ({
                         e.preventDefault();
                         if (canSend) {
                             trackInvestigateSubmit('enter');
-                            onSubmit?.(e);
+                            onSubmit?.(e, { queryMethod: 'enter' });
                         }
                     }
                 }}
@@ -112,7 +127,14 @@ const ChatSearchBar = ({
                         height: 'auto',
                         alignItems: 'center',
                         paddingLeft: '20px',
-                        paddingRight: '60px !important',
+                        /* The end cluster (model chip, clear, send) is a flex sibling of the
+                           textarea rather than an overlay, so the field's own right padding is
+                           just the gap to the composer's edge. It used to be 60px to clear an
+                           absolutely-positioned send button — a reservation that could only ever
+                           be right for one cluster width, and the chip's width depends on the
+                           model's name. */
+                        paddingRight: '12px !important',
+                        gap: '8px',
                         paddingTop: isMobileViewport ? '8px' : '10px',
                         paddingBottom: isMobileViewport ? '8px' : '10px',
                         fontFamily: 'Geist, sans-serif',
@@ -137,11 +159,76 @@ const ChatSearchBar = ({
                             display="flex"
                             alignItems="center"
                             sx={{
-                                position: 'absolute',
-                                right: 12,
                                 gap: 1,
+                                // The textarea is what gives way when the row is tight; this
+                                // cluster is all fixed-size controls.
+                                flexShrink: 0,
                             }}
                         >
+                            {/* On the field's own row, left of send — where the home page's bar
+                                puts it too. It had a control row of its own under the field for
+                                a while, which cost the composer 54px of height for one chip and
+                                left the chip stranded in a band of empty space. */}
+                            {quickOffered && (
+                                <Box
+                                    component="button"
+                                    type="button"
+                                    className="effort-quick-chip"
+                                    aria-pressed={quickOn}
+                                    aria-label={quickOn ? 'Quick on' : 'Quick off'}
+                                    title={quickOn
+                                        ? 'Quick is on: an answer in seconds from GLKB alone, at most two search rounds'
+                                        : 'Quick: an answer in seconds from GLKB alone'}
+                                    disabled={isQueryLimitReached}
+                                    onMouseDown={(event) => event.preventDefault()}
+                                    onClick={() => {
+                                        const next = !quickOn;
+                                        trackGtagEvent('chat_quick_toggle_click', {
+                                            source: 'chat_searchbar',
+                                            enabled: next,
+                                        });
+                                        onEffortChange?.(next ? EFFORT_QUICK : '');
+                                    }}
+                                    sx={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        height: 32,
+                                        padding: '4px 8px',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        cursor: isQueryLimitReached ? 'default' : 'pointer',
+                                        background: quickOn ? 'var(--color-brand-muted)' : 'transparent',
+                                        color: quickOn ? 'var(--color-brand-primary)' : 'var(--color-text-tertiary)',
+                                        fontFamily: 'Geist, sans-serif',
+                                        fontWeight: 600,
+                                        fontSize: '12px',
+                                        lineHeight: '16px',
+                                        whiteSpace: 'nowrap',
+                                        flexShrink: 0,
+                                        '&:hover': {
+                                            background: quickOn ? 'var(--color-blue-200)' : 'var(--color-background-subtle)',
+                                            color: quickOn ? 'var(--color-blue-600)' : 'var(--color-grey-600)',
+                                        },
+                                        '&:disabled': { opacity: 0.6 },
+                                    }}
+                                >
+                                    <BoltIcon sx={{ fontSize: 16 }} />
+                                    Quick
+                                </Box>
+                            )}
+                            <ModelPicker
+                                value={model}
+                                onChange={onModelChange}
+                                onResolveDefault={onModelResolveDefault}
+                                pipeline={pipelineIsDeepResearch ? 'deep_research' : 'chat'}
+                                defaultModelOverride={levelDefaultModel}
+                                // Left usable while an answer streams. A follow-up typed
+                                // mid-answer is queued by the parent, and it should be able to
+                                // name its own model — the choice applies to the NEXT request,
+                                // never to the one in flight.
+                                disabled={isQueryLimitReached}
+                            />
                             {userInput !== '' && !isQueryLimitReached && !isLoading && (
                                 <CloseIcon
                                     onMouseDown={(event) => {
@@ -199,7 +286,7 @@ const ChatSearchBar = ({
                                             queued: false,
                                         });
                                         trackInvestigateSubmit('button');
-                                        onSubmit?.(event);
+                                        onSubmit?.(event, { queryMethod: 'button' });
                                     }}
                                     sx={{
                                         width: 32,
@@ -228,21 +315,6 @@ const ChatSearchBar = ({
                     ),
                 }}
             />
-            {/* Sits below the field rather than in the endAdornment: the adornment is the
-                send/stop cluster, and a model name is long enough that putting it there
-                would fight the placeholder for the same row. */}
-            <div className="composer-controls">
-                <ModelPicker
-                    value={model}
-                    onChange={onModelChange}
-                    onResolveDefault={onModelResolveDefault}
-                    pipeline={pipelineIsDeepResearch ? 'deep_research' : 'chat'}
-                    // Left usable while an answer streams. A follow-up typed mid-answer is
-                    // queued by the parent, and it should be able to name its own model —
-                    // the choice applies to the NEXT request, never to the one in flight.
-                    disabled={isQueryLimitReached}
-                />
-            </div>
         </Box>
         </div>
     );

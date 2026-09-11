@@ -10,7 +10,7 @@
  * The scraper is gone. This pins the remaining rule: a counter may appear and may grow, and never
  * shrinks — whatever the arrival order of the frames.
  */
-import { mergeFunnel } from './funnel';
+import { mergeFunnel, settleFunnel } from './funnel';
 
 const empty = { retrieved: null, screened: null, extracted: null, cited: null };
 
@@ -52,5 +52,56 @@ describe('mergeFunnel', () => {
         const a = mergeFunnel(empty, { ...empty, cited: 0 });
         expect(a.cited).toBe(0);
         expect(mergeFunnel(a, { ...empty, cited: 3 }).cited).toBe(3);
+    });
+});
+
+/**
+ * What a finished message keeps.
+ *
+ * The reported bug: Retrieved fell by thousands the instant a run ended. The panel had been
+ * showing `agent count + ramp`; the summary chips that replace it read the agent count alone.
+ * Both numbers are legitimate — they are just not the same number, and the smaller one must
+ * not be the one the reader is left with.
+ */
+describe('settleFunnel', () => {
+    const agent = { retrieved: 1300, screened: 53, extracted: 18, cited: 12 };
+
+    it('keeps the displayed figure when the panel showed more', () => {
+        // The exact reported case: the counter was on 4,100, the agent had reported 1,300.
+        const displayed = { ...empty, retrieved: 4100 };
+        expect(settleFunnel(agent, displayed).retrieved).toBe(4100);
+    });
+
+    it('keeps the agent figure when it is the larger one', () => {
+        const displayed = { ...empty, screened: 20 };
+        expect(settleFunnel(agent, displayed).screened).toBe(53);
+    });
+
+    it('settles every column independently', () => {
+        const displayed = { retrieved: 4100, screened: 20, extracted: 25, cited: null };
+        expect(settleFunnel(agent, displayed)).toEqual({
+            retrieved: 4100,   // display won
+            screened: 53,      // agent won
+            extracted: 25,     // display won
+            cited: 12,         // display had nothing
+        });
+    });
+
+    it('survives a run that displayed nothing', () => {
+        expect(settleFunnel(agent, empty)).toEqual(agent);
+    });
+
+    it('survives an agent that reported nothing', () => {
+        const displayed = { ...empty, retrieved: 2800 };
+        expect(settleFunnel(empty, displayed).retrieved).toBe(2800);
+    });
+
+    it('never returns a value below either input', () => {
+        const displayed = { retrieved: 4100, screened: 20, extracted: 25, cited: 3 };
+        const out = settleFunnel(agent, displayed);
+        Object.keys(out).forEach((key) => {
+            expect(out[key]).toBeGreaterThanOrEqual(agent[key] ?? 0);
+            expect(out[key]).toBeGreaterThanOrEqual(displayed[key] ?? 0);
+        });
     });
 });

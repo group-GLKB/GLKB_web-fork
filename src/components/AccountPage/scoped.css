@@ -726,7 +726,7 @@
     padding: 0;
     cursor: pointer;
     line-height: 0;
-    border-radius: 50%;
+    border-radius: 4px;
     flex: 0 0 auto;
 }
 
@@ -735,14 +735,14 @@
     box-shadow: 0 0 0 2px var(--color-brand-muted);
 }
 
-/* The tile itself, wherever a preset is drawn. Sizing lives here rather than in
-   avatars.js so the glyph can never outgrow the circle it sits in. */
+/* The tile itself, wherever a preset is drawn. Figma 589:7018 is a rounded
+   square, with a 20px glyph inside a 32px colour tile. */
 .settings-avatar,
 .avatar-option-mark {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
+    border-radius: 4px;
     overflow: hidden;
     flex: 0 0 auto;
 }
@@ -785,7 +785,7 @@
     display: block;
     padding: 3px;
     border: none;
-    border-radius: 50%;
+    border-radius: 7px;
     background: none;
     cursor: pointer;
     line-height: 0;

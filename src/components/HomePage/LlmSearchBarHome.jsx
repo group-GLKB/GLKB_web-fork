@@ -6,6 +6,7 @@ import React, {
 import { useNavigate } from 'react-router-dom';
 
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
+import BoltIcon from '@mui/icons-material/Bolt';
 import CloseIcon from '@mui/icons-material/Close';
 import {
   Autocomplete,
@@ -26,7 +27,14 @@ import { ReactComponent as SearchOptionsCloseIcon } from '../../img/llm/search_o
 import { ReactComponent as SearchOptionsCollapseIcon } from '../../img/llm/search_options_collapse.svg';
 import { trackGtagEvent } from '../../utils/gtag';
 import ModelPicker from '../Units/ModelPicker';
-import { getModelPref, setModelPref } from '../../service/models';
+import { fetchModelCatalog, getModelPref, setModelPref } from '../../service/models';
+import {
+    EFFORT_QUICK,
+    defaultModelFor,
+    getEffortPref,
+    isQuickAvailable,
+    setEffortPref,
+} from '../../service/effort';
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
@@ -37,6 +45,19 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
        the choice the conversation continues with — the two pickers are one preference, not
        two that can disagree once the reader lands on /chat. */
     const [model, setModel] = useState(() => getModelPref());
+    /* How hard the first question is worked (service/effort.js). Persisted through the same
+       helper the chat composer reads, for the same reason as the model above. `efforts` is the
+       agent's catalogue of levels; until it arrives, or on an agent that predates levels, no
+       chip is offered. */
+    const [effort, setEffort] = useState(() => getEffortPref());
+    const [efforts, setEfforts] = useState([]);
+    useEffect(() => {
+        let cancelled = false;
+        fetchModelCatalog().then((catalog) => {
+            if (!cancelled) setEfforts(Array.isArray(catalog?.efforts) ? catalog.efforts : []);
+        });
+        return () => { cancelled = true; };
+    }, []);
     const [sortBy, setSortBy] = useState('Default');
     const [paperType, setPaperType] = useState('All types');
     const [isOpen, setIsOpen] = useState(false);
@@ -49,6 +70,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const inputTimeoutRef = React.useRef(null);
     const hasTrackedInputRef = React.useRef(false);
     const lastPrefillRef = React.useRef(undefined);
+    const queryOriginRef = React.useRef('typed');
     const isQueryLimitReached = Boolean(props.isQueryLimitReached);
     const isAgentRunActive = Boolean(props.isAgentRunActive);
     /* An answer being written somewhere else does NOT lock this box.
@@ -61,6 +83,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
 
        The quota is a different matter and still locks: there is no run to start at all. */
     const isInputLocked = isQueryLimitReached;
+    // Quick is chat's level, hidden while Investigate is on (deep research refuses it). Its
+    // model is a DEFAULT the picker shows, not a lock — see service/effort.js.
+    const quickOffered = isQuickAvailable(efforts, 'chat') && !investigateEnabled;
+    const quickOn = quickOffered && effort === EFFORT_QUICK;
+    const levelDefaultModel = quickOn ? defaultModelFor(efforts, effort) : '';
     useEffect(() => {
         // console.log(props);
         props.setOpen(isOpen);
@@ -88,6 +115,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         if (props.prefillQuery !== lastPrefillRef.current) {
             lastPrefillRef.current = props.prefillQuery;
             setLlmQuery(props.prefillQuery);
+            if (props.prefillQuery.trim()) queryOriginRef.current = 'example';
         }
     }, [props.prefillQuery]);
 
@@ -137,6 +165,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             rankingMode,
             investigateEnabled,
             model,
+            effort: quickOn ? EFFORT_QUICK : undefined,
         };
     };
 
@@ -147,6 +176,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             hasTrackedInputRef.current = true;
         }
         const searchOptions = buildSearchOptionsPayload();
+        const queryMethod = queryOriginRef.current === 'example' ? 'example' : inputMethod;
         trackGtagEvent('home_search_submit_click', {
             has_query: Boolean(query),
             ranking_mode: searchOptions.rankingMode,
@@ -156,7 +186,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         if (query && searchOptions.investigateEnabled) {
             trackGtagEvent('investigate_question_submit', {
                 source: 'home_searchbar',
-                input_method: inputMethod,
+                input_method: queryMethod,
                 queued: false,
             });
         }
@@ -165,6 +195,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 state: {
                     initialQuery: query,
                     initialSearchOptions: searchOptions,
+                    initialQueryMethod: queryMethod,
                 },
             });
         } else {
@@ -345,10 +376,12 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
                 onChange={(event, newValue) => {
                     if (isInputLocked) return;
+                    if (newValue) queryOriginRef.current = 'example';
                     setLlmQuery(newValue || '');
                 }}
-                onInputChange={(event, newInputValue) => {
+                onInputChange={(event, newInputValue, reason) => {
                     if (isInputLocked) return;
+                    if (reason === 'input') queryOriginRef.current = 'typed';
                     setLlmQuery(newInputValue || '');
                 }}
                 openOnFocus
@@ -449,7 +482,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 pointerEvents: 'none',
                             }}
                         >
-                            {INVESTIGATE_ENABLED && (
+                            {(INVESTIGATE_ENABLED || quickOffered) && (
                             <Box
                                 sx={{
                                     display: 'inline-flex',
@@ -459,6 +492,57 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     pointerEvents: 'auto',
                                 }}
                             >
+                                {quickOffered && (
+                                <Button
+                                    disabled={isInputLocked}
+                                    aria-pressed={quickOn}
+                                    onMouseDown={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                    }}
+                                    onClick={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        const next = !quickOn;
+                                        trackGtagEvent('home_quick_toggle_click', { enabled: next });
+                                        setEffort(next ? EFFORT_QUICK : '');
+                                        setEffortPref(next ? EFFORT_QUICK : '');
+                                    }}
+                                    sx={{
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '4px',
+                                        height: '32px',
+                                        padding: '4px 8px',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        background: quickOn ? 'var(--color-brand-muted)' : 'transparent',
+                                        color: quickOn ? 'var(--color-brand-primary)' : 'var(--color-text-tertiary)',
+                                        fontFamily: 'Geist, sans-serif',
+                                        fontWeight: 600,
+                                        fontSize: '12px',
+                                        lineHeight: '16px',
+                                        textTransform: 'none',
+                                        minWidth: 0,
+                                        whiteSpace: 'nowrap',
+                                        boxShadow: 'none !important',
+                                        transition: 'background-color 0.18s ease, color 0.18s ease',
+                                        '& .MuiButton-startIcon': { margin: 0 },
+                                        '&:hover': {
+                                            border: 'none',
+                                            background: quickOn ? 'var(--color-blue-200)' : 'var(--color-background-subtle)',
+                                            color: quickOn ? 'var(--color-blue-600)' : 'var(--color-grey-600)',
+                                        },
+                                    }}
+                                    startIcon={<BoltIcon style={{ width: '18px', height: '18px' }} />}
+                                    title={quickOn
+                                        ? 'Quick is on: an answer in seconds from GLKB alone, at most two search rounds'
+                                        : 'Quick: an answer in seconds from GLKB alone'}
+                                >
+                                    Quick
+                                </Button>
+                                )}
+                                {INVESTIGATE_ENABLED && (
                                 <Button
                                     disabled={isInputLocked}
                                     onMouseDown={(event) => {
@@ -518,6 +602,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 >
                                     Investigate
                                 </Button>
+                                )}
                             </Box>
                             )}
 
@@ -529,7 +614,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     minWidth: 0,
                                     // With Investigate hidden this is the row's only child, so
                                     // `space-between` alone would park it on the left.
-                                    marginLeft: isMobileLayout && INVESTIGATE_ENABLED ? 0 : 'auto',
+                                    marginLeft: isMobileLayout && (INVESTIGATE_ENABLED || quickOffered) ? 0 : 'auto',
                                     pointerEvents: 'auto',
                                 }}
                             >
@@ -548,6 +633,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     // reader picked for chat and that deep research does not
                                     // offer is swapped for the pipeline's default, visibly.
                                     pipeline={investigateEnabled ? 'deep_research' : 'chat'}
+                                    defaultModelOverride={levelDefaultModel}
                                     disabled={isInputLocked}
                                 />
 

@@ -188,3 +188,35 @@ describe('funnel metrics from an agent frame', () => {
         expect(extractFunnelMetrics({ step: 'Processing', content: 'hello' })).toBeNull();
     });
 });
+
+describe('effort level', () => {
+    it('sends the chosen level on an ordinary chat turn', async () => {
+        await run({ filters: [], effort: 'quick' });
+        expect(sentPayload().effort).toBe('quick');
+    });
+
+    it('omits the field when no level was chosen, so the agent runs standard', async () => {
+        await run({ filters: [] });
+        expect(sentPayload()).not.toHaveProperty('effort');
+    });
+
+    it('omits a blank level rather than sending an empty string', async () => {
+        await run({ filters: [], effort: '  ' });
+        expect(sentPayload()).not.toHaveProperty('effort');
+    });
+
+    it('withholds it on the investigate path, where deep research would refuse it', async () => {
+        // Same rule as filters/ranking_mode: a field the pipeline rejects must not be sent,
+        // and here the rejection would be a 400 on a request the reader cannot fix.
+        await run({ effort: 'quick', investigateEnabled: true });
+        expect(sentPayload()).not.toHaveProperty('effort');
+    });
+
+    it('carries a level and a model together', async () => {
+        // A level supplies the picker's default, it does not pin — so "Quick with the best
+        // model" reaches the agent as both fields, and the agent honours both.
+        await run({ filters: [], effort: 'quick', model: 'gpt-5.6-sol' });
+        expect(sentPayload().effort).toBe('quick');
+        expect(sentPayload().model).toBe('gpt-5.6-sol');
+    });
+});

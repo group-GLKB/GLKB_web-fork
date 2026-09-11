@@ -194,14 +194,19 @@ export const updateAvatar = async (avatarId) => {
     });
 
     const { user, message } = response.data;
-    if (user) {
-      localStorage.setItem('user', JSON.stringify(user));
+    /* Some deployments return only {message} from this endpoint. Keep the
+       authenticated user and the sidebar in sync immediately instead of
+       waiting for a later /me refresh. */
+    const currentUser = getCurrentUser();
+    const nextUser = user || (currentUser ? { ...currentUser, avatar_id: avatarId } : null);
+    if (nextUser) {
+      localStorage.setItem('user', JSON.stringify(nextUser));
     }
 
     return {
       success: true,
       message: message || 'Avatar updated successfully',
-      user: user
+      user: nextUser
     };
   } catch (error) {
     return {

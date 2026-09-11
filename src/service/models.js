@@ -64,6 +64,12 @@ export const fetchModelCatalog = () => {
                 // pick the fallback itself would be making a policy decision the agent
                 // already made.
                 defaultsByPipeline: response?.data?.default_model_by_pipeline || {},
+                // The effort levels (service/effort.js), served beside the models so both
+                // pickers read one catalogue. Absent on an agent that predates levels, and
+                // then none is offered — a Quick chip the request path would ignore is a
+                // promise the product cannot keep.
+                efforts: Array.isArray(response?.data?.efforts) ? response.data.efforts : [],
+                defaultEffort: response?.data?.default_effort || 'standard',
             };
             return catalogCache;
         })
@@ -75,6 +81,8 @@ export const fetchModelCatalog = () => {
                 models: FALLBACK_MODELS,
                 defaultModel: FALLBACK_MODELS[0].id,
                 defaultsByPipeline: {},
+                efforts: [],
+                defaultEffort: 'standard',
             };
         });
 
