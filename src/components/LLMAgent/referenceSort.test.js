@@ -96,29 +96,37 @@ describe('sorting by year', () => {
 });
 
 describe('sorting by citations', () => {
-    it('puts the most-cited first', () => {
+    it('keeps citation numbers independent of publication citation counts', () => {
         const sorted = sortReferences(wrap([
             { citation_count: 3 }, { citation_count: 90 }, { citation_count: 20 },
         ]), 'Citations');
-        expect(sorted.map(({ reference }) => reference.citation_count)).toEqual([90, 20, 3]);
+        expect(sorted.map(({ reference }) => reference.citation_count)).toEqual([3, 90, 20]);
     });
 
-    it('sends a reference with no count to the end', () => {
+    it('keeps a numbered reference in place even when its count is unavailable', () => {
         // The PubMed enrichment sets `citation_count: 'N/A'`.
         const sorted = sortReferences(wrap([
             { citation_count: 'N/A' }, { citation_count: 5 },
         ]), 'Citations');
-        expect(sorted.map(({ reference }) => reference.citation_count)).toEqual([5, 'N/A']);
+        expect(sorted.map(({ reference }) => reference.citation_count)).toEqual(['N/A', 5]);
     });
 
-    it('sorts the formatted counts returned by citation providers', () => {
+    it('ignores formatted provider counts for numbered ordering', () => {
         const sorted = sortReferences(wrap([
             { citation_count: '98 citations' },
             { citation_count: '1,234' },
             { citation_count: ' 410 ' },
         ]), 'Citations');
         expect(sorted.map(({ reference }) => reference.citation_count))
-            .toEqual(['1,234', ' 410 ', '98 citations']);
+            .toEqual(['98 citations', '1,234', ' 410 ']);
+    });
+
+    it('restores citation number order after sorting by year', () => {
+        const entries = wrap([{ year: 2024 }, { year: 1990 }, { year: 2010 }]);
+        const chronological = sortReferences(entries, 'Year');
+        expect(chronological.map((item) => item.originalIndex)).toEqual([1, 2, 0]);
+        expect(sortReferences(chronological, 'Citations').map((item) => item.originalIndex))
+            .toEqual([0, 1, 2]);
     });
 
     it('does not turn an empty value into a real zero-citation paper', () => {

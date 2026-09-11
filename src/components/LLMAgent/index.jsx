@@ -147,6 +147,8 @@ import {
     readActiveRunSnapshotFor,
     releaseGuestSlot,
     removeQueuedPromptFromSnapshot,
+    consumeQueuedPrompt,
+    pendingQueuedPrompts,
     writeActiveRunSnapshot,
 } from '../../service/agentRunSnapshot';
 import { shouldSkipConversationRestore } from '../../service/conversationRestore';
@@ -1925,7 +1927,7 @@ function LLMAgent({ isRouteActive = true }) {
                conversation snapshots can legitimately both contain q-1; treating the id as
                global made one conversation borrow the other's de-duplication state. */
             const known = new Set(prev.map(identityFor));
-            const missing = entries.filter((item) => (
+            const missing = pendingQueuedPrompts(entries).filter((item) => (
                 item?.id && !known.has(identityFor(item))
             ));
             if (!missing.length) return prev;
@@ -5765,7 +5767,7 @@ function LLMAgent({ isRouteActive = true }) {
             another — and then was sent there. An entry queued before its row existed has no
             conversation to be shown under yet, and belongs to whatever is open. */}
         {promptsForConversation(
-            queuedPrompts,
+            pendingQueuedPrompts(queuedPrompts),
             activeConversationId,
             activeConversationId == null
                 ? (activeStreamIdRef.current ?? resumingConversationRef.current ?? null)
@@ -5884,7 +5886,7 @@ function LLMAgent({ isRouteActive = true }) {
         }
     }, [hoveredPubmedId, enrichedReferences]);
 
-    // Oldest first by year, most-cited first by citations — see ./referenceSort.js for why
+    // Oldest first by year, inline reference number first by citations — see ./referenceSort.js for why
     // the year comparator could not stay inline.
     const sortedReferences = useMemo(() => sortReferences(
         enrichedReferences.map((reference, originalIndex) => ({ reference, originalIndex })),
@@ -6131,7 +6133,7 @@ function LLMAgent({ isRouteActive = true }) {
             : null;
         queueSeqRef.current += 1;
         setQueuedPrompts((prev) => [...prev, {
-            id: `q-${queueSeqRef.current}`,
+            id: `q-${Date.now()}-${queueSeqRef.current}-${Math.random().toString(36).slice(2)}`,
             text,
             // The thread this is a follow-up TO — see promptQueue.js. When the view is
             // following the run, the run's own id is the most current name for it; when the
@@ -6151,6 +6153,7 @@ function LLMAgent({ isRouteActive = true }) {
 
     const removeQueuedPrompt = useCallback((entry) => {
         if (!entry?.id) return;
+        consumeQueuedPrompt(entry);
         /* A pending snapshot write reads the latest ref when its timer fires. Update that ref
            first, otherwise the timer can put the consumed prompt straight back after the
            durable copy below removed it. */
@@ -6457,7 +6460,7 @@ function LLMAgent({ isRouteActive = true }) {
             // only flip after the first poll answers. See submitOrQueue.
             || Boolean(resumingConversationRef.current && !activeConversationIdRef.current
                 && !runningConversationIdRef.current);
-        const next = nextReleasableEntry(queuedPrompts, {
+        const next = nextReleasableEntry(pendingQueuedPrompts(queuedPrompts), {
             activeConversationId: activeConversationIdRef.current,
             activeRunKey: activeConversationIdRef.current == null
                 ? (activeStreamIdRef.current ?? resumingConversationRef.current ?? null)

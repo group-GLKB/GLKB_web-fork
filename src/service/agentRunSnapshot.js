@@ -32,6 +32,42 @@ const ACTIVE_RUN_SNAPSHOT_KEY = 'llmActiveRunSnapshots';
    the upgrade still finds the run it was in the middle of. */
 const LEGACY_SNAPSHOT_KEY = 'llmActiveRunSnapshot';
 const PROCESSING_FLAG_KEY = 'llmWasProcessing';
+const CONSUMED_PROMPTS_KEY = 'llmConsumedQueuedPrompts';
+
+const promptIdentity = (entry) => JSON.stringify([
+    String(entry?.conversationId ?? ''),
+    String(entry?.runKey ?? ''),
+    String(entry?.id ?? ''),
+]);
+
+const readConsumedPrompts = () => {
+    try {
+        const entries = JSON.parse(getSessionStorage()?.getItem(CONSUMED_PROMPTS_KEY) || '[]');
+        return new Set(Array.isArray(entries) ? entries : []);
+    } catch { return new Set(); }
+};
+
+// Old asynchronous readers can still hold a snapshot after its queue was removed.
+// Keep consumption independent of snapshot lifetime, including across reloads.
+export const pendingQueuedPrompts = (entries) => {
+    const consumed = readConsumedPrompts();
+    const seen = new Set();
+    return (Array.isArray(entries) ? entries : []).filter((entry) => {
+        const key = promptIdentity(entry);
+        if (!entry?.id || consumed.has(key) || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+};
+
+export const consumeQueuedPrompt = (entry) => {
+    if (!entry?.id) return;
+    const consumed = readConsumedPrompts();
+    consumed.add(promptIdentity(entry));
+    try {
+        getSessionStorage()?.setItem(CONSUMED_PROMPTS_KEY, JSON.stringify([...consumed]));
+    } catch { /* Storage may be unavailable. */ }
+};
 // 2: `conversationId` became optional and `messages` was added. A v1 snapshot cannot restore a
 // guest run and is discarded rather than half-read.
 const SNAPSHOT_VERSION = 2;
@@ -125,7 +161,9 @@ const readAll = () => {
     const live = {};
     let pruned = false;
     Object.keys(stored).forEach((slot) => {
-        if (isRestorable(stored[slot])) live[slot] = stored[slot];
+        if (isRestorable(stored[slot])) {
+            live[slot] = { ...stored[slot], queuedPrompts: pendingQueuedPrompts(stored[slot].queuedPrompts) };
+        }
         else pruned = true;
     });
     if (pruned || migrated) writeAll(live);
@@ -189,6 +227,7 @@ export const writeActiveRunSnapshot = (snapshot) => {
 
     const next = {
         ...snapshot,
+        queuedPrompts: pendingQueuedPrompts(snapshot.queuedPrompts),
         version: SNAPSHOT_VERSION,
         active: true,
         // Null for a guest, and for the window before the row comes back from the server.
