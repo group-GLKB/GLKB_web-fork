@@ -67,6 +67,7 @@ import {
 import userAccountIcon from '../../../img/user/ic_outline-account-circle.svg';
 import userLogoutIcon from '../../../img/user/mynaui_logout.svg';
 import { getRunningConversationIds, subscribeToActiveRun } from '../../../service/activeRun';
+import { getRecentPriorityIds, subscribeToRecentPriority } from '../../../service/recentPriority';
 import {
   fetchConversations,
   getActiveConversationId,
@@ -235,6 +236,10 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
     const [runningConversationIds, setRunningConversationIds] = useState(
         () => getRunningConversationIds(),
     );
+    const [recentPriorityIds, setRecentPriorityIds] = useState(getRecentPriorityIds);
+    useEffect(() => subscribeToRecentPriority(
+        () => setRecentPriorityIds(getRecentPriorityIds()),
+    ), []);
     const isConversationRunning = useCallback(
         (id) => id != null && runningConversationIds.has(String(id)),
         [runningConversationIds],
@@ -470,9 +475,10 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
         ? bookmarkedConversationIds.has(String(recentMenuConversation?.id ?? recentMenuConversation?.hid ?? ''))
         : false;
     const displayedRecentConversations = useMemo(
-        () => prioritizeRunningConversations(recentConversations, runningConversationIds)
+        () => prioritizeRunningConversations(recentConversations,
+            new Set([...runningConversationIds, ...recentPriorityIds]))
             .slice(0, maxRecentCount),
-        [maxRecentCount, recentConversations, runningConversationIds],
+        [maxRecentCount, recentConversations, runningConversationIds, recentPriorityIds],
     );
     const isHomeRoute = location.pathname === '/';
 

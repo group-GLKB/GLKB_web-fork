@@ -115,7 +115,7 @@ export const getRunSessionId = (conversationId) => (
 /**
  * Record a run, or move the one that had no conversation id yet onto the id it just got.
  *
- * `kind` is 'investigate' or 'chat'; `runId` is only present for the former.
+ * `kind` is 'investigate' or 'chat'; either pipeline may provide a `runId`.
  */
 export const setActiveRun = (run) => {
     if (!run) {

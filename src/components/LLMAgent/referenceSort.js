@@ -2,8 +2,8 @@
  * The order the References panel puts papers in.
  *
  * BY YEAR, OLDEST FIRST. This is the bibliography order selected for the product: it makes the
- * development of a claim readable chronologically. Citation restores the numbered order
- * used by the inline references in the answer.
+ * development of a claim readable chronologically. Citation sorts by publication citation
+ * count, most-cited first, while retaining the numbers used by inline references.
  *
  * The comparator also could not survive its own input. `(a.year || 0) - (b.year || 0)` returns
  * NaN for any year that is not a bare number, and a comparator that returns NaN is read as
@@ -109,7 +109,8 @@ export const compareByCitationsDescending = (a, b) => {
 export const sortReferences = (wrapped, sortOption) => {
     const items = Array.isArray(wrapped) ? [...wrapped] : [];
     if (sortOption === 'Citations' || sortOption === 'Citation') {
-        items.sort((a, b) => a.originalIndex - b.originalIndex);
+        items.sort((a, b) => compareByCitationsDescending(a.reference, b.reference)
+            || a.originalIndex - b.originalIndex);
     } else {
         items.sort(({ reference: a }, { reference: b }) => compareByYearAscending(a, b));
     }

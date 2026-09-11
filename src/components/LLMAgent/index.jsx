@@ -158,6 +158,9 @@ import {
 } from '../../service/agentRunSnapshot';
 import { shouldSkipConversationRestore } from '../../service/conversationRestore';
 import { isInvestigateConversation, markInvestigateConversation } from '../../utils/investigateConversations';
+import { resolveConversationMode } from './conversationMode';
+import { useQueueDispatch } from './useQueueDispatch';
+import { holdRecentPriority } from '../../service/recentPriority';
 import {
     getLiveConversationNavigationAction,
     isExchangeUnfinished,
@@ -375,6 +378,16 @@ const getStoredChatHistory = (conversationId = null) => {
     const active = conversations.find((item) => String(item.id) === String(activeId));
     return active?.messages || [];
 };
+
+const getConversationInvestigateMode = (conversationId, messages = []) => resolveConversationMode({
+    conversationId,
+    conversation: conversationId == null ? null : getConversations().find(
+        (item) => String(item.id) === String(conversationId),
+    ),
+    snapshot: readActiveRunSnapshotFor(conversationId),
+    messages,
+    marked: isInvestigateConversation(conversationId),
+});
 
 /**
  * The thread a restored run should be drawn on top of.
@@ -2049,9 +2062,7 @@ function LLMAgent({ isRouteActive = true }) {
     useEffect(() => subscribeToNotifyPrefs(
         (prefs) => setNotifyEmailEnabled(prefs.email),
     ), []);
-    const [chatInvestigateEnabled, setChatInvestigateEnabled] = useState(
-        () => Boolean(initialRunSnapshot?.investigate),
-    );
+    const chatInvestigateEnabled = getConversationInvestigateMode(activeConversationId, chatHistory);
     /* Which model answers the next question.
 
        Seeded from localStorage, so a reader's choice survives a reload, and '' until the
@@ -2486,14 +2497,13 @@ function LLMAgent({ isRouteActive = true }) {
             else clearPendingRun(registered.streamId);
             return;
         }
-        // A run id means an investigate run, which the server can be asked about
-        // later; a plain answer is only saved against its history id.
+        // Both pipelines return run ids. Only the submitted mode identifies the pipeline.
         registeredAttachmentRef.current = {
             conversationId: runningConversationIdRef.current || null,
             streamId: activeStreamIdRef.current ?? null,
         };
         setActiveRun({
-            kind: runIdRef.current ? 'investigate' : 'chat',
+            kind: runningInvestigateRef.current ? 'investigate' : 'chat',
             runId: runIdRef.current || null,
             conversationId: runningConversationIdRef.current || null,
             // The address this run can be picked up at after the page goes away. It is the
@@ -3788,9 +3798,7 @@ function LLMAgent({ isRouteActive = true }) {
             messages: runHistory,
             sessionId: sessionIdRef.current,
             runId: runIdRef.current,
-            investigate: Boolean(
-                investigateStartedAt || runIdRef.current || assistantMessage?.investigateMode,
-            ),
+            investigate: Boolean(runningInvestigateRef.current),
             assistantMessage,
             thinkingSteps: thinkingStepsRef.current,
             streamingAnswer: streamingAnswerRef.current,
@@ -3905,9 +3913,6 @@ function LLMAgent({ isRouteActive = true }) {
                 state: Object.keys(restState).length ? restState : null,
             });
             initialSearchOptionsRef.current = searchOptions;
-            if (searchOptions?.investigateEnabled) {
-                setChatInvestigateEnabled(true);
-            }
             // Adopt the model the home page's picker was showing, so the chip here names what
             // this first turn actually ran on. Normally the same value is already in
             // localStorage (both pickers write it), but the handover must not depend on that.
@@ -4205,11 +4210,14 @@ function LLMAgent({ isRouteActive = true }) {
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const requestStartedAt = Date.now();
 
-        const requestSearchOptions = options.searchOptions || initialSearchOptionsRef.current || null;
+        const requestSearchOptions = options.searchOptions
+            || (shouldStartNewConversation ? initialSearchOptionsRef.current : null) || null;
         initialSearchOptionsRef.current = null;
         const trackQuerySubmitSuccess = createQuerySubmitSuccessTracker(options.queryMethod);
         const investigateEnabled = Boolean(
-            requestSearchOptions?.investigateEnabled ?? chatInvestigateEnabled,
+            requestSearchOptions?.investigateEnabled
+                ?? (shouldStartNewConversation ? false
+                    : getConversationInvestigateMode(targetConversationId, baseHistory)),
         );
         // Discard expired investigate session on explicit retry (clarify session expiry)
         const resetInvestigateSession = Boolean(options.resetInvestigateSession);
@@ -5342,10 +5350,8 @@ function LLMAgent({ isRouteActive = true }) {
                them, and a close inside the throttle window would persist a blank bubble
                over an answer that had already arrived. */
             flushConversationStoreWrite();
-            /* Do not remove the loading-first priority while the Saved refresh is still using
-               the old remote order. Its failure is already handled above, so this wait never
-               prevents the run mark from being released on an API error. */
-            if (savedConversationRefresh) await savedConversationRefresh;
+            // Keep Recent stable without blocking another turn on a completed stream.
+            holdRecentPriority(runConversationId, savedConversationRefresh);
             /* 'unknown' means the stream dropped and the server still called the run live.
                Its mark stays: the answer is coming, the sidebar should say so, and a second
                turn must not start on that history id meanwhile. Everything else — finished,
@@ -5478,7 +5484,7 @@ function LLMAgent({ isRouteActive = true }) {
         if (!isLoading) return undefined;
 
         const tryRecover = async () => {
-            if (!runIdRef.current) return;
+            if (!runIdRef.current || !runningInvestigateRef.current) return;
             /* The reattach owns its conversation's polling, by session id, and writes the
                result itself. Two pollers on one transcript is how a recovered answer got
                written twice, and how one of them wrote the WRONG run's. */
@@ -6448,7 +6454,7 @@ function LLMAgent({ isRouteActive = true }) {
         const requestSearchOptions = entry.searchOptions || null;
         const trackQuerySubmitSuccess = createQuerySubmitSuccessTracker(entry.queryMethod);
         const investigateEnabled = Boolean(
-            requestSearchOptions?.investigateEnabled ?? isInvestigateConversation(conversationId),
+            requestSearchOptions?.investigateEnabled ?? getConversationInvestigateMode(conversationId),
         );
         /* Settled before the run is registered, because the registry records it: it is the
            address this answer can be collected at after the page goes away. */
@@ -6647,9 +6653,7 @@ function LLMAgent({ isRouteActive = true }) {
             }
         } finally {
             refreshTierStatus();
-            /* Match the foreground path: keep this row in the loading-first partition until
-               the server-backed Recent order has caught up with the completed turn. */
-            if (savedConversationRefresh) await savedConversationRefresh;
+            holdRecentPriority(conversationId, savedConversationRefresh);
             clearActiveRun(conversationId);
             // Only a real answer is announced as ready; an error or an unfinished turn
             // saying "is ready" would send the reader to an answer that is not there.
@@ -6668,16 +6672,14 @@ function LLMAgent({ isRouteActive = true }) {
      * background changes no view state, and the queue used to sleep through it, releasing at
      * whatever unrelated re-render happened next.
      *
-     * `flushingQueueRef` guards the on-screen path only: `handleSubmit` is async and does not
-     * flip `isLoading` until it has built the request, so two renders inside that window would
-     * otherwise send the same prompt twice. The background path needs no such guard — its
-     * registry mark is set synchronously, before its entry's removal can re-run this effect.
+     * Dispatch claims are scoped to a conversation and release with a React notification.
+     * A ref-only release could strand the next entry after the final run-state render.
      */
-    const flushingQueueRef = useRef(false);
+    const { revision: queueDispatchRevision, isDispatching, dispatch } = useQueueDispatch();
     useEffect(() => {
         if (!queuedPrompts.length || isLimitReachedEffective) return;
         const viewBusy = isLoading || isProcessing || isConversationLoading
-            || flushingQueueRef.current
+            || isDispatching(activeConversationIdRef.current ?? '__guest__')
             // The nameless thread counts as busy while its recovery is polling — the flags
             // only flip after the first poll answers. See submitOrQueue.
             || Boolean(resumingConversationRef.current && !activeConversationIdRef.current
@@ -6687,12 +6689,12 @@ function LLMAgent({ isRouteActive = true }) {
             activeRunKey: activeConversationIdRef.current == null
                 ? (activeStreamIdRef.current ?? resumingConversationRef.current ?? null)
                 : null,
-            isConversationRunning,
+            isConversationRunning: (id) => isConversationRunning(id) || isDispatching(id),
             /* An investigate follow-up can stop to ask a clarifying question, which only the
                reader can answer — it must not run where nobody is watching. */
             requiresScreen: (entry) => Boolean(
                 entry?.searchOptions?.investigateEnabled
-                ?? isInvestigateConversation(entry?.conversationId),
+                ?? getConversationInvestigateMode(entry?.conversationId),
             ),
             viewBusy,
         });
@@ -6713,20 +6715,18 @@ function LLMAgent({ isRouteActive = true }) {
             stableRunBackgroundTurn(next);
             return;
         }
-        flushingQueueRef.current = true;
-        Promise.resolve(
+        dispatch(targetId ?? '__guest__', () =>
             stableSubmit(null, next.text, null, {
                 searchOptions: next.searchOptions,
                 queryMethod: next.queryMethod,
                 ...(targetId == null ? {} : { conversationId: targetId }),
             }),
-        ).finally(() => {
-            flushingQueueRef.current = false;
-        });
+        ).catch((error) => logDev('[LLM] Queued submit failed', error));
     }, [
         isLoading, isProcessing, isConversationLoading, activeConversationId,
         runRegistryRevision, queuedPrompts, isLimitReachedEffective,
         stableSubmit, stableRunBackgroundTurn, removeQueuedPrompt,
+        queueDispatchRevision, isDispatching, dispatch,
     ]);
 
     const stableRefresh = useStableCallback(handleRegenerateResponse);
@@ -7425,22 +7425,7 @@ function LLMAgent({ isRouteActive = true }) {
                                                         isQueryLimitReached={isLimitReachedEffective}
                                                         investigateEnabled={chatInvestigateEnabled}
                                                         model={chatModel}
-                                                        /* Which pipeline the NEXT question runs on, and it is the
-                                                           union of two signals on purpose. `chatInvestigateEnabled`
-                                                           is only ever set by the home-page handover, so a reader who
-                                                           reopens an investigate conversation from History has it
-                                                           false — while `runBackgroundTurn` resolves the same
-                                                           question from `isInvestigateConversation`. The two
-                                                           genuinely disagree there (see the note in the recap), and
-                                                           for the PICKER the conservative side is clear: if either
-                                                           path could send a deep-research request, do not offer a
-                                                           model deep research will refuse. Being wrong this way costs
-                                                           a hidden option; the other way costs a 400 the reader
-                                                           cannot act on. */
-                                                        pipelineIsDeepResearch={
-                                                            chatInvestigateEnabled
-                                                            || isInvestigateConversation(activeConversationId)
-                                                        }
+                                                        pipelineIsDeepResearch={chatInvestigateEnabled}
                                                         onModelChange={handleModelChange}
                                                         onModelResolveDefault={setChatModel}
                                                         effort={chatEffort}
@@ -7451,17 +7436,10 @@ function LLMAgent({ isRouteActive = true }) {
                                                                withheld, exactly as the chip is. The model is sent at every
                                                                level — a level supplies the picker's DEFAULT, not a pin, so
                                                                whatever the chip shows is what the reader asked for. */
-                                                            const deepResearch = chatInvestigateEnabled
-                                                                || isInvestigateConversation(activeConversationId);
                                                             submitOrQueue(event, {
                                                                 investigateEnabled: chatInvestigateEnabled,
-                                                                ...(initialSearchOptionsRef.current || {}),
-                                                                // AFTER the spread: the home page's options seeded this
-                                                                // conversation, but the picker is the live control and a
-                                                                // reader who moved it must not be overridden by what they
-                                                                // arrived with.
                                                                 model: chatModel,
-                                                                effort: (!deepResearch && chatEffort) ? chatEffort : undefined,
+                                                                effort: (!chatInvestigateEnabled && chatEffort) ? chatEffort : undefined,
                                                             }, submissionMeta?.queryMethod || 'button');
                                                         }}
                                                         onStop={handleStopStreaming}
