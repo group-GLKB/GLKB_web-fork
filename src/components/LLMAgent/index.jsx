@@ -73,6 +73,7 @@ import ReferenceHoverCard from './ReferenceHoverCard';
 import { getBookmarks, toggleBookmark } from '../../utils/bookmarks';
 import { resolveClarifyRound } from './clarifyRound';
 import { sortReferences } from './referenceSort';
+import { resolveReferenceSourceIndex } from './referenceSource';
 import { mintSessionId } from './sessionId';
 import { makeDrip } from './streamDrip';
 import {
@@ -6059,10 +6060,11 @@ function LLMAgent({ isRouteActive = true }) {
         })
         .filter(Boolean), [chatHistory]);
 
-    const selectedReferenceSource = referenceSourceOptions.find((item) => item.index === selectedMessageIndex) || null;
+    const referenceSourceIndex = resolveReferenceSourceIndex(chatHistory, selectedMessageIndex);
+    const selectedReferenceSource = referenceSourceOptions.find((item) => item.index === referenceSourceIndex) || null;
 
-    const references = selectedMessageIndex !== null
-        ? chatHistory[selectedMessageIndex]?.references || []
+    const references = referenceSourceIndex !== null
+        ? chatHistory[referenceSourceIndex]?.references || []
         : [];
     const [referenceSummaryMap, setReferenceSummaryMap] = useState({});
     const referenceSummaryPendingRef = useRef(new Set());
@@ -7306,11 +7308,14 @@ function LLMAgent({ isRouteActive = true }) {
                                                                 )}
                                                             </IconButton>
                                                         </Box>
-                                                        {!useMobileReferencesDrawer && isReferencesCollapsed && (
+                                                        {(useMobileReferencesDrawer || isReferencesCollapsed) && (
                                                             <MuiButton
-                                                                className="llm-header-references-toggle"
-                                                                onClick={expandReferences}
-                                                                startIcon={<ReferenceIcon />}
+                                                                className={`llm-header-references-toggle${useMobileReferencesDrawer ? ' mobile' : ''}`}
+                                                                onClick={useMobileReferencesDrawer
+                                                                    ? () => setIsMobileReferencesDrawerOpen(true) : expandReferences}
+                                                                startIcon={useMobileReferencesDrawer ? undefined : <ReferenceIcon />}
+                                                                aria-haspopup={useMobileReferencesDrawer ? 'dialog' : undefined}
+                                                                aria-expanded={useMobileReferencesDrawer ? isMobileReferencesDrawerOpen : !isReferencesCollapsed}
                                                             >
                                                                 References
                                                             </MuiButton>
@@ -7512,7 +7517,7 @@ function LLMAgent({ isRouteActive = true }) {
                                                                                 <span className="references-scope-option-label">
                                                                                     <span className="references-scope-option-number">{optionIndex + 1}.</span> {item.label}
                                                                                 </span>
-                                                                                <span className={`references-scope-radio${selectedMessageIndex === item.index ? ' selected' : ''}`} />
+                                                                                <span className={`references-scope-radio${referenceSourceIndex === item.index ? ' selected' : ''}`} />
                                                                             </button>
                                                                         ))}
                                                                     </div>
@@ -7610,11 +7615,52 @@ function LLMAgent({ isRouteActive = true }) {
                                                 anchor="bottom"
                                                 open={isMobileReferencesDrawerOpen}
                                                 onClose={() => setIsMobileReferencesDrawerOpen(false)}
-                                                PaperProps={{ className: 'llm-mobile-references-drawer' }}
+                                                PaperProps={{ className: 'llm-mobile-references-drawer', role: 'dialog', 'aria-label': 'References' }}
                                             >
                                                 <div className="references-container llm-mobile-references-container">
+                                                    <div className="references-drawer-handle" aria-hidden="true" />
                                                     <div className="references-header-row">
-                                                        <h3 className="references-title">References</h3>
+                                                        <div className="references-header-main">
+                                                            <h3 className="references-title">References</h3>
+                                                            <button
+                                                                type="button"
+                                                                className="references-scope-trigger"
+                                                                onClick={() => setIsReferenceScopeOpen((prev) => !prev)}
+                                                                aria-label="Select reference source"
+                                                                aria-expanded={isReferenceScopeOpen}
+                                                            >
+                                                                <span className="material-symbols-outlined references-scope-icon" aria-hidden="true">forum</span>
+                                                                <span>{selectedReferenceSource?.label || 'Select a response'}</span>
+                                                                <ChevronRightIcon className={`references-scope-chevron${isReferenceScopeOpen ? ' expanded' : ''}`} />
+                                                            </button>
+                                                        </div>
+                                                        <IconButton
+                                                            size="small"
+                                                            className="references-action-button"
+                                                            onClick={() => setIsMobileReferencesDrawerOpen(false)}
+                                                            aria-label="Close references"
+                                                        >
+                                                            <CloseIcon sx={{ fontSize: 20, color: 'var(--color-text-tertiary)' }} />
+                                                        </IconButton>
+                                                    </div>
+                                                    {isReferenceScopeOpen && (
+                                                        <div className="references-scope-panel">
+                                                            {referenceSourceOptions.map((item, optionIndex) => (
+                                                                <button key={item.index} type="button" className="references-scope-option"
+                                                                    onClick={() => {
+                                                                        setSelectedMessageIndex(item.index);
+                                                                        setIsReferenceScopeOpen(false);
+                                                                    }}>
+                                                                    <span className="references-scope-option-label">
+                                                                        <span className="references-scope-option-number">{optionIndex + 1}.</span> {item.label}
+                                                                    </span>
+                                                                    <span className={`references-scope-radio${referenceSourceIndex === item.index ? ' selected' : ''}`} />
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    <div className="references-toolbar-row references-mobile-footer">
+                                                        <span className="references-count-label">{sortedReferences.length} Citations</span>
                                                         <div className="references-toolbar-actions">
                                                             <ToggleButtonGroup
                                                                 size="small"
@@ -7647,19 +7693,11 @@ function LLMAgent({ isRouteActive = true }) {
                                                                     }}
                                                                 />
                                                             </IconButton>
-                                                            <IconButton
-                                                                size="small"
-                                                                className="references-action-button"
-                                                                onClick={() => setIsMobileReferencesDrawerOpen(false)}
-                                                                title="Close references"
-                                                            >
-                                                                <ChevronRightIcon sx={{ color: 'var(--color-text-tertiary)', transform: 'rotate(90deg)' }} />
-                                                            </IconButton>
                                                         </div>
                                                     </div>
 
                                                     {sortedReferences.length > 0 ? (
-                                                        <div ref={referencesListRef} className="references-list" style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingLeft: '1rem', paddingRight: '1rem' }}>
+                                                        <div ref={referencesListRef} className="references-list" style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingLeft: '16px', paddingRight: '16px' }}>
                                                             {sortedReferences.map(({ reference: ref, originalIndex }) => {
                                                                 const url = [
                                                                     ref.title,
