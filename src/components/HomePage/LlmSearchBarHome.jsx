@@ -32,7 +32,6 @@ import {
     EFFORT_QUICK,
     defaultModelFor,
     getEffortPref,
-    isQuickAvailable,
     setEffortPref,
 } from '../../service/effort';
 
@@ -83,9 +82,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
 
        The quota is a different matter and still locks: there is no run to start at all. */
     const isInputLocked = isQueryLimitReached;
-    // Quick is chat's level, hidden while Investigate is on (deep research refuses it). Its
-    // model is a DEFAULT the picker shows, not a lock — see service/effort.js.
-    const quickOffered = isQuickAvailable(efforts, 'chat') && !investigateEnabled;
+    // Home no longer offers Quick. Do not silently apply a saved chat-page Quick preference.
+    const quickOffered = false;
     const quickOn = quickOffered && effort === EFFORT_QUICK;
     const levelDefaultModel = quickOn ? defaultModelFor(efforts, effort) : '';
     useEffect(() => {
