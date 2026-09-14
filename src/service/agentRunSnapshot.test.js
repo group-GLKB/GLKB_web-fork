@@ -7,12 +7,41 @@ import {
     readActiveRunSnapshotFor,
     readAllActiveRunSnapshots,
     removeQueuedPromptFromSnapshot,
+    consumeQueuedPrompt,
+    pendingQueuedPrompts,
     shouldResumeAgentInBackground,
     writeActiveRunSnapshot,
 } from './agentRunSnapshot';
 
 beforeEach(() => {
     sessionStorage.clear();
+});
+
+describe('consumed follow-ups during conversation switching', () => {
+    it('rejects stale restores and delayed snapshot writes after dispatch', () => {
+        const entry = { id: 'q-1', conversationId: 'a', text: 'Follow up' };
+        writeActiveRunSnapshot({ conversationId: 'a', queuedPrompts: [entry] });
+        const stale = readActiveRunSnapshotFor('a');
+        consumeQueuedPrompt(entry);
+        removeQueuedPromptFromSnapshot('a', entry.id);
+        expect(pendingQueuedPrompts(stale.queuedPrompts)).toEqual([]);
+        // Returning to either chat can cause old readers/writers to finish later.
+        for (let visit = 0; visit < 4; visit += 1) {
+            writeActiveRunSnapshot(stale);
+            expect(readActiveRunSnapshotFor('a').queuedPrompts).toEqual([]);
+        }
+        clearActiveRunSnapshot('a');
+        expect(pendingQueuedPrompts(stale.queuedPrompts)).toEqual([]);
+    });
+
+    it('preserves another conversation and an intentional repeated question', () => {
+        const sent = { id: 'q-1', conversationId: 'a', text: 'Same question' };
+        const other = { ...sent, conversationId: 'b' };
+        const repeated = { ...sent, id: 'q-2' };
+        consumeQueuedPrompt(sent);
+        expect(pendingQueuedPrompts([sent, other, repeated, repeated]))
+            .toEqual([other, repeated]);
+    });
 });
 
 /** The stored shape is a map now; this is how a test plants one entry in it. */

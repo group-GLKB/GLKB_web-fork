@@ -96,22 +96,38 @@ describe('sorting by year', () => {
 });
 
 describe('sorting by citations', () => {
-    it('puts the most-cited first', () => {
+    it('renumbers each order while keeping the same paper identity for inline links', () => {
+        const refs = wrap([
+            { url: 'paper-a', year: 2020, citation_count: 5 },
+            { url: 'paper-b', year: 2024, citation_count: 100 },
+            { url: 'paper-c', year: 2010, citation_count: 20 },
+        ]);
+        const citationOrder = sortReferences(refs, 'Citations');
+        expect(citationOrder.map(({ reference, displayNumber }) => [reference.url, displayNumber]))
+            .toEqual([['paper-b', 1], ['paper-c', 2], ['paper-a', 3]]);
+        const yearOrder = sortReferences(refs, 'Year');
+        expect(yearOrder.map(({ reference, displayNumber }) => [reference.url, displayNumber]))
+            .toEqual([['paper-c', 1], ['paper-a', 2], ['paper-b', 3]]);
+        expect(refs.map(({ originalIndex }) => originalIndex)).toEqual([0, 1, 2]);
+        expect(refs.every((item) => item.displayNumber === undefined)).toBe(true);
+    });
+    it('sorts publication citation counts from highest to lowest, retaining citation numbers', () => {
         const sorted = sortReferences(wrap([
             { citation_count: 3 }, { citation_count: 90 }, { citation_count: 20 },
         ]), 'Citations');
         expect(sorted.map(({ reference }) => reference.citation_count)).toEqual([90, 20, 3]);
+        expect(sorted.map(({ originalIndex }) => originalIndex)).toEqual([1, 2, 0]);
     });
 
-    it('sends a reference with no count to the end', () => {
+    it('puts unavailable counts after real zero-citation papers', () => {
         // The PubMed enrichment sets `citation_count: 'N/A'`.
         const sorted = sortReferences(wrap([
-            { citation_count: 'N/A' }, { citation_count: 5 },
+            { citation_count: 'N/A' }, { citation_count: 5 }, { citation_count: 0 },
         ]), 'Citations');
-        expect(sorted.map(({ reference }) => reference.citation_count)).toEqual([5, 'N/A']);
+        expect(sorted.map(({ reference }) => reference.citation_count)).toEqual([5, 0, 'N/A']);
     });
 
-    it('sorts the formatted counts returned by citation providers', () => {
+    it('sorts formatted provider counts numerically', () => {
         const sorted = sortReferences(wrap([
             { citation_count: '98 citations' },
             { citation_count: '1,234' },
@@ -119,6 +135,21 @@ describe('sorting by citations', () => {
         ]), 'Citations');
         expect(sorted.map(({ reference }) => reference.citation_count))
             .toEqual(['1,234', ' 410 ', '98 citations']);
+    });
+
+    it('switches from year to citation count and breaks ties by original number', () => {
+        const entries = wrap([
+            { year: 2024, citation_count: 10 },
+            { year: 1990, citation_count: 10 },
+            { year: 2010, citation_count: 90 },
+        ]);
+        const chronological = sortReferences(entries, 'Year');
+        expect(chronological.map((item) => item.originalIndex)).toEqual([1, 2, 0]);
+        expect(sortReferences(chronological, 'Citations').map((item) => item.originalIndex))
+            .toEqual([2, 0, 1]);
+        expect(sortReferences(chronological, 'Citation').map((item) => item.originalIndex))
+            .toEqual([2, 0, 1]);
+        expect(entries.map((item) => item.originalIndex)).toEqual([0, 1, 2]);
     });
 
     it('does not turn an empty value into a real zero-citation paper', () => {

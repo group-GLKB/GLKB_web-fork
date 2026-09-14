@@ -151,6 +151,32 @@ it('is not operable once the query limit is reached', async () => {
 });
 
 
+describe('telling the composer when the menu is open', () => {
+    /* The home page's composer has a popup of its own — the example list, which opens as soon
+       as the box takes focus — and it has to step aside rather than be drawn underneath this
+       menu. It suppresses its own popup while this one is open, the same way it does for the
+       Search Options drawers, and that is what this reports. */
+    it('reports open, then closed again when a model is picked', async () => {
+        const onOpenChange = jest.fn();
+        setup({ value: 'gpt-5.6-terra', onOpenChange });
+        await screen.findByText('GPT-5.6 Terra');
+        expect(onOpenChange).toHaveBeenLastCalledWith(false);
+
+        fireEvent.click(screen.getByRole('button', { name: /Model: GPT-5.6 Terra/ }));
+        expect(onOpenChange).toHaveBeenLastCalledWith(true);
+
+        fireEvent.click(screen.getByRole('option', { name: /GPT-5.6 Luna/ }));
+        expect(onOpenChange).toHaveBeenLastCalledWith(false);
+    });
+
+    it('is optional — a composer with nothing to hide passes none', async () => {
+        setup({ value: 'gpt-5.6-terra' });
+        await screen.findByText('GPT-5.6 Terra');
+        fireEvent.click(screen.getByRole('button', { name: /Model: GPT-5.6 Terra/ }));
+        expect(document.querySelector('.model-picker-panel')).not.toBeNull();
+    });
+});
+
 describe('a chip with no room for the full name', () => {
     it('abbreviates on a narrow viewport', async () => {
         // Four controls share the composer's row on a phone. Left at full width the chip is

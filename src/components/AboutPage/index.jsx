@@ -266,7 +266,9 @@ const AboutPage = () => {
                                     transparency is the feature.
                                 </p>
                             </div>
-                            <img className="about-evidence-media" src={evidenceImage} alt="A citation list with its source sentences" />
+                            <div className="about-evidence-media">
+                                <img src={evidenceImage} alt="A citation list with its source sentences" />
+                            </div>
                         </article>
                         <div className="about-different-grid">
                             {DIFFERENTIATORS.map(([title, body]) => (

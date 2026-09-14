@@ -49,6 +49,14 @@ describe('blog post content', () => {
     const design = designText();
 
     posts.forEach((post) => {
+        it(`${post.slug} uses its first body figure as the cover`, () => {
+            const container = renderArticle(post.slug);
+            const firstFigure = container.querySelector('.blog-content figure img');
+            expect(firstFigure).not.toBeNull();
+            expect(post.thumb).toBeTruthy();
+            expect(post.thumb).toBe(firstFigure.getAttribute('src'));
+        });
+
         it(`${post.slug} says only what the design says`, () => {
             const haystack = design[post.slug];
             expect(haystack).toBeTruthy();

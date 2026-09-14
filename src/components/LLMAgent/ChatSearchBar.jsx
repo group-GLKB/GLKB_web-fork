@@ -13,6 +13,8 @@ import { trackGtagEvent } from '../../utils/gtag';
 import { EFFORT_QUICK, defaultModelFor, isQuickAvailable } from '../../service/effort';
 import ModelPicker from '../Units/ModelPicker';
 
+const SHOW_QUICK_CONTROL = false;
+
 const ChatSearchBar = ({
     userInput,
     setUserInput,
@@ -169,7 +171,8 @@ const ChatSearchBar = ({
                                 puts it too. It had a control row of its own under the field for
                                 a while, which cost the composer 54px of height for one chip and
                                 left the chip stranded in a band of empty space. */}
-                            {quickOffered && (
+                            {/* Quick is hidden on both home and chat composers. */}
+                            {SHOW_QUICK_CONTROL && quickOffered && (
                                 <Box
                                     component="button"
                                     type="button"

@@ -227,9 +227,20 @@ const FUNNEL_COLUMNS = [
  * later changes instantly. While the value is unknown but its phase has started, it shows the
  * decelerating fake ramp described above.
  */
-const FunnelCounter = ({ value, label, columnKey, ticking, reduced, onDisplay }) => {
-    const [shown, setShown] = useState(null);
-    const hasAnimatedRef = useRef(false);
+const FunnelCounter = ({ value, label, columnKey, ticking, reduced, onDisplay, initialShown = null }) => {
+    /* `initialShown` is what THIS column was last showing, handed back by the parent when the
+       card is re-created over a run that is still going — a reload, or the reader leaving the
+       conversation and coming back. Without it the counter opened at nothing and counted up to
+       the truth again, so every return to a running investigation looked like the run had
+       started over. It is presentation state only: the parent keeps it (service/agentRunSnapshot
+       for a reload, a ref for a switch) precisely because it is not derivable from the agent's
+       numbers — the ramp is part of what the reader saw.
+
+       Seeding it also means the first real value SNAPS rather than animating, which is the same
+       rule a second value already follows: the count-up is for the first appearance of a
+       counter, and a remount is not that. */
+    const [shown, setShown] = useState(initialShown);
+    const hasAnimatedRef = useRef(initialShown !== null && initialShown !== undefined);
     const rafRef = useRef(null);
     const rampRef = useRef(null);          // { ceiling, value, nextAt } — survives re-renders
     const config = RAMP_RANGE[columnKey] || RAMP_RANGE.cited;
@@ -242,12 +253,19 @@ const FunnelCounter = ({ value, label, columnKey, ticking, reduced, onDisplay })
         if (rafRef.current) cancelAnimationFrame(rafRef.current);
         // Where the ramp got to before the truth arrived.
         const reached = rampRef.current ? rampRef.current.value : 0;
+        /* And what this column was showing before the card was re-created, which is NOT the
+           same thing: a remount has no ramp of its own, so Retrieved — whose reading is
+           `real + ramp` — would drop by the whole ramp the moment the panel came back (1,788
+           to 1,621, measured). The reader watched that number; it must not go backwards. */
+        const alreadyShowing = (initialShown === null || initialShown === undefined)
+            ? 0
+            : Number(initialShown) || 0;
         // Never below the ramp: a counter that visibly counts DOWN reads as a bug, and on a
         // narrow question the agent's real number does land under the ramp (a run screening 2
         // papers against a ramp already at 22). `addsToReal` columns clear this on their own —
         // real + reached >= reached — so this only bites the other three, and only in that case;
         // when the real value is the larger one, as it usually is, the target is unchanged.
-        const target = Math.max(value + (config.addsToReal ? reached : 0), reached);
+        const target = Math.max(value + (config.addsToReal ? reached : 0), reached, alreadyShowing);
         if (reduced || hasAnimatedRef.current) {
             hasAnimatedRef.current = true;
             setShown(target);
@@ -266,7 +284,7 @@ const FunnelCounter = ({ value, label, columnKey, ticking, reduced, onDisplay })
         };
         rafRef.current = requestAnimationFrame(step);
         return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-    }, [value, reduced, config.addsToReal]);
+    }, [value, reduced, initialShown, config.addsToReal]);
 
     // Unknown value, phase in flight: the random ramp.
     useEffect(() => {
@@ -280,10 +298,12 @@ const FunnelCounter = ({ value, label, columnKey, ticking, reduced, onDisplay })
                 ceiling: Math.round(randomBetween(config.min, config.max)),
                 tauMs: randomBetween(config.tauMin, config.tauMax),
                 startedAt: null,
-                value: 1,
+                // Where this column was already reading, so a remount resumes the ramp instead
+                // of dropping to 1 and climbing the same ground twice.
+                value: (initialShown === null || initialShown === undefined) ? 1 : initialShown,
                 nextAt: 0,
             };
-            setShown(1);
+            setShown(rampRef.current.value);
         }
         let alive = true;
         const step = (now) => {
@@ -323,7 +343,8 @@ const FunnelCounter = ({ value, label, columnKey, ticking, reduced, onDisplay })
                would be counted as ramp time and the counter would leap on the way back. */
             if (rampRef.current) rampRef.current.startedAt = null;
         };
-    }, [ticking, value, reduced, config.min, config.max, config.tauMin, config.tauMax]);
+    }, [ticking, value, reduced, initialShown,
+        config.min, config.max, config.tauMin, config.tauMax]);
 
     /* Tell the parent what this counter is showing, so the finished message can keep the
        figure the reader watched rather than the agent's raw count (which is smaller for
@@ -526,6 +547,12 @@ const InvestigateProgress = ({
        ended, because the chips read the agent's raw count while the counter had been
        showing `real + ramp`. */
     onDisplayFunnel,
+    /* The counters' own last readings, for a panel re-created over a run that is still going
+       (a reload, or the reader leaving the conversation and coming back). A function rather
+       than an object so the parent can keep it in a ref — it changes on every animation frame,
+       and a changing prop would re-render the whole card at the counters' frame rate. Read
+       once, when each counter is created. */
+    getDisplayFunnel,
     expanded = true,
     onToggleExpanded,
 }) => {
@@ -539,6 +566,12 @@ const InvestigateProgress = ({
     const notifyAnyEnabled = notifyPrefs.email || notifyPrefs.browser;
 
     const reduced = useMemo(prefersReducedMotion, []);
+    // Read once: these are the readings to OPEN at, and every later value comes through props.
+    const openingShown = useMemo(
+        () => (typeof getDisplayFunnel === 'function' ? (getDisplayFunnel() || {}) : {}),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [],
+    );
     const safeFunnel = funnel || {};
     const meta = INVESTIGATE_PHASE_META[phase] || INVESTIGATE_PHASE_META.planning;
     const idx = phaseIndex(phase);
@@ -571,10 +604,26 @@ const InvestigateProgress = ({
     // ── progress bar: ease to the target, then creep, never decrease ──
     // A cycling detail list can be opened in full; the clipped container has to open with it.
     const [detailExpanded, setDetailExpanded] = useState(false);
-    const [barPct, setBarPct] = useState(PHASE_PERCENT_FLOOR.planning);
-    const targetRef = useRef(PHASE_PERCENT_FLOOR.planning);
-    const capRef = useRef(phasePercentCap('planning'));
-    const barRef = useRef(PHASE_PERCENT_FLOOR.planning);
+    /* Opens AT the run's position, not at the planning floor.
+    
+       The bar used to start every mount at 2% and ease up to wherever the run actually was, so
+       coming back to a running investigation — a reload, or a trip to another conversation and
+       back — replayed the whole bar from the left. Measured before this: 2 → 12 → 18 → 20 → 22
+       over a second and a half, on a run that had been sitting at 22 the whole time.
+    
+       A fresh run is unaffected: it arrives on `planning` with percent 2, which is what this
+       computes anyway. */
+    const openingPct = useMemo(() => {
+        const fromPhase = PHASE_PERCENT_FLOOR[phase] ?? 0;
+        const fromAgent = Number.isFinite(Number(percent)) ? Number(percent) : 0;
+        return Math.min(99.4, Math.max(PHASE_PERCENT_FLOOR.planning, fromPhase, fromAgent));
+        // Mount-time only: the effects below own every later move.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    const [barPct, setBarPct] = useState(openingPct);
+    const targetRef = useRef(openingPct);
+    const capRef = useRef(Math.max(openingPct, phasePercentCap(phase)));
+    const barRef = useRef(openingPct);
 
     useEffect(() => {
         const floor = PHASE_PERCENT_FLOOR[phase] ?? 0;
@@ -745,6 +794,7 @@ const InvestigateProgress = ({
                             ticking={!done && !paused && idx >= phaseIndex(col.filledFrom)}
                             reduced={reduced}
                             onDisplay={onDisplayFunnel}
+                            initialShown={openingShown[col.key] ?? null}
                         />
                     ))}
                 </Box>
