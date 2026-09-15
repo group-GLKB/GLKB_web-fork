@@ -46,19 +46,26 @@ test('Investigate mode reaches an answer, clicking through any clarifying questi
 
   while (Date.now() < deadline) {
     if (await clarifyPanel.isVisible().catch(() => false)) {
-      // Pick the first option (or "Other" if a question offers none) so there is always
-      // something to submit, then loop straight back around — another round can follow.
-      const firstOption = clarifyPanel.locator('[role="radio"], [role="checkbox"]').first();
-      if (await firstOption.count() > 0) {
-        await firstOption.click();
-      } else {
-        await clarifyPanel.getByLabel(/^Use my own answer$/).click();
+      /* The submit button only gains the .clarify-submit class once an option is actually
+         selected (ClarifyPanel.jsx: isAnswered(draft)) — otherwise it's .clarify-skip. A
+         2026-09-14 run got stuck for the full 20 minutes clicking a .clarify-submit that
+         never existed, because the option click above it hadn't reached the handler (the
+         same click-lands-but-doesn't-register issue library.spec.js hit on the reference
+         bookmark button — force: true and confirming the click actually landed fixed that
+         one). Retry with force, and verify selection before trusting a submit click to it. */
+      let optionSelected = false;
+      for (let attempt = 0; attempt < 3 && !optionSelected; attempt += 1) {
+        const firstOption = clarifyPanel.locator('[role="radio"], [role="checkbox"]').first();
+        const target = (await firstOption.count()) > 0
+          ? firstOption
+          : clarifyPanel.getByLabel(/^Use my own answer$/);
+        await target.click({ force: true });
+        optionSelected = await clarifyPanel.locator('.clarify-submit').count() > 0;
       }
-      await clarifyPanel.locator('.clarify-submit').click();
+      expect(optionSelected, 'clarify option selection never registered after 3 attempts').toBeTruthy();
+      await clarifyPanel.locator('.clarify-submit').click({ force: true, timeout: 10000 });
       /* Give the submit a beat to actually land before re-checking, instead of re-entering
-         this branch instantly. Without this the loop clicked a not-yet-updated panel over
-         and over — a real 20-minute run never got past the first round because of it — since
-         nothing here waited for the panel to close before deciding what to do next. */
+         this branch instantly — a round can take a moment to actually close once submitted. */
       await clarifyPanel.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
       continue;
     }
