@@ -14,6 +14,7 @@ import {
     promptsSurvivingReset,
     queuedPromptOwner,
     releaseTargetFor,
+    restoredQueueOwnerKey,
 } from './promptQueue';
 
 const entry = (id, conversationId, runKey = null) => ({
@@ -21,6 +22,34 @@ const entry = (id, conversationId, runKey = null) => ({
     text: `q${id}`,
     conversationId,
     runKey,
+});
+
+describe('guest queue ownership across turn boundaries', () => {
+    it('keeps two follow-ups visible and dispatches in order after each transport finishes', () => {
+        const owner = 'guest-thread';
+        let queue = [entry('first', null, owner), entry('second', null, owner)];
+        const state = { activeConversationId: null, activeRunKey: owner };
+        expect(nextReleasableEntry(queue, { ...state, viewBusy: true })).toBeNull();
+        // Completion clears the transport, not the thread owner.
+        expect(promptsForConversation(queue, null, owner)).toHaveLength(2);
+        expect(nextReleasableEntry(queue, state).id).toBe('first');
+        queue = queue.slice(1);
+        expect(nextReleasableEntry(queue, { ...state, viewBusy: true })).toBeNull();
+        expect(nextReleasableEntry(queue, state).id).toBe('second');
+        expect(promptsForConversation(queue, null, 'new-chat')).toEqual([]);
+        expect(promptsSurvivingReset(queue, owner)).toEqual([]);
+    });
+
+    it('restores the stable owner and migrates legacy guest snapshots without changing entry identity', () => {
+        expect(restoredQueueOwnerKey({ queueOwnerKey: 'thread', sessionId: 's' })).toBe('thread');
+        const snapshot = { sessionId: 's', queuedPrompts: [entry('first', null, 'old-stream')] };
+        const restored = restoredQueueOwnerKey(snapshot);
+        expect(restored).toBe('old-stream');
+        expect(nextReleasableEntry(snapshot.queuedPrompts, { activeRunKey: restored }).id).toBe('first');
+        expect(restoredQueueOwnerKey({ sessionId: 's' })).toBe('session:s');
+        expect(restoredQueueOwnerKey({ ...snapshot, conversationId: 'other' })).toBeNull();
+        expect(restoredQueueOwnerKey(null)).toBeNull();
+    });
 });
 
 describe('filing a follow-up under its thread', () => {

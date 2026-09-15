@@ -112,11 +112,7 @@ test.describe('an answer survives', () => {
     });
 });
 
-/* Skipped: a guest follow-up is currently unreliable in production (2026-09-14 hourly run —
-   the follow-up itself went missing instead of replacing the first exchange, a different
-   shape of the same underlying bug this test was written to catch). Reported to frontend;
-   re-enable once fixed rather than have this cry wolf every hour in the meantime. */
-test.skip('a follow-up keeps the first exchange on screen', async ({ page }) => {
+test('a follow-up keeps the first exchange on screen', async ({ page }) => {
     test.setTimeout(300000);
     await page.goto('/');
     await ask(page);
@@ -147,6 +143,29 @@ test.skip('a follow-up keeps the first exchange on screen', async ({ page }) => 
     }
     expect(answers).toBe(2);
     expect(await askedQuestions(page)).toHaveLength(2);
+});
+
+test('guest follow-ups queued mid-answer are sent in order without disappearing', async ({ page }) => {
+    test.setTimeout(300000);
+    await page.goto('/');
+    await ask(page);
+    await expect(page.getByRole('button', { name: 'Stop generating', exact: true })).toBeVisible();
+    const box = page.locator('textarea:not([aria-hidden="true"])').first();
+    const followups = ['What does BRCA1 stand for? Answer in one sentence.',
+        'Name one BRCA1 interaction partner. Answer in one sentence.'];
+    for (const text of followups) {
+        await box.fill(text);
+        await page.keyboard.press('Enter');
+        await expect(page.locator('.queued-prompt-text').filter({ hasText: text })).toBeVisible();
+    }
+    const users = page.locator('.message-card[data-message-role="user"]');
+    await expect(users).toHaveCount(3, { timeout: 240000 });
+    await expect(page.locator('.queued-prompt-text')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Stop generating', exact: true })).toHaveCount(0, { timeout: 120000 });
+    expect(await askedQuestions(page)).toEqual([QUESTION, ...followups]);
+    const answers = page.locator('.message-card[data-message-role="assistant"] .markdown-body');
+    await expect(answers).toHaveCount(3);
+    for (const answer of await answers.all()) expect((await answer.innerText()).trim().length).toBeGreaterThan(0);
 });
 
 test('a new chat started mid-answer leaves the composer usable', async ({ page }) => {

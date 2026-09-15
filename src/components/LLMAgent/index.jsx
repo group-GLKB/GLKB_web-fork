@@ -83,6 +83,7 @@ import {
     promptsSurvivingReset,
     queuedPromptOwner,
     releaseTargetFor,
+    restoredQueueOwnerKey,
 } from './promptQueue';
 import { ReactComponent as ContentCopyIcon } from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
@@ -2278,6 +2279,9 @@ function LLMAgent({ isRouteActive = true }) {
     );
     const loadingConversationIdRef = useRef(null);
     const activeStreamIdRef = useRef(null);
+    // Unlike activeStreamIdRef, this survives a turn finishing. Only New Chat
+    // resets the nameless conversation that owns queued guest follow-ups.
+    const queueOwnerKeyRef = useRef(restoredQueueOwnerKey(initialRunSnapshot));
     const liveRunSnapshotRef = useRef(initialRunSnapshot);
     /* The slot the live snapshot is being written under — a conversation id, or null for a run
        that has none yet. `undefined` means nothing has been written this mount. Kept so that
@@ -2777,6 +2781,9 @@ function LLMAgent({ isRouteActive = true }) {
            address nor a conversation has genuinely nothing behind it. */
         if (!sessionId && !conversationId) return;
         const key = conversationId ? String(conversationId) : `session:${sessionId}`;
+        if (conversationId == null && !queueOwnerKeyRef.current) {
+            queueOwnerKeyRef.current = restoredQueueOwnerKey(readActiveRunSnapshotFor(null)) || key;
+        }
         if (resumingConversationRef.current === key) return;
         resumingConversationRef.current = key;
         /* A Stop belongs to the reattach it was aimed at. Cleared as a new one starts, so a
@@ -3638,7 +3645,7 @@ function LLMAgent({ isRouteActive = true }) {
            registry entry stays until the request itself settles, so the conversation keeps its
            working dot in the sidebar meanwhile. */
         const departingRunKey = activeConversationIdRef.current == null
-            ? (activeStreamIdRef.current ?? resumingConversationRef.current ?? null)
+            ? queueOwnerKeyRef.current
             : null;
         const departingConversationId = activeConversationIdRef.current
             ?? runningConversationIdRef.current
@@ -3682,6 +3689,7 @@ function LLMAgent({ isRouteActive = true }) {
            left. Another simultaneously-created nameless run can have its own queue, and named
            conversations are still being written and will still take their follow-ups. */
         setQueuedPrompts((prev) => promptsSurvivingReset(prev, departingRunKey));
+        queueOwnerKeyRef.current = null;
         llmService.clearHistory();
     }, [cancelStreaming, llmService]);
 
@@ -3866,6 +3874,7 @@ function LLMAgent({ isRouteActive = true }) {
         snapshotConversationIdRef.current = conversationId;
         liveRunSnapshotRef.current = {
             conversationId,
+            queueOwnerKey: conversationId == null ? queueOwnerKeyRef.current : null,
             /* The follow-ups the reader has already handed over. `submitOrQueue` takes the
                text out of the composer and draws it as a pending bubble, so from their side
                the question has been SENT — and it lived in React state alone, so the reload
@@ -4284,6 +4293,10 @@ function LLMAgent({ isRouteActive = true }) {
             ? options.baseHistory
             : (shouldStartNewConversation ? [] : chatHistory);
         const streamId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        if (shouldStartNewConversation || !queueOwnerKeyRef.current) {
+            queueOwnerKeyRef.current = streamId;
+        }
+        const queueOwnerKey = queueOwnerKeyRef.current;
         activeStreamIdRef.current = streamId;
         // A Stop aimed at the PREVIOUS run must not follow this one, which the reader has
         // only just asked for.
@@ -4479,7 +4492,7 @@ function LLMAgent({ isRouteActive = true }) {
                Several new conversations can be nameless at once, so only THIS run's entries
                may take the new history id. */
             setQueuedPrompts((prev) => (
-                claimQueuedPrompts(prev, streamId, String(historyId))
+                claimQueuedPrompts(prev, queueOwnerKey, String(historyId))
             ));
         }
 
@@ -5126,7 +5139,7 @@ function LLMAgent({ isRouteActive = true }) {
                             runConversationId = savedId;
                             recordSubmittedMode(savedId, investigateEnabled);
                             setQueuedPrompts((prev) => (
-                                claimQueuedPrompts(prev, streamId, savedId)
+                                claimQueuedPrompts(prev, queueOwnerKey, savedId)
                             ));
                             const nextSessionId = update.sessionId || runSessionId;
                             if (nextSessionId) {
@@ -6093,7 +6106,7 @@ function LLMAgent({ isRouteActive = true }) {
             pendingQueuedPrompts(queuedPrompts),
             activeConversationId,
             activeConversationId == null
-                ? (activeStreamIdRef.current ?? resumingConversationRef.current ?? null)
+                ? queueOwnerKeyRef.current
                 : null,
         ).map((item) => (
             <Container
@@ -6436,7 +6449,7 @@ function LLMAgent({ isRouteActive = true }) {
             )
             : (targetConversationId != null ? String(targetConversationId) : null);
         const ownerRunKey = ownerConversationId == null
-            ? (activeStreamIdRef.current ?? resumingConversationRef.current ?? null)
+            ? queueOwnerKeyRef.current
             : null;
         queueSeqRef.current += 1;
         setQueuedPrompts((prev) => [...prev, {
@@ -6446,9 +6459,8 @@ function LLMAgent({ isRouteActive = true }) {
             // following the run, the run's own id is the most current name for it; when the
             // busy thread is being answered in the background, the screen's id is.
             conversationId: ownerConversationId,
-            // Before Saved gives the run a history id this is the only value that separates
-            // two simultaneously-created conversations. It scopes the pending bubble, its
-            // eventual id migration, and its release back into the composer that owns it.
+            // Stable across guest turns; a completed transport must not orphan its queue.
+            // Also separates provisional conversations until Saved gives them history ids.
             runKey: ownerRunKey,
             // Captured now rather than read at send time: they describe the turn the reader
             // meant to ask for.
@@ -6769,7 +6781,7 @@ function LLMAgent({ isRouteActive = true }) {
         const next = nextReleasableEntry(pendingQueuedPrompts(queuedPrompts), {
             activeConversationId: activeConversationIdRef.current,
             activeRunKey: activeConversationIdRef.current == null
-                ? (activeStreamIdRef.current ?? resumingConversationRef.current ?? null)
+                ? queueOwnerKeyRef.current
                 : null,
             isConversationRunning: (id) => isConversationRunning(id) || isDispatching(id),
             /* An investigate follow-up can stop to ask a clarifying question, which only the
@@ -6789,7 +6801,7 @@ function LLMAgent({ isRouteActive = true }) {
             next,
             activeConversationIdRef.current,
             activeConversationIdRef.current == null
-                ? (activeStreamIdRef.current ?? resumingConversationRef.current ?? null)
+                ? queueOwnerKeyRef.current
                 : null,
         );
         if (!targetIsOnScreen && targetId != null) {
