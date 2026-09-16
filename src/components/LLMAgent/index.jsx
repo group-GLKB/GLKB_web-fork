@@ -155,6 +155,7 @@ import {
     readActiveRunSnapshotFor,
     releaseGuestSlot,
     removeQueuedPromptFromSnapshot,
+    restoreQueuedPromptToSnapshot,
     consumeQueuedPrompt,
     unconsumeQueuedPrompt,
     pendingQueuedPrompts,
@@ -6565,10 +6566,15 @@ function LLMAgent({ isRouteActive = true }) {
     const requeueQueuedPrompt = useCallback((entry) => {
         if (!entry?.id) return;
         unconsumeQueuedPrompt(entry);
+        restoreQueuedPromptToSnapshot(entry.conversationId ?? null, entry);
         const identity = queueEntryIdentity(entry);
-        setQueuedPrompts((prev) => (
-            prev.some((item) => queueEntryIdentity(item) === identity) ? prev : [...prev, entry]
-        ));
+        setQueuedPrompts((prev) => {
+            if (prev.some((item) => queueEntryIdentity(item) === identity)) return prev;
+            /* At the FRONT, not the end. `nextReleasableEntry` takes the earliest entry for a
+               conversation, and that is how two follow-ups keep the order they were asked in —
+               appending would send the reader's second question before their first. */
+            return [entry, ...prev];
+        });
     }, []);
 
     const announceBackgroundClarification = useCallback((forConversationId, round) => {
@@ -6617,202 +6623,217 @@ function LLMAgent({ isRouteActive = true }) {
            same history id. */
         setActiveRun({ kind: investigateEnabled ? 'investigate' : 'chat', runId: null, conversationId, sessionId, key: streamId });
         backgroundRunsRef.current.add(String(conversationId));
-        // A NEW run re-arms this conversation's completion notice: the set de-duplicates per
-        // conversation, and without this a second background follow-up finished silently.
-        backgroundCompletionNotifiedRef.current.delete(conversationId);
-
-        /* The stored copy can be frozen mid-exchange: a run released by New Chat stops
-           writing the store the moment the view lets go (its frames are dropped), so the
-           store still ends [question, empty assistant] after the server has long since
-           finished. Building on that would file this turn after a blank answer and send the
-           agent a truncated context. The release only happens once the previous run settled,
-           so the server's copy is whole — fetch it when the stored one is not. */
-        let base = getStoredChatHistory(conversationId);
-        if (!base.length || isExchangeUnfinished(base)) {
-            try {
-                const detail = await fetchConversationDetail(conversationId);
-                const serverBase = detail?.messages || [];
-                if (serverBase.length >= base.length) base = serverBase;
-            } catch (error) {
-                logDev('[LLM] background turn base refetch failed', error);
-            }
-        }
-        const userMessage = {
-            role: 'user',
-            content: entry.text,
-            references: [],
-            timestamp,
-            investigateMode: investigateEnabled,
-            modeSource: 'submitted',
+        /* From here the conversation is marked as answering, in the shared registry and in
+           this tab's own record, and BOTH have to come down however this ends. Anything that
+           throws before the request — a full sessionStorage, an unreadable stored transcript —
+           used to leave the marks up for the life of the mount: the conversation reads as
+           permanently answering, and (since the visit-time reconcile now trusts this tab's
+           record) nothing clears it, so every later question to it queues and never goes. */
+        const releaseBackgroundMarks = () => {
+            backgroundRunsRef.current.delete(String(conversationId));
+            clearActiveRun(conversationId);
         };
-        let history = [...base, userMessage, {
-            role: 'assistant',
-            content: '',
-            references: [],
-            timestamp,
-            thinkingSteps: [],
-            thoughtDurationMs: null,
-            trajectory: null,
-            investigateMode: investigateEnabled,
-        }];
-        let savedConversationRefresh = null;
-        writeConversationMessages(conversationId, history);
-
-        const localThinkingSteps = [];
-        let settled = false;
-        let succeeded = false;
-        const settleWith = (assistantMessage) => {
-            if (settled) return;
-            settled = true;
-            history = [...history.slice(0, -1), assistantMessage];
-            writeConversationMessages(conversationId, history);
-        };
-
         try {
-            await llmService.chat(entry.text, new AbortController(), (update) => {
-                trackQuerySubmitSuccess(update);
-                switch (update.type) {
-                    case 'step':
-                        if (update.step === 'Error') {
+            // A NEW run re-arms this conversation's completion notice: the set de-duplicates per
+            // conversation, and without this a second background follow-up finished silently.
+            backgroundCompletionNotifiedRef.current.delete(conversationId);
+
+            /* The stored copy can be frozen mid-exchange: a run released by New Chat stops
+               writing the store the moment the view lets go (its frames are dropped), so the
+               store still ends [question, empty assistant] after the server has long since
+               finished. Building on that would file this turn after a blank answer and send the
+               agent a truncated context. The release only happens once the previous run settled,
+               so the server's copy is whole — fetch it when the stored one is not. */
+            let base = getStoredChatHistory(conversationId);
+            if (!base.length || isExchangeUnfinished(base)) {
+                try {
+                    const detail = await fetchConversationDetail(conversationId);
+                    const serverBase = detail?.messages || [];
+                    if (serverBase.length >= base.length) base = serverBase;
+                } catch (error) {
+                    logDev('[LLM] background turn base refetch failed', error);
+                }
+            }
+            const userMessage = {
+                role: 'user',
+                content: entry.text,
+                references: [],
+                timestamp,
+                investigateMode: investigateEnabled,
+                modeSource: 'submitted',
+            };
+            let history = [...base, userMessage, {
+                role: 'assistant',
+                content: '',
+                references: [],
+                timestamp,
+                thinkingSteps: [],
+                thoughtDurationMs: null,
+                trajectory: null,
+                investigateMode: investigateEnabled,
+            }];
+            let savedConversationRefresh = null;
+            writeConversationMessages(conversationId, history);
+
+            const localThinkingSteps = [];
+            let settled = false;
+            let succeeded = false;
+            const settleWith = (assistantMessage) => {
+                if (settled) return;
+                settled = true;
+                history = [...history.slice(0, -1), assistantMessage];
+                writeConversationMessages(conversationId, history);
+            };
+
+            try {
+                await llmService.chat(entry.text, new AbortController(), (update) => {
+                    trackQuerySubmitSuccess(update);
+                    switch (update.type) {
+                        case 'step':
+                            if (update.step === 'Error') {
+                                settleWith({
+                                    role: 'assistant',
+                                    content: update.content,
+                                    references: [],
+                                    timestamp,
+                                    thinkingSteps: [...localThinkingSteps],
+                                    thoughtDurationMs: Date.now() - requestStartedAt,
+                                    investigateMode: investigateEnabled,
+                                });
+                            } else if (update.step && String(update.content ?? '').trim()) {
+                                localThinkingSteps.push({ step: update.step, content: update.content });
+                            }
+                            break;
+                        /* 'final', not 'complete': the service names the finished-answer frame
+                           'final' (LLMAgent.jsx maps step 'Complete' to it), and listening for a
+                           frame that never comes left the stored transcript ending in an empty
+                           assistant bubble until the server copy was next fetched. */
+                        case 'final':
+                            if (update.sessionId) {
+                                setStoredSessionId(conversationId, update.sessionId);
+                            }
+                            succeeded = true;
                             settleWith({
                                 role: 'assistant',
-                                content: update.content,
+                                content: update.answer,
+                                references: parseReferences(update.references),
+                                directCitations: parseDirectCitations(update.directCitations),
+                                timestamp,
+                                thinkingSteps: [...localThinkingSteps],
+                                thoughtDurationMs: Date.now() - requestStartedAt,
+                                trajectory: update.trajectory || null,
+                                investigateMode: investigateEnabled,
+                            });
+                            break;
+                        case 'saved': {
+                            const savedId = update.historyId ? String(update.historyId) : conversationId;
+                            if (update.sessionId) {
+                                setStoredSessionId(savedId, update.sessionId);
+                            }
+                            if (isAuthenticated) {
+                                savedConversationRefresh = fetchConversations()
+                                    .then((list) => setConversationsState(list))
+                                    .catch((error) => logDev('[LLM] Failed to refresh conversations', error));
+                            }
+                            break;
+                        }
+                        case 'error':
+                            settleWith({
+                                role: 'assistant',
+                                content: `Error: ${update.error}`,
                                 references: [],
                                 timestamp,
                                 thinkingSteps: [...localThinkingSteps],
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 investigateMode: investigateEnabled,
                             });
-                        } else if (update.step && String(update.content ?? '').trim()) {
-                            localThinkingSteps.push({ step: update.step, content: update.content });
-                        }
-                        break;
-                    /* 'final', not 'complete': the service names the finished-answer frame
-                       'final' (LLMAgent.jsx maps step 'Complete' to it), and listening for a
-                       frame that never comes left the stored transcript ending in an empty
-                       assistant bubble until the server copy was next fetched. */
-                    case 'final':
-                        if (update.sessionId) {
-                            setStoredSessionId(conversationId, update.sessionId);
-                        }
+                            break;
+                        default:
+                            break;
+                    }
+                }, {
+                    historyId: conversationId,
+                    sessionId,
+                    filters: Array.isArray(requestSearchOptions?.filters)
+                        ? requestSearchOptions.filters
+                        : undefined,
+                    rankingMode: typeof requestSearchOptions?.rankingMode === 'string'
+                        ? requestSearchOptions.rankingMode
+                        : undefined,
+                    investigateEnabled,
+                    // The turn's OWN model, off the options bag rather than off `chatModel`: a
+                    // queued follow-up must send the model that was showing when the reader hit
+                    // send, not whatever the picker moved to while it waited in the queue.
+                    model: requestSearchOptions?.model || undefined,
+                    messagesOverride: [...base, userMessage].map((msg) => ({
+                        role: msg?.role,
+                        content: msg?.content,
+                    })),
+                });
+            } catch (error) {
+                logDev('[LLM] background turn failed', error);
+                if (error?.response?.status === 429) {
+                    setIsQueryLimitReached(true);
+                }
+                /* The stream dying does not mean the answer died — the agent keeps writing and
+                   retains the run against its session id, which is the same recovery a reload
+                   uses. Poll for a while; only a run the server says is gone gets an error
+                   written into the transcript. Giving up while it still says "running" writes
+                   nothing: the exchange stays visibly unfinished and opening the conversation
+                   resumes it through the ordinary reattach path. */
+                let outcome = 'unknown';
+                for (let attempt = 0; attempt < 100 && !settled; attempt += 1) {
+                    let run = null;
+                    let missing = false;
+                    try {
+                        run = await llmService.getRun({ sessionId });
+                    } catch (pollError) {
+                        missing = pollError?.response?.status === 404;
+                    }
+                    if (run && (run.status === 'complete' || run.response)) {
                         succeeded = true;
                         settleWith({
                             role: 'assistant',
-                            content: update.answer,
-                            references: parseReferences(update.references),
-                            directCitations: parseDirectCitations(update.directCitations),
+                            content: run.response || '',
+                            references: parseReferences(run.references),
                             timestamp,
                             thinkingSteps: [...localThinkingSteps],
                             thoughtDurationMs: Date.now() - requestStartedAt,
-                            trajectory: update.trajectory || null,
+                            trajectory: run.trajectory || null,
                             investigateMode: investigateEnabled,
                         });
-                        break;
-                    case 'saved': {
-                        const savedId = update.historyId ? String(update.historyId) : conversationId;
-                        if (update.sessionId) {
-                            setStoredSessionId(savedId, update.sessionId);
-                        }
-                        if (isAuthenticated) {
-                            savedConversationRefresh = fetchConversations()
-                                .then((list) => setConversationsState(list))
-                                .catch((error) => logDev('[LLM] Failed to refresh conversations', error));
-                        }
+                        outcome = 'recovered';
                         break;
                     }
-                    case 'error':
-                        settleWith({
-                            role: 'assistant',
-                            content: `Error: ${update.error}`,
-                            references: [],
-                            timestamp,
-                            thinkingSteps: [...localThinkingSteps],
-                            thoughtDurationMs: Date.now() - requestStartedAt,
-                            investigateMode: investigateEnabled,
-                        });
+                    if (run?.status === 'error' || missing) {
+                        outcome = 'lost';
                         break;
-                    default:
-                        break;
+                    }
+                    await new Promise((resolve) => setTimeout(resolve, RESUME_POLL_MS));
                 }
-            }, {
-                historyId: conversationId,
-                sessionId,
-                filters: Array.isArray(requestSearchOptions?.filters)
-                    ? requestSearchOptions.filters
-                    : undefined,
-                rankingMode: typeof requestSearchOptions?.rankingMode === 'string'
-                    ? requestSearchOptions.rankingMode
-                    : undefined,
-                investigateEnabled,
-                // The turn's OWN model, off the options bag rather than off `chatModel`: a
-                // queued follow-up must send the model that was showing when the reader hit
-                // send, not whatever the picker moved to while it waited in the queue.
-                model: requestSearchOptions?.model || undefined,
-                messagesOverride: [...base, userMessage].map((msg) => ({
-                    role: msg?.role,
-                    content: msg?.content,
-                })),
-            });
-        } catch (error) {
-            logDev('[LLM] background turn failed', error);
-            if (error?.response?.status === 429) {
-                setIsQueryLimitReached(true);
-            }
-            /* The stream dying does not mean the answer died — the agent keeps writing and
-               retains the run against its session id, which is the same recovery a reload
-               uses. Poll for a while; only a run the server says is gone gets an error
-               written into the transcript. Giving up while it still says "running" writes
-               nothing: the exchange stays visibly unfinished and opening the conversation
-               resumes it through the ordinary reattach path. */
-            let outcome = 'unknown';
-            for (let attempt = 0; attempt < 100 && !settled; attempt += 1) {
-                let run = null;
-                let missing = false;
-                try {
-                    run = await llmService.getRun({ sessionId });
-                } catch (pollError) {
-                    missing = pollError?.response?.status === 404;
-                }
-                if (run && (run.status === 'complete' || run.response)) {
-                    succeeded = true;
+                if (outcome === 'lost') {
                     settleWith({
                         role: 'assistant',
-                        content: run.response || '',
-                        references: parseReferences(run.references),
+                        content: 'Sorry, I encountered an error while processing your request. Please try again.',
+                        references: [],
                         timestamp,
                         thinkingSteps: [...localThinkingSteps],
                         thoughtDurationMs: Date.now() - requestStartedAt,
-                        trajectory: run.trajectory || null,
                         investigateMode: investigateEnabled,
                     });
-                    outcome = 'recovered';
-                    break;
                 }
-                if (run?.status === 'error' || missing) {
-                    outcome = 'lost';
-                    break;
-                }
-                await new Promise((resolve) => setTimeout(resolve, RESUME_POLL_MS));
+            } finally {
+                refreshTierStatus();
+                holdRecentPriority(conversationId, savedConversationRefresh);
+                releaseBackgroundMarks();
+                // Only a real answer is announced as ready; an error or an unfinished turn
+                // saying "is ready" would send the reader to an answer that is not there.
+                if (succeeded) announceBackgroundCompletion(conversationId);
             }
-            if (outcome === 'lost') {
-                settleWith({
-                    role: 'assistant',
-                    content: 'Sorry, I encountered an error while processing your request. Please try again.',
-                    references: [],
-                    timestamp,
-                    thinkingSteps: [...localThinkingSteps],
-                    thoughtDurationMs: Date.now() - requestStartedAt,
-                    investigateMode: investigateEnabled,
-                });
-            }
-        } finally {
-            backgroundRunsRef.current.delete(String(conversationId));
-            refreshTierStatus();
-            holdRecentPriority(conversationId, savedConversationRefresh);
-            clearActiveRun(conversationId);
-            // Only a real answer is announced as ready; an error or an unfinished turn
-            // saying "is ready" would send the reader to an answer that is not there.
-            if (succeeded) announceBackgroundCompletion(conversationId);
+        } catch (error) {
+            // Nothing was sent: the marks come down and the caller puts the follow-up back.
+            releaseBackgroundMarks();
+            throw error;
         }
     };
     const stableRunBackgroundTurn = useStableCallback(runBackgroundTurn);
@@ -6833,11 +6854,18 @@ function LLMAgent({ isRouteActive = true }) {
     const { revision: queueDispatchRevision, isDispatching, dispatch } = useQueueDispatch();
     useEffect(() => {
         if (!queuedPrompts.length || isLimitReachedEffective) return;
-        /* Nothing may be released while the auth check is still running, or once it has said
-           there is no account: the submit path refuses in both cases, and an entry is consumed
-           before it is submitted. Holding is the safe state — the effect runs again the moment
-           auth resolves. */
-        if (authLoading || !isAuthenticated) return;
+        /* Nothing may be released while the auth check is still running: the submit path
+           refuses then, and an entry is consumed before it is submitted. Holding is the safe
+           state — the effect runs again the moment auth resolves. */
+        if (authLoading) return;
+        if (!isAuthenticated) {
+            /* And once it has answered "no account", holding forever would leave pending
+               bubbles on screen that nothing will ever send. A snapshot written before asking
+               required an account can still restore some. Drop them, so what is drawn is only
+               what can still happen. */
+            queuedPrompts.forEach((entry) => removeQueuedPrompt(entry));
+            return;
+        }
         const viewBusy = isLoading || isProcessing || isConversationLoading
             || isDispatching(activeConversationIdRef.current ?? '__guest__')
             // The nameless thread counts as busy while its recovery is polling — the flags
@@ -6871,7 +6899,13 @@ function LLMAgent({ isRouteActive = true }) {
                 : null,
         );
         if (!targetIsOnScreen && targetId != null) {
-            stableRunBackgroundTurn(next);
+            // It has its own error handling once the request is away; this catches what can
+            // throw BEFORE that — a full sessionStorage, an unreadable stored transcript —
+            // where the entry would otherwise be consumed and gone.
+            Promise.resolve(stableRunBackgroundTurn(next)).catch((error) => {
+                logDev('[LLM] Queued background turn failed to start', error);
+                requeueQueuedPrompt(next);
+            });
             return;
         }
         dispatch(targetId ?? '__guest__', () =>
@@ -6880,10 +6914,12 @@ function LLMAgent({ isRouteActive = true }) {
                 queryMethod: next.queryMethod,
                 ...(targetId == null ? {} : { conversationId: targetId }),
             }).then((started) => {
-                // `handleSubmit` answers whether a turn actually began. It refuses a question
-                // into a conversation that is already answering, and while the quota or the
-                // auth check says no — and the entry is already out of the queue by then.
-                if (started === false) requeueQueuedPrompt(next);
+                /* `handleSubmit` answers whether a turn actually began. Anything OTHER than a
+                   plain true means it did not: a refusal (already answering, over quota, auth
+                   not settled) answers false, and `dispatch` itself resolves with undefined
+                   without calling the submit at all when that conversation is already claimed.
+                   The entry is out of the queue by then either way. */
+                if (started !== true) requeueQueuedPrompt(next);
             }),
         ).catch((error) => {
             logDev('[LLM] Queued submit failed', error);

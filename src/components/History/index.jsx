@@ -378,6 +378,10 @@ const History = () => {
             .catch(() => {
                 if (!isMounted) return;
                 setConversations(getConversations());
+                /* No cursor came back, so there is nothing to ask for: without this the
+                   "Show older conversations" button renders and does nothing at all, since
+                   `loadMoreConversations` returns immediately on a null cursor. */
+                setReachedEnd(true);
             });
 
         return () => {
@@ -418,7 +422,11 @@ const History = () => {
         }, { rootMargin: '200px' });
         observer.observe(sentinel);
         return () => observer.disconnect();
-    }, [loadMoreConversations, reachedEnd]);
+        /* `searchQuery` is in here because the sentinel is only rendered while the search box
+           is empty: typing one unmounts the node and clearing it mounts a NEW one, so without
+           re-running this the observer would still be watching the node that went away and
+           scrolling to the end would stop loading anything. */
+    }, [loadMoreConversations, reachedEnd, searchQuery]);
 
     useEffect(() => {
         if (loading || !isAuthenticated || DEBUG_HIDE_EXPLORE) {
@@ -577,6 +585,9 @@ const History = () => {
         await Promise.allSettled(idsToDelete.map((id) => removeConversation(id)));
         forgetInvestigateConversations(idsToDelete);
         setConversations((prev) => prev.filter((conversation) => !idsToDelete.includes(conversation.id)));
+        // The list shrank, so the total has to as well: it is the M in "N of M", and leaving
+        // it alone claims conversations exist that the reader has just deleted.
+        setServerTotal((prev) => (prev == null ? prev : Math.max(0, prev - idsToDelete.length)));
         setSelectedIds([]);
         setSelectMode(false);
         setIsDeleting(false);
@@ -658,6 +669,7 @@ const History = () => {
         }
         forgetInvestigateConversations(idToDelete);
         setConversations((prev) => prev.filter((item) => String(item.id) !== idToDelete));
+        setServerTotal((prev) => (prev == null ? prev : Math.max(0, prev - 1)));
         setSelectedIds((prev) => prev.filter((id) => String(id) !== idToDelete));
     };
 

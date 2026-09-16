@@ -39,15 +39,15 @@ describe('the stale-mark reconcile', () => {
         expect(guards).toHaveLength(2);
     });
 
-    it('registers a background turn before the request and clears it after', () => {
-        expect(source).toContain('backgroundRunsRef.current.add(String(conversationId));');
-        expect(source).toContain('backgroundRunsRef.current.delete(String(conversationId));');
-        const add = source.indexOf('backgroundRunsRef.current.add(');
+    it('registers a background turn before the request, and releases it on every exit', () => {
+        const add = source.indexOf('backgroundRunsRef.current.add(String(conversationId));');
         const request = source.indexOf('await llmService.chat(entry.text');
-        const remove = source.indexOf('backgroundRunsRef.current.delete(');
         expect(add).toBeGreaterThan(-1);
         expect(add).toBeLessThan(request);
-        expect(remove).toBeGreaterThan(request);
+        // One release, reached from the finally (the ordinary end) and from the catch around
+        // the setup (a throw before the request ever left).
+        expect(source).toContain('backgroundRunsRef.current.delete(String(conversationId));');
+        expect(source.match(/releaseBackgroundMarks\(\);/g)).toHaveLength(2);
     });
 });
 
@@ -62,17 +62,36 @@ describe('a released follow-up that is never sent', () => {
     it('is held back until the auth check has answered', () => {
         // The submit path refuses while auth is loading, and the entry is consumed before it
         // is submitted — so releasing into that window loses the question outright.
-        expect(source).toContain('if (authLoading || !isAuthenticated) return;');
+        expect(source).toContain('if (authLoading) return;');
+    });
+
+    it('is cleared, not left on screen forever, once there is no account', () => {
+        expect(source).toMatch(/if \(!isAuthenticated\) \{[\s\S]{0,600}?queuedPrompts\.forEach\(\(entry\) => removeQueuedPrompt\(entry\)\);/);
     });
 
     it('goes back into the queue when the submit refuses or throws', () => {
-        expect(source).toContain('if (started === false) requeueQueuedPrompt(next);');
+        expect(source).toContain('if (started !== true) requeueQueuedPrompt(next);');
         expect(source).toMatch(/logDev\('\[LLM\] Queued submit failed', error\);\s*\n\s*requeueQueuedPrompt\(next\);/);
+        // The background path is a promise too — a throw before the request must not eat it.
+        expect(source).toMatch(/Queued background turn failed to start[\s\S]{0,120}requeueQueuedPrompt\(next\);/);
     });
 
     it('reports a refusal rather than looking like a turn that ran', () => {
         const body = source.slice(source.indexOf('const handleSubmit = async (e, input = null'));
         expect(body.slice(0, 1200)).toContain('return false;');
         expect(body).toContain('// The turn was started; a queued follow-up that reaches here must not be re-queued.');
+    });
+});
+
+describe('a background turn that never gets off the ground', () => {
+    it('takes its own marks down, in this tab and in the shared registry', () => {
+        expect(source).toContain('const releaseBackgroundMarks = () => {');
+        // Registered, then everything after it is inside the guard that releases them.
+        const registered = source.indexOf('backgroundRunsRef.current.add(String(conversationId));');
+        const guard = source.indexOf('try {', registered);
+        const request = source.indexOf('await llmService.chat(entry.text', registered);
+        expect(guard).toBeGreaterThan(registered);
+        expect(guard).toBeLessThan(request);
+        expect(source).toMatch(/\} catch \(error\) \{[\s\S]{0,200}releaseBackgroundMarks\(\);[\s\S]{0,60}throw error;/);
     });
 });

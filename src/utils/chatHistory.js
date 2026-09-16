@@ -182,7 +182,13 @@ export const setConversations = (list, options = {}) => {
         : getActiveConversationId();
     const cleaned = pruneZeroMessageConversations(list, activeId);
     const sorted = sortConversations(cleaned);
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
+    try {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
+    } catch (error) {
+        /* Quota, or storage denied outright. The list still reaches the caller and the event
+           below still fires — the cache is an optimisation, and paging deep into History
+           (every page is merged in here) is exactly when it can hit the ceiling. */
+    }
     window.dispatchEvent(new CustomEvent('glkb-conversations-updated', { detail: sorted }));
     return sorted;
 };
@@ -302,11 +308,22 @@ const withLocallyAheadMessages = (conversation) => {
     );
     const local = stored?.messages;
     const server = conversation?.messages;
+    const serverMessages = Array.isArray(server) ? server : [];
+    /* Two ways the local copy is the better one, and both are about a turn the server has not
+       finished writing. Either it is still being answered here (the optimistic [question, ""]
+       pair of a background follow-up), or it was answered here through the run-recovery poll
+       while the server's copy still ends at the dangling prompt. Overwriting either loses the
+       only complete record the reader has. */
     const aheadOfServer = Array.isArray(local)
-        && local.length > (Array.isArray(server) ? server.length : 0)
+        && local.length > serverMessages.length
         && isExchangeUnfinished(local)
         && isConversationRunning(conversation?.id);
-    return aheadOfServer ? { ...conversation, messages: local } : conversation;
+    const answeredHere = Array.isArray(local)
+        && local.length >= serverMessages.length
+        && local.length > 0
+        && isExchangeUnfinished(serverMessages)
+        && !isExchangeUnfinished(local);
+    return (aheadOfServer || answeredHere) ? { ...conversation, messages: local } : conversation;
 };
 
 export const fetchConversationDetailByPublicId = async (publicId) => {

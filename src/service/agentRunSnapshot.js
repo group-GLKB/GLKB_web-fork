@@ -55,14 +55,26 @@ const UNIQUE_PROMPT_ID = /^q-\d{10,}-\d+-[a-z0-9]+$/;
 export const queueEntryIdentity = (entry) => (
     UNIQUE_PROMPT_ID.test(String(entry?.id ?? ''))
         ? String(entry.id)
-        : JSON.stringify([
-            String(entry?.conversationId ?? ''),
-            String(entry?.runKey ?? ''),
-            String(entry?.id ?? ''),
-        ])
+        : legacyPromptIdentity(entry)
 );
 
+/* What every entry was keyed by before the identity became the id. The ledger lives in
+   sessionStorage and survives a deploy, so a tab that sent a follow-up on the old build holds
+   the old key: reading only the new one would make every already-sent follow-up look pending
+   again on the first load after release, and send it a second time — the exact failure this
+   change exists to stop, reintroduced once at upgrade. Reads accept either; writes use both,
+   so a tab that is downgraded again is still protected. */
+const legacyPromptIdentity = (entry) => JSON.stringify([
+    String(entry?.conversationId ?? ''),
+    String(entry?.runKey ?? ''),
+    String(entry?.id ?? ''),
+]);
+
 const promptIdentity = queueEntryIdentity;
+
+const isConsumed = (consumed, entry) => (
+    consumed.has(promptIdentity(entry)) || consumed.has(legacyPromptIdentity(entry))
+);
 
 const readConsumedPrompts = () => {
     try {
@@ -78,7 +90,7 @@ export const pendingQueuedPrompts = (entries) => {
     const seen = new Set();
     return (Array.isArray(entries) ? entries : []).filter((entry) => {
         const key = promptIdentity(entry);
-        if (!entry?.id || consumed.has(key) || seen.has(key)) return false;
+        if (!entry?.id || isConsumed(consumed, entry) || seen.has(key)) return false;
         seen.add(key);
         return true;
     });
@@ -88,6 +100,7 @@ export const consumeQueuedPrompt = (entry) => {
     if (!entry?.id) return;
     const consumed = readConsumedPrompts();
     consumed.add(promptIdentity(entry));
+    consumed.add(legacyPromptIdentity(entry));
     try {
         getSessionStorage()?.setItem(CONSUMED_PROMPTS_KEY, JSON.stringify([...consumed]));
     } catch { /* Storage may be unavailable. */ }
@@ -105,7 +118,9 @@ export const consumeQueuedPrompt = (entry) => {
 export const unconsumeQueuedPrompt = (entry) => {
     if (!entry?.id) return;
     const consumed = readConsumedPrompts();
-    if (!consumed.delete(promptIdentity(entry))) return;
+    const removed = [promptIdentity(entry), legacyPromptIdentity(entry)]
+        .filter((key) => consumed.delete(key));
+    if (!removed.length) return;
     try {
         getSessionStorage()?.setItem(CONSUMED_PROMPTS_KEY, JSON.stringify([...consumed]));
     } catch { /* Storage may be unavailable. */ }
@@ -307,6 +322,26 @@ export const writeActiveRunSnapshot = (snapshot) => {
  * submitted the same follow-up once more. Keep this scoped to one snapshot: queue ids from an
  * older tab can repeat in another conversation.
  */
+/**
+ * Put one queued follow-up back into its conversation's snapshot.
+ *
+ * The mirror of `removeQueuedPromptFromSnapshot`. An entry is removed from the durable copy
+ * before its turn is submitted; when the submit refuses, restoring it in memory alone would
+ * leave a pending bubble that a reload silently discards — a question the reader watched
+ * leave their composer, gone with no trace.
+ */
+export const restoreQueuedPromptToSnapshot = (conversationId, entry) => {
+    if (!entry?.id) return false;
+    const snapshots = readAll();
+    const slot = slotFor(conversationId);
+    const snapshot = snapshots[slot];
+    if (!snapshot) return false;
+    const queuedPrompts = Array.isArray(snapshot.queuedPrompts) ? snapshot.queuedPrompts : [];
+    if (queuedPrompts.some((item) => item?.id === entry.id)) return false;
+    snapshots[slot] = { ...snapshot, queuedPrompts: [entry, ...queuedPrompts] };
+    return writeAll(snapshots);
+};
+
 export const removeQueuedPromptFromSnapshot = (conversationId, promptId) => {
     if (!promptId) return false;
     const snapshots = readAll();
