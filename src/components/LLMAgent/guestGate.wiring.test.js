@@ -34,8 +34,10 @@ describe('every door into a question asks first', () => {
     it('refuses a submit, including one handed over from the home page', () => {
         // That question arrives in navigation state and never touches the composer, so the
         // gate on the dock cannot see it.
-        expect(bodyAfter('const handleSubmit = async (e, input = null', 12))
-            .toContain('if (requireAuthToAsk()) return;');
+        // `return false` rather than a bare return: the submit path reports a refusal so a
+        // queued follow-up, which is taken out of the queue before it is sent, goes back in.
+        expect(bodyAfter('const handleSubmit = async (e, input = null', 16))
+            .toContain('if (requireAuthToAsk()) return false;');
     });
 
     it('refuses to queue a follow-up it would never be allowed to send', () => {

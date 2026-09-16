@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -20,6 +21,7 @@ import {
   Typography,
 } from '@mui/material';
 
+import { appendConversationPage, historyCountLabel, isLastPage } from './paging';
 import { ReactComponent as ChatIcon } from '../../img/llm/chat_message.svg';
 import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
 import { ReactComponent as MapIcon } from '../../img/llm/graph_share.svg';
@@ -29,7 +31,7 @@ import {
     getInvestigateConversationIds,
 } from '../../utils/investigateConversations';
 import {
-  fetchConversations,
+  fetchConversationPage,
   getConversations,
   removeConversation,
   setActiveConversationId,
@@ -57,6 +59,9 @@ import ConversationCard from '../Units/ConversationCard';
 import { withServerTimezone } from '../../utils/serverTime';
 
 const DEBUG_HIDE_EXPLORE = true;
+/* How many conversations one page holds. The server caps `limit` at 100; 20 keeps the first
+   paint small and is what the list was (silently) limited to before it could page at all. */
+const PAGE_SIZE = 20;
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 const MOBILE_HEADER_VISIBILITY_EVENT = 'glkb-mobile-header-visibility';
 
@@ -205,6 +210,15 @@ const History = () => {
     const [isPhoneDevice, setIsPhoneDevice] = useState(isPhoneViewport);
     const [conversationBookmarks, setConversationBookmarks] = useState([]);
     const [graphBookmarks, setGraphBookmarks] = useState([]);
+    /* Paging. `cursor` names the last conversation loaded (the server's keyset cursor, NOT an
+       offset — the list is ordered by last-accessed time, which every finishing turn bumps).
+       `serverTotal` is how many conversations the reader has; the label used to show how many
+       were loaded, which read as a total and was one page's worth forever. */
+    const [cursor, setCursor] = useState(null);
+    const [serverTotal, setServerTotal] = useState(null);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [reachedEnd, setReachedEnd] = useState(false);
+    const loadMoreSentinelRef = useRef(null);
     /* Every conversation that is working, not just the newest: a reader can leave one answer
        to write itself and ask something else, so several rows can be in flight at once. A row
        that is running still may not be deleted or bulk-selected — that part is unchanged, it
@@ -301,6 +315,17 @@ const History = () => {
         [graphBookmarks]
     );
     const filteredTotalCount = filteredHistoryItems.length;
+    /* What the number means, said out loud. It used to read "N search history records with
+       GLKB" where N was however many rows happened to be loaded — always 20 — which reads as
+       a total and is why a reader with 60 conversations believed they had 20. While a search
+       is typed it is a match count, and says so; otherwise it is "N of M" until the whole
+       list is loaded, and a plain total once it is. */
+    const countLabel = useMemo(() => historyCountLabel({
+        loaded: normalizedChatItems.length,
+        total: serverTotal,
+        filtered: filteredTotalCount,
+        searching: Boolean(searchQuery.trim()),
+    }), [filteredTotalCount, normalizedChatItems.length, searchQuery, serverTotal]);
     const isMobileSelectMode = isPhoneDevice && selectMode;
 
     useEffect(() => {
@@ -338,10 +363,17 @@ const History = () => {
             setConversations(cached);
         }
 
-        fetchConversations()
-            .then((list) => {
+        fetchConversationPage({ limit: PAGE_SIZE })
+            .then(({ items, total, nextCursor }) => {
                 if (!isMounted) return;
-                setConversations(list);
+                /* The first page REPLACES the list rather than merging into it: this is also
+                   the refresh path, and a conversation deleted elsewhere has to be able to
+                   leave. Rows the reader paged to are below this page and are re-fetched on
+                   demand, so nothing is stranded. */
+                setConversations(items);
+                setServerTotal(total);
+                setCursor(nextCursor);
+                setReachedEnd(isLastPage({ received: items.length, pageSize: PAGE_SIZE, nextCursor }));
             })
             .catch(() => {
                 if (!isMounted) return;
@@ -352,6 +384,41 @@ const History = () => {
             isMounted = false;
         };
     }, [isAuthenticated, loading]);
+
+    /* The next page, on demand. Appends by id, so a conversation that moved between two
+       requests is updated in place rather than drawn twice. */
+    const loadMoreConversations = useCallback(async () => {
+        if (isLoadingMore || reachedEnd || !cursor) return;
+        setIsLoadingMore(true);
+        try {
+            const { items, total, nextCursor } = await fetchConversationPage({
+                limit: PAGE_SIZE, before: cursor,
+            });
+            setConversations((prev) => appendConversationPage(prev, items));
+            if (total != null) setServerTotal(total);
+            setCursor(nextCursor);
+            if (isLastPage({ received: items.length, pageSize: PAGE_SIZE, nextCursor })) {
+                setReachedEnd(true);
+            }
+        } catch (error) {
+            // Leave the cursor where it is: the reader can try again, and the rows already
+            // loaded stay on screen.
+        } finally {
+            setIsLoadingMore(false);
+        }
+    }, [cursor, isLoadingMore, reachedEnd]);
+
+    /* Reaching the end of the list asks for the next page. The button below does the same
+       thing and is what a keyboard reader (and a test) uses; this only saves the click. */
+    useEffect(() => {
+        const sentinel = loadMoreSentinelRef.current;
+        if (!sentinel || reachedEnd || typeof IntersectionObserver === 'undefined') return undefined;
+        const observer = new IntersectionObserver((entries) => {
+            if (entries.some((entry) => entry.isIntersecting)) loadMoreConversations();
+        }, { rootMargin: '200px' });
+        observer.observe(sentinel);
+        return () => observer.disconnect();
+    }, [loadMoreConversations, reachedEnd]);
 
     useEffect(() => {
         if (loading || !isAuthenticated || DEBUG_HIDE_EXPLORE) {
@@ -519,7 +586,14 @@ const History = () => {
         if (!conversation?.id) return;
         try {
             await updateConversationTitle(String(conversation.id), nextTitle);
-            setConversations(getConversations());
+            /* In place. This used to re-seed the whole list from the shared store, which
+               holds one page: renaming a conversation after paging to the fifth one threw
+               the other four away. */
+            setConversations((prev) => prev.map((item) => (
+                String(item.id) === String(conversation.id)
+                    ? { ...item, title: nextTitle, leadingTitle: nextTitle }
+                    : item
+            )));
         } catch (error) {
             // Ignore rename failures.
         }
@@ -827,7 +901,7 @@ const History = () => {
                                                 className="history-meta-text"
                                                 sx={{ fontSize: 12 }}
                                             >
-                                                {filteredTotalCount} search history records with GLKB
+                                                {countLabel}
                                             </Typography>
                                         </Box>
                                     </Box>
@@ -933,6 +1007,21 @@ const History = () => {
                             }}>
                                 {searchQuery.trim() ? 'No matches found.' : 'No history yet.'}
                             </Typography>
+                        )}
+                        {/* Older conversations, on demand. The sentinel above it loads them
+                            when the list is scrolled to the end; the button is what a
+                            keyboard reader uses, and what says that there ARE more. */}
+                        {!reachedEnd && !searchQuery.trim() && (
+                            <Box className="history-load-more" ref={loadMoreSentinelRef}>
+                                <button
+                                    type="button"
+                                    className="history-load-more-button"
+                                    onClick={loadMoreConversations}
+                                    disabled={isLoadingMore}
+                                >
+                                    {isLoadingMore ? 'Loading…' : 'Show older conversations'}
+                                </button>
+                            </Box>
                         )}
                     </Box>
                     {/* 800:22889 — in select mode the phone gets an action bar along the

@@ -187,6 +187,56 @@ export const setConversations = (list, options = {}) => {
     return sorted;
 };
 
+/** A list row settled against what this tab already knows about that conversation. */
+const mergeSummaryWithStored = (item, stored) => {
+    if (!stored) return item;
+    const keepMessages = stored.messages?.length && !item.messages?.length
+        && (isConversationRunning(item.id) || isExchangeUnfinished(stored.messages));
+    /* The newer of the two timestamps. A run touches its conversation locally the moment
+       it starts writing, before the server has saved anything; taking the summary's older
+       `last_accessed_time` dropped the conversation being answered down the sidebar
+       mid-run, under rows that were long finished. */
+    const storedAt = serverTimeMs(stored.updatedAt);
+    const summaryAt = serverTimeMs(item.updatedAt);
+    const keepUpdatedAt = storedAt != null && summaryAt != null && storedAt > summaryAt;
+    if (!keepMessages && !keepUpdatedAt) return item;
+    return {
+        ...item,
+        ...(keepMessages ? { messages: stored.messages } : {}),
+        ...(keepUpdatedAt ? { updatedAt: stored.updatedAt } : {}),
+        // The session id is the address a recovery reconnects at; a summary that arrives
+        // without one (an older server) must not erase the one already known.
+        sessionId: item.sessionId || stored.sessionId || null,
+    };
+};
+
+/* One page of the list, merged into the store WITHOUT dropping the pages already there.
+   `fetchConversations` below replaces the store with what came back, which is right for the
+   first page of a refresh and wrong for every page after it — that is how the History page,
+   having loaded 60 conversations, could be cut back to 20 by anything that re-read the store.
+
+   Returns the page plus what the server said about the list as a whole: `total` (how many
+   conversations the reader has, counting only the non-empty ones a client can show) and
+   `nextCursor` (what to send as `before` for the page after this one). */
+export const fetchConversationPage = async ({ limit = 20, before = null } = {}) => {
+    const data = await listChatHistories({ limit, before });
+    const page = Array.isArray(data?.histories) ? data.histories.map(normalizeSummary) : [];
+    reconcileRunsWithServer(page);
+    const stored = new Map(getConversations().map((item) => [String(item.id), item]));
+    const merged = page.map((item) => mergeSummaryWithStored(item, stored.get(String(item.id))));
+    const known = new Map(getConversations().map((item) => [String(item.id), item]));
+    for (const item of merged) known.set(String(item.id), item);
+    const total = Number(data?.total);
+    return {
+        items: merged,
+        stored: setConversations([...known.values()]),
+        total: Number.isFinite(total) ? total : null,
+        // A server without the cursor field still answers; the page is then the last one we
+        // can ask for safely, which is what a null cursor means to the caller.
+        nextCursor: data?.next_cursor ?? data?.nextCursor ?? null,
+    };
+};
+
 export const fetchConversations = async (options = {}) => {
     const { offset = 0, limit = 20 } = options;
     const data = await listChatHistories({ offset, limit });
@@ -209,28 +259,7 @@ export const fetchConversations = async (options = {}) => {
        optimistic turn of every run still in flight. */
     reconcileRunsWithServer(list);
     const known = new Map(getConversations().map((item) => [String(item.id), item]));
-    const merged = list.map((item) => {
-        const stored = known.get(String(item.id));
-        if (!stored) return item;
-        const keepMessages = stored.messages?.length && !item.messages?.length
-            && (isConversationRunning(item.id) || isExchangeUnfinished(stored.messages));
-        /* The newer of the two timestamps. A run touches its conversation locally the moment
-           it starts writing, before the server has saved anything; taking the summary's older
-           `last_accessed_time` dropped the conversation being answered down the sidebar
-           mid-run, under rows that were long finished. */
-        const storedAt = serverTimeMs(stored.updatedAt);
-        const summaryAt = serverTimeMs(item.updatedAt);
-        const keepUpdatedAt = storedAt != null && summaryAt != null && storedAt > summaryAt;
-        if (!keepMessages && !keepUpdatedAt) return item;
-        return {
-            ...item,
-            ...(keepMessages ? { messages: stored.messages } : {}),
-            ...(keepUpdatedAt ? { updatedAt: stored.updatedAt } : {}),
-            // The session id is the address a recovery reconnects at; a summary that arrives
-            // without one (an older server) must not erase the one already known.
-            sessionId: item.sessionId || stored.sessionId || null,
-        };
-    });
+    const merged = list.map((item) => mergeSummaryWithStored(item, known.get(String(item.id))));
     return setConversations(merged);
 };
 
@@ -254,11 +283,39 @@ export const chatPathForConversation = (conversation) => (
     conversation?.publicId ? `/chat/${conversation.publicId}` : '/chat'
 );
 
+/**
+ * Keep a locally-ahead transcript when the server's copy of the same conversation is shorter.
+ *
+ * A follow-up being answered in the background writes its [question, ""] pair to the store
+ * before the server has saved anything. Upserting the detail response over that erased the
+ * pair, so the next visit to the conversation showed neither the question the reader had
+ * already sent nor its spinner — the "my follow-up disappeared when I switched back" half of
+ * the report — and, the local copy no longer looking ahead, the visit-time reconcile then
+ * took the run's registry mark down while it was still writing.
+ *
+ * Only for a conversation that is RUNNING and whose local copy ends mid-exchange: a settled
+ * local copy can hold stale text, and the server's is the one to keep.
+ */
+const withLocallyAheadMessages = (conversation) => {
+    const stored = getConversations().find(
+        (item) => String(item.id) === String(conversation?.id),
+    );
+    const local = stored?.messages;
+    const server = conversation?.messages;
+    const aheadOfServer = Array.isArray(local)
+        && local.length > (Array.isArray(server) ? server.length : 0)
+        && isExchangeUnfinished(local)
+        && isConversationRunning(conversation?.id);
+    return aheadOfServer ? { ...conversation, messages: local } : conversation;
+};
+
 export const fetchConversationDetailByPublicId = async (publicId) => {
     if (!publicId) return null;
     const data = await getChatHistoryDetailByPublicId(publicId);
     const conversation = normalizeDetail(data);
-    setConversations(upsertConversation(getConversations(), conversation));
+    // The STORE keeps whichever copy is further along; the caller still gets the server's,
+    // which is what a background turn must build its next request on.
+    setConversations(upsertConversation(getConversations(), withLocallyAheadMessages(conversation)));
     return conversation;
 };
 
@@ -266,7 +323,7 @@ export const fetchConversationDetail = async (id) => {
     if (!id) return null;
     const data = await getChatHistoryDetail(id);
     const conversation = normalizeDetail(data);
-    const next = upsertConversation(getConversations(), conversation);
+    const next = upsertConversation(getConversations(), withLocallyAheadMessages(conversation));
     setConversations(next);
     return conversation;
 };

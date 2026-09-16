@@ -156,7 +156,9 @@ import {
     releaseGuestSlot,
     removeQueuedPromptFromSnapshot,
     consumeQueuedPrompt,
+    unconsumeQueuedPrompt,
     pendingQueuedPrompts,
+    queueEntryIdentity,
     writeActiveRunSnapshot,
 } from '../../service/agentRunSnapshot';
 import { shouldSkipConversationRestore } from '../../service/conversationRestore';
@@ -1954,14 +1956,10 @@ function LLMAgent({ isRouteActive = true }) {
     const restoreQueuedPrompts = useCallback((entries) => {
         if (!Array.isArray(entries) || !entries.length) return;
         setQueuedPrompts((prev) => {
-            const identityFor = (item) => [
-                item?.conversationId ?? '',
-                item?.runKey ?? '',
-                item?.id ?? '',
-            ].map(String).join('\u0000');
-            /* q-N was historically only unique inside one mount. After a reload, two
-               conversation snapshots can legitimately both contain q-1; treating the id as
-               global made one conversation borrow the other's de-duplication state. */
+            /* The entry's own identity (see `queueEntryIdentity`): the id alone once ids
+               became globally unique, the old composite for a legacy `q-N`, where two
+               conversations' snapshots can each hold one. */
+            const identityFor = queueEntryIdentity;
             const known = new Set(prev.map(identityFor));
             const missing = pendingQueuedPrompts(entries).filter((item) => (
                 item?.id && !known.has(identityFor(item))
@@ -2283,6 +2281,12 @@ function LLMAgent({ isRouteActive = true }) {
     // Unlike activeStreamIdRef, this survives a turn finishing. Only New Chat
     // resets the nameless conversation that owns queued guest follow-ups.
     const queueOwnerKeyRef = useRef(restoredQueueOwnerKey(initialRunSnapshot));
+    /* The conversations this tab is answering in the background (a released follow-up).
+       The registry mark says the same thing, but it is shared with other tabs and can go
+       stale, so the visit-time reconcile below is allowed to take it down — and used to take
+       it down on a conversation whose follow-up this tab was still writing. This ref is the
+       one thing that cannot be stale: it is set before the request and cleared after it. */
+    const backgroundRunsRef = useRef(new Set());
     const liveRunSnapshotRef = useRef(initialRunSnapshot);
     /* The slot the live snapshot is being written under — a conversation id, or null for a run
        that has none yet. `undefined` means nothing has been written this mount. Kept so that
@@ -3338,7 +3342,12 @@ function LLMAgent({ isRouteActive = true }) {
                        in-flight local turn means nothing is running here, and a stale mark
                        would silently refuse (well, queue forever) every new question. */
                     if (!serverUnfinished && !storedAhead && isConversationRunning(targetId)
-                        && String(runningConversationIdRef.current ?? '') !== targetId) {
+                        && String(runningConversationIdRef.current ?? '') !== targetId
+                        // ...and this tab is not answering it in the background. That run is
+                        // not in the view's refs and its turn is not saved yet, so without
+                        // this the mark came down mid-answer — which released every follow-up
+                        // still queued for the conversation straight onto the run in flight.
+                        && !backgroundRunsRef.current.has(String(targetId))) {
                         clearActiveRun(targetId);
                     }
                     const displayMessages = (storedAhead || storedAnswered)
@@ -3564,7 +3573,10 @@ function LLMAgent({ isRouteActive = true }) {
                 // Reconcile a stale mark on visit — see the route restore above.
                 if (!isExchangeUnfinished(serverMessages) && !storedAhead
                     && isConversationRunning(nextId)
-                    && String(runningConversationIdRef.current ?? '') !== nextId) {
+                    && String(runningConversationIdRef.current ?? '') !== nextId
+                    // See the route restore above: a background follow-up this tab is
+                    // writing is not stale, however finished the server's copy looks.
+                    && !backgroundRunsRef.current.has(String(nextId))) {
                     clearActiveRun(nextId);
                 }
                 /* And the same run-snapshot merge as the route restore. Router state survives
@@ -4266,12 +4278,16 @@ function LLMAgent({ isRouteActive = true }) {
     const handleSubmit = async (e, input = null, t = null, options = {}) => {
         const inputText = input || userInput;
         e && e.preventDefault();
-        if (!inputText.trim() || isLimitReachedEffective) return;
+        /* Returns whether a turn was STARTED. A queued follow-up is taken out of the queue
+           before it is submitted (so a conversation switch cannot submit it twice), so a
+           refusal here has to be reported — otherwise the question the reader already
+           watched leave their composer ends here, silently. */
+        if (!inputText.trim() || isLimitReachedEffective) return false;
         /* Every route to a question ends here — the composer, a released follow-up, and the
            query handed over in the home page's navigation state, which arrives without a
            click for the gate on the composer to catch. A guest gets the sign-in overlay and
            keeps their question in the box. */
-        if (requireAuthToAsk()) return;
+        if (requireAuthToAsk()) return false;
 
         /* Which conversation this turn belongs to. Normally the one on screen, but a released
            queued prompt names its own: it was written as a follow-up to a particular thread and
@@ -4298,7 +4314,7 @@ function LLMAgent({ isRouteActive = true }) {
            was still being written — and reopening that conversation from History let a second
            turn start on the same history id, which is the race this refuses. */
         if (!shouldStartNewConversation && isConversationRunning(targetConversationId)) {
-            return;
+            return false;
         }
         const baseHistory = Array.isArray(options.baseHistory)
             ? options.baseHistory
@@ -4307,7 +4323,13 @@ function LLMAgent({ isRouteActive = true }) {
         if (shouldStartNewConversation || !queueOwnerKeyRef.current) {
             queueOwnerKeyRef.current = streamId;
         }
-        const queueOwnerKey = queueOwnerKeyRef.current;
+        /* Only the NAMELESS thread has entries waiting for a conversation id, and only its
+           own run may adopt them. The key outlives a finished turn on purpose (a thread
+           keeps its queue across transports), so passing it from a run that already HAS a
+           conversation handed that run another conversation's follow-ups: they left the
+           thread they were written for, and — their conversation id rewritten — came back
+           looking like follow-ups nothing had sent yet. */
+        const queueOwnerKey = targetConversationId == null ? queueOwnerKeyRef.current : null;
         activeStreamIdRef.current = streamId;
         // A Stop aimed at the PREVIOUS run must not follow this one, which the reader has
         // only just asked for.
@@ -4501,10 +4523,12 @@ function LLMAgent({ isRouteActive = true }) {
             }
             /* A follow-up queued before this row existed is filed under the run's stream key.
                Several new conversations can be nameless at once, so only THIS run's entries
-               may take the new history id. */
-            setQueuedPrompts((prev) => (
-                claimQueuedPrompts(prev, queueOwnerKey, String(historyId))
-            ));
+               may take the new history id — and a run that was never nameless claims none. */
+            if (queueOwnerKey) {
+                setQueuedPrompts((prev) => (
+                    claimQueuedPrompts(prev, queueOwnerKey, String(historyId))
+                ));
+            }
         }
 
         /* View state, and only the view's run may touch it. A continuation released during
@@ -5149,9 +5173,11 @@ function LLMAgent({ isRouteActive = true }) {
                         if (savedId) {
                             runConversationId = savedId;
                             recordSubmittedMode(savedId, investigateEnabled);
-                            setQueuedPrompts((prev) => (
-                                claimQueuedPrompts(prev, queueOwnerKey, savedId)
-                            ));
+                            if (queueOwnerKey) {
+                                setQueuedPrompts((prev) => (
+                                    claimQueuedPrompts(prev, queueOwnerKey, savedId)
+                                ));
+                            }
                             const nextSessionId = update.sessionId || runSessionId;
                             if (nextSessionId) {
                                 setStoredSessionId(savedId, nextSessionId);
@@ -5495,6 +5521,8 @@ function LLMAgent({ isRouteActive = true }) {
                 setClarificationSubmitting(false);
             }
         }
+        // The turn was started; a queued follow-up that reaches here must not be re-queued.
+        return true;
     };
 
     const updateClarificationDraft = useCallback((questionKey, nextDraft) => {
@@ -6517,14 +6545,30 @@ function LLMAgent({ isRouteActive = true }) {
             };
         }
         removeQueuedPromptFromSnapshot(entry.conversationId ?? null, entry.id);
-        /* Match the exact entry object as well as its scoped identity. Legacy snapshots can
-           contain the same q-N id in two conversations, and removing one must not eat both. */
+        /* By the entry's own identity — the id, for anything minted since ids became unique.
+           This used to compare the conversation id and run key too, and both are rewritten
+           while an entry waits (a Saved frame files it under its conversation), so a copy
+           claimed between this effect reading the queue and React flushing the state survived
+           its own removal and was sent a second time. Legacy `q-N` ids keep the scoped
+           comparison, where it is the only thing telling two of them apart. */
+        const goneIdentity = queueEntryIdentity(entry);
         setQueuedPrompts((prev) => prev.filter((item) => (
-            item !== entry
-            && !(item?.id === entry.id
-                && String(item?.conversationId ?? '') === String(entry.conversationId ?? '')
-                && String(item?.runKey ?? '') === String(entry.runKey ?? ''))
+            item !== entry && queueEntryIdentity(item) !== goneIdentity
         )));
+    }, []);
+
+    /* The other half of `removeQueuedPrompt`. An entry leaves the queue BEFORE its turn is
+       submitted, so that a conversation switch cannot submit it twice; if the submit then
+       refuses — over quota, the auth check still running, a throw before the request left —
+       that would be the silent end of a question the reader watched leave their composer.
+       This puts it back, pending again, where they can see it. */
+    const requeueQueuedPrompt = useCallback((entry) => {
+        if (!entry?.id) return;
+        unconsumeQueuedPrompt(entry);
+        const identity = queueEntryIdentity(entry);
+        setQueuedPrompts((prev) => (
+            prev.some((item) => queueEntryIdentity(item) === identity) ? prev : [...prev, entry]
+        ));
     }, []);
 
     const announceBackgroundClarification = useCallback((forConversationId, round) => {
@@ -6572,6 +6616,7 @@ function LLMAgent({ isRouteActive = true }) {
            registry is the only thing standing between this run and a second release onto the
            same history id. */
         setActiveRun({ kind: investigateEnabled ? 'investigate' : 'chat', runId: null, conversationId, sessionId, key: streamId });
+        backgroundRunsRef.current.add(String(conversationId));
         // A NEW run re-arms this conversation's completion notice: the set de-duplicates per
         // conversation, and without this a second background follow-up finished silently.
         backgroundCompletionNotifiedRef.current.delete(conversationId);
@@ -6761,6 +6806,7 @@ function LLMAgent({ isRouteActive = true }) {
                 });
             }
         } finally {
+            backgroundRunsRef.current.delete(String(conversationId));
             refreshTierStatus();
             holdRecentPriority(conversationId, savedConversationRefresh);
             clearActiveRun(conversationId);
@@ -6787,6 +6833,11 @@ function LLMAgent({ isRouteActive = true }) {
     const { revision: queueDispatchRevision, isDispatching, dispatch } = useQueueDispatch();
     useEffect(() => {
         if (!queuedPrompts.length || isLimitReachedEffective) return;
+        /* Nothing may be released while the auth check is still running, or once it has said
+           there is no account: the submit path refuses in both cases, and an entry is consumed
+           before it is submitted. Holding is the safe state — the effect runs again the moment
+           auth resolves. */
+        if (authLoading || !isAuthenticated) return;
         const viewBusy = isLoading || isProcessing || isConversationLoading
             || isDispatching(activeConversationIdRef.current ?? '__guest__')
             // The nameless thread counts as busy while its recovery is polling — the flags
@@ -6828,12 +6879,21 @@ function LLMAgent({ isRouteActive = true }) {
                 searchOptions: resolveQueuedSearchOptions(next, getConversationInvestigateMode(targetId)),
                 queryMethod: next.queryMethod,
                 ...(targetId == null ? {} : { conversationId: targetId }),
+            }).then((started) => {
+                // `handleSubmit` answers whether a turn actually began. It refuses a question
+                // into a conversation that is already answering, and while the quota or the
+                // auth check says no — and the entry is already out of the queue by then.
+                if (started === false) requeueQueuedPrompt(next);
             }),
-        ).catch((error) => logDev('[LLM] Queued submit failed', error));
+        ).catch((error) => {
+            logDev('[LLM] Queued submit failed', error);
+            requeueQueuedPrompt(next);
+        });
     }, [
         isLoading, isProcessing, isConversationLoading, activeConversationId,
         runRegistryRevision, queuedPrompts, isLimitReachedEffective,
-        stableSubmit, stableRunBackgroundTurn, removeQueuedPrompt,
+        authLoading, isAuthenticated,
+        stableSubmit, stableRunBackgroundTurn, removeQueuedPrompt, requeueQueuedPrompt,
         queueDispatchRevision, isDispatching, dispatch,
     ]);
 

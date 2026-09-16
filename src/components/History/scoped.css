@@ -450,3 +450,34 @@
     opacity: 0.5;
     cursor: default;
 }
+
+/* Paging control at the foot of the list. Centred and quiet: it is a continuation of the
+   list, not an action competing with the cards above it. */
+.history-load-more {
+    display: flex;
+    justify-content: center;
+    padding: 16px 0 24px;
+}
+
+.history-load-more-button {
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--color-text-secondary);
+    background: var(--color-background-subtle);
+    border: 1px solid var(--color-border-default);
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+}
+
+.history-load-more-button:hover:not(:disabled) {
+    background: var(--color-background-hover, var(--color-grey-50));
+    color: var(--color-text-primary);
+}
+
+.history-load-more-button:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
