@@ -19,6 +19,7 @@ import {
   useMediaQuery,
 } from '@mui/material';
 
+import { useGuestGate } from '../Auth/guestGate';
 import { INVESTIGATE_ENABLED } from '../../config/features';
 import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
@@ -68,6 +69,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
        is the other half — the examples are often already open, because focusing the box opens
        them, and then the menu lands on top of a list the reader cannot use. */
     const [modelMenuOpen, setModelMenuOpen] = useState(false);
+    /* Only a signed-in reader can ask. The gate covers the whole bar — box, send, chips,
+       model menu, search options — so a guest meets the sign-in overlay instead of a
+       question that the server would refuse anyway. */
+    const { gateProps: guestGateProps, requireAuth } = useGuestGate();
     const navigate = useNavigate();
     // The app shell and HomePage both switch at 767px. A separate 600px
     // threshold mixed the mobile page with the PC search controls.
@@ -174,6 +179,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     };
 
     const navigateToLLMAgent = (query = '', inputMethod = 'button') => {
+        /* The backstop behind the gate below. Nothing in the bar can reach this while signed
+           out, but a prefilled example or a future caller could, and a question must not
+           leave the page without an account behind it. */
+        if (requireAuth()) return;
         // Clear input timeout to prevent search_input event after submission
         if (inputTimeoutRef.current) {
             clearTimeout(inputTimeoutRef.current);
@@ -357,6 +366,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     return (
         <Box
             className="llm-searchbar"
+            {...guestGateProps}
             sx={{
                 width: '100%',
                 display: 'flex',

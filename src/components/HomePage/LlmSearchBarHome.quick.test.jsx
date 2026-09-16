@@ -15,6 +15,11 @@ let mockEfforts = [
 ];
 jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
 jest.mock('../../utils/gtag', () => ({ trackGtagEvent: jest.fn() }));
+// Asking requires an account (see Auth/guestGate). These are about the composer's own
+// behaviour, so the reader is signed in throughout; the gate itself is tested separately.
+jest.mock('../Auth/AuthContext', () => ({
+    useAuth: () => ({ isAuthenticated: true, loading: false, openLoginModal: jest.fn() }),
+}));
 jest.mock('../../config/features', () => ({ INVESTIGATE_ENABLED: true }));
 jest.mock('../../service/models', () => ({
     ...jest.requireActual('../../service/models'),

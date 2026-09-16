@@ -30,10 +30,10 @@ async function globalSetup() {
   const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
   const token = process.env.TEST_TOKEN;
   if (!token) {
-    /* Not fatal. Global setup runs before EVERY spec, so throwing here made a missing token
-       block the signed-out ones too — including the answer-durability suite, whose whole
-       point is the guest path. A spec that needs an account fails on its own assertions,
-       which says more than a setup error does. */
+    /* Not fatal. Global setup runs before EVERY spec, so throwing here would block the
+       signed-out ones too — guest-gate.spec.js clears the state per test and needs no
+       account. A spec that does need one fails on its own assertions, which says more than
+       a setup error does. */
     console.warn('[e2e] TEST_TOKEN is not set — running signed out. '
       + 'Specs that need an account will fail.');
     writeEmptyState();

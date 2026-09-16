@@ -124,6 +124,7 @@ import {
 } from '../../utils/conversationBookmarks';
 import { createQuerySubmitSuccessTracker } from '../../utils/gtag';
 import { useAuth } from '../Auth/AuthContext';
+import { useGuestGate } from '../Auth/guestGate';
 import {
     NOTIFY_EMAIL_KEY,
     getNotifyPrefs,
@@ -2491,6 +2492,11 @@ function LLMAgent({ isRouteActive = true }) {
         });
     }, [navigate]);
     const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
+    /* Asking is for signed-in readers: the composer stays on screen, and every way of
+       operating it — the box, Send, the chips, the model menu — opens the sign-in overlay
+       instead. `requireAuthToAsk` is the same decision for the submit path itself, which a
+       question arriving from the home page's navigation state reaches without a click. */
+    const { gateProps: guestGateProps, requireAuth: requireAuthToAsk } = useGuestGate();
     const useMobileReferencesDrawer = isPhoneDevice;
 
     useEffect(() => {
@@ -4261,6 +4267,11 @@ function LLMAgent({ isRouteActive = true }) {
         const inputText = input || userInput;
         e && e.preventDefault();
         if (!inputText.trim() || isLimitReachedEffective) return;
+        /* Every route to a question ends here — the composer, a released follow-up, and the
+           query handed over in the home page's navigation state, which arrives without a
+           click for the gate on the composer to catch. A guest gets the sign-in overlay and
+           keeps their question in the box. */
+        if (requireAuthToAsk()) return;
 
         /* Which conversation this turn belongs to. Normally the one on screen, but a released
            queued prompt names its own: it was written as a follow-up to a particular thread and
@@ -6421,6 +6432,9 @@ function LLMAgent({ isRouteActive = true }) {
         event?.preventDefault?.();
         const text = userInput.trim();
         if (!text || isLimitReachedEffective) return;
+        // Checked before queueing as well as before sending: a guest's follow-up must not be
+        // taken out of the box and drawn as a pending bubble that will never be sent.
+        if (requireAuthToAsk()) return;
         /* "Busy" is the REGISTRY's word, not only the view's. The view flags describe the
            run the view follows; a background follow-up holds its conversation without ever
            touching them, and a submit into it used to be refused silently deep inside
@@ -6469,7 +6483,8 @@ function LLMAgent({ isRouteActive = true }) {
             queryMethod,
         }]);
         setUserInput('');
-    }, [userInput, isLoading, isViewingRunningConversation, isLimitReachedEffective, stableSubmit]);
+    }, [userInput, isLoading, isViewingRunningConversation, isLimitReachedEffective,
+        requireAuthToAsk, stableSubmit]);
 
     const removeQueuedPrompt = useCallback((entry) => {
         if (!entry?.id) return;
@@ -7498,7 +7513,7 @@ function LLMAgent({ isRouteActive = true }) {
                                                         it is a question to answer before the run can
                                                         go on, so it belongs where the answer is typed
                                                         and must not scroll away with the transcript. */}
-                                                    <div className="composer-dock">
+                                                    <div className="composer-dock" {...guestGateProps}>
                                                         {isViewingRunningConversation && pendingClarification && (
                                                             <div className="clarify-float">
                                                                 <ClarifyPanel
