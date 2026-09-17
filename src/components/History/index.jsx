@@ -358,7 +358,11 @@ const History = () => {
         }
 
         let isMounted = true;
-        const cached = getConversations();
+        /* Only a first page's worth of the cache, because a first page is what replaces it a
+           moment later. The store holds as many conversations as the sidebar refreshes (and
+           as many as this page last loaded), so painting all of them meant opening History
+           showed a long list under a bare count, both of which then shrank to twenty. */
+        const cached = getConversations().slice(0, PAGE_SIZE);
         if (cached.length > 0) {
             setConversations(cached);
         }

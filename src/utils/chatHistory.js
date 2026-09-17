@@ -217,9 +217,10 @@ const mergeSummaryWithStored = (item, stored) => {
 };
 
 /* One page of the list, merged into the store WITHOUT dropping the pages already there.
-   `fetchConversations` below replaces the store with what came back, which is right for the
-   first page of a refresh and wrong for every page after it — that is how the History page,
-   having loaded 60 conversations, could be cut back to 20 by anything that re-read the store.
+   This is the helper for paging DOWN the list — it takes a cursor and unions what comes back.
+   `fetchConversations` below re-reads the newest page instead, and keeps what lies beneath it
+   (see `conversationsBelowPage`); before it did, a refresh of page one cut a History that had
+   paged to 100 back to the newest 20.
 
    Returns the page plus what the server said about the list as a whole: `total` (how many
    conversations the reader has, counting only the non-empty ones a client can show) and
@@ -243,8 +244,73 @@ export const fetchConversationPage = async ({ limit = 20, before = null } = {}) 
     };
 };
 
+/**
+ * How many conversations a refresh of the list validates — and therefore the most any view
+ * may show from the store.
+ *
+ * These have to be ONE number. The store is shared: the sidebar draws it, the chat page
+ * refreshes it after every answer. When the refresh covered fewer rows than the sidebar drew,
+ * the rows in between were frozen at whatever some earlier fetch had seen — a conversation
+ * deleted in another tab kept its place in the list, and clicking it opened nothing.
+ */
+export const RECENT_CONVERSATION_LIMIT = 50;
+
+/**
+ * The stored conversations a refresh of the newest page has no opinion about.
+ *
+ * A page of the list is authoritative only over the window it covers. Rows newer than its
+ * last row that did not come back are gone from the server — deleted here or in another tab
+ * — and must leave the store. Rows OLDER than its last row were never in the running: the
+ * server was asked for the newest `limit`, so their absence says nothing, and dropping them
+ * is what let a refresh of page one silently truncate a History that had paged to 100.
+ *
+ * A short page is the exception. Fewer rows than were asked for means that page is the whole
+ * list, so there is no window below it and anything still stored has been deleted.
+ *
+ * A row that ties the page's last timestamp is below the window, not inside it: the server
+ * breaks that tie on an id this list does not carry, so the page genuinely does not say
+ * whether such a row is the next one down or was deleted. Keeping it is the answer that
+ * cannot lose a real conversation, and a stale one can only sit at the far edge of a window
+ * every caller now validates in full.
+ */
+export const conversationsBelowPage = (page, stored, limit) => {
+    if (!Array.isArray(page) || !Array.isArray(stored)) return [];
+    // Nothing below a page the server could not fill — it was the entire list.
+    if (page.length < limit) return [];
+    const tailAt = serverTimeMs(page[page.length - 1]?.updatedAt);
+    // A page whose oldest row has no readable timestamp places no boundary. Keeping nothing
+    // is what this function did before it existed, and is the answer that cannot resurrect a
+    // deleted conversation.
+    if (tailAt == null) return [];
+    const onThisPage = new Set(page.map((item) => String(item?.id)));
+    return stored.filter((item) => (
+        // A row whose own timestamp is unreadable counts as 0 here, which keeps it — and
+        // sorts it to the very bottom of the store, below anything a caller draws.
+        !onThisPage.has(String(item?.id)) && (serverTimeMs(item?.updatedAt) ?? 0) <= tailAt
+    ));
+};
+
+/**
+ * A row kept below the window, with the transcript it no longer needs to hold.
+ *
+ * `mergeSummaryWithStored` keeps a stored transcript only while the conversation is ahead of
+ * the server — running, or ending mid-exchange. Rows below the window never pass through it,
+ * so without this they would hold their full answers in sessionStorage for the life of the
+ * tab; a reader who opens forty deep-research reports has megabytes of them in a store whose
+ * quota fails silently (see `setConversations`). Reopening a conversation re-fetches it.
+ */
+const withoutSettledTranscript = (item) => {
+    if (!item?.messages?.length) return item;
+    if (isConversationRunning(item.id) || isExchangeUnfinished(item.messages)) return item;
+    // The count has to survive the transcript: a row that cannot say how many messages it
+    // holds reads as empty, and an empty row is pruned out of the store entirely.
+    const count = Number(item.messageCount);
+    if (!Number.isFinite(count) || count <= 0) return item;
+    return { ...item, messages: [] };
+};
+
 export const fetchConversations = async (options = {}) => {
-    const { offset = 0, limit = 20 } = options;
+    const { offset = 0, limit = RECENT_CONVERSATION_LIMIT } = options;
     const data = await listChatHistories({ offset, limit });
     const list = Array.isArray(data?.histories)
         ? data.histories.map(normalizeSummary)
@@ -264,9 +330,16 @@ export const fetchConversations = async (options = {}) => {
        merge asks — and after a reload the answer used to be "nothing", which threw away the
        optimistic turn of every run still in flight. */
     reconcileRunsWithServer(list);
-    const known = new Map(getConversations().map((item) => [String(item.id), item]));
+    const stored = getConversations();
+    const known = new Map(stored.map((item) => [String(item.id), item]));
     const merged = list.map((item) => mergeSummaryWithStored(item, known.get(String(item.id))));
-    return setConversations(merged);
+    /* Only the newest page was asked for, so only the newest page may be rewritten. An
+       `offset` puts the window somewhere this cannot reason about, and no caller passes one;
+       such a call keeps the old wholesale replace rather than guessing at a boundary. */
+    const below = offset
+        ? []
+        : conversationsBelowPage(list, stored, limit).map(withoutSettledTranscript);
+    return setConversations([...merged, ...below]);
 };
 
 /**

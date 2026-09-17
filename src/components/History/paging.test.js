@@ -74,3 +74,17 @@ describe('the line under the toolbar', () => {
             .toBe('20 search history records with GLKB');
     });
 });
+
+
+/* The cached first paint, asserted in the source: History's mount seeds from the shared
+   conversation store before its own first page arrives, and that store now holds as many rows
+   as the sidebar refreshes. Painting all of them showed a long list under a bare count, both
+   of which then shrank to a page. The component is not rendered by any test — this pins the
+   one line that keeps the seed and the page the same size. */
+describe('what History paints before its first page arrives', () => {
+    const source = require('fs').readFileSync(require('path').join(__dirname, 'index.jsx'), 'utf-8');
+
+    it('seeds from the store a page at a time', () => {
+        expect(source).toContain('const cached = getConversations().slice(0, PAGE_SIZE);');
+    });
+});

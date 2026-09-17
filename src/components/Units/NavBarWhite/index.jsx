@@ -73,6 +73,7 @@ import {
   getActiveConversationId,
   getConversations,
   removeConversation,
+  RECENT_CONVERSATION_LIMIT,
   setActiveConversationId,
   updateConversationTitle,
   chatPathForConversation,
@@ -91,7 +92,13 @@ const drawerWidth = 240;
 const mobileDrawerWidth = 280;
 const collapsedWidth = 64;
 const compactRailWidth = 52;
-const MAX_RECENT_COUNT = 50;
+/* How many conversations the Recent section shows. It is the store's own refresh window
+   (`RECENT_CONVERSATION_LIMIT`) rather than a number of its own, because drawing more rows
+   than a refresh validates leaves the ones past that point stale. These were different
+   numbers: the list rendered up to 50 rows but was only ever handed the default page of 20,
+   so the cap was unreachable and the sidebar stopped at 20 however many conversations the
+   reader had. */
+const MAX_RECENT_COUNT = RECENT_CONVERSATION_LIMIT;
 const DEBUG_HIDE_EXPLORE = true;
 const SIDEBAR_OPEN_EVENT = 'glkb-open-sidebar';
 
@@ -347,7 +354,9 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
         };
 
         updateRecent();
-        fetchConversations()
+        // Ask for as many as this section can draw. Anything less and the slice below is
+        // decoration: the server decides how long the list is, not MAX_RECENT_COUNT.
+        fetchConversations({ limit: MAX_RECENT_COUNT })
             .then((list) => {
                 if (!isMounted) return;
                 setRecentConversations(list);
