@@ -45,7 +45,13 @@ async function globalSetup() {
   const user = { id: payload.sub, email: payload.email };
 
   const browser = await chromium.launch();
-  const context = await browser.newContext({ baseURL: BASE_URL });
+  const context = await browser.newContext({
+    baseURL: BASE_URL,
+    // Same gate as the suite itself — see playwright.config.js.
+    httpCredentials: process.env.BASIC_AUTH_USER
+      ? { username: process.env.BASIC_AUTH_USER, password: process.env.BASIC_AUTH_PASS || '' }
+      : undefined,
+  });
   const page = await context.newPage();
   await page.goto('/');
   await page.evaluate(({ token, user }) => {

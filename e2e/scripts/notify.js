@@ -25,6 +25,12 @@ const BACKEND_ENDPOINTS = {
 // Critical test files — failures here escalate to CRITICAL severity
 const CRITICAL_FILES = new Set(['ai-chat.spec.js']);
 
+/* Files that assert what a DEPLOY made true rather than how the app behaves. A failure here
+   usually means one half of a change is live and the other is not, so it goes to whoever
+   deploys — routing it by error text would file it as a frontend regression, which is the one
+   team that cannot fix it. */
+const DEPLOYMENT_FILES = new Set(['deployment-health.spec.js']);
+
 const SEVERITY_COLORS = {
   critical: { bg: '#fde8e8', text: '#c0392b' },
   error:    { bg: '#fef3e2', text: '#d35400' },
@@ -56,6 +62,9 @@ const transporter = nodemailer.createTransport({
 
 function classifyFailure(testFile, errorMessage) {
   const isCritical = CRITICAL_FILES.has(testFile);
+
+  if (DEPLOYMENT_FILES.has(testFile))
+    return { type: 'deployment', severity: 'error', recipients: ['ops', 'backend'] };
 
   if (!errorMessage) return { type: 'unknown', severity: 'warning', recipients: ['ops'] };
 
@@ -90,11 +99,14 @@ function buildSubject(recipient, severity, failures, runId) {
 
   if (recipient === 'ops') {
     const hasAuth = failures.some((f) => f.type === 'auth');
-    return hasAuth
-      ? `${tag} Auth failure — Playwright tests blocked`
-      : `${tag} Playwright test failures — run ${runId}`;
+    if (hasAuth) return `${tag} Auth failure — Playwright tests blocked`;
+    if (failures.every((f) => f.type === 'deployment'))
+      return `${tag} Deployment is behind — the running build fails its own contract`;
+    return `${tag} Playwright test failures — run ${runId}`;
   }
   if (recipient === 'backend') {
+    if (failures.every((f) => f.type === 'deployment'))
+      return `${tag} Deployment is behind — an endpoint contract the web app needs is missing`;
     const endpoints = [...new Set(failures.map((f) => BACKEND_ENDPOINTS[f.file]).filter(Boolean))];
     return severity === 'critical'
       ? `${tag} AI Chat backend timeout — ${endpoints.join(', ')}`
