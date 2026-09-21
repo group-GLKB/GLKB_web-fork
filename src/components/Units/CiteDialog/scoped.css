@@ -1,0 +1,35 @@
+.MuiDialog-paper.cite-paper-dialog {
+    width: 720px;
+    max-width: calc(100% - 32px);
+    max-height: calc(100% - 32px);
+    margin: 16px;
+    padding: 24px;
+    box-sizing: border-box;
+    border-radius: 16px;
+    background: var(--color-background-surface);
+    font-family: Geist, sans-serif;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+}
+.cite-paper-dialog > * { flex-shrink: 0; }
+.cite-paper-header { display: flex; justify-content: space-between; align-items: center; }
+.cite-paper-header h2 { margin: 0; font: 600 16px/26px Geist, sans-serif; color: var(--color-text-primary); }
+.cite-paper-dialog hr { width: 100%; margin: 0; border: 0; border-top: 1px solid var(--color-border-default); }
+.cite-paper-dialog button { cursor: pointer; font-family: inherit; }
+.cite-paper-close, .cite-paper-copy { display: flex; align-items: center; justify-content: center; padding: 4px; border: 0; border-radius: 4px; background: transparent; }
+.cite-paper-close { width: 26px; height: 26px; }
+.cite-paper-close img { width: 18px; height: 18px; }
+.cite-paper-format { display: flex; flex-direction: column; gap: 8px; }
+.cite-paper-format h3 { margin: 0; padding: 0 4px; font: 600 12px/20px Geist, sans-serif; color: var(--color-text-secondary); }
+.cite-paper-text { position: relative; padding: 12px; border: .5px solid var(--color-border-default); border-radius: 8px; background: var(--color-background-subtle); }
+.cite-paper-text p { margin: 0; padding-right: 16px; font: 400 14px/22px Geist, sans-serif; color: var(--color-text-tertiary); overflow-wrap: anywhere; }
+.cite-paper-copy { position: absolute; right: 8px; bottom: 16px; width: 20px; height: 20px; }
+.cite-paper-copy img { width: 12px; height: 12px; }
+.cite-paper-dialog button:hover { background: var(--color-background-muted); }
+.cite-paper-dialog button:focus-visible { outline: 2px solid var(--color-brand-primary); outline-offset: 2px; }
+.cite-paper-footer { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.cite-paper-footer > span { font: 600 14px/22px Geist, sans-serif; color: var(--color-text-primary); }
+.cite-paper-exports { display: flex; gap: 8px; }
+.cite-paper-exports button { padding: 4px 12px; border: .5px solid var(--color-border-default); border-radius: 4px; background: var(--color-background-subtle); color: var(--color-text-secondary); font: 600 12px/16px Geist, sans-serif; }
