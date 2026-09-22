@@ -92,6 +92,8 @@ import {
 import { useAuth } from '../Auth/AuthContext';
 import { nodeStyle } from '../Graph/nodeStyle';
 import CiteDialog from '../Units/CiteDialog';
+import { cslFromCard, toBibTeX } from '../Units/CiteDialog/format';
+import { fetchCitations } from '../../service/Citation';
 import ConversationCard from '../Units/ConversationCard';
 import { toIsoUtc, withServerTimezone } from '../../utils/serverTime';
 
@@ -1193,18 +1195,20 @@ const Library = () => {
         [SORT_DATE]: 'Date added',
     };
 
-    const handleExportReferences = () => {
+    const handleExportReferences = async () => {
         if (displayedReferences.length === 0) return;
 
-        const bibTexContent = displayedReferences.map((ref, index) => {
-            const pubmedIdFromUrl = (ref?.url || '').split('/').filter(Boolean).pop();
-            const pubmedId = ref?.pmid || pubmedIdFromUrl || `ref${index + 1}`;
-            const title = `${ref?.title || ''}`.replace(/[{}]/g, '');
-            const journal = `${ref?.journal || ''}`.replace(/[{}]/g, '');
-            const year = `${ref?.year || ''}`.replace(/[{}]/g, '');
-            const authors = `${ref?.authors || ''}`.replace(/,/g, ' and').replace(/[{}]/g, '');
-
-            return `@article{pubmed${pubmedId},\n  author = {${authors}},\n  title = {${title}},\n  journal = {${journal}},\n  year = {${year}},\n  note = {PubMed ID: ${pubmedId}}\n}`;
+        // Each entry renders from NCBI's record for its PMID (authors, volume, pages, DOI);
+        // a reference NCBI has no record for falls back to the card's own fields.
+        const cards = displayedReferences.map((ref) => buildReferenceCitation({
+            ...ref,
+            url: ref?.url || (ref?.pmid ? `https://pubmed.ncbi.nlm.nih.gov/${ref.pmid}/` : ''),
+        }));
+        const pmids = cards.map((card) => cslFromCard(card).PMID).filter(Boolean);
+        const records = await fetchCitations(pmids);
+        const bibTexContent = cards.map((card) => {
+            const fallback = cslFromCard(card);
+            return toBibTeX(records[fallback.PMID] || fallback);
         }).join('\n\n');
 
         const blob = new Blob([bibTexContent], { type: 'application/x-bibtex' });

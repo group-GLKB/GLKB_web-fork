@@ -182,6 +182,8 @@ import {
     stripCitationsBlock,
 } from '../../utils/directCitations';
 import CiteDialog from '../Units/CiteDialog';
+import { cslFromCard, toBibTeX } from '../Units/CiteDialog/format';
+import { fetchCitations } from '../../service/Citation';
 import ErrorBoundary from '../Units/ErrorBoundary';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import ChatSearchBar from './ChatSearchBar';
@@ -6254,21 +6256,19 @@ function LLMAgent({ isRouteActive = true }) {
     ), [enrichedReferences, sortOption]);
     const isExportDisabled = sortedReferences.length === 0;
 
-    const handleExportReferences = () => {
+    const handleExportReferences = async () => {
         if (sortedReferences.length === 0) return;
 
-        const bibTexContent = sortedReferences.map(({ reference: ref }) => {
-            const pubmedId = ref.url.split('/').filter(Boolean).pop();
-            const cleanTitle = ref.title.replace(/[{}]/g, '');
-            const cleanAuthors = ref.authors.replace(/,/g, ' and');
-
-            return `@article{pubmed${pubmedId},
-  author = {${cleanAuthors}},
-  title = {${cleanTitle}},
-  journal = {${ref.journal}},
-  year = {${ref.year}},
-  note = {PubMed ID: ${pubmedId}}
-}`;
+        // Each entry renders from NCBI's record for its PMID (authors, volume, pages, DOI);
+        // a reference NCBI has no record for falls back to the card's own fields.
+        const cards = sortedReferences.map(({ reference: ref }) => [
+            ref.title || '', ref.url || '', ref.citation_count ?? 0, ref.year ?? '', ref.journal || '', ref.authors || '',
+        ]);
+        const pmids = cards.map((card) => cslFromCard(card).PMID).filter(Boolean);
+        const records = await fetchCitations(pmids);
+        const bibTexContent = cards.map((card) => {
+            const fallback = cslFromCard(card);
+            return toBibTeX(records[fallback.PMID] || fallback);
         }).join('\n\n');
 
         const blob = new Blob([bibTexContent], { type: 'application/x-bibtex' });
