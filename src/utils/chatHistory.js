@@ -9,7 +9,6 @@ import {
 import { isConversationRunning, reconcileRunsWithServer } from '../service/activeRun';
 import { isExchangeUnfinished } from '../service/resumeRun';
 import { parseServerTime, serverTimeMs, toIsoUtc } from './serverTime';
-import { replayTrace } from '../components/LLMAgent/traceReplay';
 
 const STORAGE_KEY = 'llmConversations';
 const ACTIVE_KEY = 'llmActiveConversationId';
@@ -156,26 +155,18 @@ const normalizeDetail = (detail) => ({
     sessionId: detail.session_id || null,
     messageCount: Array.isArray(detail.messages) ? detail.messages.length : 0,
     messages: Array.isArray(detail.messages)
-        ? detail.messages.map((message) => {
-            /* The process trace the reader watched while this answer was written — thought
-               list, narration, duration, an investigation's funnel and phase — replayed from
-               the frames the backend stored with it. Without it every reloaded turn came back
-               with its trace empty. `{}` for a message with no stored trace. */
-            const trace = message.role === 'assistant' ? replayTrace(message.trace) : {};
-            return {
-                id: message.id ?? message.mid ?? message.message_id ?? null,
-                role: message.role,
-                content: message.content ?? '',
-                references: normalizeReferences(message.references),
-                timestamp: formatTimestamp(message.created_at),
-                ...trace,
-                trajectory: message.trajectory || trace.trajectory || null,
-                invocationId: message.invocation_id ?? message.invocationId ?? null,
-                // null for user messages, for answers saved before this shipped, and for
-                // answers with no bindings — all of which mean the same thing here.
-                directCitations: message.direct_citations ?? message.directCitations ?? null,
-            };
-        })
+        ? detail.messages.map((message) => ({
+            id: message.id ?? message.mid ?? message.message_id ?? null,
+            role: message.role,
+            content: message.content ?? '',
+            references: normalizeReferences(message.references),
+            timestamp: formatTimestamp(message.created_at),
+            trajectory: message.trajectory || null,
+            invocationId: message.invocation_id ?? message.invocationId ?? null,
+            // null for user messages, for answers saved before this shipped, and for
+            // answers with no bindings — all of which mean the same thing here.
+            directCitations: message.direct_citations ?? message.directCitations ?? null,
+        }))
         : [],
 });
 

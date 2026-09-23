@@ -68,13 +68,6 @@ import { emptyFunnel, mergeFunnel, settleFunnel } from './funnel';
    already cancelled) and a reader can meet more than one of them in a single run. */
 import { keepsWhatItWrote, stoppedMessageFor, withStoppedMessage } from './stopped';
 import InvestigateProgress, { formatElapsed } from './InvestigateProgress';
-import {
-    mergeInvestigateDetail,
-    mergeLiveKeywords,
-    mergeLivePapers,
-    mergePercentMonotonic,
-    mergePhaseMonotonic,
-} from './traceReplay';
 import ClarifyPanel, { getClarificationQuestionKey } from './ClarifyPanel';
 import ReferenceHoverCard from './ReferenceHoverCard';
 import { getBookmarks, toggleBookmark } from '../../utils/bookmarks';
@@ -99,6 +92,7 @@ import { ReactComponent as ReplayIcon } from '../../img/llm/replay.svg';
 import { ReactComponent as ThumbsUpDownIcon } from '../../img/llm/thumbs_up_down.svg';
 import { submitChatFeedback } from '../../service/Feedback';
 import {
+  INVESTIGATE_PHASE_ORDER,
   LLMAgentService,
   PHASE_PERCENT_FLOOR,
   extractProgress,
@@ -222,6 +216,88 @@ const formatDuration = (durationMs) => {
 const formatInvestigatedDuration = (durationMs) => {
     if (durationMs === null || durationMs === undefined) return '';
     return formatElapsed(durationMs / 1000);
+};
+
+const mergeLiveKeywords = (prev, next) => {
+    if (!Array.isArray(next) || !next.length) return prev || [];
+    return Array.from(new Set([...(prev || []), ...next.map(String)]));
+};
+
+const mergeLivePapers = (prev, next) => {
+    if (!Array.isArray(next) || !next.length) return prev || [];
+    const map = new Map();
+    [...(prev || []), ...next].forEach((paper) => {
+        if (!paper) return;
+        const key = paper.pmid || paper.id || paper.title;
+        if (!key) return;
+        map.set(String(key), paper);
+    });
+    return Array.from(map.values());
+};
+
+/**
+ * Fold one progress frame's structured fields into the accumulated detail. Kept additive: a
+ * frame that omits `facets` must not blank the facets the analyzing step is displaying, and the
+ * writing frames only carry section/step/total. Keys are renamed to the shapes the panel reads.
+ */
+const mergeInvestigateDetail = (prev, next, label) => {
+    const out = { ...(prev || {}) };
+    if (Array.isArray(next.topic) && next.topic.length) out.topic = next.topic.map(String);
+    if (Array.isArray(next.facets) && next.facets.length) out.facets = next.facets.map(String);
+    // Retrieval channels reporting one by one. Accumulated (not replaced) and de-duplicated by
+    // name, because each frame carries the running list and a later frame must not drop an
+    // earlier probe's result.
+    if (Array.isArray(next.channels) && next.channels.length) {
+        const byName = new Map((out.channels || []).map((c) => [c.name, c]));
+        next.channels.forEach((c) => {
+            if (!c || !c.name) return;
+            // `pending` = announced but still running. Carried through so the panel can say
+            // "searching…" instead of showing an unfinished probe as a failure.
+            byName.set(String(c.name), {
+                name: String(c.name),
+                hits: Number(c.hits) || 0,
+                ok: c.ok !== false,
+                pending: c.pending === true,
+            });
+        });
+        out.channels = Array.from(byName.values());
+    }
+    // `facets` is capped for display; `n_facets` is the true count.
+    if (Number.isFinite(Number(next.n_facets))) out.nFacets = Number(next.n_facets);
+    if (Number.isFinite(Number(next.n_claims))) out.nClaims = Number(next.n_claims);
+    if (Number.isFinite(Number(next.n_conflicted))) out.nConflicted = Number(next.n_conflicted);
+    // `step`/`total` only mean "report section i of n" on the writing frames — the reading frame
+    // also carries a `total` (the paper count), which must not be read as a section count.
+    if (next.section) {
+        out.section = String(next.section);
+        if (Number.isFinite(Number(next.step))) out.step = Number(next.step);
+        if (Number.isFinite(Number(next.total))) out.totalSections = Number(next.total);
+    }
+    if (label) out.label = String(label);
+    return out;
+};
+
+/**
+ * Phases only ever move forward. A frame that names an earlier phase — a late-arriving event, a
+ * phase inferred from free text, or a stage that reports its own completion — must not rewind the
+ * header from "Reading..." back to "Searching...". Unknown phases are ignored rather than
+ * treated as a reset.
+ */
+const mergePhaseMonotonic = (prev, next) => {
+    if (!next) return prev;
+    if (!prev) return next;
+    const a = INVESTIGATE_PHASE_ORDER.indexOf(prev);
+    const b = INVESTIGATE_PHASE_ORDER.indexOf(next);
+    if (b < 0) return prev;
+    if (a < 0) return next;
+    return b >= a ? next : prev;
+};
+
+const mergePercentMonotonic = (prev, next) => {
+    if (!Number.isFinite(Number(next))) return prev;
+    const n = Math.max(0, Math.min(100, Math.round(Number(next))));
+    if (!Number.isFinite(Number(prev))) return n;
+    return Math.max(Number(prev), n);
 };
 
 const formatFunnelValue = (value) => {
