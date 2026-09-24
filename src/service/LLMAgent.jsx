@@ -260,6 +260,151 @@ export const inferFunnelFromText = (lines = []) => {
     return funnel;
 };
 
+/**
+ * One parsed SSE frame as the update the chat view consumes, or null for a frame it ignores.
+ *
+ * Pure, and exported, because a stream is read twice: live, as it arrives, and again when a
+ * finished turn is reloaded — the backend stores the frames the reader watched with the
+ * answer (`trace` on a history message) and `replayTrace` feeds them back through here, so a
+ * reloaded turn is built by the same mapping as the live one rather than by a copy of it.
+ */
+export const frameToUpdate = (data) => {
+    if (!data || typeof data !== 'object') return null;
+    const detail = data.detail && typeof data.detail === 'object' ? data.detail : {};
+    const funnel = extractFunnelMetrics(data);
+    const keywords = extractKeywords(data);
+    const papers = extractPapers(data);
+    const percent = normalizePercent(
+        data.percent ?? data.progress_percent ?? detail.percent ?? null,
+    );
+    // `data.content` on a tool frame is an internal trace
+    // ("[TOOL CALL] article_search | Input: {…}"), so it is mapped to its
+    // step.json wording before it can reach the panel as a label.
+    const label = data.label || detail.label || data.message
+        || humanizeTrace(data.content) || '';
+    const phase =
+        data.phase ||
+        detail.phase ||
+        data.stage_label ||
+        inferInvestigatePhase(data.step || data.type, label);
+
+    // Agent DR progress frames: type === "progress" (or tool_name progress)
+    const isProgressFrame =
+        data.type === 'progress' ||
+        data.tool_name === 'progress' ||
+        (data.percent != null && data.phase);
+
+    if (data.step === 'Started') {
+        return {
+            type: 'started',
+            runId: data.run_id || null,
+            sessionId: data.session_id || null,
+            phase: phase || 'searching',
+            funnel,
+            percent: percent ?? PHASE_PERCENT_FLOOR.searching,
+            keywords,
+            papers,
+            label: label || 'Starting investigation…',
+        };
+    } else if (data.type === 'clarification' || data.step === 'Clarifying the question') {
+        return {
+            type: 'clarification',
+            invocationId: data.invocation_id || null,
+            stage: data.stage || null,
+            reason: data.reason || '',
+            questions: Array.isArray(data.questions) ? data.questions : [],
+            sessionId: data.session_id || null,
+            phase: phase || 'searching',
+            funnel,
+            percent, // hold bar during clarify
+            keywords,
+            papers,
+        };
+    } else if (data.step === 'Thinking') {
+        // The opening line, written by a cheap model while the agent is still
+        // on its first turn. It is not the answer and never becomes it — the
+        // real text arrives on `Delta`/`Answer` and supersedes it — so it goes
+        // to the thought list, not the body.
+        return {
+            type: 'thinking',
+            delta: typeof data.delta === 'string' ? data.delta : '',
+        };
+    } else if (data.step === 'Delta') {
+        // A chunk of the answer as the model writes it. `delta` is the
+        // INCREMENT, not the running total, so the client appends. `block`
+        // rises on every tool call: in a ReAct loop the model also narrates
+        // before each call ("I'll search PubMed for…") and that text streams
+        // too, so only the NEWEST block is the answer. See the agent's
+        // service/stream_delta.py.
+        return {
+            type: 'delta',
+            block: Number(data.block) || 0,
+            delta: typeof data.delta === 'string' ? data.delta : '',
+        };
+    } else if (data.step === 'Answer') {
+        // The finished answer, shipped ahead of the reference/citation
+        // payload it used to wait behind. Text only — `Complete` still
+        // carries everything, including this same string, so this frame is
+        // purely "show it sooner".
+        return {
+            type: 'answer',
+            answer: data.response,
+            sessionId: data.session_id || null,
+        };
+    } else if (data.step === 'Complete') {
+        return {
+            type: 'final',
+            answer: data.response,
+            references: data.references || [],
+            // Per-citation evidence. Read `direct_citations`, never
+            // `citations` — that is an unrelated agent field with a
+            // different shape. The backend normalises this name for us
+            // on every endpoint, this frame included.
+            directCitations: data.direct_citations || [],
+            messages: data.messages || [],
+            sessionId: data.session_id || null,
+            trajectory: data.trajectory || null,
+            funnel,
+            phase: 'summary',
+            percent: 100,
+            keywords,
+            papers,
+        };
+    } else if (data.step === 'Saved') {
+        return {
+            type: 'saved',
+            historyId: data.history_id,
+            sessionId: data.session_id || null,
+            invocationId: data.invocation_id || null,
+        };
+    } else if (data.step === 'Error') {
+        return {
+            type: 'error',
+            error: data.error || data.detail || 'Unknown error',
+            funnel,
+        };
+    } else if (isProgressFrame || data.step) {
+        return {
+            type: 'step',
+            step: data.step || data.phase || 'Processing',
+            content: label || data.message || data.content || '',
+            phase,
+            funnel,
+            percent,
+            keywords,
+            papers,
+            label,
+            // The frame's remaining structured fields (facets, n_claims,
+            // n_conflicted, section/step/total, topic, …). The progress panel
+            // renders these as the active step's detail block, so they have to
+            // survive the trip instead of being flattened into a label string.
+            detail,
+            isProgress: Boolean(isProgressFrame),
+        };
+    }
+    return null;
+};
+
 export class LLMAgentService {
     constructor() {
         this.messages = [];
@@ -290,138 +435,8 @@ export class LLMAgentService {
                     try {
                         const jsonStr = line.substring(6);
                         const data = JSON.parse(jsonStr);
-                        const detail = data.detail && typeof data.detail === 'object' ? data.detail : {};
-                        const funnel = extractFunnelMetrics(data);
-                        const keywords = extractKeywords(data);
-                        const papers = extractPapers(data);
-                        const percent = normalizePercent(
-                            data.percent ?? data.progress_percent ?? detail.percent ?? null,
-                        );
-                        // `data.content` on a tool frame is an internal trace
-                        // ("[TOOL CALL] article_search | Input: {…}"), so it is mapped to its
-                        // step.json wording before it can reach the panel as a label.
-                        const label = data.label || detail.label || data.message
-                            || humanizeTrace(data.content) || '';
-                        const phase =
-                            data.phase ||
-                            detail.phase ||
-                            data.stage_label ||
-                            inferInvestigatePhase(data.step || data.type, label);
-
-                        // Agent DR progress frames: type === "progress" (or tool_name progress)
-                        const isProgressFrame =
-                            data.type === 'progress' ||
-                            data.tool_name === 'progress' ||
-                            (data.percent != null && data.phase);
-
-                        if (data.step === 'Started') {
-                            onUpdate({
-                                type: 'started',
-                                runId: data.run_id || null,
-                                sessionId: data.session_id || null,
-                                phase: phase || 'searching',
-                                funnel,
-                                percent: percent ?? PHASE_PERCENT_FLOOR.searching,
-                                keywords,
-                                papers,
-                                label: label || 'Starting investigation…',
-                            });
-                        } else if (data.type === 'clarification' || data.step === 'Clarifying the question') {
-                            onUpdate({
-                                type: 'clarification',
-                                invocationId: data.invocation_id || null,
-                                stage: data.stage || null,
-                                reason: data.reason || '',
-                                questions: Array.isArray(data.questions) ? data.questions : [],
-                                sessionId: data.session_id || null,
-                                phase: phase || 'searching',
-                                funnel,
-                                percent, // hold bar during clarify
-                                keywords,
-                                papers,
-                            });
-                        } else if (data.step === 'Thinking') {
-                            // The opening line, written by a cheap model while the agent is still
-                            // on its first turn. It is not the answer and never becomes it — the
-                            // real text arrives on `Delta`/`Answer` and supersedes it — so it goes
-                            // to the thought list, not the body.
-                            onUpdate({
-                                type: 'thinking',
-                                delta: typeof data.delta === 'string' ? data.delta : '',
-                            });
-                        } else if (data.step === 'Delta') {
-                            // A chunk of the answer as the model writes it. `delta` is the
-                            // INCREMENT, not the running total, so the client appends. `block`
-                            // rises on every tool call: in a ReAct loop the model also narrates
-                            // before each call ("I'll search PubMed for…") and that text streams
-                            // too, so only the NEWEST block is the answer. See the agent's
-                            // service/stream_delta.py.
-                            onUpdate({
-                                type: 'delta',
-                                block: Number(data.block) || 0,
-                                delta: typeof data.delta === 'string' ? data.delta : '',
-                            });
-                        } else if (data.step === 'Answer') {
-                            // The finished answer, shipped ahead of the reference/citation
-                            // payload it used to wait behind. Text only — `Complete` still
-                            // carries everything, including this same string, so this frame is
-                            // purely "show it sooner".
-                            onUpdate({
-                                type: 'answer',
-                                answer: data.response,
-                                sessionId: data.session_id || null,
-                            });
-                        } else if (data.step === 'Complete') {
-                            onUpdate({
-                                type: 'final',
-                                answer: data.response,
-                                references: data.references || [],
-                                // Per-citation evidence. Read `direct_citations`, never
-                                // `citations` — that is an unrelated agent field with a
-                                // different shape. The backend normalises this name for us
-                                // on every endpoint, this frame included.
-                                directCitations: data.direct_citations || [],
-                                messages: data.messages || [],
-                                sessionId: data.session_id || null,
-                                trajectory: data.trajectory || null,
-                                funnel,
-                                phase: 'summary',
-                                percent: 100,
-                                keywords,
-                                papers,
-                            });
-                        } else if (data.step === 'Saved') {
-                            onUpdate({
-                                type: 'saved',
-                                historyId: data.history_id,
-                                sessionId: data.session_id || null,
-                                invocationId: data.invocation_id || null,
-                            });
-                        } else if (data.step === 'Error') {
-                            onUpdate({
-                                type: 'error',
-                                error: data.error || data.detail || 'Unknown error',
-                                funnel,
-                            });
-                        } else if (isProgressFrame || data.step) {
-                            onUpdate({
-                                type: 'step',
-                                step: data.step || data.phase || 'Processing',
-                                content: label || data.message || data.content || '',
-                                phase,
-                                funnel,
-                                percent,
-                                keywords,
-                                papers,
-                                label,
-                                // The frame's remaining structured fields (facets, n_claims,
-                                // n_conflicted, section/step/total, topic, …). The progress panel
-                                // renders these as the active step's detail block, so they have to
-                                // survive the trip instead of being flattened into a label string.
-                                detail,
-                                isProgress: Boolean(isProgressFrame),
-                            });
-                        }
+                        const update = frameToUpdate(data);
+                        if (update) onUpdate(update);
                     } catch (e) {
                         console.error('Error parsing stream chunk:', e, 'Line:', line);
                     }
