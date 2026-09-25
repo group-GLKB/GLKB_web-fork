@@ -39,12 +39,12 @@ const setViewport = (narrow) => {
 const BOTH = ['chat', 'deep_research'];
 const CATALOG = {
     models: [
-        { id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol', short_label: '5.6 Sol', description: 'Most capable.', pipelines: BOTH },
-        { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', short_label: '5.6 Terra', description: 'Balanced.', pipelines: BOTH },
-        { id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna', short_label: '5.6 Luna', description: 'Fastest.', pipelines: ['chat'] },
+        { id: 'gpt-6-astra', label: 'GPT-6 Astra', short_label: '6 Astra', description: 'Most capable.', pipelines: BOTH },
+        { id: 'gpt-6-sol', label: 'GPT-6 Sol', short_label: '6 Sol', description: 'Balanced.', pipelines: BOTH },
+        { id: 'gpt-6-luna', label: 'GPT-6 Luna', short_label: '6 Luna', description: 'Fastest.', pipelines: ['chat'] },
     ],
-    defaultModel: 'gpt-5.6-terra',
-    defaultsByPipeline: { chat: 'gpt-5.6-terra', deep_research: 'gpt-5.6-terra' },
+    defaultModel: 'gpt-6-sol',
+    defaultsByPipeline: { chat: 'gpt-6-sol', deep_research: 'gpt-6-sol' },
 };
 
 beforeEach(() => {
@@ -64,27 +64,27 @@ const setup = (props = {}) => {
 
 it('shows the deployment default when the reader has chosen nothing', async () => {
     const { onResolveDefault } = setup({ value: '' });
-    expect(await screen.findByText('GPT-5.6 Terra')).toBeInTheDocument();
+    expect(await screen.findByText('GPT-6 Sol')).toBeInTheDocument();
     // Reported up, so the request can carry the id explicitly rather than relying on two
     // services independently agreeing on what "unspecified" means. `waitFor` because the
     // report happens in an effect, i.e. one render after the chip already reads correctly.
-    await waitFor(() => expect(onResolveDefault).toHaveBeenCalledWith('gpt-5.6-terra'));
+    await waitFor(() => expect(onResolveDefault).toHaveBeenCalledWith('gpt-6-sol'));
 });
 
 it('shows the stored choice instead of the default', async () => {
-    const { onResolveDefault } = setup({ value: 'gpt-5.6-luna' });
-    expect(await screen.findByText('GPT-5.6 Luna')).toBeInTheDocument();
+    const { onResolveDefault } = setup({ value: 'gpt-6-luna' });
+    expect(await screen.findByText('GPT-6 Luna')).toBeInTheDocument();
     expect(onResolveDefault).not.toHaveBeenCalled();
 });
 
 it('reports the default once, however often the parent re-renders', async () => {
     const { onResolveDefault, view } = setup({ value: '' });
-    await screen.findByText('GPT-5.6 Terra');
+    await screen.findByText('GPT-6 Sol');
     view.rerender(
-        <ModelPicker value="gpt-5.6-terra" onChange={() => {}} onResolveDefault={onResolveDefault} />,
+        <ModelPicker value="gpt-6-sol" onChange={() => {}} onResolveDefault={onResolveDefault} />,
     );
     view.rerender(
-        <ModelPicker value="gpt-5.6-terra" onChange={() => {}} onResolveDefault={onResolveDefault} />,
+        <ModelPicker value="gpt-6-sol" onChange={() => {}} onResolveDefault={onResolveDefault} />,
     );
     expect(onResolveDefault).toHaveBeenCalledTimes(1);
 });
@@ -95,9 +95,9 @@ it('lists every model with its description, and marks the default', async () => 
 
     const options = await screen.findAllByRole('option');
     expect(options.map((o) => o.textContent)).toEqual([
-        'GPT-5.6 SolMost capable.',
-        'GPT-5.6 TerraDefaultBalanced.',
-        'GPT-5.6 LunaFastest.',
+        'GPT-6 AstraMost capable.',
+        'GPT-6 SolDefaultBalanced.',
+        'GPT-6 LunaFastest.',
     ]);
     expect(options[1]).toHaveAttribute('aria-selected', 'true');
 });
@@ -105,18 +105,18 @@ it('lists every model with its description, and marks the default', async () => 
 it('reports a pick', async () => {
     const { onChange } = setup({ value: '' });
     fireEvent.click(await screen.findByRole('button'));
-    fireEvent.click(await screen.findByRole('option', { name: /Sol/ }));
+    fireEvent.click(await screen.findByRole('option', { name: /Astra/ }));
 
-    expect(onChange).toHaveBeenCalledWith('gpt-5.6-sol');
+    expect(onChange).toHaveBeenCalledWith('gpt-6-astra');
     // The panel closes on a pick; leaving it open over the composer would cover the field
     // the reader is about to type in.
     await waitFor(() => expect(screen.queryByRole('option')).not.toBeInTheDocument());
 });
 
 it('does not re-report the model already in use', async () => {
-    const { onChange } = setup({ value: 'gpt-5.6-sol' });
+    const { onChange } = setup({ value: 'gpt-6-astra' });
     fireEvent.click(await screen.findByRole('button'));
-    fireEvent.click(await screen.findByRole('option', { name: /Sol/ }));
+    fireEvent.click(await screen.findByRole('option', { name: /Astra/ }));
     expect(onChange).not.toHaveBeenCalled();
 });
 
@@ -127,7 +127,7 @@ it('renders nothing until the catalogue arrives, rather than a name that then ch
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
 
     await act(async () => { resolve(CATALOG); });
-    expect(screen.getByText('GPT-5.6 Terra')).toBeInTheDocument();
+    expect(screen.getByText('GPT-6 Sol')).toBeInTheDocument();
 });
 
 it('still renders when the catalogue request fails and the service falls back', async () => {
@@ -135,15 +135,15 @@ it('still renders when the catalogue request fails and the service falls back', 
     // here is to not care. A picker that disappeared on a failed fetch would leave a reader
     // unable to see which model is answering.
     fetchModelCatalog.mockResolvedValue({
-        models: [{ id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', description: 'Balanced.' }],
-        defaultModel: 'gpt-5.6-terra',
+        models: [{ id: 'gpt-6-sol', label: 'GPT-6 Sol', description: 'Balanced.' }],
+        defaultModel: 'gpt-6-sol',
     });
     setup({ value: '' });
-    expect(await screen.findByText('GPT-5.6 Terra')).toBeInTheDocument();
+    expect(await screen.findByText('GPT-6 Sol')).toBeInTheDocument();
 });
 
 it('is not operable once the query limit is reached', async () => {
-    setup({ value: 'gpt-5.6-sol', disabled: true });
+    setup({ value: 'gpt-6-astra', disabled: true });
     const trigger = await screen.findByRole('button');
     expect(trigger).toBeDisabled();
     fireEvent.click(trigger);
@@ -158,21 +158,21 @@ describe('telling the composer when the menu is open', () => {
        Search Options drawers, and that is what this reports. */
     it('reports open, then closed again when a model is picked', async () => {
         const onOpenChange = jest.fn();
-        setup({ value: 'gpt-5.6-terra', onOpenChange });
-        await screen.findByText('GPT-5.6 Terra');
+        setup({ value: 'gpt-6-sol', onOpenChange });
+        await screen.findByText('GPT-6 Sol');
         expect(onOpenChange).toHaveBeenLastCalledWith(false);
 
-        fireEvent.click(screen.getByRole('button', { name: /Model: GPT-5.6 Terra/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Model: GPT-6 Sol/ }));
         expect(onOpenChange).toHaveBeenLastCalledWith(true);
 
-        fireEvent.click(screen.getByRole('option', { name: /GPT-5.6 Luna/ }));
+        fireEvent.click(screen.getByRole('option', { name: /GPT-6 Luna/ }));
         expect(onOpenChange).toHaveBeenLastCalledWith(false);
     });
 
     it('is optional — a composer with nothing to hide passes none', async () => {
-        setup({ value: 'gpt-5.6-terra' });
-        await screen.findByText('GPT-5.6 Terra');
-        fireEvent.click(screen.getByRole('button', { name: /Model: GPT-5.6 Terra/ }));
+        setup({ value: 'gpt-6-sol' });
+        await screen.findByText('GPT-6 Sol');
+        fireEvent.click(screen.getByRole('button', { name: /Model: GPT-6 Sol/ }));
         expect(document.querySelector('.model-picker-panel')).not.toBeNull();
     });
 });
@@ -182,27 +182,27 @@ describe('a chip with no room for the full name', () => {
         // Four controls share the composer's row on a phone. Left at full width the chip is
         // the one that truncates, and "GPT-5.…" names no model at all.
         setViewport(true);
-        setup({ value: 'gpt-5.6-terra' });
-        expect(await screen.findByText('5.6 Terra')).toBeInTheDocument();
-        expect(screen.queryByText('GPT-5.6 Terra')).not.toBeInTheDocument();
+        setup({ value: 'gpt-6-sol' });
+        expect(await screen.findByText('6 Sol')).toBeInTheDocument();
+        expect(screen.queryByText('GPT-6 Sol')).not.toBeInTheDocument();
     });
 
     it('still announces the full name to a screen reader', async () => {
         setViewport(true);
-        setup({ value: 'gpt-5.6-terra' });
-        expect(await screen.findByRole('button', { name: 'Model: GPT-5.6 Terra' }))
+        setup({ value: 'gpt-6-sol' });
+        expect(await screen.findByRole('button', { name: 'Model: GPT-6 Sol' }))
             .toBeInTheDocument();
     });
 
     it('keeps full names in the panel, where there is room to compare', async () => {
         setViewport(true);
-        setup({ value: 'gpt-5.6-terra' });
+        setup({ value: 'gpt-6-sol' });
         fireEvent.click(await screen.findByRole('button'));
         const options = await screen.findAllByRole('option');
         expect(options.map((o) => o.textContent)).toEqual([
-            'GPT-5.6 SolMost capable.',
-            'GPT-5.6 TerraDefaultBalanced.',
-            'GPT-5.6 LunaFastest.',
+            'GPT-6 AstraMost capable.',
+            'GPT-6 SolDefaultBalanced.',
+            'GPT-6 LunaFastest.',
         ]);
     });
 
@@ -211,11 +211,11 @@ describe('a chip with no room for the full name', () => {
         // still reads better than an abbreviation invented in the client.
         setViewport(true);
         fetchModelCatalog.mockResolvedValue({
-            models: [{ id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', description: 'Balanced.' }],
-            defaultModel: 'gpt-5.6-terra',
+            models: [{ id: 'gpt-6-sol', label: 'GPT-6 Sol', description: 'Balanced.' }],
+            defaultModel: 'gpt-6-sol',
         });
-        setup({ value: 'gpt-5.6-terra' });
-        expect(await screen.findByText('GPT-5.6 Terra')).toBeInTheDocument();
+        setup({ value: 'gpt-6-sol' });
+        expect(await screen.findByText('GPT-6 Sol')).toBeInTheDocument();
     });
 });
 
@@ -226,9 +226,9 @@ describe('pipeline eligibility', () => {
         expect(await screen.findByRole('button')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button'));
         expect((await screen.findAllByRole('option')).map((o) => o.textContent)).toEqual([
-            'GPT-5.6 SolMost capable.',
-            'GPT-5.6 TerraDefaultBalanced.',
-            'GPT-5.6 LunaFastest.',
+            'GPT-6 AstraMost capable.',
+            'GPT-6 SolDefaultBalanced.',
+            'GPT-6 LunaFastest.',
         ]);
     });
 
@@ -246,14 +246,14 @@ describe('pipeline eligibility', () => {
     it('swaps a model the pipeline does not offer, and says so through onResolveDefault', async () => {
         // The reader picked Luna for chat, then turned Investigate on. Sending it would be a
         // 400 they cannot act on; substituting silently would be worse. The chip changes.
-        const { onResolveDefault } = setup({ value: 'gpt-5.6-luna', pipeline: 'deep_research' });
-        expect(await screen.findByText('GPT-5.6 Terra')).toBeInTheDocument();
-        await waitFor(() => expect(onResolveDefault).toHaveBeenCalledWith('gpt-5.6-terra'));
+        const { onResolveDefault } = setup({ value: 'gpt-6-luna', pipeline: 'deep_research' });
+        expect(await screen.findByText('GPT-6 Sol')).toBeInTheDocument();
+        await waitFor(() => expect(onResolveDefault).toHaveBeenCalledWith('gpt-6-sol'));
     });
 
     it('does not swap a model the pipeline does offer', async () => {
-        const { onResolveDefault } = setup({ value: 'gpt-5.6-sol', pipeline: 'deep_research' });
-        expect(await screen.findByText('GPT-5.6 Sol')).toBeInTheDocument();
+        const { onResolveDefault } = setup({ value: 'gpt-6-astra', pipeline: 'deep_research' });
+        expect(await screen.findByText('GPT-6 Astra')).toBeInTheDocument();
         expect(onResolveDefault).not.toHaveBeenCalled();
     });
 
@@ -261,27 +261,27 @@ describe('pipeline eligibility', () => {
         // A backend older than this build sends no `pipelines`. Hiding every model would be a
         // worse failure than offering one the request path might refuse.
         fetchModelCatalog.mockResolvedValue({
-            models: [{ id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', description: 'Balanced.' }],
-            defaultModel: 'gpt-5.6-terra',
+            models: [{ id: 'gpt-6-sol', label: 'GPT-6 Sol', description: 'Balanced.' }],
+            defaultModel: 'gpt-6-sol',
         });
         setup({ value: '', pipeline: 'deep_research' });
-        expect(await screen.findByText('GPT-5.6 Terra')).toBeInTheDocument();
+        expect(await screen.findByText('GPT-6 Sol')).toBeInTheDocument();
     });
 });
 
 describe("an effort level's default model", () => {
     it('is what the picker shows when the reader has chosen nothing', async () => {
-        const { onResolveDefault } = setup({ value: '', defaultModelOverride: 'gpt-5.6-luna' });
-        await waitFor(() => expect(onResolveDefault).toHaveBeenCalledWith('gpt-5.6-luna'));
+        const { onResolveDefault } = setup({ value: '', defaultModelOverride: 'gpt-6-luna' });
+        await waitFor(() => expect(onResolveDefault).toHaveBeenCalledWith('gpt-6-luna'));
     });
 
     it('is ignored when the pipeline does not offer it', async () => {
         // Luna is chat-only. A level whose default is chat-only must never leave deep research
         // showing a model the request path would refuse.
         const { onResolveDefault } = setup({
-            value: '', pipeline: 'deep_research', defaultModelOverride: 'gpt-5.6-luna',
+            value: '', pipeline: 'deep_research', defaultModelOverride: 'gpt-6-luna',
         });
-        await waitFor(() => expect(onResolveDefault).toHaveBeenCalledWith('gpt-5.6-terra'));
+        await waitFor(() => expect(onResolveDefault).toHaveBeenCalledWith('gpt-6-sol'));
     });
 
     it('replaces a default the picker itself resolved earlier', async () => {
@@ -289,18 +289,18 @@ describe("an effort level's default model", () => {
            deliberate choice look identical from outside. Turning a level on has to move the
            first and not the second — this is the first. */
         const { onResolveDefault, view } = setup({ value: '' });
-        await waitFor(() => expect(onResolveDefault).toHaveBeenCalledWith('gpt-5.6-terra'));
+        await waitFor(() => expect(onResolveDefault).toHaveBeenCalledWith('gpt-6-sol'));
 
         // The parent wrote that back, and now a level arrives with its own default.
         view.rerender(
             <ModelPicker
-                value="gpt-5.6-terra"
-                defaultModelOverride="gpt-5.6-luna"
+                value="gpt-6-sol"
+                defaultModelOverride="gpt-6-luna"
                 onChange={() => {}}
                 onResolveDefault={onResolveDefault}
             />,
         );
-        await waitFor(() => expect(onResolveDefault).toHaveBeenLastCalledWith('gpt-5.6-luna'));
+        await waitFor(() => expect(onResolveDefault).toHaveBeenLastCalledWith('gpt-6-luna'));
     });
 
     it('never replaces a model the reader picked', async () => {
@@ -308,16 +308,16 @@ describe("an effort level's default model", () => {
         const view = render(
             <ModelPicker value="" onChange={() => {}} onResolveDefault={onResolveDefault} />,
         );
-        await waitFor(() => expect(onResolveDefault).toHaveBeenCalledWith('gpt-5.6-terra'));
+        await waitFor(() => expect(onResolveDefault).toHaveBeenCalledWith('gpt-6-sol'));
 
         fireEvent.click(screen.getByRole('button', { name: /^Model:/ }));
-        fireEvent.click(await screen.findByRole('option', { name: /GPT-5.6 Sol/ }));
+        fireEvent.click(await screen.findByRole('option', { name: /GPT-6 Astra/ }));
 
         onResolveDefault.mockClear();
         view.rerender(
             <ModelPicker
-                value="gpt-5.6-sol"
-                defaultModelOverride="gpt-5.6-luna"
+                value="gpt-6-astra"
+                defaultModelOverride="gpt-6-luna"
                 onChange={() => {}}
                 onResolveDefault={onResolveDefault}
             />,

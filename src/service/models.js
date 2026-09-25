@@ -29,10 +29,10 @@ const CATALOG_ENDPOINT = '/api/v1/new-llm-agent/models';
 /** Used only when the catalogue cannot be reached. */
 export const FALLBACK_MODELS = [
     {
-        id: 'gpt-5.6-terra',
-        label: 'GPT-5.6 Terra',
-        short_label: '5.6 Terra',
-        description: 'Balanced depth and speed.',
+        id: 'gpt-6-sol',
+        label: 'GPT-6 Sol',
+        short_label: '6 Sol',
+        description: 'Most capable',
         // Every pipeline, so the fallback is never the reason a picker renders empty.
         pipelines: ['chat', 'deep_research'],
     },
@@ -57,6 +57,14 @@ export const fetchModelCatalog = () => {
         .then((response) => {
             const models = Array.isArray(response?.data?.models) ? response.data.models : [];
             if (!models.length) throw new Error('empty model catalogue');
+            /* A stored choice the catalogue no longer offers — a retired model, like the whole
+               5.6 line on 2026-09-25 — is cleared rather than kept. The picker already swaps it
+               for the default on screen, but left in storage it came back on every page load
+               and rode out on any request sent before the catalogue arrived, which the agent
+               answers with a 400 naming a model the reader never saw in the picker. Cleared
+               means "no preference", so the deployment's default applies. */
+            const stored = getModelPref();
+            if (stored && !models.some((m) => m?.id === stored)) setModelPref('');
             catalogCache = {
                 models,
                 defaultModel: response?.data?.default_model || models[0].id,

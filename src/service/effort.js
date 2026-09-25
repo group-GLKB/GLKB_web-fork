@@ -13,10 +13,10 @@
  *
  * A level SUGGESTS a model rather than pinning one: Quick defaults to Luna, and a reader who
  * picks another model gets it at Quick's tool budget. The two controls buy different things —
- * measured 2026-09-10, the model is the cost lever (12x between Terra and Luna at the same
- * level) and the level is the latency lever (-36% on the same model) — so the composer keeps
- * the picker operable and only uses `defaultModelFor` to decide what it SHOWS when the reader
- * has chosen nothing.
+ * measured 2026-09-10 on the since-retired 5.6 line, the model is the cost lever (12x between
+ * its mid model and Luna at the same level) and the level is the latency lever (-36% on the
+ * same model) — so the composer keeps the picker operable and only uses `defaultModelFor` to
+ * decide what it SHOWS when the reader has chosen nothing.
  *
  * The choice persists in localStorage exactly as the model choice does (service/models.js):
  * it outlasts a session, and `subscribe` keeps the two composers and every tab in step.

@@ -10,7 +10,7 @@ import LlmSearchBarHome from './LlmSearchBarHome';
 
 const mockNavigate = jest.fn();
 let mockEfforts = [
-    { id: 'quick', label: 'Quick', short_label: 'Quick', description: 'Seconds.', pipelines: ['chat'], default_model: 'gpt-5.6-luna', max_tool_rounds: 2 },
+    { id: 'quick', label: 'Quick', short_label: 'Quick', description: 'Seconds.', pipelines: ['chat'], default_model: 'gpt-6-luna', max_tool_rounds: 2 },
     { id: 'standard', label: 'Standard', short_label: 'Standard', description: 'Half a minute.', pipelines: ['chat', 'deep_research'], default_model: null, max_tool_rounds: null },
 ];
 jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
@@ -25,15 +25,15 @@ jest.mock('../../service/models', () => ({
     ...jest.requireActual('../../service/models'),
     fetchModelCatalog: () => Promise.resolve({
         models: [
-            { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', description: 'Balanced.', pipelines: ['chat', 'deep_research'] },
-            { id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna', description: 'Fastest.', pipelines: ['chat'] },
+            { id: 'gpt-6-sol', label: 'GPT-6 Sol', description: 'Balanced.', pipelines: ['chat', 'deep_research'] },
+            { id: 'gpt-6-luna', label: 'GPT-6 Luna', description: 'Fastest.', pipelines: ['chat'] },
         ],
-        defaultModel: 'gpt-5.6-terra',
-        defaultsByPipeline: { chat: 'gpt-5.6-terra', deep_research: 'gpt-5.6-terra' },
+        defaultModel: 'gpt-6-sol',
+        defaultsByPipeline: { chat: 'gpt-6-sol', deep_research: 'gpt-6-sol' },
         efforts: mockEfforts,
         defaultEffort: 'standard',
     }),
-    getModelPref: () => 'gpt-5.6-terra',
+    getModelPref: () => 'gpt-6-sol',
     setModelPref: jest.fn(),
 }));
 
@@ -66,8 +66,8 @@ it('hides Quick and does not apply a saved chat-page Quick preference on home', 
 
     const options = submit();
     expect(options.effort).toBeUndefined();
-    // The reader had Terra stored, so that is what goes — a level defaults, it does not pin.
-    expect(options.model).toBe('gpt-5.6-terra');
+    // The reader had Sol stored, so that is what goes — a level defaults, it does not pin.
+    expect(options.model).toBe('gpt-6-sol');
     expect(options.investigateEnabled).toBe(false);
     // Remembered for the chat composer, which reads the same preference.
     expect(window.localStorage.getItem('glkb_chat_effort')).toBe('quick');
@@ -78,15 +78,15 @@ it('sends neither the level nor a locked model while Quick is off', async () => 
     await waitFor(() => expect(quickChip()).not.toBeInTheDocument());
     const options = submit();
     expect(options.effort).toBeUndefined();
-    expect(options.model).toBe('gpt-5.6-terra');
+    expect(options.model).toBe('gpt-6-sol');
 });
 
 it('leaves the model picker operable with Quick hidden', async () => {
     setup();
     expect(quickChip()).not.toBeInTheDocument();
     const picker = await screen.findByRole('button', { name: /^Model:/, hidden: true });
-    // This reader has Terra stored, so the level's default does not displace it.
-    await waitFor(() => expect(picker).toHaveAccessibleName('Model: GPT-5.6 Terra'));
+    // This reader has Sol stored, so the level's default does not displace it.
+    await waitFor(() => expect(picker).toHaveAccessibleName('Model: GPT-6 Sol'));
     expect(picker).not.toBeDisabled();
 });
 

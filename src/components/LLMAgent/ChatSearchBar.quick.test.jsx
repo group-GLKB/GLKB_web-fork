@@ -13,18 +13,18 @@ jest.mock('../../service/models', () => ({
     ...jest.requireActual('../../service/models'),
     fetchModelCatalog: () => Promise.resolve({
         models: [
-            { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', short_label: '5.6 Terra', description: 'Balanced.', pipelines: ['chat', 'deep_research'] },
-            { id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna', short_label: '5.6 Luna', description: 'Fastest.', pipelines: ['chat'] },
+            { id: 'gpt-6-sol', label: 'GPT-6 Sol', short_label: '6 Sol', description: 'Balanced.', pipelines: ['chat', 'deep_research'] },
+            { id: 'gpt-6-luna', label: 'GPT-6 Luna', short_label: '6 Luna', description: 'Fastest.', pipelines: ['chat'] },
         ],
-        defaultModel: 'gpt-5.6-terra',
-        defaultsByPipeline: { chat: 'gpt-5.6-terra', deep_research: 'gpt-5.6-terra' },
+        defaultModel: 'gpt-6-sol',
+        defaultsByPipeline: { chat: 'gpt-6-sol', deep_research: 'gpt-6-sol' },
         efforts: [],
         defaultEffort: 'standard',
     }),
 }));
 
 const EFFORTS = [
-    { id: 'quick', label: 'Quick', short_label: 'Quick', description: 'Seconds.', pipelines: ['chat'], default_model: 'gpt-5.6-luna', max_tool_rounds: 2 },
+    { id: 'quick', label: 'Quick', short_label: 'Quick', description: 'Seconds.', pipelines: ['chat'], default_model: 'gpt-6-luna', max_tool_rounds: 2 },
     { id: 'standard', label: 'Standard', short_label: 'Standard', description: 'Half a minute.', pipelines: ['chat', 'deep_research'], default_model: null, max_tool_rounds: null },
 ];
 
@@ -45,7 +45,7 @@ const setup = (props = {}) => {
             isLoading={false}
             onSubmit={() => {}}
             onStop={() => {}}
-            model="gpt-5.6-terra"
+            model="gpt-6-sol"
             onModelChange={() => {}}
             onModelResolveDefault={() => {}}
             efforts={EFFORTS}
@@ -85,19 +85,19 @@ it('also hides Quick when an existing preference is enabled', () => {
 it("shows the level's default model while Quick is on, and leaves it selectable", async () => {
     // `model: ''` is a reader who has chosen nothing — the only case a default applies to.
     setup({ effort: 'quick', model: '' });
-    await waitFor(() => expect(modelChip()).toHaveAccessibleName('Model: GPT-5.6 Luna'));
+    await waitFor(() => expect(modelChip()).toHaveAccessibleName('Model: GPT-6 Luna'));
     // Operable: "Quick with the best model" is a request the agent honours, so the reader
     // must be able to make it.
     expect(modelChip()).not.toBeDisabled();
 });
 
 it("keeps a model the reader chose, rather than overriding it with the level's default", async () => {
-    setup({ effort: 'quick', model: 'gpt-5.6-terra' });
-    await waitFor(() => expect(modelChip()).toHaveAccessibleName('Model: GPT-5.6 Terra'));
+    setup({ effort: 'quick', model: 'gpt-6-sol' });
+    await waitFor(() => expect(modelChip()).toHaveAccessibleName('Model: GPT-6 Sol'));
 });
 
 it('falls back to the pipeline default when no level is on', async () => {
     setup({ effort: '', model: '' });
-    await waitFor(() => expect(modelChip()).toHaveAccessibleName('Model: GPT-5.6 Terra'));
+    await waitFor(() => expect(modelChip()).toHaveAccessibleName('Model: GPT-6 Sol'));
     expect(modelChip()).not.toBeDisabled();
 });

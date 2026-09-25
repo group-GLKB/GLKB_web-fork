@@ -36,13 +36,13 @@ jest.mock('../../service/models', () => ({
     ...jest.requireActual('../../service/models'),
     fetchModelCatalog: () => Promise.resolve({
         models: [{
-            id: 'gpt-5.6-terra',
-            label: 'GPT-5.6 Terra',
+            id: 'gpt-6-sol',
+            label: 'GPT-6 Sol',
             description: 'Balanced.',
             pipelines: ['chat', 'deep_research'],
         }],
-        defaultModel: 'gpt-5.6-terra',
-        defaultsByPipeline: { chat: 'gpt-5.6-terra', deep_research: 'gpt-5.6-terra' },
+        defaultModel: 'gpt-6-sol',
+        defaultsByPipeline: { chat: 'gpt-6-sol', deep_research: 'gpt-6-sol' },
     }),
     getModelPref: () => '',
     setModelPref: jest.fn(),
