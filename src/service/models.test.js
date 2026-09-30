@@ -14,10 +14,10 @@ import axios from '../utils/axiosConfig';
 
 const CATALOGUE = {
     models: [
-        { id: 'gpt-6-sol', label: 'GPT-6 Sol', short_label: '6 Sol', pipelines: ['chat', 'deep_research'] },
+        { id: 'gpt-6.1-sol', label: 'GPT-6.1 Sol', short_label: '6.1 Sol', pipelines: ['chat', 'deep_research'] },
         { id: 'gpt-6-luna', label: 'GPT-6 Luna', short_label: '6 Luna', pipelines: ['chat'] },
     ],
-    default_model: 'gpt-6-sol',
+    default_model: 'gpt-6.1-sol',
 };
 
 // The module caches the catalogue for the page's lifetime, so each test gets a fresh copy.
@@ -66,7 +66,7 @@ it('keeps the stored model when the catalogue cannot be reached', async () => {
     expect(models.getModelPref()).toBe('gpt-6-luna');
 });
 
-it('falls back to GPT-6 Sol, never a retired model', () => {
+it('falls back to GPT-6.1 Sol, never a retired model', () => {
     const { FALLBACK_MODELS } = load();
-    expect(FALLBACK_MODELS.map((m) => m.id)).toEqual(['gpt-6-sol']);
+    expect(FALLBACK_MODELS.map((m) => m.id)).toEqual(['gpt-6.1-sol']);
 });
