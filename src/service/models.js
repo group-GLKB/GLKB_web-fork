@@ -29,9 +29,9 @@ const CATALOG_ENDPOINT = '/api/v1/new-llm-agent/models';
 /** Used only when the catalogue cannot be reached. */
 export const FALLBACK_MODELS = [
     {
-        id: 'gpt-6-sol',
-        label: 'GPT-6 Sol',
-        short_label: '6 Sol',
+        id: 'gpt-6.1-sol',
+        label: 'GPT-6.1 Sol',
+        short_label: '6.1 Sol',
         description: 'Most capable',
         // Every pipeline, so the fallback is never the reason a picker renders empty.
         pipelines: ['chat', 'deep_research'],
