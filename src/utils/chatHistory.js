@@ -10,6 +10,7 @@ import { isConversationRunning, reconcileRunsWithServer } from '../service/activ
 import { isExchangeUnfinished } from '../service/resumeRun';
 import { parseServerTime, serverTimeMs, toIsoUtc } from './serverTime';
 import { replayTrace } from '../components/LLMAgent/traceReplay';
+import { LITERATURE_REVIEW_ENABLED } from '../config/features';
 
 const STORAGE_KEY = 'llmConversations';
 const ACTIVE_KEY = 'llmActiveConversationId';
@@ -135,6 +136,8 @@ const normalizeSummary = (summary) => ({
     // than its last turn. Absent on a server that predates the field, which reads the
     // same as false — see investigateConversations.js for what covers that gap.
     isInvestigate: summary.is_investigate === true,
+    // 'literature_review' for a Literature Review conversation; null for chat / Investigate.
+    mode: summary.mode || null,
     /* Whether the server is still writing this conversation's last exchange, and the address
        that run can be collected at. Absent on a server that predates them, which reads as
        "nothing in flight" — the same as before. Together they let a client that kept no notes
@@ -152,6 +155,7 @@ const normalizeDetail = (detail) => ({
     createdAt: toIsoUtc(detail.created_at),
     updatedAt: toIsoUtc(detail.last_accessed_time),
     isInvestigate: detail.is_investigate === true,
+    mode: detail.mode || null,
     isAnswering: detail.is_answering === true,
     sessionId: detail.session_id || null,
     messageCount: Array.isArray(detail.messages) ? detail.messages.length : 0,
@@ -367,9 +371,14 @@ export const fetchConversations = async (options = {}) => {
  * router state as before: rows created before the backend backfilled `public_id` still have
  * to open.
  */
-export const chatPathForConversation = (conversation) => (
-    conversation?.publicId ? `/chat/${conversation.publicId}` : '/chat'
-);
+export const chatPathForConversation = (conversation) => {
+    // A Literature Review conversation opens on its own page (components/LiteratureReview) —
+    // unless the feature is switched off, when it falls back to the chat view like any other.
+    if (LITERATURE_REVIEW_ENABLED && conversation?.mode === 'literature_review' && conversation?.publicId) {
+        return `/literature-review/${conversation.publicId}`;
+    }
+    return conversation?.publicId ? `/chat/${conversation.publicId}` : '/chat';
+};
 
 /**
  * Keep a locally-ahead transcript when the server's copy of the same conversation is shorter.

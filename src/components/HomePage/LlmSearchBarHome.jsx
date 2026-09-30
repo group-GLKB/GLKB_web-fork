@@ -8,11 +8,15 @@ import { useNavigate } from 'react-router-dom';
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import BoltIcon from '@mui/icons-material/Bolt';
 import CloseIcon from '@mui/icons-material/Close';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import {
   Autocomplete,
   Box,
   Button,
   Drawer,
+  Menu,
+  MenuItem,
   Paper,
   Popper,
   TextField,
@@ -20,7 +24,7 @@ import {
 } from '@mui/material';
 
 import { useGuestGate } from '../Auth/guestGate';
-import { INVESTIGATE_ENABLED } from '../../config/features';
+import { INVESTIGATE_ENABLED, LITERATURE_REVIEW_ENABLED } from '../../config/features';
 import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { ReactComponent as SearchOptionsIcon } from '../../img/llm/search_options.svg';
@@ -39,6 +43,13 @@ import {
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
     const [investigateEnabled, setInvestigateEnabled] = useState(false);
+    /* Literature Review shares the Investigate chip: the chip toggles whichever research tool is
+       selected, and its arrow picks the tool. At most one is on. Behind LITERATURE_REVIEW_ENABLED
+       (config/features.js) — with the flag off none of this renders and the chip is Investigate
+       exactly as before. */
+    const [reviewEnabled, setReviewEnabled] = useState(false);
+    const [researchTool, setResearchTool] = useState('investigate');
+    const [toolMenuAnchor, setToolMenuAnchor] = useState(null);
     /* The model the first question will run on.
 
        Persisted through the same helper the chat composer reads, so a choice made here is
@@ -188,6 +199,13 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             clearTimeout(inputTimeoutRef.current);
             hasTrackedInputRef.current = true;
         }
+        if (LITERATURE_REVIEW_ENABLED && reviewEnabled && query) {
+            // A pipeline of its own, with a page of its own: nothing of the chat page's state
+            // machine is involved. See components/LiteratureReview.
+            trackGtagEvent('literature_review_question_submit', { source: 'home_searchbar' });
+            navigate('/literature-review', { state: { initialQuery: query } });
+            return;
+        }
         const searchOptions = buildSearchOptionsPayload();
         const queryMethod = queryOriginRef.current === 'example' ? 'example' : inputMethod;
         trackGtagEvent('home_search_submit_click', {
@@ -239,7 +257,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     // control while Investigate is on promises filtering that never happens, so it is locked.
     // The control is hidden rather than greyed out while locked: a disabled button still reads
     // as "these settings apply, you just can't change them", which is the opposite of the truth.
-    const searchOptionsLocked = investigateEnabled;
+    const searchOptionsLocked = investigateEnabled || reviewEnabled;
     const mobileChipLabel = (mobileSelectedOptions.length > 0)
         ? mobileSelectedOptions.join(' + ')
         : 'Search Options';
@@ -496,7 +514,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 pointerEvents: 'none',
                             }}
                         >
-                            {(INVESTIGATE_ENABLED || quickOffered) && (
+                            {(INVESTIGATE_ENABLED || LITERATURE_REVIEW_ENABLED || quickOffered) && (
                             <Box
                                 sx={{
                                     display: 'inline-flex',
@@ -556,7 +574,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     Quick
                                 </Button>
                                 )}
-                                {INVESTIGATE_ENABLED && (
+                                {INVESTIGATE_ENABLED && !LITERATURE_REVIEW_ENABLED && (
                                 <Button
                                     disabled={isInputLocked}
                                     onMouseDown={(event) => {
@@ -617,6 +635,102 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     Investigate
                                 </Button>
                                 )}
+                                {LITERATURE_REVIEW_ENABLED && (
+                                <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
+                                    {(() => {
+                                        const reviewSelected = researchTool === 'literature_review';
+                                        const active = reviewSelected ? reviewEnabled : investigateEnabled;
+                                        const chipSx = {
+                                            height: '32px',
+                                            border: 'none',
+                                            background: active ? 'var(--color-brand-muted)' : 'transparent',
+                                            color: active ? 'var(--color-brand-primary)' : 'var(--color-text-tertiary)',
+                                            fontFamily: 'Geist, sans-serif',
+                                            fontWeight: 600,
+                                            fontSize: '12px',
+                                            lineHeight: '16px',
+                                            textTransform: 'none',
+                                            minWidth: 0,
+                                            whiteSpace: 'nowrap',
+                                            boxShadow: 'none !important',
+                                            '& .MuiButton-startIcon, & .MuiButton-endIcon': { margin: 0 },
+                                            '&:hover': {
+                                                border: 'none',
+                                                background: active ? 'var(--color-blue-200)' : 'var(--color-background-subtle)',
+                                                color: active ? 'var(--color-blue-600)' : 'var(--color-grey-600)',
+                                            },
+                                        };
+                                        const stop = (event) => { event.preventDefault(); event.stopPropagation(); };
+                                        const toggle = (event) => {
+                                            stop(event);
+                                            if (reviewSelected) {
+                                                setInvestigateEnabled(false);
+                                                setReviewEnabled(!reviewEnabled);
+                                            } else {
+                                                const next = !investigateEnabled;
+                                                trackGtagEvent('home_investigate_toggle_click', { enabled: next });
+                                                setReviewEnabled(false);
+                                                setInvestigateEnabled(next);
+                                            }
+                                        };
+                                        const choose = (tool) => {
+                                            setToolMenuAnchor(null);
+                                            setResearchTool(tool);
+                                            setInvestigateEnabled(tool === 'investigate');
+                                            setReviewEnabled(tool === 'literature_review');
+                                        };
+                                        return (
+                                            <>
+                                                <Button
+                                                    disabled={isInputLocked}
+                                                    onMouseDown={stop}
+                                                    onClick={toggle}
+                                                    sx={{ ...chipSx, gap: '4px', padding: '4px 4px 4px 8px', borderRadius: '8px 0 0 8px' }}
+                                                    startIcon={reviewSelected
+                                                        ? <MenuBookIcon style={{ width: '18px', height: '18px' }} />
+                                                        : <InvestigateIcon style={{ width: '20px', height: '20px' }} />}
+                                                    endIcon={active ? <CloseIcon style={{ width: '16px', height: '16px' }} /> : null}
+                                                    title={`${reviewSelected ? 'Literature Review' : 'Investigate'} ${active ? 'on' : 'off'}`}
+                                                >
+                                                    {reviewSelected ? 'Literature Review' : 'Investigate'}
+                                                </Button>
+                                                <Button
+                                                    disabled={isInputLocked}
+                                                    aria-label="Choose research tool"
+                                                    aria-haspopup="menu"
+                                                    onMouseDown={stop}
+                                                    onClick={(event) => { stop(event); setToolMenuAnchor(event.currentTarget); }}
+                                                    sx={{ ...chipSx, padding: '4px 2px', borderRadius: '0 8px 8px 0' }}
+                                                >
+                                                    <ArrowDropDownIcon style={{ width: '18px', height: '18px' }} />
+                                                </Button>
+                                                <Menu
+                                                    anchorEl={toolMenuAnchor}
+                                                    open={Boolean(toolMenuAnchor)}
+                                                    onClose={() => setToolMenuAnchor(null)}
+                                                >
+                                                    {INVESTIGATE_ENABLED && (
+                                                        <MenuItem
+                                                            selected={researchTool === 'investigate'}
+                                                            onClick={() => choose('investigate')}
+                                                        >
+                                                            <InvestigateIcon style={{ width: '18px', height: '18px', marginRight: 8 }} />
+                                                            Investigate
+                                                        </MenuItem>
+                                                    )}
+                                                    <MenuItem
+                                                        selected={researchTool === 'literature_review'}
+                                                        onClick={() => choose('literature_review')}
+                                                    >
+                                                        <MenuBookIcon style={{ width: '18px', height: '18px', marginRight: 8 }} />
+                                                        Literature Review
+                                                    </MenuItem>
+                                                </Menu>
+                                            </>
+                                        );
+                                    })()}
+                                </Box>
+                                )}
                             </Box>
                             )}
 
@@ -628,7 +742,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     minWidth: 0,
                                     // With Investigate hidden this is the row's only child, so
                                     // `space-between` alone would park it on the left.
-                                    marginLeft: isMobileLayout && (INVESTIGATE_ENABLED || quickOffered) ? 0 : 'auto',
+                                    marginLeft: isMobileLayout && (INVESTIGATE_ENABLED || LITERATURE_REVIEW_ENABLED || quickOffered) ? 0 : 'auto',
                                     pointerEvents: 'auto',
                                 }}
                             >
