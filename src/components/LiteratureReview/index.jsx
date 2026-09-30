@@ -35,6 +35,8 @@ const STAGES = [
     { id: 'writing', label: 'Write' },
 ];
 
+const PENDING_RECHECK_MS = 15000;
+
 const formatSeconds = (s) => {
     if (!Number.isFinite(s)) return '';
     const m = Math.floor(s / 60);
@@ -61,6 +63,8 @@ export default function LiteratureReview() {
     // The address this page gave the review it just wrote; reaching it must not reload the review.
     const ownPublicIdRef = useRef(null);
     const [elapsed, setElapsed] = useState(0);
+    // A saved review that is still being written is re-checked on this tick (see PENDING_RECHECK_MS).
+    const [recheck, setRecheck] = useState(0);
 
     useEffect(() => {
         fetchReviewModels()
@@ -71,11 +75,13 @@ export default function LiteratureReview() {
             .catch(() => setModels([]));
     }, []);
 
-    // A saved review: load it from History.
+    // A saved review: load it from History. One still being written (reopened after a reload, or
+    // from History mid-run) is looked at again every PENDING_RECHECK_MS until its answer is saved.
     useEffect(() => {
         if (!publicId || status === 'running' || publicId === ownPublicIdRef.current) return undefined;
         let alive = true;
-        setStatus('loading');
+        let timer = null;
+        if (!recheck) setStatus('loading');
         getChatHistoryDetailByPublicId(publicId)
             .then((detail) => {
                 if (!alive) return;
@@ -88,6 +94,7 @@ export default function LiteratureReview() {
                     setStatus('done');
                 } else {
                     setStatus('pending');
+                    timer = setTimeout(() => setRecheck((n) => n + 1), PENDING_RECHECK_MS);
                 }
             })
             .catch(() => {
@@ -95,9 +102,9 @@ export default function LiteratureReview() {
                 setError('This review could not be loaded.');
                 setStatus('error');
             });
-        return () => { alive = false; };
+        return () => { alive = false; clearTimeout(timer); };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [publicId]);
+    }, [publicId, recheck]);
 
     useEffect(() => {
         if (status !== 'running') return undefined;
@@ -119,6 +126,7 @@ export default function LiteratureReview() {
         const controller = new AbortController();
         abortRef.current = controller;
         runIdRef.current = null;
+        ownPublicIdRef.current = null;
         startedAtRef.current = Date.now();
         setElapsed(0);
         setError('');
@@ -130,6 +138,13 @@ export default function LiteratureReview() {
         try {
             await streamReview({ question, model, signal: controller.signal }, (frame) => {
                 if (frame.run_id) runIdRef.current = frame.run_id;
+                if (frame.step === 'Started' && frame.public_id) {
+                    // The backend's first frame: the review already has its History entry. Take its
+                    // address now, not at the end — a reload mid-run (or a laptop waking up) then
+                    // reopens this review as "still being written" instead of an empty form.
+                    ownPublicIdRef.current = frame.public_id;
+                    navigate(`/literature-review/${frame.public_id}`, { replace: true });
+                }
                 if (frame.type === 'progress') {
                     setProgress({ phase: frame.phase, label: frame.label, percent: frame.percent,
                                   detail: frame.detail || {} });
@@ -178,6 +193,7 @@ export default function LiteratureReview() {
     );
 
     const cost = review?.usage?.totals?.cost_usd;
+    const formShown = status === 'idle' || (status === 'error' && !publicId);
 
     return (
         <Box sx={{ maxWidth: 920, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 3, md: 5 } }}>
@@ -185,41 +201,43 @@ export default function LiteratureReview() {
                 Literature Review · internal preview
             </Typography>
 
-            {(status === 'idle' || (status === 'error' && !publicId)) && (
-                <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 600 }}>Write a literature review</Typography>
-                    <Typography variant="body2" sx={{ color: 'var(--color-text-secondary)' }}>
-                        GLKB searches the literature, selects and synthesises the evidence, and writes a cited
-                        review. It takes several minutes; you can leave this page and find the result in History.
-                    </Typography>
-                    <TextField
-                        label="Topic"
-                        multiline
-                        minRows={2}
-                        value={topic}
-                        onChange={(e) => setTopic(e.target.value)}
-                        placeholder="e.g. Mechanisms of osimertinib resistance in EGFR-mutant lung cancer"
-                    />
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-                        {models.length > 0 && (
-                            <Select size="small" value={model} onChange={(e) => setModel(e.target.value)}
-                                    aria-label="Model">
-                                {models.map((m) => (
-                                    <MenuItem key={m.id} value={m.id}>
-                                        {m.label}{m.description ? ` — ${m.description}` : ''}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        )}
-                        <Button variant="contained" disableElevation onClick={start}
-                                disabled={topic.trim().length < 3 || authLoading}
-                                sx={{ textTransform: 'none', fontWeight: 600 }}>
-                            Write review
-                        </Button>
-                    </Box>
-                    {error && <Alert severity="error">{error}</Alert>}
+            {/* Hidden rather than unmounted while a review runs or is shown: the Topic field is MUI's
+                TextareaAutosize, whose resize handler can fire just after its textarea is removed and
+                then throws (getComputedStyle on null) — seen once in six runs of this page. */}
+            <Box sx={{ mt: 1, flexDirection: 'column', gap: 2,
+                       display: formShown ? 'flex' : 'none' }}>
+                <Typography variant="h5" sx={{ fontWeight: 600 }}>Write a literature review</Typography>
+                <Typography variant="body2" sx={{ color: 'var(--color-text-secondary)' }}>
+                    GLKB searches the literature, selects and synthesises the evidence, and writes a cited
+                    review. It takes several minutes; you can leave this page and find the result in History.
+                </Typography>
+                <TextField
+                    label="Topic"
+                    multiline
+                    minRows={2}
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    placeholder="e.g. Mechanisms of osimertinib resistance in EGFR-mutant lung cancer"
+                />
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                    {models.length > 0 && (
+                        <Select size="small" value={model} onChange={(e) => setModel(e.target.value)}
+                                aria-label="Model">
+                            {models.map((m) => (
+                                <MenuItem key={m.id} value={m.id}>
+                                    {m.label}{m.description ? ` — ${m.description}` : ''}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    )}
+                    <Button variant="contained" disableElevation onClick={start}
+                            disabled={topic.trim().length < 3 || authLoading}
+                            sx={{ textTransform: 'none', fontWeight: 600 }}>
+                        Write review
+                    </Button>
                 </Box>
-            )}
+                {formShown && error && <Alert severity="error">{error}</Alert>}
+            </Box>
 
             {status === 'loading' && <LinearProgress sx={{ mt: 3 }} />}
 
@@ -260,11 +278,23 @@ export default function LiteratureReview() {
 
             {status === 'pending' && (
                 <Alert severity="info" sx={{ mt: 3 }}>
-                    This review is still being written. Reload the page in a few minutes.
+                    This review is still being written. It appears here when it is finished (reviews take
+                    15–25 minutes); you can leave this page and find it in History.
                 </Alert>
             )}
 
-            {status === 'error' && publicId && <Alert severity="error" sx={{ mt: 3 }}>{error}</Alert>}
+            {status === 'error' && publicId && (
+                <Box sx={{ mt: 3 }}>
+                    <Alert severity="error">{error}</Alert>
+                    {/* The topic is kept: after a Stop or a failure the likeliest next step is to run it again. */}
+                    <Button sx={{ mt: 2, textTransform: 'none' }} onClick={() => {
+                        setStatus('idle'); setError(''); setTopic((t) => t || savedQuestion);
+                        navigate('/literature-review');
+                    }}>
+                        Try again
+                    </Button>
+                </Box>
+            )}
 
             {status === 'done' && review && (
                 <Box sx={{ mt: 3 }}>
