@@ -71,7 +71,8 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
-    "@playwright/test": "^1.58.2"
+    "@playwright/test": "^1.58.2",
+    "imapflow": "^2.0.5"
   },
   "eslintConfig": {
     "extends": [
