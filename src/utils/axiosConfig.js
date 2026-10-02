@@ -6,6 +6,8 @@ const GUEST_ALLOWED_ENDPOINT_PREFIXES = [
   '/api/v1/tier/guest-me',
   '/api/v1/new-llm-agent/stream',
   '/api/v1/new-llm-agent/chat',
+  // Public bibliographic records: the "Cite this paper" dialog opens for guests too.
+  '/api/v1/citation',
 ];
 
 const normalizeRequestUrl = (url = '') => {

@@ -49,8 +49,8 @@ describe('ordinary chat', () => {
 
 describe('model selection', () => {
     it('sends the chosen model', async () => {
-        await run({ model: 'gpt-5.6-sol' });
-        expect(sentPayload().model).toBe('gpt-5.6-sol');
+        await run({ model: 'gpt-6-astra' });
+        expect(sentPayload().model).toBe('gpt-6-astra');
     });
 
     it('sends it on the investigate path too', async () => {
@@ -58,8 +58,8 @@ describe('model selection', () => {
         // composer, so they share its picker. The agent maps the id onto deep research's
         // report-writing tier. Nothing here persists onto the conversation, so unlike
         // `filters` this cannot leak into a later turn.
-        await run({ model: 'gpt-5.6-sol', investigateEnabled: true });
-        expect(sentPayload().model).toBe('gpt-5.6-sol');
+        await run({ model: 'gpt-6-astra', investigateEnabled: true });
+        expect(sentPayload().model).toBe('gpt-6-astra');
     });
 
     it('omits the field when no model was chosen, so the server default applies', async () => {
@@ -215,8 +215,8 @@ describe('effort level', () => {
     it('carries a level and a model together', async () => {
         // A level supplies the picker's default, it does not pin — so "Quick with the best
         // model" reaches the agent as both fields, and the agent honours both.
-        await run({ filters: [], effort: 'quick', model: 'gpt-5.6-sol' });
+        await run({ filters: [], effort: 'quick', model: 'gpt-6-astra' });
         expect(sentPayload().effort).toBe('quick');
-        expect(sentPayload().model).toBe('gpt-5.6-sol');
+        expect(sentPayload().model).toBe('gpt-6-astra');
     });
 });

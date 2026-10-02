@@ -13,11 +13,11 @@ jest.mock('../../service/models', () => ({
     ...jest.requireActual('../../service/models'),
     fetchModelCatalog: () => Promise.resolve({
         models: [
-            { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', short_label: '5.6 Terra', description: 'Balanced.', pipelines: ['chat', 'deep_research'] },
-            { id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna', short_label: '5.6 Luna', description: 'Fastest.', pipelines: ['chat'] },
+            { id: 'gpt-6-sol', label: 'GPT-6 Sol', short_label: '6 Sol', description: 'Balanced.', pipelines: ['chat', 'deep_research'] },
+            { id: 'gpt-6-luna', label: 'GPT-6 Luna', short_label: '6 Luna', description: 'Fastest.', pipelines: ['chat'] },
         ],
-        defaultModel: 'gpt-5.6-terra',
-        defaultsByPipeline: { chat: 'gpt-5.6-terra', deep_research: 'gpt-5.6-terra' },
+        defaultModel: 'gpt-6-sol',
+        defaultsByPipeline: { chat: 'gpt-6-sol', deep_research: 'gpt-6-sol' },
     }),
 }));
 

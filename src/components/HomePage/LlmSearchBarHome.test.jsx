@@ -19,6 +19,7 @@ const mockNavigate = jest.fn();
 // read at each use site, so flipping this between tests is enough — no module reset needed
 // (resetting the registry would hand the component a second copy of React and kill its hooks).
 let mockInvestigateFlag = true;
+let mockReviewFlag = false;
 jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
 jest.mock('../../utils/gtag', () => ({ trackGtagEvent: jest.fn() }));
 // Asking requires an account (see Auth/guestGate). These are about the composer's own
@@ -28,6 +29,7 @@ jest.mock('../Auth/AuthContext', () => ({
 }));
 jest.mock('../../config/features', () => ({
     get INVESTIGATE_ENABLED() { return mockInvestigateFlag; },
+    get LITERATURE_REVIEW_ENABLED() { return mockReviewFlag; },
 }));
 // The picker fetches its catalogue. Left real it would reach axios, fail, and settle on the
 // fallback list at an arbitrary moment — so `model` would race `submit()` rather than being
@@ -36,13 +38,13 @@ jest.mock('../../service/models', () => ({
     ...jest.requireActual('../../service/models'),
     fetchModelCatalog: () => Promise.resolve({
         models: [{
-            id: 'gpt-5.6-terra',
-            label: 'GPT-5.6 Terra',
+            id: 'gpt-6-sol',
+            label: 'GPT-6 Sol',
             description: 'Balanced.',
             pipelines: ['chat', 'deep_research'],
         }],
-        defaultModel: 'gpt-5.6-terra',
-        defaultsByPipeline: { chat: 'gpt-5.6-terra', deep_research: 'gpt-5.6-terra' },
+        defaultModel: 'gpt-6-sol',
+        defaultsByPipeline: { chat: 'gpt-6-sol', deep_research: 'gpt-6-sol' },
     }),
     getModelPref: () => '',
     setModelPref: jest.fn(),
@@ -61,6 +63,7 @@ beforeEach(() => {
     mockNavigate.mockClear();
     trackGtagEvent.mockClear();
     mockInvestigateFlag = true;
+    mockReviewFlag = false;
 });
 
 // `setOpen` is called from an effect on mount, so it is required even though the autocomplete
@@ -252,6 +255,45 @@ describe('with Investigate on', () => {
             // absent model is exactly what the chat then omits, leaving the server's default.
             model: '',
         });
+    });
+});
+
+describe('with LITERATURE_REVIEW_ENABLED on', () => {
+    const toolMenu = () => screen.getByRole('button', { name: 'Choose research tool', hidden: true });
+
+    it('turns the Investigate chip into a menu of the two research tools', () => {
+        mockReviewFlag = true;
+        setup();
+        fireEvent.click(toolMenu());
+        // (the icons render as their file names under jest, hence "ends with")
+        const items = screen.getAllByRole('menuitem').map((n) => n.textContent);
+        expect(items).toHaveLength(2);
+        expect(items[0]).toMatch(/Investigate$/);
+        expect(items[1]).toMatch(/Literature Review$/);
+    });
+
+    it('sends a question asked with Literature Review to its own page, not the chat', () => {
+        mockReviewFlag = true;
+        setup();
+        fireEvent.click(toolMenu());
+        fireEvent.click(screen.getByRole('menuitem', { name: /Literature Review$/ }));
+        expect(screen.getByTitle('Literature Review on')).toBeInTheDocument();
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'osimertinib resistance' } });
+        fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
+        expect(mockNavigate).toHaveBeenCalledWith('/literature-review', { state: { initialQuery: 'osimertinib resistance' } });
+    });
+
+    it('leaves Investigate working from the same chip', () => {
+        mockReviewFlag = true;
+        setup();
+        fireEvent.click(toolMenu());
+        fireEvent.click(screen.getByRole('menuitem', { name: /Investigate$/ }));
+        expect(screen.getByTitle('Investigate on')).toBeInTheDocument();
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'what is TP53?' } });
+        fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
+        const [path, opts] = mockNavigate.mock.calls[0];
+        expect(path).toBe('/chat');
+        expect(opts.state.initialSearchOptions.investigateEnabled).toBe(true);
     });
 });
 

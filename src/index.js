@@ -22,7 +22,7 @@ import { AuthProvider } from './components/Auth/AuthContext';
 import HomePage from './components/HomePage';
 import AppLayout from './components/Layout';
 import ErrorBoundary from './components/Units/ErrorBoundary';
-import { SHOW_API_DOCS } from './config/features';
+import { LITERATURE_REVIEW_ENABLED, SHOW_API_DOCS } from './config/features';
 
 /* Everything past the landing page and the chat is fetched when it is asked for.
  *
@@ -43,6 +43,7 @@ const TermsOfService = React.lazy(() => import('./components/TermsOfService'));
 const AccountPage = React.lazy(() => import('./components/AccountPage'));
 const ApiDocsPage = React.lazy(() => import('./components/ApiDocs'));
 const ApiPage = React.lazy(() => import('./components/ApiPage'));
+const LiteratureReview = React.lazy(() => import('./components/LiteratureReview'));
 const LoginRedirect = React.lazy(() => import('./components/Auth/LoginRedirect'));
 const VerifyCodePage = React.lazy(() => import('./components/Auth/VerifyCodePage'));
 const DebugPage = React.lazy(() => import('./components/Debug'));
@@ -183,6 +184,15 @@ function AppWithRoutes() {
                     {/* Each conversation has its own address, so a link opens it and a
                         reload keeps it. The id is the backend's `public_id` UUID. */}
                     <Route path="/chat/:publicId" element={null} />
+                    {/* Literature Review: its own page and pipeline, behind a flag (config/features.js). */}
+                    {LITERATURE_REVIEW_ENABLED ? (
+                        <>
+                            <Route path="/literature-review" element={<LiteratureReview />} />
+                            <Route path="/literature-review/:publicId" element={<LiteratureReview />} />
+                        </>
+                    ) : (
+                        <Route path="/literature-review/*" element={<Navigate to="/" replace />} />
+                    )}
                     <Route path="/history" element={<History />} />
                     <Route path="/library" element={<Library />} />
                     <Route path="/account" element={<AccountPage />} />
