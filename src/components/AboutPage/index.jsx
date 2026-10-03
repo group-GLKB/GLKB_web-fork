@@ -137,7 +137,7 @@ const AboutPage = () => {
     return (
         <>
             <Helmet>
-                <title>About | GLKB</title>
+                <title>GLKB: Genomic Literature Knowledge Base</title>
                 <meta name="description" content="GLKB synthesizes biomedical literature into structured, evidence-backed answers. Every claim links directly to its source paper." />
                 <meta property="og:title" content="GLKB — AI-Powered Biomedical Research Engine" />
                 <meta property="og:description" content="Weeks of research, done in minutes." />

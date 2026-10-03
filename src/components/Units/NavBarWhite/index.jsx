@@ -66,7 +66,7 @@ import {
 } from '../../../img/navbar/sidebar.left.svg';
 import userAccountIcon from '../../../img/user/ic_outline-account-circle.svg';
 import userLogoutIcon from '../../../img/user/mynaui_logout.svg';
-import { CHAT_HOME_PATH, isConversationPath } from '../../../config/entryRoutes';
+import { ABOUT_PATH, CHAT_HOME_PATH, isConversationPath } from '../../../config/entryRoutes';
 import { getRunningConversationIds, subscribeToActiveRun } from '../../../service/activeRun';
 import { getRecentPriorityIds, subscribeToRecentPriority } from '../../../service/recentPriority';
 import {
@@ -453,7 +453,8 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const bottomItems = useMemo(() => (
         [
-            { label: 'About', to: '/about', icon: <InfoOutlinedIcon sx={{ fontSize: 22 }} /> },
+            // `/` is About; exact, or every path would read as being on it
+            { label: 'About', to: ABOUT_PATH, exact: true, icon: <InfoOutlinedIcon sx={{ fontSize: 22 }} /> },
         ]
     ), []);
 
@@ -777,7 +778,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                 <IconButton
                                     aria-label={open ? 'Go to home' : 'Expand sidebar'}
                                     component={open ? Link : 'button'}
-                                    to={open ? '/' : undefined}
+                                    to={open ? CHAT_HOME_PATH : undefined}
                                     onClick={(event) => {
                                         if (open) {
                                             trackGtagEvent('nav_logo_click', { action: 'go_home' });

@@ -7,7 +7,7 @@
 import { chromium } from 'playwright';
 
 const out = process.argv[2] || 'about.png';
-const url = process.argv[3] || 'http://localhost:3000/about';
+const url = process.argv[3] || 'http://localhost:3000/';
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });

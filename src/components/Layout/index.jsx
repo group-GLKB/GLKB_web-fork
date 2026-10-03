@@ -32,11 +32,10 @@ const MOBILE_HEADER_VISIBILITY_EVENT = 'glkb-mobile-header-visibility';
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
 const getPageTitleByPath = (pathname) => {
-    if (pathname === CHAT_HOME_PATH) return 'GLKB: Genomic Literature Knowledge Base';
-    if (isConversationPath(pathname)) return 'AI Chat | GLKB';
+    if (pathname === '/') return 'GLKB: Genomic Literature Knowledge Base';
+    if (pathname === CHAT_HOME_PATH || isConversationPath(pathname)) return 'AI Chat | GLKB';
     if (pathname.startsWith('/api-page')) return 'API | GLKB';
     if (pathname.startsWith('/account')) return 'Settings | GLKB';
-    if (pathname.startsWith('/about')) return 'About | GLKB';
     if (pathname.startsWith('/privacy')) return 'Privacy Policy | GLKB';
     if (pathname.startsWith('/terms')) return 'Terms of Service | GLKB';
     if (pathname.startsWith('/blog')) return 'Our Blog | GLKB';
@@ -53,7 +52,8 @@ const AppLayout = () => {
     const navigate = useNavigate();
     const [isPhoneDevice, setIsPhoneDevice] = useState(isPhoneViewport);
     const [isMobileHeaderHidden, setIsMobileHeaderHidden] = useState(false);
-    const isAboutPage = location.pathname.startsWith('/about');
+    // About is the landing page at `/` (/about only redirects there)
+    const isAboutPage = location.pathname === '/' || location.pathname.startsWith('/about');
     const isBlogPage = location.pathname.startsWith('/blog');
     // the legal notices stand on their own, as About and the blog do
     const isLegalPage = location.pathname.startsWith('/privacy')

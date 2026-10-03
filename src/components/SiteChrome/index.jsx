@@ -10,7 +10,7 @@ import './scoped.css';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { CHAT_HOME_PATH } from '../../config/entryRoutes';
+import { ABOUT_PATH, CHAT_HOME_PATH } from '../../config/entryRoutes';
 
 // The app's own mark and wordmark, not the About-only lockup that used to sit here:
 // this is one site, and the logo above the marketing pages is the logo above the app.
@@ -18,7 +18,7 @@ import siteMark from '../../img/GLKB_logo_icon.png';
 import siteWordmark from '../../img/navbar/logo.png';
 
 /** Where the article list lives now that About owns it. */
-export const BLOG_LIST_PATH = '/about#from-the-lab';
+export const BLOG_LIST_PATH = '/#from-the-lab';
 
 const DATASET_URL = 'https://available-inventions.umich.edu/product/genomic-literature-knowledge-base';
 
@@ -35,7 +35,7 @@ export const SiteNav = ({ active, onGetStarted }) => {
             <button
                 type="button"
                 className="site-nav-logo"
-                onClick={() => navigate('/about')}
+                onClick={() => navigate(ABOUT_PATH)}
                 aria-label="GLKB"
             >
                 <img className="site-logo-mark" src={siteMark} alt="" />
@@ -43,7 +43,7 @@ export const SiteNav = ({ active, onGetStarted }) => {
             </button>
             <nav className="site-nav-actions">
                 {active === 'home' ? null : (
-                    <button type="button" className="site-nav-link" onClick={() => navigate('/about')}>
+                    <button type="button" className="site-nav-link" onClick={() => navigate(ABOUT_PATH)}>
                         Home
                     </button>
                 )}

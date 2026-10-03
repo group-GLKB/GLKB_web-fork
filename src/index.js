@@ -1,7 +1,7 @@
 import './index.css';
 import './utils/axiosConfig'; // Import axios interceptor configuration
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useState } from 'react';
 
 import { createRoot } from 'react-dom/client';
 import {
@@ -25,8 +25,8 @@ import ErrorBoundary from './components/Units/ErrorBoundary';
 import {
   CHAT_HOME_PATH,
   CHAT_NEW_PATH,
-  entryPathFor,
   hasSeenAbout,
+  shouldEnterChat,
 } from './config/entryRoutes';
 import { LITERATURE_REVIEW_ENABLED, SHOW_API_DOCS } from './config/features';
 
@@ -117,7 +117,7 @@ const initState = {
     searchType: ''
 }
 
-const INDEXABLE_PATHS = new Set(['/', '/about', '/blog', '/chat', '/search', '/api-page', '/privacy', '/terms']);
+const INDEXABLE_PATHS = new Set(['/', '/blog', '/chat', '/search', '/api-page', '/privacy', '/terms']);
 const MAINTENANCE_MODE = false;
 
 const normalizePathname = (pathname) => {
@@ -142,16 +142,33 @@ function RouteSeoControl() {
     );
 }
 
-/* `/` is not a page any more: About is the landing page and the chat lives at /chat. This picks
-   between them (config/entryRoutes.js), after the session check, since signed-in readers go
-   straight to the chat. Router state and the query string ride along — the sign-in overlay
-   and old links into `/` still carry theirs. */
-function RootRedirect() {
+/* `/` is About, the landing page. A signed-in reader who has seen it once and is ENTERING the
+   site here goes straight on to the chat instead (config/entryRoutes.js). "Entering" is the
+   router's first location: React Router keys it `default` when the page was loaded from outside
+   rather than navigated to inside the app — so the sidebar's About still shows About.
+
+   Whether About was seen is read once, when this mounts: About marks it on its own mount, and
+   reading it on every render would send a reader who is looking at About on to the chat the
+   next time anything re-rendered this. */
+function RootRoute() {
     const location = useLocation();
     const { isAuthenticated, loading } = useAuth();
-    if (loading) return null;
-    const to = entryPathFor({ isAuthenticated, seenAbout: hasSeenAbout() });
-    return <Navigate to={`${to}${location.search}${location.hash}`} state={location.state} replace />;
+    const [seenAtEntry] = useState(hasSeenAbout);
+    const isEntry = location.key === 'default';
+    if (isEntry && seenAtEntry && !location.hash) {
+        // Only this case depends on the session, so only it waits for the check.
+        if (loading) return null;
+        if (shouldEnterChat({ isAuthenticated, seenAbout: seenAtEntry, isEntry })) {
+            return <Navigate to={`${CHAT_HOME_PATH}${location.search}`} state={location.state} replace />;
+        }
+    }
+    return <AboutPage />;
+}
+
+/* About's old address. The hash rides along: /about#from-the-lab is linked from outside. */
+function AboutRedirect() {
+    const location = useLocation();
+    return <Navigate to={`/${location.search}${location.hash}`} replace />;
 }
 
 // Create a wrapper component
@@ -189,11 +206,11 @@ function AppWithRoutes() {
                 <Route element={<AppLayout />}>
                     <Route path='/search' element={<ResultPage />} />
                     <Route path='/graph-viewer' element={<GraphViewer />} />
-                    <Route path="/" element={<RootRedirect />} />
+                    <Route path="/" element={<RootRoute />} />
                     <Route path={CHAT_HOME_PATH} element={<HomePage />} />
-                    <Route path="/about" element={<AboutPage />} />
+                    <Route path="/about" element={<AboutRedirect />} />
                     {/* The article list lives on About under "From the Lab". */}
-                    <Route path="/blog" element={<Navigate to="/about#from-the-lab" replace />} />
+                    <Route path="/blog" element={<Navigate to="/#from-the-lab" replace />} />
                     <Route path="/blog/:slug" element={<BlogPost />} />
                     <Route path="/privacy" element={<PrivacyPolicy />} />
                     <Route path="/terms" element={<TermsOfService />} />
