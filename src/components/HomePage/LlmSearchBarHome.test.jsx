@@ -22,8 +22,8 @@ let mockInvestigateFlag = true;
 let mockReviewFlag = false;
 jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
 jest.mock('../../utils/gtag', () => ({ trackGtagEvent: jest.fn() }));
-// Asking requires an account (see Auth/guestGate). These are about the composer's own
-// behaviour, so the reader is signed in throughout; the gate itself is tested separately.
+// These are about the composer's own behaviour, so the reader is signed in throughout; a
+// guest's composer is LlmSearchBarHome.guest.test.jsx.
 jest.mock('../Auth/AuthContext', () => ({
     useAuth: () => ({ isAuthenticated: true, loading: false, openLoginModal: jest.fn() }),
 }));
@@ -31,24 +31,18 @@ jest.mock('../../config/features', () => ({
     get INVESTIGATE_ENABLED() { return mockInvestigateFlag; },
     get LITERATURE_REVIEW_ENABLED() { return mockReviewFlag; },
 }));
-// The picker fetches its catalogue. Left real it would reach axios, fail, and settle on the
-// fallback list at an arbitrary moment — so `model` would race `submit()` rather than being
-// wrong in a reproducible way. Resolved synchronously here instead.
-jest.mock('../../service/models', () => ({
-    ...jest.requireActual('../../service/models'),
-    fetchModelCatalog: () => Promise.resolve({
-        models: [{
-            id: 'gpt-6-sol',
-            label: 'GPT-6 Sol',
-            description: 'Balanced.',
-            pipelines: ['chat', 'deep_research'],
-        }],
-        defaultModel: 'gpt-6-sol',
-        defaultsByPipeline: { chat: 'gpt-6-sol', deep_research: 'gpt-6-sol' },
-    }),
-    getModelPref: () => '',
-    setModelPref: jest.fn(),
-}));
+// The picker fetches the prices. Left real it would reach axios, fail, and settle on the
+// fallback at an arbitrary moment — so `serviceTier` would race `submit()` rather than being
+// wrong in a reproducible way. Resolved here instead.
+jest.mock('../../service/serviceTiers', () => {
+    const actual = jest.requireActual('../../service/serviceTiers');
+    return {
+        ...actual,
+        fetchTierPricing: () => Promise.resolve(actual.parsePricing(actual.FALLBACK_PRICING)),
+        getTierPref: () => '',
+        setTierPref: jest.fn(),
+    };
+});
 
 // MUI's useMediaQuery needs matchMedia; default to the desktop layout.
 beforeAll(() => {
@@ -104,16 +98,16 @@ const submit = () => {
 // `openOnFocus` then drops the example list open. Every control in that row has to stop its
 // click from getting there, or opening it also opens the examples — underneath the very menu
 // the reader is aiming at.
-const modelTrigger = () => document.querySelector('button.model-picker-trigger');
+const tierTrigger = () => document.querySelector('button.model-picker-trigger');
 const exampleListIsOpen = () => Boolean(document.querySelector('.homepage-autocomplete-listbox'));
 
 describe('the controls in the composer row', () => {
-    it('opens the model menu without opening the example list', async () => {
+    it('opens the tier menu without opening the example list', async () => {
         setup({ autocompleteOptions: ['What is TP53?'] });
-        await waitFor(() => expect(modelTrigger()).not.toBeNull());
+        await waitFor(() => expect(tierTrigger()).not.toBeNull());
         expect(exampleListIsOpen()).toBe(false);
 
-        fireEvent.click(modelTrigger());
+        fireEvent.click(tierTrigger());
 
         expect(document.querySelector('.model-picker-panel')).not.toBeNull();
         expect(exampleListIsOpen()).toBe(false);
@@ -124,11 +118,11 @@ describe('the controls in the composer row', () => {
         // The reader's screenshot: focusing the box opens the examples, and the model menu
         // then landed on top of them — two popups stacked over each other.
         setup({ autocompleteOptions: ['What is TP53?'] });
-        await waitFor(() => expect(modelTrigger()).not.toBeNull());
+        await waitFor(() => expect(tierTrigger()).not.toBeNull());
         fireEvent.focus(screen.getByPlaceholderText('Ask a question about the biomedical literature...'));
         await waitFor(() => expect(exampleListIsOpen()).toBe(true));
 
-        fireEvent.click(modelTrigger());
+        fireEvent.click(tierTrigger());
 
         expect(document.querySelector('.model-picker-panel')).not.toBeNull();
         expect(exampleListIsOpen()).toBe(false);
@@ -172,9 +166,9 @@ describe('with Investigate off', () => {
             filters: ['review'],
             rankingMode: 'default',
             investigateEnabled: false,
-            // Empty: these submits happen before the picker's catalogue resolves, and an
-            // absent model is exactly what the chat then omits, leaving the server's default.
-            model: '',
+            // Empty: these submits happen before the picker's prices resolve, and an absent
+            // tier is exactly what the chat then omits, leaving the server's default.
+            serviceTier: '',
         });
     });
 });
@@ -233,9 +227,9 @@ describe('with Investigate on', () => {
             filters: [],
             rankingMode: 'default',
             investigateEnabled: true,
-            // Empty: these submits happen before the picker's catalogue resolves, and an
-            // absent model is exactly what the chat then omits, leaving the server's default.
-            model: '',
+            // Empty: these submits happen before the picker's prices resolve, and an absent
+            // tier is exactly what the chat then omits, leaving the server's default.
+            serviceTier: '',
         });
     });
 
@@ -251,9 +245,9 @@ describe('with Investigate on', () => {
             filters: [],
             rankingMode: 'default',
             investigateEnabled: false,
-            // Empty: these submits happen before the picker's catalogue resolves, and an
-            // absent model is exactly what the chat then omits, leaving the server's default.
-            model: '',
+            // Empty: these submits happen before the picker's prices resolve, and an absent
+            // tier is exactly what the chat then omits, leaving the server's default.
+            serviceTier: '',
         });
     });
 });

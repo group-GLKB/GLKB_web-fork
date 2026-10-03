@@ -18,7 +18,20 @@ jest.mock('../utils/axiosConfig', () => ({ __esModule: true, default: { post: je
 
 const svc = () => new LLMAgentService();
 
-beforeEach(() => { axios.post.mockReset(); });
+beforeEach(() => {
+    axios.post.mockReset();
+    // Cancel needs the run owner's JWT; these are a signed-in reader's runs.
+    localStorage.setItem('access_token', 'jwt');
+});
+afterEach(() => { localStorage.removeItem('access_token'); });
+
+describe('a guest', () => {
+    it('sends no cancel at all: their run has no owner, and a 401 would log them out', async () => {
+        localStorage.removeItem('access_token');
+        await expect(svc().cancelRun('3f9c0a')).resolves.toBeNull();
+        expect(axios.post).not.toHaveBeenCalled();
+    });
+});
 
 describe('cancelRun', () => {
     it('posts to the chat router by default', async () => {

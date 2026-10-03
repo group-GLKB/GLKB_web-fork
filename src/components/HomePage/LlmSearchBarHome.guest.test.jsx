@@ -1,5 +1,6 @@
-/** The home composer is where most visitors meet the product — and where a guest's question
- *  used to go all the way to a server that refuses it. */
+/** The home composer is where most visitors meet the product. Since guest mode reopened
+ *  (2026-10-03) a guest may ask here — Standard only, a monthly number of questions — and is
+ *  asked to sign in only when they reach past that. */
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -12,15 +13,16 @@ const mockNavigate = jest.fn();
 jest.mock('../Auth/AuthContext', () => ({ useAuth: () => mockAuth }));
 jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
 jest.mock('../../utils/gtag', () => ({ trackGtagEvent: jest.fn() }));
-jest.mock('../../service/models', () => ({
-    ...jest.requireActual('../../service/models'),
-    fetchModelCatalog: () => Promise.resolve({
-        models: [{ id: 'gpt-6-sol', label: 'GPT-6 Sol', short_label: '6 Sol', pipelines: ['chat', 'deep_research'] }],
-        defaultModel: 'gpt-6-sol',
-        defaultsByPipeline: { chat: 'gpt-6-sol', deep_research: 'gpt-6-sol' },
-        efforts: [],
-    }),
-}));
+let mockStoredTier = '';
+jest.mock('../../service/serviceTiers', () => {
+    const actual = jest.requireActual('../../service/serviceTiers');
+    return {
+        ...actual,
+        fetchTierPricing: () => Promise.resolve(actual.parsePricing(actual.FALLBACK_PRICING)),
+        getTierPref: () => mockStoredTier,
+        setTierPref: jest.fn(),
+    };
+});
 
 beforeAll(() => {
     window.matchMedia = window.matchMedia || ((query) => ({
@@ -35,6 +37,7 @@ beforeEach(() => {
     mockAuth.isAuthenticated = false;
     mockAuth.loading = false;
     mockNavigate.mockClear();
+    mockStoredTier = '';
 });
 
 /* The home page owns the example list and the "a run is going" flag; the bar only reports
@@ -67,43 +70,58 @@ const startChat = () => {
     fireEvent.click(button);
 };
 
-describe('a guest at the home composer', () => {
-    it('is asked to sign in instead of being sent to a chat', () => {
-        renderBar();
+const typeQuestion = (text) => {
+    const box = screen.getByPlaceholderText(/Ask a question about the biomedical literature/i);
+    fireEvent.change(box, { target: { value: text } });
+    return box;
+};
 
+describe('a guest at the home composer', () => {
+    it('is taken to the chat with their question, on Standard', () => {
+        renderBar();
+        typeQuestion('What is BRCA1?');
         startChat();
 
-        expect(mockAuth.openLoginModal).toHaveBeenCalled();
-        expect(mockNavigate).not.toHaveBeenCalled();
+        expect(mockAuth.openLoginModal).not.toHaveBeenCalled();
+        expect(mockNavigate).toHaveBeenCalledWith('/chat/new', expect.objectContaining({
+            state: expect.objectContaining({
+                initialQuery: 'What is BRCA1?',
+                initialSearchOptions: expect.objectContaining({ serviceTier: 'standard' }),
+            }),
+        }));
     });
 
-    it('cannot type a question into the box', () => {
+    it('is sent on Standard even with Premium stored from a signed-in session', () => {
+        mockStoredTier = 'premium';
         renderBar();
-        const box = screen.getByPlaceholderText(/Ask a question about the biomedical literature/i);
-
-        fireEvent.mouseDown(box);
-        fireEvent.keyDown(box, { key: 'B' });
-
-        expect(mockAuth.openLoginModal).toHaveBeenCalled();
-        expect(box).toHaveValue('');
+        typeQuestion('What is BRCA1?');
+        startChat();
+        expect(mockNavigate.mock.calls[0][1].state.initialSearchOptions.serviceTier).toBe('standard');
     });
 
-    it('cannot open the search options either', () => {
+    it('can open the search options', () => {
         renderBar();
-
         fireEvent.mouseDown(searchOptionsChip());
         fireEvent.click(searchOptionsChip());
-
-        expect(mockAuth.openLoginModal).toHaveBeenCalled();
-        expect(optionsPanels().some((panel) => isVisible(panel))).toBe(false);
+        expect(optionsPanels().some((panel) => isVisible(panel))).toBe(true);
     });
 
-    it('sees the composer as it is, not a disabled one', () => {
-        renderBar();
+    it('is asked to sign in, with the reason, once the month\'s questions are used — question kept', () => {
+        renderBar({ isQueryLimitReached: true, limitReachedText: "You've used your 100 free questions this month." });
+        const box = typeQuestion('What is BRCA1?');
+        expect(box).toBeEnabled();
+        startChat();
 
-        // Nothing about the gate should tell the visitor the product is broken.
-        expect(screen.getByPlaceholderText(/Ask a question about the biomedical literature/i))
-            .toBeEnabled();
+        expect(mockAuth.openLoginModal).toHaveBeenCalledWith("You've used your 100 free questions this month.");
+        expect(mockNavigate).not.toHaveBeenCalled();
+        expect(box).toHaveValue('What is BRCA1?');
+    });
+
+    it('picking Premium asks them to sign in', async () => {
+        renderBar();
+        fireEvent.click(await screen.findByRole('button', { name: 'Service tier: Standard' }));
+        fireEvent.click(screen.getByRole('option', { name: /Premium/ }));
+        expect(mockAuth.openLoginModal).toHaveBeenCalledWith(expect.stringMatching(/Premium is available to signed-in users/));
     });
 });
 

@@ -1,6 +1,5 @@
 import React from 'react';
 
-import BoltIcon from '@mui/icons-material/Bolt';
 import CloseIcon from '@mui/icons-material/Close';
 import {
   Box,
@@ -10,10 +9,7 @@ import {
 
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { trackGtagEvent } from '../../utils/gtag';
-import { EFFORT_QUICK, defaultModelFor, isQuickAvailable } from '../../service/effort';
-import ModelPicker from '../Units/ModelPicker';
-
-const SHOW_QUICK_CONTROL = false;
+import TierPicker from '../Units/TierPicker';
 
 const ChatSearchBar = ({
     userInput,
@@ -24,18 +20,15 @@ const ChatSearchBar = ({
     // Investigate is fixed for the life of a session, so the bar reports the
     // mode for analytics but no longer renders a toggle.
     investigateEnabled = false,
-    // Which model answers the next question. Per-turn, unlike `investigateEnabled`:
-    // the picker is right here in the composer, so a reader can change it between two
-    // turns of one conversation and expects the next answer to honour the change.
-    model,
-    onModelChange,
-    onModelResolveDefault,
-    // How hard the next question is worked (service/effort.js); '' is standard. Per-turn,
-    // like the model. `efforts` is the agent's catalogue of levels: with none offered the
-    // chip is not rendered, so an older agent is never shown a level it cannot honour.
-    effort = '',
-    onEffortChange,
-    efforts = [],
+    // Which service tier answers the next question (service/serviceTiers.js). Per-turn, unlike
+    // `investigateEnabled`: the picker is right here in the composer, so a reader can change it
+    // between two turns of one conversation and expects the next answer to honour the change.
+    serviceTier,
+    onServiceTierChange,
+    onServiceTierResolveDefault,
+    // A guest is held to Standard; picking another tier asks them to sign in.
+    isGuest = false,
+    onRequireSignIn,
     // Resolved by the parent, which is the only place that can see both signals — see the
     // comment at the call site. Not derived from `investigateEnabled` above: that one is
     // for analytics and is false for a reopened investigate conversation.
@@ -62,15 +55,6 @@ const ChatSearchBar = ({
     // clear the field and the stop control is there again. There is nothing here to stop when
     // the run belongs to another thread.
     const showStop = isLoading && !isRunElsewhere && !canSend;
-    // Quick is chat's level. Deep research is its own level in all but name and refuses
-    // `quick`, so on an Investigate conversation the chip is withdrawn rather than offered
-    // and then refused.
-    const quickOffered = !pipelineIsDeepResearch && isQuickAvailable(efforts, 'chat');
-    const quickOn = quickOffered && effort === EFFORT_QUICK;
-    // The level's default model, shown by the picker when the reader has chosen none. Not a
-    // lock: the picker stays operable, and Quick with another model is a request the agent
-    // honours — the level buys latency, the model buys cost.
-    const levelDefaultModel = quickOn ? defaultModelFor(efforts, effort) : '';
     const trackInvestigateSubmit = (inputMethod) => {
         if (!pipelineIsDeepResearch) return;
         trackGtagEvent('investigate_question_submit', {
@@ -171,64 +155,16 @@ const ChatSearchBar = ({
                                 puts it too. It had a control row of its own under the field for
                                 a while, which cost the composer 54px of height for one chip and
                                 left the chip stranded in a band of empty space. */}
-                            {/* Quick is hidden on both home and chat composers. */}
-                            {SHOW_QUICK_CONTROL && quickOffered && (
-                                <Box
-                                    component="button"
-                                    type="button"
-                                    className="effort-quick-chip"
-                                    aria-pressed={quickOn}
-                                    aria-label={quickOn ? 'Quick on' : 'Quick off'}
-                                    title={quickOn
-                                        ? 'Quick is on: an answer in seconds from GLKB alone, at most two search rounds'
-                                        : 'Quick: an answer in seconds from GLKB alone'}
-                                    disabled={isQueryLimitReached}
-                                    onMouseDown={(event) => event.preventDefault()}
-                                    onClick={() => {
-                                        const next = !quickOn;
-                                        trackGtagEvent('chat_quick_toggle_click', {
-                                            source: 'chat_searchbar',
-                                            enabled: next,
-                                        });
-                                        onEffortChange?.(next ? EFFORT_QUICK : '');
-                                    }}
-                                    sx={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        height: 32,
-                                        padding: '4px 8px',
-                                        borderRadius: '8px',
-                                        border: 'none',
-                                        cursor: isQueryLimitReached ? 'default' : 'pointer',
-                                        background: quickOn ? 'var(--color-brand-muted)' : 'transparent',
-                                        color: quickOn ? 'var(--color-brand-primary)' : 'var(--color-text-tertiary)',
-                                        fontFamily: 'Geist, sans-serif',
-                                        fontWeight: 600,
-                                        fontSize: '12px',
-                                        lineHeight: '16px',
-                                        whiteSpace: 'nowrap',
-                                        flexShrink: 0,
-                                        '&:hover': {
-                                            background: quickOn ? 'var(--color-blue-200)' : 'var(--color-background-subtle)',
-                                            color: quickOn ? 'var(--color-blue-600)' : 'var(--color-grey-600)',
-                                        },
-                                        '&:disabled': { opacity: 0.6 },
-                                    }}
-                                >
-                                    <BoltIcon sx={{ fontSize: 16 }} />
-                                    Quick
-                                </Box>
-                            )}
-                            <ModelPicker
-                                value={model}
-                                onChange={onModelChange}
-                                onResolveDefault={onModelResolveDefault}
+                            <TierPicker
+                                value={serviceTier}
+                                onChange={onServiceTierChange}
+                                onResolveDefault={onServiceTierResolveDefault}
                                 pipeline={pipelineIsDeepResearch ? 'deep_research' : 'chat'}
-                                defaultModelOverride={levelDefaultModel}
+                                isGuest={isGuest}
+                                onRequireSignIn={onRequireSignIn}
                                 // Left usable while an answer streams. A follow-up typed
                                 // mid-answer is queued by the parent, and it should be able to
-                                // name its own model — the choice applies to the NEXT request,
+                                // name its own tier — the choice applies to the NEXT request,
                                 // never to the one in flight.
                                 disabled={isQueryLimitReached}
                             />

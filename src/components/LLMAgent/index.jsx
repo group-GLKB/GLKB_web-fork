@@ -107,10 +107,12 @@ import {
 } from '../../service/LLMAgent';
 import { getCurrentUser } from '../../service/Auth';
 import {
-  getGuestTier,
-  getMyTier,
-  isFreePlanLimitReached,
-} from '../../service/Tier';
+  applyStreamCredits,
+  fetchUsage,
+  getUsageSnapshot,
+  limitReachedText,
+  subscribeToUsage,
+} from '../../service/credits';
 import {
   createConversation,
   fetchConversationDetail,
@@ -131,7 +133,6 @@ import {
 } from '../../utils/conversationBookmarks';
 import { createQuerySubmitSuccessTracker } from '../../utils/gtag';
 import { useAuth } from '../Auth/AuthContext';
-import { useGuestGate } from '../Auth/guestGate';
 import {
     NOTIFY_EMAIL_KEY,
     getNotifyPrefs,
@@ -140,12 +141,14 @@ import {
     setNotifyPref,
     subscribeToNotifyPrefs,
 } from '../../service/notifications';
-import { fetchModelCatalog, getModelPref, setModelPref, subscribeToModelPref } from '../../service/models';
 import {
-    getEffortPref,
-    setEffortPref,
-    subscribeToEffortPref,
-} from '../../service/effort';
+    effectiveTier,
+    getTierPref,
+    setTierPref,
+    subscribeToTierPref,
+    TIER_STANDARD,
+} from '../../service/serviceTiers';
+import { refusalNeedsSignIn, refusalText } from '../../utils/refusals';
 import {
     clearActiveRun,
     clearPendingRun,
@@ -1979,7 +1982,8 @@ function LLMAgent({ isRouteActive = true }) {
     const [isEditingChatTitle, setIsEditingChatTitle] = useState(false);
     const [chatTitleDraft, setChatTitleDraft] = useState('');
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
-    const [queryLimitTotal, setQueryLimitTotal] = useState(10);
+    // What the reader has left — credits signed in, free questions as a guest (service/credits.js).
+    const [usage, setUsage] = useState(() => getUsageSnapshot());
     const [pendingClarification, setPendingClarification] = useState(
         initialRunSnapshot?.pendingClarification || null,
     );
@@ -2023,35 +2027,16 @@ function LLMAgent({ isRouteActive = true }) {
     /* Which model answers the next question.
 
        Seeded from localStorage, so a reader's choice survives a reload, and '' until the
-       picker reports what the deployment defaults to. Two setters on purpose: a click is
-       remembered, a resolved default is not — storing the default would pin today's id and
-       a later server-side change would never reach this reader. Same cross-tab
-       subscription as the notify preference above, for the same reason: the value is in
-       localStorage and another tab can move it. */
-    const [chatModel, setChatModel] = useState(() => getModelPref());
-    useEffect(() => subscribeToModelPref(setChatModel), []);
-    const handleModelChange = useCallback((modelId) => {
-        setChatModel(modelId);
-        setModelPref(modelId);
-    }, []);
-    /* How hard the next question is worked (service/effort.js): '' is standard, 'quick' the
-       seconds-long level. Same storage discipline as the model: a click is remembered and
-       another tab's click reaches this one. The catalogue of levels is read once so the
-       composer can tell whether this deployment offers Quick at all, and which model it
-       fixes — a level that fixes its model must send none. */
-    const [chatEffort, setChatEffort] = useState(() => getEffortPref());
-    useEffect(() => subscribeToEffortPref(setChatEffort), []);
-    const handleEffortChange = useCallback((effortId) => {
-        setChatEffort(effortId);
-        setEffortPref(effortId);
-    }, []);
-    const [effortCatalog, setEffortCatalog] = useState([]);
-    useEffect(() => {
-        let cancelled = false;
-        fetchModelCatalog().then((catalog) => {
-            if (!cancelled) setEffortCatalog(Array.isArray(catalog?.efforts) ? catalog.efforts : []);
-        });
-        return () => { cancelled = true; };
+       picker reports the default tier. Two setters on purpose: a click is remembered, a
+       resolved default is not — storing the default would pin today's tier and a later
+       server-side change would never reach this reader. Same cross-tab subscription as the
+       notify preference above, for the same reason: the value is in localStorage and another
+       tab can move it. */
+    const [serviceTier, setServiceTier] = useState(() => getTierPref());
+    useEffect(() => subscribeToTierPref(setServiceTier), []);
+    const handleServiceTierChange = useCallback((tierId) => {
+        setServiceTier(tierId);
+        setTierPref(tierId);
     }, []);
     const investigateFunnelRef = useRef(initialRunSnapshot?.investigateFunnel || emptyFunnel());
     /* What the funnel counters actually SHOWED, as opposed to what the agent reported.
@@ -2424,11 +2409,17 @@ function LLMAgent({ isRouteActive = true }) {
         });
     }, [navigate]);
     const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
-    /* Asking is for signed-in readers: the composer stays on screen, and every way of
-       operating it — the box, Send, the chips, the model menu — opens the sign-in overlay
-       instead. `requireAuthToAsk` is the same decision for the submit path itself, which a
-       question arriving from the home page's navigation state reaches without a click. */
-    const { gateProps: guestGateProps, requireAuth: requireAuthToAsk } = useGuestGate();
+    /* A guest may ask again (guest mode reopened 2026-10-03): Standard only, a monthly number
+       of questions and Investigate runs per IP. The backend enforces both and refuses with a
+       code (utils/refusals.js); what is left here is asking them to sign in when they reach
+       for more. */
+    const isGuest = !authLoading && !isAuthenticated;
+    const requireSignIn = useCallback((reason) => {
+        openLoginModal(typeof reason === 'string' ? reason : undefined);
+    }, [openLoginModal]);
+    const requestPremiumSignIn = useCallback((tier) => {
+        requireSignIn(`${tier?.label || 'Premium'} is available to signed-in users. Sign in to use it — it's free.`);
+    }, [requireSignIn]);
     const useMobileReferencesDrawer = isPhoneDevice;
 
     useEffect(() => {
@@ -2522,21 +2513,36 @@ function LLMAgent({ isRouteActive = true }) {
     const refreshTierStatus = useCallback(async () => {
         if (authLoading) {
             setIsQueryLimitReached(false);
-            setQueryLimitTotal(10);
             return;
         }
-        const result = isAuthenticated ? await getMyTier() : await getGuestTier();
-        if (!result.success) return;
-        setIsQueryLimitReached(isFreePlanLimitReached(result.data));
-        setQueryLimitTotal(Number(result.data?.quota_limit) || 10);
+        const next = await fetchUsage({ isAuthenticated });
+        if (!next) return;
+        setUsage(next);
+        setIsQueryLimitReached(next.limitReached);
     }, [authLoading, isAuthenticated]);
+    // The balance a stream frame carried (`applyStreamCredits`) arrives here too.
+    useEffect(() => subscribeToUsage((next) => {
+        setUsage(next);
+        setIsQueryLimitReached(Boolean(next?.limitReached));
+    }), []);
+    /* A refusal from before the stream opened (utils/refusals.js). Credits can only be fixed by
+       waiting or buying; a guest's limit or a members-only tier by signing in, so that opens the
+       sign-in overlay with the reason on it. */
+    const handleRefusal = useCallback((refusal) => {
+        if (!refusal) return;
+        if (refusalNeedsSignIn(refusal)) {
+            requireSignIn(refusalText(refusal));
+            if (refusal.code === 'GUEST_LOGIN_REQUIRED') setServiceTier(TIER_STANDARD);
+        }
+        if (refusal.code === 'INSUFFICIENT_CREDITS' || refusal.code === 'GUEST_LIMIT_REACHED') {
+            refreshTierStatus();
+        }
+    }, [requireSignIn, refreshTierStatus]);
 
     const llmService = useMemo(() => new LLMAgentService(), []);
     const isLimitReachedEffective = isQueryLimitReached || DEBUG_FORCE_LIMIT_WARNING;
     const showLimitWarning = isLimitReachedEffective;
-    const displayedQueryLimit = Number.isFinite(Number(queryLimitTotal)) && Number(queryLimitTotal) > 0
-        ? Number(queryLimitTotal)
-        : 10;
+    const limitWarningText = limitReachedText(usage);
     const activeConversation = useMemo(() => {
         const currentId = activeConversationIdRef.current || activeConversationId;
         if (!currentId) return null;
@@ -3955,11 +3961,11 @@ function LLMAgent({ isRouteActive = true }) {
                 state: Object.keys(restState).length ? restState : null,
             });
             initialSearchOptionsRef.current = searchOptions;
-            // Adopt the model the home page's picker was showing, so the chip here names what
-            // this first turn actually ran on. Normally the same value is already in
-            // localStorage (both pickers write it), but the handover must not depend on that.
-            if (searchOptions?.model) {
-                setChatModel(searchOptions.model);
+            // Adopt the tier the home page's picker was showing, so the chip here names what this
+            // first turn actually ran on. Normally the same value is already in localStorage
+            // (both pickers write it), but the handover must not depend on that.
+            if (searchOptions?.serviceTier) {
+                setServiceTier(searchOptions.serviceTier);
             }
             /* Asked even while another conversation is answering. This used to be behind
                `if (!isLoading)`, so a question handed over from the home page during a run was
@@ -4212,12 +4218,14 @@ function LLMAgent({ isRouteActive = true }) {
            before it is submitted (so a conversation switch cannot submit it twice), so a
            refusal here has to be reported — otherwise the question the reader already
            watched leave their composer ends here, silently. */
-        if (!inputText.trim() || isLimitReachedEffective) return false;
+        if (!inputText.trim()) return false;
         /* Every route to a question ends here — the composer, a released follow-up, and the
-           query handed over in the home page's navigation state, which arrives without a
-           click for the gate on the composer to catch. A guest gets the sign-in overlay and
-           keeps their question in the box. */
-        if (requireAuthToAsk()) return false;
+           query handed over in the home page's navigation state. A guest who has used the
+           month's questions gets the sign-in overlay and keeps their question in the box. */
+        if (isLimitReachedEffective) {
+            if (isGuest) requireSignIn(limitWarningText);
+            return false;
+        }
 
         /* Which conversation this turn belongs to. Normally the one on screen, but a released
            queued prompt names its own: it was written as a follow-up to a particular thread and
@@ -4292,14 +4300,11 @@ function LLMAgent({ isRouteActive = true }) {
             maxArticles: Number.isFinite(Number(requestSearchOptions?.maxArticles))
                 ? Number(requestSearchOptions.maxArticles)
                 : undefined,
-            // Kept so a clarify retry re-runs on the model the original run used. Without it
-            // `prior.model` below is always undefined and the restarted run silently drops to
-            // the server default — the same question answered by a different model.
-            model: typeof requestSearchOptions?.model === 'string' && requestSearchOptions.model
-                ? requestSearchOptions.model
-                : undefined,
-            effort: typeof requestSearchOptions?.effort === 'string' && requestSearchOptions.effort
-                ? requestSearchOptions.effort
+            // Kept so a clarify retry re-runs on the tier the original run used. Without it
+            // `prior.serviceTier` below is always undefined and the restarted run silently drops
+            // to the default tier — the same question answered by a different model.
+            serviceTier: typeof requestSearchOptions?.serviceTier === 'string' && requestSearchOptions.serviceTier
+                ? requestSearchOptions.serviceTier
                 : undefined,
         };
 
@@ -5093,6 +5098,9 @@ function LLMAgent({ isRouteActive = true }) {
                         announceBackgroundCompletion();
                         break;
                     case 'saved': {
+                        // The balance after this answer's charge; a missing figure is refetched
+                        // by `refreshTierStatus` in the finally below.
+                        applyStreamCredits(update.credits);
                         /* The parts of 'saved' that belong to the RUN, not the view — the id
                            it now answers to, the follow-ups queued against its nameless days,
                            the session id a reattach will need — apply to a detached run too.
@@ -5167,6 +5175,35 @@ function LLMAgent({ isRouteActive = true }) {
                         break;
                     }
                     case 'error': // unsure if this is used
+                        applyStreamCredits(update.credits);
+                        /* Refused before the stream opened (utils/refusals.js): nothing ran and
+                           nothing was charged. The bubble says why, in the backend's words rather
+                           than as an "Error:", and the catch below does not go looking for a run
+                           that was never started. */
+                        if (update.refusal) {
+                            streamOutcome = 'refused';
+                            handleRefusal(update.refusal);
+                            if (!isActiveStream) {
+                                persistDetachedFailure(refusalText(update.refusal));
+                                return;
+                            }
+                            applyPendingClarification(null);
+                            setIsProcessing(false);
+                            setStreamingStepName('');
+                            updateRunningChatHistory((prev) => {
+                                const newHistory = [...prev];
+                                newHistory[newHistory.length - 1] = {
+                                    role: 'assistant',
+                                    content: refusalText(update.refusal),
+                                    references: [],
+                                    timestamp,
+                                    thinkingSteps: [],
+                                    investigateMode: investigateEnabled,
+                                };
+                                return newHistory;
+                            });
+                            break;
+                        }
                         if (!isActiveStream) {
                             streamOutcome = 'lost';
                             persistDetachedFailure(`Error: ${update.error}`);
@@ -5219,12 +5256,11 @@ function LLMAgent({ isRouteActive = true }) {
                 filters: Array.isArray(requestSearchOptions?.filters) ? requestSearchOptions.filters : undefined,
                 rankingMode: typeof requestSearchOptions?.rankingMode === 'string' ? requestSearchOptions.rankingMode : undefined,
                 investigateEnabled,
-                // The turn's OWN model, off the options bag rather than off `chatModel`: a
-                // queued follow-up must send the model that was showing when the reader hit
-                // send, not whatever the picker moved to while it waited in the queue.
-                model: requestSearchOptions?.model || undefined,
-                // The turn's own level, same discipline as the model above.
-                effort: requestSearchOptions?.effort || undefined,
+                // The turn's OWN tier, off the options bag rather than off `serviceTier`: a
+                // queued follow-up must send the tier that was showing when the reader hit
+                // send, not whatever the picker moved to while it waited in the queue. A guest
+                // is always Standard — the backend refuses anything else.
+                serviceTier: effectiveTier(requestSearchOptions?.serviceTier, { isGuest }) || undefined,
                 notifyEmail: (investigateEnabled && notifyEmailEnabled)
                     ? (getUserNotifyEmail() || undefined)
                     : undefined,
@@ -5235,8 +5271,10 @@ function LLMAgent({ isRouteActive = true }) {
             });
         } catch (error) {
             console.error('Error in chat:', error);
+            // Refused before the stream opened: there is no run to recover (see the 'error' case).
+            const refusal = error?.refusal || null;
             // Deep Research disconnect recovery: poll GET /run/{run_id}
-            if (investigateEnabled && runIdRef.current && activeStreamIdRef.current === streamId) {
+            if (!refusal && investigateEnabled && runIdRef.current && activeStreamIdRef.current === streamId) {
                 try {
                     const run = await llmService.getRun({ runId: runIdRef.current });
                     if (run && (run.status === 'complete' || run.response)) {
@@ -5299,11 +5337,11 @@ function LLMAgent({ isRouteActive = true }) {
                GONE gets an error written; a run it still calls running is left alone, its
                exchange visibly unfinished, for the reattach path to collect. */
             const pollSessionId = runSessionId || sessionIdRef.current;
-            let outcome = 'unknown';
+            let outcome = refusal ? 'refused' : 'unknown';
             const canRecoverDetached = () => Boolean(
                 runConversationId && isConversationRunning(runConversationId),
             );
-            if (pollSessionId
+            if (!refusal && pollSessionId
                 && (activeStreamIdRef.current === streamId || canRecoverDetached())) {
                 for (let attempt = 0; attempt < 100; attempt += 1) {
                     if (activeStreamIdRef.current !== streamId && !canRecoverDetached()) {
@@ -5365,7 +5403,7 @@ function LLMAgent({ isRouteActive = true }) {
                     // eslint-disable-next-line no-await-in-loop
                     await new Promise((resolve) => setTimeout(resolve, RESUME_POLL_MS));
                 }
-            } else if (!pollSessionId) {
+            } else if (!refusal && !pollSessionId) {
                 outcome = 'lost';        // nothing to ask; the old behaviour is all there is
             }
             /* An exchange left visibly unfinished is the RIGHT outcome for a run still being
@@ -5538,8 +5576,8 @@ function LLMAgent({ isRouteActive = true }) {
                             rankingMode: prior.rankingMode,
                             maxArticles: prior.maxArticles,
                             // A restarted clarify run is the SAME question; re-running it on a
-                            // different model would silently change the answer's provenance.
-                            model: prior.model,
+                            // different tier would silently change the answer's provenance.
+                            serviceTier: prior.serviceTier,
                         },
                     });
                 } else {
@@ -6387,10 +6425,13 @@ function LLMAgent({ isRouteActive = true }) {
     const submitOrQueue = useCallback((event, searchOptions, queryMethod = 'button') => {
         event?.preventDefault?.();
         const text = userInput.trim();
-        if (!text || isLimitReachedEffective) return;
-        // Checked before queueing as well as before sending: a guest's follow-up must not be
-        // taken out of the box and drawn as a pending bubble that will never be sent.
-        if (requireAuthToAsk()) return;
+        if (!text) return;
+        // Checked before queueing as well as before sending: a follow-up must not be taken out
+        // of the box and drawn as a pending bubble that will never be sent. A guest is told why.
+        if (isLimitReachedEffective) {
+            if (isGuest) requireSignIn(limitWarningText);
+            return;
+        }
         /* "Busy" is the REGISTRY's word, not only the view's. The view flags describe the
            run the view follows; a background follow-up holds its conversation without ever
            touching them, and a submit into it used to be refused silently deep inside
@@ -6440,7 +6481,7 @@ function LLMAgent({ isRouteActive = true }) {
         }]);
         setUserInput('');
     }, [userInput, isLoading, isViewingRunningConversation, isLimitReachedEffective,
-        requireAuthToAsk, stableSubmit]);
+        isGuest, requireSignIn, limitWarningText, stableSubmit]);
 
     const removeQueuedPrompt = useCallback((entry) => {
         if (!entry?.id) return;
@@ -6653,6 +6694,7 @@ function LLMAgent({ isRouteActive = true }) {
                             });
                             break;
                         case 'saved': {
+                            applyStreamCredits(update.credits);
                             const savedId = update.historyId ? String(update.historyId) : conversationId;
                             if (update.sessionId) {
                                 setStoredSessionId(savedId, update.sessionId);
@@ -6665,9 +6707,12 @@ function LLMAgent({ isRouteActive = true }) {
                             break;
                         }
                         case 'error':
+                            applyStreamCredits(update.credits);
+                            if (update.refusal) handleRefusal(update.refusal);
                             settleWith({
                                 role: 'assistant',
-                                content: `Error: ${update.error}`,
+                                // A refusal is said in the backend's words (utils/refusals.js).
+                                content: update.refusal ? refusalText(update.refusal) : `Error: ${update.error}`,
                                 references: [],
                                 timestamp,
                                 thinkingSteps: [...localThinkingSteps],
@@ -6688,10 +6733,10 @@ function LLMAgent({ isRouteActive = true }) {
                         ? requestSearchOptions.rankingMode
                         : undefined,
                     investigateEnabled,
-                    // The turn's OWN model, off the options bag rather than off `chatModel`: a
-                    // queued follow-up must send the model that was showing when the reader hit
+                    // The turn's OWN tier, off the options bag rather than off `serviceTier`: a
+                    // queued follow-up must send the tier that was showing when the reader hit
                     // send, not whatever the picker moved to while it waited in the queue.
-                    model: requestSearchOptions?.model || undefined,
+                    serviceTier: effectiveTier(requestSearchOptions?.serviceTier, { isGuest }) || undefined,
                     messagesOverride: [...base, userMessage].map((msg) => ({
                         role: msg?.role,
                         content: msg?.content,
@@ -7519,15 +7564,17 @@ function LLMAgent({ isRouteActive = true }) {
                                                     {showLimitWarning && (
                                                         <div className="llm-limit-warning">
                                                             <span className="llm-limit-warning-text">
-                                                                You've reached your query limit ({displayedQueryLimit} queries). Upgrade for unlimited access.
+                                                                {limitWarningText}
                                                             </span>
-                                                            <button
-                                                                type="button"
-                                                                className="llm-limit-warning-button"
-                                                                disabled
-                                                            >
-                                                                Update
-                                                            </button>
+                                                            {isGuest && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="llm-limit-warning-button"
+                                                                    onClick={() => requireSignIn(limitWarningText)}
+                                                                >
+                                                                    Sign in
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     )}
                                                     {/* Figma "Asking Question" hangs the panel off the
@@ -7536,7 +7583,7 @@ function LLMAgent({ isRouteActive = true }) {
                                                         it is a question to answer before the run can
                                                         go on, so it belongs where the answer is typed
                                                         and must not scroll away with the transcript. */}
-                                                    <div className="composer-dock" {...guestGateProps}>
+                                                    <div className="composer-dock">
                                                         {isViewingRunningConversation && pendingClarification && (
                                                             <div className="clarify-float">
                                                                 <ClarifyPanel
@@ -7556,24 +7603,20 @@ function LLMAgent({ isRouteActive = true }) {
                                                         setUserInput={setUserInput}
                                                         isLoading={isLoading}
                                                         isRunElsewhere={isLoading && !isViewingRunningConversation}
-                                                        isQueryLimitReached={isLimitReachedEffective}
+                                                        // A guest at the limit keeps a live composer: sending
+                                                        // opens the sign-in overlay instead (handleSubmit).
+                                                        isQueryLimitReached={isLimitReachedEffective && !isGuest}
                                                         investigateEnabled={chatInvestigateEnabled}
-                                                        model={chatModel}
+                                                        serviceTier={serviceTier}
                                                         pipelineIsDeepResearch={chatInvestigateEnabled}
-                                                        onModelChange={handleModelChange}
-                                                        onModelResolveDefault={setChatModel}
-                                                        effort={chatEffort}
-                                                        efforts={effortCatalog}
-                                                        onEffortChange={handleEffortChange}
+                                                        onServiceTierChange={handleServiceTierChange}
+                                                        onServiceTierResolveDefault={setServiceTier}
+                                                        isGuest={isGuest}
+                                                        onRequireSignIn={requestPremiumSignIn}
                                                         onSubmit={(event, submissionMeta) => {
-                                                            /* The level is chat's: on a deep-research conversation it is
-                                                               withheld, exactly as the chip is. The model is sent at every
-                                                               level — a level supplies the picker's DEFAULT, not a pin, so
-                                                               whatever the chip shows is what the reader asked for. */
                                                             submitOrQueue(event, {
                                                                 investigateEnabled: chatInvestigateEnabled,
-                                                                model: chatModel,
-                                                                effort: (!chatInvestigateEnabled && chatEffort) ? chatEffort : undefined,
+                                                                serviceTier,
                                                             }, submissionMeta?.queryMethod || 'button');
                                                         }}
                                                         onStop={handleStopStreaming}

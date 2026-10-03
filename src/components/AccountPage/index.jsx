@@ -27,6 +27,7 @@ import {
   upgradeToPro,
 } from '../../service/Tier';
 import { CHAT_HOME_PATH } from '../../config/entryRoutes';
+import { fetchUsage } from '../../service/credits';
 import { useAuth } from '../Auth/AuthContext';
 import {
     browserNotifyPermission,
@@ -108,7 +109,6 @@ const AccountPage = () => {
     const [showSignoutModal, setShowSignoutModal] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
     const [tierInfo, setTierInfo] = useState(null);
-    const [tierLoading, setTierLoading] = useState(true);
     const [activeTab, setActiveTab] = useState(
         () => (location.state?.tab === 'testing' ? 'testing' : 'account')
     );
@@ -214,6 +214,20 @@ const AccountPage = () => {
         return () => window.clearTimeout(timeoutId);
     }, [toastMessage]);
 
+    /* Credits (service/credits.js): the free monthly allowance and what is left of it, plus
+       purchased credits, which never expire. The account tier (the plan badge) still comes from
+       /tier/me; its old per-call quota is no longer what limits a reader. */
+    const [credits, setCredits] = useState(null);
+    useEffect(() => {
+        let isMounted = true;
+        fetchUsage({ isAuthenticated: true }).then((next) => {
+            if (isMounted && next) setCredits(next);
+        });
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
     useEffect(() => {
         let isMounted = true;
 
@@ -225,10 +239,6 @@ const AccountPage = () => {
                 } else {
                     setTierInfo(null);
                 }
-            })
-            .finally(() => {
-                if (!isMounted) return;
-                setTierLoading(false);
             });
 
         return () => {
@@ -236,11 +246,16 @@ const AccountPage = () => {
         };
     }, []);
 
-    const quotaLimit = Math.max(0, Number(tierInfo?.quota_limit) || 0);
-    const quotaUsed = Math.min(quotaLimit, Math.max(0, Number(tierInfo?.quota_used) || 0));
-    const quotaRemaining = Math.max(0, Number(tierInfo?.quota_remaining) || (quotaLimit - quotaUsed));
-    const usagePercent = quotaLimit > 0 ? Math.min(100, (quotaUsed / quotaLimit) * 100) : 0;
-    const usageResetText = formatResetTime(tierInfo?.end_time || tierInfo?.period_start);
+    const creditsLoading = !credits;
+    const monthlyAllowance = Math.max(0, credits?.monthlyAllowance || 0);
+    const monthlyRemaining = Math.max(0, Math.min(monthlyAllowance, credits?.monthlyRemaining ?? monthlyAllowance));
+    const monthlyUsed = monthlyAllowance - monthlyRemaining;
+    const creditsRemaining = Math.max(0, credits?.remaining || 0);
+    const purchasedRemaining = Math.max(0, credits?.purchasedRemaining || 0);
+    const usagePercent = monthlyAllowance > 0 ? Math.min(100, (monthlyUsed / monthlyAllowance) * 100) : 0;
+    const usageResetText = credits?.resetsAt
+        ? `Resets ${formatResetTime(credits.resetsAt.toISOString().replace(/Z$/, ''))}`
+        : '--';
     const normalizedTier = `${tierInfo?.tier || 'free'}`.toLowerCase();
     const isUpgradeDisabled = normalizedTier === 'pro' || normalizedTier === 'admin';
 
@@ -459,17 +474,17 @@ const AccountPage = () => {
 
                                 <div className="settings-row settings-row-stacked">
                                     <div className="settings-row-head">
-                                        <span className="settings-row-label">Monthly Queries</span>
+                                        <span className="settings-row-label">Monthly Credits</span>
                                         <span className="settings-row-chip">
-                                            {tierLoading ? 'Loading...' : usageResetText}
+                                            {creditsLoading ? 'Loading...' : usageResetText}
                                         </span>
                                     </div>
                                     <div
                                         className="subscription-progress"
                                         role="progressbar"
                                         aria-valuemin={0}
-                                        aria-valuemax={quotaLimit || 100}
-                                        aria-valuenow={quotaUsed}
+                                        aria-valuemax={monthlyAllowance || 100}
+                                        aria-valuenow={monthlyUsed}
                                     >
                                         <div
                                             className="subscription-progress-fill"
@@ -478,9 +493,13 @@ const AccountPage = () => {
                                     </div>
                                     <div className="subscription-progress-footer">
                                         <span className="subscription-progress-used">
-                                            {tierLoading ? '-- used' : `${quotaUsed} used`}
+                                            {creditsLoading ? '-- used' : `${monthlyUsed} of ${monthlyAllowance} used`}
                                         </span>
-                                        <span>{tierLoading ? '-- remaining' : `${quotaRemaining} remaining`}</span>
+                                        <span>
+                                            {creditsLoading
+                                                ? '-- remaining'
+                                                : `${creditsRemaining} credits remaining${purchasedRemaining ? ` (${purchasedRemaining} purchased)` : ''}`}
+                                        </span>
                                     </div>
                                 </div>
 

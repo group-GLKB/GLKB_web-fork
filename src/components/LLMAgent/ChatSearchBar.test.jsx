@@ -7,19 +7,15 @@ import ChatSearchBar from './ChatSearchBar';
 import { trackGtagEvent } from '../../utils/gtag';
 
 jest.mock('../../utils/gtag', () => ({ trackGtagEvent: jest.fn() }));
-// The composer embeds the model picker, which fetches a catalogue. Faked so these tests are
+// The composer embeds the tier picker, which fetches the prices. Faked so these tests are
 // about the composer, and so the picker's rows are known when the pipeline test reads them.
-jest.mock('../../service/models', () => ({
-    ...jest.requireActual('../../service/models'),
-    fetchModelCatalog: () => Promise.resolve({
-        models: [
-            { id: 'gpt-6-sol', label: 'GPT-6 Sol', short_label: '6 Sol', description: 'Balanced.', pipelines: ['chat', 'deep_research'] },
-            { id: 'gpt-6-luna', label: 'GPT-6 Luna', short_label: '6 Luna', description: 'Fastest.', pipelines: ['chat'] },
-        ],
-        defaultModel: 'gpt-6-sol',
-        defaultsByPipeline: { chat: 'gpt-6-sol', deep_research: 'gpt-6-sol' },
-    }),
-}));
+jest.mock('../../service/serviceTiers', () => {
+    const actual = jest.requireActual('../../service/serviceTiers');
+    return {
+        ...actual,
+        fetchTierPricing: () => Promise.resolve(actual.parsePricing(actual.FALLBACK_PRICING)),
+    };
+});
 
 beforeAll(() => {
     window.matchMedia = window.matchMedia || ((query) => ({
@@ -203,30 +199,41 @@ describe('ChatSearchBar when nothing is running', () => {
 });
 
 
-describe('which models the composer offers', () => {
+describe('the tier the composer offers', () => {
     const openPicker = async () => {
-        const chip = await screen.findByRole('button', { name: /^Model: / });
+        const chip = await screen.findByRole('button', { name: /^Service tier: / });
         fireEvent.click(chip);
-        return (await screen.findAllByRole('option')).map((o) => o.textContent);
+        return (await screen.findAllByRole('option')).map((o) => o.textContent).join(' ');
     };
 
-    it('offers the chat-only model on an ordinary conversation', async () => {
-        setup({ pipelineIsDeepResearch: false });
-        expect((await openPicker()).join(' ')).toContain('Luna');
+    it('prices an ordinary conversation as AI Chat', async () => {
+        setup({ pipelineIsDeepResearch: false, serviceTier: 'standard' });
+        const text = await openPicker();
+        expect(text).toContain('10 credits/query');
+        expect(text).toContain('1 credit/query');
     });
 
-    it('hides it once the conversation is a deep-research one', async () => {
-        // Includes the case the parent resolves from `isInvestigateConversation`: a reader
-        // who reopens an investigate conversation from History. Offering a model deep
-        // research refuses would produce a 400 they cannot act on.
-        setup({ pipelineIsDeepResearch: true });
-        expect((await openPicker()).join(' ')).not.toContain('Luna');
+    it('prices a deep-research conversation as Investigate', async () => {
+        // Includes the case the parent resolves from `isInvestigateConversation`: a reader who
+        // reopens an investigate conversation from History.
+        setup({ pipelineIsDeepResearch: true, serviceTier: 'standard' });
+        const text = await openPicker();
+        expect(text).toContain('45 credits/query');
+        expect(text).toContain('20 credits/query');
     });
 
     it('does not read the analytics-only `investigateEnabled` for this', async () => {
-        // That prop is false for a reopened investigate conversation, which is exactly the
-        // case this feature has to get right — so the pipeline comes from its own prop.
-        setup({ investigateEnabled: false, pipelineIsDeepResearch: true });
-        expect((await openPicker()).join(' ')).not.toContain('Luna');
+        setup({ investigateEnabled: false, pipelineIsDeepResearch: true, serviceTier: 'standard' });
+        expect(await openPicker()).toContain('45 credits/query');
+    });
+
+    it("asks a guest to sign in for Premium instead of selecting it", async () => {
+        const onRequireSignIn = jest.fn();
+        const onServiceTierChange = jest.fn();
+        setup({ isGuest: true, serviceTier: 'standard', onRequireSignIn, onServiceTierChange });
+        await openPicker();
+        fireEvent.click(screen.getByRole('option', { name: /Premium/ }));
+        expect(onRequireSignIn).toHaveBeenCalled();
+        expect(onServiceTierChange).not.toHaveBeenCalled();
     });
 });

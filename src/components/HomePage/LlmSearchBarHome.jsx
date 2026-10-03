@@ -6,7 +6,6 @@ import React, {
 import { useNavigate } from 'react-router-dom';
 
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
-import BoltIcon from '@mui/icons-material/Bolt';
 import CloseIcon from '@mui/icons-material/Close';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
@@ -23,7 +22,7 @@ import {
   useMediaQuery,
 } from '@mui/material';
 
-import { useGuestGate } from '../Auth/guestGate';
+import { useAuth } from '../Auth/AuthContext';
 import { INVESTIGATE_ENABLED, LITERATURE_REVIEW_ENABLED } from '../../config/features';
 import { CHAT_NEW_PATH } from '../../config/entryRoutes';
 import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
@@ -32,14 +31,8 @@ import { ReactComponent as SearchOptionsIcon } from '../../img/llm/search_option
 import { ReactComponent as SearchOptionsCloseIcon } from '../../img/llm/search_options_close.svg';
 import { ReactComponent as SearchOptionsCollapseIcon } from '../../img/llm/search_options_collapse.svg';
 import { trackGtagEvent } from '../../utils/gtag';
-import ModelPicker from '../Units/ModelPicker';
-import { fetchModelCatalog, getModelPref, setModelPref } from '../../service/models';
-import {
-    EFFORT_QUICK,
-    defaultModelFor,
-    getEffortPref,
-    setEffortPref,
-} from '../../service/effort';
+import TierPicker from '../Units/TierPicker';
+import { effectiveTier, getTierPref, setTierPref } from '../../service/serviceTiers';
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
@@ -51,40 +44,27 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const [reviewEnabled, setReviewEnabled] = useState(false);
     const [researchTool, setResearchTool] = useState('investigate');
     const [toolMenuAnchor, setToolMenuAnchor] = useState(null);
-    /* The model the first question will run on.
+    /* The service tier the first question will run on (service/serviceTiers.js).
 
        Persisted through the same helper the chat composer reads, so a choice made here is
        the choice the conversation continues with — the two pickers are one preference, not
        two that can disagree once the reader lands on /chat. */
-    const [model, setModel] = useState(() => getModelPref());
-    /* How hard the first question is worked (service/effort.js). Persisted through the same
-       helper the chat composer reads, for the same reason as the model above. `efforts` is the
-       agent's catalogue of levels; until it arrives, or on an agent that predates levels, no
-       chip is offered. */
-    const [effort, setEffort] = useState(() => getEffortPref());
-    const [efforts, setEfforts] = useState([]);
-    useEffect(() => {
-        let cancelled = false;
-        fetchModelCatalog().then((catalog) => {
-            if (!cancelled) setEfforts(Array.isArray(catalog?.efforts) ? catalog.efforts : []);
-        });
-        return () => { cancelled = true; };
-    }, []);
+    const [serviceTier, setServiceTier] = useState(() => getTierPref());
     const [sortBy, setSortBy] = useState('Default');
     const [paperType, setPaperType] = useState('All types');
     const [isOpen, setIsOpen] = useState(false);
     const [mobileOptionsOpen, setMobileOptionsOpen] = useState(false);
     const [desktopOptionsOpen, setDesktopOptionsOpen] = useState(false);
-    /* The model menu belongs on this list for the same reason the two Search Options drawers
+    /* The tier menu belongs on this list for the same reason the two Search Options drawers
        do: it opens over the composer, and the example list must not be drawn underneath it.
        Stopping the chip's click (below) keeps a click at REST from opening the examples; this
        is the other half — the examples are often already open, because focusing the box opens
        them, and then the menu lands on top of a list the reader cannot use. */
-    const [modelMenuOpen, setModelMenuOpen] = useState(false);
-    /* Only a signed-in reader can ask. The gate covers the whole bar — box, send, chips,
-       model menu, search options — so a guest meets the sign-in overlay instead of a
-       question that the server would refuse anyway. */
-    const { gateProps: guestGateProps, requireAuth } = useGuestGate();
+    const [tierMenuOpen, setTierMenuOpen] = useState(false);
+    /* A guest may ask (guest mode, 2026-10-03): Standard only, and a monthly number of
+       questions. Reaching past either opens the sign-in overlay with the reason on it. */
+    const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
+    const isGuest = !authLoading && !isAuthenticated;
     const navigate = useNavigate();
     // The app shell and HomePage both switch at 767px. A separate 600px
     // threshold mixed the mobile page with the PC search controls.
@@ -104,11 +84,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
        history id, so it does not race the answer already being written.
 
        The quota is a different matter and still locks: there is no run to start at all. */
-    const isInputLocked = isQueryLimitReached;
-    // Home no longer offers Quick. Do not silently apply a saved chat-page Quick preference.
-    const quickOffered = false;
-    const quickOn = quickOffered && effort === EFFORT_QUICK;
-    const levelDefaultModel = quickOn ? defaultModelFor(efforts, effort) : '';
+    // A guest at the limit keeps a live box: sending opens the sign-in overlay instead.
+    const isInputLocked = isQueryLimitReached && !isGuest;
     useEffect(() => {
         // console.log(props);
         props.setOpen(isOpen);
@@ -167,10 +144,14 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         // controls are not rendered, so send the defaults rather than whatever the user
         // happened to pick before turning Investigate on.
         if (investigateEnabled) {
-            // `model` survives this branch while filters/rankingMode do not: deep research
-            // ignores the search-mode knobs but does honour the model, mapping it onto the
-            // tier that writes the report.
-            return { filters: [], rankingMode: 'default', investigateEnabled: true, model };
+            // The tier survives this branch while filters/rankingMode do not: deep research
+            // ignores the search-mode knobs but is priced, and run, by the tier.
+            return {
+                filters: [],
+                rankingMode: 'default',
+                investigateEnabled: true,
+                serviceTier: effectiveTier(serviceTier, { isGuest }),
+            };
         }
 
         let rankingMode = 'default';
@@ -185,16 +166,16 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             filters,
             rankingMode,
             investigateEnabled,
-            model,
-            effort: quickOn ? EFFORT_QUICK : undefined,
+            serviceTier: effectiveTier(serviceTier, { isGuest }),
         };
     };
 
     const navigateToLLMAgent = (query = '', inputMethod = 'button') => {
-        /* The backstop behind the gate below. Nothing in the bar can reach this while signed
-           out, but a prefilled example or a future caller could, and a question must not
-           leave the page without an account behind it. */
-        if (requireAuth()) return;
+        // A guest who has used the month's questions is asked to sign in, question kept.
+        if (isQueryLimitReached && isGuest) {
+            openLoginModal(props.limitReachedText || undefined);
+            return;
+        }
         // Clear input timeout to prevent search_input event after submission
         if (inputTimeoutRef.current) {
             clearTimeout(inputTimeoutRef.current);
@@ -385,7 +366,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     return (
         <Box
             className="llm-searchbar"
-            {...guestGateProps}
             sx={{
                 width: '100%',
                 display: 'flex',
@@ -403,7 +383,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             <Autocomplete
                 freeSolo
                 fullWidth
-                open={!mobileOptionsOpen && !desktopOptionsOpen && !modelMenuOpen && isOpen}
+                open={!mobileOptionsOpen && !desktopOptionsOpen && !tierMenuOpen && isOpen}
                 disabled={isInputLocked}
                 options={props.autocompleteOptions || []}
                 filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
@@ -515,7 +495,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 pointerEvents: 'none',
                             }}
                         >
-                            {(INVESTIGATE_ENABLED || LITERATURE_REVIEW_ENABLED || quickOffered) && (
+                            {(INVESTIGATE_ENABLED || LITERATURE_REVIEW_ENABLED) && (
                             <Box
                                 sx={{
                                     display: 'inline-flex',
@@ -525,56 +505,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     pointerEvents: 'auto',
                                 }}
                             >
-                                {quickOffered && (
-                                <Button
-                                    disabled={isInputLocked}
-                                    aria-pressed={quickOn}
-                                    onMouseDown={(event) => {
-                                        event.preventDefault();
-                                        event.stopPropagation();
-                                    }}
-                                    onClick={(event) => {
-                                        event.preventDefault();
-                                        event.stopPropagation();
-                                        const next = !quickOn;
-                                        trackGtagEvent('home_quick_toggle_click', { enabled: next });
-                                        setEffort(next ? EFFORT_QUICK : '');
-                                        setEffortPref(next ? EFFORT_QUICK : '');
-                                    }}
-                                    sx={{
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '4px',
-                                        height: '32px',
-                                        padding: '4px 8px',
-                                        borderRadius: '8px',
-                                        border: 'none',
-                                        background: quickOn ? 'var(--color-brand-muted)' : 'transparent',
-                                        color: quickOn ? 'var(--color-brand-primary)' : 'var(--color-text-tertiary)',
-                                        fontFamily: 'Geist, sans-serif',
-                                        fontWeight: 600,
-                                        fontSize: '12px',
-                                        lineHeight: '16px',
-                                        textTransform: 'none',
-                                        minWidth: 0,
-                                        whiteSpace: 'nowrap',
-                                        boxShadow: 'none !important',
-                                        transition: 'background-color 0.18s ease, color 0.18s ease',
-                                        '& .MuiButton-startIcon': { margin: 0 },
-                                        '&:hover': {
-                                            border: 'none',
-                                            background: quickOn ? 'var(--color-blue-200)' : 'var(--color-background-subtle)',
-                                            color: quickOn ? 'var(--color-blue-600)' : 'var(--color-grey-600)',
-                                        },
-                                    }}
-                                    startIcon={<BoltIcon style={{ width: '18px', height: '18px' }} />}
-                                    title={quickOn
-                                        ? 'Quick is on: an answer in seconds from GLKB alone, at most two search rounds'
-                                        : 'Quick: an answer in seconds from GLKB alone'}
-                                >
-                                    Quick
-                                </Button>
-                                )}
                                 {INVESTIGATE_ENABLED && !LITERATURE_REVIEW_ENABLED && (
                                 <Button
                                     disabled={isInputLocked}
@@ -743,19 +673,19 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     minWidth: 0,
                                     // With Investigate hidden this is the row's only child, so
                                     // `space-between` alone would park it on the left.
-                                    marginLeft: isMobileLayout && (INVESTIGATE_ENABLED || LITERATURE_REVIEW_ENABLED || quickOffered) ? 0 : 'auto',
+                                    marginLeft: isMobileLayout && (INVESTIGATE_ENABLED || LITERATURE_REVIEW_ENABLED) ? 0 : 'auto',
                                     pointerEvents: 'auto',
                                 }}
                             >
                                 {/* Beside Search Options, and NOT behind `searchOptionsLocked`
                                     with it: Investigate withdraws the search-mode controls
                                     because deep research discards filters and ranking, but it
-                                    does honour the model — so this one stays offered.
+                                    is priced and run by the tier — so this one stays offered.
 
                                     Wrapped in the same click guard the other controls in this
                                     row carry. The row sits inside the Autocomplete, whose root
                                     focuses the input on any click it sees, and `openOnFocus`
-                                    then drops the example list open — so opening the model
+                                    then drops the example list open — so opening the tier
                                     menu also popped the examples open underneath it, over the
                                     very menu the reader was aiming at. `preventDefault` on
                                     mousedown is what keeps the focus from moving; stopping the
@@ -770,20 +700,22 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     }}
                                     sx={{ display: 'inline-flex', minWidth: 0 }}
                                 >
-                                <ModelPicker
-                                    value={model}
-                                    onChange={(modelId) => {
-                                        setModel(modelId);
-                                        setModelPref(modelId);
+                                <TierPicker
+                                    value={serviceTier}
+                                    onChange={(tierId) => {
+                                        setServiceTier(tierId);
+                                        setTierPref(tierId);
                                     }}
-                                    onResolveDefault={setModel}
-                                    // Toggling Investigate re-filters the list. A model the
-                                    // reader picked for chat and that deep research does not
-                                    // offer is swapped for the pipeline's default, visibly.
+                                    onResolveDefault={setServiceTier}
+                                    // Toggling Investigate re-prices the list (an Investigate
+                                    // query costs more per tier).
                                     pipeline={investigateEnabled ? 'deep_research' : 'chat'}
-                                    defaultModelOverride={levelDefaultModel}
-                                    onOpenChange={setModelMenuOpen}
+                                    onOpenChange={setTierMenuOpen}
                                     disabled={isInputLocked}
+                                    isGuest={isGuest}
+                                    onRequireSignIn={(tier) => openLoginModal(
+                                        `${tier?.label || 'Premium'} is available to signed-in users. Sign in to use it — it's free.`,
+                                    )}
                                 />
                                 </Box>
 

@@ -28,6 +28,61 @@ const resolveInvestigateUrl = (endpoint, fallback) => {
 const resolveInvestigateStreamUrl = () =>
     resolveInvestigateUrl(INVESTIGATE_STREAM_ENDPOINT, DEFAULT_STREAM_ENDPOINT);
 
+/**
+ * A request the backend turned away BEFORE the stream opened, read out of the HTTP error:
+ * `{ status, code, message, ...detail }`, or null for anything else (a dropped connection, an
+ * abort, a 5xx with no detail).
+ *
+ * Credits and guest limits are checked before the agent runs, so a refusal is always an HTTP
+ * error rather than an SSE frame (glkb-backend docs/frontend-credits.md):
+ *   429 INSUFFICIENT_CREDITS  { message, required, remaining, cheaper_option }
+ *   429 GUEST_LIMIT_REACHED   { message, pipeline, limit, used, resets_at }
+ *   403 GUEST_LOGIN_REQUIRED  { message, reason }
+ *   503 CREDITS_BUSY          retried once by `chat`
+ *   400 / 422                 a string or a validation list
+ *
+ * The stream is posted with `responseType: 'text'`, so the body arrives as a string and has to
+ * be parsed here; a JSON body (other requests) is used as is.
+ */
+/* Run polling and cancel need the run owner's JWT, so a guest — whose runs have no owner —
+   cannot use them: the backend answers 401, and the axios interceptor treats a signed-out 401
+   as "send them to /login", which would throw a guest out of the very chat they were using. So
+   neither is sent without a token. Polling reads as a run the server does not have (a 404, the
+   callers' "lost"), and Stop only lets go of the stream. */
+const hasStoredToken = () => {
+    try {
+        return Boolean(localStorage.getItem('access_token'));
+    } catch (error) {
+        return false;
+    }
+};
+
+const runUnavailableToGuests = () => {
+    const error = new Error('A guest\'s run cannot be polled');
+    error.response = { status: 404, data: { detail: 'Run polling needs a signed-in account' } };
+    return error;
+};
+
+export const refusalOf = (error) => {
+    const response = error?.response;
+    const status = Number(response?.status);
+    if (!response || !Number.isFinite(status) || status < 400) return null;
+    let body = response.data;
+    if (typeof body === 'string') {
+        try {
+            body = JSON.parse(body);
+        } catch (parseError) {
+            body = { detail: body };
+        }
+    }
+    const detail = body?.detail;
+    if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
+        return { ...detail, status, code: detail.code || null, message: detail.message || '' };
+    }
+    if (typeof detail === 'string') return { status, code: null, message: detail };
+    return { status, code: null, message: '' };
+};
+
 const resolveInvestigateClarifyUrl = () =>
     resolveInvestigateUrl(INVESTIGATE_CLARIFY_ENDPOINT, '/api/v1/deep-research/clarify');
 
@@ -376,11 +431,13 @@ export const frameToUpdate = (data) => {
             historyId: data.history_id,
             sessionId: data.session_id || null,
             invocationId: data.invocation_id || null,
+            credits: data.credits || null,
         };
     } else if (data.step === 'Error') {
         return {
             type: 'error',
             error: data.error || data.detail || 'Unknown error',
+            credits: data.credits || null,
             funnel,
         };
     } else if (isProgressFrame || data.step) {
@@ -495,21 +552,15 @@ export class LLMAgentService {
                     payload.ranking_mode = options.rankingMode.trim();
                 }
             }
-            // Sent on BOTH paths, unlike filters/ranking_mode above. Chat and Investigate share
-            // one composer, so they share its picker, and the agent maps the id onto whichever
-            // pipeline is running: the chat agent's own model, or deep research's report-writing
-            // tier. Omitted when blank, which the agent reads as "use your configured default".
-            if (typeof options.model === 'string' && options.model.trim()) {
-                payload.model = options.model.trim();
-            }
-            // The effort level (service/effort.js). Chat only: deep research is its own level
-            // in all but name and refuses `quick` with a 400, so the field is withheld there
-            // just as filters/ranking_mode are. Omitted when blank, which the agent reads as
-            // `standard`. A level that fixes its model arrives here with NO model — the
-            // composer dropped it, because the agent refuses a conflicting one rather than
-            // substituting.
-            if (!investigateEnabled && typeof options.effort === 'string' && options.effort.trim()) {
-                payload.effort = options.effort.trim();
+            // The service tier (service/serviceTiers.js), on BOTH paths: the backend prices the
+            // query by it and the agent picks the model. Omitted when blank, which the backend
+            // reads as its default (Standard). `model` and `effort` are never sent — since the
+            // credit system the backend answers either with a 422.
+            const serviceTier = typeof options.serviceTier === 'string'
+                ? options.serviceTier.trim().toLowerCase()
+                : '';
+            if (serviceTier) {
+                payload.service_tier = serviceTier;
             }
             // Backend PR #31: email when Deep Research hits Complete
             if (
@@ -522,7 +573,7 @@ export class LLMAgentService {
 
             const streamEndpoint = investigateEnabled ? resolveInvestigateStreamUrl() : DEFAULT_STREAM_ENDPOINT;
 
-            await axios.post(streamEndpoint, payload, {
+            const post = () => axios.post(streamEndpoint, payload, {
                 headers: {
                     'Content-Type': 'application/json',
                     Accept: 'text/event-stream',
@@ -540,6 +591,19 @@ export class LLMAgentService {
                     processSSEChunk(chunk);
                 },
             });
+            try {
+                await post();
+            } catch (error) {
+                // 503 CREDITS_BUSY: the balance covers the query but three concurrent charges
+                // raced for it. The backend asks for one retry after a second; nothing was taken.
+                if (refusalOf(error)?.code !== 'CREDITS_BUSY') throw error;
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+                // The refused response's body went through the progress handler; the retry is a
+                // new response, read from its start.
+                processedLength = 0;
+                buffer = '';
+                await post();
+            }
 
             // Flush trailing buffer without newline
             if (buffer.trim()) {
@@ -550,10 +614,13 @@ export class LLMAgentService {
                 return;
             }
             console.error('Chat error:', error);
+            const refusal = refusalOf(error);
             onUpdate({
                 type: 'error',
-                error: error.message,
+                error: refusal?.message || error.message,
+                refusal,
             });
+            if (refusal) error.refusal = refusal;
             throw error;
         }
     }
@@ -575,6 +642,7 @@ export class LLMAgentService {
      * GET /api/v1/deep-research/run?session_id=...
      */
     async getRun({ runId, sessionId } = {}) {
+        if (!hasStoredToken()) throw runUnavailableToGuests();
         if (runId) {
             const endpoint = resolveInvestigateRunUrl(runId);
             const response = await axios.get(endpoint, {
@@ -611,7 +679,7 @@ export class LLMAgentService {
      * aborts the stream regardless.
      */
     async cancelRun(runId, { investigate = false } = {}) {
-        if (!runId) return null;
+        if (!runId || !hasStoredToken()) return null;
         const endpoint = investigate
             ? `${resolveInvestigateUrl(INVESTIGATE_RUN_ENDPOINT, '/api/v1/deep-research/run')
                 .replace(/\/+$/, '')}/${encodeURIComponent(runId)}/cancel`
