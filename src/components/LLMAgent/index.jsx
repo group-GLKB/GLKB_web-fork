@@ -97,6 +97,7 @@ import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import { ReactComponent as ReferenceIcon } from '../../img/llm/reference.svg';
 import { ReactComponent as ReplayIcon } from '../../img/llm/replay.svg';
 import { ReactComponent as ThumbsUpDownIcon } from '../../img/llm/thumbs_up_down.svg';
+import { CHAT_HOME_PATH, CHAT_NEW_PATH } from '../../config/entryRoutes';
 import { submitChatFeedback } from '../../service/Feedback';
 import {
   LLMAgentService,
@@ -2419,7 +2420,7 @@ function LLMAgent({ isRouteActive = true }) {
         notifyRunComplete({
             title: 'Investigate finished',
             body: 'Your report is ready to read.',
-            onClick: () => navigate('/chat'),
+            onClick: () => navigate(CHAT_NEW_PATH),
         });
     }, [navigate]);
     const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
@@ -3410,14 +3411,16 @@ function LLMAgent({ isRouteActive = true }) {
            and sends the reader home, the agent then restored the most recent conversation
            into `activeConversationId`, and this navigated straight back into it. There was no
            way to reach an empty chat. */
-        if (!location.pathname.startsWith('/chat')) return;
+        // `isRouteActive`, not the path: /chat itself is the chat HOME, and this effect running
+        // there is exactly the New Chat bug above.
+        if (!isRouteActive) return;
         if (!activeConversationId) return;
         if (routePublicId) return;                       // the URL already names a conversation
         const current = conversationsState.find((c) => String(c.id) === String(activeConversationId));
         const publicId = current?.publicId;
         if (!publicId) return;                           // a row the backend has not backfilled
         navigate(`/chat/${publicId}`, { replace: true });
-    }, [location.pathname, activeConversationId, conversationsState, routePublicId, navigate]);
+    }, [isRouteActive, activeConversationId, conversationsState, routePublicId, navigate]);
 
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -5687,7 +5690,7 @@ function LLMAgent({ isRouteActive = true }) {
        and shown by `resumeUnfinishedRun` when they come back to it. */
     const handleClear = useCallback(() => {
         startNewConversation({ keepRunning: isLoading });
-        navigate('/');
+        navigate(CHAT_HOME_PATH);
     }, [isLoading, navigate, startNewConversation]);
 
     useEffect(() => {
@@ -6897,7 +6900,7 @@ function LLMAgent({ isRouteActive = true }) {
     }
 
     if (hasNothingToShow) {
-        return <Navigate to="/" replace />;
+        return <Navigate to={CHAT_HOME_PATH} replace />;
     }
 
     return (

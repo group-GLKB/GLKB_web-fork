@@ -18,6 +18,7 @@ import { Menu as MenuIcon } from '@mui/icons-material';
 
 import logoIcon from '../../img/GLKB_logo_icon.png';
 import logoWordmark from '../../img/navbar/logo.png';
+import { CHAT_HOME_PATH, isConversationPath } from '../../config/entryRoutes';
 import { isRunActive } from '../../service/activeRun';
 import { trackGtagEvent } from '../../utils/gtag';
 import LoginModal from '../Auth/LoginModal';
@@ -31,8 +32,8 @@ const MOBILE_HEADER_VISIBILITY_EVENT = 'glkb-mobile-header-visibility';
 const isPhoneViewport = () => window.matchMedia('(max-width: 767px)').matches;
 
 const getPageTitleByPath = (pathname) => {
-    if (pathname === '/') return 'GLKB: Genomic Literature Knowledge Base';
-    if (pathname.startsWith('/chat')) return 'AI Chat | GLKB';
+    if (pathname === CHAT_HOME_PATH) return 'GLKB: Genomic Literature Knowledge Base';
+    if (isConversationPath(pathname)) return 'AI Chat | GLKB';
     if (pathname.startsWith('/api-page')) return 'API | GLKB';
     if (pathname.startsWith('/account')) return 'Settings | GLKB';
     if (pathname.startsWith('/about')) return 'About | GLKB';
@@ -58,7 +59,8 @@ const AppLayout = () => {
     const isLegalPage = location.pathname.startsWith('/privacy')
         || location.pathname.startsWith('/terms');
     const isAccountPage = location.pathname.startsWith('/account');
-    const isChatPage = location.pathname.startsWith('/chat');
+    // a conversation, not the chat home at /chat — that one is an ordinary routed page
+    const isChatPage = isConversationPath(location.pathname);
     // Desktop Settings has its own section rail, so a second permanent app rail
     // would duplicate it. On phones that section rail is intentionally hidden;
     // keep the app's temporary drawer mounted so the mobile header menu is live.
@@ -130,10 +132,10 @@ const AppLayout = () => {
                     >
                         <MenuIcon sx={{ fontSize: 22, color: 'var(--color-text-tertiary)' }} />
                     </button>
-                    <Link to="/" className="app-mobile-header-logo-link" aria-label="GLKB Home">
+                    <Link to={CHAT_HOME_PATH} className="app-mobile-header-logo-link" aria-label="GLKB Home">
                         <img src={logoIcon} alt="GLKB logo" className="app-mobile-header-logo-icon" />
                     </Link>
-                    <Link to="/" className="app-mobile-header-logo-link" aria-label="GLKB Home">
+                    <Link to={CHAT_HOME_PATH} className="app-mobile-header-logo-link" aria-label="GLKB Home">
                         <img src={logoWordmark} alt="GLKB" className="app-mobile-header-logo-wordmark" />
                     </Link>
                     {isChatPage && (

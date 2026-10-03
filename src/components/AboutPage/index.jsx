@@ -42,6 +42,7 @@ import browserActions from '../../img/about/v2/browser/toolbar-actions.svg';
 import useCaseBookmark from '../../img/about/v2/use-cases/bookmark.svg';
 import useCaseQuote from '../../img/about/v2/use-cases/quote.svg';
 import browserFavicon from '../../img/GLKB_logo_icon.png';
+import { CHAT_HOME_PATH, markAboutSeen } from '../../config/entryRoutes';
 import { useAuth } from '../Auth/AuthContext';
 import { posts } from '../Blog/posts';
 import { PostCard, SiteFooter, SiteNav } from '../SiteChrome';
@@ -91,6 +92,11 @@ const AboutPage = () => {
     const { openLoginModal } = useAuth();
     const railRef = useRef(null);
     const [railOverflows, setRailOverflows] = useState(false);
+
+    // Once seen, `/` stops sending this browser here (config/entryRoutes.js).
+    useEffect(() => {
+        markAboutSeen();
+    }, []);
 
     // The design draws the row mid-scroll, with the next card half off the edge
     // and an arrow over it. With few enough posts to fit there is nothing to
@@ -154,10 +160,10 @@ const AboutPage = () => {
                             backed answers. Every claim links directly to its source paper.
                         </p>
                         <div className="about-hero-actions">
-                            <button type="button" className="site-button" onClick={() => navigate('/')}>
+                            <button type="button" className="site-button" onClick={() => navigate(CHAT_HOME_PATH)}>
                                 Try GLKB
                             </button>
-                            <button type="button" className="site-button site-button--ghost" onClick={() => navigate('/')}>
+                            <button type="button" className="site-button site-button--ghost" onClick={() => navigate(CHAT_HOME_PATH)}>
                                 View Demo
                             </button>
                         </div>

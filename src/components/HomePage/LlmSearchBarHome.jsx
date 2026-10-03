@@ -25,6 +25,7 @@ import {
 
 import { useGuestGate } from '../Auth/guestGate';
 import { INVESTIGATE_ENABLED, LITERATURE_REVIEW_ENABLED } from '../../config/features';
+import { CHAT_NEW_PATH } from '../../config/entryRoutes';
 import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { ReactComponent as SearchOptionsIcon } from '../../img/llm/search_options.svg';
@@ -222,7 +223,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             });
         }
         if (query) {
-            navigate('/chat', {
+            navigate(CHAT_NEW_PATH, {
                 state: {
                     initialQuery: query,
                     initialSearchOptions: searchOptions,
@@ -230,7 +231,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 },
             });
         } else {
-            navigate('/chat', {
+            navigate(CHAT_NEW_PATH, {
                 state: {
                     initialSearchOptions: searchOptions,
                 },

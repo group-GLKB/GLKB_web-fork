@@ -11,6 +11,7 @@ import { isExchangeUnfinished } from '../service/resumeRun';
 import { parseServerTime, serverTimeMs, toIsoUtc } from './serverTime';
 import { replayTrace } from '../components/LLMAgent/traceReplay';
 import { LITERATURE_REVIEW_ENABLED } from '../config/features';
+import { CHAT_NEW_PATH, isConversationPath } from '../config/entryRoutes';
 
 const STORAGE_KEY = 'llmConversations';
 const ACTIVE_KEY = 'llmActiveConversationId';
@@ -45,7 +46,8 @@ const isTransientZeroMessageState = () => {
     // startsWith, because a conversation's own URL is /chat/<public_id>. Exact-matching here
     // pruned a just-created, still-empty conversation out of the list the moment it had an
     // address of its own.
-    const inChatPage = window.location.pathname.startsWith('/chat');
+    // ...and not merely the chat home at /chat: see config/entryRoutes.js.
+    const inChatPage = isConversationPath(window.location.pathname);
     const wasProcessing = sessionStorage.getItem('llmWasProcessing') === 'true';
     return inChatPage || wasProcessing;
 };
@@ -367,9 +369,9 @@ export const fetchConversations = async (options = {}) => {
  * Where to send the reader to open this conversation.
  *
  * `/chat/<public_id>` when the row has one — an address that survives a reload, a new tab and
- * being pasted to someone else. Plain `/chat` otherwise, and the caller passes the id in
+ * being pasted to someone else. `/chat/new` otherwise, and the caller passes the id in
  * router state as before: rows created before the backend backfilled `public_id` still have
- * to open.
+ * to open. (/chat itself is the chat home, not a conversation — see config/entryRoutes.js.)
  */
 export const chatPathForConversation = (conversation) => {
     // A Literature Review conversation opens on its own page (components/LiteratureReview) —
@@ -377,7 +379,7 @@ export const chatPathForConversation = (conversation) => {
     if (LITERATURE_REVIEW_ENABLED && conversation?.mode === 'literature_review' && conversation?.publicId) {
         return `/literature-review/${conversation.publicId}`;
     }
-    return conversation?.publicId ? `/chat/${conversation.publicId}` : '/chat';
+    return conversation?.publicId ? `/chat/${conversation.publicId}` : CHAT_NEW_PATH;
 };
 
 /**

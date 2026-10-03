@@ -12,6 +12,7 @@ import {
   useNavigate,
 } from 'react-router-dom';
 
+import { CHAT_HOME_PATH } from '../../../config/entryRoutes';
 import { useAuth } from '../AuthContext';
 
 const VerifyCodePage = () => {
@@ -96,7 +97,7 @@ const VerifyCodePage = () => {
     const result = await verifyCode(email, verificationCode);
 
     if (result.success) {
-      navigate('/');
+      navigate(CHAT_HOME_PATH);
     } else {
       setError(result.message);
       // Clear the code inputs

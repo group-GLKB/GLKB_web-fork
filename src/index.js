@@ -18,10 +18,16 @@ import {
 
 // import SignupPage from './components/Auth/SignupPage';
 // import ProtectedRoute from './components/Auth/ProtectedRoute';
-import { AuthProvider } from './components/Auth/AuthContext';
+import { AuthProvider, useAuth } from './components/Auth/AuthContext';
 import HomePage from './components/HomePage';
 import AppLayout from './components/Layout';
 import ErrorBoundary from './components/Units/ErrorBoundary';
+import {
+  CHAT_HOME_PATH,
+  CHAT_NEW_PATH,
+  entryPathFor,
+  hasSeenAbout,
+} from './config/entryRoutes';
 import { LITERATURE_REVIEW_ENABLED, SHOW_API_DOCS } from './config/features';
 
 /* Everything past the landing page and the chat is fetched when it is asked for.
@@ -136,6 +142,18 @@ function RouteSeoControl() {
     );
 }
 
+/* `/` is not a page any more: About is the landing page and the chat lives at /chat. This picks
+   between them (config/entryRoutes.js), after the session check, since signed-in readers go
+   straight to the chat. Router state and the query string ride along — the sign-in overlay
+   and old links into `/` still carry theirs. */
+function RootRedirect() {
+    const location = useLocation();
+    const { isAuthenticated, loading } = useAuth();
+    if (loading) return null;
+    const to = entryPathFor({ isAuthenticated, seenAbout: hasSeenAbout() });
+    return <Navigate to={`${to}${location.search}${location.hash}`} state={location.state} replace />;
+}
+
 // Create a wrapper component
 function AppWithRoutes() {
     if (MAINTENANCE_MODE) {
@@ -171,7 +189,8 @@ function AppWithRoutes() {
                 <Route element={<AppLayout />}>
                     <Route path='/search' element={<ResultPage />} />
                     <Route path='/graph-viewer' element={<GraphViewer />} />
-                    <Route path="/" element={<HomePage />} />
+                    <Route path="/" element={<RootRedirect />} />
+                    <Route path={CHAT_HOME_PATH} element={<HomePage />} />
                     <Route path="/about" element={<AboutPage />} />
                     {/* The article list lives on About under "From the Lab". */}
                     <Route path="/blog" element={<Navigate to="/about#from-the-lab" replace />} />
@@ -179,8 +198,9 @@ function AppWithRoutes() {
                     <Route path="/privacy" element={<PrivacyPolicy />} />
                     <Route path="/terms" element={<TermsOfService />} />
                     <Route path="/api-page" element={<ApiPage />} />
-                    {/* LLMAgent is mounted persistently by AppLayout; this route only selects it. */}
-                    <Route path="/chat" element={null} />
+                    {/* LLMAgent is mounted persistently by AppLayout; these routes only select it.
+                        /chat/new is a conversation before the backend has given it an address. */}
+                    <Route path={CHAT_NEW_PATH} element={null} />
                     {/* Each conversation has its own address, so a link opens it and a
                         reload keeps it. The id is the backend's `public_id` UUID. */}
                     <Route path="/chat/:publicId" element={null} />

@@ -47,7 +47,7 @@ async function globalSetup() {
   const browser = await chromium.launch();
   const context = await browser.newContext({ baseURL: BASE_URL });
   const page = await context.newPage();
-  await page.goto('/');
+  await page.goto('/chat');
   await page.evaluate(({ token, user }) => {
     localStorage.setItem('access_token', token);
     localStorage.setItem('token_type', 'bearer');

@@ -10,6 +10,8 @@ import './scoped.css';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { CHAT_HOME_PATH } from '../../config/entryRoutes';
+
 // The app's own mark and wordmark, not the About-only lockup that used to sit here:
 // this is one site, and the logo above the marketing pages is the logo above the app.
 import siteMark from '../../img/GLKB_logo_icon.png';
@@ -59,7 +61,7 @@ export const SiteNav = ({ active, onGetStarted }) => {
                 <button
                     type="button"
                     className="site-nav-cta"
-                    onClick={onGetStarted || (() => navigate('/'))}
+                    onClick={onGetStarted || (() => navigate(CHAT_HOME_PATH))}
                 >
                     Get Started
                 </button>
@@ -78,10 +80,10 @@ export const SiteFooter = ({ withCta = true }) => {
                 <p className="site-cta-eyebrow">Get Started</p>
                 <h2 className="site-cta-title">Start your literature review in minutes.</h2>
                 <div className="site-cta-actions">
-                    <button type="button" className="site-button" onClick={() => navigate('/')}>
+                    <button type="button" className="site-button" onClick={() => navigate(CHAT_HOME_PATH)}>
                         Try GLKB
                     </button>
-                    <button type="button" className="site-button site-button--ghost" onClick={() => navigate('/')}>
+                    <button type="button" className="site-button site-button--ghost" onClick={() => navigate(CHAT_HOME_PATH)}>
                         View Demo
                     </button>
                 </div>

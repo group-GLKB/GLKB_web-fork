@@ -292,7 +292,7 @@ describe('with LITERATURE_REVIEW_ENABLED on', () => {
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'what is TP53?' } });
         fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
         const [path, opts] = mockNavigate.mock.calls[0];
-        expect(path).toBe('/chat');
+        expect(path).toBe('/chat/new');
         expect(opts.state.initialSearchOptions.investigateEnabled).toBe(true);
     });
 });
@@ -326,7 +326,7 @@ describe('while another Agent conversation is answering', () => {
         const field = screen.getByPlaceholderText(PLACEHOLDER);
         fireEvent.change(field, { target: { value: 'what is TP53?' } });
         fireEvent.keyDown(field, { key: 'Enter' });
-        expect(mockNavigate).toHaveBeenCalledWith('/chat', expect.objectContaining({
+        expect(mockNavigate).toHaveBeenCalledWith('/chat/new', expect.objectContaining({
             state: expect.objectContaining({ initialQuery: 'what is TP53?' }),
         }));
     });
@@ -338,7 +338,7 @@ describe('while another Agent conversation is answering', () => {
         const start = screen.getByRole('button', { name: /start chat/i, hidden: true });
         expect(start).toHaveAttribute('aria-disabled', 'false');
         fireEvent.click(start);
-        expect(mockNavigate).toHaveBeenCalledWith('/chat', expect.objectContaining({
+        expect(mockNavigate).toHaveBeenCalledWith('/chat/new', expect.objectContaining({
             state: expect.objectContaining({ initialQuery: 'what is BRCA1?' }),
         }));
     });

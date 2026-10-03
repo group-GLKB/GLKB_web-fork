@@ -116,7 +116,7 @@ describe('a signed-in reader at the same composer', () => {
         fireEvent.change(box, { target: { value: 'What is BRCA1?' } });
         startChat();
 
-        expect(mockNavigate).toHaveBeenCalledWith('/chat', expect.objectContaining({
+        expect(mockNavigate).toHaveBeenCalledWith('/chat/new', expect.objectContaining({
             state: expect.objectContaining({ initialQuery: 'What is BRCA1?' }),
         }));
         expect(mockAuth.openLoginModal).not.toHaveBeenCalled();

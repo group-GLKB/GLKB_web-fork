@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 
 import { Navigate } from 'react-router-dom';
 
+import { CHAT_HOME_PATH } from '../../config/entryRoutes';
 import { useAuth } from './AuthContext';
 
 /**
@@ -17,7 +18,7 @@ const LoginRedirect = () => {
         }
     }, [isAuthenticated, openLoginModal]);
 
-    return <Navigate to="/" replace />;
+    return <Navigate to={CHAT_HOME_PATH} replace />;
 };
 
 export default LoginRedirect;
