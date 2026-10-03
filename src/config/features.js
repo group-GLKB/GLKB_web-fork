@@ -46,9 +46,13 @@ export const INVESTIGATE_ENABLED = true;
  * OFF on the production site whatever this branch says. `production` has no line for this flag, so
  * an ordinary master -> production merge brings this file's line in WITHOUT a conflict (checked with
  * `git merge-tree` on 2026-09-30: the merged file read `LITERATURE_REVIEW_ENABLED = true`) — a plain
- * `true` here would open the feature on glkb.org with the next unrelated release. So the value is
- * "not the production site": on for dev.glkb.org and localhost, off on glkb.org. To launch it,
- * replace the expression with `true`; to hide it everywhere, with `false`.
+ * `true` here would open the feature on glkb.org with the next unrelated release.
+ *
+ * THE SWITCH is the last line of this file — one value, nothing else to change:
+ *   false                 off everywhere (current, since 2026-10-03: hidden on dev too)
+ *   !isProductionSite()   on for dev.glkb.org and localhost, off on glkb.org (internal testing)
+ *   true                  on everywhere (launch)
+ * Off hides the entry points only; the page, the client and the pipeline stay in the codebase.
  */
 export const PRODUCTION_HOSTS = ['glkb.org', 'www.glkb.org'];
 
@@ -56,4 +60,4 @@ export const isProductionSite = (hostname = (typeof window !== 'undefined' ? win
     PRODUCTION_HOSTS.includes(String(hostname || '').toLowerCase())
 );
 
-export const LITERATURE_REVIEW_ENABLED = !isProductionSite();
+export const LITERATURE_REVIEW_ENABLED = false;

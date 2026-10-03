@@ -228,7 +228,7 @@ function AppWithRoutes() {
                             <Route path="/literature-review/:publicId" element={<LiteratureReview />} />
                         </>
                     ) : (
-                        <Route path="/literature-review/*" element={<Navigate to="/" replace />} />
+                        <Route path="/literature-review/*" element={<Navigate to={CHAT_HOME_PATH} replace />} />
                     )}
                     <Route path="/history" element={<History />} />
                     <Route path="/library" element={<Library />} />
