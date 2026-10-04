@@ -117,11 +117,11 @@ describe('a guest at the home composer', () => {
         expect(box).toHaveValue('What is BRCA1?');
     });
 
-    it('picking Premium asks them to sign in', async () => {
+    it('picking GPT-6.1 Sol asks them to sign in', async () => {
         renderBar();
-        fireEvent.click(await screen.findByRole('button', { name: 'Service tier: Standard' }));
-        fireEvent.click(screen.getByRole('option', { name: /Premium/ }));
-        expect(mockAuth.openLoginModal).toHaveBeenCalledWith(expect.stringMatching(/Premium is available to signed-in users/));
+        fireEvent.click(await screen.findByRole('button', { name: 'Model: GPT-6 Luna' }));
+        fireEvent.click(screen.getByRole('option', { name: /GPT-6.1 Sol/ }));
+        expect(mockAuth.openLoginModal).toHaveBeenCalledWith(expect.stringMatching(/GPT-6.1 Sol is available to signed-in users/));
     });
 });
 

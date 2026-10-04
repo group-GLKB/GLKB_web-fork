@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import CloseIcon from '@mui/icons-material/Close';
 import {
@@ -8,7 +8,15 @@ import {
 } from '@mui/material';
 
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
+import { INVESTIGATE_ATTACH_NOTE } from '../../service/attachments';
 import { trackGtagEvent } from '../../utils/gtag';
+import {
+    AttachButton,
+    AttachmentChips,
+    attachmentBlockedNote,
+    dragHasFiles,
+    filesFromTransfer,
+} from '../Units/AttachmentChips';
 import TierPicker from '../Units/TierPicker';
 
 const ChatSearchBar = ({
@@ -33,10 +41,16 @@ const ChatSearchBar = ({
     // comment at the call site. Not derived from `investigateEnabled` above: that one is
     // for analytics and is false for a reopened investigate conversation.
     pipelineIsDeepResearch = false,
+    /* The files waiting on this question (Units/AttachmentChips/useAttachments), owned by the
+       parent because it reads them at send time. Absent: no paperclip at all. */
+    attachments = null,
+    // A guest reaching for the paperclip (or dropping a file) is asked to sign in.
+    onAttachRequireSignIn,
     onSubmit,
     onStop,
 }) => {
     const isMobileViewport = useMediaQuery('(max-width:767px)');
+    const [isDragOver, setIsDragOver] = useState(false);
     /* Two different situations wear the same `isLoading`, and the field stays usable in both.
 
        THIS conversation is answering: a submit is queued by the parent, so a follow-up that
@@ -49,7 +63,26 @@ const ChatSearchBar = ({
        be disabled here, which meant "New Chat" during a run led to a composer that could not
        be typed in. */
     const canType = !isQueryLimitReached;
-    const canSend = Boolean(userInput.trim()) && canType;
+    /* Attachments are AI Chat only (the Investigate pipeline does not read them), and a guest's
+       question has no owner to keep a file for — so the paperclip is off on one and asks the
+       other to sign in. Chips already waiting when the conversation is an Investigate one
+       hold the send back with a note rather than being dropped without a word. */
+    const attachDisabled = pipelineIsDeepResearch || !canType;
+    const attachmentNote = attachmentBlockedNote(attachments, { investigate: pipelineIsDeepResearch });
+    const readyAttachmentCount = attachments?.readyAttachments?.length || 0;
+    const canSend = (Boolean(userInput.trim()) || readyAttachmentCount > 0)
+        && canType
+        && !attachments?.isUploading
+        && !attachmentNote;
+    const takeFiles = (files) => {
+        if (!attachments || !files?.length) return;
+        if (isGuest) {
+            onAttachRequireSignIn?.();
+            return;
+        }
+        if (attachDisabled) return;
+        attachments.addFiles(files);
+    };
     // Stop is what the button offers when there is nothing to send. Typing turns it back into
     // send, which is also how a reader gets out of a queued follow-up they no longer want:
     // clear the field and the stop control is there again. There is nothing here to stop when
@@ -71,9 +104,28 @@ const ChatSearchBar = ({
 
     return (
         <div className="chat-header">
-        <Box sx={{
+        <Box
+            className={isDragOver ? 'attachment-drop-target' : undefined}
+            onDragOver={(event) => {
+                if (!attachments || !dragHasFiles(event)) return;
+                event.preventDefault();
+                if (!isDragOver) setIsDragOver(true);
+            }}
+            onDragLeave={(event) => {
+                if (event.currentTarget.contains(event.relatedTarget)) return;
+                setIsDragOver(false);
+            }}
+            onDrop={(event) => {
+                if (!attachments || !dragHasFiles(event)) return;
+                event.preventDefault();
+                setIsDragOver(false);
+                takeFiles(filesFromTransfer(event.dataTransfer));
+            }}
+            sx={{
             width: '100%',
             display: 'flex',
+            // The chips sit above the field, inside the same rounded box.
+            flexDirection: 'column',
             margin: '0 auto',
             backgroundColor: 'var(--color-background-subtle)',
             borderRadius: '16px',
@@ -82,10 +134,26 @@ const ChatSearchBar = ({
             borderColor: 'var(--color-border-default)',
             boxShadow: 'none',
         }}>
+            {attachments && (
+                <AttachmentChips
+                    items={attachments.items}
+                    notice={attachments.notice}
+                    blockedNote={attachmentNote}
+                    onRemove={attachments.remove}
+                />
+            )}
             <TextField
                 className="input-form"
                 size="small"
                 value={userInput}
+                onPaste={(event) => {
+                    // Only a paste that carries files is taken over; text pastes as always.
+                    if (!attachments) return;
+                    const files = filesFromTransfer(event.clipboardData);
+                    if (!files.length) return;
+                    event.preventDefault();
+                    takeFiles(files);
+                }}
                 onChange={(e) => {
                     if (!canType) return;
                     setUserInput(e.target.value);
@@ -151,6 +219,16 @@ const ChatSearchBar = ({
                                 flexShrink: 0,
                             }}
                         >
+                            {attachments && (
+                                <AttachButton
+                                    onFiles={takeFiles}
+                                    isGuest={isGuest}
+                                    onRequireSignIn={onAttachRequireSignIn}
+                                    disabled={attachDisabled}
+                                    disabledReason={pipelineIsDeepResearch ? INVESTIGATE_ATTACH_NOTE : ''}
+                                    source="chat_searchbar"
+                                />
+                            )}
                             {/* On the field's own row, left of send — where the home page's bar
                                 puts it too. It had a control row of its own under the field for
                                 a while, which cost the composer 54px of height for one chip and

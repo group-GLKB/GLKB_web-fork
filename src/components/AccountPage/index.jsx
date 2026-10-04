@@ -28,6 +28,8 @@ import {
 } from '../../service/Tier';
 import { CHAT_HOME_PATH } from '../../config/entryRoutes';
 import { fetchUsage } from '../../service/credits';
+import { CREDITS_PURCHASE_URL } from '../../config/features';
+import { trackGtagEvent } from '../../utils/gtag';
 import { useAuth } from '../Auth/AuthContext';
 import {
     browserNotifyPermission,
@@ -502,6 +504,26 @@ const AccountPage = () => {
                                         </span>
                                     </div>
                                 </div>
+
+                                {CREDITS_PURCHASE_URL ? (
+                                    <div className="settings-row">
+                                        <span className="settings-row-labels">
+                                            <span className="settings-row-label">Buy Credits</span>
+                                            <span className="settings-row-sub settings-row-sub-wrap">
+                                                $10 = 100 credits, never expire. Check out with {email}.
+                                            </span>
+                                        </span>
+                                        <a
+                                            className="settings-row-action"
+                                            href={CREDITS_PURCHASE_URL}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={() => trackGtagEvent('credits_buy_click', { source: 'account_page' })}
+                                        >
+                                            Buy credits
+                                        </a>
+                                    </div>
+                                ) : null}
 
                                 <div className="settings-row">
                                     <span className="settings-row-label">Your Subscription</span>

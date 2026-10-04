@@ -10,6 +10,7 @@ import { isConversationRunning, reconcileRunsWithServer } from '../service/activ
 import { isExchangeUnfinished } from '../service/resumeRun';
 import { parseServerTime, serverTimeMs, toIsoUtc } from './serverTime';
 import { replayTrace } from '../components/LLMAgent/traceReplay';
+import { normalizeAttachmentList } from './attachmentList';
 import { LITERATURE_REVIEW_ENABLED } from '../config/features';
 import { CHAT_NEW_PATH, isConversationPath } from '../config/entryRoutes';
 
@@ -168,7 +169,12 @@ const normalizeDetail = (detail) => ({
                the frames the backend stored with it. Without it every reloaded turn came back
                with its trace empty. `{}` for a message with no stored trace. */
             const trace = message.role === 'assistant' ? replayTrace(message.trace) : {};
+            // The images and PDFs a question was sent with (service/attachments.js).
+            const attachments = message.role === 'user'
+                ? normalizeAttachmentList(message.attachments)
+                : [];
             return {
+                ...(attachments.length ? { attachments } : {}),
                 id: message.id ?? message.mid ?? message.message_id ?? null,
                 role: message.role,
                 content: message.content ?? '',

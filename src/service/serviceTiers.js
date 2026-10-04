@@ -2,9 +2,13 @@
  * Which service tier answers the question.
  *
  * Since the credit system (glkb-backend `docs/frontend-credits.md`, 2026-09-30) a web request
- * names a TIER — `service_tier`, Standard or Premium — never a model. The backend prices the
- * tier in credits and the agent decides which model runs it, so changing a tier's model touches
- * neither this file nor a price, and no model name is shown to the reader.
+ * names a TIER — `service_tier`, `standard` or `premium` — never a model. The backend prices the
+ * tier in credits and the agent decides which model runs it (`SERVICE_TIERS` in glkb-agent
+ * `service/model_catalog.py`).
+ *
+ * The reader still sees MODEL names, not tier names (product decision, 2026-10-04): `standard`
+ * is shown as GPT-6 Luna and `premium` as GPT-6.1 Sol. So moving a tier to another model is
+ * the agent's table AND `TIER_COPY` below — change both together.
  *
  * The tiers and their prices are FETCHED from `GET /api/v1/credits/pricing` (public), and only
  * the rows marked `enabled` are offered (Advanced is off today). `FALLBACK_PRICING` exists only
@@ -26,11 +30,12 @@ export const TIER_PREMIUM = 'premium';
 /** The tier a guest is held to; the backend refuses any other with a 403. */
 export const GUEST_TIER = TIER_STANDARD;
 
-// Words only: prices come from the endpoint, and the model behind a tier is the agent's call.
+// Words only: prices come from the endpoint. Labels name the model the agent runs for the tier
+// (glkb-agent SERVICE_TIERS); `shortLabel` is the chip's on a narrow phone, as the model picker had.
 const TIER_COPY = {
-    standard: { label: 'Standard', description: 'Fast answers for everyday questions' },
-    advanced: { label: 'Advanced', description: 'More depth for harder questions' },
-    premium: { label: 'Premium', description: 'Most capable, for the hardest questions' },
+    standard: { label: 'GPT-6 Luna', shortLabel: '6 Luna', description: 'Fastest and cheapest' },
+    advanced: { label: 'Advanced', shortLabel: 'Advanced', description: 'More depth for harder questions' },
+    premium: { label: 'GPT-6.1 Sol', shortLabel: '6.1 Sol', description: 'Most capable' },
 };
 // Most capable first, the order the picker has always listed in.
 const TIER_ORDER = ['premium', 'advanced', 'standard'];
@@ -63,6 +68,8 @@ export const parsePricing = (raw) => {
             byTier[id] = {
                 id,
                 label: TIER_COPY[id]?.label || id.charAt(0).toUpperCase() + id.slice(1),
+                shortLabel: TIER_COPY[id]?.shortLabel || TIER_COPY[id]?.label
+                    || id.charAt(0).toUpperCase() + id.slice(1),
                 description: TIER_COPY[id]?.description || '',
                 credits: {},
             };
@@ -165,7 +172,7 @@ export const subscribeToTierPref = (listener) => {
 };
 
 /**
- * The tier a request should carry: a guest is always Standard (the backend refuses anything
+ * The tier a request should carry: a guest is always `standard` (the backend refuses anything
  * else with a 403), a signed-in reader whatever they chose.
  */
 export const effectiveTier = (tierId, { isGuest = false } = {}) => (

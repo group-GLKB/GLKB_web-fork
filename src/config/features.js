@@ -54,6 +54,21 @@ export const INVESTIGATE_ENABLED = true;
  *   true                  on everywhere (launch)
  * Off hides the entry points only; the page, the client and the pipeline stay in the codebase.
  */
+/**
+ * Where a signed-in reader BUYS CREDITS: the e-Lucid store page for GLKB credits.
+ *
+ * The backend already credits a purchase there (`POST /api/v1/payment/elucid/webhook`,
+ * glkb-backend `app/services/elucid_service.py`): $10 = 100 purchased credits that never
+ * expire, spent after the free monthly allowance. The buyer is matched to a GLKB account by
+ * the EMAIL used at checkout, so every entry tells the reader to use the address they sign in
+ * with.
+ *
+ * Empty hides every "Buy credits" entry (the Account page row, the out-of-credits notice in
+ * the chat): an entry with nowhere to go is worse than none. Set it to the store's URL to open
+ * purchasing — nothing else needs to change.
+ */
+export const CREDITS_PURCHASE_URL = '';
+
 export const PRODUCTION_HOSTS = ['glkb.org', 'www.glkb.org'];
 
 export const isProductionSite = (hostname = (typeof window !== 'undefined' ? window.location.hostname : '')) => (

@@ -201,7 +201,7 @@ describe('ChatSearchBar when nothing is running', () => {
 
 describe('the tier the composer offers', () => {
     const openPicker = async () => {
-        const chip = await screen.findByRole('button', { name: /^Service tier: / });
+        const chip = await screen.findByRole('button', { name: /^Model: / });
         fireEvent.click(chip);
         return (await screen.findAllByRole('option')).map((o) => o.textContent).join(' ');
     };
@@ -227,13 +227,108 @@ describe('the tier the composer offers', () => {
         expect(await openPicker()).toContain('45 credits/query');
     });
 
-    it("asks a guest to sign in for Premium instead of selecting it", async () => {
+    it("asks a guest to sign in for GPT-6.1 Sol instead of selecting it", async () => {
         const onRequireSignIn = jest.fn();
         const onServiceTierChange = jest.fn();
         setup({ isGuest: true, serviceTier: 'standard', onRequireSignIn, onServiceTierChange });
         await openPicker();
-        fireEvent.click(screen.getByRole('option', { name: /Premium/ }));
+        fireEvent.click(screen.getByRole('option', { name: /GPT-6.1 Sol/ }));
         expect(onRequireSignIn).toHaveBeenCalled();
         expect(onServiceTierChange).not.toHaveBeenCalled();
+    });
+});
+
+describe('attachments', () => {
+    const controller = (overrides = {}) => ({
+        items: [],
+        notice: '',
+        readyAttachments: [],
+        isUploading: false,
+        hasErrors: false,
+        hasItems: false,
+        addFiles: jest.fn(),
+        remove: jest.fn(),
+        clear: jest.fn(),
+        ...overrides,
+    });
+    const readyPdf = {
+        key: 'k1',
+        kind: 'pdf',
+        name: 'paper.pdf',
+        size: 10,
+        status: 'ready',
+        attachment: { id: 'p1', kind: 'pdf', filename: 'paper.pdf', page_count: 2, size_bytes: 10 },
+    };
+    const withReadyPdf = (overrides = {}) => controller({
+        items: [readyPdf],
+        readyAttachments: [readyPdf.attachment],
+        hasItems: true,
+        ...overrides,
+    });
+    const paperclip = () => screen.getByRole('button', { name: 'Attach images or PDFs' });
+
+    it('shows no paperclip when the parent offers no attachments', () => {
+        setup();
+        expect(screen.queryByRole('button', { name: 'Attach images or PDFs' })).not.toBeInTheDocument();
+    });
+
+    it('asks a guest to sign in instead of opening the file picker', () => {
+        const onAttachRequireSignIn = jest.fn();
+        setup({ isGuest: true, attachments: controller(), onAttachRequireSignIn });
+        fireEvent.click(paperclip());
+        expect(onAttachRequireSignIn).toHaveBeenCalledTimes(1);
+    });
+
+    it('is off in an Investigate conversation', () => {
+        setup({ pipelineIsDeepResearch: true, attachments: controller() });
+        expect(paperclip()).toBeDisabled();
+    });
+
+    it('sends a question that is only files', () => {
+        const { onSubmit } = setup({ attachments: withReadyPdf() });
+        expect(screen.getByText('paper.pdf')).toBeInTheDocument();
+        fireEvent.click(screen.getByTitle('Send'));
+        expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    it('holds the send back while a file is uploading', () => {
+        const { onSubmit } = setup({
+            userInput: 'what does it show?',
+            attachments: withReadyPdf({ isUploading: true }),
+        });
+        fireEvent.click(screen.getByTitle('Send'));
+        fireEvent.keyDown(field(), { key: 'Enter' });
+        expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('holds files back from an Investigate conversation, and says so', () => {
+        const { onSubmit } = setup({
+            userInput: 'and this figure?',
+            pipelineIsDeepResearch: true,
+            attachments: withReadyPdf(),
+        });
+        expect(screen.getByRole('status')).toHaveTextContent('Attachments work in AI Chat');
+        fireEvent.keyDown(field(), { key: 'Enter' });
+        expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('takes a pasted image, and leaves a text paste alone', () => {
+        const attachments = controller();
+        setup({ attachments });
+        const image = new File(['x'], 'image.png', { type: 'image/png' });
+        fireEvent.paste(field(), { clipboardData: { files: [image], items: [] } });
+        expect(attachments.addFiles).toHaveBeenCalledWith([image]);
+        attachments.addFiles.mockClear();
+        fireEvent.paste(field(), { clipboardData: { files: [], items: [], getData: () => 'text' } });
+        expect(attachments.addFiles).not.toHaveBeenCalled();
+    });
+
+    it('takes files dropped on the composer', () => {
+        const attachments = controller();
+        setup({ attachments });
+        const doc = new File(['%PDF'], 'paper.pdf', { type: 'application/pdf' });
+        const target = document.querySelector('.chat-header > div');
+        fireEvent.drop(target, { dataTransfer: { types: ['Files'], files: [doc], items: [] } });
+        expect(attachments.addFiles).toHaveBeenCalledWith([doc]);
     });
 });

@@ -7,7 +7,7 @@ describe('refusalText', () => {
             message: 'Not enough credits. This query requires 45 credits. You currently have 30 credits remaining.',
             cheaper_option: { pipeline: 'deep_research', service_tier: 'standard', credits: 20 },
         })).toBe('Not enough credits. This query requires 45 credits. You currently have 30 credits remaining.'
-            + ' Switch to Standard Investigate to continue with 20 credits.');
+            + ' Switch to GPT-6 Luna Investigate to continue with 20 credits.');
     });
 
     it('says nothing about a cheaper choice when there is none', () => {

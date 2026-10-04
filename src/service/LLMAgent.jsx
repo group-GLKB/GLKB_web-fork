@@ -551,6 +551,16 @@ export class LLMAgentService {
                 if (typeof options.rankingMode === 'string' && options.rankingMode.trim()) {
                     payload.ranking_mode = options.rankingMode.trim();
                 }
+                // Uploaded images and PDFs (service/attachments.js), by id. AI Chat only — the
+                // backend refuses them on Investigate — and omitted when there are none.
+                const attachmentIds = Array.isArray(options.attachments)
+                    ? options.attachments
+                        .map((id) => (typeof id === 'string' || typeof id === 'number' ? String(id).trim() : ''))
+                        .filter(Boolean)
+                    : [];
+                if (attachmentIds.length) {
+                    payload.attachments = attachmentIds;
+                }
             }
             // The service tier (service/serviceTiers.js), on BOTH paths: the backend prices the
             // query by it and the agent picks the model. Omitted when blank, which the backend

@@ -1,11 +1,12 @@
 /**
- * Which service tier answers the next question — Standard or Premium.
+ * Which service tier answers the next question — `standard` (shown as GPT-6 Luna) or `premium`
+ * (shown as GPT-6.1 Sol).
  *
  * A chip showing the current tier, opening a panel of the tiers this pipeline offers with what
  * each costs in credits (service/serviceTiers.js). It replaced the model picker when the backend
- * stopped taking a `model` from the web app: the reader chooses a tier, the agent chooses the
- * model, and no model name is shown. The chip rides in the composer's own row, as the model chip
- * did.
+ * stopped taking a `model` from the web app: the request names a tier and the agent maps it to a
+ * model, but the reader still sees the model's name. The chip rides in the composer's own row,
+ * as the model chip did.
  *
  * Two ways the value changes, and they are not the same event:
  *
@@ -13,9 +14,9 @@
  *   onResolveDefault — the prices arrived and nothing usable was held, so this is what the server
  *                      would use anyway. NOT remembered: storing it would pin today's default.
  *
- * A guest is held to Standard (the backend refuses anything else with a 403). The panel still
- * lists Premium — a guest should see what signing in unlocks — but choosing it asks them to sign
- * in (`onRequireSignIn`) instead of selecting it.
+ * A guest is held to `standard` (the backend refuses anything else with a 403). The panel still
+ * lists `premium` — a guest should see what signing in unlocks — but choosing it asks them to
+ * sign in (`onRequireSignIn`) instead of selecting it.
  */
 import './scoped.css';
 
@@ -23,7 +24,7 @@ import React, { useEffect, useRef, useState } from 'react';
 
 import CheckIcon from '@mui/icons-material/Check';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { ClickAwayListener, Popper } from '@mui/material';
+import { ClickAwayListener, Popper, useMediaQuery } from '@mui/material';
 
 import {
     fetchTierPricing,
@@ -53,6 +54,9 @@ const TierPicker = ({
     const [pricing, setPricing] = useState(null);
     const [isOpen, setIsOpen] = useState(false);
     const anchorRef = useRef(null);
+    /* The chip shortens on a phone ("6.1 Sol"), where the composer's row has no room for the
+       full name. The PANEL always shows full names. */
+    const isNarrow = useMediaQuery('(max-width:767px)');
 
     useEffect(() => {
         let cancelled = false;
@@ -104,10 +108,12 @@ const TierPicker = ({
                 disabled={disabled}
                 aria-haspopup="listbox"
                 aria-expanded={isOpen}
-                aria-label={`Service tier: ${selectedRow?.label || selected}`}
+                aria-label={`Model: ${selectedRow?.label || selected}`}
                 onClick={() => setIsOpen((prev) => !prev)}
             >
-                <span className="model-picker-trigger-label">{selectedRow?.label || selected}</span>
+                <span className="model-picker-trigger-label">
+                    {(isNarrow ? selectedRow?.shortLabel : selectedRow?.label) || selected}
+                </span>
                 <ChevronRightIcon className={`model-picker-chevron${isOpen ? ' expanded' : ''}`} />
             </button>
 
@@ -120,7 +126,7 @@ const TierPicker = ({
                     className="model-picker-layer"
                 >
                     <ClickAwayListener onClickAway={close}>
-                        <div className="model-picker-panel" role="listbox" aria-label="Service tier">
+                        <div className="model-picker-panel" role="listbox" aria-label="Model">
                             {tiers.map((entry) => {
                                 const isSelected = entry.id === selected;
                                 const needsSignIn = isGuest && entry.id !== GUEST_TIER;

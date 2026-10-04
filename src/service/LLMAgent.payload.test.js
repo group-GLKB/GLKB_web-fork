@@ -84,6 +84,47 @@ describe('service tier', () => {
     });
 });
 
+describe('attachments', () => {
+    it('sends the uploaded ids on an ordinary chat turn', async () => {
+        await run({ filters: [], attachments: ['a1b2', ' c3d4 '] });
+        expect(sentPayload().attachments).toEqual(['a1b2', 'c3d4']);
+    });
+
+    it('omits the field when there are none', async () => {
+        await run({ filters: [], attachments: [] });
+        expect(sentPayload()).not.toHaveProperty('attachments');
+        axios.post.mockReset();
+        await run({ filters: [] });
+        expect(sentPayload()).not.toHaveProperty('attachments');
+    });
+
+    it('never sends them on Investigate, which does not read them', async () => {
+        await run({ investigateEnabled: true, attachments: ['a1b2'] });
+        expect(sentPayload()).not.toHaveProperty('attachments');
+    });
+
+    it('drops blanks and anything that is not an id', async () => {
+        await run({ filters: [], attachments: ['', null, { id: 'x' }, 'ok'] });
+        expect(sentPayload().attachments).toEqual(['ok']);
+    });
+
+    it('reads an attachment refusal like any other', () => {
+        const error = {
+            response: {
+                status: 400,
+                data: JSON.stringify({
+                    detail: { code: 'ATTACHMENT_NOT_FOUND', message: 'One of the attached files is no longer available.' },
+                }),
+            },
+        };
+        expect(refusalOf(error)).toMatchObject({
+            status: 400,
+            code: 'ATTACHMENT_NOT_FOUND',
+            message: 'One of the attached files is no longer available.',
+        });
+    });
+});
+
 describe('a request refused before the stream opened', () => {
     // The stream is posted with responseType 'text', so the body arrives as a string.
     const httpError = (status, body) => Object.assign(new Error(`Request failed with status code ${status}`), {

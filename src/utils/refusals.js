@@ -17,7 +17,7 @@ export const refusalNeedsSignIn = (refusal) => (
 
 /**
  * The sentence for the answer bubble. The backend's own `message` first — it names the numbers —
- * then, for credits, the cheaper choice it found ("Switch to Standard Investigate to continue
+ * then, for credits, the cheaper choice it found ("Switch to GPT-6 Luna Investigate to continue
  * with 20 credits."), as the credits guide suggests.
  */
 export const refusalText = (refusal) => {

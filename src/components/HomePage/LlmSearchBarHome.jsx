@@ -32,7 +32,20 @@ import { ReactComponent as SearchOptionsCloseIcon } from '../../img/llm/search_o
 import { ReactComponent as SearchOptionsCollapseIcon } from '../../img/llm/search_options_collapse.svg';
 import { trackGtagEvent } from '../../utils/gtag';
 import TierPicker from '../Units/TierPicker';
+import {
+    AttachButton,
+    AttachmentChips,
+    attachmentBlockedNote,
+    dragHasFiles,
+    filesFromTransfer,
+    useAttachments,
+} from '../Units/AttachmentChips';
 import { effectiveTier, getTierPref, setTierPref } from '../../service/serviceTiers';
+import {
+    defaultQuestionFor,
+    GUEST_ATTACH_REASON,
+    INVESTIGATE_ATTACH_NOTE,
+} from '../../service/attachments';
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
@@ -66,6 +79,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
     const isGuest = !authLoading && !isAuthenticated;
     const navigate = useNavigate();
+    /* Images and PDFs on the first question (service/attachments.js). Uploaded as they are
+       picked; the question hands their ids to the chat in its navigation state. Signed-in
+       readers and AI Chat only — see the paperclip below. */
+    const attachments = useAttachments({ onRequireSignIn: () => openLoginModal(GUEST_ATTACH_REASON) });
+    const [isDragOver, setIsDragOver] = useState(false);
     // The app shell and HomePage both switch at 767px. A separate 600px
     // threshold mixed the mobile page with the PC search controls.
     const isMobileLayout = useMediaQuery('(max-width:767px)');
@@ -86,6 +104,21 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
        The quota is a different matter and still locks: there is no run to start at all. */
     // A guest at the limit keeps a live box: sending opens the sign-in overlay instead.
     const isInputLocked = isQueryLimitReached && !isGuest;
+    // Investigate (and Literature Review) do not read attachments.
+    const attachmentsOffForMode = investigateEnabled || reviewEnabled;
+    const attachmentNote = attachmentBlockedNote(attachments, { investigate: attachmentsOffForMode });
+    const readyAttachments = attachments.readyAttachments;
+    const canStart = (Boolean(llmQuery.trim()) || readyAttachments.length > 0)
+        && !isInputLocked && !attachments.isUploading && !attachmentNote;
+    const takeFiles = (files) => {
+        if (!files?.length) return;
+        if (isGuest) {
+            openLoginModal(GUEST_ATTACH_REASON);
+            return;
+        }
+        if (attachmentsOffForMode || isInputLocked) return;
+        attachments.addFiles(files);
+    };
     useEffect(() => {
         // console.log(props);
         props.setOpen(isOpen);
@@ -170,12 +203,17 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         };
     };
 
-    const navigateToLLMAgent = (query = '', inputMethod = 'button') => {
+    const navigateToLLMAgent = (typedQuery = '', inputMethod = 'button') => {
         // A guest who has used the month's questions is asked to sign in, question kept.
         if (isQueryLimitReached && isGuest) {
             openLoginModal(props.limitReachedText || undefined);
             return;
         }
+        /* Held back while a file is still uploading, or when one failed or the mode cannot take
+           them (the chips say which). A question with files and no words asks for a summary. */
+        if (attachments.hasItems && (attachments.isUploading || attachmentNote)) return;
+        const sentAttachments = readyAttachments;
+        const query = typedQuery || (sentAttachments.length ? defaultQuestionFor(sentAttachments) : '');
         // Clear input timeout to prevent search_input event after submission
         if (inputTimeoutRef.current) {
             clearTimeout(inputTimeoutRef.current);
@@ -189,6 +227,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             return;
         }
         const searchOptions = buildSearchOptionsPayload();
+        if (sentAttachments.length && !searchOptions.investigateEnabled) {
+            searchOptions.attachments = sentAttachments;
+        }
         const queryMethod = queryOriginRef.current === 'example' ? 'example' : inputMethod;
         trackGtagEvent('home_search_submit_click', {
             has_query: Boolean(query),
@@ -211,6 +252,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     initialQueryMethod: queryMethod,
                 },
             });
+            // The files are the question's now; the chat sends their ids with it.
+            if (sentAttachments.length) attachments.clear();
         } else {
             navigate(CHAT_NEW_PATH, {
                 state: {
@@ -365,7 +408,22 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
 
     return (
         <Box
-            className="llm-searchbar"
+            className={`llm-searchbar${isDragOver ? ' attachment-drop-target' : ''}`}
+            onDragOver={(event) => {
+                if (!dragHasFiles(event)) return;
+                event.preventDefault();
+                if (!isDragOver) setIsDragOver(true);
+            }}
+            onDragLeave={(event) => {
+                if (event.currentTarget.contains(event.relatedTarget)) return;
+                setIsDragOver(false);
+            }}
+            onDrop={(event) => {
+                if (!dragHasFiles(event)) return;
+                event.preventDefault();
+                setIsDragOver(false);
+                takeFiles(filesFromTransfer(event.dataTransfer));
+            }}
             sx={{
                 width: '100%',
                 display: 'flex',
@@ -429,8 +487,21 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 }}
                 renderInput={(params) => (
                     <Box sx={{ position: 'relative', width: '100%' }}>
+                        <AttachmentChips
+                            items={attachments.items}
+                            notice={attachments.notice}
+                            blockedNote={attachmentNote}
+                            onRemove={attachments.remove}
+                        />
                         <TextField
                             {...params}
+                            onPaste={(event) => {
+                                // Only a paste that carries files is taken over.
+                                const files = filesFromTransfer(event.clipboardData);
+                                if (!files.length) return;
+                                event.preventDefault();
+                                takeFiles(files);
+                            }}
                             /* Figma 800:22889 shortens this on a phone, where the
                                long form wraps to two lines. */
                             placeholder={isAgentRunActive
@@ -698,8 +769,18 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     onClick={(event) => {
                                         event.stopPropagation();
                                     }}
-                                    sx={{ display: 'inline-flex', minWidth: 0 }}
+                                    // Never squeezed: the model chip does not shrink, so a shrinking
+                                    // wrapper only let it spill over Search Options on a phone.
+                                    sx={{ display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, flexShrink: 0 }}
                                 >
+                                <AttachButton
+                                    onFiles={takeFiles}
+                                    isGuest={isGuest}
+                                    onRequireSignIn={() => openLoginModal(GUEST_ATTACH_REASON)}
+                                    disabled={attachmentsOffForMode || isInputLocked}
+                                    disabledReason={attachmentsOffForMode ? INVESTIGATE_ATTACH_NOTE : ''}
+                                    source="home_searchbar"
+                                />
                                 <TierPicker
                                     value={serviceTier}
                                     onChange={(tierId) => {
@@ -714,7 +795,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     disabled={isInputLocked}
                                     isGuest={isGuest}
                                     onRequireSignIn={(tier) => openLoginModal(
-                                        `${tier?.label || 'Premium'} is available to signed-in users. Sign in to use it — it's free.`,
+                                        `${tier?.label || 'GPT-6.1 Sol'} is available to signed-in users. Sign in to use it — it's free.`,
                                     )}
                                 />
                                 </Box>
@@ -753,8 +834,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         pointerEvents: 'auto',
                                     }}
                                 >
-                                    <SearchOptionsIcon style={{ color: 'var(--color-text-tertiary)', width: '20px', height: '20px' }} />
-                                    {mobileChipLabel}
+                                    {/* On a phone the row also holds the paperclip and the model
+                                        chip, so this is what gives way: the label truncates and the
+                                        icon keeps its size (unshrunk, it was squeezed to nothing). */}
+                                    <SearchOptionsIcon style={{ color: 'var(--color-text-tertiary)', width: '20px', height: '20px', flexShrink: 0 }} />
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{mobileChipLabel}</span>
                                 </Box>
                                 )}
 
@@ -804,14 +888,14 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 <Box
                                     role="button"
                                     aria-label="Start chat"
-                                    aria-disabled={isInputLocked}
+                                    aria-disabled={isInputLocked || (attachments.hasItems && !canStart)}
                                     className="search-button-big"
                                     onClick={() => { if (!isInputLocked) navigateToLLMAgent(llmQuery.trim(), 'button'); }}
                                     sx={{
                                         height: '32px',
                                         width: '32px',
                                         borderRadius: '8px',
-                                        backgroundColor: llmQuery.trim() && !isInputLocked ? 'var(--color-brand-primary)' : 'var(--color-brand-muted)',
+                                        backgroundColor: canStart ? 'var(--color-brand-primary)' : 'var(--color-brand-muted)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -826,7 +910,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 >
                                     <SearchArrowIcon
                                         style={{
-                                            color: llmQuery.trim() && !isInputLocked ? 'var(--color-neutral-white)' : 'var(--color-brand-primary)',
+                                            color: canStart ? 'var(--color-neutral-white)' : 'var(--color-brand-primary)',
                                             width: '16px',
                                             height: '16px',
                                         }}
@@ -921,7 +1005,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         e.preventDefault();
                         return;
                     }
-                    if (e.key === 'Enter' && !e.shiftKey && llmQuery.trim() !== "") {
+                    if (e.key === 'Enter' && !e.shiftKey
+                        && (llmQuery.trim() !== "" || readyAttachments.length > 0)) {
                         e.preventDefault();
                         trackGtagEvent('home_search_submit_enter', {
                             ranking_mode: buildSearchOptionsPayload().rankingMode,

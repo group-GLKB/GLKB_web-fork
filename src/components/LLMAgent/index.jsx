@@ -131,7 +131,8 @@ import {
   getConversationBookmarks,
   toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
-import { createQuerySubmitSuccessTracker } from '../../utils/gtag';
+import { createQuerySubmitSuccessTracker, trackGtagEvent } from '../../utils/gtag';
+import { CREDITS_PURCHASE_URL } from '../../config/features';
 import { useAuth } from '../Auth/AuthContext';
 import {
     NOTIFY_EMAIL_KEY,
@@ -149,6 +150,12 @@ import {
     TIER_STANDARD,
 } from '../../service/serviceTiers';
 import { refusalNeedsSignIn, refusalText } from '../../utils/refusals';
+import {
+    attachmentIdsOf,
+    defaultQuestionFor,
+    GUEST_ATTACH_REASON,
+    normalizeAttachmentList,
+} from '../../service/attachments';
 import {
     clearActiveRun,
     clearPendingRun,
@@ -191,6 +198,7 @@ import {
     pmidFromHref,
     stripCitationsBlock,
 } from '../../utils/directCitations';
+import { MessageAttachments, useAttachments } from '../Units/AttachmentChips';
 import CiteDialog from '../Units/CiteDialog';
 import { cslFromCard, toBibTeX } from '../Units/CiteDialog/format';
 import { fetchCitations } from '../../service/Citation';
@@ -1583,6 +1591,9 @@ const MessageCard = React.memo(function MessageCard({
                             </Box>
                         )}
 
+                        {/* The images and PDFs the question was sent with. */}
+                        {!isAssistant && <MessageAttachments attachments={message.attachments} />}
+
                         {/* Separates the body from the investigate summary and thinking rows
                             above it. The user bubble has none of those, so on that side the
                             margin was just 8px of dead space above the text — 20px above it
@@ -1910,12 +1921,16 @@ function LLMAgent({ isRouteActive = true }) {
     const [chatHistory, setChatHistory] = useState(() => {
         const initialQuery = location.state?.initialQuery;
         if (initialQuery) {
+            const initialAttachments = normalizeAttachmentList(
+                location.state?.initialSearchOptions?.attachments,
+            );
             return [{
                 role: 'user',
                 content: initialQuery,
                 references: [],
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 investigateMode: Boolean(location.state?.initialSearchOptions?.investigateEnabled),
+                ...(initialAttachments.length ? { attachments: initialAttachments } : {}),
             }];
         }
         return mergeMessagesWithRunSnapshot(
@@ -2418,8 +2433,16 @@ function LLMAgent({ isRouteActive = true }) {
         openLoginModal(typeof reason === 'string' ? reason : undefined);
     }, [openLoginModal]);
     const requestPremiumSignIn = useCallback((tier) => {
-        requireSignIn(`${tier?.label || 'Premium'} is available to signed-in users. Sign in to use it — it's free.`);
+        requireSignIn(`${tier?.label || 'GPT-6.1 Sol'} is available to signed-in users. Sign in to use it — it's free.`);
     }, [requireSignIn]);
+    /* Images and PDFs waiting on the composer (service/attachments.js). Held here, not in the
+       composer, because the send reads them: `submitOrQueue` puts them on the turn's options
+       and clears the chips once the question has left. Signed-in readers and AI Chat only. */
+    const requestAttachSignIn = useCallback(() => {
+        requireSignIn(GUEST_ATTACH_REASON);
+    }, [requireSignIn]);
+    const composerAttachments = useAttachments({ onRequireSignIn: requestAttachSignIn });
+    const clearComposerAttachments = composerAttachments.clear;
     const useMobileReferencesDrawer = isPhoneDevice;
 
     useEffect(() => {
@@ -2532,7 +2555,11 @@ function LLMAgent({ isRouteActive = true }) {
         if (!refusal) return;
         if (refusalNeedsSignIn(refusal)) {
             requireSignIn(refusalText(refusal));
-            if (refusal.code === 'GUEST_LOGIN_REQUIRED') setServiceTier(TIER_STANDARD);
+            // A members-only tier puts the picker back on the guest's; a refusal for attached
+            // files (`reason: "attachments"`) has nothing to do with the tier.
+            if (refusal.code === 'GUEST_LOGIN_REQUIRED' && refusal.reason !== 'attachments') {
+                setServiceTier(TIER_STANDARD);
+            }
         }
         if (refusal.code === 'INSUFFICIENT_CREDITS' || refusal.code === 'GUEST_LIMIT_REACHED') {
             refreshTierStatus();
@@ -4308,6 +4335,14 @@ function LLMAgent({ isRouteActive = true }) {
                 : undefined,
         };
 
+        /* The images and PDFs this turn carries (service/attachments.js). AI Chat only: the
+           Investigate pipeline does not read them, and no composer sends them there. An explicit
+           list — a regenerate or an edited message re-sending the original's files — wins over
+           the options bag the composer filled. */
+        const turnAttachments = investigateEnabled
+            ? []
+            : normalizeAttachmentList(options.attachments ?? requestSearchOptions?.attachments);
+
         // Create new user message
         const newMessage = {
             role: 'user',
@@ -4316,6 +4351,7 @@ function LLMAgent({ isRouteActive = true }) {
             timestamp: t || timestamp,
             investigateMode: investigateEnabled,
             modeSource: 'submitted',
+            ...(turnAttachments.length ? { attachments: turnAttachments } : {}),
         };
 
         /* Paint before waiting on anything.
@@ -4360,6 +4396,8 @@ function LLMAgent({ isRouteActive = true }) {
         // box was disabled for the length of a run; now that it is live, clearing it here would
         // delete their work.
         if (!input) setUserInput('');
+        // The composer's chips went with this question; a resend never touches them.
+        if (options.fromComposer) clearComposerAttachments();
         setIsLoading(true);
         setIsProcessing(true);
 
@@ -5261,6 +5299,7 @@ function LLMAgent({ isRouteActive = true }) {
                 // send, not whatever the picker moved to while it waited in the queue. A guest
                 // is always Standard — the backend refuses anything else.
                 serviceTier: effectiveTier(requestSearchOptions?.serviceTier, { isGuest }) || undefined,
+                attachments: turnAttachments.length ? attachmentIdsOf(turnAttachments) : undefined,
                 notifyEmail: (investigateEnabled && notifyEmailEnabled)
                     ? (getUserNotifyEmail() || undefined)
                     : undefined,
@@ -5697,7 +5736,11 @@ function LLMAgent({ isRouteActive = true }) {
         const editedHistory = chatHistory.slice(0, index);
         setChatHistory(editedHistory);
         setShowReloadPrompt(false);
-        handleSubmit(e, content, null, { baseHistory: editedHistory });
+        // The edited question keeps the files the original was sent with.
+        handleSubmit(e, content, null, {
+            baseHistory: editedHistory,
+            attachments: chatHistory[index]?.attachments,
+        });
     };
 
     const handleCopyMessage = (content) => {
@@ -5942,7 +5985,11 @@ function LLMAgent({ isRouteActive = true }) {
         const trimmedHistory = chatHistory.slice(0, index - 1);
         setChatHistory(trimmedHistory);
         setShowReloadPrompt(false);
-        handleSubmit(e, userMessage.content, null, { baseHistory: trimmedHistory });
+        handleSubmit(e, userMessage.content, null, {
+            baseHistory: trimmedHistory,
+            // The same question, so the same files.
+            attachments: userMessage.attachments,
+        });
     };
 
     const handleReloadLatest = () => {
@@ -6122,7 +6169,13 @@ function LLMAgent({ isRouteActive = true }) {
                 sx={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', mb: '5px', justifyContent: 'flex-end' }}
             >
                 <Box className="queued-prompt-bubble">
-                    <span className="queued-prompt-text">{item.text}</span>
+                    <span className="queued-prompt-text">
+                        {item.text}
+                        {(() => {
+                            const files = normalizeAttachmentList(item.searchOptions?.attachments).length;
+                            return files ? ` · ${files} file${files === 1 ? '' : 's'} attached` : null;
+                        })()}
+                    </span>
                     <button
                         type="button"
                         className="queued-prompt-remove"
@@ -6422,10 +6475,24 @@ function LLMAgent({ isRouteActive = true }) {
      * the thread on screen, and holding a question against a run the reader cannot see would
      * fire it at a moment they have no reason to expect.
      */
-    const submitOrQueue = useCallback((event, searchOptions, queryMethod = 'button') => {
+    const submitOrQueue = useCallback((event, composerOptions, queryMethod = 'button') => {
         event?.preventDefault?.();
-        const text = userInput.trim();
+        /* Files on the composer ride on the turn's options, so a queued follow-up keeps its
+           own. Never while one is still uploading or failed — the composer holds the send back
+           and its chips say why — and never on Investigate, which does not read them. A
+           question that is only files asks for a summary of them. */
+        const readyAttachments = composerAttachments.readyAttachments;
+        if (composerAttachments.hasItems
+            && (composerAttachments.isUploading || composerAttachments.hasErrors
+                || composerOptions?.investigateEnabled)) {
+            return;
+        }
+        const typed = userInput.trim();
+        const text = typed || (readyAttachments.length ? defaultQuestionFor(readyAttachments) : '');
         if (!text) return;
+        const searchOptions = readyAttachments.length
+            ? { ...composerOptions, attachments: readyAttachments }
+            : composerOptions;
         // Checked before queueing as well as before sending: a follow-up must not be taken out
         // of the box and drawn as a pending bubble that will never be sent. A guest is told why.
         if (isLimitReachedEffective) {
@@ -6450,7 +6517,12 @@ function LLMAgent({ isRouteActive = true }) {
                 && Boolean(resumingConversationRef.current)
                 && !runningConversationIdRef.current);
         if (!targetBusy) {
-            stableSubmit(event, null, null, { searchOptions, queryMethod });
+            // `input` only when the words are not the box's own (files with no question).
+            stableSubmit(event, typed ? null : text, null, {
+                searchOptions,
+                queryMethod,
+                fromComposer: true,
+            });
             return;
         }
         const ownerConversationId = isViewingRunningConversation
@@ -6480,8 +6552,10 @@ function LLMAgent({ isRouteActive = true }) {
             queryMethod,
         }]);
         setUserInput('');
+        clearComposerAttachments();
     }, [userInput, isLoading, isViewingRunningConversation, isLimitReachedEffective,
-        isGuest, requireSignIn, limitWarningText, stableSubmit]);
+        isGuest, requireSignIn, limitWarningText, stableSubmit, composerAttachments,
+        clearComposerAttachments]);
 
     const removeQueuedPrompt = useCallback((entry) => {
         if (!entry?.id) return;
@@ -6622,6 +6696,10 @@ function LLMAgent({ isRouteActive = true }) {
                     logDev('[LLM] background turn base refetch failed', error);
                 }
             }
+            // The files the queued follow-up was written with — AI Chat only, as in handleSubmit.
+            const turnAttachments = investigateEnabled
+                ? []
+                : normalizeAttachmentList(requestSearchOptions?.attachments);
             const userMessage = {
                 role: 'user',
                 content: entry.text,
@@ -6629,6 +6707,7 @@ function LLMAgent({ isRouteActive = true }) {
                 timestamp,
                 investigateMode: investigateEnabled,
                 modeSource: 'submitted',
+                ...(turnAttachments.length ? { attachments: turnAttachments } : {}),
             };
             let history = [...base, userMessage, {
                 role: 'assistant',
@@ -6737,6 +6816,7 @@ function LLMAgent({ isRouteActive = true }) {
                     // queued follow-up must send the tier that was showing when the reader hit
                     // send, not whatever the picker moved to while it waited in the queue.
                     serviceTier: effectiveTier(requestSearchOptions?.serviceTier, { isGuest }) || undefined,
+                    attachments: turnAttachments.length ? attachmentIdsOf(turnAttachments) : undefined,
                     messagesOverride: [...base, userMessage].map((msg) => ({
                         role: msg?.role,
                         content: msg?.content,
@@ -7575,6 +7655,19 @@ function LLMAgent({ isRouteActive = true }) {
                                                                     Sign in
                                                                 </button>
                                                             )}
+                                                            {/* A signed-in reader out of credits can buy more —
+                                                                once a store is configured (config/features.js). */}
+                                                            {!isGuest && CREDITS_PURCHASE_URL && (
+                                                                <a
+                                                                    className="llm-limit-warning-button"
+                                                                    href={CREDITS_PURCHASE_URL}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    onClick={() => trackGtagEvent('credits_buy_click', { source: 'chat_limit_notice' })}
+                                                                >
+                                                                    Buy credits
+                                                                </a>
+                                                            )}
                                                         </div>
                                                     )}
                                                     {/* Figma "Asking Question" hangs the panel off the
@@ -7613,6 +7706,8 @@ function LLMAgent({ isRouteActive = true }) {
                                                         onServiceTierResolveDefault={setServiceTier}
                                                         isGuest={isGuest}
                                                         onRequireSignIn={requestPremiumSignIn}
+                                                        attachments={composerAttachments}
+                                                        onAttachRequireSignIn={requestAttachSignIn}
                                                         onSubmit={(event, submissionMeta) => {
                                                             submitOrQueue(event, {
                                                                 investigateEnabled: chatInvestigateEnabled,
