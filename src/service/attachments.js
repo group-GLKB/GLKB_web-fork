@@ -1,11 +1,13 @@
 /**
- * Images and PDFs attached to a chat question (2026-10-04).
+ * Files attached to a chat question: images, PDFs, code, notebooks, Office files, text
+ * (2026-10-04; any type since round 2).
  *
  * A file is uploaded the moment it is picked — `POST /api/v1/attachments` — and the question
  * then carries only the ids it got back (`attachments: [id]` on the chat stream). The backend
  * checks each file's real type, extracts a PDF's text, and keeps the file with its owner; a
  * reload shows the attachments again from the conversation's history.
  *
+ * Any type goes to the backend, which reads it as a picture or as text (see below).
  * Signed-in readers only, and AI Chat only: Investigate does not read attachments, and a guest's
  * question has no owner to keep a file for. Both composers enforce that before anything is
  * uploaded; the backend refuses it anyway.
@@ -15,81 +17,99 @@
  */
 // The configured instance: it carries `baseURL` (the reorg-api prefix) and the JWT.
 import axios from '../utils/axiosConfig';
-import { normalizeAttachment } from '../utils/attachmentList';
+import { formatBytes, normalizeAttachment } from '../utils/attachmentList';
 
 // The shape helpers have no dependencies (history parsing imports them without axios).
 export {
     attachmentIdsOf,
+    attachmentMetaText,
     defaultQuestionFor,
+    formatBytes,
+    formatLabelForName,
+    isCodeFormat,
     normalizeAttachment,
     normalizeAttachmentList,
 } from '../utils/attachmentList';
 
 export const ATTACHMENTS_ENDPOINT = '/api/v1/attachments';
 
-export const IMAGE_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+/* Images go to the model as pictures; every other file is turned into text by the backend
+   (glkb-backend `attachment_service`, MarkItDown for Office files and notebooks) — the way
+   Claude, ChatGPT and Open WebUI / LibreChat ("upload as text") handle documents and code. So
+   the client sends any type and lets the backend decide; it only turns away what can never be
+   read as text or as a picture (media, archives, executables). */
+export const IMAGE_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 export const PDF_MIME_TYPE = 'application/pdf';
-/** The `accept` attribute of the file picker. */
-export const ATTACHMENT_ACCEPT = [...IMAGE_MIME_TYPES, PDF_MIME_TYPE].join(',');
 
 // The backend's limits, checked here too so a file that cannot be sent is never uploaded.
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-export const MAX_PDF_BYTES = 20 * 1024 * 1024;
-export const MAX_IMAGES_PER_MESSAGE = 4;
-export const MAX_FILES_PER_MESSAGE = 5;
+export const MAX_FILE_BYTES = 30 * 1024 * 1024;
+export const MAX_IMAGES_PER_MESSAGE = 5;
+export const MAX_FILES_PER_MESSAGE = 10;
 /* The model reads an image at most 2048 px on its long side, so anything larger is resized here
    before it is uploaded: a phone photo shrinks from several MB to a few hundred KB and the model
    sees exactly the same picture. */
 export const MAX_IMAGE_EDGE = 2048;
+/* nginx in front of /reorg-api accepts request bodies up to 1 MB. A file larger than this goes
+   up in chunks of this size (`/attachments/uploads`), each a request of its own. */
+export const CHUNK_THRESHOLD_BYTES = 768 * 1024;
+const CHUNK_RETRIES = 2;
+/* A paste longer than this becomes an attachment ("Pasted text.txt") instead of filling the
+   message box — as Claude does with long pastes. */
+export const LONG_PASTE_CHARS = 4000;
+export const PASTED_TEXT_NAME = 'Pasted text.txt';
 
-export const GUEST_ATTACH_REASON = "Sign in to attach images and PDFs — it's free.";
+export const GUEST_ATTACH_REASON = "Sign in to attach files — it's free.";
 export const INVESTIGATE_ATTACH_NOTE = 'Attachments work in AI Chat';
+export const UNSUPPORTED_TYPE_MESSAGE = "This file type can't be attached.";
 
 const EXTENSION_MIME = {
     png: 'image/png',
     jpg: 'image/jpeg',
     jpeg: 'image/jpeg',
     webp: 'image/webp',
+    gif: 'image/gif',
     pdf: PDF_MIME_TYPE,
+};
+
+// Never text, never a picture the model reads: refused before anything is uploaded.
+const BLOCKED_EXTENSIONS = new Set([
+    'exe', 'dll', 'so', 'dylib', 'bin', 'iso', 'dmg', 'zip', 'tar', 'gz', '7z', 'rar', 'jar', 'apk',
+]);
+
+export const extensionOf = (name) => {
+    const text = String(name || '');
+    const dot = text.lastIndexOf('.');
+    return dot > 0 && dot < text.length - 1 ? text.slice(dot + 1).toLowerCase() : '';
 };
 
 /** The file's MIME type, from the browser or (when it reports none) the extension. */
 export const mimeTypeOf = (file) => {
     const reported = String(file?.type || '').trim().toLowerCase();
     if (reported) return reported === 'image/jpg' ? 'image/jpeg' : reported;
-    const name = String(file?.name || '');
-    const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
-    return EXTENSION_MIME[ext] || '';
+    return EXTENSION_MIME[extensionOf(file?.name)] || '';
 };
 
-/** 'image' | 'pdf' | null for a type that cannot be attached. */
+/** 'image' | 'pdf' | 'file' — every file is something; whether it can be read is the backend's call. */
 export const kindOf = (file) => {
     const mime = mimeTypeOf(file);
     if (IMAGE_MIME_TYPES.includes(mime)) return 'image';
     if (mime === PDF_MIME_TYPE) return 'pdf';
-    return null;
+    return 'file';
 };
 
-export const formatBytes = (bytes) => {
-    const n = Number(bytes);
-    if (!Number.isFinite(n) || n < 0) return '';
-    if (n < 1024) return `${n} B`;
-    if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
-    return `${(n / (1024 * 1024)).toFixed(1).replace(/\.0$/, '')} MB`;
-};
 
 /** Why this one file cannot be attached, or null when it can. */
 export const validateFile = (file) => {
-    const kind = kindOf(file);
-    if (!kind) return 'Only PNG, JPEG and WebP images and PDFs can be attached.';
+    const mime = mimeTypeOf(file);
+    if (mime.startsWith('video/') || mime.startsWith('audio/') || BLOCKED_EXTENSIONS.has(extensionOf(file?.name))) {
+        return UNSUPPORTED_TYPE_MESSAGE;
+    }
     const size = Number(file?.size) || 0;
-    if (kind === 'image' && size > MAX_IMAGE_BYTES) {
-        return `Images can be up to ${formatBytes(MAX_IMAGE_BYTES)}.`;
+    if (kindOf(file) === 'image') {
+        return size > MAX_IMAGE_BYTES ? `Images can be up to ${formatBytes(MAX_IMAGE_BYTES)}.` : null;
     }
-    if (kind === 'pdf' && size > MAX_PDF_BYTES) {
-        return `PDFs can be up to ${formatBytes(MAX_PDF_BYTES)}.`;
-    }
-    return null;
+    return size > MAX_FILE_BYTES ? `Files can be up to ${formatBytes(MAX_FILE_BYTES)}.` : null;
 };
 
 /**
@@ -125,6 +145,79 @@ export const planAdditions = (existing, files) => {
     return { accepted, notice };
 };
 
+/** A long pasted text as the file it is attached as. */
+export const pastedTextFile = (text) => {
+    const body = String(text || '');
+    try {
+        return new File([body], PASTED_TEXT_NAME, { type: 'text/plain', lastModified: Date.now() });
+    } catch (error) {
+        const blob = new Blob([body], { type: 'text/plain' });
+        blob.name = PASTED_TEXT_NAME;
+        return blob;
+    }
+};
+
+/**
+ * What a paste should attach: every file it carries (any type), or — when it carries none and
+ * `longText` is allowed — its text as "Pasted text.txt" once it is longer than LONG_PASTE_CHARS.
+ * An empty list means "let the paste through".
+ */
+export const pastedAttachments = (clipboardData, { longText = true } = {}) => {
+    if (!clipboardData) return [];
+    const fromFiles = Array.from(clipboardData.files || []);
+    const files = fromFiles.length
+        ? fromFiles
+        : Array.from(clipboardData.items || [])
+            .filter((item) => item?.kind === 'file')
+            .map((item) => item.getAsFile?.())
+            .filter(Boolean);
+    if (files.length) return files;
+    if (!longText) return [];
+    let text = '';
+    try { text = clipboardData.getData?.('text/plain') || clipboardData.getData?.('text') || ''; } catch (error) { text = ''; }
+    return text.length > LONG_PASTE_CHARS ? [pastedTextFile(text)] : [];
+};
+
+const IMAGE_EXTENSION = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' };
+
+/**
+ * The "Paste from clipboard" menu item: reads the clipboard through the async Clipboard API.
+ * Resolves to `{ files, text }` — images as files, plain text as text (a long one already turned
+ * into "Pasted text.txt" in `files`). Rejects when the browser has no such API or the reader
+ * refused permission; the caller then tells them to press Ctrl+V / ⌘V instead.
+ */
+export const readClipboard = async (clipboard = (typeof navigator !== 'undefined' ? navigator.clipboard : null)) => {
+    if (!clipboard) throw new Error('clipboard unavailable');
+    const files = [];
+    let text = '';
+    if (typeof clipboard.read === 'function') {
+        const items = await clipboard.read();
+        for (const item of items || []) {
+            const types = Array.from(item?.types || []);
+            const imageType = types.find((type) => type.startsWith('image/'));
+            if (imageType) {
+                const blob = await item.getType(imageType);
+                const name = `Pasted image.${IMAGE_EXTENSION[imageType] || 'png'}`;
+                try {
+                    files.push(new File([blob], name, { type: imageType, lastModified: Date.now() }));
+                } catch (error) {
+                    blob.name = name;
+                    files.push(blob);
+                }
+            } else if (!text && types.includes('text/plain')) {
+                const blob = await item.getType('text/plain');
+                text = typeof blob?.text === 'function' ? await blob.text() : String(blob || '');
+            }
+        }
+    } else if (typeof clipboard.readText === 'function') {
+        text = await clipboard.readText();
+    } else {
+        throw new Error('clipboard unavailable');
+    }
+    if (text.length > LONG_PASTE_CHARS) return { files: [...files, pastedTextFile(text)], text: '' };
+    return { files, text };
+};
+
 const canvasToBlob = (canvas, type, quality) => new Promise((resolve) => {
     try {
         canvas.toBlob((blob) => resolve(blob || null), type, quality);
@@ -140,7 +233,8 @@ const canvasToBlob = (canvas, type, quality) => new Promise((resolve) => {
  * the original, and the backend's size limit still applies.
  */
 export const resizeImageIfNeeded = async (file) => {
-    if (kindOf(file) !== 'image') return file;
+    // A GIF goes up as it is: a canvas would keep only its first frame.
+    if (kindOf(file) !== 'image' || mimeTypeOf(file) === 'image/gif') return file;
     if (typeof createImageBitmap !== 'function' || typeof document === 'undefined') return file;
     let bitmap = null;
     try {
@@ -197,7 +291,8 @@ export const attachmentErrorMessage = (error) => {
     }
     const status = Number(error?.response?.status);
     if (status === 413) return 'This file is too large to upload.';
-    if (status === 415) return 'This file type cannot be attached.';
+    if (status === 415) return UNSUPPORTED_TYPE_MESSAGE;
+    if (status === 507) return 'There is no room to store this file right now. Please try again later.';
     if (status === 401 || status === 403) return 'Sign in to attach files.';
     if (!error?.response) return 'Upload failed — check your connection and try again.';
     return 'Upload failed. Please try again.';
@@ -209,13 +304,96 @@ export const attachmentErrorCode = (error) => {
     return detail && typeof detail === 'object' && typeof detail.code === 'string' ? detail.code : null;
 };
 
+const asAttachment = (data) => {
+    const attachment = normalizeAttachment(data);
+    if (!attachment) {
+        const error = new Error('Upload returned no attachment');
+        error.attachmentMessage = 'Upload failed. Please try again.';
+        throw error;
+    }
+    return attachment;
+};
+
+const canceled = (error, signal) => Boolean(
+    signal?.aborted || error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError',
+);
+
+// Worth another try: the network, a timeout, the server's own trouble. A 4xx is an answer.
+const retryable = (error) => {
+    const status = Number(error?.response?.status);
+    if (!error?.response) return true;
+    return status >= 500 || status === 408 || status === 429;
+};
+
+const abortedError = () => {
+    const error = new Error('canceled');
+    error.name = 'CanceledError';
+    error.code = 'ERR_CANCELED';
+    return error;
+};
+
+/**
+ * Upload in chunks (`/attachments/uploads`), for a file over CHUNK_THRESHOLD_BYTES: nginx in
+ * front of the API takes at most 1 MB per request. Start the upload, send each slice in order
+ * (a failed slice is retried up to CHUNK_RETRIES times), then complete it — which answers like
+ * the single-shot upload.
+ */
+export const uploadInChunks = async (file, { onProgress, signal, name } = {}) => {
+    const total = Number(file?.size) || 0;
+    const init = await axios.post(`${ATTACHMENTS_ENDPOINT}/uploads`, {
+        filename: name || file?.name || 'file',
+        size_bytes: total,
+    }, { signal });
+    const uploadId = init?.data?.upload_id;
+    const chunkBytes = Number(init?.data?.chunk_bytes) || CHUNK_THRESHOLD_BYTES;
+    const chunkCount = Number(init?.data?.chunk_count) || Math.max(1, Math.ceil(total / chunkBytes));
+    if (!uploadId) {
+        const error = new Error('Upload could not start');
+        error.attachmentMessage = 'Upload failed. Please try again.';
+        throw error;
+    }
+    const base = `${ATTACHMENTS_ENDPOINT}/uploads/${encodeURIComponent(uploadId)}`;
+    let sent = 0;
+    for (let index = 0; index < chunkCount; index += 1) {
+        if (signal?.aborted) throw abortedError();
+        const slice = file.slice(index * chunkBytes, Math.min(total, (index + 1) * chunkBytes));
+        const size = Number(slice?.size) || 0;
+        const sentBefore = sent; // a constant for the progress callback below
+        for (let attempt = 0; ; attempt += 1) {
+            try {
+                // eslint-disable-next-line no-await-in-loop
+                await axios.put(`${base}/chunks/${index}`, slice, {
+                    signal,
+                    headers: { 'Content-Type': 'application/octet-stream' },
+                    onUploadProgress: (event) => {
+                        if (!onProgress || !total) return;
+                        const loaded = Math.min(size, Number(event?.loaded) || 0);
+                        onProgress(Math.min(1, (sentBefore + loaded) / total));
+                    },
+                });
+                break;
+            } catch (error) {
+                if (canceled(error, signal) || attempt >= CHUNK_RETRIES || !retryable(error)) throw error;
+            }
+        }
+        sent += size;
+        if (onProgress && total) onProgress(Math.min(1, sent / total));
+    }
+    const done = await axios.post(`${base}/complete`, null, { signal });
+    return asAttachment(done?.data);
+};
+
 /**
  * Upload one file. Resolves to the normalized attachment; rejects with the axios error (read it
- * with `attachmentErrorMessage`). `onProgress` gets 0..1.
+ * with `attachmentErrorMessage`). `onProgress` gets 0..1. Small files go up in one request,
+ * larger ones in chunks (`uploadInChunks`).
  */
 export const uploadAttachment = async (file, { onProgress, signal } = {}) => {
+    const name = file?.name || (kindOf(file) === 'image' ? 'image' : 'file');
+    if ((Number(file?.size) || 0) > CHUNK_THRESHOLD_BYTES) {
+        return uploadInChunks(file, { onProgress, signal, name });
+    }
     const form = new FormData();
-    const name = file?.name || (kindOf(file) === 'pdf' ? 'document.pdf' : 'image');
     form.append('file', file, name);
     const response = await axios.post(ATTACHMENTS_ENDPOINT, form, {
         signal,
@@ -225,13 +403,7 @@ export const uploadAttachment = async (file, { onProgress, signal } = {}) => {
             if (total > 0) onProgress(Math.min(1, Number(event.loaded || 0) / total));
         },
     });
-    const attachment = normalizeAttachment(response?.data);
-    if (!attachment) {
-        const error = new Error('Upload returned no attachment');
-        error.attachmentMessage = 'Upload failed. Please try again.';
-        throw error;
-    }
-    return attachment;
+    return asAttachment(response?.data);
 };
 
 /** Delete an uploaded file that was never sent. Fire-and-forget: a failure changes nothing. */

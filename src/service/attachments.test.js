@@ -1,6 +1,7 @@
 /**
- * Images and PDFs on a chat question: what may be attached, how a refusal is put into words,
- * and what goes over the wire.
+ * Files on a chat question (any type since round 2): what may be attached, what a paste
+ * attaches, how a refusal is put into words, and what goes over the wire — including the
+ * chunked upload for files nginx's 1 MB body limit would refuse.
  */
 import axios from '../utils/axiosConfig';
 import {
@@ -8,17 +9,24 @@ import {
     attachmentErrorCode,
     attachmentErrorMessage,
     attachmentIdsOf,
+    attachmentMetaText,
     attachmentObjectUrl,
+    CHUNK_THRESHOLD_BYTES,
     defaultQuestionFor,
     deleteAttachment,
     kindOf,
     MAX_FILES_PER_MESSAGE,
     MAX_IMAGE_BYTES,
+    MAX_FILE_BYTES,
     MAX_IMAGES_PER_MESSAGE,
-    MAX_PDF_BYTES,
+    isCodeFormat,
+    LONG_PASTE_CHARS,
     normalizeAttachment,
     normalizeAttachmentList,
+    PASTED_TEXT_NAME,
+    pastedAttachments,
     planAdditions,
+    readClipboard,
     resetAttachmentUrlCache,
     resizeImageIfNeeded,
     uploadAttachment,
@@ -27,7 +35,7 @@ import {
 
 jest.mock('../utils/axiosConfig', () => ({
     __esModule: true,
-    default: { post: jest.fn(), get: jest.fn(), delete: jest.fn() },
+    default: { post: jest.fn(), get: jest.fn(), delete: jest.fn(), put: jest.fn() },
 }));
 
 const file = (name, type, size = 1000) => {
@@ -42,54 +50,122 @@ beforeEach(() => {
     axios.post.mockReset();
     axios.get.mockReset();
     axios.delete.mockReset();
+    axios.put.mockReset();
     resetAttachmentUrlCache();
 });
 
 describe('what may be attached', () => {
-    it('takes PNG, JPEG, WebP and PDF, by type or (when the browser reports none) extension', () => {
+    it('reads pictures and PDFs by type or (when the browser reports none) extension', () => {
         expect(kindOf(png())).toBe('image');
         expect(kindOf(file('a.jpg', 'image/jpeg'))).toBe('image');
         expect(kindOf(file('a.webp', 'image/webp'))).toBe('image');
+        expect(kindOf(file('a.gif', 'image/gif'))).toBe('image');
         expect(kindOf(pdf())).toBe('pdf');
         expect(kindOf(file('scan.PDF', ''))).toBe('pdf');
         expect(kindOf(file('photo.jpeg', ''))).toBe('image');
     });
 
-    it('refuses other types with a reason', () => {
-        expect(kindOf(file('a.gif', 'image/gif'))).toBeNull();
-        expect(validateFile(file('notes.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')))
-            .toMatch(/Only PNG, JPEG and WebP images and PDFs/);
+    it('takes code, notebooks, Office files and text as "file" — the backend reads them', () => {
+        ['analysis.py', 'notebook.ipynb', 'notes.docx', 'data.csv', 'README', 'run.sh'].forEach((name) => {
+            expect(kindOf(file(name, ''))).toBe('file');
+            expect(validateFile(file(name, ''))).toBeNull();
+        });
     });
 
-    it('holds images to 10 MB and PDFs to 20 MB', () => {
+    it('turns away media, archives and executables before uploading', () => {
+        expect(validateFile(file('talk.mp4', 'video/mp4'))).toBe("This file type can't be attached.");
+        expect(validateFile(file('voice.m4a', 'audio/mp4'))).toBe("This file type can't be attached.");
+        ['setup.exe', 'code.zip', 'data.tar', 'x.gz', 'app.dmg', 'lib.so'].forEach((name) => {
+            expect(validateFile(file(name, ''))).toBe("This file type can't be attached.");
+        });
+    });
+
+    it('holds images to 10 MB and every other file to 30 MB', () => {
         expect(validateFile(png(MAX_IMAGE_BYTES))).toBeNull();
         expect(validateFile(png(MAX_IMAGE_BYTES + 1))).toBe('Images can be up to 10 MB.');
-        expect(validateFile(pdf(MAX_PDF_BYTES))).toBeNull();
-        expect(validateFile(pdf(MAX_PDF_BYTES + 1))).toBe('PDFs can be up to 20 MB.');
+        expect(validateFile(pdf(MAX_FILE_BYTES))).toBeNull();
+        expect(validateFile(pdf(MAX_FILE_BYTES + 1))).toBe('Files can be up to 30 MB.');
+        expect(validateFile(file('big.ipynb', '', MAX_FILE_BYTES + 1))).toBe('Files can be up to 30 MB.');
     });
 });
 
 describe('the per-message limits', () => {
     it(`takes at most ${MAX_IMAGES_PER_MESSAGE} images`, () => {
-        const existing = [{ kind: 'image' }, { kind: 'image' }, { kind: 'image' }];
+        const existing = [1, 2, 3, 4].map(() => ({ kind: 'image' }));
         const { accepted, notice } = planAdditions(existing, [png(), png(), pdf()]);
         expect(accepted.map((f) => f.name)).toEqual(['fig.png', 'paper.pdf']);
-        expect(notice).toBe('Up to 4 images per message.');
+        expect(notice).toBe('Up to 5 images per message.');
     });
 
     it(`takes at most ${MAX_FILES_PER_MESSAGE} files`, () => {
-        const existing = [{ kind: 'pdf' }, { kind: 'pdf' }, { kind: 'pdf' }, { kind: 'image' }];
+        const existing = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(() => ({ kind: 'file' }));
         const { accepted, notice } = planAdditions(existing, [pdf(), pdf()]);
         expect(accepted).toHaveLength(1);
-        expect(notice).toBe('Up to 5 files per message.');
+        expect(notice).toBe('Up to 10 files per message.');
     });
 
     it('shows a refused file without letting it take a place', () => {
         const tooBig = png(MAX_IMAGE_BYTES + 1);
-        const existing = [{ kind: 'image' }, { kind: 'image' }, { kind: 'image' }];
+        const existing = [1, 2, 3, 4].map(() => ({ kind: 'image' }));
         const { accepted, notice } = planAdditions(existing, [tooBig, png()]);
         expect(accepted).toEqual([tooBig, expect.objectContaining({ name: 'fig.png' })]);
         expect(notice).toBeNull();
+    });
+});
+
+describe('pasting', () => {
+    const clipboard = ({ files = [], text = '' } = {}) => ({
+        files,
+        items: [],
+        getData: (type) => (type === 'text/plain' ? text : ''),
+    });
+
+    it('attaches every file a paste carries, of any type', () => {
+        const script = file('analysis.py', 'text/x-python');
+        expect(pastedAttachments(clipboard({ files: [script, png()] }))).toEqual([script, expect.any(File)]);
+    });
+
+    it('reads files from clipboard items when `files` is empty', () => {
+        const image = png();
+        const data = { files: [], items: [{ kind: 'string' }, { kind: 'file', getAsFile: () => image }], getData: () => '' };
+        expect(pastedAttachments(data)).toEqual([image]);
+    });
+
+    it(`turns text longer than ${LONG_PASTE_CHARS} characters into "${PASTED_TEXT_NAME}"`, async () => {
+        const long = 'a'.repeat(LONG_PASTE_CHARS + 1);
+        const [pasted] = pastedAttachments(clipboard({ text: long }));
+        expect(pasted.name).toBe('Pasted text.txt');
+        expect(pasted.type).toBe('text/plain');
+        expect(pasted.size).toBe(long.length);
+    });
+
+    it('lets short text paste into the box, and long text too where nothing can be attached', () => {
+        expect(pastedAttachments(clipboard({ text: 'a'.repeat(LONG_PASTE_CHARS) }))).toEqual([]);
+        expect(pastedAttachments(clipboard({ text: 'a'.repeat(LONG_PASTE_CHARS + 1) }), { longText: false })).toEqual([]);
+    });
+
+    it('reads images and text through the Clipboard API for the menu item', async () => {
+        const blob = new Blob(['img'], { type: 'image/png' });
+        const result = await readClipboard({
+            read: async () => [
+                { types: ['image/png'], getType: async () => blob },
+                { types: ['text/plain'], getType: async () => ({ text: async () => 'short note' }) },
+            ],
+        });
+        expect(result.files).toHaveLength(1);
+        expect(result.files[0].name).toBe('Pasted image.png');
+        expect(result.text).toBe('short note');
+    });
+
+    it('turns long clipboard text into a file there too, and falls back to readText', async () => {
+        const result = await readClipboard({ readText: async () => 'b'.repeat(LONG_PASTE_CHARS + 5) });
+        expect(result.text).toBe('');
+        expect(result.files[0].name).toBe('Pasted text.txt');
+    });
+
+    it('rejects when there is no Clipboard API or permission is refused', async () => {
+        await expect(readClipboard(null)).rejects.toThrow();
+        await expect(readClipboard({ read: async () => { throw new Error('NotAllowedError'); } })).rejects.toThrow();
     });
 });
 
@@ -115,6 +191,13 @@ describe('error messages', () => {
         const error = httpError(413, '<html><head><title>413 Request Entity Too Large</title></head></html>');
         expect(attachmentErrorMessage(error)).toBe('This file is too large to upload.');
         expect(attachmentErrorCode(error)).toBeNull();
+    });
+
+    it('explains a full disk (507)', () => {
+        expect(attachmentErrorMessage(httpError(507, {
+            detail: { code: 'STORAGE_FULL', message: 'Uploads are paused: the server is out of space.' },
+        }))).toBe('Uploads are paused: the server is out of space.');
+        expect(attachmentErrorMessage(httpError(507, '<html></html>'))).toMatch(/no room/);
     });
 
     it('says when the connection failed', () => {
@@ -167,6 +250,106 @@ describe('the upload', () => {
         expect(attachmentErrorCode(error)).toBe('GUEST_LOGIN_REQUIRED');
     });
 
+    describe('a file over the 1 MB proxy limit', () => {
+        const big = (size) => {
+            const bytes = new Uint8Array(size).map((_, i) => i % 251);
+            return new File([bytes], 'notebook.ipynb', { type: '' });
+        };
+        const done = { id: 'big1', kind: 'file', format: 'Notebook', mime_type: 'application/x-ipynb+json', filename: 'notebook.ipynb', size_bytes: 1 };
+
+        it('goes up in chunks: start, each slice in order, complete', async () => {
+            const size = CHUNK_THRESHOLD_BYTES * 2 + 100;
+            const f = big(size);
+            axios.post
+                .mockResolvedValueOnce({ data: { upload_id: 'u1', chunk_bytes: CHUNK_THRESHOLD_BYTES, chunk_count: 3 } })
+                .mockResolvedValueOnce({ status: 201, data: done });
+            axios.put.mockImplementation((url, body, config) => {
+                config.onUploadProgress?.({ loaded: body.size });
+                return Promise.resolve({ status: 204 });
+            });
+            const onProgress = jest.fn();
+            const result = await uploadAttachment(f, { onProgress });
+
+            expect(axios.post.mock.calls[0][0]).toBe(`${ATTACHMENTS_ENDPOINT}/uploads`);
+            expect(axios.post.mock.calls[0][1]).toEqual({ filename: 'notebook.ipynb', size_bytes: size });
+            expect(axios.put.mock.calls.map((c) => c[0])).toEqual([0, 1, 2].map((i) => `${ATTACHMENTS_ENDPOINT}/uploads/u1/chunks/${i}`));
+            expect(axios.put.mock.calls.map((c) => c[1].size)).toEqual([CHUNK_THRESHOLD_BYTES, CHUNK_THRESHOLD_BYTES, 100]);
+            expect(axios.put.mock.calls[0][2].headers).toEqual({ 'Content-Type': 'application/octet-stream' });
+            // jsdom's Blob has no arrayBuffer(): read the slice the old way.
+            const readBytes = (blob) => new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(new Uint8Array(reader.result));
+                reader.readAsArrayBuffer(blob);
+            });
+            const second = await readBytes(axios.put.mock.calls[1][1]);
+            expect(second[0]).toBe(CHUNK_THRESHOLD_BYTES % 251);
+            expect(axios.post.mock.calls[1][0]).toBe(`${ATTACHMENTS_ENDPOINT}/uploads/u1/complete`);
+            expect(onProgress).toHaveBeenLastCalledWith(1);
+            expect(result).toEqual(expect.objectContaining({ id: 'big1', kind: 'file', format: 'Notebook' }));
+        });
+
+        it('retries a failed slice up to twice, then gives up', async () => {
+            const f = big(CHUNK_THRESHOLD_BYTES + 10);
+            axios.post
+                .mockResolvedValueOnce({ data: { upload_id: 'u2', chunk_bytes: CHUNK_THRESHOLD_BYTES, chunk_count: 2 } })
+                .mockResolvedValueOnce({ status: 201, data: done });
+            axios.put
+                .mockRejectedValueOnce(new Error('Network Error'))
+                .mockRejectedValueOnce({ response: { status: 502 } })
+                .mockResolvedValue({ status: 204 });
+            await uploadAttachment(f);
+            expect(axios.put).toHaveBeenCalledTimes(4); // chunk 0 three times, chunk 1 once
+
+            axios.post.mockReset();
+            axios.put.mockReset();
+            axios.post.mockResolvedValueOnce({ data: { upload_id: 'u3', chunk_bytes: CHUNK_THRESHOLD_BYTES, chunk_count: 2 } });
+            axios.put.mockRejectedValue(new Error('Network Error'));
+            await expect(uploadAttachment(f)).rejects.toThrow('Network Error');
+            expect(axios.put).toHaveBeenCalledTimes(3);
+            expect(axios.post).toHaveBeenCalledTimes(1); // never completed
+        });
+
+        it('does not retry an answer (a 4xx), and reads the backend refusal from complete', async () => {
+            const f = big(CHUNK_THRESHOLD_BYTES + 10);
+            axios.post.mockResolvedValueOnce({ data: { upload_id: 'u4', chunk_bytes: CHUNK_THRESHOLD_BYTES, chunk_count: 2 } });
+            const refusal = { response: { status: 413, data: { detail: { code: 'ATTACHMENT_TOO_LARGE', message: 'Too big.' } } } };
+            axios.put.mockRejectedValueOnce(refusal);
+            await expect(uploadAttachment(f)).rejects.toBe(refusal);
+            expect(axios.put).toHaveBeenCalledTimes(1);
+
+            axios.post.mockReset();
+            axios.put.mockReset();
+            const noText = { response: { status: 422, data: { detail: { code: 'FILE_NO_TEXT', message: 'Nothing to read.' } } } };
+            axios.post
+                .mockResolvedValueOnce({ data: { upload_id: 'u5', chunk_bytes: CHUNK_THRESHOLD_BYTES, chunk_count: 2 } })
+                .mockRejectedValueOnce(noText);
+            axios.put.mockResolvedValue({ status: 204 });
+            const error = await uploadAttachment(f).catch((e) => e);
+            expect(attachmentErrorMessage(error)).toBe('Nothing to read.');
+        });
+
+        it('stops sending slices once the upload is aborted', async () => {
+            const f = big(CHUNK_THRESHOLD_BYTES * 3);
+            const controller = new AbortController();
+            axios.post.mockResolvedValueOnce({ data: { upload_id: 'u6', chunk_bytes: CHUNK_THRESHOLD_BYTES, chunk_count: 3 } });
+            axios.put.mockImplementation(() => {
+                controller.abort();
+                return Promise.resolve({ status: 204 });
+            });
+            const error = await uploadAttachment(f, { signal: controller.signal }).catch((e) => e);
+            expect(error.code).toBe('ERR_CANCELED');
+            expect(axios.put).toHaveBeenCalledTimes(1);
+            expect(axios.post).toHaveBeenCalledTimes(1);
+        });
+
+        it('sends a file at the threshold in one request', async () => {
+            axios.post.mockResolvedValueOnce({ status: 201, data: done });
+            await uploadAttachment(big(CHUNK_THRESHOLD_BYTES));
+            expect(axios.post.mock.calls[0][0]).toBe(ATTACHMENTS_ENDPOINT);
+            expect(axios.put).not.toHaveBeenCalled();
+        });
+    });
+
     it('deletes quietly', async () => {
         axios.delete.mockRejectedValueOnce(new Error('gone'));
         await expect(deleteAttachment('abc')).resolves.toBeUndefined();
@@ -189,6 +372,25 @@ describe('shape', () => {
         expect(normalizeAttachmentList([null, { kind: 'pdf' }, { id: 'p1', mime_type: 'application/pdf' }]))
             .toEqual([expect.objectContaining({ id: 'p1', kind: 'pdf', filename: 'document.pdf' })]);
         expect(normalizeAttachmentList(undefined)).toEqual([]);
+    });
+
+    it('keeps `format` and calls anything but a picture or a PDF a "file"', () => {
+        expect(normalizeAttachment({ id: 'f1', kind: 'file', format: 'Python', filename: 'a.py', size_bytes: 4096 }))
+            .toEqual(expect.objectContaining({ kind: 'file', format: 'Python' }));
+        expect(normalizeAttachment({ id: 'f2', kind: 'spreadsheet', mime_type: 'text/csv' }).kind).toBe('file');
+        expect(normalizeAttachment({ id: 'f3', mime_type: 'text/x-python' })).toEqual(
+            expect.objectContaining({ kind: 'file', filename: 'file' }),
+        );
+    });
+
+    it('describes a file by its format, pages and size', () => {
+        expect(attachmentMetaText({ format: 'Python', size_bytes: 4096 })).toBe('Python · 4 KB');
+        expect(attachmentMetaText({ format: 'PDF', page_count: 4, size_bytes: 2048 })).toBe('PDF · 4 pages · 2 KB');
+        expect(attachmentMetaText({ format: 'Word', size_bytes: 2 * 1024 * 1024 })).toBe('Word · 2 MB');
+        expect(attachmentMetaText({ filename: 'nb.ipynb', size_bytes: 120 * 1024 })).toBe('Notebook · 120 KB');
+        expect(isCodeFormat('Python')).toBe(true);
+        expect(isCodeFormat('notebook')).toBe(true);
+        expect(isCodeFormat('Word')).toBe(false);
     });
 
     it('sends ids, and asks for a summary when there are no words', () => {

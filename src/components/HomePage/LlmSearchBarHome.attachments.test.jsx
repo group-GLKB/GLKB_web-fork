@@ -1,4 +1,4 @@
-/** Images and PDFs on the home page's first question: signed-in readers, AI Chat only. */
+/** Files on the home page's first question: signed-in readers, AI Chat only. */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -58,7 +58,7 @@ const renderBar = () => render(
     />,
 );
 
-const paperclip = () => screen.getByRole('button', { name: 'Attach images or PDFs' });
+const paperclip = () => screen.getByRole('button', { name: 'Add files or photos' });
 const startChat = () => {
     const button = screen.getByRole('button', { name: 'Start chat' });
     fireEvent.mouseDown(button);
@@ -72,10 +72,10 @@ const pdf = () => new File(['%PDF'], 'paper.pdf', { type: 'application/pdf' });
 it('asks a guest to sign in instead of opening the file picker', () => {
     renderBar();
     fireEvent.click(paperclip());
-    expect(mockAuth.openLoginModal).toHaveBeenCalledWith("Sign in to attach images and PDFs — it's free.");
+    expect(mockAuth.openLoginModal).toHaveBeenCalledWith("Sign in to attach files — it's free.");
 });
 
-it('turns the paperclip off on Investigate', () => {
+it('turns the + button off on Investigate', () => {
     mockAuth.isAuthenticated = true;
     renderBar();
     expect(paperclip()).toBeEnabled();
@@ -90,7 +90,7 @@ it('hands the uploaded files to the chat with the first question, and asks for a
     });
     renderBar();
     pick([pdf()]);
-    expect(await screen.findByText('3 pages · 4 B')).toBeInTheDocument();
+    expect(await screen.findByText('PDF · 3 pages · 4 B')).toBeInTheDocument();
     startChat();
     expect(mockNavigate).toHaveBeenCalledWith('/chat/new', expect.objectContaining({
         state: expect.objectContaining({
@@ -113,4 +113,35 @@ it('holds the question back while a file is still uploading', async () => {
     await waitFor(() => expect(uploadAttachment).toHaveBeenCalled());
     startChat();
     expect(mockNavigate).not.toHaveBeenCalled();
+});
+
+it('attaches a long paste as "Pasted text.txt" for a signed-in reader', async () => {
+    mockAuth.isAuthenticated = true;
+    uploadAttachment.mockReturnValue(new Promise(() => {}));
+    renderBar();
+    const box = screen.getByPlaceholderText(/Ask a question about the biomedical literature/i);
+    fireEvent.paste(box, { clipboardData: { files: [], items: [], getData: () => 'y'.repeat(4500) } });
+    // (The upload itself is mocked; CRA's resetMocks leaves the mocked resize returning nothing,
+    // so the chip — named from the pasted file — is what shows the paste became an attachment.)
+    await waitFor(() => expect(uploadAttachment).toHaveBeenCalled());
+    expect(screen.getByText('Pasted text.txt')).toBeInTheDocument();
+    expect(box).toHaveValue('');
+});
+
+it("leaves a guest's long paste in the box rather than attaching it", () => {
+    renderBar();
+    const box = screen.getByPlaceholderText(/Ask a question about the biomedical literature/i);
+    fireEvent.paste(box, { clipboardData: { files: [], items: [], getData: () => 'y'.repeat(4500) } });
+    expect(uploadAttachment).not.toHaveBeenCalled();
+    expect(mockAuth.openLoginModal).not.toHaveBeenCalled();
+});
+
+it('uploads a notebook picked from the + menu', async () => {
+    mockAuth.isAuthenticated = true;
+    uploadAttachment.mockResolvedValueOnce({
+        id: 'n1', kind: 'file', format: 'Notebook', mime_type: 'application/x-ipynb+json', filename: 'run.ipynb', size_bytes: 2048,
+    });
+    renderBar();
+    pick([new File(['{}'], 'run.ipynb', { type: '' })]);
+    expect(await screen.findByText('Notebook · 2 KB')).toBeInTheDocument();
 });

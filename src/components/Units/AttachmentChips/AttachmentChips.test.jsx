@@ -1,6 +1,6 @@
 /**
- * The composer's paperclip and pending chips, the hook behind them, and the files on a sent
- * message.
+ * The composer's "+" button and its menu, the pending chips, the hook behind them, and the
+ * files on a sent message.
  */
 import React from 'react';
 import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
@@ -11,6 +11,7 @@ import {
     AttachmentChips,
     attachmentBlockedNote,
     MessageAttachments,
+    PASTE_HINT,
 } from './index';
 import useAttachments from './useAttachments';
 import {
@@ -69,8 +70,23 @@ describe('the chips', () => {
         expect(screen.getByRole('progressbar', { name: 'Uploading fig.png' })).toHaveAttribute('aria-valuenow', '42');
         expect(screen.getByText('Uploading… 42%')).toBeInTheDocument();
         expect(screen.getByRole('alert')).toHaveTextContent('This PDF has no selectable text');
-        expect(screen.getByText('12 pages · 3 MB')).toBeInTheDocument();
-        expect(screen.getByText('Long PDF — only the first part will be read')).toBeInTheDocument();
+        expect(screen.getByText('PDF · 12 pages · 3 MB')).toBeInTheDocument();
+        expect(screen.getByText('Long file — only the first part will be read')).toBeInTheDocument();
+    });
+
+    it('labels a file by its format, with a code icon for code and a document icon otherwise', () => {
+        const files = [
+            { key: 'py', kind: 'file', name: 'analysis.py', size: 4096, status: 'ready', attachment: { id: 'f1', kind: 'file', format: 'Python', size_bytes: 4096 } },
+            { key: 'nb', kind: 'file', name: 'run.ipynb', size: 1, status: 'ready', attachment: { id: 'f2', kind: 'file', format: 'Notebook', size_bytes: 120 * 1024 } },
+            { key: 'doc', kind: 'file', name: 'notes.docx', size: 1, status: 'ready', attachment: { id: 'f3', kind: 'file', format: 'Word', size_bytes: 2 * 1024 * 1024 } },
+        ];
+        const { container } = render(<AttachmentChips items={files} onRemove={() => {}} />);
+        expect(screen.getByText('Python · 4 KB')).toBeInTheDocument();
+        expect(screen.getByText('Notebook · 120 KB')).toBeInTheDocument();
+        expect(screen.getByText('Word · 2 MB')).toBeInTheDocument();
+        const icons = Array.from(container.querySelectorAll('.attachment-chip-icon svg'))
+            .map((svg) => svg.getAttribute('data-testid'));
+        expect(icons).toEqual(['CodeIcon', 'CodeIcon', 'DescriptionOutlinedIcon']);
     });
 
     it('removes the chip that was asked for', () => {
@@ -94,35 +110,71 @@ describe('the chips', () => {
     });
 });
 
-describe('the paperclip', () => {
-    it('asks a guest to sign in instead of opening the file picker', () => {
-        const onRequireSignIn = jest.fn();
-        const onFiles = jest.fn();
-        render(<AttachButton isGuest onRequireSignIn={onRequireSignIn} onFiles={onFiles} />);
-        const input = screen.getByTestId('attachment-file-input');
-        const pick = jest.spyOn(input, 'click');
-        fireEvent.click(screen.getByRole('button', { name: 'Attach images or PDFs' }));
-        expect(onRequireSignIn).toHaveBeenCalledTimes(1);
-        expect(pick).not.toHaveBeenCalled();
+describe('the + button', () => {
+    const plus = () => screen.getByRole('button', { name: 'Add files or photos' });
+    const originalClipboard = navigator.clipboard;
+    afterEach(() => {
+        Object.defineProperty(navigator, 'clipboard', { value: originalClipboard, configurable: true });
     });
 
-    it('opens the picker for a signed-in reader and hands over what was picked', () => {
+    it('asks a guest to sign in instead of opening the menu', () => {
+        const onRequireSignIn = jest.fn();
+        render(<AttachButton isGuest onRequireSignIn={onRequireSignIn} onFiles={jest.fn()} />);
+        fireEvent.click(plus());
+        expect(onRequireSignIn).toHaveBeenCalledTimes(1);
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    });
+
+    it('opens a menu whose first item opens the picker, for any file type', () => {
         const onFiles = jest.fn();
         render(<AttachButton onFiles={onFiles} />);
         const input = screen.getByTestId('attachment-file-input');
         const pick = jest.spyOn(input, 'click');
-        fireEvent.click(screen.getByRole('button', { name: 'Attach images or PDFs' }));
+        fireEvent.click(plus());
+        expect(screen.getByRole('menu')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Add files or photos' }));
         expect(pick).toHaveBeenCalledTimes(1);
-        expect(input).toHaveAttribute('accept', 'image/png,image/jpeg,image/webp,application/pdf');
-        const picked = file('fig.png', 'image/png');
-        fireEvent.change(input, { target: { files: [picked] } });
-        expect(onFiles).toHaveBeenCalledWith([picked]);
+        expect(input).not.toHaveAttribute('accept');
+        const picked = [file('analysis.py', 'text/x-python'), file('run.ipynb', '')];
+        fireEvent.change(input, { target: { files: picked } });
+        expect(onFiles).toHaveBeenCalledWith(picked);
+    });
+
+    it('pastes images and text from the clipboard', async () => {
+        const blob = new Blob(['img'], { type: 'image/png' });
+        Object.defineProperty(navigator, 'clipboard', {
+            configurable: true,
+            value: {
+                read: async () => [
+                    { types: ['image/png'], getType: async () => blob },
+                    { types: ['text/plain'], getType: async () => ({ text: async () => 'a short note' }) },
+                ],
+            },
+        });
+        const onFiles = jest.fn();
+        const onText = jest.fn();
+        render(<AttachButton onFiles={onFiles} onText={onText} onNotice={jest.fn()} />);
+        fireEvent.click(plus());
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Paste from clipboard' }));
+        await waitFor(() => expect(onFiles).toHaveBeenCalled());
+        expect(onFiles.mock.calls[0][0][0].name).toBe('Pasted image.png');
+        expect(onText).toHaveBeenCalledWith('a short note');
+    });
+
+    it('says to press Ctrl+V when the clipboard cannot be read here', async () => {
+        Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined });
+        const onNotice = jest.fn();
+        render(<AttachButton onFiles={jest.fn()} onNotice={onNotice} />);
+        fireEvent.click(plus());
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Paste from clipboard' }));
+        await waitFor(() => expect(onNotice).toHaveBeenCalledWith(PASTE_HINT));
+        expect(PASTE_HINT).toMatch(/Ctrl\+V/);
     });
 
     it('is disabled, with the reason, where attachments do not work', () => {
         const onRequireSignIn = jest.fn();
         render(<AttachButton disabled disabledReason="Attachments work in AI Chat" isGuest onRequireSignIn={onRequireSignIn} />);
-        const button = screen.getByRole('button', { name: 'Attach images or PDFs' });
+        const button = plus();
         expect(button).toBeDisabled();
         expect(button.parentElement).toHaveAttribute('aria-label', 'Attachments work in AI Chat');
     });
@@ -158,9 +210,40 @@ describe('the files waiting on a composer', () => {
 
     it('never uploads a file it can tell is not allowed', () => {
         const { result } = renderHook(() => useAttachments());
-        act(() => { result.current.addFiles([file('a.gif', 'image/gif')]); });
+        act(() => { result.current.addFiles([file('talk.mp4', 'video/mp4'), file('code.zip', '')]); });
         expect(uploadAttachment).not.toHaveBeenCalled();
-        expect(result.current.items[0]).toMatchObject({ status: 'error' });
+        expect(result.current.items.map((item) => item.error)).toEqual([
+            "This file type can't be attached.", "This file type can't be attached.",
+        ]);
+    });
+
+    it('uploads code, notebooks and documents as files', async () => {
+        uploadAttachment.mockResolvedValue({ id: 'f1', kind: 'file', format: 'Python', filename: 'a.py', size_bytes: 1 });
+        const { result } = renderHook(() => useAttachments());
+        act(() => { result.current.addFiles([file('a.py', 'text/x-python'), file('b.ipynb', '')]); });
+        expect(result.current.items.map((item) => item.kind)).toEqual(['file', 'file']);
+        await waitFor(() => expect(result.current.readyAttachments).toHaveLength(2));
+        expect(uploadAttachment).toHaveBeenCalledTimes(2);
+    });
+
+    it('shows a notice it is handed (the paste hint)', () => {
+        const { result } = renderHook(() => useAttachments());
+        act(() => { result.current.showNotice('Press Ctrl+V'); });
+        expect(result.current.notice).toBe('Press Ctrl+V');
+    });
+
+    it('aborts an upload in flight when its chip is removed', async () => {
+        let seenSignal = null;
+        uploadAttachment.mockImplementationOnce((f, { signal }) => {
+            seenSignal = signal;
+            return new Promise(() => {});
+        });
+        const { result } = renderHook(() => useAttachments());
+        act(() => { result.current.addFiles([file('big.ipynb', '', 5 * 1024 * 1024)]); });
+        await waitFor(() => expect(seenSignal).not.toBeNull());
+        act(() => { result.current.remove(result.current.items[0].key); });
+        expect(seenSignal.aborted).toBe(true);
+        expect(deleteAttachment).not.toHaveBeenCalled();
     });
 
     it('asks a guest to sign in when the backend refuses the upload as theirs', async () => {
@@ -197,10 +280,15 @@ describe('the files waiting on a composer', () => {
         uploadAttachment.mockReturnValue(new Promise(() => {}));
         const { result } = renderHook(() => useAttachments());
         act(() => {
-            result.current.addFiles([1, 2, 3, 4, 5].map((n) => file(`f${n}.png`, 'image/png')));
+            result.current.addFiles([1, 2, 3, 4, 5, 6].map((n) => file(`f${n}.png`, 'image/png')));
         });
-        expect(result.current.items).toHaveLength(4);
-        expect(result.current.notice).toBe('Up to 4 images per message.');
+        expect(result.current.items).toHaveLength(5);
+        expect(result.current.notice).toBe('Up to 5 images per message.');
+        act(() => {
+            result.current.addFiles([1, 2, 3, 4, 5, 6].map((n) => file(`s${n}.py`, 'text/x-python')));
+        });
+        expect(result.current.items).toHaveLength(10);
+        expect(result.current.notice).toBe('Up to 10 files per message.');
     });
 });
 
@@ -222,8 +310,22 @@ describe('the files on a sent message', () => {
 
     it('shows a PDF with its name and pages', () => {
         render(<MessageAttachments attachments={[{ id: 'p1', kind: 'pdf', filename: 'paper.pdf', page_count: 1, size_bytes: 2048 }]} />);
-        expect(screen.getByRole('button', { name: /paper\.pdf/ })).toHaveTextContent('1 page · 2 KB');
+        expect(screen.getByRole('button', { name: /paper\.pdf/ })).toHaveTextContent('PDF · 1 page · 2 KB');
         expect(attachmentObjectUrl).not.toHaveBeenCalled();
+    });
+
+    it('shows a code file with its format, and opens it on click', async () => {
+        attachmentObjectUrl.mockResolvedValueOnce('blob:code');
+        const opened = { location: { href: '' }, close: jest.fn() };
+        jest.spyOn(window, 'open').mockReturnValue(opened);
+        const { container } = render(<MessageAttachments attachments={[{ id: 'f1', kind: 'file', format: 'Python', filename: 'analysis.py', size_bytes: 4096 }]} />);
+        const tile = screen.getByRole('button', { name: /analysis\.py/ });
+        expect(tile).toHaveTextContent('Python · 4 KB');
+        expect(tile).toHaveClass('is-file');
+        expect(container.querySelector('[data-testid="CodeIcon"]')).not.toBeNull();
+        fireEvent.click(tile);
+        await waitFor(() => expect(opened.location.href).toBe('blob:code'));
+        window.open.mockRestore();
     });
 
     it('draws nothing for a message without attachments', () => {

@@ -1,5 +1,5 @@
 /**
- * Attachments on a chat question (service/attachments.js): the composer's paperclip and its
+ * Attachments on a chat question (service/attachments.js): the composer's "+" button and its
  * pending chips, and the files shown on a message once it has been sent.
  *
  * Used by both composers (the home search bar and the chat's) and by the conversation, so the
@@ -9,25 +9,48 @@ import './scoped.css';
 
 import React, { useEffect, useRef, useState } from 'react';
 
+import AddIcon from '@mui/icons-material/Add';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import CloseIcon from '@mui/icons-material/Close';
+import CodeIcon from '@mui/icons-material/Code';
+import ContentPasteIcon from '@mui/icons-material/ContentPaste';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
-import { Tooltip } from '@mui/material';
+import {
+    ListItemIcon,
+    ListItemText,
+    Menu,
+    MenuItem,
+    Tooltip,
+} from '@mui/material';
 
 import {
-    ATTACHMENT_ACCEPT,
+    attachmentMetaText,
     attachmentObjectUrl,
-    formatBytes,
+    formatLabelForName,
+    isCodeFormat,
     normalizeAttachmentList,
+    readClipboard,
 } from '../../../service/attachments';
 import { trackGtagEvent } from '../../../utils/gtag';
 
 export { default as useAttachments } from './useAttachments';
 
-const ATTACH_LABEL = 'Attach images or PDFs';
+const ATTACH_LABEL = 'Add files or photos';
+export const PASTE_HINT = 'Press Ctrl+V (⌘V on a Mac) in the message box to paste.';
 
-/** The files on a drop or a paste, images and PDFs alike (the hook sorts out what is allowed). */
+/** The icon for a file that is not a picture: code, PDF, or a plain document. */
+export const FileKindIcon = ({ kind, format, filename, className = '' }) => {
+    if (kind === 'image') return <ImageOutlinedIcon className={className} fontSize="inherit" />;
+    if (kind === 'pdf') return <PictureAsPdfOutlinedIcon className={className} fontSize="inherit" />;
+    if (isCodeFormat(format || formatLabelForName(filename))) {
+        return <CodeIcon className={className} fontSize="inherit" />;
+    }
+    return <DescriptionOutlinedIcon className={className} fontSize="inherit" />;
+};
+
+/** The files on a drop or a paste, of any type (the hook sorts out what is allowed). */
 export const filesFromTransfer = (transfer) => {
     if (!transfer) return [];
     const fromFiles = Array.from(transfer.files || []);
@@ -46,11 +69,18 @@ export const dragHasFiles = (event) => {
 };
 
 /**
- * The paperclip. A guest is asked to sign in instead of being shown the file picker; on
- * Investigate it is disabled, with the reason as its tooltip.
+ * The "+" button, as in Claude and ChatGPT: a small menu to add files or photos (any type — the
+ * backend reads each as a picture or as text) or to paste what is on the clipboard. A guest is
+ * asked to sign in instead; on Investigate it is disabled, with the reason as its tooltip.
+ *
+ * `onFiles` gets the picked or pasted files; `onText` gets short pasted text (a long one arrives
+ * as "Pasted text.txt" in `onFiles`); `onNotice` gets the hint shown when the clipboard cannot be
+ * read here (no permission, or a browser without the Clipboard API).
  */
 export const AttachButton = ({
     onFiles,
+    onText,
+    onNotice,
     isGuest = false,
     onRequireSignIn,
     disabled = false,
@@ -59,53 +89,100 @@ export const AttachButton = ({
     className = '',
 }) => {
     const inputRef = useRef(null);
+    const buttonRef = useRef(null);
+    const [menuOpen, setMenuOpen] = useState(false);
     const title = disabled && disabledReason ? disabledReason : ATTACH_LABEL;
+    const stop = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+    };
+    const close = () => setMenuOpen(false);
+    const pickFiles = () => {
+        close();
+        trackGtagEvent('chat_attach_click', { source, via: 'menu' });
+        inputRef.current?.click();
+    };
+    const pasteClipboard = async () => {
+        close();
+        trackGtagEvent('chat_attach_paste_click', { source });
+        try {
+            const { files, text } = await readClipboard();
+            if (files.length) onFiles?.(files);
+            if (text) onText?.(text);
+            if (!files.length && !text) onNotice?.('The clipboard is empty.');
+        } catch (error) {
+            onNotice?.(PASTE_HINT);
+        }
+    };
     return (
-        <Tooltip title={title} placement="top" arrow>
-            {/* A span, because a tooltip on a disabled button never sees the pointer. */}
-            <span className={`attach-button-wrap ${className}`.trim()}>
-                <button
-                    type="button"
-                    className="attach-button"
-                    aria-label={ATTACH_LABEL}
-                    disabled={disabled}
-                    onMouseDown={(event) => {
-                        // Keeps focus (and, on the home page, the example list) where it was.
-                        event.preventDefault();
-                        event.stopPropagation();
-                    }}
-                    onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        if (disabled) return;
-                        if (isGuest) {
-                            trackGtagEvent('chat_attach_sign_in_prompt', { source });
-                            onRequireSignIn?.();
-                            return;
-                        }
-                        trackGtagEvent('chat_attach_click', { source });
-                        inputRef.current?.click();
-                    }}
-                >
-                    <AttachFileIcon className="attach-button-icon" />
-                </button>
-                <input
-                    ref={inputRef}
-                    type="file"
-                    accept={ATTACHMENT_ACCEPT}
-                    multiple
-                    hidden
-                    data-testid="attachment-file-input"
-                    onClick={(event) => event.stopPropagation()}
-                    onChange={(event) => {
-                        const files = Array.from(event.target.files || []);
-                        // Cleared so picking the same file again still fires a change.
-                        event.target.value = '';
-                        if (files.length) onFiles?.(files);
-                    }}
-                />
-            </span>
-        </Tooltip>
+        <>
+            <Tooltip title={menuOpen ? '' : title} placement="top" arrow>
+                {/* A span, because a tooltip on a disabled button never sees the pointer. */}
+                <span className={`attach-button-wrap ${className}`.trim()}>
+                    <button
+                        ref={buttonRef}
+                        type="button"
+                        className="attach-button"
+                        aria-label={ATTACH_LABEL}
+                        aria-haspopup="menu"
+                        aria-expanded={menuOpen}
+                        disabled={disabled}
+                        onMouseDown={(event) => {
+                            // Keeps focus (and, on the home page, the example list) where it was.
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }}
+                        onClick={(event) => {
+                            stop(event);
+                            if (disabled) return;
+                            if (isGuest) {
+                                trackGtagEvent('chat_attach_sign_in_prompt', { source });
+                                onRequireSignIn?.();
+                                return;
+                            }
+                            setMenuOpen((open) => !open);
+                        }}
+                    >
+                        <AddIcon className="attach-button-icon" />
+                    </button>
+                    <input
+                        ref={inputRef}
+                        type="file"
+                        multiple
+                        hidden
+                        data-testid="attachment-file-input"
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={(event) => {
+                            const files = Array.from(event.target.files || []);
+                            // Cleared so picking the same file again still fires a change.
+                            event.target.value = '';
+                            if (files.length) onFiles?.(files);
+                        }}
+                    />
+                </span>
+            </Tooltip>
+            <Menu
+                anchorEl={buttonRef.current}
+                open={menuOpen && !disabled}
+                onClose={close}
+                anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
+                transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                // React events bubble through the portal: keep them away from the composer
+                // (the home page's Autocomplete would take focus and open its example list).
+                onMouseDown={(event) => event.stopPropagation()}
+                onClick={(event) => event.stopPropagation()}
+                slotProps={{ paper: { className: 'attach-menu' } }}
+            >
+                <MenuItem onClick={pickFiles}>
+                    <ListItemIcon><AttachFileIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>Add files or photos</ListItemText>
+                </MenuItem>
+                <MenuItem onClick={pasteClipboard}>
+                    <ListItemIcon><ContentPasteIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>Paste from clipboard</ListItemText>
+                </MenuItem>
+            </Menu>
+        </>
     );
 };
 
@@ -114,15 +191,7 @@ const chipMeta = (item) => {
         return `Uploading… ${Math.round((Number(item.progress) || 0) * 100)}%`;
     }
     if (item.status === 'error') return item.error || 'Upload failed.';
-    const attachment = item.attachment || {};
-    const pages = Number(attachment.page_count);
-    const parts = [];
-    if (item.kind === 'pdf' && Number.isFinite(pages) && pages > 0) {
-        parts.push(`${pages} page${pages === 1 ? '' : 's'}`);
-    }
-    const size = formatBytes(attachment.size_bytes ?? item.size);
-    if (size) parts.push(size);
-    return parts.join(' · ');
+    return attachmentMetaText(item.attachment, { fallbackName: item.name, fallbackSize: item.size });
 };
 
 /**
@@ -151,9 +220,11 @@ export const AttachmentChips = ({ items = [], notice = '', blockedNote = '', onR
                                 <img className="attachment-chip-thumb" src={item.previewUrl} alt="" />
                             ) : (
                                 <span className="attachment-chip-icon" aria-hidden="true">
-                                    {item.kind === 'image'
-                                        ? <ImageOutlinedIcon fontSize="inherit" />
-                                        : <PictureAsPdfOutlinedIcon fontSize="inherit" />}
+                                    <FileKindIcon
+                                        kind={item.kind}
+                                        format={item.attachment?.format}
+                                        filename={item.name}
+                                    />
                                 </span>
                             )}
                             <span className="attachment-chip-text">
@@ -166,7 +237,7 @@ export const AttachmentChips = ({ items = [], notice = '', blockedNote = '', onR
                                 </span>
                                 {item.status === 'ready' && item.attachment?.truncated && (
                                     <span className="attachment-chip-warning">
-                                        Long PDF — only the first part will be read
+                                        Long file — only the first part will be read
                                     </span>
                                 )}
                             </span>
@@ -256,13 +327,10 @@ const ImageTile = ({ attachment }) => {
     );
 };
 
-const PdfTile = ({ attachment }) => {
+/** A sent file that is not a picture (PDF, code, a notebook, a document): opens in a new tab. */
+const FileTile = ({ attachment }) => {
     const [failed, setFailed] = useState(false);
-    const pages = Number(attachment.page_count);
-    const meta = [
-        Number.isFinite(pages) && pages > 0 ? `${pages} page${pages === 1 ? '' : 's'}` : '',
-        formatBytes(attachment.size_bytes),
-    ].filter(Boolean).join(' · ');
+    const meta = attachmentMetaText(attachment);
     const open = () => {
         // Opened now, filled when the bytes arrive: a window opened after an await is a popup
         // the browser blocks.
@@ -281,12 +349,17 @@ const PdfTile = ({ attachment }) => {
     return (
         <button
             type="button"
-            className={`message-attachment is-pdf${failed ? ' is-unavailable' : ''}`}
+            className={`message-attachment is-${attachment.kind === 'pdf' ? 'pdf' : 'file'}${failed ? ' is-unavailable' : ''}`}
             title={attachment.filename}
             onClick={open}
             disabled={failed}
         >
-            <PictureAsPdfOutlinedIcon className="message-attachment-pdf-icon" fontSize="inherit" />
+            <FileKindIcon
+                kind={attachment.kind}
+                format={attachment.format}
+                filename={attachment.filename}
+                className="message-attachment-pdf-icon"
+            />
             <span className="message-attachment-text">
                 <span className="message-attachment-name">{attachment.filename}</span>
                 <span className="message-attachment-meta">{failed ? 'File unavailable' : meta}</span>
@@ -303,7 +376,7 @@ export const MessageAttachments = ({ attachments }) => {
         <div className="message-attachments" data-testid="message-attachments">
             {list.map((attachment) => (attachment.kind === 'image'
                 ? <ImageTile key={attachment.id} attachment={attachment} />
-                : <PdfTile key={attachment.id} attachment={attachment} />))}
+                : <FileTile key={attachment.id} attachment={attachment} />))}
         </div>
     );
 };

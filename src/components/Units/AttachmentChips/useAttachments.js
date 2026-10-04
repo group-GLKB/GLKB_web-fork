@@ -91,7 +91,7 @@ const useAttachments = ({ onRequireSignIn } = {}) => {
             keySeq += 1;
             const key = `att-${Date.now()}-${keySeq}`;
             const invalid = validateFile(file);
-            const kind = kindOf(file) || 'pdf';
+            const kind = kindOf(file);
             let previewUrl = null;
             if (!invalid && kind === 'image' && typeof URL?.createObjectURL === 'function') {
                 try {
@@ -105,7 +105,7 @@ const useAttachments = ({ onRequireSignIn } = {}) => {
                 key,
                 file,
                 kind,
-                name: file.name || (kind === 'image' ? 'Pasted image' : 'Document.pdf'),
+                name: file.name || (kind === 'image' ? 'Pasted image' : (kind === 'pdf' ? 'Document.pdf' : 'File')),
                 size: Number(file.size) || 0,
                 previewUrl,
                 status: invalid ? 'error' : 'uploading',
@@ -155,6 +155,11 @@ const useAttachments = ({ onRequireSignIn } = {}) => {
         };
     }, []);
 
+    /** A one-line note under the chips (e.g. how to paste when the clipboard cannot be read). */
+    const showNotice = useCallback((message) => {
+        if (mountedRef.current) setNotice(String(message || ''));
+    }, []);
+
     const readyAttachments = useMemo(
         () => items.filter((item) => item.status === 'ready' && item.attachment).map((item) => item.attachment),
         [items],
@@ -165,6 +170,7 @@ const useAttachments = ({ onRequireSignIn } = {}) => {
     return {
         items,
         notice,
+        showNotice,
         addFiles,
         remove,
         clear,

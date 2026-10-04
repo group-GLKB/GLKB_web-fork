@@ -45,6 +45,7 @@ import {
     defaultQuestionFor,
     GUEST_ATTACH_REASON,
     INVESTIGATE_ATTACH_NOTE,
+    pastedAttachments,
 } from '../../service/attachments';
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
@@ -496,8 +497,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         <TextField
                             {...params}
                             onPaste={(event) => {
-                                // Only a paste that carries files is taken over.
-                                const files = filesFromTransfer(event.clipboardData);
+                                /* Files of any type attach; a very long text becomes "Pasted
+                                   text.txt" (as in Claude) where a file could be attached. */
+                                const files = pastedAttachments(event.clipboardData, {
+                                    longText: !isGuest && !attachmentsOffForMode && !isInputLocked,
+                                });
                                 if (!files.length) return;
                                 event.preventDefault();
                                 takeFiles(files);
@@ -775,6 +779,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 >
                                 <AttachButton
                                     onFiles={takeFiles}
+                                    onText={(text) => {
+                                        if (!isInputLocked) setLlmQuery((prev) => `${prev}${text}`);
+                                    }}
+                                    onNotice={attachments.showNotice}
                                     isGuest={isGuest}
                                     onRequireSignIn={() => openLoginModal(GUEST_ATTACH_REASON)}
                                     disabled={attachmentsOffForMode || isInputLocked}

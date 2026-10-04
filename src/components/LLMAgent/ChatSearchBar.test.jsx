@@ -249,6 +249,7 @@ describe('attachments', () => {
         addFiles: jest.fn(),
         remove: jest.fn(),
         clear: jest.fn(),
+        showNotice: jest.fn(),
         ...overrides,
     });
     const readyPdf = {
@@ -265,11 +266,11 @@ describe('attachments', () => {
         hasItems: true,
         ...overrides,
     });
-    const paperclip = () => screen.getByRole('button', { name: 'Attach images or PDFs' });
+    const paperclip = () => screen.getByRole('button', { name: 'Add files or photos' });
 
-    it('shows no paperclip when the parent offers no attachments', () => {
+    it('shows no + button when the parent offers no attachments', () => {
         setup();
-        expect(screen.queryByRole('button', { name: 'Attach images or PDFs' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Add files or photos' })).not.toBeInTheDocument();
     });
 
     it('asks a guest to sign in instead of opening the file picker', () => {
@@ -312,15 +313,42 @@ describe('attachments', () => {
         expect(onSubmit).not.toHaveBeenCalled();
     });
 
-    it('takes a pasted image, and leaves a text paste alone', () => {
+    it('takes pasted files of any type, and leaves a short text paste alone', () => {
         const attachments = controller();
         setup({ attachments });
         const image = new File(['x'], 'image.png', { type: 'image/png' });
-        fireEvent.paste(field(), { clipboardData: { files: [image], items: [] } });
-        expect(attachments.addFiles).toHaveBeenCalledWith([image]);
+        const script = new File(['print(1)'], 'analysis.py', { type: 'text/x-python' });
+        fireEvent.paste(field(), { clipboardData: { files: [image, script], items: [] } });
+        expect(attachments.addFiles).toHaveBeenCalledWith([image, script]);
         attachments.addFiles.mockClear();
         fireEvent.paste(field(), { clipboardData: { files: [], items: [], getData: () => 'text' } });
         expect(attachments.addFiles).not.toHaveBeenCalled();
+    });
+
+    it('turns a very long text paste into "Pasted text.txt", as Claude does', () => {
+        const attachments = controller();
+        const { setUserInput } = setup({ attachments });
+        const long = 'x'.repeat(4001);
+        fireEvent.paste(field(), { clipboardData: { files: [], items: [], getData: () => long } });
+        expect(attachments.addFiles).toHaveBeenCalledTimes(1);
+        const [[pasted]] = attachments.addFiles.mock.calls[0];
+        expect(pasted.name).toBe('Pasted text.txt');
+        expect(pasted.size).toBe(4001);
+        expect(setUserInput).not.toHaveBeenCalled();
+    });
+
+    it('lets a long paste land in the box where nothing can be attached (Investigate)', () => {
+        const attachments = controller();
+        setup({ attachments, pipelineIsDeepResearch: true });
+        fireEvent.paste(field(), { clipboardData: { files: [], items: [], getData: () => 'x'.repeat(5000) } });
+        expect(attachments.addFiles).not.toHaveBeenCalled();
+    });
+
+    it('opens the + menu with both ways to attach', () => {
+        setup({ attachments: controller() });
+        fireEvent.click(paperclip());
+        expect(screen.getByRole('menuitem', { name: 'Add files or photos' })).toBeInTheDocument();
+        expect(screen.getByRole('menuitem', { name: 'Paste from clipboard' })).toBeInTheDocument();
     });
 
     it('takes files dropped on the composer', () => {

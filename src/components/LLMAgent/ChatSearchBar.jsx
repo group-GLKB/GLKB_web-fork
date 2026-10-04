@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
-import { INVESTIGATE_ATTACH_NOTE } from '../../service/attachments';
+import { INVESTIGATE_ATTACH_NOTE, pastedAttachments } from '../../service/attachments';
 import { trackGtagEvent } from '../../utils/gtag';
 import {
     AttachButton,
@@ -64,7 +64,7 @@ const ChatSearchBar = ({
        be typed in. */
     const canType = !isQueryLimitReached;
     /* Attachments are AI Chat only (the Investigate pipeline does not read them), and a guest's
-       question has no owner to keep a file for — so the paperclip is off on one and asks the
+       question has no owner to keep a file for — so the "+" button is off on one and asks the
        other to sign in. Chips already waiting when the conversation is an Investigate one
        hold the send back with a note rather than being dropped without a word. */
     const attachDisabled = pipelineIsDeepResearch || !canType;
@@ -147,9 +147,13 @@ const ChatSearchBar = ({
                 size="small"
                 value={userInput}
                 onPaste={(event) => {
-                    // Only a paste that carries files is taken over; text pastes as always.
+                    /* A paste that carries files (any type) attaches them; a very long text
+                       becomes "Pasted text.txt", as in Claude — but only where a file could be
+                       attached, so a guest's or an Investigate paste still lands in the box. */
                     if (!attachments) return;
-                    const files = filesFromTransfer(event.clipboardData);
+                    const files = pastedAttachments(event.clipboardData, {
+                        longText: !isGuest && !attachDisabled,
+                    });
                     if (!files.length) return;
                     event.preventDefault();
                     takeFiles(files);
@@ -222,6 +226,10 @@ const ChatSearchBar = ({
                             {attachments && (
                                 <AttachButton
                                     onFiles={takeFiles}
+                                    onText={(text) => {
+                                        if (canType) setUserInput(`${userInput}${text}`);
+                                    }}
+                                    onNotice={attachments.showNotice}
                                     isGuest={isGuest}
                                     onRequireSignIn={onAttachRequireSignIn}
                                     disabled={attachDisabled}
