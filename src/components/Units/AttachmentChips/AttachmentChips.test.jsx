@@ -281,13 +281,46 @@ describe('the files waiting on a composer', () => {
 });
 
 describe('the files on a sent message', () => {
-    it('shows an image from its object URL, opening full size', async () => {
+    it('shows an image from its object URL, and opens it large over the page — not a new tab', async () => {
         attachmentObjectUrl.mockResolvedValueOnce('blob:full');
         render(<MessageAttachments attachments={[{ id: 'i1', kind: 'image', filename: 'fig.png' }]} />);
         const img = await screen.findByAltText('fig.png');
         expect(img).toHaveAttribute('src', 'blob:full');
-        expect(screen.getByTestId('message-attachment-image')).toHaveAttribute('href', 'blob:full');
         expect(attachmentObjectUrl).toHaveBeenCalledWith('i1');
+        const tile = screen.getByTestId('message-attachment-image');
+        expect(tile).not.toHaveAttribute('href');
+        fireEvent.click(tile);
+        const dialog = screen.getByRole('dialog', { name: 'fig.png' });
+        expect(dialog.querySelector('.image-lightbox-img')).toHaveAttribute('src', 'blob:full');
+    });
+
+    it('closes the large image with the ×, with Esc, and with a click outside it', async () => {
+        attachmentObjectUrl.mockResolvedValue('blob:full');
+        render(<MessageAttachments attachments={[{ id: 'i1', kind: 'image', filename: 'fig.png' }]} />);
+        await screen.findByAltText('fig.png');
+        const tile = screen.getByTestId('message-attachment-image');
+
+        fireEvent.click(tile);
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+        fireEvent.click(tile);
+        fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+        fireEvent.click(tile);
+        fireEvent.click(screen.getByRole('dialog'));  // the dark area around the picture
+        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+
+    it('opens a waiting image large from its chip, and closes it', async () => {
+        render(<AttachmentChips items={[{
+            key: 'k1', kind: 'image', name: 'shot.png', status: 'ready', previewUrl: 'blob:local',
+        }]} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Preview shot.png' }));
+        expect(screen.getByRole('dialog', { name: 'shot.png' })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     });
 
     it('shows a neutral tile when the image cannot be read', async () => {

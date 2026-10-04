@@ -356,3 +356,81 @@
     line-height: 14px;
     color: var(--color-text-tertiary);
 }
+
+/* A waiting image's thumbnail opens it large */
+.attachment-chip-thumb-button {
+    display: inline-flex;
+    flex-shrink: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: zoom-in;
+}
+
+button.message-attachment.is-image {
+    padding: 0;
+    background: none;
+    cursor: zoom-in;
+}
+
+/* The image shown large over the page: × top right, Esc, or a click outside closes it */
+.image-lightbox-backdrop {
+    background-color: rgba(0, 0, 0, 0.82) !important;
+}
+
+.image-lightbox {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 56px 24px 24px;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.image-lightbox-img {
+    max-width: 100%;
+    max-height: calc(100% - 40px);
+    object-fit: contain;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.image-lightbox-name {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.image-lightbox-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+}
+
+.image-lightbox-close:hover,
+.image-lightbox-close:focus-visible {
+    background: rgba(255, 255, 255, 0.3);
+    outline: none;
+}

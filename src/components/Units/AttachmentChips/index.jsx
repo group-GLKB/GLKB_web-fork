@@ -18,6 +18,7 @@ import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import {
     ClickAwayListener,
+    Modal,
     Popper,
     Tooltip,
 } from '@mui/material';
@@ -210,6 +211,8 @@ const chipMeta = (item) => {
  * question cannot be sent as it stands (a failed upload, Investigate).
  */
 export const AttachmentChips = ({ items = [], notice = '', blockedNote = '', onRemove }) => {
+    // The waiting image shown large (its local preview), until closed.
+    const [preview, setPreview] = useState(null);
     if (!items.length && !notice && !blockedNote) return null;
     return (
         <div
@@ -228,7 +231,14 @@ export const AttachmentChips = ({ items = [], notice = '', blockedNote = '', onR
                             data-testid="attachment-chip"
                         >
                             {item.kind === 'image' && item.previewUrl ? (
-                                <img className="attachment-chip-thumb" src={item.previewUrl} alt="" />
+                                <button
+                                    type="button"
+                                    className="attachment-chip-thumb-button"
+                                    aria-label={`Preview ${item.name}`}
+                                    onClick={() => setPreview({ src: item.previewUrl, name: item.name })}
+                                >
+                                    <img className="attachment-chip-thumb" src={item.previewUrl} alt="" />
+                                </button>
                             ) : (
                                 <span className="attachment-chip-icon" aria-hidden="true">
                                     <FileKindIcon
@@ -286,6 +296,12 @@ export const AttachmentChips = ({ items = [], notice = '', blockedNote = '', onR
                     {blockedNote || notice}
                 </div>
             )}
+            <ImageLightbox
+                src={preview?.src}
+                name={preview?.name}
+                open={Boolean(preview)}
+                onClose={() => setPreview(null)}
+            />
         </div>
     );
 };
@@ -302,9 +318,38 @@ export const attachmentBlockedNote = (controller, { investigate = false } = {}) 
     return '';
 };
 
+/**
+ * An image shown large over the page, as Claude and ChatGPT do — not in a new tab, where the
+ * browser's own viewer has no way back but closing the tab. Closes on the ×, on Esc, and on a
+ * click anywhere outside the picture.
+ */
+export const ImageLightbox = ({ src, name, open, onClose }) => (
+    <Modal
+        open={Boolean(open && src)}
+        onClose={onClose}
+        slotProps={{ backdrop: { className: 'image-lightbox-backdrop' } }}
+    >
+        <div
+            className="image-lightbox"
+            role="dialog"
+            aria-label={name || 'Image'}
+            onClick={(event) => {
+                if (event.target === event.currentTarget) onClose?.();
+            }}
+        >
+            <button type="button" className="image-lightbox-close" aria-label="Close" onClick={onClose}>
+                <CloseIcon fontSize="inherit" />
+            </button>
+            <img className="image-lightbox-img" src={src || undefined} alt={name || ''} />
+            {name ? <div className="image-lightbox-name">{name}</div> : null}
+        </div>
+    </Modal>
+);
+
 const ImageTile = ({ attachment }) => {
     const [url, setUrl] = useState(null);
     const [failed, setFailed] = useState(false);
+    const [enlarged, setEnlarged] = useState(false);
     useEffect(() => {
         let cancelled = false;
         setFailed(false);
@@ -322,19 +367,27 @@ const ImageTile = ({ attachment }) => {
         );
     }
     return (
-        <a
-            className="message-attachment is-image"
-            href={url || undefined}
-            target="_blank"
-            rel="noopener noreferrer"
-            title={attachment.filename}
-            aria-label={`Open ${attachment.filename}`}
-            data-testid="message-attachment-image"
-        >
-            {url
-                ? <img src={url} alt={attachment.filename} />
-                : <span className="message-attachment-placeholder" aria-hidden="true" />}
-        </a>
+        <>
+            <button
+                type="button"
+                className="message-attachment is-image"
+                title={attachment.filename}
+                aria-label={`Open ${attachment.filename}`}
+                data-testid="message-attachment-image"
+                disabled={!url}
+                onClick={() => setEnlarged(true)}
+            >
+                {url
+                    ? <img src={url} alt={attachment.filename} />
+                    : <span className="message-attachment-placeholder" aria-hidden="true" />}
+            </button>
+            <ImageLightbox
+                src={url}
+                name={attachment.filename}
+                open={enlarged}
+                onClose={() => setEnlarged(false)}
+            />
+        </>
     );
 };
 
