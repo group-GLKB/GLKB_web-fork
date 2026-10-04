@@ -13,15 +13,12 @@ import AddIcon from '@mui/icons-material/Add';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import CloseIcon from '@mui/icons-material/Close';
 import CodeIcon from '@mui/icons-material/Code';
-import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import PictureAsPdfOutlinedIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import {
-    ListItemIcon,
-    ListItemText,
-    Menu,
-    MenuItem,
+    ClickAwayListener,
+    Popper,
     Tooltip,
 } from '@mui/material';
 
@@ -31,14 +28,12 @@ import {
     formatLabelForName,
     isCodeFormat,
     normalizeAttachmentList,
-    readClipboard,
 } from '../../../service/attachments';
 import { trackGtagEvent } from '../../../utils/gtag';
 
 export { default as useAttachments } from './useAttachments';
 
 const ATTACH_LABEL = 'Add files or photos';
-export const PASTE_HINT = 'Press Ctrl+V (⌘V on a Mac) in the message box to paste.';
 
 /** The icon for a file that is not a picture: code, PDF, or a plain document. */
 export const FileKindIcon = ({ kind, format, filename, className = '' }) => {
@@ -69,18 +64,18 @@ export const dragHasFiles = (event) => {
 };
 
 /**
- * The "+" button, as in Claude and ChatGPT: a small menu to add files or photos (any type — the
- * backend reads each as a picture or as text) or to paste what is on the clipboard. A guest is
- * asked to sign in instead; on Investigate it is disabled, with the reason as its tooltip.
+ * The "+" button at the start of the composer, as in ChatGPT: a plain "+", which turns a
+ * grey circle while its panel is open, and a panel the width of the composer that opens under
+ * it (above it when there is no room, as at the foot of a conversation) with one entry, "Add
+ * photos and files". Any file type — the backend reads each as a picture or as text. Pasting
+ * needs no entry: Ctrl/⌘+V in the message box attaches what is on the clipboard.
  *
- * `onFiles` gets the picked or pasted files; `onText` gets short pasted text (a long one arrives
- * as "Pasted text.txt" in `onFiles`); `onNotice` gets the hint shown when the clipboard cannot be
- * read here (no permission, or a browser without the Clipboard API).
+ * A guest is asked to sign in instead; on Investigate it is disabled, with the reason as its
+ * tooltip. The panel anchors to the nearest `[data-attach-anchor]` (the composer's box), or
+ * to the button itself when there is none.
  */
 export const AttachButton = ({
     onFiles,
-    onText,
-    onNotice,
     isGuest = false,
     onRequireSignIn,
     disabled = false,
@@ -90,29 +85,14 @@ export const AttachButton = ({
 }) => {
     const inputRef = useRef(null);
     const buttonRef = useRef(null);
-    const [menuOpen, setMenuOpen] = useState(false);
+    const [anchor, setAnchor] = useState(null);
+    const menuOpen = Boolean(anchor) && !disabled;
     const title = disabled && disabledReason ? disabledReason : ATTACH_LABEL;
-    const stop = (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-    };
-    const close = () => setMenuOpen(false);
+    const close = () => setAnchor(null);
     const pickFiles = () => {
         close();
         trackGtagEvent('chat_attach_click', { source, via: 'menu' });
         inputRef.current?.click();
-    };
-    const pasteClipboard = async () => {
-        close();
-        trackGtagEvent('chat_attach_paste_click', { source });
-        try {
-            const { files, text } = await readClipboard();
-            if (files.length) onFiles?.(files);
-            if (text) onText?.(text);
-            if (!files.length && !text) onNotice?.('The clipboard is empty.');
-        } catch (error) {
-            onNotice?.(PASTE_HINT);
-        }
     };
     return (
         <>
@@ -122,7 +102,7 @@ export const AttachButton = ({
                     <button
                         ref={buttonRef}
                         type="button"
-                        className="attach-button"
+                        className={`attach-button${menuOpen ? ' is-open' : ''}`}
                         aria-label={ATTACH_LABEL}
                         aria-haspopup="menu"
                         aria-expanded={menuOpen}
@@ -133,14 +113,20 @@ export const AttachButton = ({
                             event.stopPropagation();
                         }}
                         onClick={(event) => {
-                            stop(event);
+                            event.preventDefault();
+                            event.stopPropagation();
                             if (disabled) return;
                             if (isGuest) {
                                 trackGtagEvent('chat_attach_sign_in_prompt', { source });
                                 onRequireSignIn?.();
                                 return;
                             }
-                            setMenuOpen((open) => !open);
+                            if (menuOpen) {
+                                close();
+                                return;
+                            }
+                            const button = buttonRef.current;
+                            setAnchor(button?.closest('[data-attach-anchor]') || button);
                         }}
                     >
                         <AddIcon className="attach-button-icon" />
@@ -161,27 +147,52 @@ export const AttachButton = ({
                     />
                 </span>
             </Tooltip>
-            <Menu
-                anchorEl={buttonRef.current}
-                open={menuOpen && !disabled}
-                onClose={close}
-                anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
-                transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                // React events bubble through the portal: keep them away from the composer
-                // (the home page's Autocomplete would take focus and open its example list).
-                onMouseDown={(event) => event.stopPropagation()}
-                onClick={(event) => event.stopPropagation()}
-                slotProps={{ paper: { className: 'attach-menu' } }}
-            >
-                <MenuItem onClick={pickFiles}>
-                    <ListItemIcon><AttachFileIcon fontSize="small" /></ListItemIcon>
-                    <ListItemText>Add files or photos</ListItemText>
-                </MenuItem>
-                <MenuItem onClick={pasteClipboard}>
-                    <ListItemIcon><ContentPasteIcon fontSize="small" /></ListItemIcon>
-                    <ListItemText>Paste from clipboard</ListItemText>
-                </MenuItem>
-            </Menu>
+            {menuOpen && (
+                <Popper
+                    open
+                    anchorEl={anchor}
+                    placement="bottom-start"
+                    className="attach-menu-layer"
+                    modifiers={[
+                        { name: 'offset', options: { offset: [0, 8] } },
+                        { name: 'flip', options: { fallbackPlacements: ['top-start'] } },
+                    ]}
+                    style={{ width: anchor?.getBoundingClientRect?.().width || undefined }}
+                >
+                    <ClickAwayListener
+                        onClickAway={(event) => {
+                            // The + itself toggles; a click on it is not "away".
+                            if (buttonRef.current?.contains(event.target)) return;
+                            close();
+                        }}
+                    >
+                        <div
+                            className="attach-menu"
+                            role="menu"
+                            aria-label="Add"
+                            // React events bubble through the portal: keep them away from the
+                            // composer (the home page's Autocomplete would take focus).
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onClick={(event) => event.stopPropagation()}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Escape') close();
+                            }}
+                        >
+                            <div className="attach-menu-heading">Add</div>
+                            <button
+                                type="button"
+                                role="menuitem"
+                                className="attach-menu-item"
+                                onClick={pickFiles}
+                            >
+                                <AttachFileIcon className="attach-menu-item-icon" />
+                                <span className="attach-menu-item-label">Add photos and files</span>
+                                <span className="attach-menu-item-hint">Upload from computer</span>
+                            </button>
+                        </div>
+                    </ClickAwayListener>
+                </Popper>
+            )}
         </>
     );
 };

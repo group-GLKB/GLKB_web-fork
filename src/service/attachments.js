@@ -178,46 +178,6 @@ export const pastedAttachments = (clipboardData, { longText = true } = {}) => {
     return text.length > LONG_PASTE_CHARS ? [pastedTextFile(text)] : [];
 };
 
-const IMAGE_EXTENSION = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' };
-
-/**
- * The "Paste from clipboard" menu item: reads the clipboard through the async Clipboard API.
- * Resolves to `{ files, text }` — images as files, plain text as text (a long one already turned
- * into "Pasted text.txt" in `files`). Rejects when the browser has no such API or the reader
- * refused permission; the caller then tells them to press Ctrl+V / ⌘V instead.
- */
-export const readClipboard = async (clipboard = (typeof navigator !== 'undefined' ? navigator.clipboard : null)) => {
-    if (!clipboard) throw new Error('clipboard unavailable');
-    const files = [];
-    let text = '';
-    if (typeof clipboard.read === 'function') {
-        const items = await clipboard.read();
-        for (const item of items || []) {
-            const types = Array.from(item?.types || []);
-            const imageType = types.find((type) => type.startsWith('image/'));
-            if (imageType) {
-                const blob = await item.getType(imageType);
-                const name = `Pasted image.${IMAGE_EXTENSION[imageType] || 'png'}`;
-                try {
-                    files.push(new File([blob], name, { type: imageType, lastModified: Date.now() }));
-                } catch (error) {
-                    blob.name = name;
-                    files.push(blob);
-                }
-            } else if (!text && types.includes('text/plain')) {
-                const blob = await item.getType('text/plain');
-                text = typeof blob?.text === 'function' ? await blob.text() : String(blob || '');
-            }
-        }
-    } else if (typeof clipboard.readText === 'function') {
-        text = await clipboard.readText();
-    } else {
-        throw new Error('clipboard unavailable');
-    }
-    if (text.length > LONG_PASTE_CHARS) return { files: [...files, pastedTextFile(text)], text: '' };
-    return { files, text };
-};
-
 const canvasToBlob = (canvas, type, quality) => new Promise((resolve) => {
     try {
         canvas.toBlob((blob) => resolve(blob || null), type, quality);

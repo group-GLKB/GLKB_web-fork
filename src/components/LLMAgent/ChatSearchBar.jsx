@@ -184,7 +184,8 @@ const ChatSearchBar = ({
                         minHeight: isMobileViewport ? '44px' : '52px',
                         height: 'auto',
                         alignItems: 'center',
-                        paddingLeft: '20px',
+                        // 20px of text inset, or room for the "+" when it leads the field.
+                        paddingLeft: attachments ? '8px' : '20px',
                         /* The end cluster (model chip, clear, send) is a flex sibling of the
                            textarea rather than an overlay, so the field's own right padding is
                            just the gap to the composer's edge. It used to be 60px to clear an
@@ -212,6 +213,19 @@ const ChatSearchBar = ({
                 }}
                 fullWidth
                 InputProps={{
+                    // The "+" panel opens under (or over) the whole field, as ChatGPT's does.
+                    'data-attach-anchor': true,
+                    // The "+" at the start of the field, as in ChatGPT.
+                    startAdornment: attachments ? (
+                        <AttachButton
+                            onFiles={takeFiles}
+                            isGuest={isGuest}
+                            onRequireSignIn={onAttachRequireSignIn}
+                            disabled={attachDisabled}
+                            disabledReason={pipelineIsDeepResearch ? INVESTIGATE_ATTACH_NOTE : ''}
+                            source="chat_searchbar"
+                        />
+                    ) : null,
                     endAdornment: (
                         <Box
                             display="flex"
@@ -223,20 +237,6 @@ const ChatSearchBar = ({
                                 flexShrink: 0,
                             }}
                         >
-                            {attachments && (
-                                <AttachButton
-                                    onFiles={takeFiles}
-                                    onText={(text) => {
-                                        if (canType) setUserInput(`${userInput}${text}`);
-                                    }}
-                                    onNotice={attachments.showNotice}
-                                    isGuest={isGuest}
-                                    onRequireSignIn={onAttachRequireSignIn}
-                                    disabled={attachDisabled}
-                                    disabledReason={pipelineIsDeepResearch ? INVESTIGATE_ATTACH_NOTE : ''}
-                                    source="chat_searchbar"
-                                />
-                            )}
                             {/* On the field's own row, left of send — where the home page's bar
                                 puts it too. It had a control row of its own under the field for
                                 a while, which cost the composer 54px of height for one chip and

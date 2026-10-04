@@ -26,7 +26,6 @@ import {
     PASTED_TEXT_NAME,
     pastedAttachments,
     planAdditions,
-    readClipboard,
     resetAttachmentUrlCache,
     resizeImageIfNeeded,
     uploadAttachment,
@@ -142,30 +141,6 @@ describe('pasting', () => {
     it('lets short text paste into the box, and long text too where nothing can be attached', () => {
         expect(pastedAttachments(clipboard({ text: 'a'.repeat(LONG_PASTE_CHARS) }))).toEqual([]);
         expect(pastedAttachments(clipboard({ text: 'a'.repeat(LONG_PASTE_CHARS + 1) }), { longText: false })).toEqual([]);
-    });
-
-    it('reads images and text through the Clipboard API for the menu item', async () => {
-        const blob = new Blob(['img'], { type: 'image/png' });
-        const result = await readClipboard({
-            read: async () => [
-                { types: ['image/png'], getType: async () => blob },
-                { types: ['text/plain'], getType: async () => ({ text: async () => 'short note' }) },
-            ],
-        });
-        expect(result.files).toHaveLength(1);
-        expect(result.files[0].name).toBe('Pasted image.png');
-        expect(result.text).toBe('short note');
-    });
-
-    it('turns long clipboard text into a file there too, and falls back to readText', async () => {
-        const result = await readClipboard({ readText: async () => 'b'.repeat(LONG_PASTE_CHARS + 5) });
-        expect(result.text).toBe('');
-        expect(result.files[0].name).toBe('Pasted text.txt');
-    });
-
-    it('rejects when there is no Clipboard API or permission is refused', async () => {
-        await expect(readClipboard(null)).rejects.toThrow();
-        await expect(readClipboard({ read: async () => { throw new Error('NotAllowedError'); } })).rejects.toThrow();
     });
 });
 

@@ -11,7 +11,6 @@ import {
     AttachmentChips,
     attachmentBlockedNote,
     MessageAttachments,
-    PASTE_HINT,
 } from './index';
 import useAttachments from './useAttachments';
 import {
@@ -132,7 +131,7 @@ describe('the + button', () => {
         const pick = jest.spyOn(input, 'click');
         fireEvent.click(plus());
         expect(screen.getByRole('menu')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('menuitem', { name: 'Add files or photos' }));
+        fireEvent.click(screen.getByRole('menuitem', { name: /Add photos and files/ }));
         expect(pick).toHaveBeenCalledTimes(1);
         expect(input).not.toHaveAttribute('accept');
         const picked = [file('analysis.py', 'text/x-python'), file('run.ipynb', '')];
@@ -140,35 +139,24 @@ describe('the + button', () => {
         expect(onFiles).toHaveBeenCalledWith(picked);
     });
 
-    it('pastes images and text from the clipboard', async () => {
-        const blob = new Blob(['img'], { type: 'image/png' });
-        Object.defineProperty(navigator, 'clipboard', {
-            configurable: true,
-            value: {
-                read: async () => [
-                    { types: ['image/png'], getType: async () => blob },
-                    { types: ['text/plain'], getType: async () => ({ text: async () => 'a short note' }) },
-                ],
-            },
-        });
-        const onFiles = jest.fn();
-        const onText = jest.fn();
-        render(<AttachButton onFiles={onFiles} onText={onText} onNotice={jest.fn()} />);
+    it('offers only "Add photos and files" — pasting needs no entry', () => {
+        render(<AttachButton onFiles={jest.fn()} />);
         fireEvent.click(plus());
-        fireEvent.click(screen.getByRole('menuitem', { name: 'Paste from clipboard' }));
-        await waitFor(() => expect(onFiles).toHaveBeenCalled());
-        expect(onFiles.mock.calls[0][0][0].name).toBe('Pasted image.png');
-        expect(onText).toHaveBeenCalledWith('a short note');
+        expect(screen.getAllByRole('menuitem')).toHaveLength(1);
+        expect(screen.getByRole('menu')).toHaveTextContent('Add');
+        expect(screen.getByRole('menuitem')).toHaveTextContent('Upload from computer');
+        expect(screen.queryByText(/clipboard/i)).not.toBeInTheDocument();
     });
 
-    it('says to press Ctrl+V when the clipboard cannot be read here', async () => {
-        Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined });
-        const onNotice = jest.fn();
-        render(<AttachButton onFiles={jest.fn()} onNotice={onNotice} />);
-        fireEvent.click(plus());
-        fireEvent.click(screen.getByRole('menuitem', { name: 'Paste from clipboard' }));
-        await waitFor(() => expect(onNotice).toHaveBeenCalledWith(PASTE_HINT));
-        expect(PASTE_HINT).toMatch(/Ctrl\+V/);
+    it('is a plain +: not turned into a cross, grey only while open', () => {
+        render(<AttachButton onFiles={jest.fn()} />);
+        const button = plus();
+        expect(button).not.toHaveClass('is-open');
+        fireEvent.click(button);
+        expect(button).toHaveClass('is-open');
+        expect(button).toHaveAttribute('aria-expanded', 'true');
+        fireEvent.click(button);
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     });
 
     it('is disabled, with the reason, where attachments do not work', () => {

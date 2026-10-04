@@ -487,7 +487,8 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                     },
                 }}
                 renderInput={(params) => (
-                    <Box sx={{ position: 'relative', width: '100%' }}>
+                    // The "+" panel opens under this box (field and control row), as ChatGPT's does.
+                    <Box data-attach-anchor sx={{ position: 'relative', width: '100%' }}>
                         <AttachmentChips
                             items={attachments.items}
                             notice={attachments.notice}
@@ -570,16 +571,34 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 pointerEvents: 'none',
                             }}
                         >
-                            {(INVESTIGATE_ENABLED || LITERATURE_REVIEW_ENABLED) && (
                             <Box
                                 sx={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: isMobileLayout ? '8px' : '12px',
+                                    gap: isMobileLayout ? '4px' : '8px',
                                     minWidth: 0,
                                     pointerEvents: 'auto',
                                 }}
                             >
+                                {/* The "+" leads the row, as in ChatGPT. Same click guard as the
+                                    row's other controls (see the tier picker's note below). */}
+                                <Box
+                                    onMouseDown={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                    }}
+                                    onClick={(event) => event.stopPropagation()}
+                                    sx={{ display: 'inline-flex', flexShrink: 0 }}
+                                >
+                                    <AttachButton
+                                        onFiles={takeFiles}
+                                        isGuest={isGuest}
+                                        onRequireSignIn={() => openLoginModal(GUEST_ATTACH_REASON)}
+                                        disabled={attachmentsOffForMode || isInputLocked}
+                                        disabledReason={attachmentsOffForMode ? INVESTIGATE_ATTACH_NOTE : ''}
+                                        source="home_searchbar"
+                                    />
+                                </Box>
                                 {INVESTIGATE_ENABLED && !LITERATURE_REVIEW_ENABLED && (
                                 <Button
                                     disabled={isInputLocked}
@@ -738,7 +757,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 </Box>
                                 )}
                             </Box>
-                            )}
 
                             <Box
                                 sx={{
@@ -748,7 +766,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     minWidth: 0,
                                     // With Investigate hidden this is the row's only child, so
                                     // `space-between` alone would park it on the left.
-                                    marginLeft: isMobileLayout && (INVESTIGATE_ENABLED || LITERATURE_REVIEW_ENABLED) ? 0 : 'auto',
+                                    marginLeft: isMobileLayout ? 0 : 'auto',
                                     pointerEvents: 'auto',
                                 }}
                             >
@@ -777,18 +795,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     // wrapper only let it spill over Search Options on a phone.
                                     sx={{ display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, flexShrink: 0 }}
                                 >
-                                <AttachButton
-                                    onFiles={takeFiles}
-                                    onText={(text) => {
-                                        if (!isInputLocked) setLlmQuery((prev) => `${prev}${text}`);
-                                    }}
-                                    onNotice={attachments.showNotice}
-                                    isGuest={isGuest}
-                                    onRequireSignIn={() => openLoginModal(GUEST_ATTACH_REASON)}
-                                    disabled={attachmentsOffForMode || isInputLocked}
-                                    disabledReason={attachmentsOffForMode ? INVESTIGATE_ATTACH_NOTE : ''}
-                                    source="home_searchbar"
-                                />
                                 <TierPicker
                                     value={serviceTier}
                                     onChange={(tierId) => {

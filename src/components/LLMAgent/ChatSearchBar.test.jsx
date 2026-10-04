@@ -344,11 +344,14 @@ describe('attachments', () => {
         expect(attachments.addFiles).not.toHaveBeenCalled();
     });
 
-    it('opens the + menu with both ways to attach', () => {
+    it('leads the field with the +, whose menu has the one entry', () => {
         setup({ attachments: controller() });
-        fireEvent.click(paperclip());
-        expect(screen.getByRole('menuitem', { name: 'Add files or photos' })).toBeInTheDocument();
-        expect(screen.getByRole('menuitem', { name: 'Paste from clipboard' })).toBeInTheDocument();
+        const button = paperclip();
+        // Before the text box, as in ChatGPT.
+        expect(button.compareDocumentPosition(field()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        fireEvent.click(button);
+        expect(screen.getByRole('menuitem', { name: /Add photos and files/ })).toBeInTheDocument();
+        expect(screen.queryByText(/Paste from clipboard/)).not.toBeInTheDocument();
     });
 
     it('takes files dropped on the composer', () => {
