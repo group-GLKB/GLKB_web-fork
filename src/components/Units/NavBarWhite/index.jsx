@@ -776,12 +776,12 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                 }}
                             >
                                 <IconButton
-                                    aria-label={open ? 'Go to home' : 'Expand sidebar'}
+                                    aria-label={open ? 'About GLKB' : 'Expand sidebar'}
                                     component={open ? Link : 'button'}
-                                    to={open ? CHAT_HOME_PATH : undefined}
+                                    to={open ? ABOUT_PATH : undefined}
                                     onClick={(event) => {
                                         if (open) {
-                                            trackGtagEvent('nav_logo_click', { action: 'go_home' });
+                                            trackGtagEvent('nav_logo_click', { action: 'go_about' });
                                             return;
                                         }
                                         event.preventDefault();
@@ -851,7 +851,9 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                             </HintTooltip>
                             <Box
                                 component={Link}
-                                to={CHAT_HOME_PATH}
+                                to={ABOUT_PATH}
+                                aria-label="About GLKB"
+                                onClick={() => trackGtagEvent('nav_logo_click', { action: 'go_about', source: 'wordmark' })}
                                 className="sidebar-logo-text sidebar-logo-wordmark-link"
                                 sx={{
                                     display: 'flex',

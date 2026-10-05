@@ -186,6 +186,128 @@
     text-align: center;
 }
 
+/* "What's new" under the research notice (WhatsNew.jsx). Hidden, like the pills, while an
+   example list is open over this area. */
+.homepage-news {
+    width: 100%;
+    margin-top: 4px;
+}
+
+.homepage-news.is-hidden {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.whats-new {
+    width: 100%;
+    text-align: left;
+}
+
+.whats-new-heading {
+    margin: 0 0 8px;
+    font-family: "Geist", sans-serif;
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+}
+
+.whats-new-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.whats-new-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 0.5px solid var(--color-border-default);
+    background-color: var(--color-background-subtle);
+    color: var(--color-text-primary);
+    font-family: "Geist", sans-serif;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 120ms ease, border-color 160ms ease;
+}
+
+.whats-new-card:hover,
+.whats-new-card:focus-visible {
+    color: var(--color-text-primary);
+    text-decoration: none;
+    border-color: var(--color-brand-primary);
+    transform: translateY(-1px);
+}
+
+.whats-new-tag {
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 600;
+    color: var(--color-brand-primary);
+}
+
+.whats-new-title {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+}
+
+.whats-new-text {
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--color-text-secondary);
+}
+
+.whats-new-action {
+    margin-top: auto;
+    padding-top: 4px;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+    color: var(--color-brand-primary);
+}
+
+@media (max-width: 767px) {
+    .whats-new-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .whats-new-text {
+        display: none;
+    }
+
+    /* One row each: tag over title on the left, the action on the right. */
+    .whats-new-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        column-gap: 12px;
+        row-gap: 0;
+        align-items: center;
+        padding: 10px 12px;
+    }
+
+    .whats-new-tag,
+    .whats-new-title {
+        grid-column: 1;
+    }
+
+    .whats-new-action {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        margin-top: 0;
+        padding-top: 0;
+        white-space: nowrap;
+    }
+}
+
 .homepage-pills.is-hidden {
     visibility: hidden;
     pointer-events: none;

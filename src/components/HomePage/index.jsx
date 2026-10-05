@@ -38,6 +38,7 @@ import { trackGtagEvent } from '../../utils/gtag';
 import { useAuth } from '../Auth/AuthContext';
 import exampleSchema from './exampleSchema.json';
 import LlmSearchBar from './LlmSearchBarHome';
+import WhatsNew from './WhatsNew';
 
 // const { Search } = Input;
 const DEBUG_FORCE_LIMIT_WARNING = false;
@@ -440,6 +441,14 @@ const HomePage = () => {
                                 <p className="homepage-research-notice">
                                     FOR RESEARCH USE ONLY — not medical advice. AI-generated; verify all citations against primary sources.
                                 </p>
+                                <Box className={`homepage-news${(showExamples || isAutocompleteExamplesOpen) ? ' is-hidden' : ''}`}>
+                                    <WhatsNew
+                                        onTryAttach={() => {
+                                            // The composer's own "+" — it opens the menu, or asks a guest to sign in.
+                                            heroRef.current?.querySelector('.homepage-hero-search .attach-button')?.click();
+                                        }}
+                                    />
+                                </Box>
                             </Box>
                         </Box>
 

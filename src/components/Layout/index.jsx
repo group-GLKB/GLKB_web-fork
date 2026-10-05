@@ -18,7 +18,7 @@ import { Menu as MenuIcon } from '@mui/icons-material';
 
 import logoIcon from '../../img/GLKB_logo_icon.png';
 import logoWordmark from '../../img/navbar/logo.png';
-import { CHAT_HOME_PATH, isConversationPath } from '../../config/entryRoutes';
+import { ABOUT_PATH, CHAT_HOME_PATH, isConversationPath } from '../../config/entryRoutes';
 import { isRunActive } from '../../service/activeRun';
 import { trackGtagEvent } from '../../utils/gtag';
 import LoginModal from '../Auth/LoginModal';
@@ -132,10 +132,11 @@ const AppLayout = () => {
                     >
                         <MenuIcon sx={{ fontSize: 22, color: 'var(--color-text-tertiary)' }} />
                     </button>
-                    <Link to={CHAT_HOME_PATH} className="app-mobile-header-logo-link" aria-label="GLKB Home">
+                    {/* The logo opens About, GLKB's own page. */}
+                    <Link to={ABOUT_PATH} className="app-mobile-header-logo-link" aria-label="About GLKB" onClick={() => trackGtagEvent('nav_logo_click', { action: 'go_about', source: 'mobile_header' })}>
                         <img src={logoIcon} alt="GLKB logo" className="app-mobile-header-logo-icon" />
                     </Link>
-                    <Link to={CHAT_HOME_PATH} className="app-mobile-header-logo-link" aria-label="GLKB Home">
+                    <Link to={ABOUT_PATH} className="app-mobile-header-logo-link" aria-label="About GLKB" onClick={() => trackGtagEvent('nav_logo_click', { action: 'go_about', source: 'mobile_header' })}>
                         <img src={logoWordmark} alt="GLKB" className="app-mobile-header-logo-wordmark" />
                     </Link>
                     {isChatPage && (
