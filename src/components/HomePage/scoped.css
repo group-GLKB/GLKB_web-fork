@@ -220,13 +220,51 @@
     gap: 12px;
 }
 
+/* The card and its × are siblings (a button cannot sit inside a link or another button), so the
+   wrapper carries the position and the card fills it. */
+.whats-new-item {
+    position: relative;
+    display: flex;
+    min-width: 0;
+}
+
+.whats-new-item > .whats-new-card {
+    flex: 1;
+}
+
+.whats-new-close {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--color-text-tertiary);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 120ms ease, background-color 120ms ease;
+}
+
+.whats-new-close:hover,
+.whats-new-close:focus-visible {
+    color: var(--color-text-primary);
+    background-color: var(--color-border-default);
+}
+
 .whats-new-card {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
     min-width: 0;
-    padding: 12px 14px;
+    padding: 12px 30px 12px 14px;
     border-radius: 12px;
     border: 0.5px solid var(--color-border-default);
     background-color: var(--color-background-subtle);
@@ -291,7 +329,7 @@
         column-gap: 12px;
         row-gap: 0;
         align-items: center;
-        padding: 10px 12px;
+        padding: 10px 34px 10px 12px;
     }
 
     .whats-new-tag,
@@ -305,6 +343,11 @@
         margin-top: 0;
         padding-top: 0;
         white-space: nowrap;
+    }
+
+    .whats-new-close {
+        top: 50%;
+        transform: translateY(-50%);
     }
 }
 

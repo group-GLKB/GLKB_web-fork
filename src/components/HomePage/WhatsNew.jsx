@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { trackGtagEvent } from '../../utils/gtag';
 
 /* "What's new" under the research notice: one line each, so a reader sees at a glance what
    GLKB can do now. The two articles open in full on /blog; the attachments card opens the
-   composer's "+" (which asks a guest to sign in first). */
+   composer's "+" (which asks a guest to sign in first). Each card has an × that hides it for
+   good in this browser: the dismissed ids are kept in localStorage, so a card added later still
+   shows. Storage can be missing or throw (private window, blocked site data) — then a dismissal
+   lasts until the page is reloaded, and nothing breaks. */
 export const NEWS = [
     {
         id: 'attachments',
@@ -30,6 +33,25 @@ export const NEWS = [
         action: 'Read more',
     },
 ];
+
+export const DISMISSED_KEY = 'glkb.whatsNew.dismissed';
+
+const readDismissed = () => {
+    try {
+        const raw = JSON.parse(window.localStorage.getItem(DISMISSED_KEY) || '[]');
+        return Array.isArray(raw) ? raw : [];
+    } catch {
+        return [];
+    }
+};
+
+const writeDismissed = (ids) => {
+    try {
+        window.localStorage.setItem(DISMISSED_KEY, JSON.stringify(ids));
+    } catch {
+        // Not persisted; the card stays hidden for this page view only.
+    }
+};
 
 const Card = ({ item, onTryAttach }) => {
     const body = (
@@ -63,15 +85,40 @@ const Card = ({ item, onTryAttach }) => {
     );
 };
 
-const WhatsNew = ({ onTryAttach }) => (
-    <section className="whats-new" aria-label="What's new">
-        <h2 className="whats-new-heading">What&apos;s new</h2>
-        <div className="whats-new-grid">
-            {NEWS.map((item) => (
-                <Card key={item.id} item={item} onTryAttach={onTryAttach} />
-            ))}
-        </div>
-    </section>
-);
+const WhatsNew = ({ onTryAttach }) => {
+    const [dismissed, setDismissed] = useState(readDismissed);
+    const visible = NEWS.filter((item) => !dismissed.includes(item.id));
+    if (visible.length === 0) return null;
+
+    const dismiss = (item) => {
+        trackGtagEvent('home_news_dismiss', { item: item.id });
+        const next = [...dismissed, item.id];
+        setDismissed(next);
+        writeDismissed(next);
+    };
+
+    return (
+        <section className="whats-new" aria-label="What's new">
+            <h2 className="whats-new-heading">What&apos;s new</h2>
+            <div className="whats-new-grid">
+                {visible.map((item) => (
+                    <div key={item.id} className="whats-new-item">
+                        <Card item={item} onTryAttach={onTryAttach} />
+                        <button
+                            type="button"
+                            className="whats-new-close"
+                            aria-label={`Dismiss: ${item.title}`}
+                            title="Dismiss"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => dismiss(item)}
+                        >
+                            <span aria-hidden="true">×</span>
+                        </button>
+                    </div>
+                ))}
+            </div>
+        </section>
+    );
+};
 
 export default WhatsNew;
