@@ -441,6 +441,10 @@ const HomePage = () => {
                                 <p className="homepage-research-notice">
                                     FOR RESEARCH USE ONLY — not medical advice. AI-generated; verify all citations against primary sources.
                                 </p>
+                                {/* Only once the hero's position is measured and pinned (heroTopOffset):
+                                    rendered on the first pass it would join the vertical centring and
+                                    lift the search box. After that it only grows the page downward. */}
+                                {heroTopOffset !== null && (
                                 <Box className={`homepage-news${(showExamples || isAutocompleteExamplesOpen) ? ' is-hidden' : ''}`}>
                                     <WhatsNew
                                         onTryAttach={() => {
@@ -449,6 +453,7 @@ const HomePage = () => {
                                         }}
                                     />
                                 </Box>
+                                )}
                             </Box>
                         </Box>
 
