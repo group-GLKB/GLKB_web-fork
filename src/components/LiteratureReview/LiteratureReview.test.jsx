@@ -99,9 +99,10 @@ it('keeps the topic for another try after a stop', async () => {
     expect(screen.getByRole('button', { name: 'Write review' })).toBeVisible();
 });
 
-it('offers the finished review as a LaTeX file named after the topic', async () => {
-    // The .tex itself is covered by utils/reviewToLatex.test.js; what is pinned here is that the
-    // button appears only on a finished review and hands the browser a file with the right name.
+it('offers the finished review as LaTeX, Word and PDF', async () => {
+    // The files themselves are covered by utils/reviewToLatex.test.js and utils/reviewExport.test.js;
+    // what is pinned here is that the buttons appear only on a finished review, that each hands the
+    // browser the right type and filename, and that PDF goes through a print window.
     const createObjectURL = jest.fn(() => 'blob:x');
     const revokeObjectURL = jest.fn();
     Object.defineProperty(window, 'URL', { value: { createObjectURL, revokeObjectURL }, writable: true });
@@ -127,14 +128,53 @@ it('offers the finished review as a LaTeX file named after the topic', async () 
     expect(screen.queryByRole('button', { name: /LaTeX/ })).not.toBeInTheDocument();
 
     await act(async () => finish());
-    const button = await screen.findByRole('button', { name: /Download LaTeX/ });
-    fireEvent.click(button);
-
-    expect(createObjectURL).toHaveBeenCalledTimes(1);
-    const blob = createObjectURL.mock.calls[0][0];
-    expect(blob.type).toBe('application/x-tex');
-    expect(clicks).toEqual([expect.stringMatching(/^crispr-base-editing_\d{4}-\d{2}-\d{2}\.tex$/)]);
+    fireEvent.click(await screen.findByRole('button', { name: /LaTeX/ }));
+    expect(createObjectURL.mock.calls[0][0].type).toBe('application/x-tex');
+    expect(clicks[0]).toMatch(/^crispr-base-editing_\d{4}-\d{2}-\d{2}\.tex$/);
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:x');
 
+    fireEvent.click(screen.getByRole('button', { name: /Word/ }));
+    expect(createObjectURL.mock.calls[1][0].type).toBe('application/msword');
+    // the Word file is named after the review's own title, not the typed topic
+    expect(clicks[1]).toMatch(/^t_\d{4}-\d{2}-\d{2}\.doc$/);
+
     document.createElement.mockRestore();
+});
+
+it('prints the review for a PDF, and says so when the pop-up is blocked', async () => {
+    const print = jest.fn();
+    const write = jest.fn();
+    const open = jest.spyOn(window, 'open').mockReturnValue({
+        document: { write, close: jest.fn() }, focus: jest.fn(), print,
+    });
+    jest.useFakeTimers();
+
+    let finish;
+    streamReview.mockImplementation((_req, onFrame) => new Promise((resolve) => {
+        onFrame({ step: 'Started', history_id: 9, public_id: 'p9', pipeline: 'literature_review' });
+        finish = () => {
+            onFrame({ step: 'Complete', response: '# T\n\nA finding [1].\n' });
+            onFrame({ step: 'Saved', public_id: 'p9' });
+            resolve();
+        };
+    }));
+    render(<LiteratureReview />);
+    await act(async () => {
+        fireEvent.change(screen.getByLabelText('Topic'), { target: { value: 'CRISPR' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Write review' }));
+    });
+    await act(async () => finish());
+
+    fireEvent.click(await screen.findByRole('button', { name: 'PDF' }));
+    expect(write).toHaveBeenCalledWith(expect.stringContaining('@media print'));
+    act(() => { jest.runAllTimers(); });
+    expect(print).toHaveBeenCalledTimes(1);
+
+    // a blocked pop-up must say what to do rather than appear to do nothing
+    open.mockReturnValue(null);
+    fireEvent.click(screen.getByRole('button', { name: 'PDF' }));
+    expect(screen.getByText(/Allow pop-ups/)).toBeInTheDocument();
+
+    jest.useRealTimers();
+    open.mockRestore();
 });

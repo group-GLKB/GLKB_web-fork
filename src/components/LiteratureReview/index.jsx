@@ -26,6 +26,7 @@ import { useAuth } from '../Auth/AuthContext';
 import { getChatHistoryDetailByPublicId } from '../../service/ChatHistory';
 import { cancelReview, fetchReviewModels, streamReview } from '../../service/LiteratureReview';
 import { latexFilename, reviewToLatex } from '../../utils/reviewToLatex';
+import { exportFilename, reviewTitle, reviewToPrintable, reviewToWord } from '../../utils/reviewExport';
 import { trackGtagEvent } from '../../utils/gtag';
 
 const REMARK_PLUGINS = [remarkGfm];
@@ -64,19 +65,47 @@ export default function LiteratureReview() {
     /* The review as a compilable .tex (utils/reviewToLatex.js). Done here rather than on the
        server because the markdown is already in hand, including for a review reopened from
        History, so nothing has to be fetched or kept in sync. */
-    const downloadLatex = useCallback(() => {
-        if (!review?.markdown) return;
-        const title = savedQuestion || topic;
-        const tex = reviewToLatex(review.markdown, { title });
-        const url = window.URL.createObjectURL(new Blob([tex], { type: 'application/x-tex' }));
+    const saveFile = useCallback((text, type, name, format) => {
+        const url = window.URL.createObjectURL(new Blob([text], { type }));
         const a = document.createElement('a');
         a.href = url;
-        a.download = latexFilename(title);
+        a.download = name;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
-        trackGtagEvent('literature_review_export', { format: 'latex' });
+        trackGtagEvent('literature_review_export', { format });
+    }, []);
+
+    const downloadLatex = useCallback(() => {
+        if (!review?.markdown) return;
+        const title = savedQuestion || topic;
+        saveFile(reviewToLatex(review.markdown, { title }), 'application/x-tex',
+                 latexFilename(title), 'latex');
+    }, [review, savedQuestion, topic, saveFile]);
+
+    const downloadWord = useCallback(() => {
+        if (!review?.markdown) return;
+        const title = savedQuestion || topic;
+        saveFile(reviewToWord(review.markdown, { title }), 'application/msword',
+                 exportFilename(reviewTitle(review.markdown, title), 'doc'), 'word');
+    }, [review, savedQuestion, topic, saveFile]);
+
+    /* PDF goes through the browser's own print dialog ("Save as PDF") rather than a PDF library:
+       on a 6,000-word review the browser paginates, keeps headings with their text and hyphenates,
+       which a canvas-based writer does not. The window is opened on a click, so the popup blocker
+       allows it; if a blocker stops it anyway, say so instead of failing silently. */
+    const downloadPdf = useCallback(() => {
+        if (!review?.markdown) return;
+        const title = savedQuestion || topic;
+        const w = window.open('', '_blank');
+        if (!w) { setError('Allow pop-ups for this site to save the review as a PDF.'); return; }
+        w.document.write(reviewToPrintable(review.markdown, { title }));
+        w.document.close();
+        w.focus();
+        // Let the styles apply before the dialog takes its snapshot of the page.
+        setTimeout(() => w.print(), 300);
+        trackGtagEvent('literature_review_export', { format: 'pdf' });
     }, [review, savedQuestion, topic]);
     const abortRef = useRef(null);
     const startedAtRef = useRef(null);
@@ -327,13 +356,24 @@ export default function LiteratureReview() {
                     <Box className="markdown-body" sx={{ mt: 1, '& h1': { display: 'none' } }}>
                         <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>{review.markdown}</ReactMarkdown>
                     </Box>
-                    {/* The numbered citations become \cite keys against a thebibliography, so the
-                        references stay consistent once the text is edited. */}
-                    <Button variant="outlined" sx={{ mt: 3, mr: 1.5, textTransform: 'none' }}
-                            onClick={downloadLatex}>
-                        Download LaTeX (.tex)
-                    </Button>
-                    <Button sx={{ mt: 3, textTransform: 'none' }} onClick={() => {
+                    {/* Three ways out: LaTeX for a typeset paper (its numbered citations become
+                        \cite keys against a thebibliography), Word to keep editing, PDF to read
+                        or send. */}
+                    {/* An export that cannot run says so here: the error Alert above only renders
+                        in the error state, so on a finished review it would show nothing at all. */}
+                    {error && <Alert severity="warning" sx={{ mt: 2 }} onClose={() => setError('')}>{error}</Alert>}
+                    <Box sx={{ mt: 3, display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                        <Button variant="outlined" sx={{ textTransform: 'none' }} onClick={downloadLatex}>
+                            LaTeX (.tex)
+                        </Button>
+                        <Button variant="outlined" sx={{ textTransform: 'none' }} onClick={downloadWord}>
+                            Word (.doc)
+                        </Button>
+                        <Button variant="outlined" sx={{ textTransform: 'none' }} onClick={downloadPdf}>
+                            PDF
+                        </Button>
+                    </Box>
+                    <Button sx={{ mt: 2, textTransform: 'none' }} onClick={() => {
                         setStatus('idle'); setReview(null); setTopic(''); navigate('/literature-review');
                     }}>
                         Write another review
