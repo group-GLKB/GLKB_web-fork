@@ -25,6 +25,8 @@ import {
 import { useAuth } from '../Auth/AuthContext';
 import { getChatHistoryDetailByPublicId } from '../../service/ChatHistory';
 import { cancelReview, fetchReviewModels, streamReview } from '../../service/LiteratureReview';
+import { latexFilename, reviewToLatex } from '../../utils/reviewToLatex';
+import { trackGtagEvent } from '../../utils/gtag';
 
 const REMARK_PLUGINS = [remarkGfm];
 
@@ -58,6 +60,24 @@ export default function LiteratureReview() {
     const [error, setError] = useState('');
     const [savedQuestion, setSavedQuestion] = useState('');
     const runIdRef = useRef(null);
+
+    /* The review as a compilable .tex (utils/reviewToLatex.js). Done here rather than on the
+       server because the markdown is already in hand, including for a review reopened from
+       History, so nothing has to be fetched or kept in sync. */
+    const downloadLatex = useCallback(() => {
+        if (!review?.markdown) return;
+        const title = savedQuestion || topic;
+        const tex = reviewToLatex(review.markdown, { title });
+        const url = window.URL.createObjectURL(new Blob([tex], { type: 'application/x-tex' }));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = latexFilename(title);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        trackGtagEvent('literature_review_export', { format: 'latex' });
+    }, [review, savedQuestion, topic]);
     const abortRef = useRef(null);
     const startedAtRef = useRef(null);
     // The address this page gave the review it just wrote; reaching it must not reload the review.
@@ -307,6 +327,12 @@ export default function LiteratureReview() {
                     <Box className="markdown-body" sx={{ mt: 1, '& h1': { display: 'none' } }}>
                         <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>{review.markdown}</ReactMarkdown>
                     </Box>
+                    {/* The numbered citations become \cite keys against a thebibliography, so the
+                        references stay consistent once the text is edited. */}
+                    <Button variant="outlined" sx={{ mt: 3, mr: 1.5, textTransform: 'none' }}
+                            onClick={downloadLatex}>
+                        Download LaTeX (.tex)
+                    </Button>
                     <Button sx={{ mt: 3, textTransform: 'none' }} onClick={() => {
                         setStatus('idle'); setReview(null); setTopic(''); navigate('/literature-review');
                     }}>

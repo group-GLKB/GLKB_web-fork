@@ -98,3 +98,43 @@ it('keeps the topic for another try after a stop', async () => {
     expect(screen.getByLabelText('Topic')).toHaveValue('Osimertinib resistance');
     expect(screen.getByRole('button', { name: 'Write review' })).toBeVisible();
 });
+
+it('offers the finished review as a LaTeX file named after the topic', async () => {
+    // The .tex itself is covered by utils/reviewToLatex.test.js; what is pinned here is that the
+    // button appears only on a finished review and hands the browser a file with the right name.
+    const createObjectURL = jest.fn(() => 'blob:x');
+    const revokeObjectURL = jest.fn();
+    Object.defineProperty(window, 'URL', { value: { createObjectURL, revokeObjectURL }, writable: true });
+    const clicks = [];
+    const realCreate = document.createElement.bind(document);
+    jest.spyOn(document, 'createElement').mockImplementation((tag) => {
+        const el = realCreate(tag);
+        if (tag === 'a') { el.click = () => clicks.push(el.download); }
+        return el;
+    });
+
+    let finish;
+    streamReview.mockImplementation((_req, onFrame) => new Promise((resolve) => {
+        onFrame({ step: 'Started', history_id: 9, public_id: 'p9', pipeline: 'literature_review' });
+        finish = () => {
+            onFrame({ step: 'Complete', response: '# T\n\nA finding [1].\n\n## References\n\n1. A paper. (2024). PMID 1.\n' });
+            onFrame({ step: 'Saved', public_id: 'p9' });
+            resolve();
+        };
+    }));
+    render(<LiteratureReview />);
+    await startReview('CRISPR base editing');
+    expect(screen.queryByRole('button', { name: /LaTeX/ })).not.toBeInTheDocument();
+
+    await act(async () => finish());
+    const button = await screen.findByRole('button', { name: /Download LaTeX/ });
+    fireEvent.click(button);
+
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    const blob = createObjectURL.mock.calls[0][0];
+    expect(blob.type).toBe('application/x-tex');
+    expect(clicks).toEqual([expect.stringMatching(/^crispr-base-editing_\d{4}-\d{2}-\d{2}\.tex$/)]);
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:x');
+
+    document.createElement.mockRestore();
+});
