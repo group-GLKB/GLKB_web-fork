@@ -18,8 +18,9 @@ describe('isProductionSite', () => {
     });
 });
 
-// Switched off everywhere on 2026-10-03. Turning it back on for internal testing is
-// `!isProductionSite()` in features.js; flip this expectation with it.
-it('Literature Review is switched off', () => {
-    expect(LITERATURE_REVIEW_ENABLED).toBe(false);
+// Back on for internal testing on 2026-10-06 (off everywhere 10-03 to 10-06): on wherever this is
+// not glkb.org, and jsdom runs on localhost.
+it('Literature Review is on off the production site (jsdom runs on localhost)', () => {
+    expect(window.location.hostname).toBe('localhost');
+    expect(LITERATURE_REVIEW_ENABLED).toBe(true);
 });
