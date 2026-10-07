@@ -49,9 +49,8 @@ export const INVESTIGATE_ENABLED = true;
  * `true` here would open the feature on glkb.org with the next unrelated release.
  *
  * THE SWITCH is the last line of this file — one value, nothing else to change:
- *   false                 off everywhere (2026-10-03 to 10-06: hidden on dev too)
- *   !isProductionSite()   on for dev.glkb.org and localhost, off on glkb.org (current: internal
- *                         testing again since 2026-10-06)
+ *   false                 off everywhere (current, since 2026-10-07; also 10-03 to 10-06)
+ *   !isProductionSite()   on for dev.glkb.org and localhost, off on glkb.org (internal testing)
  *   true                  on everywhere (launch)
  * Off hides the entry points only; the page, the client and the pipeline stay in the codebase.
  */
@@ -76,4 +75,4 @@ export const isProductionSite = (hostname = (typeof window !== 'undefined' ? win
     PRODUCTION_HOSTS.includes(String(hostname || '').toLowerCase())
 );
 
-export const LITERATURE_REVIEW_ENABLED = !isProductionSite();
+export const LITERATURE_REVIEW_ENABLED = false;
