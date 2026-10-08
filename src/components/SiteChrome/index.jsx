@@ -19,6 +19,7 @@ import siteWordmark from '../../img/navbar/logo.png';
 
 /** Where the article list lives now that About owns it. */
 export const BLOG_LIST_PATH = '/#from-the-lab';
+export const DEMO_VIDEO_URL = 'https://www.youtube.com/watch?v=63b3-MuTUCA';
 
 const DATASET_URL = 'https://available-inventions.umich.edu/product/genomic-literature-knowledge-base';
 
@@ -83,7 +84,7 @@ export const SiteFooter = ({ withCta = true }) => {
                     <button type="button" className="site-button" onClick={() => navigate(CHAT_HOME_PATH)}>
                         Try GLKB
                     </button>
-                    <button type="button" className="site-button site-button--ghost" onClick={() => navigate(CHAT_HOME_PATH)}>
+                    <button type="button" className="site-button site-button--ghost" onClick={() => window.open(DEMO_VIDEO_URL, '_blank', 'noopener,noreferrer')}>
                         View Demo
                     </button>
                 </div>
