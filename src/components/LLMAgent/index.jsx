@@ -2424,8 +2424,9 @@ function LLMAgent({ isRouteActive = true }) {
         });
     }, [navigate]);
     const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
-    /* A guest may ask again (guest mode reopened 2026-10-03): Standard only, a monthly number
-       of questions and Investigate runs per IP. The backend enforces both and refuses with a
+    /* A guest may ask again (guest mode reopened 2026-10-03): AI Chat at Standard only, 10
+       questions per IP in all (since 2026-10-09; Investigate needs an account, and the count
+       never resets). The backend enforces both and refuses with a
        code (utils/refusals.js); what is left here is asking them to sign in when they reach
        for more. */
     const isGuest = !authLoading && !isAuthenticated;

@@ -38,13 +38,14 @@ describe('a signed-in reader', () => {
 
 describe('a guest', () => {
     it('reads the chat and Investigate counts', () => {
+        // Since 2026-10-09: ten questions in all, never reset, and no Investigate for a guest.
         const usage = parseGuestUsage({
-            chat: { limit: 100, used: 100, remaining: 0 },
-            deep_research: { limit: 5, used: 2, remaining: 3 },
-            resets_at: '2026-11-01T00:00:00',
+            chat: { limit: 10, used: 10, remaining: 0 },
+            deep_research: { limit: 0, used: 0, remaining: 0 },
+            resets_at: null,
         });
-        expect(usage).toMatchObject({ kind: 'guest', limit: 100, remaining: 0, investigateRemaining: 3, limitReached: true });
-        expect(limitReachedText(usage)).toMatch(/100 free questions this month\. Sign in/);
+        expect(usage).toMatchObject({ kind: 'guest', limit: 10, remaining: 0, investigateRemaining: 0, limitReached: true, resetsAt: null });
+        expect(limitReachedText(usage)).toBe("You've used your 10 free questions. Sign in to keep going — it's free.");
     });
 
     it('reads a backend from before guest mode reopened', () => {

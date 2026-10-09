@@ -6,9 +6,10 @@
  *   signed in  credits — `GET /api/v1/credits/me`: `remaining` (free monthly + purchased) out of
  *              `monthly_allowance`. A query costs its tier's price; the cheapest (Standard AI
  *              Chat) is 1, so a balance under 1 can ask nothing.
- *   guest      questions — `GET /api/v1/tier/guest-me`: a monthly count per IP for chat (100)
- *              and for Investigate (5). A backend from before guest mode reopened answers only the
- *              legacy `quota_*` keys, which are read as the chat count.
+ *   guest      questions — `GET /api/v1/tier/guest-me`: a count per IP for chat (10 in all, never
+ *              reset, since 2026-10-09; 100 a month before) and for Investigate (0 since then: it
+ *              needs an account; 5 a month before). A backend from before guest mode reopened answers only the legacy
+ *              `quota_*` keys, which are read as the chat count.
  *
  * Both reset at 00:00 UTC on the 1st. The stream's `Saved` / `Error` frames carry the new
  * credit balance (`credits.remaining`), which `applyStreamCredits` folds in without a refetch.
@@ -116,7 +117,7 @@ export const limitReachedText = (usage) => {
     const resets = formatResetDate(usage.resetsAt);
     if (usage.kind === 'guest') {
         const count = usage.limit ? `${usage.limit} ` : '';
-        return `You've used your ${count}free questions this month. Sign in to keep going — it's free.`;
+        return `You've used your ${count}free questions. Sign in to keep going — it's free.`;
     }
     return resets
         ? `You're out of credits. Your free monthly credits come back on ${resets}.`

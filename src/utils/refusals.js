@@ -10,6 +10,12 @@ export const INSUFFICIENT_CREDITS = 'INSUFFICIENT_CREDITS';
 export const GUEST_LIMIT_REACHED = 'GUEST_LIMIT_REACHED';
 export const GUEST_LOGIN_REQUIRED = 'GUEST_LOGIN_REQUIRED';
 
+/* Since 2026-10-09 a guest gets plain AI Chat (10 questions in all) and nothing else: these are
+   what the sign-in overlay says when they reach for Investigate or the Graph Viewer. The backend
+   refuses a guest's Investigate with the same code (`reason: "investigate"`). */
+export const GUEST_INVESTIGATE_REASON = "Investigate is available to signed-in users. Sign in to use it — it's free.";
+export const GUEST_GRAPH_VIEWER_REASON = "The Graph Viewer is available to signed-in users. Sign in to use it — it's free.";
+
 /** Whether answering this refusal means signing in — a guest's limit, or a tier only members get. */
 export const refusalNeedsSignIn = (refusal) => (
     refusal?.code === GUEST_LIMIT_REACHED || refusal?.code === GUEST_LOGIN_REQUIRED

@@ -149,18 +149,6 @@ const HomePage = () => {
         }
     }, [showHomeLimitWarning]);
 
-    const handleAuthGate = (event) => {
-        if (loading) return true;
-        if (isAuthenticated) {
-            return false;
-        }
-        if (event) {
-            event.preventDefault();
-            event.stopPropagation();
-        }
-        openLoginModal();
-        return true;
-    };
 
 
     // const handleSearch = async (v) => {
@@ -389,9 +377,6 @@ const HomePage = () => {
                                                             type="button"
                                                             className="homepage-examples-item"
                                                             onClick={() => {
-                                                                if (handleAuthGate()) {
-                                                                    return;
-                                                                }
                                                                 trackGtagEvent('home_example_item_click', {
                                                                     section: activePill?.id || '',
                                                                     label: activePill?.label || '',
@@ -422,9 +407,8 @@ const HomePage = () => {
                                                     event.stopPropagation();
                                                     return;
                                                 }
-                                                if (handleAuthGate(event)) {
-                                                    return;
-                                                }
+                                                // Open to guests (2026-10-09): an example only fills the box,
+                                                // and sending it is a question like any other.
                                                 trackGtagEvent('home_example_group_click', {
                                                     section: pill.id,
                                                     label: pill.label,

@@ -41,6 +41,7 @@ import {
     useAttachments,
 } from '../Units/AttachmentChips';
 import { effectiveTier, getTierPref, setTierPref } from '../../service/serviceTiers';
+import { GUEST_INVESTIGATE_REASON } from '../../utils/refusals';
 import {
     defaultQuestionFor,
     GUEST_ATTACH_REASON,
@@ -75,8 +76,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
        is the other half — the examples are often already open, because focusing the box opens
        them, and then the menu lands on top of a list the reader cannot use. */
     const [tierMenuOpen, setTierMenuOpen] = useState(false);
-    /* A guest may ask (guest mode, 2026-10-03): Standard only, and a monthly number of
-       questions. Reaching past either opens the sign-in overlay with the reason on it. */
+    /* A guest may ask (guest mode, 2026-10-03): AI Chat at Standard only, 10 questions in all
+       (since 2026-10-09; Investigate needs an account too). Reaching past any of it opens the
+       sign-in overlay with the reason on it. */
     const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
     const isGuest = !authLoading && !isAuthenticated;
     const navigate = useNavigate();
@@ -610,6 +612,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         event.preventDefault();
                                         event.stopPropagation();
                                         const next = !investigateEnabled;
+                                        if (next && isGuest) {
+                                            openLoginModal(GUEST_INVESTIGATE_REASON);
+                                            return;
+                                        }
                                         if (next) {
                                             trackGtagEvent('home_investigate_enable_click', {
                                                 source: 'home_searchbar',
@@ -693,6 +699,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                                 setReviewEnabled(!reviewEnabled);
                                             } else {
                                                 const next = !investigateEnabled;
+                                                if (next && isGuest) {
+                                                    openLoginModal(GUEST_INVESTIGATE_REASON);
+                                                    return;
+                                                }
                                                 trackGtagEvent('home_investigate_toggle_click', { enabled: next });
                                                 setReviewEnabled(false);
                                                 setInvestigateEnabled(next);
@@ -700,6 +710,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         };
                                         const choose = (tool) => {
                                             setToolMenuAnchor(null);
+                                            if (tool === 'investigate' && isGuest) {
+                                                openLoginModal(GUEST_INVESTIGATE_REASON);
+                                                return;
+                                            }
                                             setResearchTool(tool);
                                             setInvestigateEnabled(tool === 'investigate');
                                             setReviewEnabled(tool === 'literature_review');

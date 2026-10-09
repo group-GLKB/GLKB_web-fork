@@ -6,8 +6,9 @@ const GUEST_ALLOWED_ENDPOINT_PREFIXES = [
   '/api/v1/tier/guest-me',
   '/api/v1/new-llm-agent/stream',
   '/api/v1/new-llm-agent/chat',
-  // Guest mode (reopened 2026-10-03): a guest may run Investigate (and answer its clarification),
-  // and the tier picker reads the public prices.
+  // Guest mode (reopened 2026-10-03): the tier picker reads the public prices. Investigate (and
+  // its clarification) is signed-in only since 2026-10-09, but stays listed so a guest gets the
+  // backend's 403 GUEST_LOGIN_REQUIRED — which opens the sign-in overlay — not a 401 redirect.
   '/api/v1/deep-research/stream',
   '/api/v1/deep-research/clarify',
   '/api/v1/credits/pricing',
