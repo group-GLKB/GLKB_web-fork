@@ -12,7 +12,7 @@ test.use({ viewport: { width: 1600, height: 900 } });
 const withCacheBuster = (text) => `${text} (ignore the trailing digits: ${Math.floor(Math.random() * 1000000)})`;
 
 test('AI Chat returns a non-empty response', { timeout: 150000 }, async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/chat');
 
   // Type a question and submit (auth guard bypassed via storageState)
   const input = page.locator('.llm-searchbar textarea').first();
@@ -21,7 +21,7 @@ test('AI Chat returns a non-empty response', { timeout: 150000 }, async ({ page 
 
   // Wait for navigation to /chat — each conversation now gets its own /chat/<id> URL, so a
   // bare "**/chat" match never lands once an id is assigned.
-  await page.waitForURL(/\/chat(\/|$)/);
+  await page.waitForURL(/\/chat\//);
 
   // Wait for AI response — the assistant's reply is the second .markdown-body
   const response = page.locator('.markdown-body').nth(1);

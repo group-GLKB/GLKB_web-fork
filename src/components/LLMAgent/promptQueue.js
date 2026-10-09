@@ -26,13 +26,24 @@ const sameId = (a, b) => (
     a != null && b != null && String(a) === String(b)
 );
 
-/* A conversation may not have a history id yet, but it already has a unique stream/session
-   key. Treat two missing keys as the one legacy nameless thread; otherwise they must match.
+/* A conversation may not have a history id yet, but it already has a stable queue owner
+   key (the first stream's id, retained across turns). Treat two missing keys as the one
+   legacy nameless thread; otherwise they must match.
    Without this second coordinate every simultaneously-created conversation looked like the
    same `conversationId: null` thread until its Saved frame arrived. */
 const sameRunKey = (a, b) => (
     a == null ? b == null : sameId(a, b)
 );
+
+// A guest thread outlives any one transport. Preserve its owner across completion,
+// subsequent turns and reloads. Legacy snapshots kept this identity only on entries.
+export const restoredQueueOwnerKey = (snapshot) => {
+    if (!snapshot || snapshot.conversationId != null) return null;
+    const queue = Array.isArray(snapshot.queuedPrompts) ? snapshot.queuedPrompts : [];
+    return snapshot.queueOwnerKey
+        ?? queue.find((item) => item?.conversationId == null && item?.runKey)?.runKey
+        ?? (snapshot.sessionId ? `session:${snapshot.sessionId}` : null);
+};
 
 const isEntryOnScreen = (entry, activeConversationId, activeRunKey) => {
     const conversationId = entry?.conversationId ?? null;
@@ -63,7 +74,7 @@ export const promptsForConversation = (queue, activeConversationId, activeRunKey
     ))
 );
 
-/** Move only one provisional run's queue onto the history id delivered by its Saved frame.
+/** Move only one provisional thread's queue onto the history id delivered by its Saved frame.
  *
  * Several new conversations can be streaming before any has a history id. Mapping every null
  * entry here lets whichever Saved frame arrives first steal the other conversations' bubbles

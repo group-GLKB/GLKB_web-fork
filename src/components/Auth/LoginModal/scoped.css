@@ -44,6 +44,20 @@
     color: var(--color-text-secondary);
 }
 
+/* Why the overlay opened (AuthContext `loginReason`): a guest who picked Premium, or used up
+   the month's free questions. Above the title, so it is read first. */
+.login-reason {
+    margin: 4px 0 4px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--color-brand-soft, #eef3ff);
+    color: var(--color-text-secondary);
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
+    line-height: 18px;
+    text-align: center;
+}
+
 .login-title {
     margin: 8px 0 8px;
     text-align: center;

@@ -1,6 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-import BoltIcon from '@mui/icons-material/Bolt';
 import CloseIcon from '@mui/icons-material/Close';
 import {
   Box,
@@ -9,11 +8,16 @@ import {
 } from '@mui/material';
 
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
+import { INVESTIGATE_ATTACH_NOTE, pastedAttachments } from '../../service/attachments';
 import { trackGtagEvent } from '../../utils/gtag';
-import { EFFORT_QUICK, defaultModelFor, isQuickAvailable } from '../../service/effort';
-import ModelPicker from '../Units/ModelPicker';
-
-const SHOW_QUICK_CONTROL = false;
+import {
+    AttachButton,
+    AttachmentChips,
+    attachmentBlockedNote,
+    dragHasFiles,
+    filesFromTransfer,
+} from '../Units/AttachmentChips';
+import TierPicker from '../Units/TierPicker';
 
 const ChatSearchBar = ({
     userInput,
@@ -24,26 +28,29 @@ const ChatSearchBar = ({
     // Investigate is fixed for the life of a session, so the bar reports the
     // mode for analytics but no longer renders a toggle.
     investigateEnabled = false,
-    // Which model answers the next question. Per-turn, unlike `investigateEnabled`:
-    // the picker is right here in the composer, so a reader can change it between two
-    // turns of one conversation and expects the next answer to honour the change.
-    model,
-    onModelChange,
-    onModelResolveDefault,
-    // How hard the next question is worked (service/effort.js); '' is standard. Per-turn,
-    // like the model. `efforts` is the agent's catalogue of levels: with none offered the
-    // chip is not rendered, so an older agent is never shown a level it cannot honour.
-    effort = '',
-    onEffortChange,
-    efforts = [],
+    // Which service tier answers the next question (service/serviceTiers.js). Per-turn, unlike
+    // `investigateEnabled`: the picker is right here in the composer, so a reader can change it
+    // between two turns of one conversation and expects the next answer to honour the change.
+    serviceTier,
+    onServiceTierChange,
+    onServiceTierResolveDefault,
+    // A guest is held to Standard; picking another tier asks them to sign in.
+    isGuest = false,
+    onRequireSignIn,
     // Resolved by the parent, which is the only place that can see both signals — see the
     // comment at the call site. Not derived from `investigateEnabled` above: that one is
     // for analytics and is false for a reopened investigate conversation.
     pipelineIsDeepResearch = false,
+    /* The files waiting on this question (Units/AttachmentChips/useAttachments), owned by the
+       parent because it reads them at send time. Absent: no paperclip at all. */
+    attachments = null,
+    // A guest reaching for the paperclip (or dropping a file) is asked to sign in.
+    onAttachRequireSignIn,
     onSubmit,
     onStop,
 }) => {
     const isMobileViewport = useMediaQuery('(max-width:767px)');
+    const [isDragOver, setIsDragOver] = useState(false);
     /* Two different situations wear the same `isLoading`, and the field stays usable in both.
 
        THIS conversation is answering: a submit is queued by the parent, so a follow-up that
@@ -56,21 +63,31 @@ const ChatSearchBar = ({
        be disabled here, which meant "New Chat" during a run led to a composer that could not
        be typed in. */
     const canType = !isQueryLimitReached;
-    const canSend = Boolean(userInput.trim()) && canType;
+    /* Attachments are AI Chat only (the Investigate pipeline does not read them), and a guest's
+       question has no owner to keep a file for — so the "+" button is off on one and asks the
+       other to sign in. Chips already waiting when the conversation is an Investigate one
+       hold the send back with a note rather than being dropped without a word. */
+    const attachDisabled = pipelineIsDeepResearch || !canType;
+    const attachmentNote = attachmentBlockedNote(attachments, { investigate: pipelineIsDeepResearch });
+    const readyAttachmentCount = attachments?.readyAttachments?.length || 0;
+    const canSend = (Boolean(userInput.trim()) || readyAttachmentCount > 0)
+        && canType
+        && !attachments?.isUploading
+        && !attachmentNote;
+    const takeFiles = (files) => {
+        if (!attachments || !files?.length) return;
+        if (isGuest) {
+            onAttachRequireSignIn?.();
+            return;
+        }
+        if (attachDisabled) return;
+        attachments.addFiles(files);
+    };
     // Stop is what the button offers when there is nothing to send. Typing turns it back into
     // send, which is also how a reader gets out of a queued follow-up they no longer want:
     // clear the field and the stop control is there again. There is nothing here to stop when
     // the run belongs to another thread.
     const showStop = isLoading && !isRunElsewhere && !canSend;
-    // Quick is chat's level. Deep research is its own level in all but name and refuses
-    // `quick`, so on an Investigate conversation the chip is withdrawn rather than offered
-    // and then refused.
-    const quickOffered = !pipelineIsDeepResearch && isQuickAvailable(efforts, 'chat');
-    const quickOn = quickOffered && effort === EFFORT_QUICK;
-    // The level's default model, shown by the picker when the reader has chosen none. Not a
-    // lock: the picker stays operable, and Quick with another model is a request the agent
-    // honours — the level buys latency, the model buys cost.
-    const levelDefaultModel = quickOn ? defaultModelFor(efforts, effort) : '';
     const trackInvestigateSubmit = (inputMethod) => {
         if (!pipelineIsDeepResearch) return;
         trackGtagEvent('investigate_question_submit', {
@@ -87,9 +104,28 @@ const ChatSearchBar = ({
 
     return (
         <div className="chat-header">
-        <Box sx={{
+        <Box
+            className={isDragOver ? 'attachment-drop-target' : undefined}
+            onDragOver={(event) => {
+                if (!attachments || !dragHasFiles(event)) return;
+                event.preventDefault();
+                if (!isDragOver) setIsDragOver(true);
+            }}
+            onDragLeave={(event) => {
+                if (event.currentTarget.contains(event.relatedTarget)) return;
+                setIsDragOver(false);
+            }}
+            onDrop={(event) => {
+                if (!attachments || !dragHasFiles(event)) return;
+                event.preventDefault();
+                setIsDragOver(false);
+                takeFiles(filesFromTransfer(event.dataTransfer));
+            }}
+            sx={{
             width: '100%',
             display: 'flex',
+            // The chips sit above the field, inside the same rounded box.
+            flexDirection: 'column',
             margin: '0 auto',
             backgroundColor: 'var(--color-background-subtle)',
             borderRadius: '16px',
@@ -98,10 +134,30 @@ const ChatSearchBar = ({
             borderColor: 'var(--color-border-default)',
             boxShadow: 'none',
         }}>
+            {attachments && (
+                <AttachmentChips
+                    items={attachments.items}
+                    notice={attachments.notice}
+                    blockedNote={attachmentNote}
+                    onRemove={attachments.remove}
+                />
+            )}
             <TextField
                 className="input-form"
                 size="small"
                 value={userInput}
+                onPaste={(event) => {
+                    /* A paste that carries files (any type) attaches them; a very long text
+                       becomes "Pasted text.txt", as in Claude — but only where a file could be
+                       attached, so a guest's or an Investigate paste still lands in the box. */
+                    if (!attachments) return;
+                    const files = pastedAttachments(event.clipboardData, {
+                        longText: !isGuest && !attachDisabled,
+                    });
+                    if (!files.length) return;
+                    event.preventDefault();
+                    takeFiles(files);
+                }}
                 onChange={(e) => {
                     if (!canType) return;
                     setUserInput(e.target.value);
@@ -128,7 +184,8 @@ const ChatSearchBar = ({
                         minHeight: isMobileViewport ? '44px' : '52px',
                         height: 'auto',
                         alignItems: 'center',
-                        paddingLeft: '20px',
+                        // 20px of text inset, or room for the "+" when it leads the field.
+                        paddingLeft: attachments ? '8px' : '20px',
                         /* The end cluster (model chip, clear, send) is a flex sibling of the
                            textarea rather than an overlay, so the field's own right padding is
                            just the gap to the composer's edge. It used to be 60px to clear an
@@ -156,6 +213,19 @@ const ChatSearchBar = ({
                 }}
                 fullWidth
                 InputProps={{
+                    // The "+" panel opens under (or over) the whole field, as ChatGPT's does.
+                    'data-attach-anchor': true,
+                    // The "+" at the start of the field, as in ChatGPT.
+                    startAdornment: attachments ? (
+                        <AttachButton
+                            onFiles={takeFiles}
+                            isGuest={isGuest}
+                            onRequireSignIn={onAttachRequireSignIn}
+                            disabled={attachDisabled}
+                            disabledReason={pipelineIsDeepResearch ? INVESTIGATE_ATTACH_NOTE : ''}
+                            source="chat_searchbar"
+                        />
+                    ) : null,
                     endAdornment: (
                         <Box
                             display="flex"
@@ -171,64 +241,16 @@ const ChatSearchBar = ({
                                 puts it too. It had a control row of its own under the field for
                                 a while, which cost the composer 54px of height for one chip and
                                 left the chip stranded in a band of empty space. */}
-                            {/* Quick is hidden on both home and chat composers. */}
-                            {SHOW_QUICK_CONTROL && quickOffered && (
-                                <Box
-                                    component="button"
-                                    type="button"
-                                    className="effort-quick-chip"
-                                    aria-pressed={quickOn}
-                                    aria-label={quickOn ? 'Quick on' : 'Quick off'}
-                                    title={quickOn
-                                        ? 'Quick is on: an answer in seconds from GLKB alone, at most two search rounds'
-                                        : 'Quick: an answer in seconds from GLKB alone'}
-                                    disabled={isQueryLimitReached}
-                                    onMouseDown={(event) => event.preventDefault()}
-                                    onClick={() => {
-                                        const next = !quickOn;
-                                        trackGtagEvent('chat_quick_toggle_click', {
-                                            source: 'chat_searchbar',
-                                            enabled: next,
-                                        });
-                                        onEffortChange?.(next ? EFFORT_QUICK : '');
-                                    }}
-                                    sx={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        height: 32,
-                                        padding: '4px 8px',
-                                        borderRadius: '8px',
-                                        border: 'none',
-                                        cursor: isQueryLimitReached ? 'default' : 'pointer',
-                                        background: quickOn ? 'var(--color-brand-muted)' : 'transparent',
-                                        color: quickOn ? 'var(--color-brand-primary)' : 'var(--color-text-tertiary)',
-                                        fontFamily: 'Geist, sans-serif',
-                                        fontWeight: 600,
-                                        fontSize: '12px',
-                                        lineHeight: '16px',
-                                        whiteSpace: 'nowrap',
-                                        flexShrink: 0,
-                                        '&:hover': {
-                                            background: quickOn ? 'var(--color-blue-200)' : 'var(--color-background-subtle)',
-                                            color: quickOn ? 'var(--color-blue-600)' : 'var(--color-grey-600)',
-                                        },
-                                        '&:disabled': { opacity: 0.6 },
-                                    }}
-                                >
-                                    <BoltIcon sx={{ fontSize: 16 }} />
-                                    Quick
-                                </Box>
-                            )}
-                            <ModelPicker
-                                value={model}
-                                onChange={onModelChange}
-                                onResolveDefault={onModelResolveDefault}
+                            <TierPicker
+                                value={serviceTier}
+                                onChange={onServiceTierChange}
+                                onResolveDefault={onServiceTierResolveDefault}
                                 pipeline={pipelineIsDeepResearch ? 'deep_research' : 'chat'}
-                                defaultModelOverride={levelDefaultModel}
+                                isGuest={isGuest}
+                                onRequireSignIn={onRequireSignIn}
                                 // Left usable while an answer streams. A follow-up typed
                                 // mid-answer is queued by the parent, and it should be able to
-                                // name its own model — the choice applies to the NEXT request,
+                                // name its own tier — the choice applies to the NEXT request,
                                 // never to the one in flight.
                                 disabled={isQueryLimitReached}
                             />

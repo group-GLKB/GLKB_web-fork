@@ -28,6 +28,61 @@ const resolveInvestigateUrl = (endpoint, fallback) => {
 const resolveInvestigateStreamUrl = () =>
     resolveInvestigateUrl(INVESTIGATE_STREAM_ENDPOINT, DEFAULT_STREAM_ENDPOINT);
 
+/**
+ * A request the backend turned away BEFORE the stream opened, read out of the HTTP error:
+ * `{ status, code, message, ...detail }`, or null for anything else (a dropped connection, an
+ * abort, a 5xx with no detail).
+ *
+ * Credits and guest limits are checked before the agent runs, so a refusal is always an HTTP
+ * error rather than an SSE frame (glkb-backend docs/frontend-credits.md):
+ *   429 INSUFFICIENT_CREDITS  { message, required, remaining, cheaper_option }
+ *   429 GUEST_LIMIT_REACHED   { message, pipeline, limit, used, resets_at }
+ *   403 GUEST_LOGIN_REQUIRED  { message, reason }
+ *   503 CREDITS_BUSY          retried once by `chat`
+ *   400 / 422                 a string or a validation list
+ *
+ * The stream is posted with `responseType: 'text'`, so the body arrives as a string and has to
+ * be parsed here; a JSON body (other requests) is used as is.
+ */
+/* Run polling and cancel need the run owner's JWT, so a guest — whose runs have no owner —
+   cannot use them: the backend answers 401, and the axios interceptor treats a signed-out 401
+   as "send them to /login", which would throw a guest out of the very chat they were using. So
+   neither is sent without a token. Polling reads as a run the server does not have (a 404, the
+   callers' "lost"), and Stop only lets go of the stream. */
+const hasStoredToken = () => {
+    try {
+        return Boolean(localStorage.getItem('access_token'));
+    } catch (error) {
+        return false;
+    }
+};
+
+const runUnavailableToGuests = () => {
+    const error = new Error('A guest\'s run cannot be polled');
+    error.response = { status: 404, data: { detail: 'Run polling needs a signed-in account' } };
+    return error;
+};
+
+export const refusalOf = (error) => {
+    const response = error?.response;
+    const status = Number(response?.status);
+    if (!response || !Number.isFinite(status) || status < 400) return null;
+    let body = response.data;
+    if (typeof body === 'string') {
+        try {
+            body = JSON.parse(body);
+        } catch (parseError) {
+            body = { detail: body };
+        }
+    }
+    const detail = body?.detail;
+    if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
+        return { ...detail, status, code: detail.code || null, message: detail.message || '' };
+    }
+    if (typeof detail === 'string') return { status, code: null, message: detail };
+    return { status, code: null, message: '' };
+};
+
 const resolveInvestigateClarifyUrl = () =>
     resolveInvestigateUrl(INVESTIGATE_CLARIFY_ENDPOINT, '/api/v1/deep-research/clarify');
 
@@ -260,6 +315,153 @@ export const inferFunnelFromText = (lines = []) => {
     return funnel;
 };
 
+/**
+ * One parsed SSE frame as the update the chat view consumes, or null for a frame it ignores.
+ *
+ * Pure, and exported, because a stream is read twice: live, as it arrives, and again when a
+ * finished turn is reloaded — the backend stores the frames the reader watched with the
+ * answer (`trace` on a history message) and `replayTrace` feeds them back through here, so a
+ * reloaded turn is built by the same mapping as the live one rather than by a copy of it.
+ */
+export const frameToUpdate = (data) => {
+    if (!data || typeof data !== 'object') return null;
+    const detail = data.detail && typeof data.detail === 'object' ? data.detail : {};
+    const funnel = extractFunnelMetrics(data);
+    const keywords = extractKeywords(data);
+    const papers = extractPapers(data);
+    const percent = normalizePercent(
+        data.percent ?? data.progress_percent ?? detail.percent ?? null,
+    );
+    // `data.content` on a tool frame is an internal trace
+    // ("[TOOL CALL] article_search | Input: {…}"), so it is mapped to its
+    // step.json wording before it can reach the panel as a label.
+    const label = data.label || detail.label || data.message
+        || humanizeTrace(data.content) || '';
+    const phase =
+        data.phase ||
+        detail.phase ||
+        data.stage_label ||
+        inferInvestigatePhase(data.step || data.type, label);
+
+    // Agent DR progress frames: type === "progress" (or tool_name progress)
+    const isProgressFrame =
+        data.type === 'progress' ||
+        data.tool_name === 'progress' ||
+        (data.percent != null && data.phase);
+
+    if (data.step === 'Started') {
+        return {
+            type: 'started',
+            runId: data.run_id || null,
+            sessionId: data.session_id || null,
+            phase: phase || 'searching',
+            funnel,
+            percent: percent ?? PHASE_PERCENT_FLOOR.searching,
+            keywords,
+            papers,
+            label: label || 'Starting investigation…',
+        };
+    } else if (data.type === 'clarification' || data.step === 'Clarifying the question') {
+        return {
+            type: 'clarification',
+            invocationId: data.invocation_id || null,
+            stage: data.stage || null,
+            reason: data.reason || '',
+            questions: Array.isArray(data.questions) ? data.questions : [],
+            sessionId: data.session_id || null,
+            phase: phase || 'searching',
+            funnel,
+            percent, // hold bar during clarify
+            keywords,
+            papers,
+        };
+    } else if (data.step === 'Thinking') {
+        // The opening line, written by a cheap model while the agent is still
+        // on its first turn. It is not the answer and never becomes it — the
+        // real text arrives on `Delta`/`Answer` and supersedes it — so it goes
+        // to the thought list, not the body.
+        return {
+            type: 'thinking',
+            delta: typeof data.delta === 'string' ? data.delta : '',
+        };
+    } else if (data.step === 'Delta') {
+        // A chunk of the answer as the model writes it. `delta` is the
+        // INCREMENT, not the running total, so the client appends. `block`
+        // rises on every tool call: in a ReAct loop the model also narrates
+        // before each call ("I'll search PubMed for…") and that text streams
+        // too, so only the NEWEST block is the answer. See the agent's
+        // service/stream_delta.py.
+        return {
+            type: 'delta',
+            block: Number(data.block) || 0,
+            delta: typeof data.delta === 'string' ? data.delta : '',
+        };
+    } else if (data.step === 'Answer') {
+        // The finished answer, shipped ahead of the reference/citation
+        // payload it used to wait behind. Text only — `Complete` still
+        // carries everything, including this same string, so this frame is
+        // purely "show it sooner".
+        return {
+            type: 'answer',
+            answer: data.response,
+            sessionId: data.session_id || null,
+        };
+    } else if (data.step === 'Complete') {
+        return {
+            type: 'final',
+            answer: data.response,
+            references: data.references || [],
+            // Per-citation evidence. Read `direct_citations`, never
+            // `citations` — that is an unrelated agent field with a
+            // different shape. The backend normalises this name for us
+            // on every endpoint, this frame included.
+            directCitations: data.direct_citations || [],
+            messages: data.messages || [],
+            sessionId: data.session_id || null,
+            trajectory: data.trajectory || null,
+            funnel,
+            phase: 'summary',
+            percent: 100,
+            keywords,
+            papers,
+        };
+    } else if (data.step === 'Saved') {
+        return {
+            type: 'saved',
+            historyId: data.history_id,
+            sessionId: data.session_id || null,
+            invocationId: data.invocation_id || null,
+            credits: data.credits || null,
+        };
+    } else if (data.step === 'Error') {
+        return {
+            type: 'error',
+            error: data.error || data.detail || 'Unknown error',
+            credits: data.credits || null,
+            funnel,
+        };
+    } else if (isProgressFrame || data.step) {
+        return {
+            type: 'step',
+            step: data.step || data.phase || 'Processing',
+            content: label || data.message || data.content || '',
+            phase,
+            funnel,
+            percent,
+            keywords,
+            papers,
+            label,
+            // The frame's remaining structured fields (facets, n_claims,
+            // n_conflicted, section/step/total, topic, …). The progress panel
+            // renders these as the active step's detail block, so they have to
+            // survive the trip instead of being flattened into a label string.
+            detail,
+            isProgress: Boolean(isProgressFrame),
+        };
+    }
+    return null;
+};
+
 export class LLMAgentService {
     constructor() {
         this.messages = [];
@@ -290,138 +492,8 @@ export class LLMAgentService {
                     try {
                         const jsonStr = line.substring(6);
                         const data = JSON.parse(jsonStr);
-                        const detail = data.detail && typeof data.detail === 'object' ? data.detail : {};
-                        const funnel = extractFunnelMetrics(data);
-                        const keywords = extractKeywords(data);
-                        const papers = extractPapers(data);
-                        const percent = normalizePercent(
-                            data.percent ?? data.progress_percent ?? detail.percent ?? null,
-                        );
-                        // `data.content` on a tool frame is an internal trace
-                        // ("[TOOL CALL] article_search | Input: {…}"), so it is mapped to its
-                        // step.json wording before it can reach the panel as a label.
-                        const label = data.label || detail.label || data.message
-                            || humanizeTrace(data.content) || '';
-                        const phase =
-                            data.phase ||
-                            detail.phase ||
-                            data.stage_label ||
-                            inferInvestigatePhase(data.step || data.type, label);
-
-                        // Agent DR progress frames: type === "progress" (or tool_name progress)
-                        const isProgressFrame =
-                            data.type === 'progress' ||
-                            data.tool_name === 'progress' ||
-                            (data.percent != null && data.phase);
-
-                        if (data.step === 'Started') {
-                            onUpdate({
-                                type: 'started',
-                                runId: data.run_id || null,
-                                sessionId: data.session_id || null,
-                                phase: phase || 'searching',
-                                funnel,
-                                percent: percent ?? PHASE_PERCENT_FLOOR.searching,
-                                keywords,
-                                papers,
-                                label: label || 'Starting investigation…',
-                            });
-                        } else if (data.type === 'clarification' || data.step === 'Clarifying the question') {
-                            onUpdate({
-                                type: 'clarification',
-                                invocationId: data.invocation_id || null,
-                                stage: data.stage || null,
-                                reason: data.reason || '',
-                                questions: Array.isArray(data.questions) ? data.questions : [],
-                                sessionId: data.session_id || null,
-                                phase: phase || 'searching',
-                                funnel,
-                                percent, // hold bar during clarify
-                                keywords,
-                                papers,
-                            });
-                        } else if (data.step === 'Thinking') {
-                            // The opening line, written by a cheap model while the agent is still
-                            // on its first turn. It is not the answer and never becomes it — the
-                            // real text arrives on `Delta`/`Answer` and supersedes it — so it goes
-                            // to the thought list, not the body.
-                            onUpdate({
-                                type: 'thinking',
-                                delta: typeof data.delta === 'string' ? data.delta : '',
-                            });
-                        } else if (data.step === 'Delta') {
-                            // A chunk of the answer as the model writes it. `delta` is the
-                            // INCREMENT, not the running total, so the client appends. `block`
-                            // rises on every tool call: in a ReAct loop the model also narrates
-                            // before each call ("I'll search PubMed for…") and that text streams
-                            // too, so only the NEWEST block is the answer. See the agent's
-                            // service/stream_delta.py.
-                            onUpdate({
-                                type: 'delta',
-                                block: Number(data.block) || 0,
-                                delta: typeof data.delta === 'string' ? data.delta : '',
-                            });
-                        } else if (data.step === 'Answer') {
-                            // The finished answer, shipped ahead of the reference/citation
-                            // payload it used to wait behind. Text only — `Complete` still
-                            // carries everything, including this same string, so this frame is
-                            // purely "show it sooner".
-                            onUpdate({
-                                type: 'answer',
-                                answer: data.response,
-                                sessionId: data.session_id || null,
-                            });
-                        } else if (data.step === 'Complete') {
-                            onUpdate({
-                                type: 'final',
-                                answer: data.response,
-                                references: data.references || [],
-                                // Per-citation evidence. Read `direct_citations`, never
-                                // `citations` — that is an unrelated agent field with a
-                                // different shape. The backend normalises this name for us
-                                // on every endpoint, this frame included.
-                                directCitations: data.direct_citations || [],
-                                messages: data.messages || [],
-                                sessionId: data.session_id || null,
-                                trajectory: data.trajectory || null,
-                                funnel,
-                                phase: 'summary',
-                                percent: 100,
-                                keywords,
-                                papers,
-                            });
-                        } else if (data.step === 'Saved') {
-                            onUpdate({
-                                type: 'saved',
-                                historyId: data.history_id,
-                                sessionId: data.session_id || null,
-                                invocationId: data.invocation_id || null,
-                            });
-                        } else if (data.step === 'Error') {
-                            onUpdate({
-                                type: 'error',
-                                error: data.error || data.detail || 'Unknown error',
-                                funnel,
-                            });
-                        } else if (isProgressFrame || data.step) {
-                            onUpdate({
-                                type: 'step',
-                                step: data.step || data.phase || 'Processing',
-                                content: label || data.message || data.content || '',
-                                phase,
-                                funnel,
-                                percent,
-                                keywords,
-                                papers,
-                                label,
-                                // The frame's remaining structured fields (facets, n_claims,
-                                // n_conflicted, section/step/total, topic, …). The progress panel
-                                // renders these as the active step's detail block, so they have to
-                                // survive the trip instead of being flattened into a label string.
-                                detail,
-                                isProgress: Boolean(isProgressFrame),
-                            });
-                        }
+                        const update = frameToUpdate(data);
+                        if (update) onUpdate(update);
                     } catch (e) {
                         console.error('Error parsing stream chunk:', e, 'Line:', line);
                     }
@@ -479,22 +551,26 @@ export class LLMAgentService {
                 if (typeof options.rankingMode === 'string' && options.rankingMode.trim()) {
                     payload.ranking_mode = options.rankingMode.trim();
                 }
+                // Uploaded images and PDFs (service/attachments.js), by id. AI Chat only — the
+                // backend refuses them on Investigate — and omitted when there are none.
+                const attachmentIds = Array.isArray(options.attachments)
+                    ? options.attachments
+                        .map((id) => (typeof id === 'string' || typeof id === 'number' ? String(id).trim() : ''))
+                        .filter(Boolean)
+                    : [];
+                if (attachmentIds.length) {
+                    payload.attachments = attachmentIds;
+                }
             }
-            // Sent on BOTH paths, unlike filters/ranking_mode above. Chat and Investigate share
-            // one composer, so they share its picker, and the agent maps the id onto whichever
-            // pipeline is running: the chat agent's own model, or deep research's report-writing
-            // tier. Omitted when blank, which the agent reads as "use your configured default".
-            if (typeof options.model === 'string' && options.model.trim()) {
-                payload.model = options.model.trim();
-            }
-            // The effort level (service/effort.js). Chat only: deep research is its own level
-            // in all but name and refuses `quick` with a 400, so the field is withheld there
-            // just as filters/ranking_mode are. Omitted when blank, which the agent reads as
-            // `standard`. A level that fixes its model arrives here with NO model — the
-            // composer dropped it, because the agent refuses a conflicting one rather than
-            // substituting.
-            if (!investigateEnabled && typeof options.effort === 'string' && options.effort.trim()) {
-                payload.effort = options.effort.trim();
+            // The service tier (service/serviceTiers.js), on BOTH paths: the backend prices the
+            // query by it and the agent picks the model. Omitted when blank, which the backend
+            // reads as its default (Standard). `model` and `effort` are never sent — since the
+            // credit system the backend answers either with a 422.
+            const serviceTier = typeof options.serviceTier === 'string'
+                ? options.serviceTier.trim().toLowerCase()
+                : '';
+            if (serviceTier) {
+                payload.service_tier = serviceTier;
             }
             // Backend PR #31: email when Deep Research hits Complete
             if (
@@ -507,7 +583,7 @@ export class LLMAgentService {
 
             const streamEndpoint = investigateEnabled ? resolveInvestigateStreamUrl() : DEFAULT_STREAM_ENDPOINT;
 
-            await axios.post(streamEndpoint, payload, {
+            const post = () => axios.post(streamEndpoint, payload, {
                 headers: {
                     'Content-Type': 'application/json',
                     Accept: 'text/event-stream',
@@ -525,6 +601,19 @@ export class LLMAgentService {
                     processSSEChunk(chunk);
                 },
             });
+            try {
+                await post();
+            } catch (error) {
+                // 503 CREDITS_BUSY: the balance covers the query but three concurrent charges
+                // raced for it. The backend asks for one retry after a second; nothing was taken.
+                if (refusalOf(error)?.code !== 'CREDITS_BUSY') throw error;
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+                // The refused response's body went through the progress handler; the retry is a
+                // new response, read from its start.
+                processedLength = 0;
+                buffer = '';
+                await post();
+            }
 
             // Flush trailing buffer without newline
             if (buffer.trim()) {
@@ -535,10 +624,13 @@ export class LLMAgentService {
                 return;
             }
             console.error('Chat error:', error);
+            const refusal = refusalOf(error);
             onUpdate({
                 type: 'error',
-                error: error.message,
+                error: refusal?.message || error.message,
+                refusal,
             });
+            if (refusal) error.refusal = refusal;
             throw error;
         }
     }
@@ -560,6 +652,7 @@ export class LLMAgentService {
      * GET /api/v1/deep-research/run?session_id=...
      */
     async getRun({ runId, sessionId } = {}) {
+        if (!hasStoredToken()) throw runUnavailableToGuests();
         if (runId) {
             const endpoint = resolveInvestigateRunUrl(runId);
             const response = await axios.get(endpoint, {
@@ -596,7 +689,7 @@ export class LLMAgentService {
      * aborts the stream regardless.
      */
     async cancelRun(runId, { investigate = false } = {}) {
-        if (!runId) return null;
+        if (!runId || !hasStoredToken()) return null;
         const endpoint = investigate
             ? `${resolveInvestigateUrl(INVESTIGATE_RUN_ENDPOINT, '/api/v1/deep-research/run')
                 .replace(/\/+$/, '')}/${encodeURIComponent(runId)}/cancel`

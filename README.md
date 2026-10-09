@@ -1,5 +1,30 @@
 # GLKB_web
 
+## New Graph Viewer
+
+Open `/graph-viewer` (also linked from `/search`). The request contract follows
+`Ocelot-29A/gkb2_frontend`, branch `xuteng/react`, `GraphViewerQueryDialog.js`.
+Set `REACT_APP_GRAPH_VIEWER_API_URL` at build time to override the default
+`https://jieliulab3.dcmb.med.umich.edu/gkb0708/api/graph` endpoint.
+This is independent of `REACT_APP_API_PROXY_TARGET`; the graph backend must allow
+browser CORS from the deployed frontend origin and localhost for development.
+GLKB auth interceptors are not attached to this separate HTTP client.
+
+The viewer posts JSON with `cypher`, `core_nodes`, `max_nodes`, and
+`layout_mode: "kg_only"`, accepts `combined_query_result`/`graph` and
+`xy_json`/`coords`, and uses server node coordinates when complete (otherwise
+local fcose layout). Genome tracks and backend edge routing are not rendered.
+Queries only run on explicit submission and can be cancelled. Old entity search,
+node-detail APIs and saved graphs remain on the legacy backend; they do not have
+equivalent endpoints in the reference viewer contract.
+
+Backend source was verified against `RingoMao/Graph_viewer`, branch `GKB`,
+commit `449756bc58916ff54d3d397632e78c74ace60d7c` via Git SSH. Node types follow
+the backend's canonical type priority (not Neo4j label order). Server rectangles
+supply node centers, width, height and Core/Neighbor styling. The backend caps
+the real-node budget at 15; overflow display markers may increase the displayed
+node count. Their descriptions remain available in node properties.
+
 ## Link to the homepage
 
 https://glkb.org/

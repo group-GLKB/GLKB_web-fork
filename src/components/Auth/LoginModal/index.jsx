@@ -61,6 +61,7 @@ const LoginModal = () => {
     login,
     loginWithGoogle,
     isLoginModalOpen,
+    loginReason,
     closeLoginModal,
   } = useAuth();
   const googleInitializedRef = useRef(false);
@@ -230,6 +231,10 @@ const LoginModal = () => {
         >
           &times;
         </button>
+
+        {loginReason && (
+          <div className="login-reason" role="status">{loginReason}</div>
+        )}
 
         <h2 className="login-title" id="login-modal-title">
           Sign in to unlock the full potential of GLKB

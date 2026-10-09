@@ -1005,6 +1005,9 @@ const ResultPage = () => {
                 <meta property="og:title" content="Search - Genomic Literature Knowledge Base | AI-Powered Genomics Search" />
             </Helmet>
             <div className="result-container" ref={containerRef}>
+                <MuiButton onClick={() => navigate('/graph-viewer')} sx={{ alignSelf: 'flex-end' }}>
+                    Open new Graph Viewer
+                </MuiButton>
                 <Joyride
                     steps={steps}
                     run={runTour}
