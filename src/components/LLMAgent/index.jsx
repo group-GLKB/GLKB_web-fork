@@ -68,6 +68,13 @@ import { emptyFunnel, mergeFunnel, settleFunnel } from './funnel';
    already cancelled) and a reader can meet more than one of them in a single run. */
 import { keepsWhatItWrote, stoppedMessageFor, withStoppedMessage } from './stopped';
 import InvestigateProgress, { formatElapsed } from './InvestigateProgress';
+import {
+    mergeInvestigateDetail,
+    mergeLiveKeywords,
+    mergeLivePapers,
+    mergePercentMonotonic,
+    mergePhaseMonotonic,
+} from './traceReplay';
 import ClarifyPanel, { getClarificationQuestionKey } from './ClarifyPanel';
 import ReferenceHoverCard from './ReferenceHoverCard';
 import { getBookmarks, toggleBookmark } from '../../utils/bookmarks';
@@ -83,15 +90,16 @@ import {
     promptsSurvivingReset,
     queuedPromptOwner,
     releaseTargetFor,
+    restoredQueueOwnerKey,
 } from './promptQueue';
 import { ReactComponent as ContentCopyIcon } from '../../img/llm/content_copy.svg';
 import { ReactComponent as DownloadIcon } from '../../img/llm/download_2.svg';
 import { ReactComponent as ReferenceIcon } from '../../img/llm/reference.svg';
 import { ReactComponent as ReplayIcon } from '../../img/llm/replay.svg';
 import { ReactComponent as ThumbsUpDownIcon } from '../../img/llm/thumbs_up_down.svg';
+import { CHAT_HOME_PATH, CHAT_NEW_PATH } from '../../config/entryRoutes';
 import { submitChatFeedback } from '../../service/Feedback';
 import {
-  INVESTIGATE_PHASE_ORDER,
   LLMAgentService,
   PHASE_PERCENT_FLOOR,
   extractProgress,
@@ -99,10 +107,12 @@ import {
 } from '../../service/LLMAgent';
 import { getCurrentUser } from '../../service/Auth';
 import {
-  getGuestTier,
-  getMyTier,
-  isFreePlanLimitReached,
-} from '../../service/Tier';
+  applyStreamCredits,
+  fetchUsage,
+  getUsageSnapshot,
+  limitReachedText,
+  subscribeToUsage,
+} from '../../service/credits';
 import {
   createConversation,
   fetchConversationDetail,
@@ -121,7 +131,8 @@ import {
   getConversationBookmarks,
   toggleConversationBookmark,
 } from '../../utils/conversationBookmarks';
-import { createQuerySubmitSuccessTracker } from '../../utils/gtag';
+import { createQuerySubmitSuccessTracker, trackGtagEvent } from '../../utils/gtag';
+import { CREDITS_PURCHASE_URL } from '../../config/features';
 import { useAuth } from '../Auth/AuthContext';
 import {
     NOTIFY_EMAIL_KEY,
@@ -131,12 +142,20 @@ import {
     setNotifyPref,
     subscribeToNotifyPrefs,
 } from '../../service/notifications';
-import { fetchModelCatalog, getModelPref, setModelPref, subscribeToModelPref } from '../../service/models';
 import {
-    getEffortPref,
-    setEffortPref,
-    subscribeToEffortPref,
-} from '../../service/effort';
+    effectiveTier,
+    getTierPref,
+    setTierPref,
+    subscribeToTierPref,
+    TIER_STANDARD,
+} from '../../service/serviceTiers';
+import { refusalNeedsSignIn, refusalText } from '../../utils/refusals';
+import {
+    attachmentIdsOf,
+    defaultQuestionFor,
+    GUEST_ATTACH_REASON,
+    normalizeAttachmentList,
+} from '../../service/attachments';
 import {
     clearActiveRun,
     clearPendingRun,
@@ -153,8 +172,11 @@ import {
     readActiveRunSnapshotFor,
     releaseGuestSlot,
     removeQueuedPromptFromSnapshot,
+    restoreQueuedPromptToSnapshot,
     consumeQueuedPrompt,
+    unconsumeQueuedPrompt,
     pendingQueuedPrompts,
+    queueEntryIdentity,
     writeActiveRunSnapshot,
 } from '../../service/agentRunSnapshot';
 import { shouldSkipConversationRestore } from '../../service/conversationRestore';
@@ -176,7 +198,10 @@ import {
     pmidFromHref,
     stripCitationsBlock,
 } from '../../utils/directCitations';
+import { MessageAttachments, useAttachments } from '../Units/AttachmentChips';
 import CiteDialog from '../Units/CiteDialog';
+import { cslFromCard, toBibTeX } from '../Units/CiteDialog/format';
+import { fetchCitations } from '../../service/Citation';
 import ErrorBoundary from '../Units/ErrorBoundary';
 import ReferenceCard from '../Units/ReferenceCard/ReferenceCard';
 import ChatSearchBar from './ChatSearchBar';
@@ -209,88 +234,6 @@ const formatDuration = (durationMs) => {
 const formatInvestigatedDuration = (durationMs) => {
     if (durationMs === null || durationMs === undefined) return '';
     return formatElapsed(durationMs / 1000);
-};
-
-const mergeLiveKeywords = (prev, next) => {
-    if (!Array.isArray(next) || !next.length) return prev || [];
-    return Array.from(new Set([...(prev || []), ...next.map(String)]));
-};
-
-const mergeLivePapers = (prev, next) => {
-    if (!Array.isArray(next) || !next.length) return prev || [];
-    const map = new Map();
-    [...(prev || []), ...next].forEach((paper) => {
-        if (!paper) return;
-        const key = paper.pmid || paper.id || paper.title;
-        if (!key) return;
-        map.set(String(key), paper);
-    });
-    return Array.from(map.values());
-};
-
-/**
- * Fold one progress frame's structured fields into the accumulated detail. Kept additive: a
- * frame that omits `facets` must not blank the facets the analyzing step is displaying, and the
- * writing frames only carry section/step/total. Keys are renamed to the shapes the panel reads.
- */
-const mergeInvestigateDetail = (prev, next, label) => {
-    const out = { ...(prev || {}) };
-    if (Array.isArray(next.topic) && next.topic.length) out.topic = next.topic.map(String);
-    if (Array.isArray(next.facets) && next.facets.length) out.facets = next.facets.map(String);
-    // Retrieval channels reporting one by one. Accumulated (not replaced) and de-duplicated by
-    // name, because each frame carries the running list and a later frame must not drop an
-    // earlier probe's result.
-    if (Array.isArray(next.channels) && next.channels.length) {
-        const byName = new Map((out.channels || []).map((c) => [c.name, c]));
-        next.channels.forEach((c) => {
-            if (!c || !c.name) return;
-            // `pending` = announced but still running. Carried through so the panel can say
-            // "searching…" instead of showing an unfinished probe as a failure.
-            byName.set(String(c.name), {
-                name: String(c.name),
-                hits: Number(c.hits) || 0,
-                ok: c.ok !== false,
-                pending: c.pending === true,
-            });
-        });
-        out.channels = Array.from(byName.values());
-    }
-    // `facets` is capped for display; `n_facets` is the true count.
-    if (Number.isFinite(Number(next.n_facets))) out.nFacets = Number(next.n_facets);
-    if (Number.isFinite(Number(next.n_claims))) out.nClaims = Number(next.n_claims);
-    if (Number.isFinite(Number(next.n_conflicted))) out.nConflicted = Number(next.n_conflicted);
-    // `step`/`total` only mean "report section i of n" on the writing frames — the reading frame
-    // also carries a `total` (the paper count), which must not be read as a section count.
-    if (next.section) {
-        out.section = String(next.section);
-        if (Number.isFinite(Number(next.step))) out.step = Number(next.step);
-        if (Number.isFinite(Number(next.total))) out.totalSections = Number(next.total);
-    }
-    if (label) out.label = String(label);
-    return out;
-};
-
-/**
- * Phases only ever move forward. A frame that names an earlier phase — a late-arriving event, a
- * phase inferred from free text, or a stage that reports its own completion — must not rewind the
- * header from "Reading..." back to "Searching...". Unknown phases are ignored rather than
- * treated as a reset.
- */
-const mergePhaseMonotonic = (prev, next) => {
-    if (!next) return prev;
-    if (!prev) return next;
-    const a = INVESTIGATE_PHASE_ORDER.indexOf(prev);
-    const b = INVESTIGATE_PHASE_ORDER.indexOf(next);
-    if (b < 0) return prev;
-    if (a < 0) return next;
-    return b >= a ? next : prev;
-};
-
-const mergePercentMonotonic = (prev, next) => {
-    if (!Number.isFinite(Number(next))) return prev;
-    const n = Math.max(0, Math.min(100, Math.round(Number(next))));
-    if (!Number.isFinite(Number(prev))) return n;
-    return Math.max(Number(prev), n);
 };
 
 const formatFunnelValue = (value) => {
@@ -1648,6 +1591,9 @@ const MessageCard = React.memo(function MessageCard({
                             </Box>
                         )}
 
+                        {/* The images and PDFs the question was sent with. */}
+                        {!isAssistant && <MessageAttachments attachments={message.attachments} />}
+
                         {/* Separates the body from the investigate summary and thinking rows
                             above it. The user bubble has none of those, so on that side the
                             margin was just 8px of dead space above the text — 20px above it
@@ -1952,14 +1898,10 @@ function LLMAgent({ isRouteActive = true }) {
     const restoreQueuedPrompts = useCallback((entries) => {
         if (!Array.isArray(entries) || !entries.length) return;
         setQueuedPrompts((prev) => {
-            const identityFor = (item) => [
-                item?.conversationId ?? '',
-                item?.runKey ?? '',
-                item?.id ?? '',
-            ].map(String).join('\u0000');
-            /* q-N was historically only unique inside one mount. After a reload, two
-               conversation snapshots can legitimately both contain q-1; treating the id as
-               global made one conversation borrow the other's de-duplication state. */
+            /* The entry's own identity (see `queueEntryIdentity`): the id alone once ids
+               became globally unique, the old composite for a legacy `q-N`, where two
+               conversations' snapshots can each hold one. */
+            const identityFor = queueEntryIdentity;
             const known = new Set(prev.map(identityFor));
             const missing = pendingQueuedPrompts(entries).filter((item) => (
                 item?.id && !known.has(identityFor(item))
@@ -1979,12 +1921,16 @@ function LLMAgent({ isRouteActive = true }) {
     const [chatHistory, setChatHistory] = useState(() => {
         const initialQuery = location.state?.initialQuery;
         if (initialQuery) {
+            const initialAttachments = normalizeAttachmentList(
+                location.state?.initialSearchOptions?.attachments,
+            );
             return [{
                 role: 'user',
                 content: initialQuery,
                 references: [],
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 investigateMode: Boolean(location.state?.initialSearchOptions?.investigateEnabled),
+                ...(initialAttachments.length ? { attachments: initialAttachments } : {}),
             }];
         }
         return mergeMessagesWithRunSnapshot(
@@ -2051,7 +1997,8 @@ function LLMAgent({ isRouteActive = true }) {
     const [isEditingChatTitle, setIsEditingChatTitle] = useState(false);
     const [chatTitleDraft, setChatTitleDraft] = useState('');
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
-    const [queryLimitTotal, setQueryLimitTotal] = useState(10);
+    // What the reader has left — credits signed in, free questions as a guest (service/credits.js).
+    const [usage, setUsage] = useState(() => getUsageSnapshot());
     const [pendingClarification, setPendingClarification] = useState(
         initialRunSnapshot?.pendingClarification || null,
     );
@@ -2095,35 +2042,16 @@ function LLMAgent({ isRouteActive = true }) {
     /* Which model answers the next question.
 
        Seeded from localStorage, so a reader's choice survives a reload, and '' until the
-       picker reports what the deployment defaults to. Two setters on purpose: a click is
-       remembered, a resolved default is not — storing the default would pin today's id and
-       a later server-side change would never reach this reader. Same cross-tab
-       subscription as the notify preference above, for the same reason: the value is in
-       localStorage and another tab can move it. */
-    const [chatModel, setChatModel] = useState(() => getModelPref());
-    useEffect(() => subscribeToModelPref(setChatModel), []);
-    const handleModelChange = useCallback((modelId) => {
-        setChatModel(modelId);
-        setModelPref(modelId);
-    }, []);
-    /* How hard the next question is worked (service/effort.js): '' is standard, 'quick' the
-       seconds-long level. Same storage discipline as the model: a click is remembered and
-       another tab's click reaches this one. The catalogue of levels is read once so the
-       composer can tell whether this deployment offers Quick at all, and which model it
-       fixes — a level that fixes its model must send none. */
-    const [chatEffort, setChatEffort] = useState(() => getEffortPref());
-    useEffect(() => subscribeToEffortPref(setChatEffort), []);
-    const handleEffortChange = useCallback((effortId) => {
-        setChatEffort(effortId);
-        setEffortPref(effortId);
-    }, []);
-    const [effortCatalog, setEffortCatalog] = useState([]);
-    useEffect(() => {
-        let cancelled = false;
-        fetchModelCatalog().then((catalog) => {
-            if (!cancelled) setEffortCatalog(Array.isArray(catalog?.efforts) ? catalog.efforts : []);
-        });
-        return () => { cancelled = true; };
+       picker reports the default tier. Two setters on purpose: a click is remembered, a
+       resolved default is not — storing the default would pin today's tier and a later
+       server-side change would never reach this reader. Same cross-tab subscription as the
+       notify preference above, for the same reason: the value is in localStorage and another
+       tab can move it. */
+    const [serviceTier, setServiceTier] = useState(() => getTierPref());
+    useEffect(() => subscribeToTierPref(setServiceTier), []);
+    const handleServiceTierChange = useCallback((tierId) => {
+        setServiceTier(tierId);
+        setTierPref(tierId);
     }, []);
     const investigateFunnelRef = useRef(initialRunSnapshot?.investigateFunnel || emptyFunnel());
     /* What the funnel counters actually SHOWED, as opposed to what the agent reported.
@@ -2278,6 +2206,15 @@ function LLMAgent({ isRouteActive = true }) {
     );
     const loadingConversationIdRef = useRef(null);
     const activeStreamIdRef = useRef(null);
+    // Unlike activeStreamIdRef, this survives a turn finishing. Only New Chat
+    // resets the nameless conversation that owns queued guest follow-ups.
+    const queueOwnerKeyRef = useRef(restoredQueueOwnerKey(initialRunSnapshot));
+    /* The conversations this tab is answering in the background (a released follow-up).
+       The registry mark says the same thing, but it is shared with other tabs and can go
+       stale, so the visit-time reconcile below is allowed to take it down — and used to take
+       it down on a conversation whose follow-up this tab was still writing. This ref is the
+       one thing that cannot be stale: it is set before the request and cleared after it. */
+    const backgroundRunsRef = useRef(new Set());
     const liveRunSnapshotRef = useRef(initialRunSnapshot);
     /* The slot the live snapshot is being written under — a conversation id, or null for a run
        that has none yet. `undefined` means nothing has been written this mount. Kept so that
@@ -2483,10 +2420,29 @@ function LLMAgent({ isRouteActive = true }) {
         notifyRunComplete({
             title: 'Investigate finished',
             body: 'Your report is ready to read.',
-            onClick: () => navigate('/chat'),
+            onClick: () => navigate(CHAT_NEW_PATH),
         });
     }, [navigate]);
     const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
+    /* A guest may ask again (guest mode reopened 2026-10-03): Standard only, a monthly number
+       of questions and Investigate runs per IP. The backend enforces both and refuses with a
+       code (utils/refusals.js); what is left here is asking them to sign in when they reach
+       for more. */
+    const isGuest = !authLoading && !isAuthenticated;
+    const requireSignIn = useCallback((reason) => {
+        openLoginModal(typeof reason === 'string' ? reason : undefined);
+    }, [openLoginModal]);
+    const requestPremiumSignIn = useCallback((tier) => {
+        requireSignIn(`${tier?.label || 'GPT-6.1 Sol'} is available to signed-in users. Sign in to use it — it's free.`);
+    }, [requireSignIn]);
+    /* Images and PDFs waiting on the composer (service/attachments.js). Held here, not in the
+       composer, because the send reads them: `submitOrQueue` puts them on the turn's options
+       and clears the chips once the question has left. Signed-in readers and AI Chat only. */
+    const requestAttachSignIn = useCallback(() => {
+        requireSignIn(GUEST_ATTACH_REASON);
+    }, [requireSignIn]);
+    const composerAttachments = useAttachments({ onRequireSignIn: requestAttachSignIn });
+    const clearComposerAttachments = composerAttachments.clear;
     const useMobileReferencesDrawer = isPhoneDevice;
 
     useEffect(() => {
@@ -2580,21 +2536,40 @@ function LLMAgent({ isRouteActive = true }) {
     const refreshTierStatus = useCallback(async () => {
         if (authLoading) {
             setIsQueryLimitReached(false);
-            setQueryLimitTotal(10);
             return;
         }
-        const result = isAuthenticated ? await getMyTier() : await getGuestTier();
-        if (!result.success) return;
-        setIsQueryLimitReached(isFreePlanLimitReached(result.data));
-        setQueryLimitTotal(Number(result.data?.quota_limit) || 10);
+        const next = await fetchUsage({ isAuthenticated });
+        if (!next) return;
+        setUsage(next);
+        setIsQueryLimitReached(next.limitReached);
     }, [authLoading, isAuthenticated]);
+    // The balance a stream frame carried (`applyStreamCredits`) arrives here too.
+    useEffect(() => subscribeToUsage((next) => {
+        setUsage(next);
+        setIsQueryLimitReached(Boolean(next?.limitReached));
+    }), []);
+    /* A refusal from before the stream opened (utils/refusals.js). Credits can only be fixed by
+       waiting or buying; a guest's limit or a members-only tier by signing in, so that opens the
+       sign-in overlay with the reason on it. */
+    const handleRefusal = useCallback((refusal) => {
+        if (!refusal) return;
+        if (refusalNeedsSignIn(refusal)) {
+            requireSignIn(refusalText(refusal));
+            // A members-only tier puts the picker back on the guest's; a refusal for attached
+            // files (`reason: "attachments"`) has nothing to do with the tier.
+            if (refusal.code === 'GUEST_LOGIN_REQUIRED' && refusal.reason !== 'attachments') {
+                setServiceTier(TIER_STANDARD);
+            }
+        }
+        if (refusal.code === 'INSUFFICIENT_CREDITS' || refusal.code === 'GUEST_LIMIT_REACHED') {
+            refreshTierStatus();
+        }
+    }, [requireSignIn, refreshTierStatus]);
 
     const llmService = useMemo(() => new LLMAgentService(), []);
     const isLimitReachedEffective = isQueryLimitReached || DEBUG_FORCE_LIMIT_WARNING;
     const showLimitWarning = isLimitReachedEffective;
-    const displayedQueryLimit = Number.isFinite(Number(queryLimitTotal)) && Number(queryLimitTotal) > 0
-        ? Number(queryLimitTotal)
-        : 10;
+    const limitWarningText = limitReachedText(usage);
     const activeConversation = useMemo(() => {
         const currentId = activeConversationIdRef.current || activeConversationId;
         if (!currentId) return null;
@@ -2777,6 +2752,9 @@ function LLMAgent({ isRouteActive = true }) {
            address nor a conversation has genuinely nothing behind it. */
         if (!sessionId && !conversationId) return;
         const key = conversationId ? String(conversationId) : `session:${sessionId}`;
+        if (conversationId == null && !queueOwnerKeyRef.current) {
+            queueOwnerKeyRef.current = restoredQueueOwnerKey(readActiveRunSnapshotFor(null)) || key;
+        }
         if (resumingConversationRef.current === key) return;
         resumingConversationRef.current = key;
         /* A Stop belongs to the reattach it was aimed at. Cleared as a new one starts, so a
@@ -3325,7 +3303,12 @@ function LLMAgent({ isRouteActive = true }) {
                        in-flight local turn means nothing is running here, and a stale mark
                        would silently refuse (well, queue forever) every new question. */
                     if (!serverUnfinished && !storedAhead && isConversationRunning(targetId)
-                        && String(runningConversationIdRef.current ?? '') !== targetId) {
+                        && String(runningConversationIdRef.current ?? '') !== targetId
+                        // ...and this tab is not answering it in the background. That run is
+                        // not in the view's refs and its turn is not saved yet, so without
+                        // this the mark came down mid-answer — which released every follow-up
+                        // still queued for the conversation straight onto the run in flight.
+                        && !backgroundRunsRef.current.has(String(targetId))) {
                         clearActiveRun(targetId);
                     }
                     const displayMessages = (storedAhead || storedAnswered)
@@ -3461,14 +3444,16 @@ function LLMAgent({ isRouteActive = true }) {
            and sends the reader home, the agent then restored the most recent conversation
            into `activeConversationId`, and this navigated straight back into it. There was no
            way to reach an empty chat. */
-        if (!location.pathname.startsWith('/chat')) return;
+        // `isRouteActive`, not the path: /chat itself is the chat HOME, and this effect running
+        // there is exactly the New Chat bug above.
+        if (!isRouteActive) return;
         if (!activeConversationId) return;
         if (routePublicId) return;                       // the URL already names a conversation
         const current = conversationsState.find((c) => String(c.id) === String(activeConversationId));
         const publicId = current?.publicId;
         if (!publicId) return;                           // a row the backend has not backfilled
         navigate(`/chat/${publicId}`, { replace: true });
-    }, [location.pathname, activeConversationId, conversationsState, routePublicId, navigate]);
+    }, [isRouteActive, activeConversationId, conversationsState, routePublicId, navigate]);
 
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -3551,7 +3536,10 @@ function LLMAgent({ isRouteActive = true }) {
                 // Reconcile a stale mark on visit — see the route restore above.
                 if (!isExchangeUnfinished(serverMessages) && !storedAhead
                     && isConversationRunning(nextId)
-                    && String(runningConversationIdRef.current ?? '') !== nextId) {
+                    && String(runningConversationIdRef.current ?? '') !== nextId
+                    // See the route restore above: a background follow-up this tab is
+                    // writing is not stale, however finished the server's copy looks.
+                    && !backgroundRunsRef.current.has(String(nextId))) {
                     clearActiveRun(nextId);
                 }
                 /* And the same run-snapshot merge as the route restore. Router state survives
@@ -3638,7 +3626,7 @@ function LLMAgent({ isRouteActive = true }) {
            registry entry stays until the request itself settles, so the conversation keeps its
            working dot in the sidebar meanwhile. */
         const departingRunKey = activeConversationIdRef.current == null
-            ? (activeStreamIdRef.current ?? resumingConversationRef.current ?? null)
+            ? queueOwnerKeyRef.current
             : null;
         const departingConversationId = activeConversationIdRef.current
             ?? runningConversationIdRef.current
@@ -3682,6 +3670,7 @@ function LLMAgent({ isRouteActive = true }) {
            left. Another simultaneously-created nameless run can have its own queue, and named
            conversations are still being written and will still take their follow-ups. */
         setQueuedPrompts((prev) => promptsSurvivingReset(prev, departingRunKey));
+        queueOwnerKeyRef.current = null;
         llmService.clearHistory();
     }, [cancelStreaming, llmService]);
 
@@ -3866,6 +3855,7 @@ function LLMAgent({ isRouteActive = true }) {
         snapshotConversationIdRef.current = conversationId;
         liveRunSnapshotRef.current = {
             conversationId,
+            queueOwnerKey: conversationId == null ? queueOwnerKeyRef.current : null,
             /* The follow-ups the reader has already handed over. `submitOrQueue` takes the
                text out of the composer and draws it as a pending bubble, so from their side
                the question has been SENT — and it lived in React state alone, so the reload
@@ -3998,11 +3988,11 @@ function LLMAgent({ isRouteActive = true }) {
                 state: Object.keys(restState).length ? restState : null,
             });
             initialSearchOptionsRef.current = searchOptions;
-            // Adopt the model the home page's picker was showing, so the chip here names what
-            // this first turn actually ran on. Normally the same value is already in
-            // localStorage (both pickers write it), but the handover must not depend on that.
-            if (searchOptions?.model) {
-                setChatModel(searchOptions.model);
+            // Adopt the tier the home page's picker was showing, so the chip here names what this
+            // first turn actually ran on. Normally the same value is already in localStorage
+            // (both pickers write it), but the handover must not depend on that.
+            if (searchOptions?.serviceTier) {
+                setServiceTier(searchOptions.serviceTier);
             }
             /* Asked even while another conversation is answering. This used to be behind
                `if (!isLoading)`, so a question handed over from the home page during a run was
@@ -4251,7 +4241,18 @@ function LLMAgent({ isRouteActive = true }) {
     const handleSubmit = async (e, input = null, t = null, options = {}) => {
         const inputText = input || userInput;
         e && e.preventDefault();
-        if (!inputText.trim() || isLimitReachedEffective) return;
+        /* Returns whether a turn was STARTED. A queued follow-up is taken out of the queue
+           before it is submitted (so a conversation switch cannot submit it twice), so a
+           refusal here has to be reported — otherwise the question the reader already
+           watched leave their composer ends here, silently. */
+        if (!inputText.trim()) return false;
+        /* Every route to a question ends here — the composer, a released follow-up, and the
+           query handed over in the home page's navigation state. A guest who has used the
+           month's questions gets the sign-in overlay and keeps their question in the box. */
+        if (isLimitReachedEffective) {
+            if (isGuest) requireSignIn(limitWarningText);
+            return false;
+        }
 
         /* Which conversation this turn belongs to. Normally the one on screen, but a released
            queued prompt names its own: it was written as a follow-up to a particular thread and
@@ -4278,12 +4279,22 @@ function LLMAgent({ isRouteActive = true }) {
            was still being written — and reopening that conversation from History let a second
            turn start on the same history id, which is the race this refuses. */
         if (!shouldStartNewConversation && isConversationRunning(targetConversationId)) {
-            return;
+            return false;
         }
         const baseHistory = Array.isArray(options.baseHistory)
             ? options.baseHistory
             : (shouldStartNewConversation ? [] : chatHistory);
         const streamId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        if (shouldStartNewConversation || !queueOwnerKeyRef.current) {
+            queueOwnerKeyRef.current = streamId;
+        }
+        /* Only the NAMELESS thread has entries waiting for a conversation id, and only its
+           own run may adopt them. The key outlives a finished turn on purpose (a thread
+           keeps its queue across transports), so passing it from a run that already HAS a
+           conversation handed that run another conversation's follow-ups: they left the
+           thread they were written for, and — their conversation id rewritten — came back
+           looking like follow-ups nothing had sent yet. */
+        const queueOwnerKey = targetConversationId == null ? queueOwnerKeyRef.current : null;
         activeStreamIdRef.current = streamId;
         // A Stop aimed at the PREVIOUS run must not follow this one, which the reader has
         // only just asked for.
@@ -4316,16 +4327,21 @@ function LLMAgent({ isRouteActive = true }) {
             maxArticles: Number.isFinite(Number(requestSearchOptions?.maxArticles))
                 ? Number(requestSearchOptions.maxArticles)
                 : undefined,
-            // Kept so a clarify retry re-runs on the model the original run used. Without it
-            // `prior.model` below is always undefined and the restarted run silently drops to
-            // the server default — the same question answered by a different model.
-            model: typeof requestSearchOptions?.model === 'string' && requestSearchOptions.model
-                ? requestSearchOptions.model
-                : undefined,
-            effort: typeof requestSearchOptions?.effort === 'string' && requestSearchOptions.effort
-                ? requestSearchOptions.effort
+            // Kept so a clarify retry re-runs on the tier the original run used. Without it
+            // `prior.serviceTier` below is always undefined and the restarted run silently drops
+            // to the default tier — the same question answered by a different model.
+            serviceTier: typeof requestSearchOptions?.serviceTier === 'string' && requestSearchOptions.serviceTier
+                ? requestSearchOptions.serviceTier
                 : undefined,
         };
+
+        /* The images and PDFs this turn carries (service/attachments.js). AI Chat only: the
+           Investigate pipeline does not read them, and no composer sends them there. An explicit
+           list — a regenerate or an edited message re-sending the original's files — wins over
+           the options bag the composer filled. */
+        const turnAttachments = investigateEnabled
+            ? []
+            : normalizeAttachmentList(options.attachments ?? requestSearchOptions?.attachments);
 
         // Create new user message
         const newMessage = {
@@ -4335,6 +4351,7 @@ function LLMAgent({ isRouteActive = true }) {
             timestamp: t || timestamp,
             investigateMode: investigateEnabled,
             modeSource: 'submitted',
+            ...(turnAttachments.length ? { attachments: turnAttachments } : {}),
         };
 
         /* Paint before waiting on anything.
@@ -4379,6 +4396,8 @@ function LLMAgent({ isRouteActive = true }) {
         // box was disabled for the length of a run; now that it is live, clearing it here would
         // delete their work.
         if (!input) setUserInput('');
+        // The composer's chips went with this question; a resend never touches them.
+        if (options.fromComposer) clearComposerAttachments();
         setIsLoading(true);
         setIsProcessing(true);
 
@@ -4477,10 +4496,12 @@ function LLMAgent({ isRouteActive = true }) {
             }
             /* A follow-up queued before this row existed is filed under the run's stream key.
                Several new conversations can be nameless at once, so only THIS run's entries
-               may take the new history id. */
-            setQueuedPrompts((prev) => (
-                claimQueuedPrompts(prev, streamId, String(historyId))
-            ));
+               may take the new history id — and a run that was never nameless claims none. */
+            if (queueOwnerKey) {
+                setQueuedPrompts((prev) => (
+                    claimQueuedPrompts(prev, queueOwnerKey, String(historyId))
+                ));
+            }
         }
 
         /* View state, and only the view's run may touch it. A continuation released during
@@ -5115,6 +5136,9 @@ function LLMAgent({ isRouteActive = true }) {
                         announceBackgroundCompletion();
                         break;
                     case 'saved': {
+                        // The balance after this answer's charge; a missing figure is refetched
+                        // by `refreshTierStatus` in the finally below.
+                        applyStreamCredits(update.credits);
                         /* The parts of 'saved' that belong to the RUN, not the view — the id
                            it now answers to, the follow-ups queued against its nameless days,
                            the session id a reattach will need — apply to a detached run too.
@@ -5125,9 +5149,11 @@ function LLMAgent({ isRouteActive = true }) {
                         if (savedId) {
                             runConversationId = savedId;
                             recordSubmittedMode(savedId, investigateEnabled);
-                            setQueuedPrompts((prev) => (
-                                claimQueuedPrompts(prev, streamId, savedId)
-                            ));
+                            if (queueOwnerKey) {
+                                setQueuedPrompts((prev) => (
+                                    claimQueuedPrompts(prev, queueOwnerKey, savedId)
+                                ));
+                            }
                             const nextSessionId = update.sessionId || runSessionId;
                             if (nextSessionId) {
                                 setStoredSessionId(savedId, nextSessionId);
@@ -5187,6 +5213,35 @@ function LLMAgent({ isRouteActive = true }) {
                         break;
                     }
                     case 'error': // unsure if this is used
+                        applyStreamCredits(update.credits);
+                        /* Refused before the stream opened (utils/refusals.js): nothing ran and
+                           nothing was charged. The bubble says why, in the backend's words rather
+                           than as an "Error:", and the catch below does not go looking for a run
+                           that was never started. */
+                        if (update.refusal) {
+                            streamOutcome = 'refused';
+                            handleRefusal(update.refusal);
+                            if (!isActiveStream) {
+                                persistDetachedFailure(refusalText(update.refusal));
+                                return;
+                            }
+                            applyPendingClarification(null);
+                            setIsProcessing(false);
+                            setStreamingStepName('');
+                            updateRunningChatHistory((prev) => {
+                                const newHistory = [...prev];
+                                newHistory[newHistory.length - 1] = {
+                                    role: 'assistant',
+                                    content: refusalText(update.refusal),
+                                    references: [],
+                                    timestamp,
+                                    thinkingSteps: [],
+                                    investigateMode: investigateEnabled,
+                                };
+                                return newHistory;
+                            });
+                            break;
+                        }
                         if (!isActiveStream) {
                             streamOutcome = 'lost';
                             persistDetachedFailure(`Error: ${update.error}`);
@@ -5239,12 +5294,12 @@ function LLMAgent({ isRouteActive = true }) {
                 filters: Array.isArray(requestSearchOptions?.filters) ? requestSearchOptions.filters : undefined,
                 rankingMode: typeof requestSearchOptions?.rankingMode === 'string' ? requestSearchOptions.rankingMode : undefined,
                 investigateEnabled,
-                // The turn's OWN model, off the options bag rather than off `chatModel`: a
-                // queued follow-up must send the model that was showing when the reader hit
-                // send, not whatever the picker moved to while it waited in the queue.
-                model: requestSearchOptions?.model || undefined,
-                // The turn's own level, same discipline as the model above.
-                effort: requestSearchOptions?.effort || undefined,
+                // The turn's OWN tier, off the options bag rather than off `serviceTier`: a
+                // queued follow-up must send the tier that was showing when the reader hit
+                // send, not whatever the picker moved to while it waited in the queue. A guest
+                // is always Standard — the backend refuses anything else.
+                serviceTier: effectiveTier(requestSearchOptions?.serviceTier, { isGuest }) || undefined,
+                attachments: turnAttachments.length ? attachmentIdsOf(turnAttachments) : undefined,
                 notifyEmail: (investigateEnabled && notifyEmailEnabled)
                     ? (getUserNotifyEmail() || undefined)
                     : undefined,
@@ -5255,8 +5310,10 @@ function LLMAgent({ isRouteActive = true }) {
             });
         } catch (error) {
             console.error('Error in chat:', error);
+            // Refused before the stream opened: there is no run to recover (see the 'error' case).
+            const refusal = error?.refusal || null;
             // Deep Research disconnect recovery: poll GET /run/{run_id}
-            if (investigateEnabled && runIdRef.current && activeStreamIdRef.current === streamId) {
+            if (!refusal && investigateEnabled && runIdRef.current && activeStreamIdRef.current === streamId) {
                 try {
                     const run = await llmService.getRun({ runId: runIdRef.current });
                     if (run && (run.status === 'complete' || run.response)) {
@@ -5319,11 +5376,11 @@ function LLMAgent({ isRouteActive = true }) {
                GONE gets an error written; a run it still calls running is left alone, its
                exchange visibly unfinished, for the reattach path to collect. */
             const pollSessionId = runSessionId || sessionIdRef.current;
-            let outcome = 'unknown';
+            let outcome = refusal ? 'refused' : 'unknown';
             const canRecoverDetached = () => Boolean(
                 runConversationId && isConversationRunning(runConversationId),
             );
-            if (pollSessionId
+            if (!refusal && pollSessionId
                 && (activeStreamIdRef.current === streamId || canRecoverDetached())) {
                 for (let attempt = 0; attempt < 100; attempt += 1) {
                     if (activeStreamIdRef.current !== streamId && !canRecoverDetached()) {
@@ -5385,7 +5442,7 @@ function LLMAgent({ isRouteActive = true }) {
                     // eslint-disable-next-line no-await-in-loop
                     await new Promise((resolve) => setTimeout(resolve, RESUME_POLL_MS));
                 }
-            } else if (!pollSessionId) {
+            } else if (!refusal && !pollSessionId) {
                 outcome = 'lost';        // nothing to ask; the old behaviour is all there is
             }
             /* An exchange left visibly unfinished is the RIGHT outcome for a run still being
@@ -5471,6 +5528,8 @@ function LLMAgent({ isRouteActive = true }) {
                 setClarificationSubmitting(false);
             }
         }
+        // The turn was started; a queued follow-up that reaches here must not be re-queued.
+        return true;
     };
 
     const updateClarificationDraft = useCallback((questionKey, nextDraft) => {
@@ -5556,8 +5615,8 @@ function LLMAgent({ isRouteActive = true }) {
                             rankingMode: prior.rankingMode,
                             maxArticles: prior.maxArticles,
                             // A restarted clarify run is the SAME question; re-running it on a
-                            // different model would silently change the answer's provenance.
-                            model: prior.model,
+                            // different tier would silently change the answer's provenance.
+                            serviceTier: prior.serviceTier,
                         },
                     });
                 } else {
@@ -5677,7 +5736,11 @@ function LLMAgent({ isRouteActive = true }) {
         const editedHistory = chatHistory.slice(0, index);
         setChatHistory(editedHistory);
         setShowReloadPrompt(false);
-        handleSubmit(e, content, null, { baseHistory: editedHistory });
+        // The edited question keeps the files the original was sent with.
+        handleSubmit(e, content, null, {
+            baseHistory: editedHistory,
+            attachments: chatHistory[index]?.attachments,
+        });
     };
 
     const handleCopyMessage = (content) => {
@@ -5708,7 +5771,7 @@ function LLMAgent({ isRouteActive = true }) {
        and shown by `resumeUnfinishedRun` when they come back to it. */
     const handleClear = useCallback(() => {
         startNewConversation({ keepRunning: isLoading });
-        navigate('/');
+        navigate(CHAT_HOME_PATH);
     }, [isLoading, navigate, startNewConversation]);
 
     useEffect(() => {
@@ -5922,7 +5985,11 @@ function LLMAgent({ isRouteActive = true }) {
         const trimmedHistory = chatHistory.slice(0, index - 1);
         setChatHistory(trimmedHistory);
         setShowReloadPrompt(false);
-        handleSubmit(e, userMessage.content, null, { baseHistory: trimmedHistory });
+        handleSubmit(e, userMessage.content, null, {
+            baseHistory: trimmedHistory,
+            // The same question, so the same files.
+            attachments: userMessage.attachments,
+        });
     };
 
     const handleReloadLatest = () => {
@@ -6093,7 +6160,7 @@ function LLMAgent({ isRouteActive = true }) {
             pendingQueuedPrompts(queuedPrompts),
             activeConversationId,
             activeConversationId == null
-                ? (activeStreamIdRef.current ?? resumingConversationRef.current ?? null)
+                ? queueOwnerKeyRef.current
                 : null,
         ).map((item) => (
             <Container
@@ -6102,7 +6169,13 @@ function LLMAgent({ isRouteActive = true }) {
                 sx={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', mb: '5px', justifyContent: 'flex-end' }}
             >
                 <Box className="queued-prompt-bubble">
-                    <span className="queued-prompt-text">{item.text}</span>
+                    <span className="queued-prompt-text">
+                        {item.text}
+                        {(() => {
+                            const files = normalizeAttachmentList(item.searchOptions?.attachments).length;
+                            return files ? ` · ${files} file${files === 1 ? '' : 's'} attached` : null;
+                        })()}
+                    </span>
                     <button
                         type="button"
                         className="queued-prompt-remove"
@@ -6201,21 +6274,19 @@ function LLMAgent({ isRouteActive = true }) {
     ), [enrichedReferences, sortOption]);
     const isExportDisabled = sortedReferences.length === 0;
 
-    const handleExportReferences = () => {
+    const handleExportReferences = async () => {
         if (sortedReferences.length === 0) return;
 
-        const bibTexContent = sortedReferences.map(({ reference: ref }) => {
-            const pubmedId = ref.url.split('/').filter(Boolean).pop();
-            const cleanTitle = ref.title.replace(/[{}]/g, '');
-            const cleanAuthors = ref.authors.replace(/,/g, ' and');
-
-            return `@article{pubmed${pubmedId},
-  author = {${cleanAuthors}},
-  title = {${cleanTitle}},
-  journal = {${ref.journal}},
-  year = {${ref.year}},
-  note = {PubMed ID: ${pubmedId}}
-}`;
+        // Each entry renders from NCBI's record for its PMID (authors, volume, pages, DOI);
+        // a reference NCBI has no record for falls back to the card's own fields.
+        const cards = sortedReferences.map(({ reference: ref }) => [
+            ref.title || '', ref.url || '', ref.citation_count ?? 0, ref.year ?? '', ref.journal || '', ref.authors || '',
+        ]);
+        const pmids = cards.map((card) => cslFromCard(card).PMID).filter(Boolean);
+        const records = await fetchCitations(pmids);
+        const bibTexContent = cards.map((card) => {
+            const fallback = cslFromCard(card);
+            return toBibTeX(records[fallback.PMID] || fallback);
         }).join('\n\n');
 
         const blob = new Blob([bibTexContent], { type: 'application/x-bibtex' });
@@ -6404,10 +6475,30 @@ function LLMAgent({ isRouteActive = true }) {
      * the thread on screen, and holding a question against a run the reader cannot see would
      * fire it at a moment they have no reason to expect.
      */
-    const submitOrQueue = useCallback((event, searchOptions, queryMethod = 'button') => {
+    const submitOrQueue = useCallback((event, composerOptions, queryMethod = 'button') => {
         event?.preventDefault?.();
-        const text = userInput.trim();
-        if (!text || isLimitReachedEffective) return;
+        /* Files on the composer ride on the turn's options, so a queued follow-up keeps its
+           own. Never while one is still uploading or failed — the composer holds the send back
+           and its chips say why — and never on Investigate, which does not read them. A
+           question that is only files asks for a summary of them. */
+        const readyAttachments = composerAttachments.readyAttachments;
+        if (composerAttachments.hasItems
+            && (composerAttachments.isUploading || composerAttachments.hasErrors
+                || composerOptions?.investigateEnabled)) {
+            return;
+        }
+        const typed = userInput.trim();
+        const text = typed || (readyAttachments.length ? defaultQuestionFor(readyAttachments) : '');
+        if (!text) return;
+        const searchOptions = readyAttachments.length
+            ? { ...composerOptions, attachments: readyAttachments }
+            : composerOptions;
+        // Checked before queueing as well as before sending: a follow-up must not be taken out
+        // of the box and drawn as a pending bubble that will never be sent. A guest is told why.
+        if (isLimitReachedEffective) {
+            if (isGuest) requireSignIn(limitWarningText);
+            return;
+        }
         /* "Busy" is the REGISTRY's word, not only the view's. The view flags describe the
            run the view follows; a background follow-up holds its conversation without ever
            touching them, and a submit into it used to be refused silently deep inside
@@ -6426,7 +6517,12 @@ function LLMAgent({ isRouteActive = true }) {
                 && Boolean(resumingConversationRef.current)
                 && !runningConversationIdRef.current);
         if (!targetBusy) {
-            stableSubmit(event, null, null, { searchOptions, queryMethod });
+            // `input` only when the words are not the box's own (files with no question).
+            stableSubmit(event, typed ? null : text, null, {
+                searchOptions,
+                queryMethod,
+                fromComposer: true,
+            });
             return;
         }
         const ownerConversationId = isViewingRunningConversation
@@ -6436,7 +6532,7 @@ function LLMAgent({ isRouteActive = true }) {
             )
             : (targetConversationId != null ? String(targetConversationId) : null);
         const ownerRunKey = ownerConversationId == null
-            ? (activeStreamIdRef.current ?? resumingConversationRef.current ?? null)
+            ? queueOwnerKeyRef.current
             : null;
         queueSeqRef.current += 1;
         setQueuedPrompts((prev) => [...prev, {
@@ -6446,9 +6542,8 @@ function LLMAgent({ isRouteActive = true }) {
             // following the run, the run's own id is the most current name for it; when the
             // busy thread is being answered in the background, the screen's id is.
             conversationId: ownerConversationId,
-            // Before Saved gives the run a history id this is the only value that separates
-            // two simultaneously-created conversations. It scopes the pending bubble, its
-            // eventual id migration, and its release back into the composer that owns it.
+            // Stable across guest turns; a completed transport must not orphan its queue.
+            // Also separates provisional conversations until Saved gives them history ids.
             runKey: ownerRunKey,
             // Captured now rather than read at send time: they describe the turn the reader
             // meant to ask for.
@@ -6457,7 +6552,10 @@ function LLMAgent({ isRouteActive = true }) {
             queryMethod,
         }]);
         setUserInput('');
-    }, [userInput, isLoading, isViewingRunningConversation, isLimitReachedEffective, stableSubmit]);
+        clearComposerAttachments();
+    }, [userInput, isLoading, isViewingRunningConversation, isLimitReachedEffective,
+        isGuest, requireSignIn, limitWarningText, stableSubmit, composerAttachments,
+        clearComposerAttachments]);
 
     const removeQueuedPrompt = useCallback((entry) => {
         if (!entry?.id) return;
@@ -6490,14 +6588,35 @@ function LLMAgent({ isRouteActive = true }) {
             };
         }
         removeQueuedPromptFromSnapshot(entry.conversationId ?? null, entry.id);
-        /* Match the exact entry object as well as its scoped identity. Legacy snapshots can
-           contain the same q-N id in two conversations, and removing one must not eat both. */
+        /* By the entry's own identity — the id, for anything minted since ids became unique.
+           This used to compare the conversation id and run key too, and both are rewritten
+           while an entry waits (a Saved frame files it under its conversation), so a copy
+           claimed between this effect reading the queue and React flushing the state survived
+           its own removal and was sent a second time. Legacy `q-N` ids keep the scoped
+           comparison, where it is the only thing telling two of them apart. */
+        const goneIdentity = queueEntryIdentity(entry);
         setQueuedPrompts((prev) => prev.filter((item) => (
-            item !== entry
-            && !(item?.id === entry.id
-                && String(item?.conversationId ?? '') === String(entry.conversationId ?? '')
-                && String(item?.runKey ?? '') === String(entry.runKey ?? ''))
+            item !== entry && queueEntryIdentity(item) !== goneIdentity
         )));
+    }, []);
+
+    /* The other half of `removeQueuedPrompt`. An entry leaves the queue BEFORE its turn is
+       submitted, so that a conversation switch cannot submit it twice; if the submit then
+       refuses — over quota, the auth check still running, a throw before the request left —
+       that would be the silent end of a question the reader watched leave their composer.
+       This puts it back, pending again, where they can see it. */
+    const requeueQueuedPrompt = useCallback((entry) => {
+        if (!entry?.id) return;
+        unconsumeQueuedPrompt(entry);
+        restoreQueuedPromptToSnapshot(entry.conversationId ?? null, entry);
+        const identity = queueEntryIdentity(entry);
+        setQueuedPrompts((prev) => {
+            if (prev.some((item) => queueEntryIdentity(item) === identity)) return prev;
+            /* At the FRONT, not the end. `nextReleasableEntry` takes the earliest entry for a
+               conversation, and that is how two follow-ups keep the order they were asked in —
+               appending would send the reader's second question before their first. */
+            return [entry, ...prev];
+        });
     }, []);
 
     const announceBackgroundClarification = useCallback((forConversationId, round) => {
@@ -6545,201 +6664,228 @@ function LLMAgent({ isRouteActive = true }) {
            registry is the only thing standing between this run and a second release onto the
            same history id. */
         setActiveRun({ kind: investigateEnabled ? 'investigate' : 'chat', runId: null, conversationId, sessionId, key: streamId });
-        // A NEW run re-arms this conversation's completion notice: the set de-duplicates per
-        // conversation, and without this a second background follow-up finished silently.
-        backgroundCompletionNotifiedRef.current.delete(conversationId);
-
-        /* The stored copy can be frozen mid-exchange: a run released by New Chat stops
-           writing the store the moment the view lets go (its frames are dropped), so the
-           store still ends [question, empty assistant] after the server has long since
-           finished. Building on that would file this turn after a blank answer and send the
-           agent a truncated context. The release only happens once the previous run settled,
-           so the server's copy is whole — fetch it when the stored one is not. */
-        let base = getStoredChatHistory(conversationId);
-        if (!base.length || isExchangeUnfinished(base)) {
-            try {
-                const detail = await fetchConversationDetail(conversationId);
-                const serverBase = detail?.messages || [];
-                if (serverBase.length >= base.length) base = serverBase;
-            } catch (error) {
-                logDev('[LLM] background turn base refetch failed', error);
-            }
-        }
-        const userMessage = {
-            role: 'user',
-            content: entry.text,
-            references: [],
-            timestamp,
-            investigateMode: investigateEnabled,
-            modeSource: 'submitted',
+        backgroundRunsRef.current.add(String(conversationId));
+        /* From here the conversation is marked as answering, in the shared registry and in
+           this tab's own record, and BOTH have to come down however this ends. Anything that
+           throws before the request — a full sessionStorage, an unreadable stored transcript —
+           used to leave the marks up for the life of the mount: the conversation reads as
+           permanently answering, and (since the visit-time reconcile now trusts this tab's
+           record) nothing clears it, so every later question to it queues and never goes. */
+        const releaseBackgroundMarks = () => {
+            backgroundRunsRef.current.delete(String(conversationId));
+            clearActiveRun(conversationId);
         };
-        let history = [...base, userMessage, {
-            role: 'assistant',
-            content: '',
-            references: [],
-            timestamp,
-            thinkingSteps: [],
-            thoughtDurationMs: null,
-            trajectory: null,
-            investigateMode: investigateEnabled,
-        }];
-        let savedConversationRefresh = null;
-        writeConversationMessages(conversationId, history);
-
-        const localThinkingSteps = [];
-        let settled = false;
-        let succeeded = false;
-        const settleWith = (assistantMessage) => {
-            if (settled) return;
-            settled = true;
-            history = [...history.slice(0, -1), assistantMessage];
-            writeConversationMessages(conversationId, history);
-        };
-
         try {
-            await llmService.chat(entry.text, new AbortController(), (update) => {
-                trackQuerySubmitSuccess(update);
-                switch (update.type) {
-                    case 'step':
-                        if (update.step === 'Error') {
+            // A NEW run re-arms this conversation's completion notice: the set de-duplicates per
+            // conversation, and without this a second background follow-up finished silently.
+            backgroundCompletionNotifiedRef.current.delete(conversationId);
+
+            /* The stored copy can be frozen mid-exchange: a run released by New Chat stops
+               writing the store the moment the view lets go (its frames are dropped), so the
+               store still ends [question, empty assistant] after the server has long since
+               finished. Building on that would file this turn after a blank answer and send the
+               agent a truncated context. The release only happens once the previous run settled,
+               so the server's copy is whole — fetch it when the stored one is not. */
+            let base = getStoredChatHistory(conversationId);
+            if (!base.length || isExchangeUnfinished(base)) {
+                try {
+                    const detail = await fetchConversationDetail(conversationId);
+                    const serverBase = detail?.messages || [];
+                    if (serverBase.length >= base.length) base = serverBase;
+                } catch (error) {
+                    logDev('[LLM] background turn base refetch failed', error);
+                }
+            }
+            // The files the queued follow-up was written with — AI Chat only, as in handleSubmit.
+            const turnAttachments = investigateEnabled
+                ? []
+                : normalizeAttachmentList(requestSearchOptions?.attachments);
+            const userMessage = {
+                role: 'user',
+                content: entry.text,
+                references: [],
+                timestamp,
+                investigateMode: investigateEnabled,
+                modeSource: 'submitted',
+                ...(turnAttachments.length ? { attachments: turnAttachments } : {}),
+            };
+            let history = [...base, userMessage, {
+                role: 'assistant',
+                content: '',
+                references: [],
+                timestamp,
+                thinkingSteps: [],
+                thoughtDurationMs: null,
+                trajectory: null,
+                investigateMode: investigateEnabled,
+            }];
+            let savedConversationRefresh = null;
+            writeConversationMessages(conversationId, history);
+
+            const localThinkingSteps = [];
+            let settled = false;
+            let succeeded = false;
+            const settleWith = (assistantMessage) => {
+                if (settled) return;
+                settled = true;
+                history = [...history.slice(0, -1), assistantMessage];
+                writeConversationMessages(conversationId, history);
+            };
+
+            try {
+                await llmService.chat(entry.text, new AbortController(), (update) => {
+                    trackQuerySubmitSuccess(update);
+                    switch (update.type) {
+                        case 'step':
+                            if (update.step === 'Error') {
+                                settleWith({
+                                    role: 'assistant',
+                                    content: update.content,
+                                    references: [],
+                                    timestamp,
+                                    thinkingSteps: [...localThinkingSteps],
+                                    thoughtDurationMs: Date.now() - requestStartedAt,
+                                    investigateMode: investigateEnabled,
+                                });
+                            } else if (update.step && String(update.content ?? '').trim()) {
+                                localThinkingSteps.push({ step: update.step, content: update.content });
+                            }
+                            break;
+                        /* 'final', not 'complete': the service names the finished-answer frame
+                           'final' (LLMAgent.jsx maps step 'Complete' to it), and listening for a
+                           frame that never comes left the stored transcript ending in an empty
+                           assistant bubble until the server copy was next fetched. */
+                        case 'final':
+                            if (update.sessionId) {
+                                setStoredSessionId(conversationId, update.sessionId);
+                            }
+                            succeeded = true;
                             settleWith({
                                 role: 'assistant',
-                                content: update.content,
+                                content: update.answer,
+                                references: parseReferences(update.references),
+                                directCitations: parseDirectCitations(update.directCitations),
+                                timestamp,
+                                thinkingSteps: [...localThinkingSteps],
+                                thoughtDurationMs: Date.now() - requestStartedAt,
+                                trajectory: update.trajectory || null,
+                                investigateMode: investigateEnabled,
+                            });
+                            break;
+                        case 'saved': {
+                            applyStreamCredits(update.credits);
+                            const savedId = update.historyId ? String(update.historyId) : conversationId;
+                            if (update.sessionId) {
+                                setStoredSessionId(savedId, update.sessionId);
+                            }
+                            if (isAuthenticated) {
+                                savedConversationRefresh = fetchConversations()
+                                    .then((list) => setConversationsState(list))
+                                    .catch((error) => logDev('[LLM] Failed to refresh conversations', error));
+                            }
+                            break;
+                        }
+                        case 'error':
+                            applyStreamCredits(update.credits);
+                            if (update.refusal) handleRefusal(update.refusal);
+                            settleWith({
+                                role: 'assistant',
+                                // A refusal is said in the backend's words (utils/refusals.js).
+                                content: update.refusal ? refusalText(update.refusal) : `Error: ${update.error}`,
                                 references: [],
                                 timestamp,
                                 thinkingSteps: [...localThinkingSteps],
                                 thoughtDurationMs: Date.now() - requestStartedAt,
                                 investigateMode: investigateEnabled,
                             });
-                        } else if (update.step && String(update.content ?? '').trim()) {
-                            localThinkingSteps.push({ step: update.step, content: update.content });
-                        }
-                        break;
-                    /* 'final', not 'complete': the service names the finished-answer frame
-                       'final' (LLMAgent.jsx maps step 'Complete' to it), and listening for a
-                       frame that never comes left the stored transcript ending in an empty
-                       assistant bubble until the server copy was next fetched. */
-                    case 'final':
-                        if (update.sessionId) {
-                            setStoredSessionId(conversationId, update.sessionId);
-                        }
+                            break;
+                        default:
+                            break;
+                    }
+                }, {
+                    historyId: conversationId,
+                    sessionId,
+                    filters: Array.isArray(requestSearchOptions?.filters)
+                        ? requestSearchOptions.filters
+                        : undefined,
+                    rankingMode: typeof requestSearchOptions?.rankingMode === 'string'
+                        ? requestSearchOptions.rankingMode
+                        : undefined,
+                    investigateEnabled,
+                    // The turn's OWN tier, off the options bag rather than off `serviceTier`: a
+                    // queued follow-up must send the tier that was showing when the reader hit
+                    // send, not whatever the picker moved to while it waited in the queue.
+                    serviceTier: effectiveTier(requestSearchOptions?.serviceTier, { isGuest }) || undefined,
+                    attachments: turnAttachments.length ? attachmentIdsOf(turnAttachments) : undefined,
+                    messagesOverride: [...base, userMessage].map((msg) => ({
+                        role: msg?.role,
+                        content: msg?.content,
+                    })),
+                });
+            } catch (error) {
+                logDev('[LLM] background turn failed', error);
+                if (error?.response?.status === 429) {
+                    setIsQueryLimitReached(true);
+                }
+                /* The stream dying does not mean the answer died — the agent keeps writing and
+                   retains the run against its session id, which is the same recovery a reload
+                   uses. Poll for a while; only a run the server says is gone gets an error
+                   written into the transcript. Giving up while it still says "running" writes
+                   nothing: the exchange stays visibly unfinished and opening the conversation
+                   resumes it through the ordinary reattach path. */
+                let outcome = 'unknown';
+                for (let attempt = 0; attempt < 100 && !settled; attempt += 1) {
+                    let run = null;
+                    let missing = false;
+                    try {
+                        run = await llmService.getRun({ sessionId });
+                    } catch (pollError) {
+                        missing = pollError?.response?.status === 404;
+                    }
+                    if (run && (run.status === 'complete' || run.response)) {
                         succeeded = true;
                         settleWith({
                             role: 'assistant',
-                            content: update.answer,
-                            references: parseReferences(update.references),
-                            directCitations: parseDirectCitations(update.directCitations),
+                            content: run.response || '',
+                            references: parseReferences(run.references),
                             timestamp,
                             thinkingSteps: [...localThinkingSteps],
                             thoughtDurationMs: Date.now() - requestStartedAt,
-                            trajectory: update.trajectory || null,
+                            trajectory: run.trajectory || null,
                             investigateMode: investigateEnabled,
                         });
-                        break;
-                    case 'saved': {
-                        const savedId = update.historyId ? String(update.historyId) : conversationId;
-                        if (update.sessionId) {
-                            setStoredSessionId(savedId, update.sessionId);
-                        }
-                        if (isAuthenticated) {
-                            savedConversationRefresh = fetchConversations()
-                                .then((list) => setConversationsState(list))
-                                .catch((error) => logDev('[LLM] Failed to refresh conversations', error));
-                        }
+                        outcome = 'recovered';
                         break;
                     }
-                    case 'error':
-                        settleWith({
-                            role: 'assistant',
-                            content: `Error: ${update.error}`,
-                            references: [],
-                            timestamp,
-                            thinkingSteps: [...localThinkingSteps],
-                            thoughtDurationMs: Date.now() - requestStartedAt,
-                            investigateMode: investigateEnabled,
-                        });
+                    if (run?.status === 'error' || missing) {
+                        outcome = 'lost';
                         break;
-                    default:
-                        break;
+                    }
+                    await new Promise((resolve) => setTimeout(resolve, RESUME_POLL_MS));
                 }
-            }, {
-                historyId: conversationId,
-                sessionId,
-                filters: Array.isArray(requestSearchOptions?.filters)
-                    ? requestSearchOptions.filters
-                    : undefined,
-                rankingMode: typeof requestSearchOptions?.rankingMode === 'string'
-                    ? requestSearchOptions.rankingMode
-                    : undefined,
-                investigateEnabled,
-                // The turn's OWN model, off the options bag rather than off `chatModel`: a
-                // queued follow-up must send the model that was showing when the reader hit
-                // send, not whatever the picker moved to while it waited in the queue.
-                model: requestSearchOptions?.model || undefined,
-                messagesOverride: [...base, userMessage].map((msg) => ({
-                    role: msg?.role,
-                    content: msg?.content,
-                })),
-            });
-        } catch (error) {
-            logDev('[LLM] background turn failed', error);
-            if (error?.response?.status === 429) {
-                setIsQueryLimitReached(true);
-            }
-            /* The stream dying does not mean the answer died — the agent keeps writing and
-               retains the run against its session id, which is the same recovery a reload
-               uses. Poll for a while; only a run the server says is gone gets an error
-               written into the transcript. Giving up while it still says "running" writes
-               nothing: the exchange stays visibly unfinished and opening the conversation
-               resumes it through the ordinary reattach path. */
-            let outcome = 'unknown';
-            for (let attempt = 0; attempt < 100 && !settled; attempt += 1) {
-                let run = null;
-                let missing = false;
-                try {
-                    run = await llmService.getRun({ sessionId });
-                } catch (pollError) {
-                    missing = pollError?.response?.status === 404;
-                }
-                if (run && (run.status === 'complete' || run.response)) {
-                    succeeded = true;
+                if (outcome === 'lost') {
                     settleWith({
                         role: 'assistant',
-                        content: run.response || '',
-                        references: parseReferences(run.references),
+                        content: 'Sorry, I encountered an error while processing your request. Please try again.',
+                        references: [],
                         timestamp,
                         thinkingSteps: [...localThinkingSteps],
                         thoughtDurationMs: Date.now() - requestStartedAt,
-                        trajectory: run.trajectory || null,
                         investigateMode: investigateEnabled,
                     });
-                    outcome = 'recovered';
-                    break;
                 }
-                if (run?.status === 'error' || missing) {
-                    outcome = 'lost';
-                    break;
-                }
-                await new Promise((resolve) => setTimeout(resolve, RESUME_POLL_MS));
+            } finally {
+                refreshTierStatus();
+                holdRecentPriority(conversationId, savedConversationRefresh);
+                releaseBackgroundMarks();
+                // Only a real answer is announced as ready; an error or an unfinished turn
+                // saying "is ready" would send the reader to an answer that is not there.
+                if (succeeded) announceBackgroundCompletion(conversationId);
             }
-            if (outcome === 'lost') {
-                settleWith({
-                    role: 'assistant',
-                    content: 'Sorry, I encountered an error while processing your request. Please try again.',
-                    references: [],
-                    timestamp,
-                    thinkingSteps: [...localThinkingSteps],
-                    thoughtDurationMs: Date.now() - requestStartedAt,
-                    investigateMode: investigateEnabled,
-                });
-            }
-        } finally {
-            refreshTierStatus();
-            holdRecentPriority(conversationId, savedConversationRefresh);
-            clearActiveRun(conversationId);
-            // Only a real answer is announced as ready; an error or an unfinished turn
-            // saying "is ready" would send the reader to an answer that is not there.
-            if (succeeded) announceBackgroundCompletion(conversationId);
+        } catch (error) {
+            // Nothing was sent: the marks come down and the caller puts the follow-up back.
+            releaseBackgroundMarks();
+            throw error;
         }
     };
     const stableRunBackgroundTurn = useStableCallback(runBackgroundTurn);
@@ -6760,6 +6906,18 @@ function LLMAgent({ isRouteActive = true }) {
     const { revision: queueDispatchRevision, isDispatching, dispatch } = useQueueDispatch();
     useEffect(() => {
         if (!queuedPrompts.length || isLimitReachedEffective) return;
+        /* Nothing may be released while the auth check is still running: the submit path
+           refuses then, and an entry is consumed before it is submitted. Holding is the safe
+           state — the effect runs again the moment auth resolves. */
+        if (authLoading) return;
+        if (!isAuthenticated) {
+            /* And once it has answered "no account", holding forever would leave pending
+               bubbles on screen that nothing will ever send. A snapshot written before asking
+               required an account can still restore some. Drop them, so what is drawn is only
+               what can still happen. */
+            queuedPrompts.forEach((entry) => removeQueuedPrompt(entry));
+            return;
+        }
         const viewBusy = isLoading || isProcessing || isConversationLoading
             || isDispatching(activeConversationIdRef.current ?? '__guest__')
             // The nameless thread counts as busy while its recovery is polling — the flags
@@ -6769,7 +6927,7 @@ function LLMAgent({ isRouteActive = true }) {
         const next = nextReleasableEntry(pendingQueuedPrompts(queuedPrompts), {
             activeConversationId: activeConversationIdRef.current,
             activeRunKey: activeConversationIdRef.current == null
-                ? (activeStreamIdRef.current ?? resumingConversationRef.current ?? null)
+                ? queueOwnerKeyRef.current
                 : null,
             isConversationRunning: (id) => isConversationRunning(id) || isDispatching(id),
             /* An investigate follow-up can stop to ask a clarifying question, which only the
@@ -6789,11 +6947,17 @@ function LLMAgent({ isRouteActive = true }) {
             next,
             activeConversationIdRef.current,
             activeConversationIdRef.current == null
-                ? (activeStreamIdRef.current ?? resumingConversationRef.current ?? null)
+                ? queueOwnerKeyRef.current
                 : null,
         );
         if (!targetIsOnScreen && targetId != null) {
-            stableRunBackgroundTurn(next);
+            // It has its own error handling once the request is away; this catches what can
+            // throw BEFORE that — a full sessionStorage, an unreadable stored transcript —
+            // where the entry would otherwise be consumed and gone.
+            Promise.resolve(stableRunBackgroundTurn(next)).catch((error) => {
+                logDev('[LLM] Queued background turn failed to start', error);
+                requeueQueuedPrompt(next);
+            });
             return;
         }
         dispatch(targetId ?? '__guest__', () =>
@@ -6801,12 +6965,23 @@ function LLMAgent({ isRouteActive = true }) {
                 searchOptions: resolveQueuedSearchOptions(next, getConversationInvestigateMode(targetId)),
                 queryMethod: next.queryMethod,
                 ...(targetId == null ? {} : { conversationId: targetId }),
+            }).then((started) => {
+                /* `handleSubmit` answers whether a turn actually began. Anything OTHER than a
+                   plain true means it did not: a refusal (already answering, over quota, auth
+                   not settled) answers false, and `dispatch` itself resolves with undefined
+                   without calling the submit at all when that conversation is already claimed.
+                   The entry is out of the queue by then either way. */
+                if (started !== true) requeueQueuedPrompt(next);
             }),
-        ).catch((error) => logDev('[LLM] Queued submit failed', error));
+        ).catch((error) => {
+            logDev('[LLM] Queued submit failed', error);
+            requeueQueuedPrompt(next);
+        });
     }, [
         isLoading, isProcessing, isConversationLoading, activeConversationId,
         runRegistryRevision, queuedPrompts, isLimitReachedEffective,
-        stableSubmit, stableRunBackgroundTurn, removeQueuedPrompt,
+        authLoading, isAuthenticated,
+        stableSubmit, stableRunBackgroundTurn, removeQueuedPrompt, requeueQueuedPrompt,
         queueDispatchRevision, isDispatching, dispatch,
     ]);
 
@@ -6850,7 +7025,7 @@ function LLMAgent({ isRouteActive = true }) {
     }
 
     if (hasNothingToShow) {
-        return <Navigate to="/" replace />;
+        return <Navigate to={CHAT_HOME_PATH} replace />;
     }
 
     return (
@@ -7469,15 +7644,30 @@ function LLMAgent({ isRouteActive = true }) {
                                                     {showLimitWarning && (
                                                         <div className="llm-limit-warning">
                                                             <span className="llm-limit-warning-text">
-                                                                You've reached your query limit ({displayedQueryLimit} queries). Upgrade for unlimited access.
+                                                                {limitWarningText}
                                                             </span>
-                                                            <button
-                                                                type="button"
-                                                                className="llm-limit-warning-button"
-                                                                disabled
-                                                            >
-                                                                Update
-                                                            </button>
+                                                            {isGuest && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="llm-limit-warning-button"
+                                                                    onClick={() => requireSignIn(limitWarningText)}
+                                                                >
+                                                                    Sign in
+                                                                </button>
+                                                            )}
+                                                            {/* A signed-in reader out of credits can buy more —
+                                                                once a store is configured (config/features.js). */}
+                                                            {!isGuest && CREDITS_PURCHASE_URL && (
+                                                                <a
+                                                                    className="llm-limit-warning-button"
+                                                                    href={CREDITS_PURCHASE_URL}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    onClick={() => trackGtagEvent('credits_buy_click', { source: 'chat_limit_notice' })}
+                                                                >
+                                                                    Buy credits
+                                                                </a>
+                                                            )}
                                                         </div>
                                                     )}
                                                     {/* Figma "Asking Question" hangs the panel off the
@@ -7506,24 +7696,22 @@ function LLMAgent({ isRouteActive = true }) {
                                                         setUserInput={setUserInput}
                                                         isLoading={isLoading}
                                                         isRunElsewhere={isLoading && !isViewingRunningConversation}
-                                                        isQueryLimitReached={isLimitReachedEffective}
+                                                        // A guest at the limit keeps a live composer: sending
+                                                        // opens the sign-in overlay instead (handleSubmit).
+                                                        isQueryLimitReached={isLimitReachedEffective && !isGuest}
                                                         investigateEnabled={chatInvestigateEnabled}
-                                                        model={chatModel}
+                                                        serviceTier={serviceTier}
                                                         pipelineIsDeepResearch={chatInvestigateEnabled}
-                                                        onModelChange={handleModelChange}
-                                                        onModelResolveDefault={setChatModel}
-                                                        effort={chatEffort}
-                                                        efforts={effortCatalog}
-                                                        onEffortChange={handleEffortChange}
+                                                        onServiceTierChange={handleServiceTierChange}
+                                                        onServiceTierResolveDefault={setServiceTier}
+                                                        isGuest={isGuest}
+                                                        onRequireSignIn={requestPremiumSignIn}
+                                                        attachments={composerAttachments}
+                                                        onAttachRequireSignIn={requestAttachSignIn}
                                                         onSubmit={(event, submissionMeta) => {
-                                                            /* The level is chat's: on a deep-research conversation it is
-                                                               withheld, exactly as the chip is. The model is sent at every
-                                                               level — a level supplies the picker's DEFAULT, not a pin, so
-                                                               whatever the chip shows is what the reader asked for. */
                                                             submitOrQueue(event, {
                                                                 investigateEnabled: chatInvestigateEnabled,
-                                                                model: chatModel,
-                                                                effort: (!chatInvestigateEnabled && chatEffort) ? chatEffort : undefined,
+                                                                serviceTier,
                                                             }, submissionMeta?.queryMethod || 'button');
                                                         }}
                                                         onStop={handleStopStreaming}

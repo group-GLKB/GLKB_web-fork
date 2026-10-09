@@ -69,7 +69,7 @@ test('email-code login signs a guest in, end to end', async ({ page }) => {
     test.setTimeout(120000);
 
     const requestedAt = new Date();
-    await page.goto('/');
+    await page.goto('/chat');
 
     await page.getByRole('button', { name: 'Log in' }).click();
     const signInDialog = page.locator('.login-modal[role="dialog"]');
@@ -87,13 +87,13 @@ test('email-code login signs a guest in, end to end', async ({ page }) => {
     await page.locator('.submit-button').click();
 
     // Signed in: back on the home page, with a real session in localStorage.
-    await page.waitForURL('/');
+    await page.waitForURL('/chat');
     expect(await page.evaluate(() => Boolean(localStorage.getItem('access_token')))).toBeTruthy();
 
     // Sign back out through the real menu — leaves the account exactly as found, and
     // exercises the logout path in the same run rather than a separate test for it.
     await page.getByRole('button', { name: process.env.TEST_LOGIN_EMAIL }).click();
     await page.getByText('Log out', { exact: true }).click();
-    await page.waitForURL('/');
+    await page.waitForURL('/chat');
     expect(await page.evaluate(() => Boolean(localStorage.getItem('access_token')))).toBeFalsy();
 });

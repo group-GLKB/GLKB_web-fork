@@ -90,7 +90,7 @@ test('queued follow-ups in two conversations land in their own threads', async (
         const match = request.url().match(/^(https?:\/\/[^/]+(?:\/reorg-api)?)\/api\/v1\//);
         if (match) apiOrigin = match[1];
     });
-    await page.goto('/');
+    await page.goto('/chat');
     const signedIn = await page.evaluate(() => Boolean(localStorage.getItem('access_token')));
     test.skip(!signedIn, 'needs TEST_TOKEN — the sidebar is the subject');
 

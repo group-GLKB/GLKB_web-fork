@@ -42,9 +42,10 @@ import browserActions from '../../img/about/v2/browser/toolbar-actions.svg';
 import useCaseBookmark from '../../img/about/v2/use-cases/bookmark.svg';
 import useCaseQuote from '../../img/about/v2/use-cases/quote.svg';
 import browserFavicon from '../../img/GLKB_logo_icon.png';
+import { CHAT_HOME_PATH, markAboutSeen } from '../../config/entryRoutes';
 import { useAuth } from '../Auth/AuthContext';
 import { posts } from '../Blog/posts';
-import { PostCard, SiteFooter, SiteNav } from '../SiteChrome';
+import { DEMO_VIDEO_URL, PostCard, SiteFooter, SiteNav } from '../SiteChrome';
 import faqData from './faqData.json';
 import { USE_CASES } from './useCases';
 
@@ -88,9 +89,30 @@ const AboutPage = () => {
     const navigate = useNavigate();
     const [openFaqId, setOpenFaqId] = useState(faqData[0]?.id ?? null);
     const [useCase, setUseCase] = useState(USE_CASES[0].id);
-    const { openLoginModal } = useAuth();
+    const { openLoginModal, isAuthenticated, loading: authLoading } = useAuth();
+    const previousAuth = useRef(null);
     const railRef = useRef(null);
     const [railOverflows, setRailOverflows] = useState(false);
+
+    // Redirect a sign-in completed on About, not a restored session or a signed-in
+    // reader deliberately returning to About from inside the app.
+    useEffect(() => {
+        if (authLoading) return;
+        if (previousAuth.current === false && isAuthenticated) {
+            navigate(CHAT_HOME_PATH, { replace: true });
+        }
+        previousAuth.current = Boolean(isAuthenticated);
+    }, [authLoading, isAuthenticated, navigate]);
+
+    const handleGetStarted = () => {
+        if (isAuthenticated) navigate(CHAT_HOME_PATH);
+        else openLoginModal();
+    };
+
+    // Once seen, `/` stops sending this browser here (config/entryRoutes.js).
+    useEffect(() => {
+        markAboutSeen();
+    }, []);
 
     // The design draws the row mid-scroll, with the next card half off the edge
     // and an arrow over it. With few enough posts to fit there is nothing to
@@ -131,14 +153,14 @@ const AboutPage = () => {
     return (
         <>
             <Helmet>
-                <title>About | GLKB</title>
+                <title>GLKB: Genomic Literature Knowledge Base</title>
                 <meta name="description" content="GLKB synthesizes biomedical literature into structured, evidence-backed answers. Every claim links directly to its source paper." />
                 <meta property="og:title" content="GLKB — AI-Powered Biomedical Research Engine" />
                 <meta property="og:description" content="Weeks of research, done in minutes." />
             </Helmet>
 
             <div className="about-page">
-                <SiteNav active="home" onGetStarted={openLoginModal} />
+                <SiteNav active="home" onGetStarted={handleGetStarted} />
 
                 <section className="about-hero" id="top">
                     <div className="about-hero-copy">
@@ -154,10 +176,10 @@ const AboutPage = () => {
                             backed answers. Every claim links directly to its source paper.
                         </p>
                         <div className="about-hero-actions">
-                            <button type="button" className="site-button" onClick={() => navigate('/')}>
+                            <button type="button" className="site-button" onClick={() => navigate(CHAT_HOME_PATH)}>
                                 Try GLKB
                             </button>
-                            <button type="button" className="site-button site-button--ghost" onClick={() => navigate('/')}>
+                            <button type="button" className="site-button site-button--ghost" onClick={() => window.open(DEMO_VIDEO_URL, '_blank', 'noopener,noreferrer')}>
                                 View Demo
                             </button>
                         </div>

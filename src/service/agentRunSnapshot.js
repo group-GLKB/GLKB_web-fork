@@ -34,11 +34,47 @@ const LEGACY_SNAPSHOT_KEY = 'llmActiveRunSnapshot';
 const PROCESSING_FLAG_KEY = 'llmWasProcessing';
 const CONSUMED_PROMPTS_KEY = 'llmConsumedQueuedPrompts';
 
-const promptIdentity = (entry) => JSON.stringify([
+/* An entry's id, once ids became globally unique: `q-<ms>-<seq>-<rand>`.
+   Older ones were `q-1`, `q-2` — unique only inside one mount — so two conversations'
+   snapshots could legitimately both hold a `q-1`. */
+const UNIQUE_PROMPT_ID = /^q-\d{10,}-\d+-[a-z0-9]+$/;
+
+/**
+ * What a queued follow-up is known by, for as long as it exists.
+ *
+ * It must not change over the entry's life. It used to be the triple
+ * [conversationId, runKey, id], and two of those three ARE rewritten while the entry waits:
+ * `claimQueuedPrompts` fills in the conversation id the moment the run is saved. A
+ * follow-up that had already been sent therefore came back under a name nothing recognised
+ * — not the consumed ledger, not the snapshot removal, not the de-duplication in the view —
+ * so it was drawn again and sent again, once per conversation switch.
+ *
+ * The id alone is enough for anything minted since ids became globally unique. The old
+ * composite is kept for legacy ids, where it is the only thing telling two `q-1`s apart.
+ */
+export const queueEntryIdentity = (entry) => (
+    UNIQUE_PROMPT_ID.test(String(entry?.id ?? ''))
+        ? String(entry.id)
+        : legacyPromptIdentity(entry)
+);
+
+/* What every entry was keyed by before the identity became the id. The ledger lives in
+   sessionStorage and survives a deploy, so a tab that sent a follow-up on the old build holds
+   the old key: reading only the new one would make every already-sent follow-up look pending
+   again on the first load after release, and send it a second time — the exact failure this
+   change exists to stop, reintroduced once at upgrade. Reads accept either; writes use both,
+   so a tab that is downgraded again is still protected. */
+const legacyPromptIdentity = (entry) => JSON.stringify([
     String(entry?.conversationId ?? ''),
     String(entry?.runKey ?? ''),
     String(entry?.id ?? ''),
 ]);
+
+const promptIdentity = queueEntryIdentity;
+
+const isConsumed = (consumed, entry) => (
+    consumed.has(promptIdentity(entry)) || consumed.has(legacyPromptIdentity(entry))
+);
 
 const readConsumedPrompts = () => {
     try {
@@ -54,7 +90,7 @@ export const pendingQueuedPrompts = (entries) => {
     const seen = new Set();
     return (Array.isArray(entries) ? entries : []).filter((entry) => {
         const key = promptIdentity(entry);
-        if (!entry?.id || consumed.has(key) || seen.has(key)) return false;
+        if (!entry?.id || isConsumed(consumed, entry) || seen.has(key)) return false;
         seen.add(key);
         return true;
     });
@@ -64,6 +100,27 @@ export const consumeQueuedPrompt = (entry) => {
     if (!entry?.id) return;
     const consumed = readConsumedPrompts();
     consumed.add(promptIdentity(entry));
+    consumed.add(legacyPromptIdentity(entry));
+    try {
+        getSessionStorage()?.setItem(CONSUMED_PROMPTS_KEY, JSON.stringify([...consumed]));
+    } catch { /* Storage may be unavailable. */ }
+};
+
+/**
+ * Take a follow-up back out of the "already sent" ledger.
+ *
+ * An entry is consumed BEFORE the turn is submitted, so that switching conversations cannot
+ * submit it a second time. If the submit then refuses — the reader is over their quota, the
+ * auth check has not finished, the request throws before it leaves — that consumption would
+ * otherwise be the quiet end of a question the reader watched leave their composer. The
+ * caller puts it back with this, and the queue shows it as pending again.
+ */
+export const unconsumeQueuedPrompt = (entry) => {
+    if (!entry?.id) return;
+    const consumed = readConsumedPrompts();
+    const removed = [promptIdentity(entry), legacyPromptIdentity(entry)]
+        .filter((key) => consumed.delete(key));
+    if (!removed.length) return;
     try {
         getSessionStorage()?.setItem(CONSUMED_PROMPTS_KEY, JSON.stringify([...consumed]));
     } catch { /* Storage may be unavailable. */ }
@@ -265,17 +322,47 @@ export const writeActiveRunSnapshot = (snapshot) => {
  * submitted the same follow-up once more. Keep this scoped to one snapshot: queue ids from an
  * older tab can repeat in another conversation.
  */
-export const removeQueuedPromptFromSnapshot = (conversationId, promptId) => {
-    if (!promptId) return false;
+/**
+ * Put one queued follow-up back into its conversation's snapshot.
+ *
+ * The mirror of `removeQueuedPromptFromSnapshot`. An entry is removed from the durable copy
+ * before its turn is submitted; when the submit refuses, restoring it in memory alone would
+ * leave a pending bubble that a reload silently discards — a question the reader watched
+ * leave their composer, gone with no trace.
+ */
+export const restoreQueuedPromptToSnapshot = (conversationId, entry) => {
+    if (!entry?.id) return false;
     const snapshots = readAll();
     const slot = slotFor(conversationId);
     const snapshot = snapshots[slot];
-    if (!snapshot || !Array.isArray(snapshot.queuedPrompts)) return false;
-
-    const queuedPrompts = snapshot.queuedPrompts.filter((item) => item?.id !== promptId);
-    if (queuedPrompts.length === snapshot.queuedPrompts.length) return false;
-    snapshots[slot] = { ...snapshot, queuedPrompts };
+    if (!snapshot) return false;
+    const queuedPrompts = Array.isArray(snapshot.queuedPrompts) ? snapshot.queuedPrompts : [];
+    if (queuedPrompts.some((item) => item?.id === entry.id)) return false;
+    snapshots[slot] = { ...snapshot, queuedPrompts: [entry, ...queuedPrompts] };
     return writeAll(snapshots);
+};
+
+export const removeQueuedPromptFromSnapshot = (conversationId, promptId) => {
+    if (!promptId) return false;
+    const snapshots = readAll();
+    /* A globally unique id names one follow-up wherever it was filed, so sweep every slot:
+       an entry can be written under the nameless slot and then claimed onto a conversation,
+       and removing it from only the slot it is filed under TODAY left the other copy to be
+       restored — and sent — on the next visit. A legacy `q-N` is still scoped to its own
+       slot, where it is the only thing telling two of them apart. */
+    const slots = UNIQUE_PROMPT_ID.test(String(promptId))
+        ? Object.keys(snapshots)
+        : [slotFor(conversationId)];
+    let changed = false;
+    for (const slot of slots) {
+        const snapshot = snapshots[slot];
+        if (!snapshot || !Array.isArray(snapshot.queuedPrompts)) continue;
+        const queuedPrompts = snapshot.queuedPrompts.filter((item) => item?.id !== promptId);
+        if (queuedPrompts.length === snapshot.queuedPrompts.length) continue;
+        snapshots[slot] = { ...snapshot, queuedPrompts };
+        changed = true;
+    }
+    return changed ? writeAll(snapshots) : false;
 };
 
 /**

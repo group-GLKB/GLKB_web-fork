@@ -5,6 +5,8 @@ import React, {
 
 import { useNavigate } from 'react-router-dom';
 
+import { CHAT_NEW_PATH } from '../../config/entryRoutes';
+
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import CloseIcon from '@mui/icons-material/Close';
@@ -59,9 +61,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             hasTrackedInputRef.current = true;
         }
         if (query) {
-            navigate('/chat', { state: { initialQuery: query } });
+            navigate(CHAT_NEW_PATH, { state: { initialQuery: query } });
         } else {
-            navigate('/chat');
+            navigate(CHAT_NEW_PATH);
         }
     };
     return (

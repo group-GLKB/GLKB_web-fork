@@ -4,6 +4,7 @@ import React, {
   forwardRef,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState,
@@ -16,6 +17,7 @@ import { debounce } from 'lodash';
 import CytoscapeComponent from 'react-cytoscapejs';
 
 import { nodeStyle } from './nodeStyle';
+import { GRAPH_FONT, graphLabel, loadGraphFont } from './labels';
 
 Cytoscape.use(fcose);
 Cytoscape.use(cola);
@@ -24,6 +26,8 @@ Cytoscape.use(cola);
 const arePropsEqual = (prevProps, nextProps) => {
   return (
     prevProps.data === nextProps.data &&
+    prevProps.useServerLayout === nextProps.useServerLayout &&
+    prevProps.height === nextProps.height &&
     prevProps.gtdcFreq[0] === nextProps.gtdcFreq[0] &&
     prevProps.gtdcFreq[1] === nextProps.gtdcFreq[1] &&
     prevProps.gtdcNoc[0] === nextProps.gtdcNoc[0] &&
@@ -46,6 +50,12 @@ export const nodeAutoWidth = (label) => ((node) => {
 
 // Wrap the entire Graph component with React.memo
 const Graph = forwardRef(function Graph(props, ref) {
+  const [fontReady, setFontReady] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    loadGraphFont().then(() => { if (mounted) setFontReady(true); });
+    return () => { mounted = false; };
+  }, []);
   const [width, setWidth] = useState('100%');
   const [height, setHeight] = useState('calc(max(240px,(100vh - 134px)*0.4))');
 
@@ -105,6 +115,7 @@ const Graph = forwardRef(function Graph(props, ref) {
     // Process nodes - simplified without group handling
     props.data.nodes.forEach(node => {
       elements.nodes.push({
+        ...(node.position ? { position: node.position } : {}),
         data: {
           ...node.data,
           id: node.data.id
@@ -128,6 +139,13 @@ const Graph = forwardRef(function Graph(props, ref) {
     return elements;
   }, [props.data]);
 
+  const renderedLayout = useMemo(() => (
+    props.useServerLayout && graphData.nodes.length > 0
+      && graphData.nodes.every(node => node.position)
+      ? { name: 'preset', fit: true, padding: 50 }
+      : layout
+  ), [props.useServerLayout, graphData, layout]);
+
   // Memoize the stylesheet generation
   const generateStyleSheet = useCallback((id) => {
     const baseStyleSheet = [
@@ -147,7 +165,8 @@ const Graph = forwardRef(function Graph(props, ref) {
           'color': '#333333',
           // 'text-max-width': '150px',
           // 'text-wrap': 'wrap',
-          'font-family': 'Inter',
+          'font-family': GRAPH_FONT,
+          'font-weight': 400,
         }
       },
       {
@@ -229,7 +248,7 @@ const Graph = forwardRef(function Graph(props, ref) {
           'font-size': '12px',
           // 'text-wrap': 'wrap',
           // 'text-max-width': '120px',
-          'font-family': 'Inter',
+          'font-family': GRAPH_FONT,
         }
       },
     ];
@@ -278,7 +297,7 @@ const Graph = forwardRef(function Graph(props, ref) {
       // const borderColor = nodeId[4] === "true" ? 'red' : 'transparent';
       const estimatedWidth = (nodeId[1].length * 10) + 20;
       return {
-        selector: `node[id = "${nodeId[0]}"]`,
+        selector: `node[id = "${String(nodeId[0]).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]`,
         style: {
           backgroundColor: entity.fill,
           backgroundOpacity: 1,
@@ -302,15 +321,22 @@ const Graph = forwardRef(function Graph(props, ref) {
       };
     });
 
-    return [...baseStyleSheet, ...nodeStyles, ...additionalStyleSheet];
-  }, []);
+    const serverStyles = props.useServerLayout ? [
+      { selector: 'node[viewerWidth][viewerHeight]', style: {
+        width: 'data(viewerWidth)', height: 'data(viewerHeight)', padding: 0,
+        'text-wrap': 'ellipsis', 'text-max-width': node => Math.max(1, node.data('viewerWidth') - 16),
+      } },
+      { selector: 'node[viewerLevel = "Core"]', style: { 'border-width': 2 } },
+    ] : [];
+    return [...baseStyleSheet, ...nodeStyles, ...serverStyles, ...additionalStyleSheet];
+  }, [props.useServerLayout]);
 
   // Memoize the node IDs array
   const nodeIds = useMemo(() => {
     if (!graphData?.nodes) return [];
     return graphData.nodes.map(node => [
       node.data.id,
-      node.data.display,
+      graphLabel(node.data),
       node.data.frequency,
       node.data.n_citation,
       node.data.key_nodes,
@@ -325,6 +351,9 @@ const Graph = forwardRef(function Graph(props, ref) {
   );
 
   const myCyRef = useRef(null);
+  useImperativeHandle(ref, () => ({
+    fit: () => myCyRef.current?.fit(undefined, 50),
+  }), []);
 
   useEffect(() => {
     if (myCyRef.current) {
@@ -405,7 +434,7 @@ const Graph = forwardRef(function Graph(props, ref) {
      data had arrived — and the render where data first landed threw "rendered more hooks
      than during the previous render" and took the page down. The hooks above all tolerate
      missing data on their own. */
-  if (!props.data || !props.data.nodes) {
+  if (!fontReady || !props.data || !props.data.nodes) {
     return <div>Loading...</div>;
   }
 
@@ -414,13 +443,13 @@ const Graph = forwardRef(function Graph(props, ref) {
       <div>
         <CytoscapeComponent
           elements={CytoscapeComponent.normalizeElements(graphData)}
-          style={{ width: width, height: height }}
+          style={{ width: width, height: props.height || height }}
           zoomingEnabled={true}
           maxZoom={2}
           minZoom={0.1}
           autounselectify={false}
           boxSelectionEnabled={true}
-          layout={layout}
+          layout={renderedLayout}
           stylesheet={styleSheet}
           cy={cyInitCallback}
         />

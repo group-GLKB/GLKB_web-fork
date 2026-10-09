@@ -166,6 +166,11 @@
     white-space: nowrap;
 }
 
+/* A sub line that is a sentence rather than a value (Buy Credits) may wrap. */
+.settings-row-sub.settings-row-sub-wrap {
+    white-space: normal;
+}
+
 .settings-row-labels {
     display: flex;
     flex-direction: column;
@@ -204,6 +209,11 @@
     cursor: pointer;
     white-space: nowrap;
     transition: background-color 0.15s ease;
+}
+
+/* Also an <a> (Buy credits). */
+a.settings-row-action {
+    text-decoration: none;
 }
 
 .settings-row-action:hover {

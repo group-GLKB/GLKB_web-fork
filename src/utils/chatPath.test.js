@@ -31,16 +31,16 @@ describe('chatPathForConversation', () => {
     });
 
     it('never puts the row id in the URL, even when that is all there is', () => {
-        expect(chatPathForConversation({ id: '42', hid: 42 })).toBe('/chat');
+        expect(chatPathForConversation({ id: '42', hid: 42 })).toBe('/chat/new');
     });
 
-    it('falls back to plain /chat for a row the backend has not backfilled', () => {
-        expect(chatPathForConversation({ id: '42', publicId: null })).toBe('/chat');
+    it('falls back to /chat/new for a row the backend has not backfilled', () => {
+        expect(chatPathForConversation({ id: '42', publicId: null })).toBe('/chat/new');
     });
 
     it('survives being handed nothing', () => {
-        expect(chatPathForConversation(undefined)).toBe('/chat');
-        expect(chatPathForConversation(null)).toBe('/chat');
-        expect(chatPathForConversation({})).toBe('/chat');
+        expect(chatPathForConversation(undefined)).toBe('/chat/new');
+        expect(chatPathForConversation(null)).toBe('/chat/new');
+        expect(chatPathForConversation({})).toBe('/chat/new');
     });
 });

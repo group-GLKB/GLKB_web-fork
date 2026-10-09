@@ -12,6 +12,7 @@ import {
     INVESTIGATE_MAX_REFERENCES,
     LLMAgentService,
     PHASE_PERCENT_FLOOR,
+    refusalOf,
 } from './LLMAgent';
 
 jest.mock('../utils/axiosConfig', () => ({ __esModule: true, default: { post: jest.fn() } }));
@@ -47,32 +48,141 @@ describe('ordinary chat', () => {
     });
 });
 
-describe('model selection', () => {
-    it('sends the chosen model', async () => {
-        await run({ model: 'gpt-5.6-sol' });
-        expect(sentPayload().model).toBe('gpt-5.6-sol');
+describe('service tier', () => {
+    it('sends the chosen tier', async () => {
+        await run({ serviceTier: 'premium' });
+        expect(sentPayload().service_tier).toBe('premium');
     });
 
-    it('sends it on the investigate path too', async () => {
-        // The one option that crosses the pipeline boundary: chat and Investigate share a
-        // composer, so they share its picker. The agent maps the id onto deep research's
-        // report-writing tier. Nothing here persists onto the conversation, so unlike
-        // `filters` this cannot leak into a later turn.
-        await run({ model: 'gpt-5.6-sol', investigateEnabled: true });
-        expect(sentPayload().model).toBe('gpt-5.6-sol');
+    it('sends it on the investigate path too — Investigate is priced by tier as well', async () => {
+        await run({ serviceTier: 'premium', investigateEnabled: true });
+        expect(sentPayload().service_tier).toBe('premium');
     });
 
-    it('omits the field when no model was chosen, so the server default applies', async () => {
-        // Omitted is NOT the same as sending the default's id: the agent reads an absent
-        // field as "follow my config", and a sent id as a pin. A client that echoed the
-        // default back would freeze it at whatever it was when the page loaded.
+    it('omits the field when none was chosen, so the backend default (Standard) applies', async () => {
         await run({ filters: [] });
-        expect(sentPayload()).not.toHaveProperty('model');
+        expect(sentPayload()).not.toHaveProperty('service_tier');
     });
 
-    it('omits a blank model rather than sending an empty string', async () => {
-        await run({ model: '   ' });
+    it('omits a blank tier rather than sending an empty string, and lower-cases one', async () => {
+        await run({ serviceTier: '   ' });
+        expect(sentPayload()).not.toHaveProperty('service_tier');
+        axios.post.mockReset();
+        await run({ serviceTier: ' Premium ' });
+        expect(sentPayload().service_tier).toBe('premium');
+    });
+
+    it('never sends `model` or `effort`, which the backend answers with a 422', async () => {
+        // Queue entries persisted before the credit system can still carry both.
+        await run({ filters: [], model: 'gpt-6.1-sol', effort: 'quick', serviceTier: 'standard' });
         expect(sentPayload()).not.toHaveProperty('model');
+        expect(sentPayload()).not.toHaveProperty('effort');
+        axios.post.mockReset();
+        await run({ model: 'gpt-6.1-sol', effort: 'quick', investigateEnabled: true });
+        expect(sentPayload()).not.toHaveProperty('model');
+        expect(sentPayload()).not.toHaveProperty('effort');
+    });
+});
+
+describe('attachments', () => {
+    it('sends the uploaded ids on an ordinary chat turn', async () => {
+        await run({ filters: [], attachments: ['a1b2', ' c3d4 '] });
+        expect(sentPayload().attachments).toEqual(['a1b2', 'c3d4']);
+    });
+
+    it('omits the field when there are none', async () => {
+        await run({ filters: [], attachments: [] });
+        expect(sentPayload()).not.toHaveProperty('attachments');
+        axios.post.mockReset();
+        await run({ filters: [] });
+        expect(sentPayload()).not.toHaveProperty('attachments');
+    });
+
+    it('never sends them on Investigate, which does not read them', async () => {
+        await run({ investigateEnabled: true, attachments: ['a1b2'] });
+        expect(sentPayload()).not.toHaveProperty('attachments');
+    });
+
+    it('drops blanks and anything that is not an id', async () => {
+        await run({ filters: [], attachments: ['', null, { id: 'x' }, 'ok'] });
+        expect(sentPayload().attachments).toEqual(['ok']);
+    });
+
+    it('reads an attachment refusal like any other', () => {
+        const error = {
+            response: {
+                status: 400,
+                data: JSON.stringify({
+                    detail: { code: 'ATTACHMENT_NOT_FOUND', message: 'One of the attached files is no longer available.' },
+                }),
+            },
+        };
+        expect(refusalOf(error)).toMatchObject({
+            status: 400,
+            code: 'ATTACHMENT_NOT_FOUND',
+            message: 'One of the attached files is no longer available.',
+        });
+    });
+});
+
+describe('a request refused before the stream opened', () => {
+    // The stream is posted with responseType 'text', so the body arrives as a string.
+    const httpError = (status, body) => Object.assign(new Error(`Request failed with status code ${status}`), {
+        response: { status, data: typeof body === 'string' ? body : JSON.stringify(body) },
+    });
+
+    it('reads the code and message out of a string body', () => {
+        const refusal = refusalOf(httpError(429, { detail: {
+            code: 'INSUFFICIENT_CREDITS', message: 'Not enough credits.', required: 45, remaining: 30,
+            cheaper_option: { pipeline: 'deep_research', service_tier: 'standard', credits: 20 },
+        } }));
+        expect(refusal).toMatchObject({
+            status: 429, code: 'INSUFFICIENT_CREDITS', message: 'Not enough credits.', remaining: 30,
+        });
+        expect(refusal.cheaper_option.service_tier).toBe('standard');
+    });
+
+    it('reads a guest refusal, and a plain-string detail', () => {
+        expect(refusalOf(httpError(403, { detail: { code: 'GUEST_LOGIN_REQUIRED', message: 'Sign in.' } })))
+            .toMatchObject({ status: 403, code: 'GUEST_LOGIN_REQUIRED' });
+        expect(refusalOf(httpError(400, { detail: "Service tier 'advanced' is not enabled." })))
+            .toMatchObject({ status: 400, code: null, message: "Service tier 'advanced' is not enabled." });
+    });
+
+    it('is null for anything that is not an HTTP refusal', () => {
+        expect(refusalOf(new Error('Network Error'))).toBeNull();
+        expect(refusalOf(Object.assign(new Error('canceled'), { code: 'ERR_CANCELED' }))).toBeNull();
+    });
+
+    it('reaches the caller as an error update carrying the refusal, then rethrows', async () => {
+        axios.post.mockRejectedValueOnce(httpError(429, { detail: {
+            code: 'GUEST_LIMIT_REACHED', pipeline: 'chat', limit: 100, used: 100, message: 'You have used your 100 free questions this month.',
+        } }));
+        const updates = [];
+        const svc = new LLMAgentService();
+        await expect(svc.chat('q', new AbortController(), (u) => updates.push(u), {})).rejects.toThrow();
+        expect(updates).toHaveLength(1);
+        expect(updates[0]).toMatchObject({
+            type: 'error',
+            error: 'You have used your 100 free questions this month.',
+            refusal: { code: 'GUEST_LIMIT_REACHED', limit: 100 },
+        });
+    });
+
+    it('retries once after a second on CREDITS_BUSY, as the backend asks', async () => {
+        axios.post
+            .mockRejectedValueOnce(httpError(503, { detail: { code: 'CREDITS_BUSY' } }))
+            .mockResolvedValueOnce({ data: '' });
+        const updates = [];
+        await new LLMAgentService().chat('q', new AbortController(), (u) => updates.push(u), {});
+        expect(axios.post).toHaveBeenCalledTimes(2);
+        expect(updates.filter((u) => u.type === 'error')).toHaveLength(0);
+    }, 5000);
+
+    it('does not retry any other refusal', async () => {
+        axios.post.mockRejectedValueOnce(httpError(429, { detail: { code: 'INSUFFICIENT_CREDITS' } }));
+        await expect(new LLMAgentService().chat('q', new AbortController(), () => {}, {})).rejects.toThrow();
+        expect(axios.post).toHaveBeenCalledTimes(1);
     });
 });
 
@@ -186,37 +296,5 @@ describe('funnel metrics from an agent frame', () => {
 
     it('returns null when the frame has no funnel fields at all', () => {
         expect(extractFunnelMetrics({ step: 'Processing', content: 'hello' })).toBeNull();
-    });
-});
-
-describe('effort level', () => {
-    it('sends the chosen level on an ordinary chat turn', async () => {
-        await run({ filters: [], effort: 'quick' });
-        expect(sentPayload().effort).toBe('quick');
-    });
-
-    it('omits the field when no level was chosen, so the agent runs standard', async () => {
-        await run({ filters: [] });
-        expect(sentPayload()).not.toHaveProperty('effort');
-    });
-
-    it('omits a blank level rather than sending an empty string', async () => {
-        await run({ filters: [], effort: '  ' });
-        expect(sentPayload()).not.toHaveProperty('effort');
-    });
-
-    it('withholds it on the investigate path, where deep research would refuse it', async () => {
-        // Same rule as filters/ranking_mode: a field the pipeline rejects must not be sent,
-        // and here the rejection would be a 400 on a request the reader cannot fix.
-        await run({ effort: 'quick', investigateEnabled: true });
-        expect(sentPayload()).not.toHaveProperty('effort');
-    });
-
-    it('carries a level and a model together', async () => {
-        // A level supplies the picker's default, it does not pin — so "Quick with the best
-        // model" reaches the agent as both fields, and the agent honours both.
-        await run({ filters: [], effort: 'quick', model: 'gpt-5.6-sol' });
-        expect(sentPayload().effort).toBe('quick');
-        expect(sentPayload().model).toBe('gpt-5.6-sol');
     });
 });

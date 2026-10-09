@@ -2,9 +2,17 @@ import axios from 'axios';
 
 const API_BASE = '/api/v1/new-llm-agent/history';
 
-export const listChatHistories = async ({ offset = 0, limit = 20 } = {}) => {
+/**
+ * One page of the conversation list, newest first.
+ *
+ * `before` is a keyset cursor — the `next_cursor` of the page before this one — and is the
+ * way to walk the list. `offset` cannot be: the list is ordered by last-accessed time, which
+ * every finishing turn bumps, so a conversation that moves to the top between two requests
+ * shifts the window and the reader is shown one row twice and never shown another.
+ */
+export const listChatHistories = async ({ offset = 0, limit = 20, before = null } = {}) => {
     const response = await axios.get(API_BASE, {
-        params: { offset, limit },
+        params: before ? { limit, before } : { offset, limit },
     });
     return response.data;
 };

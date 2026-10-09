@@ -697,6 +697,8 @@
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
+    /* Also an <a> (Buy credits). */
+    text-decoration: none;
 }
 
 .llm-limit-warning-button:hover {

@@ -80,7 +80,7 @@ test.describe('an answer survives', () => {
     test.describe.configure({ timeout: 300000 });
 
     test('the reader working in another browser tab', async ({ page, context }) => {
-        await page.goto('/');
+        await page.goto('/chat');
         await ask(page);
         await page.waitForTimeout(MID_RUN_MS);
 
@@ -95,7 +95,7 @@ test.describe('an answer survives', () => {
     });
 
     test('a refresh', async ({ page }) => {
-        await page.goto('/');
+        await page.goto('/chat');
         await ask(page);
         await page.waitForTimeout(MID_RUN_MS);
         await page.reload({ waitUntil: 'domcontentloaded' });
@@ -109,7 +109,7 @@ test.describe('an answer survives', () => {
     });
 
     test('a trip to another page and back', async ({ page }) => {
-        await page.goto('/');
+        await page.goto('/chat');
         await ask(page);
         await page.waitForTimeout(MID_RUN_MS);
 
@@ -129,7 +129,7 @@ test.describe('an answer survives', () => {
    Reported to hb2022; re-enable once the underlying fix lands. */
 test.skip('a follow-up keeps the first exchange on screen', async ({ page }) => {
     test.setTimeout(300000);
-    await page.goto('/');
+    await page.goto('/chat');
     await ask(page);
     expect(await settled(page)).toBeGreaterThan(0);
 
@@ -170,7 +170,7 @@ test.skip('a follow-up keeps the first exchange on screen', async ({ page }) => 
    waiting is a deploy, not a fix. */
 test.skip('follow-ups queued mid-answer are sent in order without disappearing', async ({ page }) => {
     test.setTimeout(300000);
-    await page.goto('/');
+    await page.goto('/chat');
     const askedText = await ask(page);
     await expect(page.getByRole('button', { name: 'Stop generating', exact: true })).toBeVisible();
     const box = page.locator('textarea:not([aria-hidden="true"])').first();
@@ -195,7 +195,7 @@ test.skip('follow-ups queued mid-answer are sent in order without disappearing',
 
 test('a new chat started mid-answer leaves the composer usable', async ({ page }) => {
     test.setTimeout(180000);
-    await page.goto('/');
+    await page.goto('/chat');
     await ask(page);
     await page.waitForTimeout(MID_RUN_MS);
 
