@@ -18,8 +18,8 @@ describe('isProductionSite', () => {
     });
 });
 
-// Back on for dev and localhost on 2026-10-07 (off 10-03 to 10-06, and briefly on 10-07); still
-// off on glkb.org. jsdom's hostname is localhost, so this reads true here.
-it('Literature Review is on off the production site', () => {
-    expect(LITERATURE_REVIEW_ENABLED).toBe(true);
+// Hidden again on 2026-10-09 (off 10-03 to 10-06; on for dev and localhost 10-06 to 10-09).
+// Turning it back on is `!isProductionSite()` in features.js; flip this expectation with it.
+it('Literature Review is switched off', () => {
+    expect(LITERATURE_REVIEW_ENABLED).toBe(false);
 });
