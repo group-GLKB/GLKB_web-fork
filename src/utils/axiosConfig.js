@@ -6,6 +6,11 @@ const GUEST_ALLOWED_ENDPOINT_PREFIXES = [
   '/api/v1/tier/guest-me',
   '/api/v1/new-llm-agent/stream',
   '/api/v1/new-llm-agent/chat',
+  // Guest mode (reopened 2026-10-03): a guest may run Investigate (and answer its clarification),
+  // and the tier picker reads the public prices.
+  '/api/v1/deep-research/stream',
+  '/api/v1/deep-research/clarify',
+  '/api/v1/credits/pricing',
   // Public bibliographic records: the "Cite this paper" dialog opens for guests too.
   '/api/v1/citation',
 ];

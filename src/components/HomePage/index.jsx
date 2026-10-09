@@ -32,11 +32,7 @@ import { ReactComponent as PillBuildEvidenceIcon } from '../../img/llm/pill_buil
 import { ReactComponent as PillCheckClaimIcon } from '../../img/llm/pill_check_claim.svg';
 import { ReactComponent as PillCompareOptionsIcon } from '../../img/llm/pill_compare_options.svg';
 import { ReactComponent as PillFocusHypothesisIcon } from '../../img/llm/pill_focus_hypothesis.svg';
-import {
-  getGuestTier,
-  getMyTier,
-  isFreePlanLimitReached,
-} from '../../service/Tier';
+import { fetchUsage, limitReachedText } from '../../service/credits';
 import { isRunActive, subscribeToActiveRun } from '../../service/activeRun';
 import { trackGtagEvent } from '../../utils/gtag';
 import { useAuth } from '../Auth/AuthContext';
@@ -57,7 +53,8 @@ const HomePage = () => {
     const [showExamples, setShowExamples] = useState(undefined);
     const [prefillQuery, setPrefillQuery] = useState('');
     const [isQueryLimitReached, setIsQueryLimitReached] = useState(false);
-    const [queryLimitTotal, setQueryLimitTotal] = useState(10);
+    // What the reader has left — credits signed in, free questions as a guest (service/credits.js).
+    const [usage, setUsage] = useState(null);
     const [isPhoneDevice, setIsPhoneDevice] = useState(isPhoneViewport);
     const [isAgentRunActive, setIsAgentRunActive] = useState(() => isRunActive());
     const { isAuthenticated, loading, openLoginModal } = useAuth();
@@ -79,9 +76,7 @@ const HomePage = () => {
     const activePill = pills.find((pill) => pill.id === showExamples);
     const isHomeLimitReachedEffective = isQueryLimitReached || DEBUG_FORCE_LIMIT_WARNING;
     const showHomeLimitWarning = isHomeLimitReachedEffective;
-    const displayedQueryLimit = Number.isFinite(Number(queryLimitTotal)) && Number(queryLimitTotal) > 0
-        ? Number(queryLimitTotal)
-        : 10;
+    const limitText = limitReachedText(usage);
 
     useEffect(() => subscribeToActiveRun(
         (run) => setIsAgentRunActive(Boolean(run)),
@@ -132,17 +127,14 @@ const HomePage = () => {
 
         const loadTier = async () => {
             if (loading) {
-                if (active) {
-                    setIsQueryLimitReached(false);
-                    setQueryLimitTotal(10);
-                }
+                if (active) setIsQueryLimitReached(false);
                 return;
             }
 
-            const result = isAuthenticated ? await getMyTier() : await getGuestTier();
-            if (!active || !result.success) return;
-            setIsQueryLimitReached(isFreePlanLimitReached(result.data));
-            setQueryLimitTotal(Number(result.data?.quota_limit) || 10);
+            const next = await fetchUsage({ isAuthenticated });
+            if (!active || !next) return;
+            setUsage(next);
+            setIsQueryLimitReached(next.limitReached);
         };
 
         loadTier();
@@ -344,15 +336,17 @@ const HomePage = () => {
                                         {showHomeLimitWarning && (
                                             <Box className="homepage-limit-warning">
                                                 <span className="homepage-limit-warning-text">
-                                                    You've reached your query limit ({displayedQueryLimit} queries). Upgrade for unlimited access.
+                                                    {limitText}
                                                 </span>
-                                                <button
-                                                    type="button"
-                                                    className="homepage-limit-warning-button"
-                                                    disabled
-                                                >
-                                                    Update
-                                                </button>
+                                                {!isAuthenticated && !loading && (
+                                                    <button
+                                                        type="button"
+                                                        className="homepage-limit-warning-button"
+                                                        onClick={() => openLoginModal(limitText)}
+                                                    >
+                                                        Sign in
+                                                    </button>
+                                                )}
                                             </Box>
                                         )}
                                         <LlmSearchBar
@@ -365,6 +359,7 @@ const HomePage = () => {
                                             prefillQuery={prefillQuery}
                                             autocompleteOptions={exampleSchema.autocomplete || []}
                                             isQueryLimitReached={showHomeLimitWarning}
+                                            limitReachedText={limitText}
                                             isAgentRunActive={isAgentRunActive}
                                         />
                                         {activePill && (

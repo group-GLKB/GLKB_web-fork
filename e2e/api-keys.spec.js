@@ -41,7 +41,9 @@ test('API Keys: create, copy, done, then delete', async ({ page }) => {
       'Authorization': `Bearer ${keyValue}`,
     },
     data: {
-      question: 'What is BRCA1?',
+      // Cache-busted: the backend caches by exact query text, and a fixed question every
+      // hour would quietly start serving a cached answer instead of a real run.
+      question: `What is BRCA1? (ignore the trailing digits: ${Math.floor(Math.random() * 1000000)})`,
       max_articles: 5,
     },
   });

@@ -16,6 +16,9 @@ export const AuthProvider = ({ children }) => {
   // Signing in happens in an overlay on top of whatever page the user is on,
   // rather than by navigating away to a dedicated route.
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  // Why the overlay opened, when something asked for it (a guest picking Premium, a guest's
+  // monthly allowance used up). Shown above the sign-in options; empty for a plain "Log in".
+  const [loginReason, setLoginReason] = useState('');
 
   // Check for existing authentication on mount
   useEffect(() => {
@@ -136,8 +139,16 @@ export const AuthProvider = ({ children }) => {
     return result;
   };
 
-  const openLoginModal = () => setIsLoginModalOpen(true);
-  const closeLoginModal = () => setIsLoginModalOpen(false);
+  // Only a string counts as a reason: this is also wired straight to onClick handlers, which
+  // hand it the click event.
+  const openLoginModal = (reason) => {
+    setLoginReason(typeof reason === 'string' ? reason : '');
+    setIsLoginModalOpen(true);
+  };
+  const closeLoginModal = () => {
+    setIsLoginModalOpen(false);
+    setLoginReason('');
+  };
 
   // Close the overlay as soon as the user is signed in.
   useEffect(() => {
@@ -160,6 +171,7 @@ export const AuthProvider = ({ children }) => {
     refreshUser,
     logout,
     isLoginModalOpen,
+    loginReason,
     openLoginModal,
     closeLoginModal
   };

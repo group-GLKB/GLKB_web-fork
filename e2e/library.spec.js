@@ -26,7 +26,7 @@ test('Library: bookmarked chat and reference surface there, and group into a fol
   await firstCard.click();
   // An existing conversation opens straight to its own /chat/<id> URL, never passing through
   // a bare /chat — a plain "**/chat" glob never lands here.
-  await page.waitForURL(/\/chat(\/|$)/);
+  await page.waitForURL(/\/chat\//);
 
   // Bookmark the chat from the header.
   const chatHeader = page.locator('.llm-header');

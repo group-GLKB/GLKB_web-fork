@@ -10,6 +10,9 @@ import { isConversationRunning, reconcileRunsWithServer } from '../service/activ
 import { isExchangeUnfinished } from '../service/resumeRun';
 import { parseServerTime, serverTimeMs, toIsoUtc } from './serverTime';
 import { replayTrace } from '../components/LLMAgent/traceReplay';
+import { normalizeAttachmentList } from './attachmentList';
+import { LITERATURE_REVIEW_ENABLED } from '../config/features';
+import { CHAT_NEW_PATH, isConversationPath } from '../config/entryRoutes';
 
 const STORAGE_KEY = 'llmConversations';
 const ACTIVE_KEY = 'llmActiveConversationId';
@@ -44,7 +47,8 @@ const isTransientZeroMessageState = () => {
     // startsWith, because a conversation's own URL is /chat/<public_id>. Exact-matching here
     // pruned a just-created, still-empty conversation out of the list the moment it had an
     // address of its own.
-    const inChatPage = window.location.pathname.startsWith('/chat');
+    // ...and not merely the chat home at /chat: see config/entryRoutes.js.
+    const inChatPage = isConversationPath(window.location.pathname);
     const wasProcessing = sessionStorage.getItem('llmWasProcessing') === 'true';
     return inChatPage || wasProcessing;
 };
@@ -135,6 +139,8 @@ const normalizeSummary = (summary) => ({
     // than its last turn. Absent on a server that predates the field, which reads the
     // same as false — see investigateConversations.js for what covers that gap.
     isInvestigate: summary.is_investigate === true,
+    // 'literature_review' for a Literature Review conversation; null for chat / Investigate.
+    mode: summary.mode || null,
     /* Whether the server is still writing this conversation's last exchange, and the address
        that run can be collected at. Absent on a server that predates them, which reads as
        "nothing in flight" — the same as before. Together they let a client that kept no notes
@@ -152,6 +158,7 @@ const normalizeDetail = (detail) => ({
     createdAt: toIsoUtc(detail.created_at),
     updatedAt: toIsoUtc(detail.last_accessed_time),
     isInvestigate: detail.is_investigate === true,
+    mode: detail.mode || null,
     isAnswering: detail.is_answering === true,
     sessionId: detail.session_id || null,
     messageCount: Array.isArray(detail.messages) ? detail.messages.length : 0,
@@ -162,7 +169,12 @@ const normalizeDetail = (detail) => ({
                the frames the backend stored with it. Without it every reloaded turn came back
                with its trace empty. `{}` for a message with no stored trace. */
             const trace = message.role === 'assistant' ? replayTrace(message.trace) : {};
+            // The images and PDFs a question was sent with (service/attachments.js).
+            const attachments = message.role === 'user'
+                ? normalizeAttachmentList(message.attachments)
+                : [];
             return {
+                ...(attachments.length ? { attachments } : {}),
                 id: message.id ?? message.mid ?? message.message_id ?? null,
                 role: message.role,
                 content: message.content ?? '',
@@ -363,13 +375,18 @@ export const fetchConversations = async (options = {}) => {
  * Where to send the reader to open this conversation.
  *
  * `/chat/<public_id>` when the row has one — an address that survives a reload, a new tab and
- * being pasted to someone else. Plain `/chat` otherwise, and the caller passes the id in
+ * being pasted to someone else. `/chat/new` otherwise, and the caller passes the id in
  * router state as before: rows created before the backend backfilled `public_id` still have
- * to open.
+ * to open. (/chat itself is the chat home, not a conversation — see config/entryRoutes.js.)
  */
-export const chatPathForConversation = (conversation) => (
-    conversation?.publicId ? `/chat/${conversation.publicId}` : '/chat'
-);
+export const chatPathForConversation = (conversation) => {
+    // A Literature Review conversation opens on its own page (components/LiteratureReview) —
+    // unless the feature is switched off, when it falls back to the chat view like any other.
+    if (LITERATURE_REVIEW_ENABLED && conversation?.mode === 'literature_review' && conversation?.publicId) {
+        return `/literature-review/${conversation.publicId}`;
+    }
+    return conversation?.publicId ? `/chat/${conversation.publicId}` : CHAT_NEW_PATH;
+};
 
 /**
  * Keep a locally-ahead transcript when the server's copy of the same conversation is shorter.

@@ -1,13 +1,17 @@
 import { test, expect } from '@playwright/test';
 
+// The backend caches by exact query text — a fixed question every hour would quietly start
+// serving a cached answer instead of exercising a real run.
+const withCacheBuster = (text) => `${text} (ignore the trailing digits: ${Math.floor(Math.random() * 1000000)})`;
+
 test('History page shows conversation after chat', async ({ page }) => {
   // First do a chat to create a history entry
-  await page.goto('/');
+  await page.goto('/chat');
   const input = page.locator('.llm-searchbar textarea').first();
-  await input.fill('What is BRCA1?');
+  await input.fill(withCacheBuster('What is BRCA1?'));
   await input.press('Enter');
   // Each conversation now gets its own /chat/<id> URL, so a bare "**/chat" match never lands.
-  await page.waitForURL(/\/chat(\/|$)/);
+  await page.waitForURL(/\/chat\//);
 
   // Wait for AI response to complete
   const response = page.locator('.markdown-body').first();

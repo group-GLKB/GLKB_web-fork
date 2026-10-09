@@ -6,17 +6,22 @@ import { test, expect } from '@playwright/test';
    which made the reference-panel checks below flaky. A wider viewport keeps it open. */
 test.use({ viewport: { width: 1600, height: 900 } });
 
+/* The backend caches by exact query text — a fixed question every hour would quietly start
+   serving a cached answer instead of exercising a real run. A random tail the agent is told
+   to ignore keeps each run's ask unique. */
+const withCacheBuster = (text) => `${text} (ignore the trailing digits: ${Math.floor(Math.random() * 1000000)})`;
+
 test('AI Chat returns a non-empty response', { timeout: 150000 }, async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/chat');
 
   // Type a question and submit (auth guard bypassed via storageState)
   const input = page.locator('.llm-searchbar textarea').first();
-  await input.fill('What molecular pathways link IL6 signaling to inflammatory responses?');
+  await input.fill(withCacheBuster('What molecular pathways link IL6 signaling to inflammatory responses?'));
   await input.press('Enter');
 
   // Wait for navigation to /chat — each conversation now gets its own /chat/<id> URL, so a
   // bare "**/chat" match never lands once an id is assigned.
-  await page.waitForURL(/\/chat(\/|$)/);
+  await page.waitForURL(/\/chat\//);
 
   // Wait for AI response — the assistant's reply is the second .markdown-body
   const response = page.locator('.markdown-body').nth(1);

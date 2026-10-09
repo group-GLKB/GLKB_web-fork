@@ -1,0 +1,436 @@
+/* Attachments on a chat question — the composer's paperclip and pending chips, and the files on
+   a sent message. Sized against the tier chip beside it (TierPicker/scoped.css). */
+
+.attach-button-wrap {
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+.attach-button {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+}
+
+/* ChatGPT's "+": a plain cross that sits in a grey circle while hovered or open. */
+.attach-button:hover:not(:disabled),
+.attach-button.is-open {
+    background-color: var(--color-background-muted);
+    color: var(--color-text-primary);
+}
+
+.attach-button:disabled {
+    cursor: default;
+    opacity: 0.45;
+}
+
+.attach-button-icon {
+    width: 24px !important;
+    height: 24px !important;
+}
+
+/* The panel under the composer, as wide as it */
+.attach-menu-layer {
+    z-index: 1300;
+}
+
+.attach-menu {
+    box-sizing: border-box;
+    padding: 12px 8px 8px;
+    border: 1px solid var(--color-border-default);
+    border-radius: 24px;
+    background: var(--color-background-surface);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    font-family: 'Geist', sans-serif;
+}
+
+.attach-menu-heading {
+    padding: 0 16px 6px;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--color-text-tertiary);
+}
+
+.attach-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 14px;
+    background: transparent;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.attach-menu-item:hover,
+.attach-menu-item:focus-visible {
+    background: var(--color-background-muted);
+    outline: none;
+}
+
+.attach-menu-item-icon {
+    width: 22px !important;
+    height: 22px !important;
+    color: var(--color-text-secondary);
+}
+
+.attach-menu-item-label,
+.attach-menu-item-hint {
+    white-space: nowrap;
+}
+
+.attach-menu-item-label {
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--color-text-primary);
+}
+
+.attach-menu-item-hint {
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--color-text-tertiary);
+}
+
+/* Pending chips, above the field */
+.attachment-chips {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    padding: 10px 12px 0;
+    box-sizing: border-box;
+}
+
+.attachment-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.attachment-chip {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 260px;
+    min-width: 0;
+    padding: 6px 28px 6px 6px;
+    border: 1px solid var(--color-border-default);
+    border-radius: 10px;
+    background: var(--color-background-surface);
+    overflow: hidden;
+    font-family: 'Geist', sans-serif;
+}
+
+.attachment-chip.is-error {
+    border-color: var(--color-status-error);
+}
+
+.attachment-chip-thumb {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    object-fit: cover;
+    background: var(--color-background-muted);
+}
+
+.attachment-chip-icon {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: var(--color-brand-soft);
+    color: var(--color-brand-primary);
+    font-size: 20px;
+}
+
+.attachment-chip.is-error .attachment-chip-icon {
+    background: var(--color-background-muted);
+    color: var(--color-status-error);
+}
+
+.attachment-chip-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.attachment-chip-name {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    color: var(--color-text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.attachment-chip-meta,
+.attachment-chip-warning {
+    font-size: 11px;
+    line-height: 14px;
+    color: var(--color-text-tertiary);
+}
+
+.attachment-chip.is-error .attachment-chip-meta {
+    color: var(--color-status-error-text);
+    white-space: normal;
+}
+
+.attachment-chip-warning {
+    color: var(--color-text-secondary);
+}
+
+.attachment-chip-progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    background: var(--color-brand-muted);
+}
+
+.attachment-chip-progress > span {
+    display: block;
+    height: 100%;
+    background: var(--color-brand-primary);
+    transition: width 0.15s ease;
+}
+
+.attachment-chip-remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--color-text-tertiary);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.attachment-chip-remove:hover {
+    background: var(--color-background-muted);
+    color: var(--color-text-primary);
+}
+
+.attachment-chips-note {
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--color-status-error-text);
+}
+
+/* A composer with a file dragged over it */
+.attachment-drop-target {
+    outline: 2px dashed var(--color-brand-primary);
+    outline-offset: -2px;
+}
+
+/* Files on a sent message */
+.message-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.message-attachment {
+    font-family: 'Geist', sans-serif;
+    text-decoration: none;
+}
+
+.message-attachment.is-image {
+    display: block;
+    width: 120px;
+    height: 90px;
+    border: 1px solid var(--color-border-default);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--color-background-muted);
+}
+
+.message-attachment.is-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.message-attachment-placeholder {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.message-attachment.is-image.is-unavailable {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: var(--color-text-tertiary);
+    font-size: 20px;
+}
+
+.message-attachment-caption {
+    font-size: 11px;
+    line-height: 14px;
+}
+
+.message-attachment.is-pdf {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 260px;
+    padding: 6px 10px 6px 6px;
+    border: 1px solid var(--color-border-default);
+    border-radius: 10px;
+    background: var(--color-background-surface);
+    cursor: pointer;
+    text-align: left;
+}
+
+.message-attachment.is-pdf:hover:not(:disabled) {
+    border-color: var(--color-border-strong);
+}
+
+.message-attachment.is-pdf:disabled {
+    cursor: default;
+}
+
+.message-attachment-pdf-icon {
+    width: 32px !important;
+    height: 32px !important;
+    padding: 6px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    border-radius: 6px;
+    background: var(--color-brand-soft);
+    color: var(--color-brand-primary);
+}
+
+.message-attachment-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.message-attachment-name {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    color: var(--color-text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.message-attachment-meta {
+    font-size: 11px;
+    line-height: 14px;
+    color: var(--color-text-tertiary);
+}
+
+/* A waiting image's thumbnail opens it large */
+.attachment-chip-thumb-button {
+    display: inline-flex;
+    flex-shrink: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: zoom-in;
+}
+
+button.message-attachment.is-image {
+    padding: 0;
+    background: none;
+    cursor: zoom-in;
+}
+
+/* The image shown large over the page: × top right, Esc, or a click outside closes it */
+.image-lightbox-backdrop {
+    background-color: rgba(0, 0, 0, 0.82) !important;
+}
+
+.image-lightbox {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 56px 24px 24px;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.image-lightbox-img {
+    max-width: 100%;
+    max-height: calc(100% - 40px);
+    object-fit: contain;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.image-lightbox-name {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.image-lightbox-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+}
+
+.image-lightbox-close:hover,
+.image-lightbox-close:focus-visible {
+    background: rgba(255, 255, 255, 0.3);
+    outline: none;
+}

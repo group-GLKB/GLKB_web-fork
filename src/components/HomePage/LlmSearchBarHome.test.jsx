@@ -19,34 +19,30 @@ const mockNavigate = jest.fn();
 // read at each use site, so flipping this between tests is enough — no module reset needed
 // (resetting the registry would hand the component a second copy of React and kill its hooks).
 let mockInvestigateFlag = true;
+let mockReviewFlag = false;
 jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
 jest.mock('../../utils/gtag', () => ({ trackGtagEvent: jest.fn() }));
-// Asking requires an account (see Auth/guestGate). These are about the composer's own
-// behaviour, so the reader is signed in throughout; the gate itself is tested separately.
+// These are about the composer's own behaviour, so the reader is signed in throughout; a
+// guest's composer is LlmSearchBarHome.guest.test.jsx.
 jest.mock('../Auth/AuthContext', () => ({
     useAuth: () => ({ isAuthenticated: true, loading: false, openLoginModal: jest.fn() }),
 }));
 jest.mock('../../config/features', () => ({
     get INVESTIGATE_ENABLED() { return mockInvestigateFlag; },
+    get LITERATURE_REVIEW_ENABLED() { return mockReviewFlag; },
 }));
-// The picker fetches its catalogue. Left real it would reach axios, fail, and settle on the
-// fallback list at an arbitrary moment — so `model` would race `submit()` rather than being
-// wrong in a reproducible way. Resolved synchronously here instead.
-jest.mock('../../service/models', () => ({
-    ...jest.requireActual('../../service/models'),
-    fetchModelCatalog: () => Promise.resolve({
-        models: [{
-            id: 'gpt-6-sol',
-            label: 'GPT-6 Sol',
-            description: 'Balanced.',
-            pipelines: ['chat', 'deep_research'],
-        }],
-        defaultModel: 'gpt-6-sol',
-        defaultsByPipeline: { chat: 'gpt-6-sol', deep_research: 'gpt-6-sol' },
-    }),
-    getModelPref: () => '',
-    setModelPref: jest.fn(),
-}));
+// The picker fetches the prices. Left real it would reach axios, fail, and settle on the
+// fallback at an arbitrary moment — so `serviceTier` would race `submit()` rather than being
+// wrong in a reproducible way. Resolved here instead.
+jest.mock('../../service/serviceTiers', () => {
+    const actual = jest.requireActual('../../service/serviceTiers');
+    return {
+        ...actual,
+        fetchTierPricing: () => Promise.resolve(actual.parsePricing(actual.FALLBACK_PRICING)),
+        getTierPref: () => '',
+        setTierPref: jest.fn(),
+    };
+});
 
 // MUI's useMediaQuery needs matchMedia; default to the desktop layout.
 beforeAll(() => {
@@ -61,6 +57,7 @@ beforeEach(() => {
     mockNavigate.mockClear();
     trackGtagEvent.mockClear();
     mockInvestigateFlag = true;
+    mockReviewFlag = false;
 });
 
 // `setOpen` is called from an effect on mount, so it is required even though the autocomplete
@@ -101,16 +98,16 @@ const submit = () => {
 // `openOnFocus` then drops the example list open. Every control in that row has to stop its
 // click from getting there, or opening it also opens the examples — underneath the very menu
 // the reader is aiming at.
-const modelTrigger = () => document.querySelector('button.model-picker-trigger');
+const tierTrigger = () => document.querySelector('button.model-picker-trigger');
 const exampleListIsOpen = () => Boolean(document.querySelector('.homepage-autocomplete-listbox'));
 
 describe('the controls in the composer row', () => {
-    it('opens the model menu without opening the example list', async () => {
+    it('opens the tier menu without opening the example list', async () => {
         setup({ autocompleteOptions: ['What is TP53?'] });
-        await waitFor(() => expect(modelTrigger()).not.toBeNull());
+        await waitFor(() => expect(tierTrigger()).not.toBeNull());
         expect(exampleListIsOpen()).toBe(false);
 
-        fireEvent.click(modelTrigger());
+        fireEvent.click(tierTrigger());
 
         expect(document.querySelector('.model-picker-panel')).not.toBeNull();
         expect(exampleListIsOpen()).toBe(false);
@@ -121,11 +118,11 @@ describe('the controls in the composer row', () => {
         // The reader's screenshot: focusing the box opens the examples, and the model menu
         // then landed on top of them — two popups stacked over each other.
         setup({ autocompleteOptions: ['What is TP53?'] });
-        await waitFor(() => expect(modelTrigger()).not.toBeNull());
+        await waitFor(() => expect(tierTrigger()).not.toBeNull());
         fireEvent.focus(screen.getByPlaceholderText('Ask a question about the biomedical literature...'));
         await waitFor(() => expect(exampleListIsOpen()).toBe(true));
 
-        fireEvent.click(modelTrigger());
+        fireEvent.click(tierTrigger());
 
         expect(document.querySelector('.model-picker-panel')).not.toBeNull();
         expect(exampleListIsOpen()).toBe(false);
@@ -169,9 +166,9 @@ describe('with Investigate off', () => {
             filters: ['review'],
             rankingMode: 'default',
             investigateEnabled: false,
-            // Empty: these submits happen before the picker's catalogue resolves, and an
-            // absent model is exactly what the chat then omits, leaving the server's default.
-            model: '',
+            // Empty: these submits happen before the picker's prices resolve, and an absent
+            // tier is exactly what the chat then omits, leaving the server's default.
+            serviceTier: '',
         });
     });
 });
@@ -230,9 +227,9 @@ describe('with Investigate on', () => {
             filters: [],
             rankingMode: 'default',
             investigateEnabled: true,
-            // Empty: these submits happen before the picker's catalogue resolves, and an
-            // absent model is exactly what the chat then omits, leaving the server's default.
-            model: '',
+            // Empty: these submits happen before the picker's prices resolve, and an absent
+            // tier is exactly what the chat then omits, leaving the server's default.
+            serviceTier: '',
         });
     });
 
@@ -248,10 +245,49 @@ describe('with Investigate on', () => {
             filters: [],
             rankingMode: 'default',
             investigateEnabled: false,
-            // Empty: these submits happen before the picker's catalogue resolves, and an
-            // absent model is exactly what the chat then omits, leaving the server's default.
-            model: '',
+            // Empty: these submits happen before the picker's prices resolve, and an absent
+            // tier is exactly what the chat then omits, leaving the server's default.
+            serviceTier: '',
         });
+    });
+});
+
+describe('with LITERATURE_REVIEW_ENABLED on', () => {
+    const toolMenu = () => screen.getByRole('button', { name: 'Choose research tool', hidden: true });
+
+    it('turns the Investigate chip into a menu of the two research tools', () => {
+        mockReviewFlag = true;
+        setup();
+        fireEvent.click(toolMenu());
+        // (the icons render as their file names under jest, hence "ends with")
+        const items = screen.getAllByRole('menuitem').map((n) => n.textContent);
+        expect(items).toHaveLength(2);
+        expect(items[0]).toMatch(/Investigate$/);
+        expect(items[1]).toMatch(/Literature Review$/);
+    });
+
+    it('sends a question asked with Literature Review to its own page, not the chat', () => {
+        mockReviewFlag = true;
+        setup();
+        fireEvent.click(toolMenu());
+        fireEvent.click(screen.getByRole('menuitem', { name: /Literature Review$/ }));
+        expect(screen.getByTitle('Literature Review on')).toBeInTheDocument();
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'osimertinib resistance' } });
+        fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
+        expect(mockNavigate).toHaveBeenCalledWith('/literature-review', { state: { initialQuery: 'osimertinib resistance' } });
+    });
+
+    it('leaves Investigate working from the same chip', () => {
+        mockReviewFlag = true;
+        setup();
+        fireEvent.click(toolMenu());
+        fireEvent.click(screen.getByRole('menuitem', { name: /Investigate$/ }));
+        expect(screen.getByTitle('Investigate on')).toBeInTheDocument();
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'what is TP53?' } });
+        fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
+        const [path, opts] = mockNavigate.mock.calls[0];
+        expect(path).toBe('/chat/new');
+        expect(opts.state.initialSearchOptions.investigateEnabled).toBe(true);
     });
 });
 
@@ -284,7 +320,7 @@ describe('while another Agent conversation is answering', () => {
         const field = screen.getByPlaceholderText(PLACEHOLDER);
         fireEvent.change(field, { target: { value: 'what is TP53?' } });
         fireEvent.keyDown(field, { key: 'Enter' });
-        expect(mockNavigate).toHaveBeenCalledWith('/chat', expect.objectContaining({
+        expect(mockNavigate).toHaveBeenCalledWith('/chat/new', expect.objectContaining({
             state: expect.objectContaining({ initialQuery: 'what is TP53?' }),
         }));
     });
@@ -296,7 +332,7 @@ describe('while another Agent conversation is answering', () => {
         const start = screen.getByRole('button', { name: /start chat/i, hidden: true });
         expect(start).toHaveAttribute('aria-disabled', 'false');
         fireEvent.click(start);
-        expect(mockNavigate).toHaveBeenCalledWith('/chat', expect.objectContaining({
+        expect(mockNavigate).toHaveBeenCalledWith('/chat/new', expect.objectContaining({
             state: expect.objectContaining({ initialQuery: 'what is BRCA1?' }),
         }));
     });

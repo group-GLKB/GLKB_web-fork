@@ -15,12 +15,16 @@ import { test, expect } from '@playwright/test';
 
 const INVESTIGATE_TIMEOUT_MS = 20 * 60 * 1000;
 
+// The backend caches by exact query text — a fixed question every hour would quietly start
+// serving a cached answer instead of exercising a real run.
+const withCacheBuster = (text) => `${text} (ignore the trailing digits: ${Math.floor(Math.random() * 1000000)})`;
+
 test.use({ viewport: { width: 1600, height: 900 } });
 
 test('Investigate mode reaches an answer, clicking through any clarifying questions', async ({ page }) => {
   test.setTimeout(INVESTIGATE_TIMEOUT_MS + 2 * 60 * 1000);
 
-  await page.goto('/');
+  await page.goto('/chat');
 
   // Investigate is off by default and fixed for the life of the session — turn it on before
   // the first question, not after.
@@ -28,10 +32,10 @@ test('Investigate mode reaches an answer, clicking through any clarifying questi
   await expect(page.getByTitle('Investigate on')).toBeVisible({ timeout: 5000 });
 
   const input = page.locator('.llm-searchbar textarea').first();
-  await input.fill('Does p53 loss cause chemotherapy resistance across cancers, or does it not?');
+  await input.fill(withCacheBuster('Does p53 loss cause chemotherapy resistance across cancers, or does it not?'));
   await input.press('Enter');
   // Each conversation now gets its own /chat/<id> URL, so a bare "**/chat" match never lands.
-  await page.waitForURL(/\/chat(\/|$)/);
+  await page.waitForURL(/\/chat\//);
 
   /* Poll for whichever shows up next — a clarify round or the final answer — rather than
      checking once for a clarify round and then settling in to wait for the answer. There is

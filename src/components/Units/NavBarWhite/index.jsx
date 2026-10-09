@@ -66,6 +66,7 @@ import {
 } from '../../../img/navbar/sidebar.left.svg';
 import userAccountIcon from '../../../img/user/ic_outline-account-circle.svg';
 import userLogoutIcon from '../../../img/user/mynaui_logout.svg';
+import { ABOUT_PATH, CHAT_HOME_PATH, isConversationPath } from '../../../config/entryRoutes';
 import { getRunningConversationIds, subscribeToActiveRun } from '../../../service/activeRun';
 import { getRecentPriorityIds, subscribeToRecentPriority } from '../../../service/recentPriority';
 import {
@@ -218,7 +219,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
         if (typeof window === 'undefined') {
             return true;
         }
-        if (location.pathname.startsWith('/chat') && !isSmallScreen) {
+        if (isConversationPath(location.pathname) && !isSmallScreen) {
             return true;
         }
         const storedOpen = window.localStorage.getItem('sidebar-open');
@@ -269,7 +270,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
             return;
         }
 
-        if (location.pathname.startsWith('/chat')) {
+        if (isConversationPath(location.pathname)) {
             setOpen(true);
             return;
         }
@@ -428,7 +429,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
         [
             {
                 label: 'New Chat',
-                to: '/',
+                to: CHAT_HOME_PATH,
                 icon: <AddIcon style={{ width: 20, height: 20 }} />,
                 exact: true,
             },
@@ -452,7 +453,8 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const bottomItems = useMemo(() => (
         [
-            { label: 'About', to: '/about', icon: <InfoOutlinedIcon sx={{ fontSize: 22 }} /> },
+            // `/` is About; exact, or every path would read as being on it
+            { label: 'About', to: ABOUT_PATH, exact: true, icon: <InfoOutlinedIcon sx={{ fontSize: 22 }} /> },
         ]
     ), []);
 
@@ -489,7 +491,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
             .slice(0, maxRecentCount),
         [maxRecentCount, recentConversations, runningConversationIds, recentPriorityIds],
     );
-    const isHomeRoute = location.pathname === '/';
+    const isHomeRoute = location.pathname === CHAT_HOME_PATH;
 
     const handleOpenUserMenu = (event) => {
         setUserMenuAnchorEl(event.currentTarget);
@@ -588,8 +590,8 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
         const deletingActiveConversation = String(activeConversationId) === idToDelete;
         try {
             await removeConversation(idToDelete);
-            if (deletingActiveConversation && location.pathname.startsWith('/chat')) {
-                navigate('/');
+            if (deletingActiveConversation && isConversationPath(location.pathname)) {
+                navigate(CHAT_HOME_PATH);
             }
         } catch (error) {
             // Ignore delete failures and keep current state.
@@ -615,7 +617,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
 
     const isActiveConversation = (conversation) => {
         if (!conversation?.id) return false;
-        if (!location.pathname.startsWith('/chat')) return false;
+        if (!isConversationPath(location.pathname)) return false;
         return String(conversation.id) === String(activeConversationId || '');
     };
 
@@ -774,12 +776,12 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                 }}
                             >
                                 <IconButton
-                                    aria-label={open ? 'Go to home' : 'Expand sidebar'}
+                                    aria-label={open ? 'About GLKB' : 'Expand sidebar'}
                                     component={open ? Link : 'button'}
-                                    to={open ? '/' : undefined}
+                                    to={open ? ABOUT_PATH : undefined}
                                     onClick={(event) => {
                                         if (open) {
-                                            trackGtagEvent('nav_logo_click', { action: 'go_home' });
+                                            trackGtagEvent('nav_logo_click', { action: 'go_about' });
                                             return;
                                         }
                                         event.preventDefault();
@@ -849,7 +851,9 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                             </HintTooltip>
                             <Box
                                 component={Link}
-                                to="/"
+                                to={ABOUT_PATH}
+                                aria-label="About GLKB"
+                                onClick={() => trackGtagEvent('nav_logo_click', { action: 'go_about', source: 'wordmark' })}
                                 className="sidebar-logo-text sidebar-logo-wordmark-link"
                                 sx={{
                                     display: 'flex',

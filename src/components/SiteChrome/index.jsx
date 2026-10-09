@@ -10,13 +10,16 @@ import './scoped.css';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { ABOUT_PATH, CHAT_HOME_PATH } from '../../config/entryRoutes';
+
 // The app's own mark and wordmark, not the About-only lockup that used to sit here:
 // this is one site, and the logo above the marketing pages is the logo above the app.
 import siteMark from '../../img/GLKB_logo_icon.png';
 import siteWordmark from '../../img/navbar/logo.png';
 
 /** Where the article list lives now that About owns it. */
-export const BLOG_LIST_PATH = '/about#from-the-lab';
+export const BLOG_LIST_PATH = '/#from-the-lab';
+export const DEMO_VIDEO_URL = 'https://www.youtube.com/watch?v=63b3-MuTUCA';
 
 const DATASET_URL = 'https://available-inventions.umich.edu/product/genomic-literature-knowledge-base';
 
@@ -33,7 +36,7 @@ export const SiteNav = ({ active, onGetStarted }) => {
             <button
                 type="button"
                 className="site-nav-logo"
-                onClick={() => navigate('/about')}
+                onClick={() => navigate(ABOUT_PATH)}
                 aria-label="GLKB"
             >
                 <img className="site-logo-mark" src={siteMark} alt="" />
@@ -41,7 +44,7 @@ export const SiteNav = ({ active, onGetStarted }) => {
             </button>
             <nav className="site-nav-actions">
                 {active === 'home' ? null : (
-                    <button type="button" className="site-nav-link" onClick={() => navigate('/about')}>
+                    <button type="button" className="site-nav-link" onClick={() => navigate(ABOUT_PATH)}>
                         Home
                     </button>
                 )}
@@ -59,7 +62,7 @@ export const SiteNav = ({ active, onGetStarted }) => {
                 <button
                     type="button"
                     className="site-nav-cta"
-                    onClick={onGetStarted || (() => navigate('/'))}
+                    onClick={onGetStarted || (() => navigate(CHAT_HOME_PATH))}
                 >
                     Get Started
                 </button>
@@ -78,10 +81,10 @@ export const SiteFooter = ({ withCta = true }) => {
                 <p className="site-cta-eyebrow">Get Started</p>
                 <h2 className="site-cta-title">Start your literature review in minutes.</h2>
                 <div className="site-cta-actions">
-                    <button type="button" className="site-button" onClick={() => navigate('/')}>
+                    <button type="button" className="site-button" onClick={() => navigate(CHAT_HOME_PATH)}>
                         Try GLKB
                     </button>
-                    <button type="button" className="site-button site-button--ghost" onClick={() => navigate('/')}>
+                    <button type="button" className="site-button site-button--ghost" onClick={() => window.open(DEMO_VIDEO_URL, '_blank', 'noopener,noreferrer')}>
                         View Demo
                     </button>
                 </div>

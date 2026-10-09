@@ -1,7 +1,7 @@
 import './index.css';
 import './utils/axiosConfig'; // Import axios interceptor configuration
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useState } from 'react';
 
 import { createRoot } from 'react-dom/client';
 import {
@@ -18,11 +18,17 @@ import {
 
 // import SignupPage from './components/Auth/SignupPage';
 // import ProtectedRoute from './components/Auth/ProtectedRoute';
-import { AuthProvider } from './components/Auth/AuthContext';
+import { AuthProvider, useAuth } from './components/Auth/AuthContext';
 import HomePage from './components/HomePage';
 import AppLayout from './components/Layout';
 import ErrorBoundary from './components/Units/ErrorBoundary';
-import { SHOW_API_DOCS } from './config/features';
+import {
+  CHAT_HOME_PATH,
+  CHAT_NEW_PATH,
+  hasSeenAbout,
+  shouldEnterChat,
+} from './config/entryRoutes';
+import { LITERATURE_REVIEW_ENABLED, SHOW_API_DOCS } from './config/features';
 
 /* Everything past the landing page and the chat is fetched when it is asked for.
  *
@@ -43,6 +49,7 @@ const TermsOfService = React.lazy(() => import('./components/TermsOfService'));
 const AccountPage = React.lazy(() => import('./components/AccountPage'));
 const ApiDocsPage = React.lazy(() => import('./components/ApiDocs'));
 const ApiPage = React.lazy(() => import('./components/ApiPage'));
+const LiteratureReview = React.lazy(() => import('./components/LiteratureReview'));
 const LoginRedirect = React.lazy(() => import('./components/Auth/LoginRedirect'));
 const VerifyCodePage = React.lazy(() => import('./components/Auth/VerifyCodePage'));
 const DebugPage = React.lazy(() => import('./components/Debug'));
@@ -50,6 +57,7 @@ const History = React.lazy(() => import('./components/History'));
 const Library = React.lazy(() => import('./components/Library'));
 const MaintenancePage = React.lazy(() => import('./components/MaintenancePage'));
 const ResultPage = React.lazy(() => import('./components/ResultPage'));
+const GraphViewer = React.lazy(() => import('./components/GraphViewer'));
 const TestAuth = React.lazy(() => import('./components/TestAuth'));
 
 const RESIZE_OBSERVER_NOISE = [
@@ -109,7 +117,7 @@ const initState = {
     searchType: ''
 }
 
-const INDEXABLE_PATHS = new Set(['/', '/about', '/blog', '/chat', '/search', '/api-page', '/privacy', '/terms']);
+const INDEXABLE_PATHS = new Set(['/', '/blog', '/chat', '/search', '/api-page', '/privacy', '/terms']);
 const MAINTENANCE_MODE = false;
 
 const normalizePathname = (pathname) => {
@@ -132,6 +140,35 @@ function RouteSeoControl() {
             <link rel="canonical" href={`https://glkb.org${canonicalPath}`} />
         </Helmet>
     );
+}
+
+/* `/` is About, the landing page. A signed-in reader who has seen it once and is ENTERING the
+   site here goes straight on to the chat instead (config/entryRoutes.js). "Entering" is the
+   router's first location: React Router keys it `default` when the page was loaded from outside
+   rather than navigated to inside the app — so the sidebar's About still shows About.
+
+   Whether About was seen is read once, when this mounts: About marks it on its own mount, and
+   reading it on every render would send a reader who is looking at About on to the chat the
+   next time anything re-rendered this. */
+function RootRoute() {
+    const location = useLocation();
+    const { isAuthenticated, loading } = useAuth();
+    const [seenAtEntry] = useState(hasSeenAbout);
+    const isEntry = location.key === 'default';
+    if (isEntry && seenAtEntry && !location.hash) {
+        // Only this case depends on the session, so only it waits for the check.
+        if (loading) return null;
+        if (shouldEnterChat({ isAuthenticated, seenAbout: seenAtEntry, isEntry })) {
+            return <Navigate to={`${CHAT_HOME_PATH}${location.search}`} state={location.state} replace />;
+        }
+    }
+    return <AboutPage />;
+}
+
+/* About's old address. The hash rides along: /about#from-the-lab is linked from outside. */
+function AboutRedirect() {
+    const location = useLocation();
+    return <Navigate to={`/${location.search}${location.hash}`} replace />;
 }
 
 // Create a wrapper component
@@ -168,19 +205,31 @@ function AppWithRoutes() {
                 )}
                 <Route element={<AppLayout />}>
                     <Route path='/search' element={<ResultPage />} />
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/about" element={<AboutPage />} />
+                    <Route path='/graph-viewer' element={<GraphViewer />} />
+                    <Route path="/" element={<RootRoute />} />
+                    <Route path={CHAT_HOME_PATH} element={<HomePage />} />
+                    <Route path="/about" element={<AboutRedirect />} />
                     {/* The article list lives on About under "From the Lab". */}
-                    <Route path="/blog" element={<Navigate to="/about#from-the-lab" replace />} />
+                    <Route path="/blog" element={<Navigate to="/#from-the-lab" replace />} />
                     <Route path="/blog/:slug" element={<BlogPost />} />
                     <Route path="/privacy" element={<PrivacyPolicy />} />
                     <Route path="/terms" element={<TermsOfService />} />
                     <Route path="/api-page" element={<ApiPage />} />
-                    {/* LLMAgent is mounted persistently by AppLayout; this route only selects it. */}
-                    <Route path="/chat" element={null} />
+                    {/* LLMAgent is mounted persistently by AppLayout; these routes only select it.
+                        /chat/new is a conversation before the backend has given it an address. */}
+                    <Route path={CHAT_NEW_PATH} element={null} />
                     {/* Each conversation has its own address, so a link opens it and a
                         reload keeps it. The id is the backend's `public_id` UUID. */}
                     <Route path="/chat/:publicId" element={null} />
+                    {/* Literature Review: its own page and pipeline, behind a flag (config/features.js). */}
+                    {LITERATURE_REVIEW_ENABLED ? (
+                        <>
+                            <Route path="/literature-review" element={<LiteratureReview />} />
+                            <Route path="/literature-review/:publicId" element={<LiteratureReview />} />
+                        </>
+                    ) : (
+                        <Route path="/literature-review/*" element={<Navigate to={CHAT_HOME_PATH} replace />} />
+                    )}
                     <Route path="/history" element={<History />} />
                     <Route path="/library" element={<Library />} />
                     <Route path="/account" element={<AccountPage />} />

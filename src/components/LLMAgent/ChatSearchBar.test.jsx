@@ -7,19 +7,15 @@ import ChatSearchBar from './ChatSearchBar';
 import { trackGtagEvent } from '../../utils/gtag';
 
 jest.mock('../../utils/gtag', () => ({ trackGtagEvent: jest.fn() }));
-// The composer embeds the model picker, which fetches a catalogue. Faked so these tests are
+// The composer embeds the tier picker, which fetches the prices. Faked so these tests are
 // about the composer, and so the picker's rows are known when the pipeline test reads them.
-jest.mock('../../service/models', () => ({
-    ...jest.requireActual('../../service/models'),
-    fetchModelCatalog: () => Promise.resolve({
-        models: [
-            { id: 'gpt-6-sol', label: 'GPT-6 Sol', short_label: '6 Sol', description: 'Balanced.', pipelines: ['chat', 'deep_research'] },
-            { id: 'gpt-6-luna', label: 'GPT-6 Luna', short_label: '6 Luna', description: 'Fastest.', pipelines: ['chat'] },
-        ],
-        defaultModel: 'gpt-6-sol',
-        defaultsByPipeline: { chat: 'gpt-6-sol', deep_research: 'gpt-6-sol' },
-    }),
-}));
+jest.mock('../../service/serviceTiers', () => {
+    const actual = jest.requireActual('../../service/serviceTiers');
+    return {
+        ...actual,
+        fetchTierPricing: () => Promise.resolve(actual.parsePricing(actual.FALLBACK_PRICING)),
+    };
+});
 
 beforeAll(() => {
     window.matchMedia = window.matchMedia || ((query) => ({
@@ -203,30 +199,167 @@ describe('ChatSearchBar when nothing is running', () => {
 });
 
 
-describe('which models the composer offers', () => {
+describe('the tier the composer offers', () => {
     const openPicker = async () => {
         const chip = await screen.findByRole('button', { name: /^Model: / });
         fireEvent.click(chip);
-        return (await screen.findAllByRole('option')).map((o) => o.textContent);
+        return (await screen.findAllByRole('option')).map((o) => o.textContent).join(' ');
     };
 
-    it('offers the chat-only model on an ordinary conversation', async () => {
-        setup({ pipelineIsDeepResearch: false });
-        expect((await openPicker()).join(' ')).toContain('Luna');
+    it('prices an ordinary conversation as AI Chat', async () => {
+        setup({ pipelineIsDeepResearch: false, serviceTier: 'standard' });
+        const text = await openPicker();
+        expect(text).toContain('10 credits/query');
+        expect(text).toContain('1 credit/query');
     });
 
-    it('hides it once the conversation is a deep-research one', async () => {
-        // Includes the case the parent resolves from `isInvestigateConversation`: a reader
-        // who reopens an investigate conversation from History. Offering a model deep
-        // research refuses would produce a 400 they cannot act on.
-        setup({ pipelineIsDeepResearch: true });
-        expect((await openPicker()).join(' ')).not.toContain('Luna');
+    it('prices a deep-research conversation as Investigate', async () => {
+        // Includes the case the parent resolves from `isInvestigateConversation`: a reader who
+        // reopens an investigate conversation from History.
+        setup({ pipelineIsDeepResearch: true, serviceTier: 'standard' });
+        const text = await openPicker();
+        expect(text).toContain('45 credits/query');
+        expect(text).toContain('20 credits/query');
     });
 
     it('does not read the analytics-only `investigateEnabled` for this', async () => {
-        // That prop is false for a reopened investigate conversation, which is exactly the
-        // case this feature has to get right — so the pipeline comes from its own prop.
-        setup({ investigateEnabled: false, pipelineIsDeepResearch: true });
-        expect((await openPicker()).join(' ')).not.toContain('Luna');
+        setup({ investigateEnabled: false, pipelineIsDeepResearch: true, serviceTier: 'standard' });
+        expect(await openPicker()).toContain('45 credits/query');
+    });
+
+    it("asks a guest to sign in for GPT-6.1 Sol instead of selecting it", async () => {
+        const onRequireSignIn = jest.fn();
+        const onServiceTierChange = jest.fn();
+        setup({ isGuest: true, serviceTier: 'standard', onRequireSignIn, onServiceTierChange });
+        await openPicker();
+        fireEvent.click(screen.getByRole('option', { name: /GPT-6.1 Sol/ }));
+        expect(onRequireSignIn).toHaveBeenCalled();
+        expect(onServiceTierChange).not.toHaveBeenCalled();
+    });
+});
+
+describe('attachments', () => {
+    const controller = (overrides = {}) => ({
+        items: [],
+        notice: '',
+        readyAttachments: [],
+        isUploading: false,
+        hasErrors: false,
+        hasItems: false,
+        addFiles: jest.fn(),
+        remove: jest.fn(),
+        clear: jest.fn(),
+        showNotice: jest.fn(),
+        ...overrides,
+    });
+    const readyPdf = {
+        key: 'k1',
+        kind: 'pdf',
+        name: 'paper.pdf',
+        size: 10,
+        status: 'ready',
+        attachment: { id: 'p1', kind: 'pdf', filename: 'paper.pdf', page_count: 2, size_bytes: 10 },
+    };
+    const withReadyPdf = (overrides = {}) => controller({
+        items: [readyPdf],
+        readyAttachments: [readyPdf.attachment],
+        hasItems: true,
+        ...overrides,
+    });
+    const paperclip = () => screen.getByRole('button', { name: 'Add files or photos' });
+
+    it('shows no + button when the parent offers no attachments', () => {
+        setup();
+        expect(screen.queryByRole('button', { name: 'Add files or photos' })).not.toBeInTheDocument();
+    });
+
+    it('asks a guest to sign in instead of opening the file picker', () => {
+        const onAttachRequireSignIn = jest.fn();
+        setup({ isGuest: true, attachments: controller(), onAttachRequireSignIn });
+        fireEvent.click(paperclip());
+        expect(onAttachRequireSignIn).toHaveBeenCalledTimes(1);
+    });
+
+    it('is off in an Investigate conversation', () => {
+        setup({ pipelineIsDeepResearch: true, attachments: controller() });
+        expect(paperclip()).toBeDisabled();
+    });
+
+    it('sends a question that is only files', () => {
+        const { onSubmit } = setup({ attachments: withReadyPdf() });
+        expect(screen.getByText('paper.pdf')).toBeInTheDocument();
+        fireEvent.click(screen.getByTitle('Send'));
+        expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    it('holds the send back while a file is uploading', () => {
+        const { onSubmit } = setup({
+            userInput: 'what does it show?',
+            attachments: withReadyPdf({ isUploading: true }),
+        });
+        fireEvent.click(screen.getByTitle('Send'));
+        fireEvent.keyDown(field(), { key: 'Enter' });
+        expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('holds files back from an Investigate conversation, and says so', () => {
+        const { onSubmit } = setup({
+            userInput: 'and this figure?',
+            pipelineIsDeepResearch: true,
+            attachments: withReadyPdf(),
+        });
+        expect(screen.getByRole('status')).toHaveTextContent('Attachments work in AI Chat');
+        fireEvent.keyDown(field(), { key: 'Enter' });
+        expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('takes pasted files of any type, and leaves a short text paste alone', () => {
+        const attachments = controller();
+        setup({ attachments });
+        const image = new File(['x'], 'image.png', { type: 'image/png' });
+        const script = new File(['print(1)'], 'analysis.py', { type: 'text/x-python' });
+        fireEvent.paste(field(), { clipboardData: { files: [image, script], items: [] } });
+        expect(attachments.addFiles).toHaveBeenCalledWith([image, script]);
+        attachments.addFiles.mockClear();
+        fireEvent.paste(field(), { clipboardData: { files: [], items: [], getData: () => 'text' } });
+        expect(attachments.addFiles).not.toHaveBeenCalled();
+    });
+
+    it('turns a very long text paste into "Pasted text.txt", as Claude does', () => {
+        const attachments = controller();
+        const { setUserInput } = setup({ attachments });
+        const long = 'x'.repeat(4001);
+        fireEvent.paste(field(), { clipboardData: { files: [], items: [], getData: () => long } });
+        expect(attachments.addFiles).toHaveBeenCalledTimes(1);
+        const [[pasted]] = attachments.addFiles.mock.calls[0];
+        expect(pasted.name).toBe('Pasted text.txt');
+        expect(pasted.size).toBe(4001);
+        expect(setUserInput).not.toHaveBeenCalled();
+    });
+
+    it('lets a long paste land in the box where nothing can be attached (Investigate)', () => {
+        const attachments = controller();
+        setup({ attachments, pipelineIsDeepResearch: true });
+        fireEvent.paste(field(), { clipboardData: { files: [], items: [], getData: () => 'x'.repeat(5000) } });
+        expect(attachments.addFiles).not.toHaveBeenCalled();
+    });
+
+    it('leads the field with the +, whose menu has the one entry', () => {
+        setup({ attachments: controller() });
+        const button = paperclip();
+        // Before the text box, as in ChatGPT.
+        expect(button.compareDocumentPosition(field()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        fireEvent.click(button);
+        expect(screen.getByRole('menuitem', { name: /Add photos and files/ })).toBeInTheDocument();
+        expect(screen.queryByText(/Paste from clipboard/)).not.toBeInTheDocument();
+    });
+
+    it('takes files dropped on the composer', () => {
+        const attachments = controller();
+        setup({ attachments });
+        const doc = new File(['%PDF'], 'paper.pdf', { type: 'application/pdf' });
+        const target = document.querySelector('.chat-header > div');
+        fireEvent.drop(target, { dataTransfer: { types: ['Files'], files: [doc], items: [] } });
+        expect(attachments.addFiles).toHaveBeenCalledWith([doc]);
     });
 });

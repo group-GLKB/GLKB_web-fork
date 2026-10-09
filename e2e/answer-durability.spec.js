@@ -24,11 +24,17 @@
  */
 import { test, expect } from '@playwright/test';
 
-const QUESTION = 'What is BRCA1 and what is its role in DNA repair?';
+const QUESTION_BASE = 'What is BRCA1 and what is its role in DNA repair?';
 // Long enough that the run is unambiguously mid-flight: the agent spends this long on tool
 // calls before the first answer token, so the interruption lands during the work, not after.
 const MID_RUN_MS = 9000;
 const SETTLE_TIMEOUT_MS = 150000;
+
+/* The backend now caches by exact query text, so asking the same fixed question every hour
+   would quietly start serving a cached answer instead of exercising a real run — the thing
+   this whole file exists to watch. A random tail the agent is told to ignore keeps every
+   ask unique without changing what's actually being asked. */
+const withCacheBuster = (text) => `${text} (ignore the trailing digits: ${Math.floor(Math.random() * 1000000)})`;
 
 const answerLength = (page) => page.evaluate(() => {
     const bodies = document.querySelectorAll(
@@ -41,11 +47,14 @@ const askedQuestions = (page) => page.evaluate(() => Array.from(
     document.querySelectorAll('.message-card[data-message-role="user"]'),
 ).map((node) => node.innerText.trim()));
 
+/** Returns the exact text it submitted, so a caller that needs to match it back can. */
 const ask = async (page) => {
     const box = page.locator('textarea:not([aria-hidden="true"])').first();
+    const text = withCacheBuster(QUESTION_BASE);
     await box.click();
-    await box.fill(QUESTION);
+    await box.fill(text);
     await page.keyboard.press('Enter');
+    return text;
 };
 
 /** Wait until the answer stops growing, and return its length. */
@@ -71,7 +80,7 @@ test.describe('an answer survives', () => {
     test.describe.configure({ timeout: 300000 });
 
     test('the reader working in another browser tab', async ({ page, context }) => {
-        await page.goto('/');
+        await page.goto('/chat');
         await ask(page);
         await page.waitForTimeout(MID_RUN_MS);
 
@@ -86,7 +95,7 @@ test.describe('an answer survives', () => {
     });
 
     test('a refresh', async ({ page }) => {
-        await page.goto('/');
+        await page.goto('/chat');
         await ask(page);
         await page.waitForTimeout(MID_RUN_MS);
         await page.reload({ waitUntil: 'domcontentloaded' });
@@ -100,7 +109,7 @@ test.describe('an answer survives', () => {
     });
 
     test('a trip to another page and back', async ({ page }) => {
-        await page.goto('/');
+        await page.goto('/chat');
         await ask(page);
         await page.waitForTimeout(MID_RUN_MS);
 
@@ -120,7 +129,7 @@ test.describe('an answer survives', () => {
    Reported to hb2022; re-enable once the underlying fix lands. */
 test.skip('a follow-up keeps the first exchange on screen', async ({ page }) => {
     test.setTimeout(300000);
-    await page.goto('/');
+    await page.goto('/chat');
     await ask(page);
     expect(await settled(page)).toBeGreaterThan(0);
 
@@ -129,7 +138,7 @@ test.skip('a follow-up keeps the first exchange on screen', async ({ page }) => 
        asked in that window started over — the answer the reader was looking at, gone. */
     const box = page.locator('textarea:not([aria-hidden="true"])').first();
     await box.click();
-    await box.fill('Does BRCA1 interact with BRCA2?');
+    await box.fill(withCacheBuster('Does BRCA1 interact with BRCA2?'));
     await page.keyboard.press('Enter');
     await page.waitForTimeout(3000);
 
@@ -161,12 +170,14 @@ test.skip('a follow-up keeps the first exchange on screen', async ({ page }) => 
    waiting is a deploy, not a fix. */
 test.skip('follow-ups queued mid-answer are sent in order without disappearing', async ({ page }) => {
     test.setTimeout(300000);
-    await page.goto('/');
-    await ask(page);
+    await page.goto('/chat');
+    const askedText = await ask(page);
     await expect(page.getByRole('button', { name: 'Stop generating', exact: true })).toBeVisible();
     const box = page.locator('textarea:not([aria-hidden="true"])').first();
-    const followups = ['What does BRCA1 stand for? Answer in one sentence.',
-        'Name one BRCA1 interaction partner. Answer in one sentence.'];
+    const followups = [
+        withCacheBuster('What does BRCA1 stand for? Answer in one sentence.'),
+        withCacheBuster('Name one BRCA1 interaction partner. Answer in one sentence.'),
+    ];
     for (const text of followups) {
         await box.fill(text);
         await page.keyboard.press('Enter');
@@ -176,7 +187,7 @@ test.skip('follow-ups queued mid-answer are sent in order without disappearing',
     await expect(users).toHaveCount(3, { timeout: 240000 });
     await expect(page.locator('.queued-prompt-text')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Stop generating', exact: true })).toHaveCount(0, { timeout: 120000 });
-    expect(await askedQuestions(page)).toEqual([QUESTION, ...followups]);
+    expect(await askedQuestions(page)).toEqual([askedText, ...followups]);
     const answers = page.locator('.message-card[data-message-role="assistant"] .markdown-body');
     await expect(answers).toHaveCount(3);
     for (const answer of await answers.all()) expect((await answer.innerText()).trim().length).toBeGreaterThan(0);
@@ -184,7 +195,7 @@ test.skip('follow-ups queued mid-answer are sent in order without disappearing',
 
 test('a new chat started mid-answer leaves the composer usable', async ({ page }) => {
     test.setTimeout(180000);
-    await page.goto('/');
+    await page.goto('/chat');
     await ask(page);
     await page.waitForTimeout(MID_RUN_MS);
 
