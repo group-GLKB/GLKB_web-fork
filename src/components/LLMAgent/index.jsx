@@ -111,6 +111,7 @@ import {
   fetchUsage,
   getUsageSnapshot,
   limitReachedText,
+  recordGuestQuestion,
   subscribeToUsage,
 } from '../../service/credits';
 import {
@@ -5486,6 +5487,10 @@ function LLMAgent({ isRouteActive = true }) {
             }
             streamOutcome = outcome;
         } finally {
+            // A guest's ten are counted per browser (service/credits.js), once the answer is in.
+            if (isGuest && !investigateEnabled && (streamOutcome === 'ok' || streamOutcome === 'recovered')) {
+                recordGuestQuestion();
+            }
             refreshTierStatus();
             /* Unconditional, and by BOTH of this run's possible names: a detached run reaches
                here with the foreground belonging to a later one, and it still has to take its

@@ -6,17 +6,47 @@
  *   signed in  credits — `GET /api/v1/credits/me`: `remaining` (free monthly + purchased) out of
  *              `monthly_allowance`. A query costs its tier's price; the cheapest (Standard AI
  *              Chat) is 1, so a balance under 1 can ask nothing.
- *   guest      questions — `GET /api/v1/tier/guest-me`: a count per IP for chat (10 in all, never
- *              reset, since 2026-10-09; 100 a month before) and for Investigate (0 since then: it
- *              needs an account; 5 a month before). A backend from before guest mode reopened answers only the legacy
- *              `quota_*` keys, which are read as the chat count.
+ *   guest      questions — GUEST_QUESTION_LIMIT (10) per BROWSER, in all, never reset, counted in
+ *              a cookie here (since 2026-10-09; product decision: per IP shut out everyone on a
+ *              shared network — a lab, a campus, a phone carrier — after the first ten). The
+ *              backend keeps its own per-IP count (`GET /api/v1/tier/guest-me`); the reader is
+ *              shown, and held to, the SMALLER of the two, so neither can be talked past by the
+ *              other. A backend from before guest mode reopened answers only the legacy
+ *              `quota_*` keys, which are read as its chat count. Investigate needs an account.
  *
- * Both reset at 00:00 UTC on the 1st. The stream's `Saved` / `Error` frames carry the new
- * credit balance (`credits.remaining`), which `applyStreamCredits` folds in without a refetch.
+ * Credits reset at 00:00 UTC on the 1st; a guest's ten never do. The stream's `Saved` / `Error`
+ * frames carry the new credit balance (`credits.remaining`), which `applyStreamCredits` folds in
+ * without a refetch.
  */
 import axios from '../utils/axiosConfig';
 
 const CREDITS_ENDPOINT = '/api/v1/credits/me';
+
+/** Questions a guest may ask in this browser, in all. */
+export const GUEST_QUESTION_LIMIT = 10;
+const GUEST_COOKIE = 'glkb_guest_questions';
+// 400 days: the longest a browser keeps a cookie (Chrome caps Max-Age there). Each question
+// rewrites it, so it outlives any guest still using the site.
+const GUEST_COOKIE_MAX_AGE = 400 * 24 * 60 * 60;
+
+/** How many questions this browser has asked as a guest (the cookie; 0 when unreadable). */
+export const readGuestQuestionCount = () => {
+    try {
+        const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${GUEST_COOKIE}=(\\d+)`));
+        return match ? Math.max(0, parseInt(match[1], 10)) : 0;
+    } catch (error) {
+        return 0;
+    }
+};
+
+const writeGuestQuestionCount = (count) => {
+    try {
+        const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `${GUEST_COOKIE}=${count}; Max-Age=${GUEST_COOKIE_MAX_AGE}; Path=/; SameSite=Lax${secure}`;
+    } catch (error) {
+        /* cookies blocked: the backend's count still holds */
+    }
+};
 const GUEST_ENDPOINT = '/api/v1/tier/guest-me';
 const CHANGE_EVENT = 'glkb-usage-change';
 
@@ -49,15 +79,19 @@ export const parseCredits = (data) => {
     };
 };
 
+/** A guest's status: this browser's count, held to the backend's when it has one (`data`). */
 export const parseGuestUsage = (data) => {
     const chat = data?.chat || {};
     const investigate = data?.deep_research || {};
-    const chatLimit = num(chat.limit) ?? num(data?.quota_limit);
-    const chatRemaining = num(chat.remaining) ?? num(data?.quota_remaining);
+    const serverRemaining = num(chat.remaining) ?? num(data?.quota_remaining);
+    const localRemaining = Math.max(0, GUEST_QUESTION_LIMIT - readGuestQuestionCount());
+    const chatRemaining = serverRemaining === null
+        ? localRemaining
+        : Math.min(localRemaining, Math.max(0, serverRemaining));
     return {
         kind: 'guest',
         remaining: chatRemaining,
-        limit: chatLimit,
+        limit: GUEST_QUESTION_LIMIT,
         investigateRemaining: num(investigate.remaining),
         investigateLimit: num(investigate.limit),
         resetsAt: parseUtc(data?.resets_at),
@@ -86,8 +120,20 @@ export const fetchUsage = async ({ isAuthenticated }) => {
         const response = await axios.get(isAuthenticated ? CREDITS_ENDPOINT : GUEST_ENDPOINT);
         return publish(isAuthenticated ? parseCredits(response.data) : parseGuestUsage(response.data));
     } catch (error) {
-        return null;
+        // A guest's own count needs no server: it still holds them to ten.
+        return isAuthenticated ? null : publish(parseGuestUsage(null));
     }
+};
+
+/**
+ * One guest question answered: count it in this browser and tell whoever shows the balance.
+ * Called once an AI Chat answer has arrived, so a refusal or a failed turn costs nothing.
+ */
+export const recordGuestQuestion = () => {
+    writeGuestQuestionCount(readGuestQuestionCount() + 1);
+    if (current?.kind !== 'guest') return current;
+    const remaining = Math.max(0, (current.remaining ?? GUEST_QUESTION_LIMIT) - 1);
+    return publish({ ...current, remaining, limitReached: remaining <= 0 });
 };
 
 /**

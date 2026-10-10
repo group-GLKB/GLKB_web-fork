@@ -5,11 +5,16 @@ import {
     parseCredits,
     parseGuestUsage,
     parseUtc,
+    readGuestQuestionCount,
+    recordGuestQuestion,
 } from './credits';
 import axios from '../utils/axiosConfig';
 import { fetchUsage } from './credits';
 
 jest.mock('../utils/axiosConfig', () => ({ __esModule: true, default: { get: jest.fn() } }));
+
+const clearGuestCookie = () => { document.cookie = 'glkb_guest_questions=; Max-Age=0; Path=/'; };
+beforeEach(clearGuestCookie);
 
 it('reads a UTC timestamp that carries no Z as UTC', () => {
     expect(parseUtc('2026-11-01T00:00:00').toISOString()).toBe('2026-11-01T00:00:00.000Z');
@@ -48,8 +53,52 @@ describe('a guest', () => {
         expect(limitReachedText(usage)).toBe("You've used your 10 free questions. Sign in to keep going — it's free.");
     });
 
-    it('reads a backend from before guest mode reopened', () => {
-        expect(parseGuestUsage({ quota_limit: 500, quota_remaining: 12 })).toMatchObject({ limit: 500, remaining: 12, limitReached: false });
+    it('reads a backend from before guest mode reopened, and still holds the guest to ten', () => {
+        expect(parseGuestUsage({ quota_limit: 500, quota_remaining: 12 })).toMatchObject({ limit: 10, remaining: 10, limitReached: false });
+        expect(parseGuestUsage({ quota_limit: 500, quota_remaining: 3 })).toMatchObject({ remaining: 3 });
+    });
+
+    /* Ten per BROWSER since 2026-10-09, in a cookie: per IP alone shut a whole lab out after the
+       first ten. The backend's per-IP count still applies, and the smaller of the two wins. */
+    it('counts ten answered questions in this browser, then asks for sign-in', () => {
+        expect(readGuestQuestionCount()).toBe(0);
+        for (let i = 0; i < 9; i += 1) recordGuestQuestion();
+        expect(readGuestQuestionCount()).toBe(9);
+        expect(document.cookie).toMatch(/glkb_guest_questions=9/);
+        expect(parseGuestUsage({ chat: { limit: 100, remaining: 100 } })).toMatchObject({ remaining: 1, limitReached: false });
+
+        recordGuestQuestion();
+        const usage = parseGuestUsage({ chat: { limit: 100, remaining: 100 } });
+        expect(usage).toMatchObject({ limit: 10, remaining: 0, limitReached: true });
+        expect(limitReachedText(usage)).toBe("You've used your 10 free questions. Sign in to keep going — it's free.");
+    });
+
+    it("is held to the backend's count when that is the smaller", () => {
+        recordGuestQuestion();
+        expect(parseGuestUsage({ chat: { limit: 10, remaining: 2 } })).toMatchObject({ remaining: 2 });
+        expect(parseGuestUsage({ chat: { limit: 10, remaining: 0 } }).limitReached).toBe(true);
+    });
+
+    it('a second browser on the same network starts at ten, whatever the first has used', () => {
+        for (let i = 0; i < 10; i += 1) recordGuestQuestion();
+        clearGuestCookie();                       // what another browser looks like
+        expect(parseGuestUsage({ chat: { limit: 100, remaining: 90 } })).toMatchObject({ remaining: 10 });
+    });
+
+    it('falls back to its own count when the backend cannot be read', async () => {
+        recordGuestQuestion();
+        axios.get.mockRejectedValueOnce(new Error('down'));
+        expect(await fetchUsage({ isAuthenticated: false })).toMatchObject({ kind: 'guest', remaining: 9 });
+        axios.get.mockRejectedValueOnce(new Error('down'));
+        expect(await fetchUsage({ isAuthenticated: true })).toBeNull();
+    });
+
+    it('takes one off the shown balance as each answer lands', async () => {
+        axios.get.mockResolvedValueOnce({ data: { chat: { limit: 100, remaining: 100 } } });
+        await fetchUsage({ isAuthenticated: false });
+        expect(getUsageSnapshot().remaining).toBe(10);
+        recordGuestQuestion();
+        expect(getUsageSnapshot()).toMatchObject({ kind: 'guest', remaining: 9, limitReached: false });
     });
 
     it('a stream frame never turns a guest status into a credit balance', async () => {
