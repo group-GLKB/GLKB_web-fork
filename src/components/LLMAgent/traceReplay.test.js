@@ -96,6 +96,15 @@ describe('replayTrace — chat', () => {
         expect(withTrajectory.trajectory).toEqual([{ phase: 'Search', actions: [] }]);
         expect(fields.trajectory).toBeUndefined();
     });
+    it('gives a reloaded answer back its kg_query_list, so its graph is drawn again', () => {
+        const statements = ['WITH ["hgnc:11998", "hgnc:6973"] AS node_ids\nMATCH (n:Vocabulary) RETURN n'];
+        const withGraph = replayTrace({
+            ...CHAT_TRACE,
+            frames: [...CHAT_TRACE.frames, { step: 'Complete', kg_query_list: statements }],
+        });
+        expect(withGraph.kgQueryList).toEqual(statements);
+        expect(fields.kgQueryList).toBeUndefined();
+    });
 });
 
 describe('replayTrace — investigate', () => {

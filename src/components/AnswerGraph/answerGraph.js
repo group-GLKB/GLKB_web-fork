@@ -177,3 +177,36 @@ export const sparsify = ({ nodes, edges }, perNode = 2) => {
     }
     return { nodes, edges: edges.filter((e) => e.kind === 'curated' || keep.has(e.id)) };
 };
+
+const NOT_PROSE = /^(#{1,6}\s|[-*+]\s|\d+[.)]\s|\||>|```|~~~|-{3,}\s*$|\*{3,}\s*$|<)/;
+
+/**
+ * Where an answer's graph goes in its text: after the first paragraph of prose — the
+ * answer's own summary, before it goes into detail — so the picture of what the answer is
+ * about sits next to the sentence that says it. Headings, lists, tables, quotes and code
+ * are skipped (a graph between a heading and its body, or inside a list, reads as broken).
+ * An answer with no such paragraph, or whose only one is its last block, gets the graph at
+ * its end. Returns `[head, tail]`; `tail` may be empty.
+ */
+export const splitAnswerForGraph = (markdown) => {
+    const text = String(markdown || '');
+    const lines = text.split('\n');
+    let fence = false;
+    let blockStart = -1;
+    for (let i = 0; i <= lines.length; i += 1) {
+        const line = i < lines.length ? lines[i] : '';
+        if (/^\s*(```|~~~)/.test(line)) fence = !fence;
+        const blank = i === lines.length || (!fence && !line.trim());
+        if (!blank && blockStart < 0) blockStart = i;
+        if (blank && blockStart >= 0) {
+            const first = lines[blockStart].trim();
+            if (!NOT_PROSE.test(first)) {
+                const head = lines.slice(0, i).join('\n');
+                const tail = lines.slice(i).join('\n').trim();
+                return tail ? [head, tail] : [text, ''];
+            }
+            blockStart = -1;
+        }
+    }
+    return [text, ''];
+};

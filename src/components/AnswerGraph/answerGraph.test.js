@@ -1,5 +1,6 @@
 import {
     cardLayout, curatedLabel, edgeKind, graphFromRows, idsFromQueryList, nodeType, presentTypes, sparsify,
+    splitAnswerForGraph,
 } from './answerGraph';
 import fixture from './demoFixture.json';
 
@@ -94,5 +95,23 @@ describe('helpers', () => {
         expect(idsFromQueryList(fixture.kg_query_list)).toEqual(
             ['hgnc:11998', 'hgnc:6973', 'hgnc:1100', 'mondo:0007254', 'mesh:D004260', 'mesh:D011960', 'mesh:D017209']);
         expect(idsFromQueryList(['MATCH (n) RETURN n', null])).toEqual([]);
+    });
+});
+
+describe('splitAnswerForGraph', () => {
+    it('puts the graph after the first paragraph of prose', () => {
+        const md = 'TP53 is restrained by MDM2.\n\n**MDM2 switches off p53.** Detail.\n\nMore.';
+        expect(splitAnswerForGraph(md)).toEqual(['TP53 is restrained by MDM2.', '**MDM2 switches off p53.** Detail.\n\nMore.']);
+    });
+    it('skips headings, lists, tables and code to the first prose paragraph', () => {
+        const md = '## Direct answer\n\n- one\n- two\n\n| a | b |\n|---|---|\n\n```\nx\n\ny\n```\n\nThe summary.\n\nThe rest.';
+        const [head, tail] = splitAnswerForGraph(md);
+        expect(head.endsWith('The summary.')).toBe(true);
+        expect(tail).toBe('The rest.');
+    });
+    it('puts the graph at the end when there is nowhere better', () => {
+        expect(splitAnswerForGraph('Only one paragraph.')).toEqual(['Only one paragraph.', '']);
+        expect(splitAnswerForGraph('## Title\n\n- a\n- b')).toEqual(['## Title\n\n- a\n- b', '']);
+        expect(splitAnswerForGraph('')).toEqual(['', '']);
     });
 });

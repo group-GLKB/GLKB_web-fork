@@ -77,6 +77,8 @@ import {
 } from './traceReplay';
 import ClarifyPanel, { getClarificationQuestionKey } from './ClarifyPanel';
 import ReferenceHoverCard from './ReferenceHoverCard';
+import AnswerGraphForMessage from '../AnswerGraph/AnswerGraphForMessage';
+import { splitAnswerForGraph } from '../AnswerGraph/answerGraph';
 import { getBookmarks, toggleBookmark } from '../../utils/bookmarks';
 import { resolveClarifyRound } from './clarifyRound';
 import { sortReferences } from './referenceSort';
@@ -1377,6 +1379,63 @@ const MessageCard = React.memo(function MessageCard({
         return clearTimers;
     }, [isLoading, loadingStepLabel]);
 
+
+    /* The answer's text, split where its in-text knowledge graph goes (components/
+       AnswerGraph). Only a finished answer gets a graph: while it streams, the split point
+       would move under the reader. */
+    const answerMarkdown = stripUnresolvedCitations(
+            bindMarkersToLinks(
+                stripCitationsBlock(
+                    repairOrphanSingleItemMarkdown(
+                        isLoading
+                            ? tidyStreamingText(message.content)
+                            : message.content,
+                    ),
+                ),
+                citationsByMarker,
+            ),
+        );
+    const showAnswerGraph = isAssistant && !isLoading && message.kgQueryList?.length > 0;
+    const answerParts = showAnswerGraph ? splitAnswerForGraph(answerMarkdown) : [answerMarkdown];
+    if (showAnswerGraph && answerParts.length === 1) answerParts.push('');
+    const markdownComponents = {
+        /* Wide tables scroll inside their own box.
+           Without this a table with more columns
+           than the message column can hold widens
+           the whole answer and puts a horizontal
+           scrollbar under the entire conversation. */
+        table: ({ node, ...props }) => (
+            <div className="markdown-table-scroll">
+                <table {...props} />
+            </div>
+        ),
+        a: ({ href, children, title, ...props }) => {
+            const isPubMedReference = href?.includes('pubmed.ncbi.nlm.nih.gov');
+            const referenceNumber = isPubMedReference ? getReferenceNumber(href) : null;
+            if (!isPubMedReference) {
+                return <a href={href} title={title} {...props}>{children}</a>;
+            }
+            // The marker is ours; PubMed should not be sent it.
+            const linkHref = hrefWithoutMarker(href);
+            // `title` is dropped on purpose: the agent puts the evidence
+            // sentence there, and leaving it would show the browser's own
+            // tooltip on top of the card that now presents the same quote
+            // with the paper it came from.
+            return (
+                <a
+                    href={linkHref}
+                    {...props}
+                    onMouseEnter={(event) => showReferenceCard(href, event.currentTarget)}
+                    onMouseLeave={hideReferenceCard}
+                    onFocus={(event) => showReferenceCard(href, event.currentTarget)}
+                    onBlur={hideReferenceCard}
+                >
+                    <span className="inline-citation-number">{referenceNumber || children}</span>
+                </a>
+            );
+        },
+    };
+
     return (
         <div
             className="message-card"
@@ -1667,59 +1726,18 @@ const MessageCard = React.memo(function MessageCard({
                                         onChange={(event) => setEditContent(event.target.value)}
                                     /> : (
                                         <div className="markdown-body">
-                                            <ReactMarkdown
-                                                remarkPlugins={REMARK_PLUGINS}
-                                                components={{
-                                                    /* Wide tables scroll inside their own box.
-                                                       Without this a table with more columns
-                                                       than the message column can hold widens
-                                                       the whole answer and puts a horizontal
-                                                       scrollbar under the entire conversation. */
-                                                    table: ({ node, ...props }) => (
-                                                        <div className="markdown-table-scroll">
-                                                            <table {...props} />
-                                                        </div>
-                                                    ),
-                                                    a: ({ href, children, title, ...props }) => {
-                                                        const isPubMedReference = href?.includes('pubmed.ncbi.nlm.nih.gov');
-                                                        const referenceNumber = isPubMedReference ? getReferenceNumber(href) : null;
-                                                        if (!isPubMedReference) {
-                                                            return <a href={href} title={title} {...props}>{children}</a>;
-                                                        }
-                                                        // The marker is ours; PubMed should not be sent it.
-                                                        const linkHref = hrefWithoutMarker(href);
-                                                        // `title` is dropped on purpose: the agent puts the evidence
-                                                        // sentence there, and leaving it would show the browser's own
-                                                        // tooltip on top of the card that now presents the same quote
-                                                        // with the paper it came from.
-                                                        return (
-                                                            <a
-                                                                href={linkHref}
-                                                                {...props}
-                                                                onMouseEnter={(event) => showReferenceCard(href, event.currentTarget)}
-                                                                onMouseLeave={hideReferenceCard}
-                                                                onFocus={(event) => showReferenceCard(href, event.currentTarget)}
-                                                                onBlur={hideReferenceCard}
-                                                            >
-                                                                <span className="inline-citation-number">{referenceNumber || children}</span>
-                                                            </a>
-                                                        );
-                                                    },
-                                                }}
-                                            >
-                                                {stripUnresolvedCitations(
-                                                    bindMarkersToLinks(
-                                                        stripCitationsBlock(
-                                                            repairOrphanSingleItemMarkdown(
-                                                                isLoading
-                                                                    ? tidyStreamingText(message.content)
-                                                                    : message.content,
-                                                            ),
-                                                        ),
-                                                        citationsByMarker,
-                                                    ),
-                                                )}
-                                            </ReactMarkdown>
+                                            {answerParts.map((part, partIndex) => (
+                                                <React.Fragment key={partIndex}>
+                                                    {partIndex === 1 && (
+                                                        <AnswerGraphForMessage kgQueryList={message.kgQueryList} />
+                                                    )}
+                                                    {part && (
+                                                        <ReactMarkdown remarkPlugins={REMARK_PLUGINS} components={markdownComponents}>
+                                                            {part}
+                                                        </ReactMarkdown>
+                                                    )}
+                                                </React.Fragment>
+                                            ))}
                                             {hoverCard && (
                                                 <ReferenceHoverCard
                                                     reference={hoverCard.reference}
@@ -4586,6 +4604,7 @@ function LLMAgent({ isRouteActive = true }) {
                 directCitations: parseDirectCitations(
                     update.directCitations ?? update.direct_citations,
                 ),
+                kgQueryList: update.kgQueryList ?? update.kg_query_list ?? [],
                 timestamp,
                 thinkingSteps: existing.thinkingSteps || [],
                 thoughtDurationMs: Date.now() - requestStartedAt,
@@ -5108,6 +5127,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 content: update.answer,
                                 references: parseReferences(update.references),
                                 directCitations: parseDirectCitations(update.directCitations),
+                                kgQueryList: update.kgQueryList || [],
                                 timestamp: timestamp,
                                 thinkingSteps: thinkingStepsRef.current,
                                 thoughtDurationMs: Date.now() - requestStartedAt,

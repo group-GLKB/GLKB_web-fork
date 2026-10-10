@@ -416,6 +416,9 @@ export const frameToUpdate = (data) => {
             // different shape. The backend normalises this name for us
             // on every endpoint, this frame included.
             directCitations: data.direct_citations || [],
+            // The statements the answer's in-text knowledge graph is drawn from
+            // (components/AnswerGraph). Empty when the agent resolved no entity.
+            kgQueryList: Array.isArray(data.kg_query_list) ? data.kg_query_list : [],
             messages: data.messages || [],
             sessionId: data.session_id || null,
             trajectory: data.trajectory || null,
