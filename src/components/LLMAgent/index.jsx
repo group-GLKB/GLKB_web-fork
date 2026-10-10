@@ -6793,6 +6793,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 content: update.answer,
                                 references: parseReferences(update.references),
                                 directCitations: parseDirectCitations(update.directCitations),
+                                kgQueryList: update.kgQueryList || [],
                                 timestamp,
                                 thinkingSteps: [...localThinkingSteps],
                                 thoughtDurationMs: Date.now() - requestStartedAt,

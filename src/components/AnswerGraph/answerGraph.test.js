@@ -109,6 +109,15 @@ describe('splitAnswerForGraph', () => {
         expect(head.endsWith('The summary.')).toBe(true);
         expect(tail).toBe('The rest.');
     });
+    it('never puts the graph against a figure', () => {
+        const fig = '![Figure 2 from PMID 1](https://openi.example/f2.png)';
+        expect(splitAnswerForGraph(`${fig}\n\nThe summary.\n\nThe rest.`))
+            .toEqual([`${fig}\n\nThe summary.`, 'The rest.']);
+        expect(splitAnswerForGraph(`The summary.\n\n${fig}\n\nThe detail.\n\nMore.`))
+            .toEqual([`The summary.\n\n${fig}\n\nThe detail.`, 'More.']);
+        // Nowhere free of one: after the first paragraph after all.
+        expect(splitAnswerForGraph(`The summary.\n\n${fig}`)).toEqual(['The summary.', fig]);
+    });
     it('puts the graph at the end when there is nowhere better', () => {
         expect(splitAnswerForGraph('Only one paragraph.')).toEqual(['Only one paragraph.', '']);
         expect(splitAnswerForGraph('## Title\n\n- a\n- b')).toEqual(['## Title\n\n- a\n- b', '']);

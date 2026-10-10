@@ -178,13 +178,15 @@ export const sparsify = ({ nodes, edges }, perNode = 2) => {
     return { nodes, edges: edges.filter((e) => e.kind === 'curated' || keep.has(e.id)) };
 };
 
-const NOT_PROSE = /^(#{1,6}\s|[-*+]\s|\d+[.)]\s|\||>|```|~~~|-{3,}\s*$|\*{3,}\s*$|<)/;
+// `![` is a figure (an Investigate report places its figures as images): the graph goes after text.
+const NOT_PROSE = /^(#{1,6}\s|[-*+]\s|\d+[.)]\s|\||>|```|~~~|-{3,}\s*$|\*{3,}\s*$|<|!\[)/;
 
 /**
  * Where an answer's graph goes in its text: after the first paragraph of prose — the
  * answer's own summary, before it goes into detail — so the picture of what the answer is
  * about sits next to the sentence that says it. Headings, lists, tables, quotes and code
- * are skipped (a graph between a heading and its body, or inside a list, reads as broken).
+ * are skipped (a graph between a heading and its body, or inside a list, reads as broken), and so
+ * are figures, so the graph and a figure never sit back to back.
  * An answer with no such paragraph, or whose only one is its last block, gets the graph at
  * its end. Returns `[head, tail]`; `tail` may be empty.
  */
@@ -193,6 +195,7 @@ export const splitAnswerForGraph = (markdown) => {
     const lines = text.split('\n');
     let fence = false;
     let blockStart = -1;
+    let fallback = null;
     for (let i = 0; i <= lines.length; i += 1) {
         const line = i < lines.length ? lines[i] : '';
         if (/^\s*(```|~~~)/.test(line)) fence = !fence;
@@ -203,10 +206,13 @@ export const splitAnswerForGraph = (markdown) => {
             if (!NOT_PROSE.test(first)) {
                 const head = lines.slice(0, i).join('\n');
                 const tail = lines.slice(i).join('\n').trim();
-                return tail ? [head, tail] : [text, ''];
+                if (!tail) return fallback || [text, ''];
+                // A figure right after this paragraph: the graph waits for the next one.
+                if (!tail.startsWith('![')) return [head, tail];
+                fallback = fallback || [head, tail];
             }
             blockStart = -1;
         }
     }
-    return [text, ''];
+    return fallback || [text, ''];
 };
