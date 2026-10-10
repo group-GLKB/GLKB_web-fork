@@ -58,6 +58,7 @@ const Library = React.lazy(() => import('./components/Library'));
 const MaintenancePage = React.lazy(() => import('./components/MaintenancePage'));
 const ResultPage = React.lazy(() => import('./components/ResultPage'));
 const GraphViewer = React.lazy(() => import('./components/GraphViewer'));
+const AnswerGraphDemo = React.lazy(() => import('./components/AnswerGraph/Demo'));
 const TestAuth = React.lazy(() => import('./components/TestAuth'));
 
 const RESIZE_OBSERVER_NOISE = [
@@ -206,6 +207,7 @@ function AppWithRoutes() {
                 <Route element={<AppLayout />}>
                     <Route path='/search' element={<ResultPage />} />
                     <Route path='/graph-viewer' element={<GraphViewer />} />
+                    <Route path='/demo/answer-graph' element={<AnswerGraphDemo />} />
                     <Route path="/" element={<RootRoute />} />
                     <Route path={CHAT_HOME_PATH} element={<HomePage />} />
                     <Route path="/about" element={<AboutRedirect />} />
