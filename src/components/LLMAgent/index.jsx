@@ -1395,7 +1395,9 @@ const MessageCard = React.memo(function MessageCard({
                 citationsByMarker,
             ),
         );
-    const showAnswerGraph = isAssistant && !isLoading && message.kgQueryList?.length > 0;
+    // With no list, an answer that cites papers still gets a graph, built from its text.
+    const showAnswerGraph = isAssistant && !isLoading
+        && (message.kgQueryList?.length > 0 || message.references?.length > 0);
     const answerParts = showAnswerGraph ? splitAnswerForGraph(answerMarkdown) : [answerMarkdown];
     if (showAnswerGraph && answerParts.length === 1) answerParts.push('');
     const markdownComponents = {
@@ -1729,7 +1731,7 @@ const MessageCard = React.memo(function MessageCard({
                                             {answerParts.map((part, partIndex) => (
                                                 <React.Fragment key={partIndex}>
                                                     {partIndex === 1 && (
-                                                        <AnswerGraphForMessage kgQueryList={message.kgQueryList} />
+                                                        <AnswerGraphForMessage kgQueryList={message.kgQueryList} answer={message.content} />
                                                     )}
                                                     {part && (
                                                         <ReactMarkdown remarkPlugins={REMARK_PLUGINS} components={markdownComponents}>
