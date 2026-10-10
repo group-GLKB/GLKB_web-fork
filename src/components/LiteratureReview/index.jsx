@@ -1,8 +1,13 @@
 /**
  * Literature Review — its own page, its own pipeline.
  *
- *   /literature-review              write a new review (the topic may arrive from the home box)
- *   /literature-review/:publicId    a saved review, reopened from History or a link
+ *   /literature-review              set up and write a new review (the topic and scope may arrive
+ *                                   from the home composer's Literature Review tab)
+ *   /literature-review/:publicId    a saved review, reopened from History, Recent or a link
+ *
+ * The page walks the design's four steps — Scope, Outline, Writing, Review. The pipeline runs a
+ * review end to end once started, so Outline is a step the run passes through (its acquisition,
+ * synthesis and planning stages), not one the reader edits.
  *
  * Independent of the chat page on purpose: the chat page's state machine carries "Investigate or
  * not" as one boolean through queues, recovery snapshots and reload logic, and a third mode
@@ -14,36 +19,30 @@
  * A review takes minutes. The backend owns the run (a detached task), so leaving this page does
  * not stop it: the review is saved into History when it finishes, and reopening it here shows it.
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import './LiteratureReview.css';
+
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import {
-    Alert, Box, Button, LinearProgress, MenuItem, Select, TextField, Typography,
-} from '@mui/material';
+import { Alert, LinearProgress, Menu, MenuItem } from '@mui/material';
 
 import { useAuth } from '../Auth/AuthContext';
 import { getChatHistoryDetailByPublicId } from '../../service/ChatHistory';
 import { cancelReview, fetchReviewModels, streamReview } from '../../service/LiteratureReview';
+import { CHAT_NEW_PATH } from '../../config/entryRoutes';
 import { latexFilename, reviewToLatex } from '../../utils/reviewToLatex';
 import { exportFilename, reviewTitle, reviewToPrintable, reviewToWord } from '../../utils/reviewExport';
 import { trackGtagEvent } from '../../utils/gtag';
-
-const REMARK_PLUGINS = [remarkGfm];
-
-const STAGES = [
-    { id: 'acquisition', label: 'Search & select literature' },
-    { id: 'synthesis', label: 'Synthesise evidence' },
-    { id: 'planning', label: 'Plan' },
-    { id: 'writing', label: 'Write' },
-];
+import { DEFAULT_SCOPE } from '../HomePage/ReviewScope';
+import { TopBar } from './Chrome';
+import ScopeStep from './ScopeStep';
+import WritingStep from './WritingStep';
+import ReviewDocument from './ReviewDocument';
 
 const PENDING_RECHECK_MS = 15000;
 
-const formatSeconds = (s) => {
-    if (!Number.isFinite(s)) return '';
-    const m = Math.floor(s / 60);
-    return m ? `${m} min ${Math.round(s % 60)} s` : `${Math.round(s)} s`;
+const formatDate = (value) => {
+    const d = value ? new Date(value) : new Date();
+    return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 export default function LiteratureReview() {
@@ -53,13 +52,16 @@ export default function LiteratureReview() {
     const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
 
     const [topic, setTopic] = useState(location.state?.initialQuery || '');
+    const [scope, setScope] = useState(() => ({ ...DEFAULT_SCOPE, ...(location.state?.scope || {}) }));
     const [models, setModels] = useState([]);
-    const [model, setModel] = useState('');
-    const [status, setStatus] = useState('idle'); // idle | running | done | error | loading
+    const [model, setModel] = useState(location.state?.model || '');
+    const [status, setStatus] = useState('idle'); // idle | running | done | error | loading | pending
     const [progress, setProgress] = useState(null);
-    const [review, setReview] = useState(null); // { markdown, usage, executionTime }
+    const [review, setReview] = useState(null); // { markdown, references, usage, executionTime, createdAt }
     const [error, setError] = useState('');
     const [savedQuestion, setSavedQuestion] = useState('');
+    const [exportAnchor, setExportAnchor] = useState(null);
+    const [copied, setCopied] = useState(false);
     const runIdRef = useRef(null);
 
     /* The review as a compilable .tex (utils/reviewToLatex.js). Done here rather than on the
@@ -139,7 +141,8 @@ export default function LiteratureReview() {
                 const answer = [...messages].reverse().find((m) => m.role === 'assistant');
                 setSavedQuestion(question?.content || '');
                 if (answer?.content) {
-                    setReview({ markdown: answer.content });
+                    setReview({ markdown: answer.content, references: answer.references || [],
+                                createdAt: answer.created_at || detail?.created_at });
                     setStatus('done');
                 } else {
                     setStatus('pending');
@@ -183,9 +186,13 @@ export default function LiteratureReview() {
         setSavedQuestion(question);
         setProgress({ phase: 'acquisition', label: 'Starting…', percent: 1, detail: {} });
         setStatus('running');
+        trackGtagEvent('literature_review_start', { target_words: scope.targetWords || 0 });
         let finished = false;
         try {
-            await streamReview({ question, model, signal: controller.signal }, (frame) => {
+            await streamReview({
+                question, model, signal: controller.signal,
+                targetWords: scope.targetWords, cutoffYear: scope.cutoffYear,
+            }, (frame) => {
                 if (frame.run_id) runIdRef.current = frame.run_id;
                 if (frame.step === 'Started' && frame.public_id) {
                     // The backend's first frame: the review already has its History entry. Take its
@@ -199,8 +206,8 @@ export default function LiteratureReview() {
                                   detail: frame.detail || {} });
                 } else if (frame.step === 'Complete') {
                     finished = true;
-                    setReview({ markdown: frame.response || '', usage: frame.usage,
-                                executionTime: frame.execution_time });
+                    setReview({ markdown: frame.response || '', references: frame.references || [],
+                                usage: frame.usage, executionTime: frame.execution_time });
                     setStatus('done');
                 } else if (frame.step === 'Saved' && frame.public_id) {
                     // Give the review an address of its own, so a reload keeps it.
@@ -223,10 +230,7 @@ export default function LiteratureReview() {
             setError(typeof detail === 'string' ? detail : (err?.message || 'The review could not start.'));
             setStatus('error');
         }
-    }, [topic, model, isAuthenticated, openLoginModal, navigate]);
-
-    // Arriving from the home box with a topic: nothing else to choose but the model, so the form
-    // stays up (the model is the cost lever: Sol is ~20x Luna) rather than starting on its own.
+    }, [topic, model, scope, isAuthenticated, openLoginModal, navigate]);
 
     const stop = useCallback(async () => {
         try {
@@ -236,150 +240,120 @@ export default function LiteratureReview() {
         }
     }, []);
 
-    const stageIndex = useMemo(
-        () => Math.max(0, STAGES.findIndex((s) => s.id === progress?.phase)),
-        [progress],
-    );
+    const startNew = () => {
+        setStatus('idle'); setReview(null); setError(''); setTopic(''); navigate('/literature-review');
+    };
 
-    const cost = review?.usage?.totals?.cost_usd;
+    /* A paragraph action opens a new chat on that passage (design: Ask / Rewrite / Shorten /
+       Add evidence). The chat answers it like any question, citations included. */
+    const paragraphAction = useCallback((action, text) => {
+        trackGtagEvent('literature_review_paragraph_action', { action: action.id });
+        navigate(CHAT_NEW_PATH, { state: { initialQuery: action.prompt(text, savedQuestion || topic) } });
+    }, [navigate, savedQuestion, topic]);
+
+    const share = async () => {
+        try {
+            await navigator.clipboard.writeText(window.location.href);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch { setError('Copy the address from the browser bar to share this review.'); }
+    };
+
     const formShown = status === 'idle' || (status === 'error' && !publicId);
+    const writing = status === 'running' || status === 'pending';
+    const step = formShown ? 0 : writing ? (progress?.phase === 'writing' ? 2 : 1) : status === 'done' ? 3 : 1;
+    const minutes = review?.executionTime ? Math.max(1, Math.round(review.executionTime / 60)) : null;
+
+    const actions = status === 'done' && review ? (
+        <>
+            <button type="button" className="lr-secondary" onClick={share}>{copied ? 'Link copied' : 'Share'}</button>
+            <button type="button" className="lr-primary is-small" aria-haspopup="menu" onClick={(e) => setExportAnchor(e.currentTarget)}>
+                Export
+            </button>
+            <Menu anchorEl={exportAnchor} open={Boolean(exportAnchor)} onClose={() => setExportAnchor(null)}>
+                <MenuItem onClick={() => { setExportAnchor(null); downloadWord(); }}>Word (.doc)</MenuItem>
+                <MenuItem onClick={() => { setExportAnchor(null); downloadPdf(); }}>PDF</MenuItem>
+                <MenuItem onClick={() => { setExportAnchor(null); downloadLatex(); }}>LaTeX (.tex)</MenuItem>
+            </Menu>
+        </>
+    ) : null;
 
     return (
-        <Box sx={{ maxWidth: 920, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 3, md: 5 } }}>
-            <Typography variant="overline" sx={{ color: 'var(--color-text-tertiary)', letterSpacing: 1 }}>
-                Literature Review · internal preview
-            </Typography>
+        <div className="lr-root">
+            <TopBar step={step} onHome={() => navigate('/')} onNew={startNew} actions={actions} />
 
-            {/* Hidden rather than unmounted while a review runs or is shown: the Topic field is MUI's
-                TextareaAutosize, whose resize handler can fire just after its textarea is removed and
-                then throws (getComputedStyle on null) — seen once in six runs of this page. */}
-            <Box sx={{ mt: 1, flexDirection: 'column', gap: 2,
-                       display: formShown ? 'flex' : 'none' }}>
-                <Typography variant="h5" sx={{ fontWeight: 600 }}>Write a literature review</Typography>
-                <Typography variant="body2" sx={{ color: 'var(--color-text-secondary)' }}>
-                    GLKB searches the literature, selects and synthesises the evidence, and writes a cited
-                    review. It takes several minutes; you can leave this page and find the result in History.
-                </Typography>
-                <TextField
-                    label="Topic"
-                    multiline
-                    minRows={2}
-                    value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
-                    placeholder="e.g. Mechanisms of osimertinib resistance in EGFR-mutant lung cancer"
+            {/* Hidden rather than unmounted while a review runs or is shown: the old form's MUI
+                TextareaAutosize could throw on unmount; the textarea here is plain, but the form
+                keeps its state either way. */}
+            <div style={{ display: formShown ? 'block' : 'none' }}>
+                <ScopeStep
+                    topic={topic}
+                    onTopic={setTopic}
+                    scope={scope}
+                    onScope={setScope}
+                    models={models}
+                    model={model}
+                    onModel={setModel}
+                    onStart={start}
+                    canStart={topic.trim().length >= 3 && !authLoading}
+                    error={formShown ? error : ''}
                 />
-                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-                    {models.length > 0 && (
-                        <Select size="small" value={model} onChange={(e) => setModel(e.target.value)}
-                                aria-label="Model">
-                            {models.map((m) => (
-                                <MenuItem key={m.id} value={m.id}>
-                                    {m.label}{m.description ? ` — ${m.description}` : ''}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    )}
-                    <Button variant="contained" disableElevation onClick={start}
-                            disabled={topic.trim().length < 3 || authLoading}
-                            sx={{ textTransform: 'none', fontWeight: 600 }}>
-                        Write review
-                    </Button>
-                </Box>
-                {formShown && error && <Alert severity="error">{error}</Alert>}
-            </Box>
+            </div>
 
-            {status === 'loading' && <LinearProgress sx={{ mt: 3 }} />}
+            {status === 'loading' && <LinearProgress sx={{ mx: 4, mt: 4 }} />}
 
-            {(status === 'running' || status === 'done' || status === 'pending'
-                || (status === 'error' && publicId)) && savedQuestion && (
-                <Typography variant="h5" sx={{ fontWeight: 600, mt: 1 }}>{savedQuestion}</Typography>
+            {writing && (
+                <WritingStep
+                    topic={savedQuestion}
+                    progress={progress}
+                    elapsed={elapsed}
+                    targetWords={scope.targetWords}
+                    pending={status === 'pending'}
+                    onStop={status === 'running' ? stop : null}
+                />
             )}
-
-            {status === 'running' && progress && (
-                <Box sx={{ mt: 3, p: 2.5, borderRadius: 2, border: '1px solid var(--color-border-subtle, #e5e7eb)' }}>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1.5 }}>
-                        {STAGES.map((s, i) => (
-                            <Typography key={s.id} variant="caption" sx={{
-                                px: 1, py: 0.25, borderRadius: 1,
-                                fontWeight: i === stageIndex ? 700 : 500,
-                                color: i <= stageIndex ? 'var(--color-brand-primary)' : 'var(--color-text-tertiary)',
-                                background: i === stageIndex ? 'var(--color-brand-muted)' : 'transparent',
-                            }}>
-                                {i + 1}. {s.label}
-                            </Typography>
-                        ))}
-                    </Box>
-                    <LinearProgress variant="determinate" value={Math.min(100, progress.percent || 0)} />
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1, flexWrap: 'wrap', gap: 1 }}>
-                        <Typography variant="body2">{progress.label}</Typography>
-                        <Typography variant="body2" sx={{ color: 'var(--color-text-tertiary)' }}>
-                            {[
-                                progress.detail?.searches ? `${progress.detail.searches} searches` : null,
-                                progress.detail?.papers_opened ? `${progress.detail.papers_opened} papers read` : null,
-                                progress.detail?.llm_calls ? `${progress.detail.llm_calls} model calls` : null,
-                                formatSeconds(elapsed),
-                            ].filter(Boolean).join(' · ')}
-                        </Typography>
-                    </Box>
-                    <Button size="small" onClick={stop} sx={{ mt: 1.5, textTransform: 'none' }}>Stop</Button>
-                </Box>
-            )}
-
             {status === 'pending' && (
-                <Alert severity="info" sx={{ mt: 3 }}>
-                    This review is still being written. It appears here when it is finished (reviews take
-                    15–25 minutes); you can leave this page and find it in History.
-                </Alert>
+                <div className="lr-page"><div className="lr-main is-narrow">
+                    <Alert severity="info">
+                        This review is still being written. It appears here when it is finished (reviews take
+                        8–12 minutes); you can leave this page and find it in History.
+                    </Alert>
+                </div></div>
             )}
 
             {status === 'error' && publicId && (
-                <Box sx={{ mt: 3 }}>
+                <div className="lr-page"><div className="lr-main is-narrow">
+                    {savedQuestion && <h1 className="lr-title">{savedQuestion}</h1>}
                     <Alert severity="error">{error}</Alert>
                     {/* The topic is kept: after a Stop or a failure the likeliest next step is to run it again. */}
-                    <Button sx={{ mt: 2, textTransform: 'none' }} onClick={() => {
+                    <button type="button" className="lr-secondary" style={{ marginTop: 16 }} onClick={() => {
                         setStatus('idle'); setError(''); setTopic((t) => t || savedQuestion);
                         navigate('/literature-review');
                     }}>
                         Try again
-                    </Button>
-                </Box>
+                    </button>
+                </div></div>
             )}
 
             {status === 'done' && review && (
-                <Box sx={{ mt: 3 }}>
-                    {(Number.isFinite(cost) || review.executionTime) && (
-                        <Typography variant="caption" sx={{ color: 'var(--color-text-tertiary)' }}>
-                            {[review.executionTime ? formatSeconds(review.executionTime) : null,
-                              Number.isFinite(cost) ? `$${cost.toFixed(3)}` : null].filter(Boolean).join(' · ')}
-                        </Typography>
-                    )}
-                    <Box className="markdown-body" sx={{ mt: 1, '& h1': { display: 'none' } }}>
-                        <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>{review.markdown}</ReactMarkdown>
-                    </Box>
-                    {/* Three ways out: LaTeX for a typeset paper (its numbered citations become
-                        \cite keys against a thebibliography), Word to keep editing, PDF to read
-                        or send. */}
+                <>
                     {/* An export that cannot run says so here: the error Alert above only renders
                         in the error state, so on a finished review it would show nothing at all. */}
-                    {error && <Alert severity="warning" sx={{ mt: 2 }} onClose={() => setError('')}>{error}</Alert>}
-                    <Box sx={{ mt: 3, display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-                        <Button variant="outlined" sx={{ textTransform: 'none' }} onClick={downloadLatex}>
-                            LaTeX (.tex)
-                        </Button>
-                        <Button variant="outlined" sx={{ textTransform: 'none' }} onClick={downloadWord}>
-                            Word (.doc)
-                        </Button>
-                        <Button variant="outlined" sx={{ textTransform: 'none' }} onClick={downloadPdf}>
-                            PDF
-                        </Button>
-                    </Box>
-                    <Button sx={{ mt: 2, textTransform: 'none' }} onClick={() => {
-                        setStatus('idle'); setReview(null); setTopic(''); navigate('/literature-review');
-                    }}>
-                        Write another review
-                    </Button>
-                </Box>
+                    {error && <Alert severity="warning" sx={{ mx: 4, mt: 2 }} onClose={() => setError('')}>{error}</Alert>}
+                    <ReviewDocument
+                        markdown={review.markdown}
+                        references={review.references}
+                        meta={{
+                            topic: savedQuestion,
+                            targetWords: scope.targetWords,
+                            cutoffYear: scope.cutoffYear,
+                            generated: formatDate(review.createdAt),
+                            minutes,
+                        }}
+                        onAction={paragraphAction}
+                    />
+                </>
             )}
-        </Box>
+        </div>
     );
 }

@@ -31,7 +31,9 @@ export const cancelReview = async (runId) => {
  *   {step:'Complete', response, references, usage} · {step:'Saved', public_id}
  *   {step:'Error', error}
  */
-export const streamReview = async ({ question, model, historyId, signal }, onFrame) => {
+export const streamReview = async ({
+    question, model, historyId, signal, targetWords, cutoffYear,
+}, onFrame) => {
     let buffer = '';
     let processed = 0;
     const consume = (chunk) => {
@@ -51,6 +53,9 @@ export const streamReview = async ({ question, model, historyId, signal }, onFra
         question,
         ...(model ? { model } : {}),
         ...(historyId ? { history_id: historyId } : {}),
+        // The review's scope; omitted, the service plans its own default length up to this year.
+        ...(targetWords ? { target_words: targetWords } : {}),
+        ...(cutoffYear ? { cutoff_year: cutoffYear } : {}),
     }, {
         headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
         responseType: 'text',
