@@ -40,7 +40,7 @@ function ReferenceCard({ reference, highlighted, refEl }) {
             </div>
             {reference.quote && (
                 <blockquote className="lr-ref-quote">
-                    <div className="lr-ref-quote-label">Supporting sentence · verbatim</div>
+                    <div className="lr-ref-quote-label">Supporting sentence · {reference.quote_source === 'abstract' ? 'from the abstract' : 'verbatim'}</div>
                     “{reference.quote}”
                 </blockquote>
             )}
