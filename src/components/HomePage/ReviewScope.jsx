@@ -13,7 +13,7 @@ import { Menu, MenuItem } from '@mui/material';
  * yet, so they are shown as coming rather than offered and silently ignored.
  */
 export const LENGTH_OPTIONS = [3000, 4500, 6000, 8000, 10000];
-export const DEFAULT_SCOPE = { targetWords: 6000, cutoffYear: null };
+export const DEFAULT_SCOPE = { targetWords: 6000, cutoffYear: null, notify: true };
 
 const thisYear = () => new Date().getFullYear();
 export const yearOptions = (now = thisYear()) => [now, now - 1, now - 2, now - 3, now - 5];

@@ -24,7 +24,7 @@ const stageCount = (stage, detail, targetWords) => {
  * a four-part bar, one row per stage). The rows are the pipeline's real stages; the counts
  * are the ones its progress frames carry.
  */
-export default function WritingStep({ topic, progress, elapsed, targetWords, pending, onStop }) {
+export default function WritingStep({ topic, progress, elapsed, targetWords, notify, pending, onStop }) {
     const phase = progress?.phase || 'acquisition';
     const at = stageIndex(phase);
     const fills = stageFill(progress?.percent, phase);
@@ -67,7 +67,10 @@ export default function WritingStep({ topic, progress, elapsed, targetWords, pen
                 </section>
                 <div className="lr-leave">
                     <span>You can close this tab — the review keeps running.</span>
-                    {onStop && <button type="button" className="lr-link" onClick={onStop}>Stop</button>}
+                    <span className="lr-leave-side">
+                        {notify && <span className="lr-notify"><CheckIcon style={{ width: 16, height: 16 }} /> We'll email you when it's ready</span>}
+                        {onStop && <button type="button" className="lr-link" onClick={onStop}>Stop</button>}
+                    </span>
                 </div>
             </div>
         </div>

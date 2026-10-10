@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, MenuItem, Select } from '@mui/material';
+import { Alert, MenuItem, Select, Switch } from '@mui/material';
 
 import { LENGTH_OPTIONS, yearOptions } from '../HomePage/ReviewScope';
 
@@ -53,6 +53,11 @@ export default function ScopeStep({
                     <div><dt>Article types</dt><dd className="is-fixed">All types</dd></div>
                     <div><dt>Citation style</dt><dd className="is-fixed">Vancouver</dd></div>
                     <div><dt>Your papers</dt><dd className="is-fixed">None</dd></div>
+                    <div><dt>Email me when ready</dt><dd>
+                        <Switch size="small" checked={scope.notify !== false}
+                                onChange={(e) => onScope({ ...scope, notify: e.target.checked })}
+                                inputProps={{ 'aria-label': 'Email me when ready' }} />
+                    </dd></div>
                     {models.length > 0 && (
                         <div><dt>Model</dt><dd>
                             <Select size="small" variant="standard" disableUnderline value={model}

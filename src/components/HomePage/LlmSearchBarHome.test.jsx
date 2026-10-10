@@ -275,7 +275,7 @@ describe('with LITERATURE_REVIEW_ENABLED on', () => {
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'osimertinib resistance' } });
         fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
         expect(mockNavigate).toHaveBeenCalledWith('/literature-review', {
-            state: { initialQuery: 'osimertinib resistance', scope: { targetWords: 6000, cutoffYear: null }, model: undefined },
+            state: { initialQuery: 'osimertinib resistance', scope: { targetWords: 6000, cutoffYear: null, notify: true }, model: undefined },
         });
     });
 

@@ -32,7 +32,7 @@ export const cancelReview = async (runId) => {
  *   {step:'Error', error}
  */
 export const streamReview = async ({
-    question, model, historyId, signal, targetWords, cutoffYear,
+    question, model, historyId, signal, targetWords, cutoffYear, notify,
 }, onFrame) => {
     let buffer = '';
     let processed = 0;
@@ -56,6 +56,8 @@ export const streamReview = async ({
         // The review's scope; omitted, the service plans its own default length up to this year.
         ...(targetWords ? { target_words: targetWords } : {}),
         ...(cutoffYear ? { cutoff_year: cutoffYear } : {}),
+        // Mail the reader's own account address when the review is saved.
+        ...(notify ? { notify: true } : {}),
     }, {
         headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
         responseType: 'text',

@@ -150,6 +150,8 @@
 .lr-stage-count { font-size: 14px; white-space: nowrap; color: var(--color-text-tertiary, #5E6E87); }
 .lr-stage.is-done .lr-stage-count { color: #1F9D55; }
 .lr-stage.is-current .lr-stage-count { color: var(--color-brand-primary); }
+.lr-leave-side { display: inline-flex; align-items: center; gap: 20px; }
+.lr-notify { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--color-brand-primary); }
 .lr-leave {
   display: flex;
   align-items: center;

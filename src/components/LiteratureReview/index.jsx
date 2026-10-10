@@ -191,7 +191,7 @@ export default function LiteratureReview() {
         try {
             await streamReview({
                 question, model, signal: controller.signal,
-                targetWords: scope.targetWords, cutoffYear: scope.cutoffYear,
+                targetWords: scope.targetWords, cutoffYear: scope.cutoffYear, notify: scope.notify !== false,
             }, (frame) => {
                 if (frame.run_id) runIdRef.current = frame.run_id;
                 if (frame.step === 'Started' && frame.public_id) {
@@ -308,6 +308,7 @@ export default function LiteratureReview() {
                     progress={progress}
                     elapsed={elapsed}
                     targetWords={scope.targetWords}
+                    notify={status === 'running' && scope.notify !== false}
                     pending={status === 'pending'}
                     onStop={status === 'running' ? stop : null}
                 />
