@@ -109,9 +109,15 @@ export const fetchTierPricing = () => {
     return pricingPromise;
 };
 
-/** The tiers a pipeline offers ('chat' | 'deep_research'), and its default. */
+/**
+ * The tiers a pipeline offers ('chat' | 'deep_research' | 'literature_review'), and its default.
+ * A pipeline the pricing does not list (Literature Review, which charges no credits yet) offers
+ * the chat's tiers, shown without a price.
+ */
 export const tiersFor = (pricing, pipeline) => {
-    const tiers = (pricing?.tiers || []).filter((t) => t.credits?.[pipeline] !== undefined);
+    const all = pricing?.tiers || [];
+    const priced = all.some((t) => t.credits?.[pipeline] !== undefined);
+    const tiers = all.filter((t) => t.credits?.[priced ? pipeline : 'chat'] !== undefined);
     const preferred = pricing?.defaultTier;
     const defaultTier = tiers.some((t) => t.id === preferred)
         ? preferred

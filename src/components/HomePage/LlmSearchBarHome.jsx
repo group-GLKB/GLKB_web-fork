@@ -6,14 +6,11 @@ import React, {
 import { useNavigate } from 'react-router-dom';
 
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import {
   Autocomplete,
   Box,
   Button,
   Drawer,
-  Menu,
-  MenuItem,
   Paper,
   Popper,
   TextField,
@@ -39,9 +36,9 @@ import {
 } from '../Units/AttachmentChips';
 import { effectiveTier, getTierPref, setTierPref } from '../../service/serviceTiers';
 import { GUEST_INVESTIGATE_REASON, GUEST_REVIEW_REASON } from '../../utils/refusals';
-import { fetchReviewModels } from '../../service/LiteratureReview';
 import ComposerModes, { COMPOSER_MODES } from './ComposerModes';
-import ReviewScope, { DEFAULT_SCOPE } from './ReviewScope';
+import ReviewScope, { initialScope } from './ReviewScope';
+import { setStylePref } from '../LiteratureReview/citationStyle';
 import {
     defaultQuestionFor,
     GUEST_ATTACH_REASON,
@@ -62,10 +59,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         .filter(Boolean);
     const hasModeTabs = modes.length > 1;
     // A review's scope and model, handed to the Literature Review page with the topic.
-    const [reviewScope, setReviewScope] = useState(DEFAULT_SCOPE);
-    const [reviewModels, setReviewModels] = useState([]);
-    const [reviewModel, setReviewModel] = useState('');
-    const [reviewModelAnchor, setReviewModelAnchor] = useState(null);
+    const [reviewScope, setReviewScope] = useState(initialScope);
     /* The service tier the first question will run on (service/serviceTiers.js).
 
        Persisted through the same helper the chat composer reads, so a choice made here is
@@ -108,21 +102,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     };
     const { onModeChange } = props;
     useEffect(() => { onModeChange?.(mode); }, [mode, onModeChange]);
-    // The review models are the review service's own (GET /literature-review/models), read when
-    // the tab is first opened. Unreachable, the picker is simply not shown and the page's default
-    // applies.
-    useEffect(() => {
-        if (!reviewEnabled || reviewModels.length) return undefined;
-        let live = true;
-        Promise.resolve().then(fetchReviewModels)
-            .then((data) => {
-                if (!live) return;
-                setReviewModels(data?.models || []);
-                setReviewModel((current) => current || data?.default_model || data?.models?.[0]?.id || '');
-            })
-            .catch(() => {});
-        return () => { live = false; };
-    }, [reviewEnabled, reviewModels.length]);
     // A prefill from outside (the news strip's "Try it") can ask for a mode too.
     useEffect(() => {
         if (props.requestedMode && modes.includes(props.requestedMode.mode)) changeMode(props.requestedMode.mode);
@@ -277,7 +256,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             // machine is involved. See components/LiteratureReview.
             trackGtagEvent('literature_review_question_submit', { source: 'home_searchbar' });
             navigate('/literature-review', {
-                state: { initialQuery: query, scope: reviewScope, model: reviewModel || undefined },
+                state: { initialQuery: query, scope: reviewScope, serviceTier: effectiveTier(serviceTier, { isGuest }) },
             });
             return;
         }
@@ -623,7 +602,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
 
                         {reviewEnabled && (
                             <div className="review-scope-wrap">
-                                <ReviewScope scope={reviewScope} onChange={setReviewScope} />
+                                <ReviewScope scope={reviewScope} onChange={(next) => {
+                                    if (next.citationStyle !== reviewScope.citationStyle) setStylePref(next.citationStyle);
+                                    setReviewScope(next);
+                                }} />
                             </div>
                         )}
                         <Box
@@ -706,36 +688,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     // wrapper only let it spill over Search Options on a phone.
                                     sx={{ display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, flexShrink: 0 }}
                                 >
-                                {reviewEnabled && reviewModels.length > 0 && (
-                                    <>
-                                        <button
-                                            type="button"
-                                            className="review-model-chip"
-                                            aria-label="Review model"
-                                            aria-haspopup="menu"
-                                            onClick={(event) => setReviewModelAnchor(event.currentTarget)}
-                                        >
-                                            {(reviewModels.find((m) => m.id === reviewModel) || reviewModels[0]).label}
-                                            <ArrowDropDownIcon style={{ width: 16, height: 16 }} />
-                                        </button>
-                                        <Menu
-                                            anchorEl={reviewModelAnchor}
-                                            open={Boolean(reviewModelAnchor)}
-                                            onClose={() => setReviewModelAnchor(null)}
-                                        >
-                                            {reviewModels.map((m) => (
-                                                <MenuItem
-                                                    key={m.id}
-                                                    selected={m.id === reviewModel}
-                                                    onClick={() => { setReviewModel(m.id); setReviewModelAnchor(null); }}
-                                                >
-                                                    {m.label}{m.description ? ` — ${m.description}` : ''}
-                                                </MenuItem>
-                                            ))}
-                                        </Menu>
-                                    </>
-                                )}
-                                {!reviewEnabled && (
                                 <TierPicker
                                     value={serviceTier}
                                     onChange={(tierId) => {
@@ -744,8 +696,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     }}
                                     onResolveDefault={setServiceTier}
                                     // Toggling Investigate re-prices the list (an Investigate
-                                    // query costs more per tier).
-                                    pipeline={investigateEnabled ? 'deep_research' : 'chat'}
+                                    // query costs more per tier). A review has the same tiers.
+                                    pipeline={reviewEnabled ? 'literature_review'
+                                        : investigateEnabled ? 'deep_research' : 'chat'}
                                     onOpenChange={setTierMenuOpen}
                                     disabled={isInputLocked}
                                     isGuest={isGuest}
@@ -753,7 +706,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         `${tier?.label || 'GPT-6.1 Sol'} is available to signed-in users. Sign in to use it — it's free.`,
                                     )}
                                 />
-                                )}
                                 </Box>
 
                                 {!searchOptionsLocked && (

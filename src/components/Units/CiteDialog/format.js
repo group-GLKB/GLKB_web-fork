@@ -30,6 +30,9 @@ const EN_DASH = '–';
 
 const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
 
+/** NCBI's records keep PubMed's inline markup in titles ("RRM2<sup>K283</sup>"); a reference is plain text. */
+const untagged = (value) => String(value ?? '').replace(/<\/?(?:sup|sub|i|b|em|strong|u|scp|span)\b[^>]*>/gi, '');
+
 /** Strip one trailing full stop; each style decides its own terminal punctuation. */
 const untrailed = (value) => clean(value).replace(/\.$/, '');
 
@@ -87,7 +90,7 @@ export const normalizeCsl = (csl) => {
     const [year, month, day] = dateParts.map((n) => Number(n) || 0);
     const pmid = clean(item.PMID) || (clean(item.id).match(/^pmid:(\d+)$/i)?.[1] ?? '');
     return {
-        title: untrailed(item.title),
+        title: untrailed(untagged(item.title)),
         authors,
         journal: clean(item['container-title']),
         journalAbbrev: clean(item['container-title-short']) || clean(item['container-title']),
@@ -325,7 +328,51 @@ const vancouver = (r) => {
     ]);
 };
 
-const STYLES = { MLA: mla, APA: apa, Chicago: chicago, Harvard: harvard, Vancouver: vancouver };
+/**
+ * AMA 11:  Bunting SF, Callén E, Wong N, et al. Title. Cell. 2010;141(2):243-254.
+ *         doi:10.1016/j.cell.2010.03.012
+ * Up to six authors listed; more than six → the first three and "et al."; the page range in full.
+ */
+const ama = (r) => {
+    const authors = authorList(r.authors, {
+        render: (a) => joinParts([a.family, initials(a.given, { dot: '', sep: '', hyphen: '' })]),
+        joinWith: (names) => names.join(', '),
+        max: 6, keep: 3, etAl: ', et al',
+    });
+    const pages = pageRange(r.page, { expand: true, dash: '-' });
+    const locator = `${r.year ? String(r.year) : ''}${r.volume ? `;${r.volume}` : ''}${r.issue ? `(${r.issue})` : ''}${pages ? `:${pages}` : ''}`;
+    return joinParts([
+        authors && endWithStop(authors),
+        r.title && endWithStop(r.title),
+        r.journalAbbrev && endWithStop(r.journalAbbrev),
+        locator && endWithStop(locator),
+        r.doi && `doi:${r.doi}`,
+    ]);
+};
+
+/**
+ * Nature:  Bunting, S. F., Callén, E. & Wong, N. Title. Cell 141, 243–254 (2010).
+ * Up to five authors listed ("A, B & C"); more than five → the first and "et al."
+ */
+const nature = (r) => {
+    const authors = authorList(r.authors, {
+        render: (a) => joinParts([a.family, initials(a.given)], ', '),
+        joinWith: (names) => (names.length >= 2
+            ? `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`
+            : names[0]),
+        max: 5, keep: 1, etAl: ' et al.',
+    });
+    const pages = pageRange(r.page, { expand: true });
+    const source = joinParts([r.journalAbbrev, r.volume && `${r.volume}${pages ? ',' : ''}`, pages]);
+    return joinParts([
+        authors && endWithStop(authors),
+        r.title && endWithStop(r.title),
+        endWithStop(`${source ? `${source} ` : ''}(${yearOf(r)})`),
+    ]);
+};
+
+// AMA and Nature are offered by the Literature Review's style picker, not (yet) the dialog's FORMATS.
+const STYLES = { MLA: mla, APA: apa, Chicago: chicago, Harvard: harvard, Vancouver: vancouver, AMA: ama, Nature: nature };
 
 /** The reference in one of `FORMATS`, from a CSL-JSON record (or a `cslFromCard` item). */
 export const formatCitation = (format, csl) => {

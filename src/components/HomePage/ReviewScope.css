@@ -1,0 +1,36 @@
+/* The scope menus render in a portal, outside .HomePageRoot, so these are not scoped. */
+.review-menu-option { display: flex; flex-direction: column; gap: 2px; }
+.review-menu-hint { font-size: 12px; line-height: 16px; color: var(--color-text-tertiary, #5E6E87); }
+
+.review-length-custom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 6px;
+  margin-top: 4px;
+  border-top: 1px solid var(--color-border-default, #E2E6EE);
+  font: 400 13px/18px Geist, sans-serif;
+  color: var(--color-text-tertiary, #5E6E87);
+}
+.review-length-custom input {
+  width: 172px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border-default, #D7DCE5);
+  border-radius: 6px;
+  font: inherit;
+  color: var(--color-text-primary, #0B1220);
+  background: var(--color-background-surface, #fff);
+}
+.review-length-custom input:focus { outline: 2px solid var(--color-brand, #1A5CFF); outline-offset: -1px; }
+.review-length-custom button {
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--color-brand, #1A5CFF);
+  color: #fff;
+  font: 600 13px/18px Geist, sans-serif;
+  cursor: pointer;
+}
+.review-length-custom button:disabled { opacity: .45; cursor: default; }

@@ -113,3 +113,9 @@ describe('titles and filenames', () => {
         expect(exportFilename('', 'doc', d)).toBe('literature-review_2026-10-06.doc');
     });
 });
+
+it('gives an author–year reference list its hanging indent', () => {
+    const html = reviewToHtml('# T\n\nA claim (Lee, 2021).\n\n## References\n\nLee, A. (2021). Paper one.\n\nPark, B. (2019). Paper two.\n');
+    expect(html.match(/<p class="ref">/g)).toHaveLength(2);
+    expect(html).toContain('<p>A claim (Lee, 2021).</p>');
+});

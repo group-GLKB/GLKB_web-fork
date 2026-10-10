@@ -27,12 +27,15 @@ import { Alert, LinearProgress, Menu, MenuItem } from '@mui/material';
 
 import { useAuth } from '../Auth/AuthContext';
 import { getChatHistoryDetailByPublicId } from '../../service/ChatHistory';
-import { cancelReview, fetchReviewModels, streamReview } from '../../service/LiteratureReview';
+import { cancelReview, streamReview } from '../../service/LiteratureReview';
+import { fetchCitations } from '../../service/Citation';
+import { getTierPref, setTierPref } from '../../service/serviceTiers';
 import { CHAT_NEW_PATH } from '../../config/entryRoutes';
 import { latexFilename, reviewToLatex } from '../../utils/reviewToLatex';
 import { exportFilename, reviewTitle, reviewToPrintable, reviewToWord } from '../../utils/reviewExport';
 import { trackGtagEvent } from '../../utils/gtag';
-import { DEFAULT_SCOPE } from '../HomePage/ReviewScope';
+import { initialScope } from '../HomePage/ReviewScope';
+import { setStylePref, styleMarkdown } from './citationStyle';
 import { TopBar } from './Chrome';
 import ScopeStep from './ScopeStep';
 import WritingStep from './WritingStep';
@@ -52,12 +55,14 @@ export default function LiteratureReview() {
     const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
 
     const [topic, setTopic] = useState(location.state?.initialQuery || '');
-    const [scope, setScope] = useState(() => ({ ...DEFAULT_SCOPE, ...(location.state?.scope || {}) }));
-    const [models, setModels] = useState([]);
-    const [model, setModel] = useState(location.state?.model || '');
+    const [scope, setScope] = useState(() => ({ ...initialScope(), ...(location.state?.scope || {}) }));
+    // The chat's own model picker: a service tier, which the review service maps to a model.
+    const [serviceTier, setServiceTier] = useState(() => location.state?.serviceTier || getTierPref());
     const [status, setStatus] = useState('idle'); // idle | running | done | error | loading | pending
     const [progress, setProgress] = useState(null);
     const [review, setReview] = useState(null); // { markdown, references, usage, executionTime, createdAt }
+    // NCBI's record for each cited PMID, which the citation style formats ({} until it arrives).
+    const [records, setRecords] = useState({});
     const [error, setError] = useState('');
     const [savedQuestion, setSavedQuestion] = useState('');
     const [exportAnchor, setExportAnchor] = useState(null);
@@ -79,19 +84,23 @@ export default function LiteratureReview() {
         trackGtagEvent('literature_review_export', { format });
     }, []);
 
+    // The review as the exports write it: in the citation style the page shows.
+    const styled = useCallback(() => styleMarkdown(review?.markdown, review?.references, records, scope.citationStyle),
+        [review, records, scope.citationStyle]);
+
     const downloadLatex = useCallback(() => {
         if (!review?.markdown) return;
         const title = savedQuestion || topic;
-        saveFile(reviewToLatex(review.markdown, { title }), 'application/x-tex',
+        saveFile(reviewToLatex(styled(), { title }), 'application/x-tex',
                  latexFilename(title), 'latex');
-    }, [review, savedQuestion, topic, saveFile]);
+    }, [review, savedQuestion, topic, saveFile, styled]);
 
     const downloadWord = useCallback(() => {
         if (!review?.markdown) return;
         const title = savedQuestion || topic;
-        saveFile(reviewToWord(review.markdown, { title }), 'application/msword',
+        saveFile(reviewToWord(styled(), { title }), 'application/msword',
                  exportFilename(reviewTitle(review.markdown, title), 'doc'), 'word');
-    }, [review, savedQuestion, topic, saveFile]);
+    }, [review, savedQuestion, topic, saveFile, styled]);
 
     /* PDF goes through the browser's own print dialog ("Save as PDF") rather than a PDF library:
        on a 6,000-word review the browser paginates, keeps headings with their text and hyphenates,
@@ -102,13 +111,13 @@ export default function LiteratureReview() {
         const title = savedQuestion || topic;
         const w = window.open('', '_blank');
         if (!w) { setError('Allow pop-ups for this site to save the review as a PDF.'); return; }
-        w.document.write(reviewToPrintable(review.markdown, { title }));
+        w.document.write(reviewToPrintable(styled(), { title }));
         w.document.close();
         w.focus();
         // Let the styles apply before the dialog takes its snapshot of the page.
         setTimeout(() => w.print(), 300);
         trackGtagEvent('literature_review_export', { format: 'pdf' });
-    }, [review, savedQuestion, topic]);
+    }, [review, savedQuestion, topic, styled]);
     const abortRef = useRef(null);
     const startedAtRef = useRef(null);
     // The address this page gave the review it just wrote; reaching it must not reload the review.
@@ -117,14 +126,15 @@ export default function LiteratureReview() {
     // A saved review that is still being written is re-checked on this tick (see PENDING_RECHECK_MS).
     const [recheck, setRecheck] = useState(0);
 
+    // The cited papers' records, for the citation style. A review's references carry a title, year
+    // and DOI; the authors, journal, volume and pages a style needs come from NCBI (service/Citation).
     useEffect(() => {
-        fetchReviewModels()
-            .then((data) => {
-                setModels(data?.models || []);
-                setModel((current) => current || data?.default_model || data?.models?.[0]?.id || '');
-            })
-            .catch(() => setModels([]));
-    }, []);
+        const pmids = (review?.references || []).map((r) => r.pmid).filter(Boolean);
+        if (!pmids.length) return undefined;
+        let alive = true;
+        fetchCitations(pmids).then((found) => { if (alive) setRecords(found || {}); });
+        return () => { alive = false; };
+    }, [review?.references]);
 
     // A saved review: load it from History. One still being written (reopened after a reload, or
     // from History mid-run) is looked at again every PENDING_RECHECK_MS until its answer is saved.
@@ -190,7 +200,7 @@ export default function LiteratureReview() {
         let finished = false;
         try {
             await streamReview({
-                question, model, signal: controller.signal,
+                question, serviceTier, signal: controller.signal, articleTypes: scope.articleTypes,
                 targetWords: scope.targetWords, cutoffYear: scope.cutoffYear, notify: scope.notify !== false,
             }, (frame) => {
                 if (frame.run_id) runIdRef.current = frame.run_id;
@@ -230,7 +240,7 @@ export default function LiteratureReview() {
             setError(typeof detail === 'string' ? detail : (err?.message || 'The review could not start.'));
             setStatus('error');
         }
-    }, [topic, model, scope, isAuthenticated, openLoginModal, navigate]);
+    }, [topic, serviceTier, scope, isAuthenticated, openLoginModal, navigate]);
 
     const stop = useCallback(async () => {
         try {
@@ -291,9 +301,9 @@ export default function LiteratureReview() {
                     onTopic={setTopic}
                     scope={scope}
                     onScope={setScope}
-                    models={models}
-                    model={model}
-                    onModel={setModel}
+                    serviceTier={serviceTier}
+                    onServiceTier={(tier) => { setServiceTier(tier); setTierPref(tier); }}
+                    onResolveTier={setServiceTier}
                     onStart={start}
                     canStart={topic.trim().length >= 3 && !authLoading}
                     error={formShown ? error : ''}
@@ -344,6 +354,9 @@ export default function LiteratureReview() {
                     <ReviewDocument
                         markdown={review.markdown}
                         references={review.references}
+                        records={records}
+                        citationStyle={scope.citationStyle}
+                        onCitationStyle={(id) => { setScope((s) => ({ ...s, citationStyle: id })); setStylePref(id); }}
                         meta={{
                             topic: savedQuestion,
                             targetWords: scope.targetWords,

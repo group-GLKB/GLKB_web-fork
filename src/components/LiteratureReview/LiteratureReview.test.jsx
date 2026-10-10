@@ -11,6 +11,7 @@ import '@testing-library/jest-dom';
 import LiteratureReview from './index';
 import { getChatHistoryDetailByPublicId } from '../../service/ChatHistory';
 import { streamReview } from '../../service/LiteratureReview';
+import { fetchCitations } from '../../service/Citation';
 
 const mockNavigate = jest.fn();
 let mockParams = {};
@@ -22,9 +23,9 @@ jest.mock('react-router-dom', () => ({
 jest.mock('../Auth/AuthContext', () => ({
     useAuth: () => ({ isAuthenticated: true, loading: false, openLoginModal: jest.fn() }),
 }));
+jest.mock('../../service/Citation', () => ({ fetchCitations: jest.fn(() => Promise.resolve({})) }));
 jest.mock('../../service/ChatHistory', () => ({ getChatHistoryDetailByPublicId: jest.fn() }));
 jest.mock('../../service/LiteratureReview', () => ({
-    fetchReviewModels: () => Promise.resolve({ models: [{ id: 'gpt-6-luna', label: 'GPT-6 Luna' }], default_model: 'gpt-6-luna' }),
     streamReview: jest.fn(),
     cancelReview: jest.fn(() => Promise.resolve({})),
 }));
@@ -181,4 +182,39 @@ it('prints the review for a PDF, and says so when the pop-up is blocked', async 
 
     jest.useRealTimers();
     open.mockRestore();
+});
+
+
+it('asks for the scope it shows, and re-cites the finished review in the style picked', async () => {
+    fetchCitations.mockResolvedValue({
+        11: { title: 'Paper eleven', author: [{ family: 'Lee', given: 'Ann' }, { family: 'Park', given: 'Bo' }],
+              issued: { 'date-parts': [[2021]] }, 'container-title': 'Cell', PMID: '11' },
+    });
+    let finish;
+    streamReview.mockImplementation((_req, onFrame) => new Promise((resolve) => {
+        finish = () => {
+            onFrame({ step: 'Complete', response: '# T\n\nA claim [1].\n\n## References\n\n1. Paper eleven (2021). PMID 11.',
+                      references: [{ number: 1, pmid: '11', title: 'Paper eleven', year: 2021 }] });
+            resolve();
+        };
+    }));
+    render(<LiteratureReview />);
+    fireEvent.change(screen.getByLabelText('Topic'), { target: { value: 'Gut microbiome and depression' } });
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Article types' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Primary research' }));
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Start writing/ })); });
+    const [req] = streamReview.mock.calls[0];
+    expect(req.articleTypes).toBe('primary');
+    expect(req).not.toHaveProperty('model');
+    expect(req).toHaveProperty('serviceTier');
+
+    await act(async () => finish());
+    await waitFor(() => expect(fetchCitations).toHaveBeenCalledWith(['11']));
+    await waitFor(() => expect(screen.getByText(/^Lee A, Park B\. Paper eleven\. Cell\. 2021\./)).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'References 1' })).toHaveTextContent('1');
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Citation style' }));
+    fireEvent.click(screen.getByRole('option', { name: 'APA 7' }));
+    expect(screen.getByRole('button', { name: 'References 1' })).toHaveTextContent('(Lee & Park, 2021)');
+    expect(screen.getByText(/^Lee, A\., & Park, B\. \(2021\)\. Paper eleven\./)).toBeInTheDocument();
 });

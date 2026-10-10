@@ -1014,20 +1014,6 @@
 .HomePageRoot .review-scope-chip.is-soon { cursor: default; }
 .HomePageRoot .review-scope-chip.is-soon .review-scope-value { color: var(--color-text-secondary, #222A38); font-weight: 500; }
 
-.HomePageRoot .review-model-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  height: 32px;
-  padding: 0 4px 0 8px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  font: 600 12px/16px Geist, sans-serif;
-  color: var(--color-text-tertiary, #5E6E87);
-  cursor: pointer;
-}
-
 /* Under the composer: example topics for Investigate and Literature Review. */
 .HomePageRoot .homepage-mode-examples {
   display: flex;

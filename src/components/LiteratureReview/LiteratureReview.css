@@ -115,6 +115,9 @@
 .lr-scope-rows dd { margin: 0; font-size: 15px; font-weight: 600; }
 .lr-scope-rows dd .MuiInputBase-root { font-weight: 600; font-size: 15px; line-height: 20px; font-family: inherit; }
 .lr-scope-rows dd.is-fixed { color: var(--color-text-secondary, #222A38); }
+.lr-scope-rows > div.lr-scope-custom { justify-content: flex-end; min-height: 0; padding-bottom: 8px; }
+.lr-scope-custom .review-length-custom { border-top: 0; padding: 0; margin: 0; }
+.lr-scope-tier .model-picker-trigger { font-size: 15px; font-weight: 600; color: var(--color-text-primary, #0B1220); padding-right: 0; }
 .lr-planned { display: flex; justify-content: space-between; margin: 4px 0 20px; font-size: 14px; color: var(--color-text-tertiary, #5E6E87); }
 .lr-note { margin: 16px 0 0; text-align: center; font-size: 14px; line-height: 22px; color: var(--color-text-tertiary, #5E6E87); }
 
@@ -196,6 +199,9 @@
 
 .lr-document { max-width: 800px; width: 100%; margin: 0 auto; padding: 40px 40px 96px; box-sizing: border-box; }
 .lr-meta { display: flex; flex-wrap: wrap; gap: 20px; margin: -8px 0 24px; font-size: 16px; color: var(--color-text-tertiary, #5E6E87); }
+.lr-meta { align-items: center; }
+.lr-style-select.MuiInputBase-root { font: inherit; color: inherit; }
+.lr-style-select .MuiSelect-select { padding: 0 24px 0 0 !important; background: transparent !important; }
 .lr-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -264,6 +270,18 @@
   cursor: pointer;
 }
 .lr-cite:hover, .lr-cite:focus { background: #CFDDFF; outline: none; }
+/* An author–year citation reads as part of the sentence: no pill, the text's own size. */
+.lr-cite.is-author-date {
+  display: inline;
+  height: auto;
+  margin: 0;
+  padding: 0 1px;
+  border-radius: 4px;
+  background: transparent;
+  font: inherit;
+  vertical-align: baseline;
+}
+.lr-cite.is-author-date:hover, .lr-cite.is-author-date:focus { background: #E3ECFF; }
 .lr-table-scroll { overflow-x: auto; margin: 12px 0; }
 .lr-table-scroll table { border-collapse: collapse; font-size: 15px; }
 .lr-table-scroll th, .lr-table-scroll td { padding: 8px 12px; border: 1px solid var(--color-border-default, #E5E9F0); text-align: left; vertical-align: top; }
@@ -286,6 +304,7 @@
 .lr-ref-head { display: flex; justify-content: space-between; margin-bottom: 8px; }
 .lr-ref-num { font-size: 14px; color: var(--color-brand-primary); }
 .lr-ref-title { font-size: 16px; line-height: 23px; font-weight: 600; }
+.lr-ref-text { font-size: 15px; line-height: 23px; color: var(--color-text-primary, #0B1220); overflow-wrap: anywhere; }
 .lr-ref-meta { margin-top: 6px; font-size: 14px; color: var(--color-text-tertiary, #5E6E87); }
 .lr-ref-meta a { color: var(--color-brand-primary); text-decoration: none; }
 .lr-ref-meta a:hover { text-decoration: underline; }

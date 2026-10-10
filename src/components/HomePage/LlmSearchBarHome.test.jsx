@@ -22,7 +22,7 @@ let mockInvestigateFlag = true;
 let mockReviewFlag = false;
 jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
 jest.mock('../../utils/gtag', () => ({ trackGtagEvent: jest.fn() }));
-jest.mock('../../service/LiteratureReview', () => ({ fetchReviewModels: jest.fn(() => Promise.reject(new Error('offline'))) }));
+jest.mock('../../service/LiteratureReview', () => ({}));
 // These are about the composer's own behaviour, so the reader is signed in throughout; a
 // guest's composer is LlmSearchBarHome.guest.test.jsx.
 jest.mock('../Auth/AuthContext', () => ({
@@ -274,9 +274,47 @@ describe('with LITERATURE_REVIEW_ENABLED on', () => {
         expect(screen.getByPlaceholderText(/Topic or research question for your review/)).toBeInTheDocument();
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'osimertinib resistance' } });
         fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
-        expect(mockNavigate).toHaveBeenCalledWith('/literature-review', {
-            state: { initialQuery: 'osimertinib resistance', scope: { targetWords: 6000, cutoffYear: null, notify: true }, model: undefined },
+        const { state } = mockNavigate.mock.calls[0][1];
+        expect(mockNavigate.mock.calls[0][0]).toBe('/literature-review');
+        expect(state.initialQuery).toBe('osimertinib resistance');
+        expect(state.scope).toEqual({
+            targetWords: 6000, cutoffYear: null, notify: true, articleTypes: 'all', citationStyle: 'vancouver',
         });
+        // The model is picked with the chat's own picker: a service tier, never a model id.
+        expect(state).not.toHaveProperty('model');
+        expect(state).toHaveProperty('serviceTier');
+    });
+
+    it('takes any length typed, kept in the service\'s bounds', () => {
+        mockReviewFlag = true;
+        setup();
+        fireEvent.click(reviewTab());
+        fireEvent.click(screen.getByRole('button', { name: /Length/, hidden: true }));
+        const input = screen.getByLabelText('Custom length in words');
+        fireEvent.change(input, { target: { value: '25000' } });
+        fireEvent.keyDown(input, { key: 'Enter' });
+        expect(screen.getByRole('button', { name: /Length: 12,000 words/, hidden: true })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /Length/, hidden: true }));
+        fireEvent.change(screen.getByLabelText('Custom length in words'), { target: { value: '2750' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Set', hidden: true }));
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'CAR-T in solid tumors' } });
+        fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
+        expect(mockNavigate.mock.calls[0][1].state.scope.targetWords).toBe(2800);
+    });
+
+    it('sends the article types and citation style the reader picked', () => {
+        mockReviewFlag = true;
+        setup();
+        fireEvent.click(reviewTab());
+        fireEvent.click(screen.getByRole('button', { name: /Types: All types/, hidden: true }));
+        fireEvent.click(screen.getByRole('menuitem', { name: /Primary research/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Style: Vancouver/, hidden: true }));
+        fireEvent.click(screen.getByRole('menuitem', { name: /APA 7/ }));
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'CAR-T in solid tumors' } });
+        fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
+        const { scope } = mockNavigate.mock.calls[0][1].state;
+        expect(scope.articleTypes).toBe('primary');
+        expect(scope.citationStyle).toBe('apa');
     });
 
     it('sends the length the reader picked', () => {

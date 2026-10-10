@@ -13,11 +13,6 @@ import axios from '../utils/axiosConfig';
 
 const BASE = '/api/v1/literature-review';
 
-export const fetchReviewModels = async () => {
-    const { data } = await axios.get(`${BASE}/models`);
-    return data;
-};
-
 export const cancelReview = async (runId) => {
     if (!runId) return null;
     const { data } = await axios.post(`${BASE}/run/${encodeURIComponent(runId)}/cancel`);
@@ -32,7 +27,7 @@ export const cancelReview = async (runId) => {
  *   {step:'Error', error}
  */
 export const streamReview = async ({
-    question, model, historyId, signal, targetWords, cutoffYear, notify,
+    question, serviceTier, model, historyId, signal, targetWords, cutoffYear, articleTypes, notify,
 }, onFrame) => {
     let buffer = '';
     let processed = 0;
@@ -51,11 +46,15 @@ export const streamReview = async ({
     };
     await axios.post(`${BASE}/stream`, {
         question,
+        // The model is picked as a chat's is, by service tier (`model` only for a caller naming one).
+        ...(serviceTier ? { service_tier: serviceTier } : {}),
         ...(model ? { model } : {}),
         ...(historyId ? { history_id: historyId } : {}),
         // The review's scope; omitted, the service plans its own default length up to this year.
         ...(targetWords ? { target_words: targetWords } : {}),
         ...(cutoffYear ? { cutoff_year: cutoffYear } : {}),
+        // PubMed publication types to keep to; 'all' is the service's default and not sent.
+        ...(articleTypes && articleTypes !== 'all' ? { article_types: articleTypes } : {}),
         // Mail the reader's own account address when the review is saved.
         ...(notify ? { notify: true } : {}),
     }, {

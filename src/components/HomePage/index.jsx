@@ -360,7 +360,9 @@ const HomePage = () => {
                                                 setIsAutocompleteExamplesOpen(false);
                                             }}
                                             prefillQuery={prefillQuery}
-                                            autocompleteOptions={exampleSchema.autocomplete || []}
+                                            // The three starter questions are chat questions; Investigate and Literature
+                                            // Review do not open them (their examples show under the composer).
+                                            autocompleteOptions={composerMode === 'chat' ? (exampleSchema.autocomplete || []) : []}
                                             isQueryLimitReached={showHomeLimitWarning}
                                             limitReachedText={limitText}
                                             isAgentRunActive={isAgentRunActive}

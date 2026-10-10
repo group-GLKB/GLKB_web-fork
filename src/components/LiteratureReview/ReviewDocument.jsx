@@ -2,6 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import { MenuItem, Select } from '@mui/material';
+
+import { buildStyle, REVIEW_STYLES } from './citationStyle';
 import { countWords, linkCitations, parseReview } from './reviewModel';
 
 const REMARK_PLUGINS = [remarkGfm];
@@ -22,22 +25,21 @@ export const PARAGRAPH_ACTIONS = [
     { id: 'evidence', label: 'Add evidence', prompt: (t) => `Find more published evidence, with PMIDs, for the claims in this passage from my literature review.\n\n"${t}"` },
 ];
 
-function ReferenceCard({ reference, highlighted, refEl }) {
+function ReferenceCard({ entry, authorDate, highlighted, refEl }) {
+    const reference = entry.reference;
     return (
-        <article ref={refEl} id={`ref-${reference.number}`} className={`lr-ref${highlighted ? ' is-highlighted' : ''}`}>
-            <div className="lr-ref-head"><span className="lr-mono lr-ref-num">[{reference.number}]</span></div>
-            <div className="lr-ref-title">{reference.title || 'Untitled'}</div>
-            <div className="lr-ref-meta">
-                {[reference.journal, reference.year].filter(Boolean).join(' · ')}
-                {reference.pmid && (
-                    <>
-                        {(reference.journal || reference.year) ? ' · ' : ''}
-                        <a href={reference.url || `https://pubmed.ncbi.nlm.nih.gov/${reference.pmid}/`} target="_blank" rel="noopener noreferrer">
-                            PMID {reference.pmid}
-                        </a>
-                    </>
-                )}
+        <article ref={refEl} id={`ref-${entry.number}`} className={`lr-ref${highlighted ? ' is-highlighted' : ''}`}>
+            <div className="lr-ref-head">
+                <span className="lr-mono lr-ref-num">{authorDate ? entry.label : `[${entry.number}]`}</span>
             </div>
+            <div className="lr-ref-text">{entry.text}</div>
+            {reference.pmid && (
+                <div className="lr-ref-meta">
+                    <a href={reference.url || `https://pubmed.ncbi.nlm.nih.gov/${reference.pmid}/`} target="_blank" rel="noopener noreferrer">
+                        PMID {reference.pmid}
+                    </a>
+                </div>
+            )}
             {reference.quote && (
                 <blockquote className="lr-ref-quote">
                     <div className="lr-ref-quote-label">Supporting sentence · {reference.quote_source === 'abstract' ? 'from the abstract' : 'verbatim'}</div>
@@ -54,9 +56,15 @@ function ReferenceCard({ reference, highlighted, refEl }) {
  * review carries it (reviewModel.reviewAudit); the two that need it — claims verified and needing
  * review — are left out otherwise rather than estimated.
  */
-export default function ReviewDocument({ markdown, references: given, meta, onAction }) {
+export default function ReviewDocument({
+    markdown, references: given, records, citationStyle, onCitationStyle, meta, onAction,
+}) {
     const review = useMemo(() => parseReview(markdown, given), [markdown, given]);
     const byNumber = useMemo(() => new Map(review.references.map((r) => [r.number, r])), [review.references]);
+    // The citation style (citationStyle.js): what the pills say and how the list reads and is ordered.
+    const styled = useMemo(() => buildStyle(review.references, records || {}, citationStyle),
+        [review.references, records, citationStyle]);
+    const { authorDate } = styled.style;
     const words = review.audit?.words ?? countWords(review);
     const target = review.audit?.target ?? meta?.targetWords ?? null;
     const cited = review.audit?.cited ?? review.references.length;
@@ -94,20 +102,30 @@ export default function ReviewDocument({ markdown, references: given, meta, onAc
         a: ({ href, children, node, ...props }) => {
             if (href && href.startsWith('#cite=')) {
                 const nums = href.slice(6).split(',').map(Number).filter(Number.isFinite);
-                return (
-                    <button
-                        type="button"
-                        className="lr-cite"
-                        aria-label={`References ${nums.join(', ')}`}
-                        onMouseEnter={(e) => openCard(nums, e.currentTarget)}
-                        onMouseLeave={closeCard}
-                        onFocus={(e) => openCard(nums, e.currentTarget)}
-                        onBlur={closeCard}
-                        onClick={() => showRef(nums)}
-                    >
-                        {nums.join(',')}
-                    </button>
-                );
+                const handlers = {
+                    'aria-label': `References ${nums.join(', ')}`,
+                    onMouseEnter: (e) => openCard(nums, e.currentTarget),
+                    onMouseLeave: closeCard,
+                    onFocus: (e) => openCard(nums, e.currentTarget),
+                    onBlur: closeCard,
+                    onClick: () => showRef(nums),
+                };
+                // An author–year citation is a phrase of the sentence and has to wrap with it, which a
+                // <button> (an inline-block) cannot: it is a focusable span acting as a button.
+                if (authorDate) {
+                    return (
+                        <span
+                            role="button"
+                            tabIndex={0}
+                            className="lr-cite is-author-date"
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showRef(nums); } }}
+                            {...handlers}
+                        >
+                            ({styled.cite(nums)})
+                        </span>
+                    );
+                }
+                return <button type="button" className="lr-cite" {...handlers}>{nums.join(',')}</button>;
             }
             return <a href={href} target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
         },
@@ -132,7 +150,7 @@ export default function ReviewDocument({ markdown, references: given, meta, onAc
         },
         table: ({ node, ...props }) => <div className="lr-table-scroll"><table {...props} /></div>,
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }), [onAction, showRef]);
+    }), [onAction, showRef, styled]);
 
     const jump = (id) => {
         setActiveId(id);
@@ -167,7 +185,13 @@ export default function ReviewDocument({ markdown, references: given, meta, onAc
                 <h1 className="lr-title">{review.title || meta?.topic}</h1>
                 <div className="lr-meta">
                     {meta?.cutoffYear && <span>Up to {meta.cutoffYear}</span>}
-                    <span>Vancouver</span>
+                    {onCitationStyle ? (
+                        <Select size="small" variant="standard" disableUnderline className="lr-style-select"
+                                value={styled.style.id} onChange={(e) => onCitationStyle(e.target.value)}
+                                inputProps={{ 'aria-label': 'Citation style' }}>
+                            {REVIEW_STYLES.map((st) => <MenuItem key={st.id} value={st.id}>{st.label}</MenuItem>)}
+                        </Select>
+                    ) : <span>{styled.style.label}</span>}
                     {meta?.generated && <span>Generated {meta.generated}{meta.minutes ? ` · ${meta.minutes} min` : ''}</span>}
                 </div>
                 <div className="lr-stats">
@@ -210,9 +234,9 @@ export default function ReviewDocument({ markdown, references: given, meta, onAc
                     <span className="lr-mono lr-refs-count">{review.references.length}</span>
                 </div>
                 <div className="lr-refs-list">
-                    {review.references.map((r) => (
-                        <ReferenceCard key={r.number} reference={r} highlighted={highlight === r.number}
-                                       refEl={(el) => { if (el) refEls.current.set(r.number, el); }} />
+                    {styled.entries.map((e) => (
+                        <ReferenceCard key={e.number} entry={e} authorDate={authorDate} highlighted={highlight === e.number}
+                                       refEl={(el) => { if (el) refEls.current.set(e.number, el); }} />
                     ))}
                 </div>
             </aside>
@@ -227,7 +251,10 @@ export default function ReviewDocument({ markdown, references: given, meta, onAc
                 >
                     {hoverRefs.slice(0, 3).map((r) => (
                         <div key={r.number} className="lr-cite-card-item">
-                            <div className="lr-cite-card-meta"><span className="lr-mono">[{r.number}]</span> {[r.journal, r.year].filter(Boolean).join(' · ')}{r.pmid ? ` · PMID ${r.pmid}` : ''}</div>
+                            <div className="lr-cite-card-meta">
+                                <span className="lr-mono">{authorDate ? styled.byNumber.get(r.number)?.label : `[${r.number}]`}</span>
+                                {' '}{[records?.[r.pmid]?.['container-title-short'] || r.journal, r.year].filter(Boolean).join(' · ')}{r.pmid ? ` · PMID ${r.pmid}` : ''}
+                            </div>
                             <div className="lr-cite-card-title">{r.title}</div>
                             {r.quote && <div className="lr-cite-card-quote">“{r.quote}”</div>}
                         </div>
