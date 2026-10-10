@@ -6,9 +6,7 @@ import React, {
 import { useNavigate } from 'react-router-dom';
 
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward';
-import CloseIcon from '@mui/icons-material/Close';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import MenuBookIcon from '@mui/icons-material/MenuBook';
 import {
   Autocomplete,
   Box,
@@ -25,7 +23,6 @@ import {
 import { useAuth } from '../Auth/AuthContext';
 import { INVESTIGATE_ENABLED, LITERATURE_REVIEW_ENABLED } from '../../config/features';
 import { CHAT_NEW_PATH } from '../../config/entryRoutes';
-import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
 import { ReactComponent as SearchArrowIcon } from '../../img/llm/search_arrow.svg';
 import { ReactComponent as SearchOptionsIcon } from '../../img/llm/search_options.svg';
 import { ReactComponent as SearchOptionsCloseIcon } from '../../img/llm/search_options_close.svg';
@@ -41,7 +38,10 @@ import {
     useAttachments,
 } from '../Units/AttachmentChips';
 import { effectiveTier, getTierPref, setTierPref } from '../../service/serviceTiers';
-import { GUEST_INVESTIGATE_REASON } from '../../utils/refusals';
+import { GUEST_INVESTIGATE_REASON, GUEST_REVIEW_REASON } from '../../utils/refusals';
+import { fetchReviewModels } from '../../service/LiteratureReview';
+import ComposerModes, { COMPOSER_MODES } from './ComposerModes';
+import ReviewScope, { DEFAULT_SCOPE } from './ReviewScope';
 import {
     defaultQuestionFor,
     GUEST_ATTACH_REASON,
@@ -51,14 +51,21 @@ import {
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
-    const [investigateEnabled, setInvestigateEnabled] = useState(false);
-    /* Literature Review shares the Investigate chip: the chip toggles whichever research tool is
-       selected, and its arrow picks the tool. At most one is on. Behind LITERATURE_REVIEW_ENABLED
-       (config/features.js) — with the flag off none of this renders and the chip is Investigate
-       exactly as before. */
-    const [reviewEnabled, setReviewEnabled] = useState(false);
-    const [researchTool, setResearchTool] = useState('investigate');
-    const [toolMenuAnchor, setToolMenuAnchor] = useState(null);
+    /* The composer's mode: AI Chat, Investigate or Literature Review, picked on the tabs along
+       its top edge (ComposerModes). Investigate and Literature Review each exist only behind
+       their flag (config/features.js); with both off there are no tabs and every question is
+       a chat question, as before. */
+    const [mode, setMode] = useState('chat');
+    const investigateEnabled = INVESTIGATE_ENABLED && mode === 'investigate';
+    const reviewEnabled = LITERATURE_REVIEW_ENABLED && mode === 'review';
+    const modes = ['chat', INVESTIGATE_ENABLED && 'investigate', LITERATURE_REVIEW_ENABLED && 'review']
+        .filter(Boolean);
+    const hasModeTabs = modes.length > 1;
+    // A review's scope and model, handed to the Literature Review page with the topic.
+    const [reviewScope, setReviewScope] = useState(DEFAULT_SCOPE);
+    const [reviewModels, setReviewModels] = useState([]);
+    const [reviewModel, setReviewModel] = useState('');
+    const [reviewModelAnchor, setReviewModelAnchor] = useState(null);
     /* The service tier the first question will run on (service/serviceTiers.js).
 
        Persisted through the same helper the chat composer reads, so a choice made here is
@@ -82,6 +89,45 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
     const isGuest = !authLoading && !isAuthenticated;
     const navigate = useNavigate();
+
+    /* Picking a mode. A guest has AI Chat only (2026-10-09): either research tab opens the
+       sign-in overlay with its reason and the mode stays Chat. Entering Investigate is tracked
+       as the old chip's "enable" was, and every Investigate on/off as its toggle was. */
+    const changeMode = (next) => {
+        if (next === mode) return;
+        if (isGuest && next === 'investigate') { openLoginModal(GUEST_INVESTIGATE_REASON); return; }
+        if (isGuest && next === 'review') { openLoginModal(GUEST_REVIEW_REASON); return; }
+        if (next === 'investigate') {
+            trackGtagEvent('home_investigate_enable_click', { source: 'home_searchbar' });
+        }
+        if (next === 'investigate' || mode === 'investigate') {
+            trackGtagEvent('home_investigate_toggle_click', { enabled: next === 'investigate' });
+        }
+        trackGtagEvent('home_composer_mode_click', { mode: next });
+        setMode(next);
+    };
+    const { onModeChange } = props;
+    useEffect(() => { onModeChange?.(mode); }, [mode, onModeChange]);
+    // The review models are the review service's own (GET /literature-review/models), read when
+    // the tab is first opened. Unreachable, the picker is simply not shown and the page's default
+    // applies.
+    useEffect(() => {
+        if (!reviewEnabled || reviewModels.length) return undefined;
+        let live = true;
+        Promise.resolve().then(fetchReviewModels)
+            .then((data) => {
+                if (!live) return;
+                setReviewModels(data?.models || []);
+                setReviewModel((current) => current || data?.default_model || data?.models?.[0]?.id || '');
+            })
+            .catch(() => {});
+        return () => { live = false; };
+    }, [reviewEnabled, reviewModels.length]);
+    // A prefill from outside (the news strip's "Try it") can ask for a mode too.
+    useEffect(() => {
+        if (props.requestedMode && modes.includes(props.requestedMode.mode)) changeMode(props.requestedMode.mode);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [props.requestedMode]);
     /* Images and PDFs on the first question (service/attachments.js). Uploaded as they are
        picked; the question hands their ids to the chat in its navigation state. Signed-in
        readers and AI Chat only — see the paperclip below. */
@@ -90,6 +136,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     // The app shell and HomePage both switch at 767px. A separate 600px
     // threshold mixed the mobile page with the PC search controls.
     const isMobileLayout = useMediaQuery('(max-width:767px)');
+    // Investigate and Literature Review say what the button does; AI Chat keeps the bare arrow.
+    const modeAction = isMobileLayout ? '' : (COMPOSER_MODES[mode]?.action || '');
+    // The review scope row sits between the topic and the control row, so the box grows by it.
+    const composerMinHeight = `${(isMobileLayout ? 148 : 120) + (reviewEnabled ? (isMobileLayout ? 96 : 52) : 0)}px`;
     const inputTimeoutRef = React.useRef(null);
     const hasTrackedInputRef = React.useRef(false);
     const lastPrefillRef = React.useRef(undefined);
@@ -226,7 +276,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             // A pipeline of its own, with a page of its own: nothing of the chat page's state
             // machine is involved. See components/LiteratureReview.
             trackGtagEvent('literature_review_question_submit', { source: 'home_searchbar' });
-            navigate('/literature-review', { state: { initialQuery: query } });
+            navigate('/literature-review', {
+                state: { initialQuery: query, scope: reviewScope, model: reviewModel || undefined },
+            });
             return;
         }
         const searchOptions = buildSearchOptionsPayload();
@@ -288,7 +340,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const searchOptionsLocked = investigateEnabled || reviewEnabled;
     const mobileChipLabel = (mobileSelectedOptions.length > 0)
         ? mobileSelectedOptions.join(' + ')
-        : 'Search Options';
+        : 'Options';
 
     const openSearchOptions = () => {
         if (searchOptionsLocked) return;
@@ -491,6 +543,15 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 renderInput={(params) => (
                     // The "+" panel opens under this box (field and control row), as ChatGPT's does.
                     <Box data-attach-anchor sx={{ position: 'relative', width: '100%' }}>
+                        {hasModeTabs && (
+                            <ComposerModes
+                                modes={modes}
+                                mode={mode}
+                                onChange={changeMode}
+                                disabled={isInputLocked}
+                                compact={isMobileLayout}
+                            />
+                        )}
                         <AttachmentChips
                             items={attachments.items}
                             notice={attachments.notice}
@@ -511,29 +572,29 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             }}
                             /* Figma 800:22889 shortens this on a phone, where the
                                long form wraps to two lines. */
-                            placeholder={isAgentRunActive
+                            placeholder={isAgentRunActive && mode === 'chat'
                                 ? (isMobileLayout
                                     ? 'Ask something new\u2026'
                                     : 'Ask a new question \u2014 the other answer keeps writing')
                                 : (isMobileLayout
-                                    ? 'Ask about the biomedical literature...'
-                                    : 'Ask a question about the biomedical literature...')}
+                                    ? COMPOSER_MODES[mode].mobilePlaceholder
+                                    : COMPOSER_MODES[mode].placeholder)}
                             multiline
                             minRows={1}
                             maxRows={9}
                             disabled={isInputLocked}
                             sx={{
-                                minHeight: isMobileLayout ? '148px' : '120px',
+                                minHeight: composerMinHeight,
                                 width: '100%',
                                 '& .MuiInputBase-root': {
                                     borderRadius: '16px',
-                                    minHeight: isMobileLayout ? '148px' : '120px',
+                                    minHeight: composerMinHeight,
                                     backgroundColor: 'var(--color-background-subtle)',
                                     alignItems: 'flex-start',
                                     paddingLeft: '20px',
                                     paddingRight: '20px !important',
-                                    paddingTop: isMobileLayout ? '16.5px' : '20px',
-                                    paddingBottom: isMobileLayout ? '58px' : '52px',
+                                    paddingTop: hasModeTabs ? '8px' : (isMobileLayout ? '16.5px' : '20px'),
+                                    paddingBottom: (isMobileLayout ? 58 : 52) + (reviewEnabled ? (isMobileLayout ? 96 : 52) : 0) + 'px',
                                     fontFamily: 'Geist, sans-serif',
                                     fontSize: '14px',
                                     color: 'var(--color-text-primary)',
@@ -560,6 +621,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             }}
                         />
 
+                        {reviewEnabled && (
+                            <div className="review-scope-wrap">
+                                <ReviewScope scope={reviewScope} onChange={setReviewScope} />
+                            </div>
+                        )}
                         <Box
                             sx={{
                                 position: 'absolute',
@@ -601,175 +667,6 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         source="home_searchbar"
                                     />
                                 </Box>
-                                {INVESTIGATE_ENABLED && !LITERATURE_REVIEW_ENABLED && (
-                                <Button
-                                    disabled={isInputLocked}
-                                    onMouseDown={(event) => {
-                                        event.preventDefault();
-                                        event.stopPropagation();
-                                    }}
-                                    onClick={(event) => {
-                                        event.preventDefault();
-                                        event.stopPropagation();
-                                        const next = !investigateEnabled;
-                                        if (next && isGuest) {
-                                            openLoginModal(GUEST_INVESTIGATE_REASON);
-                                            return;
-                                        }
-                                        if (next) {
-                                            trackGtagEvent('home_investigate_enable_click', {
-                                                source: 'home_searchbar',
-                                            });
-                                        }
-                                        trackGtagEvent('home_investigate_toggle_click', {
-                                            enabled: next,
-                                        });
-                                        setInvestigateEnabled(next);
-                                    }}
-                                    sx={{
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '4px',
-                                        height: '32px',
-                                        padding: '4px 8px',
-                                        borderRadius: '8px',
-                                        border: 'none',
-                                        background: investigateEnabled ? 'var(--color-brand-muted)' : 'transparent',
-                                        color: investigateEnabled ? 'var(--color-brand-primary)' : 'var(--color-text-tertiary)',
-                                        fontFamily: 'Geist, sans-serif',
-                                        fontWeight: 600,
-                                        fontSize: '12px',
-                                        lineHeight: '16px',
-                                        textTransform: 'none',
-                                        minWidth: 0,
-                                        whiteSpace: 'nowrap',
-                                        boxShadow: 'none !important',
-                                        transition: 'background-color 0.18s ease, color 0.18s ease',
-                                        '& .MuiButton-startIcon, & .MuiButton-endIcon': {
-                                            margin: 0,
-                                        },
-                                        '&:hover': {
-                                            border: 'none',
-                                            background: investigateEnabled ? 'var(--color-blue-200)' : 'var(--color-background-subtle)',
-                                            color: investigateEnabled ? 'var(--color-blue-600)' : 'var(--color-grey-600)',
-                                        },
-                                    }}
-                                    startIcon={<InvestigateIcon style={{ width: '20px', height: '20px' }} />}
-                                    // The active chip carries a dismiss affordance in the design. It is
-                                    // decorative here — the whole chip already toggles, so a separate
-                                    // handler would just double-fire.
-                                    endIcon={investigateEnabled
-                                        ? <CloseIcon style={{ width: '16px', height: '16px' }} />
-                                        : null}
-                                    title={investigateEnabled ? 'Investigate on' : 'Investigate off'}
-                                >
-                                    Investigate
-                                </Button>
-                                )}
-                                {LITERATURE_REVIEW_ENABLED && (
-                                <Box sx={{ display: 'inline-flex', alignItems: 'center' }}>
-                                    {(() => {
-                                        const reviewSelected = researchTool === 'literature_review';
-                                        const active = reviewSelected ? reviewEnabled : investigateEnabled;
-                                        const chipSx = {
-                                            height: '32px',
-                                            border: 'none',
-                                            background: active ? 'var(--color-brand-muted)' : 'transparent',
-                                            color: active ? 'var(--color-brand-primary)' : 'var(--color-text-tertiary)',
-                                            fontFamily: 'Geist, sans-serif',
-                                            fontWeight: 600,
-                                            fontSize: '12px',
-                                            lineHeight: '16px',
-                                            textTransform: 'none',
-                                            minWidth: 0,
-                                            whiteSpace: 'nowrap',
-                                            boxShadow: 'none !important',
-                                            '& .MuiButton-startIcon, & .MuiButton-endIcon': { margin: 0 },
-                                            '&:hover': {
-                                                border: 'none',
-                                                background: active ? 'var(--color-blue-200)' : 'var(--color-background-subtle)',
-                                                color: active ? 'var(--color-blue-600)' : 'var(--color-grey-600)',
-                                            },
-                                        };
-                                        const stop = (event) => { event.preventDefault(); event.stopPropagation(); };
-                                        const toggle = (event) => {
-                                            stop(event);
-                                            if (reviewSelected) {
-                                                setInvestigateEnabled(false);
-                                                setReviewEnabled(!reviewEnabled);
-                                            } else {
-                                                const next = !investigateEnabled;
-                                                if (next && isGuest) {
-                                                    openLoginModal(GUEST_INVESTIGATE_REASON);
-                                                    return;
-                                                }
-                                                trackGtagEvent('home_investigate_toggle_click', { enabled: next });
-                                                setReviewEnabled(false);
-                                                setInvestigateEnabled(next);
-                                            }
-                                        };
-                                        const choose = (tool) => {
-                                            setToolMenuAnchor(null);
-                                            if (tool === 'investigate' && isGuest) {
-                                                openLoginModal(GUEST_INVESTIGATE_REASON);
-                                                return;
-                                            }
-                                            setResearchTool(tool);
-                                            setInvestigateEnabled(tool === 'investigate');
-                                            setReviewEnabled(tool === 'literature_review');
-                                        };
-                                        return (
-                                            <>
-                                                <Button
-                                                    disabled={isInputLocked}
-                                                    onMouseDown={stop}
-                                                    onClick={toggle}
-                                                    sx={{ ...chipSx, gap: '4px', padding: '4px 4px 4px 8px', borderRadius: '8px 0 0 8px' }}
-                                                    startIcon={reviewSelected
-                                                        ? <MenuBookIcon style={{ width: '18px', height: '18px' }} />
-                                                        : <InvestigateIcon style={{ width: '20px', height: '20px' }} />}
-                                                    endIcon={active ? <CloseIcon style={{ width: '16px', height: '16px' }} /> : null}
-                                                    title={`${reviewSelected ? 'Literature Review' : 'Investigate'} ${active ? 'on' : 'off'}`}
-                                                >
-                                                    {reviewSelected ? 'Literature Review' : 'Investigate'}
-                                                </Button>
-                                                <Button
-                                                    disabled={isInputLocked}
-                                                    aria-label="Choose research tool"
-                                                    aria-haspopup="menu"
-                                                    onMouseDown={stop}
-                                                    onClick={(event) => { stop(event); setToolMenuAnchor(event.currentTarget); }}
-                                                    sx={{ ...chipSx, padding: '4px 2px', borderRadius: '0 8px 8px 0' }}
-                                                >
-                                                    <ArrowDropDownIcon style={{ width: '18px', height: '18px' }} />
-                                                </Button>
-                                                <Menu
-                                                    anchorEl={toolMenuAnchor}
-                                                    open={Boolean(toolMenuAnchor)}
-                                                    onClose={() => setToolMenuAnchor(null)}
-                                                >
-                                                    {INVESTIGATE_ENABLED && (
-                                                        <MenuItem
-                                                            selected={researchTool === 'investigate'}
-                                                            onClick={() => choose('investigate')}
-                                                        >
-                                                            <InvestigateIcon style={{ width: '18px', height: '18px', marginRight: 8 }} />
-                                                            Investigate
-                                                        </MenuItem>
-                                                    )}
-                                                    <MenuItem
-                                                        selected={researchTool === 'literature_review'}
-                                                        onClick={() => choose('literature_review')}
-                                                    >
-                                                        <MenuBookIcon style={{ width: '18px', height: '18px', marginRight: 8 }} />
-                                                        Literature Review
-                                                    </MenuItem>
-                                                </Menu>
-                                            </>
-                                        );
-                                    })()}
-                                </Box>
-                                )}
                             </Box>
 
                             <Box
@@ -809,6 +706,36 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     // wrapper only let it spill over Search Options on a phone.
                                     sx={{ display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, flexShrink: 0 }}
                                 >
+                                {reviewEnabled && reviewModels.length > 0 && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            className="review-model-chip"
+                                            aria-label="Review model"
+                                            aria-haspopup="menu"
+                                            onClick={(event) => setReviewModelAnchor(event.currentTarget)}
+                                        >
+                                            {(reviewModels.find((m) => m.id === reviewModel) || reviewModels[0]).label}
+                                            <ArrowDropDownIcon style={{ width: 16, height: 16 }} />
+                                        </button>
+                                        <Menu
+                                            anchorEl={reviewModelAnchor}
+                                            open={Boolean(reviewModelAnchor)}
+                                            onClose={() => setReviewModelAnchor(null)}
+                                        >
+                                            {reviewModels.map((m) => (
+                                                <MenuItem
+                                                    key={m.id}
+                                                    selected={m.id === reviewModel}
+                                                    onClick={() => { setReviewModel(m.id); setReviewModelAnchor(null); }}
+                                                >
+                                                    {m.label}{m.description ? ` — ${m.description}` : ''}
+                                                </MenuItem>
+                                            ))}
+                                        </Menu>
+                                    </>
+                                )}
+                                {!reviewEnabled && (
                                 <TierPicker
                                     value={serviceTier}
                                     onChange={(tierId) => {
@@ -826,6 +753,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         `${tier?.label || 'GPT-6.1 Sol'} is available to signed-in users. Sign in to use it — it's free.`,
                                     )}
                                 />
+                                )}
                                 </Box>
 
                                 {!searchOptionsLocked && (
@@ -872,6 +800,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
 
                                 {!searchOptionsLocked && (
                                 <Button
+                                    aria-label="Search Options"
                                     sx={{
                                         display: isMobileLayout ? 'none' : 'inline-flex',
                                         alignItems: 'center',
@@ -917,11 +846,18 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     role="button"
                                     aria-label="Start chat"
                                     aria-disabled={isInputLocked || (attachments.hasItems && !canStart)}
-                                    className="search-button-big"
+                                    className={`search-button-big${modeAction ? ' has-label' : ''}`}
                                     onClick={() => { if (!isInputLocked) navigateToLLMAgent(llmQuery.trim(), 'button'); }}
                                     sx={{
-                                        height: '32px',
-                                        width: '32px',
+                                        height: modeAction ? '36px' : '32px',
+                                        width: modeAction ? 'auto' : '32px',
+                                        padding: modeAction ? '0 16px' : 0,
+                                        gap: '8px',
+                                        color: canStart ? 'var(--color-neutral-white)' : 'var(--color-brand-primary)',
+                                        fontFamily: 'Geist, sans-serif',
+                                        fontWeight: 600,
+                                        fontSize: '15px',
+                                        whiteSpace: 'nowrap',
                                         borderRadius: '8px',
                                         backgroundColor: canStart ? 'var(--color-brand-primary)' : 'var(--color-brand-muted)',
                                         display: 'flex',
@@ -936,6 +872,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         pointerEvents: 'auto',
                                     }}
                                 >
+                                    {modeAction && <span>{modeAction}</span>}
                                     <SearchArrowIcon
                                         style={{
                                             color: canStart ? 'var(--color-neutral-white)' : 'var(--color-brand-primary)',

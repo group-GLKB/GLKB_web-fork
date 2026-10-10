@@ -38,6 +38,7 @@ import { trackGtagEvent } from '../../utils/gtag';
 import { useAuth } from '../Auth/AuthContext';
 import exampleSchema from './exampleSchema.json';
 import LlmSearchBar from './LlmSearchBarHome';
+import NewsStrip from './NewsStrip';
 
 // const { Search } = Input;
 const DEBUG_FORCE_LIMIT_WARNING = false;
@@ -57,6 +58,17 @@ const HomePage = () => {
     const [usage, setUsage] = useState(null);
     const [isPhoneDevice, setIsPhoneDevice] = useState(isPhoneViewport);
     const [isAgentRunActive, setIsAgentRunActive] = useState(() => isRunActive());
+    // The composer's mode (Chat / Investigate / Literature Review): what shows under it follows.
+    const [composerMode, setComposerMode] = useState('chat');
+    const [requestedMode, setRequestedMode] = useState(null);
+    const modeExamples = composerMode === 'investigate' ? (exampleSchema.investigateExamples || [])
+        : composerMode === 'review' ? (exampleSchema.reviewExamples || []) : null;
+    const tryNews = (item) => {
+        if (item.mode) setRequestedMode({ mode: item.mode, at: Date.now() });
+        if (item.focus) {
+            setTimeout(() => document.querySelector('.llm-searchbar textarea')?.focus(), 0);
+        }
+    };
     const { isAuthenticated, loading, openLoginModal } = useAuth();
     const navigate = useNavigate();
     const examplePanelRef = useRef(null);
@@ -286,6 +298,9 @@ const HomePage = () => {
                             spotlightPadding={0}
                             scrollToFirstStep={true}
                         />
+                        <div className="news-strip-slot">
+                            <NewsStrip onTry={tryNews} />
+                        </div>
                         <Box
                             className="homepage-hero"
                             ref={heroRef}
@@ -349,6 +364,8 @@ const HomePage = () => {
                                             isQueryLimitReached={showHomeLimitWarning}
                                             limitReachedText={limitText}
                                             isAgentRunActive={isAgentRunActive}
+                                            onModeChange={setComposerMode}
+                                            requestedMode={requestedMode}
                                         />
                                         {activePill && (
                                             <Paper className="homepage-examples-panel" ref={examplePanelRef}>
@@ -396,6 +413,23 @@ const HomePage = () => {
                                         )}
                                     </Box>
                                 </Box>
+                                {modeExamples ? (
+                                    <Box className={`homepage-mode-examples is-${composerMode}`}>
+                                        {modeExamples.map((example) => (
+                                            <button
+                                                key={example}
+                                                type="button"
+                                                className="homepage-mode-example"
+                                                onClick={() => {
+                                                    trackGtagEvent('home_mode_example_click', { mode: composerMode });
+                                                    setPrefillQuery(example);
+                                                }}
+                                            >
+                                                {example}
+                                            </button>
+                                        ))}
+                                    </Box>
+                                ) : (
                                 <Box className={`homepage-pills${(showExamples || isAutocompleteExamplesOpen) ? ' is-hidden' : ''}${showHomeLimitWarning ? ' has-limit-warning' : ''}`}>
                                     {pills.map((pill) => (
                                         <Box
@@ -421,8 +455,9 @@ const HomePage = () => {
                                         </Box>
                                     ))}
                                 </Box>
+                                )}
                                 <p className="homepage-research-notice">
-                                    FOR RESEARCH USE ONLY — not medical advice. AI-generated; verify all citations against primary sources.
+                                    For research use only — not medical advice. AI-generated; verify all citations against primary sources.
                                 </p>
                             </Box>
                         </Box>
@@ -430,7 +465,7 @@ const HomePage = () => {
                         <div className="footer">
                             <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
                                 <p className="homepage-footer-line">
-                                    © 2025 GLKB – Genomic Literature Knowledge Base | glkb.org
+                                    © 2026 GLKB — Genomic Literature Knowledge Base · glkb.org
                                 </p>
                                 <p className="homepage-footer-line">
                                     Developed and maintained by the <a className="homepage-lab-link" href="https://jieliu6.github.io/" target="_blank" rel="noopener noreferrer">Jie Liu Lab</a>, Department of Computational Medicine and Bioinformatics, University of Michigan.

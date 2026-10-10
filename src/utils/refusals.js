@@ -15,6 +15,7 @@ export const GUEST_LOGIN_REQUIRED = 'GUEST_LOGIN_REQUIRED';
    refuses a guest's Investigate with the same code (`reason: "investigate"`). */
 export const GUEST_INVESTIGATE_REASON = "Investigate is available to signed-in users. Sign in to use it — it's free.";
 export const GUEST_GRAPH_VIEWER_REASON = "The Graph Viewer is available to signed-in users. Sign in to use it — it's free.";
+export const GUEST_REVIEW_REASON = "Literature Review is available to signed-in users. Sign in to use it — it's free.";
 
 /** Whether answering this refusal means signing in — a guest's limit, or a tier only members get. */
 export const refusalNeedsSignIn = (refusal) => (
