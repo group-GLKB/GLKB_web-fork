@@ -8,6 +8,9 @@ import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg
  * The home composer's three modes, as tabs along its top edge (design: Chat / Investigate /
  * Literature Review, with what the mode does and how long it takes on the right).
  *
+ * `compact` (the phone layout) drops the hint and the icons, and the tabs share the composer's
+ * width: with icons the three tabs are ~350px wide, wider than a 390px phone's composer.
+ *
  * `title` keeps the wording the Investigate chip had ("Investigate on" / "off"): the guest
  * gate and the analytics are keyed to that state, and the tests read it.
  */
@@ -48,7 +51,8 @@ const stop = (event) => { event.preventDefault(); event.stopPropagation(); };
 export default function ComposerModes({ modes, mode, onChange, disabled, compact }) {
     const current = COMPOSER_MODES[mode] || COMPOSER_MODES.chat;
     return (
-        <div className="composer-modes" onMouseDown={stop} onClick={(event) => event.stopPropagation()}>
+        <div className={`composer-modes${compact ? ' is-compact' : ''}`} onMouseDown={stop}
+             onClick={(event) => event.stopPropagation()}>
             <div className="composer-modes-tabs" role="tablist" aria-label="Mode">
                 {modes.map((id) => {
                     const active = id === mode;
@@ -66,7 +70,7 @@ export default function ComposerModes({ modes, mode, onChange, disabled, compact
                             onMouseDown={stop}
                             onClick={(event) => { stop(event); onChange(id); }}
                         >
-                            <span className="composer-mode-icon">{ICONS[id]}</span>
+                            {!compact && <span className="composer-mode-icon">{ICONS[id]}</span>}
                             <span className="composer-mode-label">{COMPOSER_MODES[id].label}</span>
                         </button>
                     );

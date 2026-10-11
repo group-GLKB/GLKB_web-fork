@@ -982,8 +982,22 @@
 }
 .HomePageRoot .composer-modes-duration { font-family: var(--font-family-mono, "Geist Mono", monospace); font-size: 12px; }
 .HomePageRoot .composer-modes-sep { margin: 0 2px; }
-.HomePageRoot.is-phone-device .composer-modes { padding: 10px 10px 2px; }
-.HomePageRoot.is-phone-device .composer-mode { height: 32px; padding: 0 10px; font-size: 13px; gap: 6px; }
+/* The phone layout: the tabs fill the composer's width and share it, without icons, and a label
+   that still does not fit is cut short rather than pushing the tabs past the composer's edge. */
+.HomePageRoot .composer-modes.is-compact { padding: 10px 10px 2px; }
+.HomePageRoot .composer-modes.is-compact .composer-modes-tabs { display: flex; flex: 1; min-width: 0; }
+.HomePageRoot .composer-modes.is-compact .composer-mode {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: center;
+  height: 32px;
+  padding: 0 8px;
+  font-size: 13px;
+}
+.HomePageRoot .composer-modes.is-compact .composer-mode-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 359px) {
+  .HomePageRoot .composer-modes.is-compact .composer-mode { padding: 0 6px; font-size: 12px; }
+}
 
 /* A review's scope, between the topic and the control row. */
 .HomePageRoot .review-scope-wrap {
