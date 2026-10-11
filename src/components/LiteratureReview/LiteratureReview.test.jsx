@@ -5,7 +5,7 @@
  * saved, and a stopped one can be run again without retyping the topic.
  */
 import React from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import LiteratureReview from './index';
@@ -188,7 +188,7 @@ it('prints the review for a PDF, and says so when the pop-up is blocked', async 
     await act(async () => finish());
 
     fireEvent.click(await screen.findByRole('button', { name: 'Export' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'PDF' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^PDF/ }));
     expect(write).toHaveBeenCalledWith(expect.stringContaining('@media print'));
     act(() => { jest.runAllTimers(); });
     expect(print).toHaveBeenCalledTimes(1);
@@ -196,7 +196,7 @@ it('prints the review for a PDF, and says so when the pop-up is blocked', async 
     // a blocked pop-up must say what to do rather than appear to do nothing
     open.mockReturnValue(null);
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'PDF' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^PDF/ }));
     expect(screen.getByText(/Allow pop-ups/)).toBeInTheDocument();
 
     jest.useRealTimers();
@@ -219,11 +219,17 @@ it('asks for the scope it shows, and re-cites the finished review in the style p
     }));
     render(<LiteratureReview />);
     fireEvent.change(screen.getByLabelText('Topic'), { target: { value: 'Gut microbiome and depression' } });
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Article types' }));
-    fireEvent.click(screen.getByRole('option', { name: 'Primary research' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Article types: All types' }));
+    fireEvent.click(screen.getByRole('option', { name: /Primary research/ }));
+    const now = new Date().getFullYear();
+    fireEvent.click(screen.getByRole('button', { name: `Years: Up to ${now}` }));
+    fireEvent.click(within(screen.getByRole('group', { name: 'From' })).getByRole('option', { name: String(now - 5) }));
+    expect(screen.getByRole('button', { name: `Years: ${now - 5}–${now}` })).toBeInTheDocument();
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Start writing/ })); });
     const [req] = streamReview.mock.calls[0];
     expect(req.articleTypes).toBe('primary');
+    expect(req.startYear).toBe(now - 5);
+    expect(req.cutoffYear).toBeNull();
     expect(req).not.toHaveProperty('model');
     expect(req).toHaveProperty('serviceTier');
 
@@ -232,8 +238,8 @@ it('asks for the scope it shows, and re-cites the finished review in the style p
     await waitFor(() => expect(screen.getByText(/^Lee A, Park B\. Paper eleven\. Cell\. 2021\./)).toBeInTheDocument());
     expect(screen.getByRole('button', { name: 'References 1' })).toHaveTextContent('1');
 
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Citation style' }));
-    fireEvent.click(screen.getByRole('option', { name: 'APA 7' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Citation style: Vancouver' }));
+    fireEvent.click(screen.getByRole('option', { name: /APA 7/ }));
     expect(screen.getByRole('button', { name: 'References 1' })).toHaveTextContent('(Lee & Park, 2021)');
     expect(screen.getByText(/^Lee, A\., & Park, B\. \(2021\)\. Paper eleven\./)).toBeInTheDocument();
 });
@@ -262,20 +268,32 @@ describe('your papers', () => {
                          { target: { files: [new File(['doc'], 'old notes.doc', { type: 'application/msword' })] } });
         await waitFor(() => expect(screen.getByText('old notes.doc')).toBeInTheDocument());
         await waitFor(() => expect(screen.getByRole('button', { name: /2 · Add more/ })).toBeInTheDocument());
-        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Sources' }));
-        fireEvent.click(screen.getByRole('option', { name: 'Your papers only' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Sources: Your papers + search' }));
+        fireEvent.click(screen.getByRole('option', { name: /Your papers only/ }));
         expect(screen.getByText(/reviews your 2 papers alone/)).toBeInTheDocument();
         expect(screen.getByText(/Takes 2–5 min/)).toBeInTheDocument();
+        // the years and types filter the search, which a review of the papers alone does not run
+        expect(screen.getByRole('button', { name: /^Years:/ })).toBeDisabled();
+        expect(screen.getByRole('button', { name: /^Article types:/ })).toBeDisabled();
         await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Start writing/ })); });
         const [req] = streamReview.mock.calls[0];
         expect(req.papers).toEqual(['a1', 'att-old notes.doc']);
         expect(req.sources).toBe('papers');
+        expect(req.startYear).toBeNull();
     });
 
     it('sends no papers with Search only, and none at all without papers', async () => {
         streamReview.mockImplementation(() => Promise.resolve());
         render(<LiteratureReview />);
-        expect(screen.getByRole('combobox', { name: 'Sources' })).toHaveAttribute('aria-disabled', 'true');
+        // offered without papers too; the two that read papers say they need one, and offer the upload
+        fireEvent.click(screen.getByRole('button', { name: 'Sources: Search only' }));
+        fireEvent.click(screen.getByRole('option', { name: /Your papers \+ search/ }));
+        expect(screen.getByRole('status')).toHaveTextContent(/No papers added yet: upload at least one/);
+        const picker = jest.spyOn(screen.getByTestId('lr-papers-input'), 'click');
+        expect(screen.getByRole('button', { name: 'Upload' })).toBeInTheDocument();
+        fireEvent.keyDown(screen.getByRole('listbox', { name: 'Sources' }), { key: 'Escape' });
+        expect(picker).not.toHaveBeenCalled();
+        expect(screen.getByRole('button', { name: 'Sources: Search only' })).toBeInTheDocument();
         await startReview('Gut microbiome and depression');
         const [req] = streamReview.mock.calls[0];
         expect(req.papers).toEqual([]);

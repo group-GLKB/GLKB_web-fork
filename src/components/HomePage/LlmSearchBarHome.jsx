@@ -44,9 +44,19 @@ import {
     GUEST_ATTACH_REASON,
     INVESTIGATE_ATTACH_NOTE,
     MAX_FILES_PER_MESSAGE,
+    PAPER_ACCEPT,
+    PAPER_FORMATS_TEXT,
     pastedAttachments,
     REVIEW_PAPER_LIMITS,
 } from '../../service/attachments';
+
+// On Literature Review the composer's "+" adds the reader's own papers (Sources says how they are used).
+const REVIEW_ATTACH = {
+    label: 'Add your papers',
+    itemLabel: 'Add your papers',
+    itemHint: PAPER_FORMATS_TEXT,
+    accept: PAPER_ACCEPT,
+};
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
@@ -123,10 +133,19 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     const isMobileLayout = useMediaQuery('(max-width:767px)');
     // Investigate and Literature Review say what the button does; AI Chat keeps the bare arrow.
     const modeAction = isMobileLayout ? '' : (COMPOSER_MODES[mode]?.action || '');
-    // The review scope row sits between the topic and the control row, so the box grows by it
-    // (by two rows once papers bring the Sources chip, which no longer fits on one).
+    // The review scope row sits between the topic and the control row, so the box grows by it:
+    // by its measured height (its chips wrap to more rows on a phone, or with longer values),
+    // estimated until it has been measured.
     const paperCount = reviewEnabled ? attachments.readyAttachments.length : 0;
-    const scopeRows = isMobileLayout ? 96 : (paperCount ? 92 : 52);
+    const [scopeEl, setScopeEl] = useState(null);
+    const [scopeHeight, setScopeHeight] = useState(0);
+    useEffect(() => {
+        if (!scopeEl || typeof ResizeObserver === 'undefined') return undefined;
+        const observer = new ResizeObserver(() => setScopeHeight(Math.ceil(scopeEl.offsetHeight)));
+        observer.observe(scopeEl);
+        return () => observer.disconnect();
+    }, [scopeEl]);
+    const scopeRows = scopeHeight ? scopeHeight + 8 : (isMobileLayout ? 96 : 52);
     const composerMinHeight = `${(isMobileLayout ? 148 : 120) + (reviewEnabled ? scopeRows : 0)}px`;
     const inputTimeoutRef = React.useRef(null);
     const hasTrackedInputRef = React.useRef(false);
@@ -598,7 +617,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     paddingLeft: '20px',
                                     paddingRight: '20px !important',
                                     paddingTop: hasModeTabs ? '8px' : (isMobileLayout ? '16.5px' : '20px'),
-                                    paddingBottom: (isMobileLayout ? 58 : 52) + (reviewEnabled ? (isMobileLayout ? 96 : 52) : 0) + 'px',
+                                    paddingBottom: (isMobileLayout ? 58 : 52) + (reviewEnabled ? scopeRows : 0) + 'px',
                                     fontFamily: 'Geist, sans-serif',
                                     fontSize: '14px',
                                     color: 'var(--color-text-primary)',
@@ -626,7 +645,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         />
 
                         {reviewEnabled && (
-                            <div className="review-scope-wrap">
+                            <div className="review-scope-wrap" ref={setScopeEl}>
                                 <ReviewScope scope={reviewScope}
                                              paperCount={paperCount}
                                              onAddPapers={isGuest ? undefined : takeFiles}
@@ -670,6 +689,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                 >
                                     <AttachButton
                                         onFiles={takeFiles}
+                                        {...(reviewEnabled ? REVIEW_ATTACH : {})}
                                         isGuest={isGuest}
                                         onRequireSignIn={() => openLoginModal(GUEST_ATTACH_REASON)}
                                         disabled={attachmentsOffForMode || isInputLocked}

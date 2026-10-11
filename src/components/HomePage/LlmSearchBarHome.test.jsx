@@ -8,7 +8,7 @@
  * the payload falls back to the defaults.
  */
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import LlmSearchBarHome from './LlmSearchBarHome';
@@ -278,8 +278,8 @@ describe('with LITERATURE_REVIEW_ENABLED on', () => {
         expect(mockNavigate.mock.calls[0][0]).toBe('/literature-review');
         expect(state.initialQuery).toBe('osimertinib resistance');
         expect(state.scope).toEqual({
-            targetWords: 6000, cutoffYear: null, notify: true, articleTypes: 'all', citationStyle: 'vancouver',
-            sources: null,
+            targetWords: 6000, startYear: null, cutoffYear: null, notify: true, articleTypes: 'all',
+            citationStyle: 'vancouver', sources: null,
         });
         expect(state.papers).toEqual([]);
         // The model is picked with the chat's own picker: a service tier, never a model id.
@@ -309,9 +309,9 @@ describe('with LITERATURE_REVIEW_ENABLED on', () => {
         setup();
         fireEvent.click(reviewTab());
         fireEvent.click(screen.getByRole('button', { name: /Types: All types/, hidden: true }));
-        fireEvent.click(screen.getByRole('menuitem', { name: /Primary research/ }));
+        fireEvent.click(screen.getByRole('option', { name: /Primary research/ }));
         fireEvent.click(screen.getByRole('button', { name: /Style: Vancouver/, hidden: true }));
-        fireEvent.click(screen.getByRole('menuitem', { name: /APA 7/ }));
+        fireEvent.click(screen.getByRole('option', { name: /APA 7/ }));
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'CAR-T in solid tumors' } });
         fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
         const { scope } = mockNavigate.mock.calls[0][1].state;
@@ -324,10 +324,51 @@ describe('with LITERATURE_REVIEW_ENABLED on', () => {
         setup();
         fireEvent.click(reviewTab());
         fireEvent.click(screen.getByRole('button', { name: /Length/, hidden: true }));
-        fireEvent.click(screen.getByRole('menuitem', { name: /4,500 words/ }));
+        fireEvent.click(screen.getByRole('option', { name: /4,500 words/ }));
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'CAR-T in solid tumors' } });
         fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
         expect(mockNavigate.mock.calls[0][1].state.scope.targetWords).toBe(4500);
+    });
+
+    it('sends the years picked, from a start year to an end year', () => {
+        const now = new Date().getFullYear();
+        mockReviewFlag = true;
+        setup();
+        fireEvent.click(reviewTab());
+        fireEvent.click(screen.getByRole('button', { name: `Years: to ${now}`, hidden: true }));
+        const from = screen.getByRole('group', { name: 'From' });
+        const to = screen.getByRole('group', { name: 'To' });
+        fireEvent.click(within(from).getByRole('option', { name: String(now - 10) }));
+        // the panel stays open for the other end; an end before the start is not offered
+        fireEvent.click(within(to).getByRole('option', { name: String(now - 2) }));
+        expect(screen.getByRole('button', { name: `Years: ${now - 10}–${now - 2}`, hidden: true })).toBeInTheDocument();
+        // any two typed
+        fireEvent.change(screen.getByLabelText('From year'), { target: { value: '2008' } });
+        fireEvent.change(screen.getByLabelText('To year'), { target: { value: '2001' } });
+        expect(screen.getByRole('button', { name: 'Set', hidden: true })).toBeDisabled();
+        fireEvent.change(screen.getByLabelText('To year'), { target: { value: '2019' } });
+        fireEvent.keyDown(screen.getByLabelText('To year'), { key: 'Enter' });
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'CAR-T in solid tumors' } });
+        fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
+        const { scope } = mockNavigate.mock.calls[0][1].state;
+        expect(scope.startYear).toBe(2008);
+        expect(scope.cutoffYear).toBe(2019);
+    });
+
+    it('offers every source, and says the papers ones need papers first', () => {
+        mockReviewFlag = true;
+        setup();
+        fireEvent.click(reviewTab());
+        fireEvent.click(screen.getByRole('button', { name: 'Sources: Search only', hidden: true }));
+        expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+            expect.stringMatching(/^Search only/), expect.stringMatching(/^Your papers \+ search/),
+            expect.stringMatching(/^Your papers only/),
+        ]);
+        fireEvent.click(screen.getByRole('option', { name: /Your papers only/ }));
+        expect(screen.getByRole('status')).toHaveTextContent(/No papers added yet: upload at least one/);
+        // not chosen: still a search
+        expect(screen.getByRole('button', { name: 'Sources: Search only', hidden: true })).toBeInTheDocument();
+        expect(screen.getByRole('option', { name: /Your papers only/ })).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('leaves Investigate working beside it', () => {

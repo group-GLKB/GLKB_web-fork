@@ -1,7 +1,8 @@
 /**
- * A Literature Review's own papers on the home bar: added with the "+ Add your papers" chip (or
- * the "+"), uploaded at once, counted on the chip, and handed to the review page with the topic.
- * Pictures are not papers; a review still needs its topic in words.
+ * A Literature Review's own papers on the home bar: added with the composer's "+" (which says
+ * "Add your papers" in this mode), uploaded at once, and handed to the review page with the
+ * topic. Sources is offered from the start; its two paper options say they need a paper first and
+ * offer the upload. Pictures are not papers; a review still needs its topic in words.
  */
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -64,7 +65,8 @@ const renderBar = () => render(
     <LlmSearchBar setOpen={() => {}} setExamplesOpen={() => {}} onCollapseExampleLists={() => {}} autocompleteOptions={[]} />,
 );
 const reviewTab = () => screen.getByRole('tab', { name: /Literature Review/, hidden: true });
-const addPapers = (files) => fireEvent.change(screen.getByTestId('review-papers-input'), { target: { files } });
+// The "+" and its file picker (the composer's own attach button).
+const addPapers = (files) => fireEvent.change(screen.getByTestId('attachment-file-input'), { target: { files } });
 const start = () => {
     const button = screen.getByRole('button', { name: /start chat/i, hidden: true });
     fireEvent.mouseDown(button);
@@ -74,14 +76,18 @@ const start = () => {
 it('hands the papers to the review page with the topic', async () => {
     renderBar();
     fireEvent.click(reviewTab());
-    expect(screen.getByRole('button', { name: /Add your papers/, hidden: true })).toBeInTheDocument();
+    // The "+" adds papers here, documents only
+    expect(screen.getByRole('button', { name: 'Add your papers', hidden: true })).toBeInTheDocument();
+    expect(screen.getByTestId('attachment-file-input').getAttribute('accept')).toMatch(/\.pdf.*\.tex/);
+    expect(screen.getByRole('button', { name: 'Sources: Search only', hidden: true })).toBeInTheDocument();
     addPapers([new File(['%PDF'], 'smith2021.pdf', { type: 'application/pdf' }),
                new File(['\\title{x}'], 'draft.tex', { type: 'text/x-tex' })]);
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Your papers: 2', hidden: true })).toBeInTheDocument());
-    // With papers, the Sources chip appears, set to papers + search
-    expect(screen.getByRole('button', { name: 'Sources: Papers + search', hidden: true })).toBeInTheDocument();
+    // With papers, Sources turns to papers + search
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Sources: Papers + search', hidden: true })).toBeInTheDocument());
+    expect(screen.getByText('smith2021.pdf')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Sources: Papers + search', hidden: true }));
-    fireEvent.click(screen.getByRole('menuitem', { name: /Your papers only/, hidden: true }));
+    fireEvent.click(screen.getByRole('option', { name: /Your papers only/, hidden: true }));
+    expect(screen.getByRole('button', { name: 'Sources: Only your papers', hidden: true })).toBeInTheDocument();
 
     // the papers are not a question: with no topic, nothing starts
     start();
@@ -93,6 +99,22 @@ it('hands the papers to the review page with the topic', async () => {
     expect(state.initialQuery).toBe('MET-driven osimertinib resistance');
     expect(state.papers.map((a) => a.id)).toEqual(['att-smith2021.pdf', 'att-draft.tex']);
     expect(state.scope.sources).toBe('papers');
+});
+
+it('says a paper source needs papers, and keeps the choice made through its upload', async () => {
+    renderBar();
+    fireEvent.click(reviewTab());
+    fireEvent.click(screen.getByRole('button', { name: 'Sources: Search only', hidden: true }));
+    fireEvent.click(screen.getByRole('option', { name: /Your papers only/, hidden: true }));
+    expect(screen.getByRole('status', { hidden: true })).toHaveTextContent(/No papers added yet/);
+    const picker = screen.getByTestId('review-papers-input');
+    const opened = jest.spyOn(picker, 'click');
+    fireEvent.click(screen.getByRole('button', { name: 'Upload', hidden: true }));
+    expect(opened).toHaveBeenCalled();
+    // until the papers arrive it is still a search
+    expect(screen.getByRole('button', { name: 'Sources: Search only', hidden: true })).toBeInTheDocument();
+    fireEvent.change(picker, { target: { files: [new File(['%PDF'], 'smith2021.pdf', { type: 'application/pdf' })] } });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Sources: Only your papers', hidden: true })).toBeInTheDocument());
 });
 
 it('turns a picture away: it is not a paper', async () => {

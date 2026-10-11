@@ -27,7 +27,7 @@ export const cancelReview = async (runId) => {
  *   {step:'Error', error}
  */
 export const streamReview = async ({
-    question, serviceTier, model, historyId, signal, targetWords, cutoffYear, articleTypes, notify,
+    question, serviceTier, model, historyId, signal, targetWords, startYear, cutoffYear, articleTypes, notify,
     papers, sources,
 }, onFrame) => {
     let buffer = '';
@@ -51,8 +51,10 @@ export const streamReview = async ({
         ...(serviceTier ? { service_tier: serviceTier } : {}),
         ...(model ? { model } : {}),
         ...(historyId ? { history_id: historyId } : {}),
-        // The review's scope; omitted, the service plans its own default length up to this year.
+        // The review's scope; omitted, the service plans its own default length, from any year up
+        // to this one.
         ...(targetWords ? { target_words: targetWords } : {}),
+        ...(startYear ? { start_year: startYear } : {}),
         ...(cutoffYear ? { cutoff_year: cutoffYear } : {}),
         // PubMed publication types to keep to; 'all' is the service's default and not sent.
         ...(articleTypes && articleTypes !== 'all' ? { article_types: articleTypes } : {}),

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import { MenuItem, Select } from '@mui/material';
+import { OptionSelect } from '../Units/OptionMenu';
 
 import { buildStyle, REVIEW_STYLES } from './citationStyle';
 import { countWords, linkCitations, parseReview } from './reviewModel';
@@ -191,14 +191,18 @@ export default function ReviewDocument({
                 <div className="lr-kicker">Literature review · Draft 1</div>
                 <h1 className="lr-title">{review.title || meta?.topic}</h1>
                 <div className="lr-meta">
-                    {meta?.cutoffYear && <span>Up to {meta.cutoffYear}</span>}
+                    {meta?.startYear
+                        ? <span>{meta.startYear}–{meta.cutoffYear || new Date().getFullYear()}</span>
+                        : meta?.cutoffYear && <span>Up to {meta.cutoffYear}</span>}
                     {meta?.papers > 0 && <span>{meta.papers === 1 ? 'One' : meta.papers} of your papers</span>}
                     {onCitationStyle ? (
-                        <Select size="small" variant="standard" disableUnderline className="lr-style-select"
-                                value={styled.style.id} onChange={(e) => onCitationStyle(e.target.value)}
-                                inputProps={{ 'aria-label': 'Citation style' }}>
-                            {REVIEW_STYLES.map((st) => <MenuItem key={st.id} value={st.id}>{st.label}</MenuItem>)}
-                        </Select>
+                        <OptionSelect label={`Citation style: ${styled.style.label}`} panelLabel="Citation style"
+                                      className="lr-style-select" placement="bottom-start"
+                                      value={styled.style.id} onChange={onCitationStyle}
+                                      options={REVIEW_STYLES.map((st) => ({
+                                          id: st.id, label: st.label,
+                                          hint: st.authorDate ? 'Author–year in the text' : 'Numbered in the text',
+                                      }))} />
                     ) : <span>{styled.style.label}</span>}
                     {meta?.generated && <span>Generated {meta.generated}{meta.minutes ? ` · ${meta.minutes} min` : ''}</span>}
                 </div>

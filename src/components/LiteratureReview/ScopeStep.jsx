@@ -1,22 +1,22 @@
 import React, { useRef, useState } from 'react';
-import { Alert, MenuItem, Select, Switch } from '@mui/material';
+import { Alert, Switch } from '@mui/material';
 
 import {
-    ARTICLE_TYPES, clampWords, CustomLength, LENGTH_OPTIONS, SOURCES, sourceById, yearOptions,
+    ARTICLE_TYPES, LengthOptions, SEARCH_ONLY_FILTER, sourceById, sourceOptions, sourcesPatch, YearRange, yearsLabel,
 } from '../HomePage/ReviewScope';
 import TierPicker from '../Units/TierPicker';
+import { OptionDropdown, OptionSelect } from '../Units/OptionMenu';
 import { AttachmentChips, attachmentBlockedNote, dragHasFiles, filesFromTransfer } from '../Units/AttachmentChips';
 import { PAPER_ACCEPT, PAPER_FORMATS_TEXT, REVIEW_PAPER_LIMITS } from '../../service/attachments';
 import { REVIEW_STYLES, styleById } from './citationStyle';
 
-const CUSTOM = 'custom';
-
 /**
  * Step 1: the topic and its scope, confirmed before anything runs (design: the outline
- * page's "Scope" card). Length, the end year and the article types reach the pipeline; the
+ * page's "Scope" card). Length, the years and the article types reach the pipeline; the
  * citation style is the page's own (it can be changed on the finished review too); the model is
- * picked with the chat's own picker, as a service tier. The reader's own papers are added here
- * (or dropped on the card), and Sources says how they are used: with the search, or alone.
+ * picked with the chat's own picker, as a service tier. Sources says where the literature comes
+ * from — GLKB's search, the reader's own papers, or both — and the papers are added here (or
+ * dropped on the card). The dropdowns are the app's own (Units/OptionMenu), as the Model row's.
  */
 
 /** What the review will do, in a sentence, for the sources chosen. */
@@ -37,11 +37,10 @@ const lede = (sources, n) => {
 
 export default function ScopeStep({
     topic, onTopic, scope, onScope, serviceTier, onServiceTier, onResolveTier, onStart, canStart, error,
-    papers, sources = 'search', onSources,
+    papers, sources = 'search',
 }) {
     const now = new Date().getFullYear();
     const words = scope.targetWords || 6000;
-    const [customOpen, setCustomOpen] = useState(!LENGTH_OPTIONS.includes(words));
     const fileRef = useRef(null);
     const [dragOver, setDragOver] = useState(false);
     const paperCount = papers?.readyAttachments?.length || 0;
@@ -50,6 +49,9 @@ export default function ScopeStep({
     // Measured 2026-10-11 (Luna): three papers asked for 1,500 words gave 705.
     const carried = Math.max(800, Math.round((paperCount * 300) / 100) * 100);
     const fewPapers = sources === 'papers' && paperCount > 0 && words > carried;
+    const papersOnly = sources === 'papers';
+    // A source that reads papers, chosen before there are any: keep the choice and pick the files.
+    const upload = papers ? (id) => { onScope({ ...scope, sources: id }); fileRef.current?.click(); } : undefined;
     return (
         <div className="lr-page lr-scope">
             <div className="lr-main">
@@ -82,47 +84,46 @@ export default function ScopeStep({
                 <div className="lr-card-title">Scope</div>
                 <dl className="lr-scope-rows">
                     <div><dt>Target length</dt><dd>
-                        <Select size="small" variant="standard" disableUnderline
-                                value={customOpen ? CUSTOM : words}
-                                onChange={(e) => {
-                                    if (e.target.value === CUSTOM) { setCustomOpen(true); return; }
-                                    setCustomOpen(false);
-                                    onScope({ ...scope, targetWords: e.target.value });
-                                }}
-                                renderValue={(v) => (v === CUSTOM ? `${words.toLocaleString('en-US')} words` : `${Number(v).toLocaleString('en-US')} words`)}
-                                inputProps={{ 'aria-label': 'Target length' }}>
-                            {LENGTH_OPTIONS.map((n) => <MenuItem key={n} value={n}>{n.toLocaleString('en-US')} words</MenuItem>)}
-                            <MenuItem value={CUSTOM}>Custom length…</MenuItem>
-                        </Select>
+                        <OptionDropdown label={`Target length: ${words.toLocaleString('en-US')} words`}
+                                        panelLabel="Target length" panelClassName="review-scope-panel is-length"
+                                        display={`${words.toLocaleString('en-US')} words`}>
+                            {(close) => (
+                                <LengthOptions words={words}
+                                               onPick={(n) => { onScope({ ...scope, targetWords: n }); close(); }} />
+                            )}
+                        </OptionDropdown>
                     </dd></div>
-                    {customOpen && (
-                        <div className="lr-scope-custom">
-                            <CustomLength key={words} value={words}
-                                          onSet={(n) => onScope({ ...scope, targetWords: clampWords(n) })} />
-                        </div>
-                    )}
                     <div><dt>Years</dt><dd>
-                        <Select size="small" variant="standard" disableUnderline value={scope.cutoffYear || now}
-                                onChange={(e) => onScope({ ...scope, cutoffYear: e.target.value === now ? null : e.target.value })}
-                                inputProps={{ 'aria-label': 'Years' }}>
-                            {yearOptions(now).map((y) => <MenuItem key={y} value={y}>Up to {y}</MenuItem>)}
-                        </Select>
+                        <OptionDropdown label={`Years: ${yearsLabel(scope, now, { long: true })}`} panelLabel="Years"
+                                        panelClassName="review-scope-panel is-years"
+                                        display={yearsLabel(scope, now, { long: true })}
+                                        disabled={papersOnly} title={papersOnly ? SEARCH_ONLY_FILTER : undefined}>
+                            {() => (
+                                <YearRange startYear={scope.startYear} cutoffYear={scope.cutoffYear} now={now}
+                                           onChange={(patch) => onScope({ ...scope, ...patch })} />
+                            )}
+                        </OptionDropdown>
                     </dd></div>
                     <div><dt>Article types</dt><dd>
-                        <Select size="small" variant="standard" disableUnderline value={scope.articleTypes || 'all'}
-                                disabled={sources === 'papers'}
-                                title={sources === 'papers' ? 'Applies to what GLKB searches; your papers are all used' : undefined}
-                                onChange={(e) => onScope({ ...scope, articleTypes: e.target.value })}
-                                inputProps={{ 'aria-label': 'Article types' }}>
-                            {ARTICLE_TYPES.map((t) => <MenuItem key={t.id} value={t.id} title={t.hint}>{t.label}</MenuItem>)}
-                        </Select>
+                        <OptionSelect label={`Article types: ${ARTICLE_TYPES.find((t) => t.id === (scope.articleTypes || 'all'))?.label}`}
+                                      panelLabel="Article types" value={scope.articleTypes || 'all'} options={ARTICLE_TYPES}
+                                      disabled={papersOnly} title={papersOnly ? SEARCH_ONLY_FILTER : undefined}
+                                      onChange={(id) => onScope({ ...scope, articleTypes: id })} />
                     </dd></div>
                     <div><dt>Citation style</dt><dd>
-                        <Select size="small" variant="standard" disableUnderline value={styleById(scope.citationStyle).id}
-                                onChange={(e) => onScope({ ...scope, citationStyle: e.target.value })}
-                                inputProps={{ 'aria-label': 'Citation style' }}>
-                            {REVIEW_STYLES.map((st) => <MenuItem key={st.id} value={st.id}>{st.label}</MenuItem>)}
-                        </Select>
+                        <OptionSelect label={`Citation style: ${styleById(scope.citationStyle).label}`}
+                                      panelLabel="Citation style" value={styleById(scope.citationStyle).id}
+                                      options={REVIEW_STYLES.map((st) => ({
+                                          id: st.id, label: st.label,
+                                          hint: st.authorDate ? 'Author–year in the text' : 'Numbered in the text',
+                                      }))}
+                                      onChange={(id) => onScope({ ...scope, citationStyle: id })} />
+                    </dd></div>
+                    <div><dt>Sources</dt><dd>
+                        <OptionSelect label={`Sources: ${sourceById(sources).label}`} panelLabel="Sources"
+                                      panelClassName="review-scope-panel is-sources"
+                                      value={sources} options={sourceOptions(paperCount, upload)}
+                                      onChange={(id) => onScope({ ...scope, ...sourcesPatch(id, paperCount) })} />
                     </dd></div>
                     <div><dt>Your papers</dt><dd>
                         {papers ? (
@@ -148,15 +149,6 @@ export default function ScopeStep({
                                              onRemove={papers.remove} />
                         </div>
                     )}
-                    <div><dt>Sources</dt><dd>
-                        <Select size="small" variant="standard" disableUnderline value={sources}
-                                disabled={!paperCount}
-                                title={paperCount ? sourceById(sources).hint : 'Add your papers to choose'}
-                                onChange={(e) => onSources?.(e.target.value)}
-                                inputProps={{ 'aria-label': 'Sources' }}>
-                            {SOURCES.map((x) => <MenuItem key={x.id} value={x.id} title={x.hint}>{x.label}</MenuItem>)}
-                        </Select>
-                    </dd></div>
                     <div><dt>Email me when ready</dt><dd>
                         <Switch size="small" checked={scope.notify !== false}
                                 onChange={(e) => onScope({ ...scope, notify: e.target.checked })}

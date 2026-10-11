@@ -23,7 +23,7 @@ import './LiteratureReview.css';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Alert, LinearProgress, Menu, MenuItem } from '@mui/material';
+import { Alert, LinearProgress } from '@mui/material';
 
 import { useAuth } from '../Auth/AuthContext';
 import { getChatHistoryDetailByPublicId } from '../../service/ChatHistory';
@@ -36,6 +36,7 @@ import { exportFilename, reviewTitle, reviewToPrintable, reviewToWord } from '..
 import { trackGtagEvent } from '../../utils/gtag';
 import { effectiveSources, initialScope } from '../HomePage/ReviewScope';
 import { useAttachments } from '../Units/AttachmentChips';
+import { OptionItem, OptionPanel } from '../Units/OptionMenu';
 import { REVIEW_PAPER_LIMITS } from '../../service/attachments';
 import { setStylePref, styleMarkdown } from './citationStyle';
 import { TopBar } from './Chrome';
@@ -218,7 +219,10 @@ export default function LiteratureReview() {
         try {
             await streamReview({
                 question, serviceTier, signal: controller.signal, articleTypes: scope.articleTypes,
-                targetWords: scope.targetWords, cutoffYear: scope.cutoffYear, notify: scope.notify !== false,
+                targetWords: scope.targetWords, cutoffYear: scope.cutoffYear,
+                // The years filter what GLKB searches; the reader's own papers are all used.
+                startYear: sources === 'papers' ? null : scope.startYear,
+                notify: scope.notify !== false,
                 papers: usedPapers.map((a) => a.id), sources,
             }, (frame) => {
                 if (frame.run_id) runIdRef.current = frame.run_id;
@@ -297,14 +301,21 @@ export default function LiteratureReview() {
     const actions = status === 'done' && review ? (
         <>
             <button type="button" className="lr-secondary" onClick={share}>{copied ? 'Link copied' : 'Share'}</button>
-            <button type="button" className="lr-primary is-small" aria-haspopup="menu" onClick={(e) => setExportAnchor(e.currentTarget)}>
+            <button type="button" className="lr-primary is-small" aria-haspopup="menu" aria-expanded={Boolean(exportAnchor)}
+                    onClick={(e) => setExportAnchor(exportAnchor ? null : e.currentTarget)}>
                 Export
             </button>
-            <Menu anchorEl={exportAnchor} open={Boolean(exportAnchor)} onClose={() => setExportAnchor(null)}>
-                <MenuItem onClick={() => { setExportAnchor(null); downloadWord(); }}>Word (.doc)</MenuItem>
-                <MenuItem onClick={() => { setExportAnchor(null); downloadPdf(); }}>PDF</MenuItem>
-                <MenuItem onClick={() => { setExportAnchor(null); downloadLatex(); }}>LaTeX (.tex)</MenuItem>
-            </Menu>
+            <OptionPanel anchorEl={exportAnchor} open={Boolean(exportAnchor)} onClose={() => setExportAnchor(null)}
+                         label="Export" role="menu">
+                {[
+                    { id: 'word', label: 'Word (.doc)', hint: 'To edit in Word or Google Docs', run: downloadWord },
+                    { id: 'pdf', label: 'PDF', hint: 'Saved from the print dialog', run: downloadPdf },
+                    { id: 'latex', label: 'LaTeX (.tex)', hint: 'A .tex file to compile', run: downloadLatex },
+                ].map((x) => (
+                    <OptionItem key={x.id} role="menuitem" label={x.label} hint={x.hint}
+                                onClick={() => { setExportAnchor(null); x.run(); }} />
+                ))}
+            </OptionPanel>
         </>
     ) : null;
 
@@ -329,7 +340,6 @@ export default function LiteratureReview() {
                     error={formShown ? error : ''}
                     papers={papers}
                     sources={sources}
-                    onSources={(id) => setScope((s) => ({ ...s, sources: id }))}
                 />
             </div>
 
@@ -385,6 +395,7 @@ export default function LiteratureReview() {
                         meta={{
                             topic: savedQuestion,
                             targetWords: scope.targetWords,
+                            startYear: scope.startYear,
                             cutoffYear: scope.cutoffYear,
                             generated: formatDate(review.createdAt),
                             minutes,
