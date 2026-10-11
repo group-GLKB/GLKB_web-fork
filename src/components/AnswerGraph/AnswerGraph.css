@@ -1,5 +1,9 @@
-/* The answer's knowledge-graph card — Figma "KG 4-3" (file j4ZONXvblSZsTSsOhQJjyz, 273:21671). */
-.ag-card {
+/* The answer's knowledge-graph card — Figma "KG 4-3" (file j4ZONXvblSZsTSsOhQJjyz, 273:21671).
+   It is a <figure> inside the answer's .markdown-body, whose `figure { margin: 1em 2.5rem }`
+   outranks a plain `.ag-card`: the card then sat 40px in from the text's left edge and, at
+   width 100%, ran 40px past its right one. Hence the second selector. */
+.ag-card,
+.markdown-body .ag-card {
   margin: 20px 0;
   padding: 0;
   width: 100%;
