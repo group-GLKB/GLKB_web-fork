@@ -28,6 +28,7 @@ export const cancelReview = async (runId) => {
  */
 export const streamReview = async ({
     question, serviceTier, model, historyId, signal, targetWords, cutoffYear, articleTypes, notify,
+    papers, sources,
 }, onFrame) => {
     let buffer = '';
     let processed = 0;
@@ -57,6 +58,9 @@ export const streamReview = async ({
         ...(articleTypes && articleTypes !== 'all' ? { article_types: articleTypes } : {}),
         // Mail the reader's own account address when the review is saved.
         ...(notify ? { notify: true } : {}),
+        // The reader's own papers (attachment ids) and how they are used: alone ('papers') or with
+        // the search ('papers_and_search'). Without papers the review searches, as it always has.
+        ...(papers?.length ? { papers, sources: sources || 'papers_and_search' } : {}),
     }, {
         headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
         responseType: 'text',

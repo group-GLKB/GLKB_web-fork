@@ -12,14 +12,25 @@ import LiteratureReview from './index';
 import { getChatHistoryDetailByPublicId } from '../../service/ChatHistory';
 import { streamReview } from '../../service/LiteratureReview';
 import { fetchCitations } from '../../service/Citation';
+import { deleteAttachment, resizeImageIfNeeded, uploadAttachment } from '../../service/attachments';
 
 const mockNavigate = jest.fn();
 let mockParams = {};
+let mockLocationState = null;
 jest.mock('react-router-dom', () => ({
     useNavigate: () => mockNavigate,
     useParams: () => mockParams,
-    useLocation: () => ({ state: null }),
+    useLocation: () => ({ state: mockLocationState }),
 }));
+jest.mock('../../service/attachments', () => {
+    const actual = jest.requireActual('../../service/attachments');
+    return {
+        ...actual,
+        uploadAttachment: jest.fn(),
+        deleteAttachment: jest.fn(),
+        resizeImageIfNeeded: jest.fn(),
+    };
+});
 jest.mock('../Auth/AuthContext', () => ({
     useAuth: () => ({ isAuthenticated: true, loading: false, openLoginModal: jest.fn() }),
 }));
@@ -35,6 +46,14 @@ beforeEach(() => {
     getChatHistoryDetailByPublicId.mockReset();
     streamReview.mockReset();
     mockParams = {};
+    mockLocationState = null;
+    // CRA resets every mock's implementation before each test.
+    fetchCitations.mockImplementation(() => Promise.resolve({}));
+    uploadAttachment.mockImplementation((file) => Promise.resolve({
+        id: `att-${file.name}`, kind: 'file', filename: file.name, format: 'Word', size_bytes: 10,
+    }));
+    deleteAttachment.mockImplementation(() => Promise.resolve());
+    resizeImageIfNeeded.mockImplementation((f) => Promise.resolve(f));
 });
 
 const startReview = async (topic) => {
@@ -217,4 +236,67 @@ it('asks for the scope it shows, and re-cites the finished review in the style p
     fireEvent.click(screen.getByRole('option', { name: 'APA 7' }));
     expect(screen.getByRole('button', { name: 'References 1' })).toHaveTextContent('(Lee & Park, 2021)');
     expect(screen.getByText(/^Lee, A\., & Park, B\. \(2021\)\. Paper eleven\./)).toBeInTheDocument();
+});
+
+
+describe('your papers', () => {
+    const carried = [{ id: 'a1', kind: 'pdf', filename: 'smith2021.pdf', format: 'PDF', size_bytes: 2048 }];
+
+    it('sends the papers carried from the home bar, with the search by default', async () => {
+        mockLocationState = { initialQuery: 'MET amplification', papers: carried };
+        streamReview.mockImplementation(() => Promise.resolve());
+        render(<LiteratureReview />);
+        expect(screen.getByText('smith2021.pdf')).toBeInTheDocument();
+        expect(screen.getByText(/together with your paper,/)).toBeInTheDocument();
+        await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Start writing/ })); });
+        const [req] = streamReview.mock.calls[0];
+        expect(req.papers).toEqual(['a1']);
+        expect(req.sources).toBe('papers_and_search');
+    });
+
+    it('reviews the papers alone when asked, and adds more from the picker', async () => {
+        mockLocationState = { initialQuery: 'MET amplification', papers: carried };
+        streamReview.mockImplementation(() => Promise.resolve());
+        render(<LiteratureReview />);
+        fireEvent.change(screen.getByTestId('lr-papers-input'),
+                         { target: { files: [new File(['doc'], 'old notes.doc', { type: 'application/msword' })] } });
+        await waitFor(() => expect(screen.getByText('old notes.doc')).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByRole('button', { name: /2 · Add more/ })).toBeInTheDocument());
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Sources' }));
+        fireEvent.click(screen.getByRole('option', { name: 'Your papers only' }));
+        expect(screen.getByText(/reviews your 2 papers alone/)).toBeInTheDocument();
+        expect(screen.getByText(/Takes 2–5 min/)).toBeInTheDocument();
+        await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Start writing/ })); });
+        const [req] = streamReview.mock.calls[0];
+        expect(req.papers).toEqual(['a1', 'att-old notes.doc']);
+        expect(req.sources).toBe('papers');
+    });
+
+    it('sends no papers with Search only, and none at all without papers', async () => {
+        streamReview.mockImplementation(() => Promise.resolve());
+        render(<LiteratureReview />);
+        expect(screen.getByRole('combobox', { name: 'Sources' })).toHaveAttribute('aria-disabled', 'true');
+        await startReview('Gut microbiome and depression');
+        const [req] = streamReview.mock.calls[0];
+        expect(req.papers).toEqual([]);
+        expect(req.sources).toBe('search');
+    });
+
+    it('marks a cited paper of the reader\'s own, and links to PubMed only when it has a PMID', async () => {
+        mockParams = { publicId: 'p9' };
+        getChatHistoryDetailByPublicId.mockResolvedValueOnce({ messages: [
+            { role: 'user', content: 'MET amplification', attachments: carried },
+            { role: 'assistant', content: '# T\n\n## One\n\nA claim [1]. Another [2].', references: [
+                { number: 1, pmid: null, url: null, title: 'An unpublished draft', year: 2026, source: 'upload',
+                  file_name: 'draft.docx' },
+                { number: 2, pmid: '33445566', title: 'A paper PubMed knows', year: 2021, source: 'upload',
+                  file_name: 'smith2021.pdf' },
+            ] },
+        ] });
+        render(<LiteratureReview />);
+        await waitFor(() => expect(screen.getByText('Your paper · draft.docx')).toBeInTheDocument());
+        expect(screen.getByText('Your paper · smith2021.pdf')).toBeInTheDocument();
+        expect(screen.getAllByRole('link', { name: /PMID/ }).map((a) => a.textContent)).toEqual(['PMID 33445566']);
+        expect(screen.getByText('One of your papers')).toBeInTheDocument();
+    });
 });

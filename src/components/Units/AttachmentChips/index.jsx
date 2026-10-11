@@ -311,10 +311,22 @@ export const AttachmentChips = ({ items = [], notice = '', blockedNote = '', onR
  * flight only disable the button (their chips show progress); this is for what the reader has
  * to act on.
  */
-export const attachmentBlockedNote = (controller, { investigate = false } = {}) => {
+export const attachmentBlockedNote = (controller, { investigate = false, review = false, maxFiles = null } = {}) => {
     if (!controller?.hasItems) return '';
     if (investigate) return 'Attachments work in AI Chat. Remove them, or ask in a new AI Chat.';
-    if (controller.hasErrors) return 'Remove the files that could not be attached to send your question.';
+    if (controller.hasErrors) {
+        return review
+            ? 'Remove the files that could not be added to start the review.'
+            : 'Remove the files that could not be attached to send your question.';
+    }
+    const items = controller.items || [];
+    // Files added in one mode and kept on switching to another, where they do not fit.
+    if (review && items.some((item) => item.kind === 'image')) {
+        return "Pictures can't be used as papers. Remove them to start the review.";
+    }
+    if (maxFiles && items.length > maxFiles) {
+        return `Up to ${maxFiles} files ${review ? 'per review' : 'per message'}. Remove some to go on.`;
+    }
     return '';
 };
 

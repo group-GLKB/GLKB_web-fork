@@ -27,8 +27,32 @@ import {
 
 let keySeq = 0;
 
-const useAttachments = ({ onRequireSignIn } = {}) => {
-    const [items, setItems] = useState([]);
+/** Items for files already uploaded (a Literature Review's papers carried over from the home bar). */
+const readyItems = (attachments) => (attachments || []).filter((a) => a?.id).map((attachment) => {
+    keySeq += 1;
+    return {
+        key: `att-${Date.now()}-${keySeq}`,
+        file: null,
+        kind: attachment.kind || 'file',
+        name: attachment.filename || attachment.name || 'File',
+        size: Number(attachment.size_bytes) || 0,
+        previewUrl: null,
+        status: 'ready',
+        progress: 1,
+        error: '',
+        attachment,
+    };
+});
+
+/**
+ * `limits` are planAdditions' (a chat message's by default; a review's papers have their own) and
+ * may change between renders — the home bar's change with its mode. `initial` are attachments
+ * already uploaded, shown as ready.
+ */
+const useAttachments = ({ onRequireSignIn, limits, initial } = {}) => {
+    const [items, setItems] = useState(() => readyItems(initial));
+    const limitsRef = useRef(limits);
+    limitsRef.current = limits;
     const [notice, setNotice] = useState('');
     const itemsRef = useRef(items);
     itemsRef.current = items;
@@ -85,7 +109,7 @@ const useAttachments = ({ onRequireSignIn } = {}) => {
         const list = Array.from(files || []).filter(Boolean);
         if (!list.length) return;
         const counted = itemsRef.current.filter((item) => item.status !== 'error');
-        const { accepted, notice: limitNotice } = planAdditions(counted, list);
+        const { accepted, notice: limitNotice } = planAdditions(counted, list, limitsRef.current);
         setNotice(limitNotice || '');
         const additions = accepted.map((file) => {
             keySeq += 1;

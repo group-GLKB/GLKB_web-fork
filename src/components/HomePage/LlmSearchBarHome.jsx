@@ -43,7 +43,9 @@ import {
     defaultQuestionFor,
     GUEST_ATTACH_REASON,
     INVESTIGATE_ATTACH_NOTE,
+    MAX_FILES_PER_MESSAGE,
     pastedAttachments,
+    REVIEW_PAPER_LIMITS,
 } from '../../service/attachments';
 
 const LlmSearchBar = React.forwardRef((props, ref) => {
@@ -109,16 +111,23 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     }, [props.requestedMode]);
     /* Images and PDFs on the first question (service/attachments.js). Uploaded as they are
        picked; the question hands their ids to the chat in its navigation state. Signed-in
-       readers and AI Chat only — see the paperclip below. */
-    const attachments = useAttachments({ onRequireSignIn: () => openLoginModal(GUEST_ATTACH_REASON) });
+       readers only, and not on Investigate — see the paperclip below. On Literature Review the
+       files are the reader's own papers (documents only, up to 50), handed to the review page. */
+    const attachments = useAttachments({
+        onRequireSignIn: () => openLoginModal(GUEST_ATTACH_REASON),
+        limits: reviewEnabled ? REVIEW_PAPER_LIMITS : undefined,
+    });
     const [isDragOver, setIsDragOver] = useState(false);
     // The app shell and HomePage both switch at 767px. A separate 600px
     // threshold mixed the mobile page with the PC search controls.
     const isMobileLayout = useMediaQuery('(max-width:767px)');
     // Investigate and Literature Review say what the button does; AI Chat keeps the bare arrow.
     const modeAction = isMobileLayout ? '' : (COMPOSER_MODES[mode]?.action || '');
-    // The review scope row sits between the topic and the control row, so the box grows by it.
-    const composerMinHeight = `${(isMobileLayout ? 148 : 120) + (reviewEnabled ? (isMobileLayout ? 96 : 52) : 0)}px`;
+    // The review scope row sits between the topic and the control row, so the box grows by it
+    // (by two rows once papers bring the Sources chip, which no longer fits on one).
+    const paperCount = reviewEnabled ? attachments.readyAttachments.length : 0;
+    const scopeRows = isMobileLayout ? 96 : (paperCount ? 92 : 52);
+    const composerMinHeight = `${(isMobileLayout ? 148 : 120) + (reviewEnabled ? scopeRows : 0)}px`;
     const inputTimeoutRef = React.useRef(null);
     const hasTrackedInputRef = React.useRef(false);
     const lastPrefillRef = React.useRef(undefined);
@@ -136,11 +145,16 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
        The quota is a different matter and still locks: there is no run to start at all. */
     // A guest at the limit keeps a live box: sending opens the sign-in overlay instead.
     const isInputLocked = isQueryLimitReached && !isGuest;
-    // Investigate (and Literature Review) do not read attachments.
-    const attachmentsOffForMode = investigateEnabled || reviewEnabled;
-    const attachmentNote = attachmentBlockedNote(attachments, { investigate: attachmentsOffForMode });
+    // Investigate does not read attachments; Literature Review reads them as the reader's papers.
+    const attachmentsOffForMode = investigateEnabled;
+    const attachmentNote = attachmentBlockedNote(attachments, {
+        investigate: attachmentsOffForMode,
+        review: reviewEnabled,
+        maxFiles: reviewEnabled ? REVIEW_PAPER_LIMITS.maxFiles : MAX_FILES_PER_MESSAGE,
+    });
     const readyAttachments = attachments.readyAttachments;
-    const canStart = (Boolean(llmQuery.trim()) || readyAttachments.length > 0)
+    // A review needs its topic in words; its papers are what it reads, not a question.
+    const canStart = (Boolean(llmQuery.trim()) || (!reviewEnabled && readyAttachments.length > 0))
         && !isInputLocked && !attachments.isUploading && !attachmentNote;
     const takeFiles = (files) => {
         if (!files?.length) return;
@@ -245,7 +259,11 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
            them (the chips say which). A question with files and no words asks for a summary. */
         if (attachments.hasItems && (attachments.isUploading || attachmentNote)) return;
         const sentAttachments = readyAttachments;
-        const query = typedQuery || (sentAttachments.length ? defaultQuestionFor(sentAttachments) : '');
+        const query = typedQuery
+            || (sentAttachments.length && !reviewEnabled ? defaultQuestionFor(sentAttachments) : '');
+        // A review's papers wait for its topic: going on without one would open an empty chat
+        // and leave them behind.
+        if (reviewEnabled && !query && attachments.hasItems) return;
         // Clear input timeout to prevent search_input event after submission
         if (inputTimeoutRef.current) {
             clearTimeout(inputTimeoutRef.current);
@@ -256,8 +274,15 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             // machine is involved. See components/LiteratureReview.
             trackGtagEvent('literature_review_question_submit', { source: 'home_searchbar' });
             navigate('/literature-review', {
-                state: { initialQuery: query, scope: reviewScope, serviceTier: effectiveTier(serviceTier, { isGuest }) },
+                state: {
+                    initialQuery: query,
+                    scope: reviewScope,
+                    serviceTier: effectiveTier(serviceTier, { isGuest }),
+                    // The papers are uploaded already; the review page shows them and sends their ids.
+                    papers: sentAttachments,
+                },
             });
+            if (sentAttachments.length) attachments.clear();
             return;
         }
         const searchOptions = buildSearchOptionsPayload();
@@ -602,7 +627,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
 
                         {reviewEnabled && (
                             <div className="review-scope-wrap">
-                                <ReviewScope scope={reviewScope} onChange={(next) => {
+                                <ReviewScope scope={reviewScope}
+                                             paperCount={paperCount}
+                                             onAddPapers={isGuest ? undefined : takeFiles}
+                                             onChange={(next) => {
                                     if (next.citationStyle !== reviewScope.citationStyle) setStylePref(next.citationStyle);
                                     setReviewScope(next);
                                 }} />

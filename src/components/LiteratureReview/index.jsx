@@ -34,7 +34,9 @@ import { CHAT_NEW_PATH } from '../../config/entryRoutes';
 import { latexFilename, reviewToLatex } from '../../utils/reviewToLatex';
 import { exportFilename, reviewTitle, reviewToPrintable, reviewToWord } from '../../utils/reviewExport';
 import { trackGtagEvent } from '../../utils/gtag';
-import { initialScope } from '../HomePage/ReviewScope';
+import { effectiveSources, initialScope } from '../HomePage/ReviewScope';
+import { useAttachments } from '../Units/AttachmentChips';
+import { REVIEW_PAPER_LIMITS } from '../../service/attachments';
 import { setStylePref, styleMarkdown } from './citationStyle';
 import { TopBar } from './Chrome';
 import ScopeStep from './ScopeStep';
@@ -65,6 +67,16 @@ export default function LiteratureReview() {
     const [records, setRecords] = useState({});
     const [error, setError] = useState('');
     const [savedQuestion, setSavedQuestion] = useState('');
+    // The reader's own papers: uploaded here, or on the home bar and carried over (already uploaded).
+    const papers = useAttachments({
+        limits: REVIEW_PAPER_LIMITS,
+        initial: location.state?.papers,
+        onRequireSignIn: () => openLoginModal?.(),
+    });
+    const paperIds = papers.readyAttachments.map((a) => a.id);
+    const sources = effectiveSources(scope, paperIds.length);
+    // The papers a saved review was written from (its prompt's attachments), and how many a run uses.
+    const [savedPapers, setSavedPapers] = useState([]);
     const [exportAnchor, setExportAnchor] = useState(null);
     const [copied, setCopied] = useState(false);
     const runIdRef = useRef(null);
@@ -150,6 +162,7 @@ export default function LiteratureReview() {
                 const question = [...messages].reverse().find((m) => m.role === 'user');
                 const answer = [...messages].reverse().find((m) => m.role === 'assistant');
                 setSavedQuestion(question?.content || '');
+                setSavedPapers(Array.isArray(question?.attachments) ? question.attachments : []);
                 if (answer?.content) {
                     setReview({ markdown: answer.content, references: answer.references || [],
                                 createdAt: answer.created_at || detail?.created_at });
@@ -194,14 +207,19 @@ export default function LiteratureReview() {
         setError('');
         setReview(null);
         setSavedQuestion(question);
-        setProgress({ phase: 'acquisition', label: 'Starting…', percent: 1, detail: {} });
+        const usedPapers = sources === 'search' ? [] : papers.readyAttachments;
+        setSavedPapers(usedPapers);
+        setProgress({ phase: sources === 'papers' ? 'synthesis' : 'acquisition', label: 'Starting…',
+                      percent: 1, detail: {} });
         setStatus('running');
-        trackGtagEvent('literature_review_start', { target_words: scope.targetWords || 0 });
+        trackGtagEvent('literature_review_start', { target_words: scope.targetWords || 0, sources,
+                                                    papers: usedPapers.length });
         let finished = false;
         try {
             await streamReview({
                 question, serviceTier, signal: controller.signal, articleTypes: scope.articleTypes,
                 targetWords: scope.targetWords, cutoffYear: scope.cutoffYear, notify: scope.notify !== false,
+                papers: usedPapers.map((a) => a.id), sources,
             }, (frame) => {
                 if (frame.run_id) runIdRef.current = frame.run_id;
                 if (frame.step === 'Started' && frame.public_id) {
@@ -240,7 +258,7 @@ export default function LiteratureReview() {
             setError(typeof detail === 'string' ? detail : (err?.message || 'The review could not start.'));
             setStatus('error');
         }
-    }, [topic, serviceTier, scope, isAuthenticated, openLoginModal, navigate]);
+    }, [topic, serviceTier, scope, sources, papers.readyAttachments, isAuthenticated, openLoginModal, navigate]);
 
     const stop = useCallback(async () => {
         try {
@@ -251,6 +269,8 @@ export default function LiteratureReview() {
     }, []);
 
     const startNew = () => {
+        // The papers belong to the review they were sent with; a new one starts with none.
+        papers.clear(); setSavedPapers([]);
         setStatus('idle'); setReview(null); setError(''); setTopic(''); navigate('/literature-review');
     };
 
@@ -305,8 +325,11 @@ export default function LiteratureReview() {
                     onServiceTier={(tier) => { setServiceTier(tier); setTierPref(tier); }}
                     onResolveTier={setServiceTier}
                     onStart={start}
-                    canStart={topic.trim().length >= 3 && !authLoading}
+                    canStart={topic.trim().length >= 3 && !authLoading && !papers.isUploading && !papers.hasErrors}
                     error={formShown ? error : ''}
+                    papers={papers}
+                    sources={sources}
+                    onSources={(id) => setScope((s) => ({ ...s, sources: id }))}
                 />
             </div>
 
@@ -318,6 +341,8 @@ export default function LiteratureReview() {
                     progress={progress}
                     elapsed={elapsed}
                     targetWords={scope.targetWords}
+                    papers={savedPapers.length}
+                    papersOnly={status === 'running' && sources === 'papers'}
                     notify={status === 'running' && scope.notify !== false}
                     pending={status === 'pending'}
                     onStop={status === 'running' ? stop : null}
@@ -363,6 +388,7 @@ export default function LiteratureReview() {
                             cutoffYear: scope.cutoffYear,
                             generated: formatDate(review.createdAt),
                             minutes,
+                            papers: savedPapers.length,
                         }}
                         onAction={paragraphAction}
                     />

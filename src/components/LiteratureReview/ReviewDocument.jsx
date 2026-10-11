@@ -33,11 +33,18 @@ function ReferenceCard({ entry, authorDate, highlighted, refEl }) {
                 <span className="lr-mono lr-ref-num">{authorDate ? entry.label : `[${entry.number}]`}</span>
             </div>
             <div className="lr-ref-text">{entry.text}</div>
-            {reference.pmid && (
+            {(reference.pmid || reference.source === 'upload') && (
                 <div className="lr-ref-meta">
-                    <a href={reference.url || `https://pubmed.ncbi.nlm.nih.gov/${reference.pmid}/`} target="_blank" rel="noopener noreferrer">
-                        PMID {reference.pmid}
-                    </a>
+                    {reference.source === 'upload' && (
+                        <span className="lr-ref-upload" title={reference.file_name}>
+                            Your paper{reference.file_name ? ` · ${reference.file_name}` : ''}
+                        </span>
+                    )}
+                    {reference.pmid && (
+                        <a href={reference.url || `https://pubmed.ncbi.nlm.nih.gov/${reference.pmid}/`} target="_blank" rel="noopener noreferrer">
+                            PMID {reference.pmid}
+                        </a>
+                    )}
                 </div>
             )}
             {reference.quote && (
@@ -185,6 +192,7 @@ export default function ReviewDocument({
                 <h1 className="lr-title">{review.title || meta?.topic}</h1>
                 <div className="lr-meta">
                     {meta?.cutoffYear && <span>Up to {meta.cutoffYear}</span>}
+                    {meta?.papers > 0 && <span>{meta.papers === 1 ? 'One' : meta.papers} of your papers</span>}
                     {onCitationStyle ? (
                         <Select size="small" variant="standard" disableUnderline className="lr-style-select"
                                 value={styled.style.id} onChange={(e) => onCitationStyle(e.target.value)}
@@ -253,7 +261,7 @@ export default function ReviewDocument({
                         <div key={r.number} className="lr-cite-card-item">
                             <div className="lr-cite-card-meta">
                                 <span className="lr-mono">{authorDate ? styled.byNumber.get(r.number)?.label : `[${r.number}]`}</span>
-                                {' '}{[records?.[r.pmid]?.['container-title-short'] || r.journal, r.year].filter(Boolean).join(' · ')}{r.pmid ? ` · PMID ${r.pmid}` : ''}
+                                {' '}{[records?.[r.pmid]?.['container-title-short'] || r.journal, r.year].filter(Boolean).join(' · ')}{r.pmid ? ` · PMID ${r.pmid}` : ''}{r.source === 'upload' ? ' · Your paper' : ''}
                             </div>
                             <div className="lr-cite-card-title">{r.title}</div>
                             {r.quote && <div className="lr-cite-card-quote">“{r.quote}”</div>}

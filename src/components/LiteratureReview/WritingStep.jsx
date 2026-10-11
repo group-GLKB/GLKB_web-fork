@@ -24,7 +24,9 @@ const stageCount = (stage, detail, targetWords) => {
  * a four-part bar, one row per stage). The rows are the pipeline's real stages; the counts
  * are the ones its progress frames carry.
  */
-export default function WritingStep({ topic, progress, elapsed, targetWords, notify, pending, onStop }) {
+export default function WritingStep({
+    topic, progress, elapsed, targetWords, notify, pending, onStop, papers = 0, papersOnly = false,
+}) {
     const phase = progress?.phase || 'acquisition';
     const at = stageIndex(phase);
     const fills = stageFill(progress?.percent, phase);
@@ -36,6 +38,12 @@ export default function WritingStep({ topic, progress, elapsed, targetWords, not
             <div className="lr-main is-narrow">
                 <div className="lr-kicker">{writing ? 'Step 3 · Writing' : 'Step 2 · Building the outline'}</div>
                 <h1 className="lr-title">{topic}</h1>
+                {papers > 0 && (
+                    <p className="lr-writing-papers">
+                        {papersOnly ? `From your ${papers === 1 ? 'paper' : `${papers} papers`} only`
+                            : `With your ${papers === 1 ? 'paper' : `${papers} papers`}`}
+                    </p>
+                )}
                 <section className="lr-card lr-progress" aria-live="polite">
                     <div className="lr-progress-head">
                         <span className="lr-progress-label">{pending ? 'Writing — this page updates when the review is saved' : (progress?.label || 'Starting…')}</span>

@@ -1012,6 +1012,7 @@
 .HomePageRoot .review-scope-value { font-weight: 600; color: var(--color-text-primary, #0B1220); }
 .HomePageRoot .review-scope-chip.is-dashed { border-style: dashed; padding: 0 12px; }
 .HomePageRoot .review-scope-chip.is-soon { cursor: default; }
+.HomePageRoot .review-scope-plus { margin-left: 2px; font-weight: 600; color: var(--color-brand-primary, #155dfc); }
 .HomePageRoot .review-scope-chip.is-soon .review-scope-value { color: var(--color-text-secondary, #222A38); font-weight: 500; }
 
 /* Under the composer: example topics for Investigate and Literature Review. */

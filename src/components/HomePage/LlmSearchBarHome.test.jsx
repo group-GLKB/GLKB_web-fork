@@ -279,7 +279,9 @@ describe('with LITERATURE_REVIEW_ENABLED on', () => {
         expect(state.initialQuery).toBe('osimertinib resistance');
         expect(state.scope).toEqual({
             targetWords: 6000, cutoffYear: null, notify: true, articleTypes: 'all', citationStyle: 'vancouver',
+            sources: null,
         });
+        expect(state.papers).toEqual([]);
         // The model is picked with the chat's own picker: a service tier, never a model id.
         expect(state).not.toHaveProperty('model');
         expect(state).toHaveProperty('serviceTier');

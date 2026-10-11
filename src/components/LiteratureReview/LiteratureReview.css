@@ -117,6 +117,14 @@
 .lr-scope-rows dd.is-fixed { color: var(--color-text-secondary, #222A38); }
 .lr-scope-rows > div.lr-scope-custom { justify-content: flex-end; min-height: 0; padding-bottom: 8px; }
 .lr-scope-custom .review-length-custom { border-top: 0; padding: 0; margin: 0; }
+.lr-scope-rows > div.lr-scope-papers { display: block; min-height: 0; padding: 4px 0 10px; }
+.lr-scope-papers .attachment-chips { margin: 0; padding: 0; }
+.lr-scope-papers .attachment-chip-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; max-height: 232px; overflow-y: auto; margin: 0; padding: 0; }
+.lr-scope-papers .attachment-chip { max-width: none; width: 100%; box-sizing: border-box; }
+.lr-add-papers { font-size: 15px; }
+.lr-scope-card.is-drop-target { outline: 2px dashed var(--color-brand-primary, #155dfc); outline-offset: -6px; }
+.lr-scope-hint { margin: -12px 0 16px; font-size: 13px; line-height: 20px; color: var(--color-text-tertiary, #5E6E87); }
+.lr-writing-papers { margin: 8px 0 0; font-size: 15px; color: var(--color-text-tertiary, #5E6E87); }
 .lr-scope-tier .model-picker-trigger { font-size: 15px; font-weight: 600; color: var(--color-text-primary, #0B1220); padding-right: 0; }
 .lr-planned { display: flex; justify-content: space-between; margin: 4px 0 20px; font-size: 14px; color: var(--color-text-tertiary, #5E6E87); }
 .lr-note { margin: 16px 0 0; text-align: center; font-size: 14px; line-height: 22px; color: var(--color-text-tertiary, #5E6E87); }
@@ -353,3 +361,6 @@
   .lr-title { font-size: 26px; line-height: 34px; }
   .lr-topic { font-size: 24px; line-height: 32px; }
 }
+
+/* A reference the reader uploaded: named by its file; it links to PubMed only when PubMed knows it. */
+.lr-ref-meta .lr-ref-upload { margin-right: 10px; font-weight: 600; color: var(--color-text-secondary, #222A38); }
