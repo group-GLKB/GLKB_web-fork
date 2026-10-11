@@ -25,6 +25,7 @@ import {
     ContextMenuRenameIcon,
 } from '../ContextMenu';
 import ConversationRunStatus from '../ConversationRunStatus';
+import { runKindOf } from '../../../service/activeRun';
 
 const getDefaultTitle = (conversation) => (
     conversation?.leadingTitle || conversation?.title || 'Untitled conversation'
@@ -234,7 +235,7 @@ const ConversationCard = ({
                             )
                         )}
                         {isLoadingConversation ? (
-                            <ConversationRunStatus />
+                            <ConversationRunStatus kind={runKindOf(conversation)} />
                         ) : hasMenu && (
                             <IconButton
                                 size="small"

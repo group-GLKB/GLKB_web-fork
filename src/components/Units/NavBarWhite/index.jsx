@@ -69,7 +69,7 @@ import userLogoutIcon from '../../../img/user/mynaui_logout.svg';
 import { ABOUT_PATH, CHAT_HOME_PATH, isConversationPath } from '../../../config/entryRoutes';
 import { LITERATURE_REVIEW_ENABLED } from '../../../config/features';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
-import { getRunningConversationIds, subscribeToActiveRun } from '../../../service/activeRun';
+import { getRunningConversationIds, runKindOf, subscribeToActiveRun } from '../../../service/activeRun';
 import { getRecentPriorityIds, subscribeToRecentPriority } from '../../../service/recentPriority';
 import {
   fetchConversations,
@@ -1057,7 +1057,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                             transform: 'translateY(-50%)',
                                                         }}
                                                     >
-                                                        <ConversationRunStatus />
+                                                        <ConversationRunStatus kind={runKindOf(conversation)} />
                                                     </Box>
                                                 ) : <IconButton
                                                     size="small"

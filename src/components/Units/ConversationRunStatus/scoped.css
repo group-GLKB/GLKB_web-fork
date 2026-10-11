@@ -15,6 +15,11 @@
     animation: conversation-run-status-pulse 2.4s ease-in-out infinite;
 }
 
+/* Investigate and Literature Review: the purple the composer gives Investigate's mode icon. */
+.conversation-run-status.is-purple .conversation-run-status-dot {
+    background: #7C3AED;
+}
+
 @keyframes conversation-run-status-pulse {
     0%, 100% {
         opacity: 1;
