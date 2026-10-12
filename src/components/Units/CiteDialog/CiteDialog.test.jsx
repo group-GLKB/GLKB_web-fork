@@ -214,6 +214,24 @@ describe('exports', () => {
 });
 
 describe('the dialog', () => {
+    it('displays emphasis and copies both rich and plain citation formats', async () => {
+        global.ClipboardItem = class { constructor(data) { this.data = data; } };
+        navigator.clipboard.write = jest.fn().mockResolvedValue();
+        try {
+            render(<CiteDialog open citation={card} />);
+            await waitFor(() => expect(screen.getByLabelText('APA')).toHaveTextContent('Cell, 141(2)'));
+            expect(Array.from(screen.getByLabelText('APA').querySelectorAll('em'), node => node.textContent)).toEqual(['Cell', '141']);
+            fireEvent.click(screen.getByRole('button', { name: 'Copy APA citation' }));
+            await waitFor(() => expect(navigator.clipboard.write).toHaveBeenCalledTimes(1));
+            const item = navigator.clipboard.write.mock.calls[0][0][0];
+            expect(item.data['text/html'].type).toBe('text/html');
+            expect(item.data['text/plain'].type).toBe('text/plain');
+            expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
+            await waitFor(() => expect(message.success).toHaveBeenCalledWith('APA citation copied to clipboard'));
+        } finally {
+            delete global.ClipboardItem;
+        }
+    });
     it('fetches the record for the card\'s PMID, renders the five styles from it and copies them', async () => {
         const onClose = jest.fn();
         render(<CiteDialog open onClose={onClose} citation={['Old title', 'https://pubmed.ncbi.nlm.nih.gov/20362325/', 790, '2010', 'Cell', 'Samuel F Bunting']} />);

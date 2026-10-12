@@ -287,7 +287,7 @@ const LoginModal = () => {
         </form>
 
         <div className="privacy-text">
-          By continuing, you agree to our <a href="/terms">Terms and Conditions</a> and <a href="/privacy-policy">Privacy Policy</a>.
+          By continuing, you agree to our <a href="/terms">Terms and Conditions</a> and <a href="/privacy">Privacy Policy</a>.
         </div>
       </div>
     </div>

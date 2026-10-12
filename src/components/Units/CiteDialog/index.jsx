@@ -4,7 +4,8 @@ import { Dialog } from '@mui/material';
 import closeIcon from './close.svg';
 import copyIcon from './copy.svg';
 import { fetchCitation, fetchRis } from '../../../service/Citation';
-import { EXPORTS, FORMATS, cslFromCard, formatCitation, normalizeCsl, toBibTeX, toEndNote } from './format';
+import { EXPORTS, FORMATS, cslFromCard, formatCitation, formatCitationHtml, normalizeCsl, toBibTeX, toEndNote } from './format';
+import { copyCitation } from './clipboard';
 import './scoped.css';
 
 /**
@@ -43,14 +44,19 @@ const CiteDialog = ({ open, onClose, citation }) => {
         [paper],
     );
 
-    const copyText = async (label, text) => {
+    const htmls = useMemo(
+        () => Object.fromEntries(FORMATS.map(format => [format, formatCitationHtml(format, paper)])),
+        [paper],
+    );
+
+    const copyText = async (label, text, html) => {
         if (!text) {
             message.error(`No ${label} citation available for this paper`);
             return;
         }
         try {
-            await navigator.clipboard.writeText(text);
-            message.success(`${label} citation copied to clipboard`);
+            const rich = await copyCitation(text, html);
+            message.success(`${label} citation copied to clipboard${html && !rich ? ' (plain text; rich-text copy unavailable)' : ''}`);
         } catch {
             message.error('Copy failed');
         }
@@ -88,9 +94,9 @@ const CiteDialog = ({ open, onClose, citation }) => {
                 <section className="cite-paper-format" key={format} aria-label={format}>
                     <h3>{format}</h3>
                     <div className="cite-paper-text">
-                        <p>{texts[format]}</p>
+                        <p dangerouslySetInnerHTML={{ __html: htmls[format] }} />
                         <button type="button" className="cite-paper-copy" aria-label={`Copy ${format} citation`}
-                            onClick={() => copyText(format, texts[format])}>
+                            onClick={() => copyText(format, texts[format], htmls[format])}>
                             <img src={copyIcon} alt="" />
                         </button>
                     </div>

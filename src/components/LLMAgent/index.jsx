@@ -51,7 +51,6 @@ import {
   Drawer,
   FormControlLabel,
   Grid,
-  IconButton,
   Radio,
   RadioGroup,
   Snackbar,
@@ -78,6 +77,7 @@ import {
 import ClarifyPanel, { getClarificationQuestionKey } from './ClarifyPanel';
 import ReferenceHoverCard from './ReferenceHoverCard';
 import AnswerGraphForMessage from '../AnswerGraph/AnswerGraphForMessage';
+import IconButton from '../Units/HintIconButton';
 import { splitAnswerForGraph } from '../AnswerGraph/answerGraph';
 import { getBookmarks, toggleBookmark } from '../../utils/bookmarks';
 import { resolveClarifyRound } from './clarifyRound';

@@ -383,6 +383,43 @@ export const formatCitation = (format, csl) => {
     return render(r);
 };
 
+const escapeHtml = (text) => String(text).replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[char]));
+
+/** Style bibliographic fields, never substring-match a journal/volume inside a title.
+ * APA italicizes journal and volume; MLA/Chicago/Harvard the journal only.
+ * NLM Vancouver stays roman. AMA italicizes the abbreviated journal; Nature also
+ * bolds the volume. These last two styles are used by the review formatter.
+ * All source text is escaped before introducing our own trusted markup.
+ */
+export const formatCitationHtml = (format, csl) => {
+    const render = STYLES[format];
+    if (!render) return '';
+    const r = normalizeCsl(csl);
+    if (!r.title && !r.authors.length) return '';
+    let prefix = '\uE000cite';
+    while (JSON.stringify(r).includes(prefix)) prefix += '_';
+    const fragments = [];
+    const mark = (value, tag) => {
+        if (!value) return value;
+        // Keep terminal punctuation visible to endWithStop in the plain formatter.
+        const punctuation = String(value).match(/[.!?]+$/)?.[0] || '';
+        const text = punctuation ? String(value).slice(0, -punctuation.length) : String(value);
+        if (!text) return value;
+        const token = `${prefix}${fragments.length}\uE001`;
+        fragments.push([token, `<${tag}>${escapeHtml(text)}</${tag}>`]);
+        return token + punctuation;
+    };
+    if (['MLA', 'APA', 'Chicago', 'Harvard'].includes(format)) r.journal = mark(r.journal, 'em');
+    if (['AMA', 'Nature'].includes(format)) r.journalAbbrev = mark(r.journalAbbrev, 'em');
+    if (format === 'APA') r.volume = mark(r.volume, 'em');
+    if (format === 'Nature') r.volume = mark(r.volume, 'strong');
+    let html = escapeHtml(render(r));
+    fragments.forEach(([token, markup]) => { html = html.split(token).join(markup); });
+    return html;
+};
+
 // ---------------------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------------------
