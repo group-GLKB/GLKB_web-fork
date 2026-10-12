@@ -30,7 +30,7 @@ import { getChatHistoryDetailByPublicId } from '../../service/ChatHistory';
 import { cancelReview, streamReview } from '../../service/LiteratureReview';
 import { fetchCitations } from '../../service/Citation';
 import { getTierPref, setTierPref } from '../../service/serviceTiers';
-import { CHAT_NEW_PATH } from '../../config/entryRoutes';
+import { CHAT_HOME_PATH, CHAT_NEW_PATH } from '../../config/entryRoutes';
 import { latexFilename, reviewToLatex } from '../../utils/reviewToLatex';
 import { exportFilename, reviewTitle, reviewToPrintable, reviewToWord } from '../../utils/reviewExport';
 import { trackGtagEvent } from '../../utils/gtag';
@@ -321,7 +321,7 @@ export default function LiteratureReview() {
 
     return (
         <div className="lr-root">
-            <TopBar step={step} onHome={() => navigate('/')} onNew={startNew} actions={actions} />
+            <TopBar step={step} onHome={() => navigate(CHAT_HOME_PATH)} onNew={startNew} actions={actions} />
 
             {/* Hidden rather than unmounted while a review runs or is shown: the old form's MUI
                 TextareaAutosize could throw on unmount; the textarea here is plain, but the form

@@ -1,6 +1,8 @@
 import React from 'react';
 import CheckIcon from '@mui/icons-material/Check';
 
+import BetaBadge from '../Units/BetaBadge';
+
 /** The four steps of a review, as the design names them. */
 export const STEPS = ['Scope', 'Outline', 'Writing', 'Review'];
 
@@ -30,7 +32,7 @@ export function TopBar({ step, onHome, onNew, actions }) {
         <header className="lr-topbar">
             <nav className="lr-crumbs">
                 <button type="button" className="lr-crumb-home" onClick={onHome}>← Home</button>
-                <button type="button" className="lr-crumb-section" onClick={onNew}>Literature Review</button>
+                <button type="button" className="lr-crumb-section" onClick={onNew}>Literature Review<BetaBadge /></button>
             </nav>
             <Stepper current={step} />
             <div className="lr-topbar-actions">{actions}</div>

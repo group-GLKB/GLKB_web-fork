@@ -72,7 +72,7 @@ describe('progress', () => {
 });
 
 describe('ReviewDocument', () => {
-    it("shows the audit's numbers, previews a citation, and hands a paragraph to an action", () => {
+    it("shows the audit's numbers, previews a citation, and shows the paragraph actions greyed out", () => {
         const onAction = jest.fn();
         render(<ReviewDocument markdown={REVIEW} meta={{ generated: 'Oct 9, 2026', minutes: 9 }} onAction={onAction} />);
         expect(screen.getByText('Citations verified').nextSibling).toHaveTextContent('3');
@@ -83,8 +83,11 @@ describe('ReviewDocument', () => {
         fireEvent.mouseEnter(screen.getByRole('button', { name: 'References 1, 2' }));
         expect(screen.getByRole('tooltip')).toHaveTextContent('p53 deficiency mediates cisplatin resistance');
 
+        // Not open yet (PARAGRAPH_ACTIONS_ENABLED): all four are shown, disabled, and hand nothing over.
+        for (const name of ['Ask', 'Rewrite', 'Shorten', 'Add evidence']) {
+            expect(screen.getAllByRole('button', { name })[0]).toBeDisabled();
+        }
         fireEvent.click(screen.getAllByRole('button', { name: 'Rewrite' })[0]);
-        expect(onAction.mock.calls[0][0].id).toBe('rewrite');
-        expect(onAction.mock.calls[0][1]).toMatch(/^Deliberate p53 disruption/);
+        expect(onAction).not.toHaveBeenCalled();
     });
 });

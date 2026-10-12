@@ -3,6 +3,7 @@ import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 
 import { ReactComponent as ChatIcon } from '../../img/llm/chat_message.svg';
 import { ReactComponent as InvestigateIcon } from '../../img/llm/investigate.svg';
+import BetaBadge from '../Units/BetaBadge';
 
 /**
  * The home composer's three modes, as tabs along its top edge (design: Chat / Investigate /
@@ -32,6 +33,7 @@ export const COMPOSER_MODES = {
     },
     review: {
         label: 'Literature Review',
+        beta: true,
         hint: 'Discover papers. Synthesize findings.',
         duration: '8–12 min',
         placeholder: 'Topic or research question for your review…',
@@ -72,6 +74,7 @@ export default function ComposerModes({ modes, mode, onChange, disabled, compact
                         >
                             {!compact && <span className="composer-mode-icon">{ICONS[id]}</span>}
                             <span className="composer-mode-label">{COMPOSER_MODES[id].label}</span>
+                            {COMPOSER_MODES[id].beta && !compact && <BetaBadge style={{ marginLeft: -2 }} />}
                         </button>
                     );
                 })}

@@ -261,8 +261,9 @@ describe('with LITERATURE_REVIEW_ENABLED on', () => {
     it('offers the three modes as tabs', () => {
         mockReviewFlag = true;
         setup();
-        const tabs = screen.getAllByRole('tab', { hidden: true }).map((n) => n.textContent);
-        expect(tabs.map((t) => t.replace(/^.*\.svg/, ''))).toEqual(['Chat', 'Investigate', 'Literature Review']);
+        const tabs = screen.getAllByRole('tab', { hidden: true });
+        expect(tabs.map((n) => n.querySelector('.composer-mode-label').textContent)).toEqual(['Chat', 'Investigate', 'Literature Review']);
+        expect(tabs.map((n) => Boolean(n.querySelector('.beta-badge')))).toEqual([false, false, true]);
         expect(screen.getByRole('tab', { name: /Chat/, hidden: true })).toHaveAttribute('aria-selected', 'true');
     });
 

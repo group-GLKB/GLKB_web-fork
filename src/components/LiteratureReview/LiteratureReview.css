@@ -24,7 +24,7 @@
 .lr-crumbs { display: flex; align-items: center; gap: 24px; }
 .lr-crumbs button { padding: 0; border: 0; background: none; cursor: pointer; font-weight: 500; font-size: 16px; line-height: 22px; font-family: inherit; }
 .lr-crumbs .lr-crumb-home { color: var(--color-text-secondary, #222A38); }
-.lr-crumbs .lr-crumb-section { color: var(--color-brand-primary); font-weight: 600; }
+.lr-crumbs .lr-crumb-section { display: inline-flex; align-items: center; color: var(--color-brand-primary); font-weight: 600; }
 .lr-topbar-actions { display: flex; justify-content: flex-end; gap: 12px; }
 
 .lr-stepper { display: flex; align-items: center; margin: 0; padding: 0; list-style: none; }
@@ -260,6 +260,9 @@
   cursor: pointer;
 }
 .lr-para-tools button:hover { background: var(--color-background-muted, #E5E9F0); }
+/* Not open yet (PARAGRAPH_ACTIONS_ENABLED): shown, greyed out, not clickable. */
+.lr-para-tools button:disabled { color: var(--color-grey-300, #A8B3C8); cursor: not-allowed; }
+.lr-para-tools button:disabled:hover { background: none; }
 .lr-cite {
   display: inline-flex;
   align-items: center;

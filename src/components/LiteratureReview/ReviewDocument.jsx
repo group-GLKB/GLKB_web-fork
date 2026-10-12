@@ -17,6 +17,9 @@ const nodeText = (node) => {
     return (node.children || []).map(nodeText).join('');
 };
 
+/** The paragraph actions are not open yet: the toolbar shows them greyed out and they do nothing. */
+export const PARAGRAPH_ACTIONS_ENABLED = false;
+
 /** What each paragraph action asks the chat, with the passage quoted. */
 export const PARAGRAPH_ACTIONS = [
     { id: 'ask', label: 'Ask', prompt: (t, title) => `About this passage from my literature review "${title}" — what does the evidence behind it show, and how strong is it?\n\n"${t}"` },
@@ -144,9 +147,11 @@ export default function ReviewDocument({
                         toolbar stays at the top of what is visible of it. */}
                     {onAction && text.length > 40 && (
                         <div className="lr-para-anchor">
-                            <div className="lr-para-tools" role="toolbar" aria-label="Paragraph actions">
+                            <div className="lr-para-tools" role="toolbar" aria-label="Paragraph actions"
+                                 title={PARAGRAPH_ACTIONS_ENABLED ? undefined : 'Coming soon'}>
                                 {PARAGRAPH_ACTIONS.map((a) => (
-                                    <button key={a.id} type="button" onClick={() => onAction(a, text)}>{a.label}</button>
+                                    <button key={a.id} type="button" disabled={!PARAGRAPH_ACTIONS_ENABLED}
+                                            onClick={() => onAction(a, text)}>{a.label}</button>
                                 ))}
                             </div>
                         </div>
@@ -230,7 +235,9 @@ export default function ReviewDocument({
                         </div>
                     )}
                 </div>
-                <p className="lr-hint">Hover a citation to preview the paper. Hover a paragraph to ask about it or rewrite it.</p>
+                <p className="lr-hint">
+                    Hover a citation to preview the paper.{PARAGRAPH_ACTIONS_ENABLED && ' Hover a paragraph to ask about it or rewrite it.'}
+                </p>
                 {review.intro && <div className="lr-section">{render(review.intro)}</div>}
                 {review.sections.map((s) => (
                     <section key={s.id} id={s.id} className="lr-section">
