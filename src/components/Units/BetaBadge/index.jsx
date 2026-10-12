@@ -1,10 +1,10 @@
 import React from 'react';
 
 /** The small "Beta" pill beside a feature's name (Literature Review, while it is in testing). */
-export default function BetaBadge({ style }) {
+export default function BetaBadge({ className, style }) {
     return (
         <span
-            className="beta-badge"
+            className={`beta-badge${className ? ` ${className}` : ''}`}
             style={{
                 display: 'inline-flex',
                 alignItems: 'center',

@@ -83,6 +83,8 @@
 .lr-scope { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 40px; align-items: start; }
 .lr-main.is-narrow { max-width: 880px; margin: 0 auto; }
 .lr-kicker { margin-bottom: 10px; font-size: 15px; font-weight: 600; color: var(--color-brand-primary); }
+/* The Beta pill rides the kicker only on a phone, where the top bar has no room for the section crumb. */
+.lr-kicker .lr-kicker-beta { display: none !important; }
 .lr-title { margin: 0 0 24px; font-size: 34px; line-height: 42px; font-weight: 700; letter-spacing: -0.01em; }
 .lr-lede { max-width: 760px; margin: 16px 0 0; font-size: 17px; line-height: 28px; color: var(--color-text-tertiary, #5E6E87); }
 .lr-topic-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
@@ -292,6 +294,9 @@
 .lr-cite.is-author-date:hover, .lr-cite.is-author-date:focus { background: #E3ECFF; }
 .lr-table-scroll { overflow-x: auto; margin: 12px 0; }
 .lr-table-scroll table { border-collapse: collapse; font-size: 15px; }
+/* A table keeps whole words and scrolls sideways in its own box rather than squeezing to the column. */
+.lr-table-scroll table { overflow-wrap: normal; }
+.lr-table-scroll .lr-cite { white-space: nowrap; }
 .lr-table-scroll th, .lr-table-scroll td { padding: 8px 12px; border: 1px solid var(--color-border-default, #E5E9F0); text-align: left; vertical-align: top; }
 
 .lr-refs {
@@ -354,12 +359,35 @@
   .lr-step-label { font-size: 14px; }
   .lr-scope { grid-template-columns: 1fr; }
   .lr-page { padding: 24px 16px 48px; }
-  .lr-review { grid-template-columns: 1fr; }
+  /* minmax(0, ...), not 1fr: a 1fr track is at least its content's min-content, so a wide table or a
+     long unbreakable token made the document wider than the phone and cut off its right side. */
+  .lr-review { grid-template-columns: minmax(0, 1fr); }
   .lr-refs { position: static; height: auto; border-left: 0; border-top: 1px solid var(--color-border-default, #E5E9F0); }
-  .lr-document { padding: 24px 16px 48px; }
+  .lr-document { min-width: 0; padding: 24px 16px 48px; overflow-wrap: anywhere; }
+  .lr-kicker .lr-kicker-beta { display: inline-flex !important; vertical-align: 1px; }
+  .lr-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lr-stat { padding: 14px 16px; }
+  .lr-stat:nth-child(odd) { border-left: 0; }
+  .lr-stat:nth-child(n + 3) { border-top: 1px solid var(--color-border-default, #E5E9F0); }
+  .lr-stat-value { font-size: 20px; }
   .lr-para p { font-size: 16px; line-height: 28px; }
   .lr-title { font-size: 26px; line-height: 34px; }
   .lr-topic { font-size: 24px; line-height: 32px; }
+}
+/* A phone: the four steps do not fit side by side, so only the current one keeps its label
+   (the others keep it for screen readers). */
+/* Where the app shows its own 56px phone header (Layout, the same 767px query), the review's bar
+   scrolls away with the page: stuck under that header it hid its first row (Home, Share, Export)
+   and, with it, took a fifth of the screen from the text. */
+@media (max-width: 767px) {
+  .lr-topbar { position: static; }
+}
+@media (max-width: 600px) {
+  .lr-step:not(.is-current) .lr-step-label {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .lr-step { position: relative; gap: 6px; }
+  .lr-step-rule { width: 14px; margin: 0 6px; }
 }
 
 /* A reference the reader uploaded: named by its file; it links to PubMed only when PubMed knows it. */

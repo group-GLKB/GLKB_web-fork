@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import BetaBadge from '../Units/BetaBadge';
 import { OptionSelect } from '../Units/OptionMenu';
 
 import { buildStyle, REVIEW_STYLES } from './citationStyle';
@@ -193,7 +194,7 @@ export default function ReviewDocument({
             </nav>
 
             <article className="lr-document">
-                <div className="lr-kicker">Literature review · Draft 1</div>
+                <div className="lr-kicker">Literature review · Draft 1<BetaBadge className="lr-kicker-beta" /></div>
                 <h1 className="lr-title">{review.title || meta?.topic}</h1>
                 <div className="lr-meta">
                     {meta?.startYear

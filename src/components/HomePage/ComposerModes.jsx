@@ -74,7 +74,10 @@ export default function ComposerModes({ modes, mode, onChange, disabled, compact
                         >
                             {!compact && <span className="composer-mode-icon">{ICONS[id]}</span>}
                             <span className="composer-mode-label">{COMPOSER_MODES[id].label}</span>
-                            {COMPOSER_MODES[id].beta && !compact && <BetaBadge style={{ marginLeft: -2 }} />}
+                            {COMPOSER_MODES[id].beta && (compact
+                                // On a phone the tabs share the width: the pill sits on the tab's corner, taking none.
+                                ? <BetaBadge className="composer-mode-beta" style={{ position: 'absolute', top: -7, right: -2, margin: 0, padding: '0 4px', fontSize: 9, lineHeight: '13px', pointerEvents: 'none' }} />
+                                : <BetaBadge style={{ marginLeft: -2 }} />)}
                         </button>
                     );
                 })}

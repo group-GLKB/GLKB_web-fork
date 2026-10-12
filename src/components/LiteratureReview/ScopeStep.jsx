@@ -4,6 +4,7 @@ import { Alert, Switch } from '@mui/material';
 import {
     ARTICLE_TYPES, LengthOptions, SEARCH_ONLY_FILTER, sourceById, sourceOptions, sourcesPatch, YearRange, yearsLabel,
 } from '../HomePage/ReviewScope';
+import BetaBadge from '../Units/BetaBadge';
 import TierPicker from '../Units/TierPicker';
 import { OptionDropdown, OptionSelect } from '../Units/OptionMenu';
 import { AttachmentChips, attachmentBlockedNote, dragHasFiles, filesFromTransfer } from '../Units/AttachmentChips';
@@ -55,7 +56,7 @@ export default function ScopeStep({
     return (
         <div className="lr-page lr-scope">
             <div className="lr-main">
-                <div className="lr-kicker">Step 1 · Define the scope</div>
+                <div className="lr-kicker">Step 1 · Define the scope<BetaBadge className="lr-kicker-beta" /></div>
                 <label className="lr-topic-label" htmlFor="lr-topic">Topic</label>
                 <textarea
                     id="lr-topic"

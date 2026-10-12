@@ -987,6 +987,7 @@
 .HomePageRoot .composer-modes.is-compact { padding: 10px 10px 2px; }
 .HomePageRoot .composer-modes.is-compact .composer-modes-tabs { display: flex; flex: 1; min-width: 0; }
 .HomePageRoot .composer-modes.is-compact .composer-mode {
+  position: relative;
   flex: 1 1 auto;
   min-width: 0;
   justify-content: center;

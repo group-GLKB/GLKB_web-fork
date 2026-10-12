@@ -1,6 +1,8 @@
 import React from 'react';
 import CheckIcon from '@mui/icons-material/Check';
 
+import BetaBadge from '../Units/BetaBadge';
+
 import { minutesLeft, STAGES, stageFill, stageIndex } from './reviewModel';
 
 const count = (n, one, many) => `${Number(n).toLocaleString('en-US')} ${n === 1 ? one : many}`;
@@ -36,7 +38,7 @@ export default function WritingStep({
     return (
         <div className="lr-page lr-writing">
             <div className="lr-main is-narrow">
-                <div className="lr-kicker">{writing ? 'Step 3 · Writing' : 'Step 2 · Building the outline'}</div>
+                <div className="lr-kicker">{writing ? 'Step 3 · Writing' : 'Step 2 · Building the outline'}<BetaBadge className="lr-kicker-beta" /></div>
                 <h1 className="lr-title">{topic}</h1>
                 {papers > 0 && (
                     <p className="lr-writing-papers">
