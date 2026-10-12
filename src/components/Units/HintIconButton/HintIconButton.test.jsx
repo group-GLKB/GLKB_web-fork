@@ -10,6 +10,7 @@ it('shows a styled hint instead of a native title and preserves click behavior',
     expect(container.querySelector('[title]')).toBeNull();
     fireEvent.mouseOver(button);
     expect(await screen.findByRole('tooltip')).toHaveTextContent('Copy response');
+    expect(screen.getByRole('tooltip')).toHaveAttribute('data-popper-placement', 'bottom');
     fireEvent.click(button);
     expect(click).toHaveBeenCalledTimes(1);
 });

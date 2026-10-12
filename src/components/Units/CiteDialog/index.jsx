@@ -4,7 +4,7 @@ import { Dialog } from '@mui/material';
 import closeIcon from './close.svg';
 import copyIcon from './copy.svg';
 import { fetchCitation, fetchRis } from '../../../service/Citation';
-import { EXPORTS, FORMATS, cslFromCard, formatCitation, formatCitationHtml, normalizeCsl, toBibTeX, toEndNote } from './format';
+import { EXPORTS, FORMATS, STYLE_EDITIONS, cslFromCard, formatCitation, formatCitationHtml, normalizeCsl, toBibTeX, toEndNote } from './format';
 import { copyCitation } from './clipboard';
 import './scoped.css';
 
@@ -93,6 +93,7 @@ const CiteDialog = ({ open, onClose, citation }) => {
             {FORMATS.map((format) => (
                 <section className="cite-paper-format" key={format} aria-label={format}>
                     <h3>{format}</h3>
+                    <div className="cite-paper-edition">{STYLE_EDITIONS[format]}</div>
                     <div className="cite-paper-text">
                         <p dangerouslySetInnerHTML={{ __html: htmls[format] }} />
                         <button type="button" className="cite-paper-copy" aria-label={`Copy ${format} citation`}
@@ -102,6 +103,7 @@ const CiteDialog = ({ open, onClose, citation }) => {
                     </div>
                 </section>
             ))}
+            <p className="cite-paper-note">Article titles retain the source capitalization to preserve scientific names. Check title capitalization and any missing metadata against your publisher's requirements.</p>
             <hr />
             <div className="cite-paper-footer">
                 <span>Copy as</span>

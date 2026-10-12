@@ -12,13 +12,14 @@
  * without volume/pages/DOI — rather than nothing.
  *
  * The five styles follow their current editions for a journal article:
- *   MLA 9, APA 7, Chicago 17 (notes-bibliography), Harvard (Cite Them Right), Vancouver.
+ *   MLA 9, APA 7, Chicago 18 (notes-bibliography), Harvard (Cite Them Right), Vancouver.
  * Titles are kept exactly as PubMed records them (sentence case); a style that asks for
  * Title Case is not applied, because capitalising gene and protein names mechanically
  * corrupts them (BRCA1 → Brca1, p53 → P53).
  */
 
 export const FORMATS = ['MLA', 'APA', 'Chicago', 'Harvard', 'Vancouver'];
+export const STYLE_EDITIONS = { MLA: '9th edition', APA: '7th edition', Chicago: '18th edition · bibliography', Harvard: 'Cite Them Right', Vancouver: 'NLM · first six authors' };
 export const EXPORTS = ['BibTeX', 'RIS', 'EndNote'];
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -101,7 +102,7 @@ export const normalizeCsl = (csl) => {
         volume: clean(item.volume),
         issue: clean(item.issue),
         page: clean(item.page).replace(/\s*[-–—]+\s*/g, '-'),
-        doi: clean(item.DOI),
+        doi: clean(item.DOI).replace(/^(?:https?:\/\/(?:dx\.)?doi\.org\/|doi:\s*)/i, ''),
         pmid,
         pmcid: clean(item.PMCID),
         issn: clean(item.ISSN),
@@ -118,7 +119,7 @@ export const normalizeCsl = (csl) => {
 const givenTokens = (given) => clean(given).split(' ').filter(Boolean);
 
 /** "Samuel F" → "S. F."; "Hua-Tang" → "H.-T." (APA, Harvard). NLM drops both dots and hyphens: "SF", "HT". */
-const initials = (given, { dot = '.', sep = ' ', hyphen = '-' } = {}) => givenTokens(given)
+const initials = (given, { dot = '.', sep = ' ', hyphen = '-' } = {}) => givenTokens(given.replace(/\.(?=[^\s.-])/g, '. '))
     .map((token) => token.split('-').map((part) => (part ? `${part[0]}${dot}` : '')).filter(Boolean).join(hyphen))
     .join(sep);
 
@@ -147,21 +148,23 @@ export const expandPageRange = (page) => {
     if (!m) return [text, ''];
     const [, prefixA, a, prefixB, b] = m;
     let end = b;
-    if (prefixB === prefixA && b.length < a.length) end = a.slice(0, a.length - b.length) + b;
+    if ((!prefixB || prefixB === prefixA) && b.length < a.length) end = a.slice(0, a.length - b.length) + b;
     return [`${prefixA}${a}`, `${prefixB || prefixA}${end}`];
 };
 
-const pageRange = (page, { expand, dash = EN_DASH }) => {
+const pageRange = (page, { expand, dash = EN_DASH, chicagoStyle = false }) => {
     const [start, end] = expandPageRange(page);
     if (!start) return '';
     if (!end) return start;
     if (expand) return `${start}${dash}${end}`;
-    // MLA's "minimal-two" rule, which Chicago shares for the common cases: drop the leading
-    // digits the end page has in common with the start, keeping at least two ("243–54", "1100–05").
+    // Chicago differs from MLA at whole hundreds and 101–109 (etc.).
+    if (chicagoStyle && /^\d+$/.test(start) && Number(start) % 100 === 0) return `${start}${dash}${end}`;
+    const minimum = chicagoStyle && /^\d+$/.test(start) && Number(start) > 100 && Number(start) % 100 < 10 ? 1 : 2;
+    // Do not abbreviate prefixes such as S12–S15 as though they were numeric digits.
     let short = end;
-    if (start.length === end.length && start.length > 2) {
+    if (/^\d+$/.test(start) && /^\d+$/.test(end) && start.length === end.length && start.length > 2) {
         let common = 0;
-        while (common < start.length - 2 && start[common] === end[common]) common += 1;
+        while (common < start.length - minimum && start[common] === end[common]) common += 1;
         short = end.slice(common);
     }
     return `${start}${dash}${short}`;
@@ -246,9 +249,9 @@ const apa = (r) => {
 };
 
 /**
- * Chicago 17, notes-bibliography:  Bunting, Samuel F., Elsa Callén, …, et al. "Title." Cell
+ * Chicago 18, notes-bibliography:  Bunting, Samuel F., Elsa Callén, …, et al. "Title." Cell
  *         141, no. 2 (2010): 243–54. https://doi.org/….
- * Up to ten authors listed in full; more than ten → the first seven and "et al."
+ * Up to six authors listed in full; more than six → the first three and "et al."
  */
 const chicago = (r) => {
     const authors = authorList(r.authors, {
@@ -259,9 +262,9 @@ const chicago = (r) => {
         joinWith: (names) => (names.length >= 2
             ? `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`
             : names[0]),
-        max: 10, keep: 7, etAl: ', et al.',
+        max: 6, keep: 3, etAl: ', et al.',
     });
-    const pages = pageRange(r.page, { expand: false });
+    const pages = pageRange(r.page, { expand: false, chicagoStyle: true });
     const source = joinParts([
         joinParts([r.journal, r.volume]),
         r.issue && `no. ${r.issue}`,

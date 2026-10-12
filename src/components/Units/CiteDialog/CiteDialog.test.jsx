@@ -66,9 +66,9 @@ describe('the five styles, on a real 16-author record', () => {
             + `(2010). ${TITLE}. Cell, 141(2), 243–254. https://doi.org/10.1016/j.cell.2010.03.012`,
         );
     });
-    it('Chicago 17: more than ten authors → the first seven and et al.; "141, no. 2 (2010): 243–54."', () => {
+    it('Chicago 18: more than six authors → the first three and et al.; "141, no. 2 (2010): 243–54."', () => {
         expect(formatCitation('Chicago', BUNTING)).toBe(
-            'Bunting, Samuel F., Elsa Callén, Nancy Wong, Hua-Tang Chen, Federica Polato, Amanda Gunn, Anne Bothmer, et al. '
+            'Bunting, Samuel F., Elsa Callén, Nancy Wong, et al. '
             + `"${TITLE}." Cell 141, no. 2 (2010): 243–54. https://doi.org/10.1016/j.cell.2010.03.012.`,
         );
     });
@@ -102,8 +102,8 @@ describe('author-count rules', () => {
         expect(formatCitation('Harvard', two)).toMatch(/^Family1, G\. and Family2, G\. \(2010\) '/);
         expect(formatCitation('Vancouver', two)).toMatch(/^Family1 G, Family2 G\. 53BP1/);
     });
-    it('Chicago lists all of ten authors with an Oxford comma; Harvard lists three', () => {
-        expect(formatCitation('Chicago', withAuthors(10))).toMatch(/Given9 Family9, and Given10 Family10\. "/);
+    it('Chicago lists all of six authors with an Oxford comma; Harvard lists three', () => {
+        expect(formatCitation('Chicago', withAuthors(6))).toMatch(/Given5 Family5, and Given6 Family6\. "/);
         expect(formatCitation('Harvard', withAuthors(3))).toMatch(/^Family1, G\., Family2, G\. and Family3, G\. \(2010\)/);
     });
     it('APA lists up to twenty authors and elides twenty-one or more to nineteen … last', () => {

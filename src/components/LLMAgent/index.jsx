@@ -1444,7 +1444,7 @@ const MessageCard = React.memo(function MessageCard({
             data-message-index={index}
             data-message-role={message.role}
         >
-            <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: "5px", justifyContent: "flex-end" }}>
+            <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: isAssistant ? '5px' : 0, justifyContent: "flex-end" }}>
                 <Box
                     sx={{
                         bgcolor: isAssistant ? "transparent" : "var(--color-background-muted)",
@@ -1775,7 +1775,7 @@ const MessageCard = React.memo(function MessageCard({
                         </Box>
 
                         {isAssistant && (
-                            <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
+                            <Stack className="message-action-row" direction="row" mt={2} sx={{ pb: "8px" }}>
                                 {!isLoading && (
                                     <IconButton
                                         size="small"
@@ -1819,16 +1819,16 @@ const MessageCard = React.memo(function MessageCard({
 
             </Container>
             {!isAssistant && <Box sx={{ justifyContent: "flex-end", direction: "row", display: "flex", alignItems: "center" }}>
-                <Stack direction="row" spacing={1} sx={{ pb: "8px", pr: "24px" }}>
+                <Stack className="message-action-row user-action-row" direction="row" sx={{ pb: "8px", pr: { xs: '16px', sm: '24px' }, mt: '16px' }}>
                     {
                         isEditing ? <>
-                            <IconButton size="small" onClick={() => {
+                            <IconButton size="small" title="Cancel editing" onClick={() => {
                                 setIsEditing(false);
                                 setEditContent('');
                             }}>
                                 <ClearIcon fontSize="small" />
                             </IconButton>
-                            <IconButton size="small" onClick={(event) => {
+                            <IconButton size="small" title="Save message" onClick={(event) => {
                                 if (editContent.trim() === '') {
                                     return;
                                 }
@@ -1850,6 +1850,7 @@ const MessageCard = React.memo(function MessageCard({
                             {allowUserEdit && (
                                 <IconButton
                                     size="small"
+                                    title="Edit message"
                                     onClick={() => {
                                         if (!allowUserEdit || isAssistant) return;
 
@@ -1857,7 +1858,7 @@ const MessageCard = React.memo(function MessageCard({
                                         setEditContent(message.content);
                                     }}
                                 >
-                                    <EditNoteIcon fontSize="small" />
+                                    <EditNoteIcon />
                                 </IconButton>
                             )}
                         </div>

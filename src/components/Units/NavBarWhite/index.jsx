@@ -723,7 +723,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                     secondary={item.secondaryLabel}
                     primaryTypographyProps={{
                         fontFamily: 'Geist, sans-serif',
-                        fontWeight: item.secondaryLabel ? 600 : 500,
+                        fontWeight: item.secondaryLabel ? 600 : (topItems.includes(item) || middleItems.includes(item) ? 400 : 500),
                         fontSize: item.secondaryLabel ? '14px' : '16px',
                         lineHeight: item.secondaryLabel ? '22px' : '20px',
                         color: item.secondaryLabel

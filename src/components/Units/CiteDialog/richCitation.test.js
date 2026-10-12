@@ -9,6 +9,16 @@ const readBlob = blob => new Promise(resolve => {
     const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.readAsText(blob);
 });
 
+it.each([['100-104', '100–104'], ['101-108', '101–8'], ['1100-1113', '1100–1113'], ['1103-1104', '1103–4'], ['321-328', '321–28'], ['S123-9', 'S123–S129']])('Chicago page range %s follows its own rules', (page, expected) => {
+    expect(formatCitation('Chicago', { ...record, page })).toContain(`: ${expected}.`);
+});
+it('normalizes DOI URLs and preserves punctuated author initials', () => {
+    const item = { ...record, DOI: 'https://doi.org/10.1234/example', author: [{ family: 'Smith', given: 'S.F.' }] };
+    expect(formatCitation('APA', item)).toContain('Smith, S. F.');
+    expect(formatCitation('APA', item)).toMatch(/https:\/\/doi.org\/10.1234\/example$/);
+    expect(formatCitation('Vancouver', item)).toContain('Smith SF.');
+});
+
 it.each([...FORMATS, 'AMA', 'Nature'])('%s rich and plain forms have identical text', format => {
     [record, { ...record, volume: '', 'container-title': '' },
         { ...record, 'container-title': 'J.', 'container-title-short': 'J.' }].forEach(item => {
