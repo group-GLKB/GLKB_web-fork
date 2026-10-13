@@ -87,7 +87,4 @@ export const isProductionSite = (hostname = (typeof window !== 'undefined' ? win
     PRODUCTION_HOSTS.includes(String(hostname || '').toLowerCase())
 );
 
-// The `test` branch (test.glkb.org) keeps it OFF: that site calls the production backend
-// (backend.glkb.org), whose review service is not set up yet (/literature-review/models answers 503,
-// 2026-10-13), so the entry point would only lead to an error. Turn it on here once it is.
-export const LITERATURE_REVIEW_ENABLED = false;
+export const LITERATURE_REVIEW_ENABLED = !isProductionSite();
