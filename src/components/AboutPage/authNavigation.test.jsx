@@ -44,10 +44,15 @@ it('opens the demo video from both hero and footer without leaving About or requ
     } finally { open.mockRestore(); }
 });
 
-it('opens sign-in for a guest and stays on About until authentication succeeds', () => {
-    const view = render(<App />);
+it('sends a guest to chat on Get Started without opening login', () => {
+    render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Get Started' }));
-    expect(openLoginModal).toHaveBeenCalledTimes(1);
+    expect(openLoginModal).not.toHaveBeenCalled();
+    expect(screen.getByTestId('location').textContent).toBe('/chat');
+});
+
+it('still redirects when a guest completes sign-in while on About', () => {
+    const view = render(<App />);
     expect(screen.getByTestId('location').textContent).toBe('/');
     // An unsuccessful or cancelled attempt leaves auth unchanged.
     view.rerender(<App />);

@@ -48,6 +48,8 @@ export const FALLBACK_PRICING = {
         { pipeline: 'chat', service_tier: 'premium', credits: 10, enabled: true },
         { pipeline: 'deep_research', service_tier: 'standard', credits: 20, enabled: true },
         { pipeline: 'deep_research', service_tier: 'premium', credits: 45, enabled: true },
+        { pipeline: 'literature_review', service_tier: 'standard', credits: 10, enabled: true },
+        { pipeline: 'literature_review', service_tier: 'premium', credits: 50, enabled: true },
     ],
 };
 
@@ -109,9 +111,15 @@ export const fetchTierPricing = () => {
     return pricingPromise;
 };
 
-/** The tiers a pipeline offers ('chat' | 'deep_research'), and its default. */
+/**
+ * The tiers a pipeline offers ('chat' | 'deep_research' | 'literature_review'), and its default.
+ * A pipeline the pricing does not list (Literature Review before it was charged, 2026-10-13, on a
+ * backend that has not caught up) offers the chat's tiers, shown without a price.
+ */
 export const tiersFor = (pricing, pipeline) => {
-    const tiers = (pricing?.tiers || []).filter((t) => t.credits?.[pipeline] !== undefined);
+    const all = pricing?.tiers || [];
+    const priced = all.some((t) => t.credits?.[pipeline] !== undefined);
+    const tiers = all.filter((t) => t.credits?.[priced ? pipeline : 'chat'] !== undefined);
     const preferred = pricing?.defaultTier;
     const defaultTier = tiers.some((t) => t.id === preferred)
         ? preferred

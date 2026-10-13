@@ -66,9 +66,9 @@ describe('the five styles, on a real 16-author record', () => {
             + `(2010). ${TITLE}. Cell, 141(2), 243–254. https://doi.org/10.1016/j.cell.2010.03.012`,
         );
     });
-    it('Chicago 17: more than ten authors → the first seven and et al.; "141, no. 2 (2010): 243–54."', () => {
+    it('Chicago 18: more than six authors → the first three and et al.; "141, no. 2 (2010): 243–54."', () => {
         expect(formatCitation('Chicago', BUNTING)).toBe(
-            'Bunting, Samuel F., Elsa Callén, Nancy Wong, Hua-Tang Chen, Federica Polato, Amanda Gunn, Anne Bothmer, et al. '
+            'Bunting, Samuel F., Elsa Callén, Nancy Wong, et al. '
             + `"${TITLE}." Cell 141, no. 2 (2010): 243–54. https://doi.org/10.1016/j.cell.2010.03.012.`,
         );
     });
@@ -102,8 +102,8 @@ describe('author-count rules', () => {
         expect(formatCitation('Harvard', two)).toMatch(/^Family1, G\. and Family2, G\. \(2010\) '/);
         expect(formatCitation('Vancouver', two)).toMatch(/^Family1 G, Family2 G\. 53BP1/);
     });
-    it('Chicago lists all of ten authors with an Oxford comma; Harvard lists three', () => {
-        expect(formatCitation('Chicago', withAuthors(10))).toMatch(/Given9 Family9, and Given10 Family10\. "/);
+    it('Chicago lists all of six authors with an Oxford comma; Harvard lists three', () => {
+        expect(formatCitation('Chicago', withAuthors(6))).toMatch(/Given5 Family5, and Given6 Family6\. "/);
         expect(formatCitation('Harvard', withAuthors(3))).toMatch(/^Family1, G\., Family2, G\. and Family3, G\. \(2010\)/);
     });
     it('APA lists up to twenty authors and elides twenty-one or more to nineteen … last', () => {
@@ -214,6 +214,24 @@ describe('exports', () => {
 });
 
 describe('the dialog', () => {
+    it('displays emphasis and copies both rich and plain citation formats', async () => {
+        global.ClipboardItem = class { constructor(data) { this.data = data; } };
+        navigator.clipboard.write = jest.fn().mockResolvedValue();
+        try {
+            render(<CiteDialog open citation={card} />);
+            await waitFor(() => expect(screen.getByLabelText('APA')).toHaveTextContent('Cell, 141(2)'));
+            expect(Array.from(screen.getByLabelText('APA').querySelectorAll('em'), node => node.textContent)).toEqual(['Cell', '141']);
+            fireEvent.click(screen.getByRole('button', { name: 'Copy APA citation' }));
+            await waitFor(() => expect(navigator.clipboard.write).toHaveBeenCalledTimes(1));
+            const item = navigator.clipboard.write.mock.calls[0][0][0];
+            expect(item.data['text/html'].type).toBe('text/html');
+            expect(item.data['text/plain'].type).toBe('text/plain');
+            expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
+            await waitFor(() => expect(message.success).toHaveBeenCalledWith('APA citation copied to clipboard'));
+        } finally {
+            delete global.ClipboardItem;
+        }
+    });
     it('fetches the record for the card\'s PMID, renders the five styles from it and copies them', async () => {
         const onClose = jest.fn();
         render(<CiteDialog open onClose={onClose} citation={['Old title', 'https://pubmed.ncbi.nlm.nih.gov/20362325/', 790, '2010', 'Cell', 'Samuel F Bunting']} />);

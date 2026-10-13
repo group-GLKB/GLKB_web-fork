@@ -86,25 +86,40 @@ const citations = (text, known) => text.replace(/\[(\d+(?:\s*,\s*\d+)*)\]/g, (wh
 });
 
 /**
- * `3. Title. (2024). PMID 37875462.` -> {key, title, year, pmid}. A line that does not match
- * that shape is still kept, with whatever text it has, so nothing is silently dropped.
+ * `3. Title. (2024). PMID 37875462.` -> {num, text}. A line that does not match that shape is
+ * still kept, with whatever text it has, so nothing is silently dropped: the continuation of the
+ * entry above. A list with no numbers at all (an author-date style, LiteratureReview/citationStyle.js)
+ * is one entry per blank-line-separated paragraph.
  */
-const parseReferences = (lines) => lines.reduce((out, raw) => {
-    const m = raw.match(/^(\d+)\.\s+(.*)$/);
-    if (m) {
-        out.push({ num: m[1], text: m[2].trim() });
-    } else if (out.length && raw.trim()) {
-        out[out.length - 1].text += ` ${raw.trim()}`;   // a wrapped entry
-    }
+const parseReferences = (lines) => {
+    const out = [];
+    const numbered = lines.some((raw) => /^(\d+)\.\s+/.test(raw));
+    let afterBlank = true;
+    lines.forEach((raw) => {
+        const m = raw.match(/^(\d+)\.\s+(.*)$/);
+        if (m) {
+            out.push({ num: m[1], text: m[2].trim() });
+        } else if (raw.trim()) {
+            if (!numbered && afterBlank) out.push({ num: null, text: raw.trim() });
+            else if (!out.length) return;
+            else out[out.length - 1].text += ` ${raw.trim()}`;   // a wrapped entry
+        }
+        afterBlank = !raw.trim();
+    });
     return out;
-}, []);
+};
 
 const bibliography = (refs) => {
     if (!refs.length) return '';
+    // An author-date list: no numbers, alphabetical, each entry with a hanging indent.
+    if (refs.some((r) => r.num === null)) {
+        const items = refs.map((r) => `\\item ${inlineMarkup(r.text)}`).join('\n');
+        return `\\section*{References}\n\\begin{list}{}{\\leftmargin=2em \\itemindent=-2em \\itemsep=4pt}\n${items}\n\\end{list}\n`;
+    }
     // `widest label` sizes the numbers column; the longest number is the widest label.
     const widest = refs[refs.length - 1].num;
     const items = refs.map((r) => {
-        const pmid = (r.text.match(/PMID\s+(\d+)/) || [])[1];
+        const pmid = (r.text.match(/PMID:?\s+(\d+)/) || [])[1];
         const body = inlineMarkup(r.text);
         // The PMID becomes a link target people can paste; \url would need hyperref, so it stays text.
         return `\\bibitem{ref${r.num}} ${body}${pmid ? `\n  % https://pubmed.ncbi.nlm.nih.gov/${pmid}` : ''}`;

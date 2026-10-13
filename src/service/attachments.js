@@ -112,13 +112,24 @@ export const validateFile = (file) => {
     return size > MAX_FILE_BYTES ? `Files can be up to ${formatBytes(MAX_FILE_BYTES)}.` : null;
 };
 
+/* A Literature Review's own papers (glkb-backend literature_review.py MAX_PAPERS): documents
+   only — a picture has no text to review — and up to 50 of them. The file picker offers the
+   formats a paper comes in; the backend reads any of them as text (PDF, Word including the old
+   .doc, LaTeX, RTF, OpenDocument, Markdown, plain text, HTML). */
+export const REVIEW_PAPER_LIMITS = { maxFiles: 50, maxImages: 0, per: 'review' };
+export const PAPER_ACCEPT = '.pdf,.doc,.docx,.tex,.latex,.rtf,.odt,.txt,.md,.markdown,.html,.htm';
+export const PAPER_FORMATS_TEXT = 'PDF, Word (.docx, .doc), LaTeX (.tex), RTF, OpenDocument or text';
+
 /**
  * Which of `files` fit beside the attachments already on the message (`existing`, each with a
- * `kind`; leave out the ones that failed). Files past the per-message limits are left out and
- * `notice` says why. A file that fails `validateFile` is still accepted, so it can be shown with
- * its reason — but it takes none of the message's places.
+ * `kind`; leave out the ones that failed). Files past the limits — a chat message's by default,
+ * or `limits` ({ maxFiles, maxImages, per }) — are left out and `notice` says why. A file that
+ * fails `validateFile` is still accepted, so it can be shown with its reason — but it takes none
+ * of the message's places.
  */
-export const planAdditions = (existing, files) => {
+export const planAdditions = (existing, files, {
+    maxFiles = MAX_FILES_PER_MESSAGE, maxImages = MAX_IMAGES_PER_MESSAGE, per = 'message',
+} = {}) => {
     const list = Array.from(files || []);
     let total = (existing || []).length;
     let images = (existing || []).filter((item) => item?.kind === 'image').length;
@@ -130,12 +141,16 @@ export const planAdditions = (existing, files) => {
             return;
         }
         const kind = kindOf(file);
-        if (total >= MAX_FILES_PER_MESSAGE) {
-            notice = `Up to ${MAX_FILES_PER_MESSAGE} files per message.`;
+        if (kind === 'image' && maxImages === 0) {
+            notice = "Pictures can't be used as papers — add the paper's PDF or document.";
             return;
         }
-        if (kind === 'image' && images >= MAX_IMAGES_PER_MESSAGE) {
-            notice = `Up to ${MAX_IMAGES_PER_MESSAGE} images per message.`;
+        if (total >= maxFiles) {
+            notice = `Up to ${maxFiles} files per ${per}.`;
+            return;
+        }
+        if (kind === 'image' && images >= maxImages) {
+            notice = `Up to ${maxImages} images per ${per}.`;
             return;
         }
         accepted.push(file);

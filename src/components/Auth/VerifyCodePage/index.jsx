@@ -192,7 +192,7 @@ const VerifyCodePage = () => {
           </div>
 
           <div className="privacy-text">
-            By clicking continuing, you agree to our <a href="/privacy-policy">privacy policy</a>.
+            By clicking continuing, you agree to our <a href="/privacy">privacy policy</a>.
           </div>
         </div>
       </div>

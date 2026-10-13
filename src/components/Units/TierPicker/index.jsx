@@ -16,7 +16,9 @@
  *
  * A guest is held to `standard` (the backend refuses anything else with a 403). The panel still
  * lists `premium` — a guest should see what signing in unlocks — but choosing it asks them to
- * sign in (`onRequireSignIn`) instead of selecting it.
+ * sign in (`onRequireSignIn`) instead of selecting it. *
+ * `variant="list"` draws the rows in place, without the chip: the phone home composer has no room
+ * in its row for the chip, so the tiers sit in its Options sheet instead.
  */
 import './scoped.css';
 
@@ -33,8 +35,11 @@ import {
 } from '../../../service/serviceTiers';
 import { trackGtagEvent } from '../../../utils/gtag';
 
-const creditsText = (credits) => (
-    Number.isFinite(credits) ? `${credits} credit${credits === 1 ? '' : 's'}/query` : ''
+// A literature review is charged once per review, not per question.
+const creditsText = (credits, pipeline) => (
+    Number.isFinite(credits)
+        ? `${credits} credit${credits === 1 ? '' : 's'}/${pipeline === 'literature_review' ? 'review' : 'query'}`
+        : ''
 );
 
 const TierPicker = ({
@@ -50,6 +55,7 @@ const TierPicker = ({
     isGuest = false,
     // Called when a guest picks a tier only signed-in readers may use.
     onRequireSignIn,
+    variant = 'chip',
 }) => {
     const [pricing, setPricing] = useState(null);
     const [isOpen, setIsOpen] = useState(false);
@@ -99,6 +105,65 @@ const TierPicker = ({
 
     const close = () => setIsOpen(false);
 
+    const options = (
+        tiers.map((entry) => {
+            const isSelected = entry.id === selected;
+            const needsSignIn = isGuest && entry.id !== GUEST_TIER;
+            return (
+                <button
+                    key={entry.id}
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    className={`model-picker-option${isSelected ? ' selected' : ''}`}
+                    onClick={() => {
+                        close();
+                        if (isSelected) return;
+                        if (needsSignIn) {
+                            trackGtagEvent('chat_tier_sign_in_prompt', {
+                                source: 'tier_picker',
+                                tier: entry.id,
+                            });
+                            onRequireSignIn?.(entry);
+                            return;
+                        }
+                        trackGtagEvent('chat_tier_select', {
+                            source: 'tier_picker',
+                            tier: entry.id,
+                            pipeline,
+                        });
+                        resolvedRef.current = '';
+                        onChange?.(entry.id);
+                    }}
+                >
+                    <span className="model-picker-option-text">
+                        <span className="model-picker-option-label">
+                            {entry.label}
+                            {needsSignIn ? (
+                                <span className="model-picker-option-badge">Sign in</span>
+                            ) : entry.id === defaultTier && (
+                                <span className="model-picker-option-badge">Default</span>
+                            )}
+                        </span>
+                        <span className="model-picker-option-description">
+                            {[creditsText(entry.credits[pipeline], pipeline), entry.description]
+                                .filter(Boolean).join(' · ')}
+                        </span>
+                    </span>
+                    {isSelected && <CheckIcon className="model-picker-check" />}
+                </button>
+            );
+        })
+    );
+
+    if (variant === 'list') {
+        return (
+            <div className="model-picker-list" role="listbox" aria-label="Model">
+                {options}
+            </div>
+        );
+    }
+
     return (
         <>
             <button
@@ -127,54 +192,7 @@ const TierPicker = ({
                 >
                     <ClickAwayListener onClickAway={close}>
                         <div className="model-picker-panel" role="listbox" aria-label="Model">
-                            {tiers.map((entry) => {
-                                const isSelected = entry.id === selected;
-                                const needsSignIn = isGuest && entry.id !== GUEST_TIER;
-                                return (
-                                    <button
-                                        key={entry.id}
-                                        type="button"
-                                        role="option"
-                                        aria-selected={isSelected}
-                                        className={`model-picker-option${isSelected ? ' selected' : ''}`}
-                                        onClick={() => {
-                                            close();
-                                            if (isSelected) return;
-                                            if (needsSignIn) {
-                                                trackGtagEvent('chat_tier_sign_in_prompt', {
-                                                    source: 'tier_picker',
-                                                    tier: entry.id,
-                                                });
-                                                onRequireSignIn?.(entry);
-                                                return;
-                                            }
-                                            trackGtagEvent('chat_tier_select', {
-                                                source: 'tier_picker',
-                                                tier: entry.id,
-                                                pipeline,
-                                            });
-                                            resolvedRef.current = '';
-                                            onChange?.(entry.id);
-                                        }}
-                                    >
-                                        <span className="model-picker-option-text">
-                                            <span className="model-picker-option-label">
-                                                {entry.label}
-                                                {needsSignIn ? (
-                                                    <span className="model-picker-option-badge">Sign in</span>
-                                                ) : entry.id === defaultTier && (
-                                                    <span className="model-picker-option-badge">Default</span>
-                                                )}
-                                            </span>
-                                            <span className="model-picker-option-description">
-                                                {[creditsText(entry.credits[pipeline]), entry.description]
-                                                    .filter(Boolean).join(' · ')}
-                                            </span>
-                                        </span>
-                                        {isSelected && <CheckIcon className="model-picker-check" />}
-                                    </button>
-                                );
-                            })}
+                            {options}
                         </div>
                     </ClickAwayListener>
                 </Popper>

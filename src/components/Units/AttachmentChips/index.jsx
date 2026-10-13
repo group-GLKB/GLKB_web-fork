@@ -83,12 +83,18 @@ export const AttachButton = ({
     disabledReason = '',
     source = 'chat',
     className = '',
+    // What the button and its one entry say, and which files the picker offers. Literature
+    // Review's composer makes it "Add your papers", for documents only.
+    label = ATTACH_LABEL,
+    itemLabel = 'Add photos and files',
+    itemHint = 'Upload from computer',
+    accept,
 }) => {
     const inputRef = useRef(null);
     const buttonRef = useRef(null);
     const [anchor, setAnchor] = useState(null);
     const menuOpen = Boolean(anchor) && !disabled;
-    const title = disabled && disabledReason ? disabledReason : ATTACH_LABEL;
+    const title = disabled && disabledReason ? disabledReason : label;
     const close = () => setAnchor(null);
     const pickFiles = () => {
         close();
@@ -104,7 +110,7 @@ export const AttachButton = ({
                         ref={buttonRef}
                         type="button"
                         className={`attach-button${menuOpen ? ' is-open' : ''}`}
-                        aria-label={ATTACH_LABEL}
+                        aria-label={label}
                         aria-haspopup="menu"
                         aria-expanded={menuOpen}
                         disabled={disabled}
@@ -137,6 +143,7 @@ export const AttachButton = ({
                         type="file"
                         multiple
                         hidden
+                        accept={accept}
                         data-testid="attachment-file-input"
                         onClick={(event) => event.stopPropagation()}
                         onChange={(event) => {
@@ -187,8 +194,8 @@ export const AttachButton = ({
                                 onClick={pickFiles}
                             >
                                 <AttachFileIcon className="attach-menu-item-icon" />
-                                <span className="attach-menu-item-label">Add photos and files</span>
-                                <span className="attach-menu-item-hint">Upload from computer</span>
+                                <span className="attach-menu-item-label">{itemLabel}</span>
+                                <span className="attach-menu-item-hint">{itemHint}</span>
                             </button>
                         </div>
                     </ClickAwayListener>
@@ -311,10 +318,22 @@ export const AttachmentChips = ({ items = [], notice = '', blockedNote = '', onR
  * flight only disable the button (their chips show progress); this is for what the reader has
  * to act on.
  */
-export const attachmentBlockedNote = (controller, { investigate = false } = {}) => {
+export const attachmentBlockedNote = (controller, { investigate = false, review = false, maxFiles = null } = {}) => {
     if (!controller?.hasItems) return '';
     if (investigate) return 'Attachments work in AI Chat. Remove them, or ask in a new AI Chat.';
-    if (controller.hasErrors) return 'Remove the files that could not be attached to send your question.';
+    if (controller.hasErrors) {
+        return review
+            ? 'Remove the files that could not be added to start the review.'
+            : 'Remove the files that could not be attached to send your question.';
+    }
+    const items = controller.items || [];
+    // Files added in one mode and kept on switching to another, where they do not fit.
+    if (review && items.some((item) => item.kind === 'image')) {
+        return "Pictures can't be used as papers. Remove them to start the review.";
+    }
+    if (maxFiles && items.length > maxFiles) {
+        return `Up to ${maxFiles} files ${review ? 'per review' : 'per message'}. Remove some to go on.`;
+    }
     return '';
 };
 

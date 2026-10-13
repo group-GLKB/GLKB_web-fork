@@ -18,8 +18,10 @@ describe('isProductionSite', () => {
     });
 });
 
-// Hidden again on 2026-10-09 (off 10-03 to 10-06; on for dev and localhost 10-06 to 10-09).
-// Turning it back on is `!isProductionSite()` in features.js; flip this expectation with it.
-it('Literature Review is switched off', () => {
-    expect(LITERATURE_REVIEW_ENABLED).toBe(false);
+// On for dev and localhost again since 2026-10-10 (the redesigned review pages); off on glkb.org
+// by construction. Hidden 10-03 to 10-06 and 10-09 to 10-10 — that is `false` in features.js.
+it('Literature Review is on everywhere but the public site', () => {
+    // jsdom's host is localhost, so the flag evaluated there is on.
+    expect(LITERATURE_REVIEW_ENABLED).toBe(!isProductionSite(window.location.hostname));
+    expect(LITERATURE_REVIEW_ENABLED).toBe(true);
 });

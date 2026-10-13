@@ -5,6 +5,10 @@ import GraphViewer from './index';
 import { requestGraphViewer } from '../../service/GraphViewer';
 
 jest.mock('../../service/GraphViewer', () => ({ requestGraphViewer: jest.fn() }));
+const mockAuth = { isAuthenticated: true, loading: false, openLoginModal: jest.fn() };
+jest.mock('../Auth/AuthContext', () => ({ useAuth: () => mockAuth }));
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({ ...jest.requireActual('react-router-dom'), useNavigate: () => mockNavigate }));
 jest.mock('../Graph', () => {
     const React = require('react');
     return { __esModule: true, default: React.forwardRef(({ data, handleSelect }, ref) => (
@@ -27,7 +31,27 @@ jest.mock('@mui/material', () => {
 const graphResult = (display = 'CFTR') => ({ graph: { nodes: [{ data: { id: 'a', display } }], edges: [] } });
 const mount = () => render(<MemoryRouter><GraphViewer /></MemoryRouter>);
 const submit = () => fireEvent.click(screen.getByRole('button', { name: 'Run query' }));
-beforeEach(() => requestGraphViewer.mockReset());
+beforeEach(() => {
+    requestGraphViewer.mockReset();
+    Object.assign(mockAuth, { isAuthenticated: true, loading: false });
+    mockAuth.openLoginModal.mockReset();
+    mockNavigate.mockReset();
+});
+
+it('sends a guest home with the sign-in overlay open (signed-in readers only, 2026-10-09)', () => {
+    Object.assign(mockAuth, { isAuthenticated: false });
+    mount();
+    expect(mockAuth.openLoginModal).toHaveBeenCalledWith(expect.stringMatching(/Graph Viewer is available to signed-in users/));
+    expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
+    expect(requestGraphViewer).not.toHaveBeenCalled();
+});
+
+it('waits for the auth check before deciding', () => {
+    Object.assign(mockAuth, { isAuthenticated: false, loading: true });
+    mount();
+    expect(mockAuth.openLoginModal).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+});
 
 it('does not query automatically, submits once and shows properties', async () => {
     requestGraphViewer.mockResolvedValue(graphResult());

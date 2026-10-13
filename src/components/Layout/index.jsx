@@ -14,10 +14,11 @@ import {
   useNavigate,
 } from 'react-router-dom';
 
-import { Menu as MenuIcon } from '@mui/icons-material';
+import { Add as AddIcon } from '@mui/icons-material';
 
 import logoIcon from '../../img/GLKB_logo_icon.png';
 import logoWordmark from '../../img/navbar/logo.png';
+import { ReactComponent as SidebarLeftIcon } from '../../img/navbar/sidebar.left.svg';
 import { ABOUT_PATH, CHAT_HOME_PATH, isConversationPath } from '../../config/entryRoutes';
 import { isRunActive } from '../../service/activeRun';
 import { trackGtagEvent } from '../../utils/gtag';
@@ -61,13 +62,15 @@ const AppLayout = () => {
     const isAccountPage = location.pathname.startsWith('/account');
     // a conversation, not the chat home at /chat — that one is an ordinary routed page
     const isChatPage = isConversationPath(location.pathname);
+    // A Literature Review page has a phone header of its own (back, its step, its progress).
+    const isLiteratureReviewPage = location.pathname.startsWith('/literature-review');
     // Desktop Settings has its own section rail, so a second permanent app rail
     // would duplicate it. On phones that section rail is intentionally hidden;
     // keep the app's temporary drawer mounted so the mobile header menu is live.
     const hideSidebar = isAboutPage || isBlogPage || isLegalPage
         || (isAccountPage && !isPhoneDevice);
     const showMobileHeader = isPhoneDevice && !isAboutPage && !isBlogPage && !isLegalPage
-        && !isMobileHeaderHidden;
+        && !isLiteratureReviewPage && !isMobileHeaderHidden;
 
     useLayoutEffect(() => {
         document.title = getPageTitleByPath(location.pathname);
@@ -120,6 +123,8 @@ const AppLayout = () => {
     return (
         <>
             {showMobileHeader && (
+                /* The phone design: the sidebar on the left, the logo in the middle, a new chat
+                   on the right. */
                 <header className="app-mobile-header">
                     <button
                         type="button"
@@ -130,30 +135,36 @@ const AppLayout = () => {
                             window.dispatchEvent(new CustomEvent(SIDEBAR_OPEN_EVENT));
                         }}
                     >
-                        <MenuIcon sx={{ fontSize: 22, color: 'var(--color-text-tertiary)' }} />
+                        <SidebarLeftIcon style={{ width: 22, height: 17 }} />
                     </button>
                     {/* The logo opens About, GLKB's own page. */}
                     <Link to={ABOUT_PATH} className="app-mobile-header-logo-link" aria-label="About GLKB" onClick={() => trackGtagEvent('nav_logo_click', { action: 'go_about', source: 'mobile_header' })}>
-                        <img src={logoIcon} alt="GLKB logo" className="app-mobile-header-logo-icon" />
-                    </Link>
-                    <Link to={ABOUT_PATH} className="app-mobile-header-logo-link" aria-label="About GLKB" onClick={() => trackGtagEvent('nav_logo_click', { action: 'go_about', source: 'mobile_header' })}>
+                        <img src={logoIcon} alt="" className="app-mobile-header-logo-icon" />
                         <img src={logoWordmark} alt="GLKB" className="app-mobile-header-logo-wordmark" />
                     </Link>
-                    {isChatPage && (
-                        <button
-                            type="button"
-                            className="app-mobile-header-new-chat"
-                            onClick={() => {
-                                trackGtagEvent('mobile_header_new_chat_click', { source: 'layout_header' });
+                    <button
+                        type="button"
+                        className="app-mobile-header-new-chat"
+                        aria-label="New Chat"
+                        onClick={() => {
+                            trackGtagEvent('mobile_header_new_chat_click', { source: 'layout_header' });
+                            if (isChatPage) {
                                 window.dispatchEvent(new CustomEvent(MOBILE_HEADER_NEW_CHAT_EVENT));
-                            }}
-                        >
-                            New Chat
-                        </button>
-                    )}
+                            } else if (location.pathname === CHAT_HOME_PATH) {
+                                // Already a new chat: put the reader in its box.
+                                document.querySelector('.llm-searchbar textarea')?.focus();
+                            } else {
+                                navigate(CHAT_HOME_PATH);
+                            }
+                        }}
+                    >
+                        <AddIcon sx={{ fontSize: 24 }} />
+                    </button>
                 </header>
             )}
-            {!hideSidebar && <NavBarWhite hideCompactRail={showMobileHeader || isMobileHeaderHidden} />}
+            {!hideSidebar && (
+                <NavBarWhite hideCompactRail={showMobileHeader || isMobileHeaderHidden || isLiteratureReviewPage} />
+            )}
             <div className={`app-layout-content${showMobileHeader ? ' has-mobile-header' : ''}`}>
                 {/*
                   The Agent owns live SSE/XHR callbacks and a large amount of in-flight state.

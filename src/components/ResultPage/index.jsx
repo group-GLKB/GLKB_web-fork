@@ -50,6 +50,7 @@ import {
 } from '../../utils/graphBookmarks';
 import { createGraphHistoryEntry } from '../../utils/graphHistory';
 import { useAuth } from '../Auth/AuthContext';
+import { GUEST_GRAPH_VIEWER_REASON } from '../../utils/refusals';
 import Graph from '../Graph';
 import { nodeStyle } from '../Graph/nodeStyle';
 import Information from '../Information';
@@ -114,7 +115,7 @@ const ResultPage = () => {
     // const alltags = urlParams.get('data');
     const location = useLocation();
     const navigate = useNavigate();
-    const { isAuthenticated, loading } = useAuth();
+    const { isAuthenticated, loading, openLoginModal } = useAuth();
     // console.log(location.state);
     const search_data = location.state?.search_data;
     const chipDataID = location.state?.chipDataID;
@@ -1005,7 +1006,12 @@ const ResultPage = () => {
                 <meta property="og:title" content="Search - Genomic Literature Knowledge Base | AI-Powered Genomics Search" />
             </Helmet>
             <div className="result-container" ref={containerRef}>
-                <MuiButton onClick={() => navigate('/graph-viewer')} sx={{ alignSelf: 'flex-end' }}>
+                <MuiButton
+                    onClick={() => (isAuthenticated
+                        ? navigate('/graph-viewer')
+                        : openLoginModal(GUEST_GRAPH_VIEWER_REASON))}
+                    sx={{ alignSelf: 'flex-end' }}
+                >
                     Open new Graph Viewer
                 </MuiButton>
                 <Joyride

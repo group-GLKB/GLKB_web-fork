@@ -23,9 +23,12 @@
 .cite-paper-close img { width: 18px; height: 18px; }
 .cite-paper-format { display: flex; flex-direction: column; gap: 8px; }
 .cite-paper-format h3 { margin: 0; padding: 0 4px; font: 600 12px/20px Geist, sans-serif; color: var(--color-text-secondary); }
+.cite-paper-edition { padding: 0 4px; font: 400 12px/18px Geist, sans-serif; color: var(--color-text-tertiary); }
 .cite-paper-text { position: relative; padding: 12px; border: .5px solid var(--color-border-default); border-radius: 8px; background: var(--color-background-subtle); }
 .cite-paper-text p { margin: 0; padding-right: 16px; font: 400 14px/22px Geist, sans-serif; color: var(--color-text-tertiary); overflow-wrap: anywhere; }
 .cite-paper-copy { position: absolute; right: 8px; bottom: 16px; width: 20px; height: 20px; }
+.cite-paper-text em { font-style: italic; }
+.cite-paper-text strong { font-weight: 700; }
 .cite-paper-copy img { width: 12px; height: 12px; }
 .cite-paper-dialog button:hover { background: var(--color-background-muted); }
 .cite-paper-dialog button:focus-visible { outline: 2px solid var(--color-brand-primary); outline-offset: 2px; }
