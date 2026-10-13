@@ -56,6 +56,17 @@ export const INVESTIGATE_ENABLED = true;
  * Off hides the entry points only; the page, the client and the pipeline stay in the codebase.
  */
 /**
+ * Whether a literature review stops at its outline for the reader to approve before anything is
+ * written (OutlineStep; the phone design's "You'll approve an outline before any writing starts").
+ *
+ * OFF until the user schedules it (2026-10-13: "确认大纲留在之后做"). Off, the review runs straight
+ * through as it always has: Scope says "Start writing", no request asks for approval, and nothing
+ * looks for a waiting outline. On needs glkb-agent a5eec61 and glkb-backend d1951de deployed first.
+ * `false` is also the safe value on `production`, which has no line for it.
+ */
+export const LR_OUTLINE_APPROVAL_ENABLED = false;
+
+/**
  * Where a signed-in reader BUYS CREDITS: the e-Lucid store page for GLKB credits.
  *
  * The backend already credits a purchase there (`POST /api/v1/payment/elucid/webhook`,

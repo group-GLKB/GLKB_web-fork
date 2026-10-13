@@ -24,6 +24,12 @@ jest.mock('../Auth/AuthContext', () => ({
 }));
 jest.mock('../../service/Citation', () => ({ fetchCitations: jest.fn(() => Promise.resolve({})) }));
 jest.mock('../../service/ChatHistory', () => ({ getChatHistoryDetailByPublicId: jest.fn() }));
+// Outline approval is off until it is scheduled (config/features.js); its own tests turn it on.
+let mockOutlineApproval = false;
+jest.mock('../../config/features', () => ({
+    ...jest.requireActual('../../config/features'),
+    get LR_OUTLINE_APPROVAL_ENABLED() { return mockOutlineApproval; },
+}));
 jest.mock('../../service/LiteratureReview', () => ({
     streamReview: jest.fn(),
     approveOutline: jest.fn(),
@@ -43,6 +49,7 @@ beforeEach(() => {
     mockNavigate.mockClear();
     getChatHistoryDetailByPublicId.mockReset();
     streamReview.mockReset();
+    mockOutlineApproval = false;
     approveOutline.mockReset();
     getReviewRun.mockImplementation(() => Promise.resolve(null));
     cancelReview.mockImplementation(() => Promise.resolve({}));
@@ -58,7 +65,7 @@ it('sets up a review with the length cards and the year presets', async () => {
     expect(document.querySelector('.lr-mtopbar-step')).toHaveTextContent('Scope');
     expect(segments()).toEqual([true, false, false, false]);
 
-    const start = screen.getByRole('button', { name: /Generate outline/ });
+    const start = screen.getByRole('button', { name: /Start writing/ });
     expect(start).toBeDisabled();
     fireEvent.change(screen.getByLabelText('Topic'), { target: { value: 'Does p53 loss cause chemoresistance?' } });
     expect(start).toBeEnabled();
@@ -81,7 +88,7 @@ it('shows the share done and the stages while the review is written', async () =
     streamReview.mockImplementation((args, onFrame) => { send = onFrame; return new Promise(() => {}); });
     render(<LiteratureReview />);
     fireEvent.change(screen.getByLabelText('Topic'), { target: { value: 'Does p53 loss cause chemoresistance?' } });
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Generate outline/ })); });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Start writing/ })); });
     act(() => send({ type: 'progress', phase: 'synthesis', label: 'Extracting claims…', percent: 52,
                      detail: { searches: 40, papers_opened: 186 } }));
     expect(screen.getByText('52%')).toBeInTheDocument();

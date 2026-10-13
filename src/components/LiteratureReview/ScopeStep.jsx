@@ -11,6 +11,7 @@ import { OptionDropdown, OptionSelect } from '../Units/OptionMenu';
 import { AttachmentChips, attachmentBlockedNote, dragHasFiles, filesFromTransfer } from '../Units/AttachmentChips';
 import { PAPER_ACCEPT, PAPER_FORMATS_TEXT, REVIEW_PAPER_LIMITS } from '../../service/attachments';
 import { REVIEW_STYLES, styleById } from './citationStyle';
+import { LR_OUTLINE_APPROVAL_ENABLED } from '../../config/features';
 
 /**
  * Step 1: the topic and its scope, confirmed before anything runs (design: the outline
@@ -22,7 +23,25 @@ import { REVIEW_STYLES, styleById } from './citationStyle';
  */
 
 /** What the review will do, in a sentence, for the sources chosen. */
-const lede = (sources, n) => {
+const lede = (sources, n) => (LR_OUTLINE_APPROVAL_ENABLED ? approvalLede(sources, n) : straightLede(sources, n));
+
+/** The same, for a review written straight through (no outline approval). */
+const straightLede = (sources, n) => {
+    const yours = `your ${n === 1 ? 'paper' : `${n} papers`}`;
+    if (sources === 'papers') {
+        return `GLKB reviews ${yours} alone: it synthesises their evidence, reading each one in full, `
+            + 'outlines the review and writes it with every claim cited. Nothing runs until you start it.';
+    }
+    if (sources === 'papers_and_search') {
+        return `GLKB searches PubMed and its knowledge graph, selects the evidence and reads it together with ${yours}, `
+            + 'then outlines the review and writes it with every claim cited. Nothing runs until you start it.';
+    }
+    return 'GLKB searches PubMed and its knowledge graph, selects and synthesises the evidence, outlines the review '
+        + 'and writes it with every claim cited. Add your own papers to review them too, or only them. '
+        + 'Nothing runs until you start it.';
+};
+
+const approvalLede = (sources, n) => {
     const yours = `your ${n === 1 ? 'paper' : `${n} papers`}`;
     if (sources === 'papers') {
         return `GLKB reviews ${yours} alone: it synthesises their evidence, reading each one in full, and `
@@ -45,15 +64,24 @@ export const PHONE_LENGTHS = [
     { words: 8000, label: 'Comprehensive' },
 ];
 
-/** The phone page's line under its title (the phone design's). */
-const PHONE_LEDE = "You'll approve an outline before any writing starts.";
+/** The phone page's line under its title: the phone design's, once the outline is approved first. */
+const phoneLede = (sources, n) => {
+    if (LR_OUTLINE_APPROVAL_ENABLED) return "You'll approve an outline before any writing starts.";
+    const yours = n === 1 ? 'your paper' : `your ${n} papers`;
+    if (sources === 'papers') return `GLKB reads ${yours} in full and writes the review from them, every claim cited. Nothing runs until you start it.`;
+    if (sources === 'papers_and_search') return `GLKB finds the evidence, reads it with ${yours} and writes the review, every claim cited. Nothing runs until you start it.`;
+    return 'GLKB finds the evidence, outlines the review and writes it, every claim cited. Nothing runs until you start it.';
+};
+/** The start button: what it starts. */
+const startLabel = () => (LR_OUTLINE_APPROVAL_ENABLED ? 'Generate outline →' : 'Start writing →');
 
 /** The bottom bar's second line: what the review reads, and how long it takes. */
 const phoneSource = (sources, n) => {
     const yours = n === 1 ? 'your paper' : `your ${n} papers`;
-    if (sources === 'papers') return `From ${yours} · 2–5 min in all`;
-    if (sources === 'papers_and_search') return `${yours[0].toUpperCase()}${yours.slice(1)} + 33M abstracts · 8–12 min in all`;
-    return 'From 33M abstracts · 8–12 min in all';
+    const time = (span) => (LR_OUTLINE_APPROVAL_ENABLED ? `${span} in all` : `draft in ${span}`);
+    if (sources === 'papers') return `From ${yours} · ${time('2–5 min')}`;
+    if (sources === 'papers_and_search') return `${yours[0].toUpperCase()}${yours.slice(1)} + 33M abstracts · ${time('8–12 min')}`;
+    return `From 33M abstracts · ${time('8–12 min')}`;
 };
 
 export default function ScopeStep({
@@ -162,7 +190,7 @@ export default function ScopeStep({
         return (
             <div className="lr-mscope">
                 <h1 className="lr-mscope-title">Set up your review</h1>
-                <p className="lr-mscope-sub">{PHONE_LEDE}</p>
+                <p className="lr-mscope-sub">{phoneLede(sources, paperCount)}</p>
                 {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
                 <section className={`lr-mcard${dragOver ? ' is-drop-target' : ''}`} aria-label="Scope" {...dropHandlers}>
                     <div className="lr-mfield">
@@ -231,14 +259,17 @@ export default function ScopeStep({
                     <dl className="lr-scope-rows lr-mrows">{restRows}</dl>
                     {fewPapersHint}
                 </section>
-                <p className="lr-note">You can leave once it starts: the outline waits for you in Recent.</p>
+                <p className="lr-note">
+                    {LR_OUTLINE_APPROVAL_ENABLED ? 'You can leave once it starts: the outline waits for you in Recent.'
+                        : 'You can leave once it starts — the draft appears in Recent.'}
+                </p>
                 <div className="lr-mbar">
                     <div className="lr-mbar-text">
                         <div className="lr-mbar-big"><strong>~{words.toLocaleString('en-US')}</strong> words</div>
                         <div className="lr-mbar-sub">{phoneSource(sources, paperCount)}</div>
                     </div>
                     <button type="button" className="lr-primary lr-mbar-go" disabled={!canStart} onClick={onStart}>
-                        Generate outline →
+                        {startLabel()}
                     </button>
                 </div>
             </div>
@@ -298,11 +329,17 @@ export default function ScopeStep({
                 </div>
                 {fewPapersHint}
                 <button type="button" className="lr-primary" disabled={!canStart} onClick={onStart}>
-                    Generate outline →
+                    {startLabel()}
                 </button>
                 <p className="lr-note">
-                    {sources === 'papers' ? '2–5 min' : '8–12 min'} in all, with a stop for you to approve the outline.
-                    You can leave: it waits for you in Recent.
+                    {LR_OUTLINE_APPROVAL_ENABLED ? (
+                        <>
+                            {sources === 'papers' ? '2–5 min' : '8–12 min'} in all, with a stop for you to approve the
+                            outline. You can leave: it waits for you in Recent.
+                        </>
+                    ) : (
+                        <>{sources === 'papers' ? 'Takes 2–5 min.' : 'Takes 8–12 min.'} You can leave — the draft appears in Recent.</>
+                    )}
                 </p>
             </aside>
         </div>

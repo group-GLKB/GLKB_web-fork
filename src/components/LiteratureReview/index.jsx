@@ -5,10 +5,12 @@
  *                                   from the home composer's Literature Review tab)
  *   /literature-review/:publicId    a saved review, reopened from History, Recent or a link
  *
- * The page walks the design's four steps — Scope, Outline, Writing, Review. The run stops once the
- * outline is planned (`outline_approval`): the reader renames, reorders or leaves out sections and
- * approves it (OutlineStep), and only then is anything written. Nothing runs while they decide, and
- * a reload — or the mail saying the outline is ready — finds it again (getReviewRun).
+ * The page walks the design's four steps — Scope, Outline, Writing, Review. Behind
+ * LR_OUTLINE_APPROVAL_ENABLED (off for now), the run stops once the outline is planned
+ * (`outline_approval`): the reader renames, reorders or leaves out sections and approves it
+ * (OutlineStep), and only then is anything written. Nothing runs while they decide, and a reload —
+ * or the mail saying the outline is ready — finds it again (getReviewRun). Off, Outline is a step the
+ * run passes through, not one the reader edits.
  *
  * Independent of the chat page on purpose: the chat page's state machine carries "Investigate or
  * not" as one boolean through queues, recovery snapshots and reload logic, and a third mode
@@ -32,6 +34,7 @@ import { approveOutline, cancelReview, getReviewRun, streamReview } from '../../
 import { fetchCitations } from '../../service/Citation';
 import { getTierPref, setTierPref } from '../../service/serviceTiers';
 import { CHAT_HOME_PATH, CHAT_NEW_PATH } from '../../config/entryRoutes';
+import { LR_OUTLINE_APPROVAL_ENABLED } from '../../config/features';
 import { latexFilename, reviewToLatex } from '../../utils/reviewToLatex';
 import { exportFilename, reviewTitle, reviewToPrintable, reviewToWord } from '../../utils/reviewExport';
 import { trackGtagEvent } from '../../utils/gtag';
@@ -183,6 +186,10 @@ export default function LiteratureReview() {
                     setStatus('pending');
                     timer = setTimeout(() => setRecheck((n) => n + 1), PENDING_RECHECK_MS);
                 };
+                if (!LR_OUTLINE_APPROVAL_ENABLED) {
+                    wait();
+                    return;
+                }
                 getReviewRun(publicId).then((run) => {
                     if (!alive) return;
                     if (run?.status === 'outline' && run.outline) {
@@ -284,7 +291,7 @@ export default function LiteratureReview() {
                 startYear: sources === 'papers' ? null : scope.startYear,
                 notify: scope.notify !== false,
                 papers: usedPapers.map((a) => a.id), sources,
-                outlineApproval: true,
+                outlineApproval: LR_OUTLINE_APPROVAL_ENABLED,
             }, onFrame(run));
             if (!run.finished) {
                 setError('The connection ended before the review finished. If it keeps running on the '
