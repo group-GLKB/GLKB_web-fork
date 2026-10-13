@@ -25,16 +25,16 @@ import { REVIEW_STYLES, styleById } from './citationStyle';
 const lede = (sources, n) => {
     const yours = `your ${n === 1 ? 'paper' : `${n} papers`}`;
     if (sources === 'papers') {
-        return `GLKB reviews ${yours} alone: it synthesises their evidence, reading each one in full, `
-            + 'outlines the review and writes it with every claim cited. Nothing runs until you start it.';
+        return `GLKB reviews ${yours} alone: it synthesises their evidence, reading each one in full, and `
+            + 'outlines the review. You approve the outline, then it writes the review with every claim cited.';
     }
     if (sources === 'papers_and_search') {
         return `GLKB searches PubMed and its knowledge graph, selects the evidence and reads it together with ${yours}, `
-            + 'then outlines the review and writes it with every claim cited. Nothing runs until you start it.';
+            + 'then outlines the review. You approve the outline, then it writes the review with every claim cited.';
     }
-    return 'GLKB searches PubMed and its knowledge graph, selects and synthesises the evidence, outlines the review '
-        + 'and writes it with every claim cited. Add your own papers to review them too, or only them. '
-        + 'Nothing runs until you start it.';
+    return 'GLKB searches PubMed and its knowledge graph, selects and synthesises the evidence and outlines the '
+        + 'review. You approve the outline, then it writes the review with every claim cited. Add your own papers '
+        + 'to review them too, or only them.';
 };
 
 /** The phone design's length cards: four presets, each named for what it reads as. */
@@ -45,20 +45,15 @@ export const PHONE_LENGTHS = [
     { words: 8000, label: 'Comprehensive' },
 ];
 
-/** The phone page's one line under its title, for the sources chosen. */
-const phoneLede = (sources, n) => {
-    const yours = n === 1 ? 'your paper' : `your ${n} papers`;
-    if (sources === 'papers') return `GLKB reads ${yours} in full and writes the review from them, every claim cited. Nothing runs until you start it.`;
-    if (sources === 'papers_and_search') return `GLKB finds the evidence, reads it with ${yours} and writes the review, every claim cited. Nothing runs until you start it.`;
-    return 'GLKB finds the evidence, outlines the review and writes it, every claim cited. Nothing runs until you start it.';
-};
+/** The phone page's line under its title (the phone design's). */
+const PHONE_LEDE = "You'll approve an outline before any writing starts.";
 
 /** The bottom bar's second line: what the review reads, and how long it takes. */
 const phoneSource = (sources, n) => {
     const yours = n === 1 ? 'your paper' : `your ${n} papers`;
-    if (sources === 'papers') return `From ${yours} · draft in 2–5 min`;
-    if (sources === 'papers_and_search') return `${yours[0].toUpperCase()}${yours.slice(1)} + 33M abstracts · draft in 8–12 min`;
-    return 'From 33M abstracts · draft in 8–12 min';
+    if (sources === 'papers') return `From ${yours} · 2–5 min in all`;
+    if (sources === 'papers_and_search') return `${yours[0].toUpperCase()}${yours.slice(1)} + 33M abstracts · 8–12 min in all`;
+    return 'From 33M abstracts · 8–12 min in all';
 };
 
 export default function ScopeStep({
@@ -167,7 +162,7 @@ export default function ScopeStep({
         return (
             <div className="lr-mscope">
                 <h1 className="lr-mscope-title">Set up your review</h1>
-                <p className="lr-mscope-sub">{phoneLede(sources, paperCount)}</p>
+                <p className="lr-mscope-sub">{PHONE_LEDE}</p>
                 {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
                 <section className={`lr-mcard${dragOver ? ' is-drop-target' : ''}`} aria-label="Scope" {...dropHandlers}>
                     <div className="lr-mfield">
@@ -236,14 +231,14 @@ export default function ScopeStep({
                     <dl className="lr-scope-rows lr-mrows">{restRows}</dl>
                     {fewPapersHint}
                 </section>
-                <p className="lr-note">You can leave once it starts — the draft appears in Recent.</p>
+                <p className="lr-note">You can leave once it starts: the outline waits for you in Recent.</p>
                 <div className="lr-mbar">
                     <div className="lr-mbar-text">
                         <div className="lr-mbar-big"><strong>~{words.toLocaleString('en-US')}</strong> words</div>
                         <div className="lr-mbar-sub">{phoneSource(sources, paperCount)}</div>
                     </div>
                     <button type="button" className="lr-primary lr-mbar-go" disabled={!canStart} onClick={onStart}>
-                        Start writing →
+                        Generate outline →
                     </button>
                 </div>
             </div>
@@ -303,10 +298,11 @@ export default function ScopeStep({
                 </div>
                 {fewPapersHint}
                 <button type="button" className="lr-primary" disabled={!canStart} onClick={onStart}>
-                    Start writing →
+                    Generate outline →
                 </button>
                 <p className="lr-note">
-                    {sources === 'papers' ? 'Takes 2–5 min.' : 'Takes 8–12 min.'} You can leave — the draft appears in Recent.
+                    {sources === 'papers' ? '2–5 min' : '8–12 min'} in all, with a stop for you to approve the outline.
+                    You can leave: it waits for you in Recent.
                 </p>
             </aside>
         </div>

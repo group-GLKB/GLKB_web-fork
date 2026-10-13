@@ -10,7 +10,7 @@ import '@testing-library/jest-dom';
 
 import LiteratureReview from './index';
 import { getChatHistoryDetailByPublicId } from '../../service/ChatHistory';
-import { streamReview } from '../../service/LiteratureReview';
+import { approveOutline, cancelReview, getReviewRun, streamReview } from '../../service/LiteratureReview';
 import { fetchCitations } from '../../service/Citation';
 import { deleteAttachment, resizeImageIfNeeded, uploadAttachment } from '../../service/attachments';
 
@@ -38,6 +38,8 @@ jest.mock('../../service/Citation', () => ({ fetchCitations: jest.fn(() => Promi
 jest.mock('../../service/ChatHistory', () => ({ getChatHistoryDetailByPublicId: jest.fn() }));
 jest.mock('../../service/LiteratureReview', () => ({
     streamReview: jest.fn(),
+    approveOutline: jest.fn(),
+    getReviewRun: jest.fn(() => Promise.resolve(null)),
     cancelReview: jest.fn(() => Promise.resolve({})),
 }));
 
@@ -45,6 +47,9 @@ beforeEach(() => {
     mockNavigate.mockClear();
     getChatHistoryDetailByPublicId.mockReset();
     streamReview.mockReset();
+    approveOutline.mockReset();
+    getReviewRun.mockImplementation(() => Promise.resolve(null));
+    cancelReview.mockImplementation(() => Promise.resolve({}));
     mockParams = {};
     mockLocationState = null;
     // CRA resets every mock's implementation before each test.
@@ -58,7 +63,7 @@ beforeEach(() => {
 
 const startReview = async (topic) => {
     fireEvent.change(screen.getByLabelText('Topic'), { target: { value: topic } });
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Start writing/ })); });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Generate outline/ })); });
 };
 
 it('takes the review\'s address from the first frame, not at the end', async () => {
@@ -116,7 +121,7 @@ it('keeps the topic for another try after a stop', async () => {
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(mockNavigate).toHaveBeenLastCalledWith('/literature-review');
     expect(screen.getByLabelText('Topic')).toHaveValue('Osimertinib resistance');
-    expect(screen.getByRole('button', { name: /Start writing/ })).toBeVisible();
+    expect(screen.getByRole('button', { name: /Generate outline/ })).toBeVisible();
 });
 
 it('offers the finished review as LaTeX, Word and PDF from Export', async () => {
@@ -183,7 +188,7 @@ it('prints the review for a PDF, and says so when the pop-up is blocked', async 
     render(<LiteratureReview />);
     await act(async () => {
         fireEvent.change(screen.getByLabelText('Topic'), { target: { value: 'CRISPR' } });
-        fireEvent.click(screen.getByRole('button', { name: /Start writing/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Generate outline/ }));
     });
     await act(async () => finish());
 
@@ -225,7 +230,7 @@ it('asks for the scope it shows, and re-cites the finished review in the style p
     fireEvent.click(screen.getByRole('button', { name: `Years: Up to ${now}` }));
     fireEvent.click(within(screen.getByRole('group', { name: 'From' })).getByRole('option', { name: String(now - 5) }));
     expect(screen.getByRole('button', { name: `Years: ${now - 5}–${now}` })).toBeInTheDocument();
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Start writing/ })); });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Generate outline/ })); });
     const [req] = streamReview.mock.calls[0];
     expect(req.articleTypes).toBe('primary');
     expect(req.startYear).toBe(now - 5);
@@ -254,7 +259,7 @@ describe('your papers', () => {
         render(<LiteratureReview />);
         expect(screen.getByText('smith2021.pdf')).toBeInTheDocument();
         expect(screen.getByText(/together with your paper,/)).toBeInTheDocument();
-        await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Start writing/ })); });
+        await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Generate outline/ })); });
         const [req] = streamReview.mock.calls[0];
         expect(req.papers).toEqual(['a1']);
         expect(req.sources).toBe('papers_and_search');
@@ -271,11 +276,11 @@ describe('your papers', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Sources: Your papers + search' }));
         fireEvent.click(screen.getByRole('option', { name: /Your papers only/ }));
         expect(screen.getByText(/reviews your 2 papers alone/)).toBeInTheDocument();
-        expect(screen.getByText(/Takes 2–5 min/)).toBeInTheDocument();
+        expect(screen.getByText(/2–5 min in all, with a stop for you to approve the outline/)).toBeInTheDocument();
         // the years and types filter the search, which a review of the papers alone does not run
         expect(screen.getByRole('button', { name: /^Years:/ })).toBeDisabled();
         expect(screen.getByRole('button', { name: /^Article types:/ })).toBeDisabled();
-        await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Start writing/ })); });
+        await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Generate outline/ })); });
         const [req] = streamReview.mock.calls[0];
         expect(req.papers).toEqual(['a1', 'att-old notes.doc']);
         expect(req.sources).toBe('papers');
@@ -316,5 +321,114 @@ describe('your papers', () => {
         expect(screen.getByText('Your paper · smith2021.pdf')).toBeInTheDocument();
         expect(screen.getAllByRole('link', { name: /PMID/ }).map((a) => a.textContent)).toEqual(['PMID 33445566']);
         expect(screen.getByText('One of your papers')).toBeInTheDocument();
+    });
+});
+
+describe('the outline, approved before anything is written', () => {
+    const OUTLINE = {
+        title: 'Kinase inhibitor resistance', thesis: 'Resistance has three routes.', words: 4000,
+        sections: [
+            { id: 's1', kind: 'introduction', title: 'Introduction', message: '', words: 600, subsections: [] },
+            { id: 's2', kind: 'body', title: 'Target mutations', message: 'Gatekeepers first', words: 1000,
+              subsections: [{ id: '2.1', title: 'Gatekeepers' }, { id: '2.2', title: 'Compound mutations' }] },
+            { id: 's3', kind: 'body', title: 'Bypass signalling', message: '', words: 1000, subsections: [] },
+            { id: 's4', kind: 'body', title: 'Lineage plasticity', message: '', words: 1000, subsections: [] },
+            { id: 's5', kind: 'outlook', title: 'Outlook', message: '', words: 400, subsections: [] },
+        ],
+    };
+    const stopsAtOutline = () => streamReview.mockImplementation(async (req, onFrame) => {
+        onFrame({ step: 'Started', history_id: 1, public_id: 'p1', pipeline: 'literature_review' });
+        onFrame({ step: 'Outline', run_id: 'lr_1', outline: OUTLINE });
+    });
+    const writes = () => approveOutline.mockImplementation(async (req, onFrame) => {
+        onFrame({ step: 'Started', history_id: 1, public_id: 'p1', pipeline: 'literature_review' });
+        onFrame({ step: 'Complete', response: '# Kinase inhibitor resistance\n\n## Introduction\n\nA claim [1].',
+                  references: [{ number: 1, pmid: '11', title: 'Paper eleven', year: 2021 }] });
+    });
+
+    it('stops at the outline, and writes it as the reader edited it', async () => {
+        stopsAtOutline();
+        writes();
+        render(<LiteratureReview />);
+        await startReview('Kinase inhibitor resistance');
+        expect(streamReview.mock.calls[0][0].outlineApproval).toBe(true);
+        expect(screen.getByRole('heading', { name: 'Review the outline' })).toBeInTheDocument();
+        expect(screen.getByText('Resistance has three routes.')).toBeInTheDocument();
+        expect(screen.getByText('Gatekeepers · Compound mutations')).toBeInTheDocument();
+
+        fireEvent.change(screen.getByLabelText('Section title: Bypass signalling'), { target: { value: 'How bypass rescues' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Leave out: Target mutations' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Move up: Lineage plasticity' }));
+        // the introduction and the outlook cannot be left out or moved
+        expect(screen.queryByRole('button', { name: /Leave out: (Introduction|Outlook)/ })).toBeNull();
+        expect(screen.getByText('4 sections. The introduction stays first and the outlook last.')).toBeInTheDocument();
+
+        await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Write the review/ })); });
+        expect(approveOutline.mock.calls[0][0]).toEqual(expect.objectContaining({
+            runId: 'lr_1', title: 'Kinase inhibitor resistance',
+            sections: [{ id: 's1', title: 'Introduction' }, { id: 's4', title: 'Lineage plasticity' },
+                       { id: 's3', title: 'How bypass rescues' }, { id: 's5', title: 'Outlook' }],
+        }));
+        expect(await screen.findByRole('heading', { name: 'Kinase inhibitor resistance' })).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: 'Review the outline' })).toBeNull();
+    });
+
+    it('will not write a review with no body left', async () => {
+        stopsAtOutline();
+        render(<LiteratureReview />);
+        await startReview('Kinase inhibitor resistance');
+        ['Target mutations', 'Bypass signalling', 'Lineage plasticity'].forEach((name) => {
+            fireEvent.click(screen.getByRole('button', { name: `Leave out: ${name}` }));
+        });
+        expect(screen.getByRole('button', { name: /Write the review/ })).toBeDisabled();
+        fireEvent.click(screen.getByRole('button', { name: 'Keep: Bypass signalling' }));
+        expect(screen.getByRole('button', { name: /Write the review/ })).toBeEnabled();
+    });
+
+    it('keeps the outline waiting when the service refuses the approval', async () => {
+        stopsAtOutline();
+        approveOutline.mockImplementation(async (req, onFrame) => {
+            onFrame({ step: 'Started', history_id: 1, public_id: 'p1' });
+            onFrame({ step: 'Error', error: 'keep at least one section of the body', status: 400 });
+        });
+        render(<LiteratureReview />);
+        await startReview('Kinase inhibitor resistance');
+        await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Write the review/ })); });
+        expect(screen.getByRole('heading', { name: 'Review the outline' })).toBeInTheDocument();
+        expect(screen.getByText('keep at least one section of the body')).toBeInTheDocument();
+    });
+
+    it('finds the outline again when the review is reopened', async () => {
+        mockParams = { publicId: 'p1' };
+        getChatHistoryDetailByPublicId.mockResolvedValueOnce({ messages: [
+            { role: 'user', content: 'Kinase inhibitor resistance' },
+        ] });
+        getReviewRun.mockImplementation(() => Promise.resolve({ run_id: 'lr_9', status: 'outline', outline: OUTLINE }));
+        writes();
+        render(<LiteratureReview />);
+        expect(await screen.findByRole('heading', { name: 'Review the outline' })).toBeInTheDocument();
+        expect(getReviewRun).toHaveBeenCalledWith('p1');
+        await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Write the review/ })); });
+        expect(approveOutline.mock.calls[0][0].runId).toBe('lr_9');
+    });
+
+    it('a review being written after its approval is still being written', async () => {
+        mockParams = { publicId: 'p1' };
+        getChatHistoryDetailByPublicId.mockResolvedValueOnce({ messages: [
+            { role: 'user', content: 'Kinase inhibitor resistance' },
+        ] });
+        getReviewRun.mockImplementation(() => Promise.resolve({ run_id: 'lr_9', status: 'writing', outline: null }));
+        render(<LiteratureReview />);
+        expect(await screen.findByText(/This review is still being written/)).toBeInTheDocument();
+    });
+
+    it('discarding the outline stops the run and keeps the topic for another try', async () => {
+        stopsAtOutline();
+        render(<LiteratureReview />);
+        await startReview('Kinase inhibitor resistance');
+        await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Discard and start over' })); });
+        expect(cancelReview).toHaveBeenCalledWith('lr_1');
+        expect(screen.getByLabelText('Topic')).toHaveValue('Kinase inhibitor resistance');
+        expect(screen.getByRole('button', { name: /Generate outline/ })).toBeEnabled();
     });
 });

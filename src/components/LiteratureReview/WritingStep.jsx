@@ -29,7 +29,7 @@ function SectionList({ rows }) {
 }
 
 /** What each stage's row says on its right, from the counts the service reports. */
-const stageCount = (stage, detail, targetWords) => {
+const stageCount = (stage, detail, targetWords, sections) => {
     if (stage.id === 'acquisition') {
         const parts = [];
         if (detail.searches) parts.push(count(detail.searches, 'search', 'searches'));
@@ -37,6 +37,8 @@ const stageCount = (stage, detail, targetWords) => {
         return parts.join(' · ');
     }
     // The planner is asked for one section per ~600 words, at least six (literature_review/style.py).
+    // Once the outline is known, its own count.
+    if (stage.id === 'planning' && sections?.length) return count(sections.length, 'section', 'sections');
     if (stage.id === 'planning') return targetWords ? `~${Math.max(6, Math.round(targetWords / 600))} sections` : '';
     if (stage.id === 'writing') return targetWords ? `~${Number(targetWords).toLocaleString('en-US')} words` : '';
     return '';
@@ -85,7 +87,7 @@ export default function WritingStep({
                 <ol className="lr-mcard lr-mstages">
                     {STAGES.map((stage, i) => {
                         const state = pending ? 'todo' : i < at ? 'done' : i === at ? 'current' : 'todo';
-                        const said = state === 'todo' ? '' : (stageCount(stage, detail, targetWords) || stage.detail);
+                        const said = state === 'todo' ? '' : (stageCount(stage, detail, targetWords, sections) || stage.detail);
                         return (
                             <li key={stage.id} className={`lr-mstage is-${state}`}>
                                 <span className="lr-mstage-mark">
@@ -105,7 +107,9 @@ export default function WritingStep({
                     {notify && " We'll email you when it's ready."}
                 </p>
                 <div className="lr-mbar">
-                    <button type="button" className="lr-mbar-status" disabled>Writing your review…</button>
+                    <button type="button" className="lr-mbar-status" disabled>
+                        {writing ? 'Writing your review…' : 'Building the outline…'}
+                    </button>
                     {onStop && <button type="button" className="lr-secondary lr-mbar-stop" onClick={onStop}>Stop</button>}
                 </div>
             </div>
@@ -131,7 +135,7 @@ export default function WritingStep({
                     <ol className="lr-stages">
                         {STAGES.map((stage, i) => {
                             const state = pending ? 'todo' : i < at ? 'done' : i === at ? 'current' : 'todo';
-                            const right = stageCount(stage, detail, targetWords);
+                            const right = stageCount(stage, detail, targetWords, sections);
                             return (
                                 <li key={stage.id} className={`lr-stage is-${state}`}>
                                     <span className="lr-stage-mark">

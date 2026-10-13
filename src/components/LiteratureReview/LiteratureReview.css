@@ -658,3 +658,71 @@
 .lr-section-row.is-writing .lr-section-row-state { color: var(--color-brand-primary); }
 .lr-section-row.is-done .lr-section-row-state { color: #157347; }
 .lr-mwriting .lr-sections-list { padding: 0 16px; }
+
+/* Outline: approved before anything is written (OutlineStep, a phone and a wide screen alike). */
+.lr-mcard .lr-mfield:last-child, .lr-outline-card .lr-mfield:last-child { border-bottom: 0; }
+.lr-outline-review-title {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border-default, #E5E9F0);
+  border-radius: 12px;
+  background: var(--color-background-surface, #fff);
+  font: 600 18px/26px var(--font-family-sans, "Geist", sans-serif);
+  color: var(--color-text-primary, #0B1220);
+  outline: none;
+}
+.lr-outline-review-title:focus { border-color: var(--color-brand-primary); box-shadow: 0 0 0 3px var(--color-brand-soft, #EEF3FF); }
+.lr-outline-thesis-label { margin-top: 16px; }
+.lr-outline-thesis { margin: 4px 0 0; font-size: 15px; line-height: 22px; color: var(--color-text-secondary, #222A38); }
+.lr-outline-list { margin: 0; padding: 0; list-style: none; }
+.lr-outline-row { display: flex; align-items: flex-start; gap: 10px; padding: 14px 0; border-top: 1px solid var(--color-border-subtle, #F0F2F6); }
+.lr-outline-row:first-child { border-top: 0; padding-top: 4px; }
+.lr-outline-num { flex: none; width: 22px; padding-top: 8px; font-size: 14px; color: var(--color-grey-400, #8090AB); }
+.lr-outline-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.lr-outline-title {
+  display: block;
+  width: calc(100% + 10px);
+  box-sizing: border-box;
+  margin-left: -10px;
+  padding: 6px 10px;
+  resize: none;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  font: 600 16px/22px var(--font-family-sans, "Geist", sans-serif);
+  color: var(--color-text-primary, #0B1220);
+  outline: none;
+}
+.lr-outline-title:hover:not(:disabled) { border-color: var(--color-border-default, #E5E9F0); }
+.lr-outline-title:focus { border-color: var(--color-brand-primary); background: var(--color-background-surface, #fff); box-shadow: 0 0 0 3px var(--color-brand-soft, #EEF3FF); }
+.lr-outline-message { margin: 0; font-size: 14px; line-height: 20px; color: var(--color-text-tertiary, #5E6E87); }
+.lr-outline-subs { margin: 0; font-size: 13px; line-height: 18px; color: var(--color-text-secondary, #222A38); }
+.lr-outline-meta { font: 400 12px/16px var(--font-family-mono, "Geist Mono", monospace); color: var(--color-grey-400, #8090AB); }
+.lr-outline-row.is-removed .lr-outline-title { text-decoration: line-through; color: var(--color-grey-400, #8090AB); }
+.lr-outline-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; }
+.lr-outline-tools { flex: none; display: flex; gap: 2px; margin-right: -6px; }
+.lr-outline-tools button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--color-text-tertiary, #5E6E87);
+  cursor: pointer;
+}
+.lr-outline-tools button:hover:not(:disabled) { background: var(--color-background-muted, #E5E9F0); color: var(--color-text-primary, #0B1220); }
+.lr-outline-tools button:disabled { opacity: .35; cursor: default; }
+.lr-outline-tools button.is-undo { width: auto; padding: 0 10px; font: 600 14px/1 var(--font-family-sans, "Geist", sans-serif); color: var(--color-brand-primary); }
+.lr-outline-discard { font-size: 14px; }
+.lr-outline-card { margin-top: 24px; padding: 4px 24px; }
+.lr-outline-actions { display: flex; align-items: center; gap: 16px; margin-top: 20px; }
+.lr-outline-actions .lr-outline-total { margin-left: auto; font-size: 14px; color: var(--color-text-tertiary, #5E6E87); }
+.lr-outline-actions .lr-primary.is-small { width: auto; height: 44px; padding: 0 20px; }

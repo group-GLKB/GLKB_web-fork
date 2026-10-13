@@ -5,9 +5,10 @@
  *                                   from the home composer's Literature Review tab)
  *   /literature-review/:publicId    a saved review, reopened from History, Recent or a link
  *
- * The page walks the design's four steps — Scope, Outline, Writing, Review. The pipeline runs a
- * review end to end once started, so Outline is a step the run passes through (its acquisition,
- * synthesis and planning stages), not one the reader edits.
+ * The page walks the design's four steps — Scope, Outline, Writing, Review. The run stops once the
+ * outline is planned (`outline_approval`): the reader renames, reorders or leaves out sections and
+ * approves it (OutlineStep), and only then is anything written. Nothing runs while they decide, and
+ * a reload — or the mail saying the outline is ready — finds it again (getReviewRun).
  *
  * Independent of the chat page on purpose: the chat page's state machine carries "Investigate or
  * not" as one boolean through queues, recovery snapshots and reload logic, and a third mode
@@ -27,7 +28,7 @@ import { Alert, LinearProgress, useMediaQuery } from '@mui/material';
 
 import { useAuth } from '../Auth/AuthContext';
 import { getChatHistoryDetailByPublicId } from '../../service/ChatHistory';
-import { cancelReview, streamReview } from '../../service/LiteratureReview';
+import { approveOutline, cancelReview, getReviewRun, streamReview } from '../../service/LiteratureReview';
 import { fetchCitations } from '../../service/Citation';
 import { getTierPref, setTierPref } from '../../service/serviceTiers';
 import { CHAT_HOME_PATH, CHAT_NEW_PATH } from '../../config/entryRoutes';
@@ -40,6 +41,7 @@ import { OptionItem, OptionPanel } from '../Units/OptionMenu';
 import { REVIEW_PAPER_LIMITS } from '../../service/attachments';
 import { setStylePref, styleMarkdown } from './citationStyle';
 import { PhoneTopBar, TopBar } from './Chrome';
+import OutlineStep from './OutlineStep';
 import ScopeStep from './ScopeStep';
 import WritingStep from './WritingStep';
 import ReviewDocument from './ReviewDocument';
@@ -61,10 +63,12 @@ export default function LiteratureReview() {
     const [scope, setScope] = useState(() => ({ ...initialScope(), ...(location.state?.scope || {}) }));
     // The chat's own model picker: a service tier, which the review service maps to a model.
     const [serviceTier, setServiceTier] = useState(() => location.state?.serviceTier || getTierPref());
-    const [status, setStatus] = useState('idle'); // idle | running | done | error | loading | pending
+    const [status, setStatus] = useState('idle'); // idle | running | outline | done | error | loading | pending
     const [progress, setProgress] = useState(null);
     // The outline's sections and where each one is, once the run has planned them ({ title, rows }).
     const [sections, setSections] = useState(null);
+    // The outline the run stopped at, waiting for the reader's approval ({ title, thesis, words, sections }).
+    const [outline, setOutline] = useState(null);
     const [review, setReview] = useState(null); // { markdown, references, usage, executionTime, createdAt }
     // NCBI's record for each cited PMID, which the citation style formats ({} until it arrives).
     const [records, setRecords] = useState({});
@@ -172,10 +176,23 @@ export default function LiteratureReview() {
                     setReview({ markdown: answer.content, references: answer.references || [],
                                 createdAt: answer.created_at || detail?.created_at });
                     setStatus('done');
-                } else {
+                    return;
+                }
+                // Not answered yet: an outline waiting for the reader, or a review still being written.
+                const wait = () => {
                     setStatus('pending');
                     timer = setTimeout(() => setRecheck((n) => n + 1), PENDING_RECHECK_MS);
-                }
+                };
+                getReviewRun(publicId).then((run) => {
+                    if (!alive) return;
+                    if (run?.status === 'outline' && run.outline) {
+                        runIdRef.current = run.run_id;
+                        setOutline(run.outline);
+                        setStatus('outline');
+                    } else {
+                        wait();
+                    }
+                }).catch(() => { if (alive) wait(); });
             })
             .catch(() => {
                 if (!alive) return;
@@ -195,6 +212,44 @@ export default function LiteratureReview() {
     }, [status]);
 
     useEffect(() => () => abortRef.current?.abort(), []);
+
+    /* What a run's frames do to the page (the first run and the approved outline's alike). `run.finished`
+       says whether the stream ended the way a run should: a review, an outline, or an error. */
+    const onFrame = useCallback((run) => (frame) => {
+        if (frame.run_id) runIdRef.current = frame.run_id;
+        if (frame.step === 'Started' && frame.public_id) {
+            // The backend's first frame: the review already has its History entry. Take its
+            // address now, not at the end — a reload mid-run (or a laptop waking up) then
+            // reopens this review as "still being written" instead of an empty form.
+            ownPublicIdRef.current = frame.public_id;
+            navigate(`/literature-review/${frame.public_id}`, { replace: true });
+        }
+        if (frame.type === 'progress') {
+            setProgress({ phase: frame.phase, label: frame.label, percent: frame.percent,
+                          detail: frame.detail || {} });
+        } else if (frame.type === 'sections') {
+            setSections({ title: frame.title || '', rows: Array.isArray(frame.sections) ? frame.sections : [] });
+        } else if (frame.step === 'Outline') {
+            run.finished = true;
+            setOutline(frame.outline || null);
+            setStatus('outline');
+        } else if (frame.step === 'Complete') {
+            run.finished = true;
+            setOutline(null);
+            setReview({ markdown: frame.response || '', references: frame.references || [],
+                        usage: frame.usage, executionTime: frame.execution_time });
+            setStatus('done');
+        } else if (frame.step === 'Saved' && frame.public_id) {
+            // Give the review an address of its own, so a reload keeps it.
+            ownPublicIdRef.current = frame.public_id;
+            navigate(`/literature-review/${frame.public_id}`, { replace: true });
+        } else if (frame.step === 'Error') {
+            run.finished = true;
+            setError(frame.error === 'stopped' ? 'The review was stopped.' : (frame.error || 'The review failed.'));
+            // An approval the service refused ran nothing: the outline still waits.
+            setStatus(run.approving && frame.status === 400 ? 'outline' : 'error');
+        }
+    }, [navigate]);
 
     const start = useCallback(async () => {
         const question = topic.trim();
@@ -220,7 +275,7 @@ export default function LiteratureReview() {
         setStatus('running');
         trackGtagEvent('literature_review_start', { target_words: scope.targetWords || 0, sources,
                                                     papers: usedPapers.length });
-        let finished = false;
+        const run = { finished: false };
         try {
             await streamReview({
                 question, serviceTier, signal: controller.signal, articleTypes: scope.articleTypes,
@@ -229,36 +284,9 @@ export default function LiteratureReview() {
                 startYear: sources === 'papers' ? null : scope.startYear,
                 notify: scope.notify !== false,
                 papers: usedPapers.map((a) => a.id), sources,
-            }, (frame) => {
-                if (frame.run_id) runIdRef.current = frame.run_id;
-                if (frame.step === 'Started' && frame.public_id) {
-                    // The backend's first frame: the review already has its History entry. Take its
-                    // address now, not at the end — a reload mid-run (or a laptop waking up) then
-                    // reopens this review as "still being written" instead of an empty form.
-                    ownPublicIdRef.current = frame.public_id;
-                    navigate(`/literature-review/${frame.public_id}`, { replace: true });
-                }
-                if (frame.type === 'progress') {
-                    setProgress({ phase: frame.phase, label: frame.label, percent: frame.percent,
-                                  detail: frame.detail || {} });
-                } else if (frame.type === 'sections') {
-                    setSections({ title: frame.title || '', rows: Array.isArray(frame.sections) ? frame.sections : [] });
-                } else if (frame.step === 'Complete') {
-                    finished = true;
-                    setReview({ markdown: frame.response || '', references: frame.references || [],
-                                usage: frame.usage, executionTime: frame.execution_time });
-                    setStatus('done');
-                } else if (frame.step === 'Saved' && frame.public_id) {
-                    // Give the review an address of its own, so a reload keeps it.
-                    ownPublicIdRef.current = frame.public_id;
-                    navigate(`/literature-review/${frame.public_id}`, { replace: true });
-                } else if (frame.step === 'Error') {
-                    finished = true;
-                    setError(frame.error === 'stopped' ? 'The review was stopped.' : (frame.error || 'The review failed.'));
-                    setStatus('error');
-                }
-            });
-            if (!finished) {
+                outlineApproval: true,
+            }, onFrame(run));
+            if (!run.finished) {
                 setError('The connection ended before the review finished. If it keeps running on the '
                     + 'server it will appear in History.');
                 setStatus('error');
@@ -269,7 +297,60 @@ export default function LiteratureReview() {
             setError(typeof detail === 'string' ? detail : (err?.message || 'The review could not start.'));
             setStatus('error');
         }
-    }, [topic, serviceTier, scope, sources, papers.readyAttachments, isAuthenticated, openLoginModal, navigate]);
+    }, [topic, serviceTier, scope, sources, papers.readyAttachments, isAuthenticated, openLoginModal, onFrame]);
+
+    /* Write the outline as the reader approved it: the same frames as the first run, into the same
+       conversation. An approval the service finds does not fit (a 400: nothing ran) leaves the outline
+       waiting, with the reason; one already approved elsewhere (a 409) is being written. */
+    const approve = useCallback(async ({ title, sections: chosen }) => {
+        const runId = runIdRef.current;
+        if (!runId) return;
+        const controller = new AbortController();
+        abortRef.current = controller;
+        startedAtRef.current = Date.now();
+        setElapsed(0);
+        setError('');
+        setSections(null);
+        setProgress({ phase: 'writing', label: 'Writing the review…', percent: 80, detail: {} });
+        setStatus('running');
+        trackGtagEvent('literature_review_outline_approve', { sections: chosen.length });
+        const run = { finished: false, approving: true };
+        try {
+            await approveOutline({ runId, title, sections: chosen, signal: controller.signal }, onFrame(run));
+            if (!run.finished) {
+                setError('The connection ended before the review finished. If it keeps running on the '
+                    + 'server it will appear in History.');
+                setStatus('error');
+            }
+        } catch (err) {
+            if (err?.code === 'ERR_CANCELED' || err?.name === 'AbortError') return;
+            const detail = err?.response?.data?.detail;
+            if (err?.response?.status === 409) {
+                // Approved already (another tab, another device): it is being written; look again.
+                ownPublicIdRef.current = null;
+                setStatus('pending');
+                setRecheck((n) => n + 1);
+                return;
+            }
+            setError(typeof detail === 'string' ? detail : (err?.message || 'The review could not start.'));
+            setStatus('outline');
+        }
+    }, [onFrame]);
+
+    /* Discard the outline: the prompt is answered as stopped, and the topic is kept for another try. */
+    const discardOutline = useCallback(async () => {
+        try {
+            await cancelReview(runIdRef.current);
+        } catch (err) {
+            /* nothing was running; the outline is left as it was */
+        }
+        trackGtagEvent('literature_review_outline_discard', {});
+        setOutline(null);
+        setError('');
+        setTopic((t) => t || savedQuestion);
+        setStatus('idle');
+        navigate('/literature-review');
+    }, [navigate, savedQuestion]);
 
     const stop = useCallback(async () => {
         try {
@@ -372,6 +453,11 @@ export default function LiteratureReview() {
             </div>
 
             {status === 'loading' && <LinearProgress sx={{ mx: 4, mt: 4 }} />}
+
+            {status === 'outline' && outline && (
+                <OutlineStep key={runIdRef.current || 'outline'} outline={outline} onApprove={approve}
+                             onDiscard={discardOutline} error={error} phone={isPhone} />
+            )}
 
             {writing && (
                 <WritingStep

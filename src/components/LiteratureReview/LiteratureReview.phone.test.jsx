@@ -9,7 +9,7 @@ import '@testing-library/jest-dom';
 
 import LiteratureReview from './index';
 import { getChatHistoryDetailByPublicId } from '../../service/ChatHistory';
-import { streamReview } from '../../service/LiteratureReview';
+import { approveOutline, cancelReview, getReviewRun, streamReview } from '../../service/LiteratureReview';
 import { fetchCitations } from '../../service/Citation';
 
 const mockNavigate = jest.fn();
@@ -26,6 +26,8 @@ jest.mock('../../service/Citation', () => ({ fetchCitations: jest.fn(() => Promi
 jest.mock('../../service/ChatHistory', () => ({ getChatHistoryDetailByPublicId: jest.fn() }));
 jest.mock('../../service/LiteratureReview', () => ({
     streamReview: jest.fn(),
+    approveOutline: jest.fn(),
+    getReviewRun: jest.fn(() => Promise.resolve(null)),
     cancelReview: jest.fn(() => Promise.resolve({})),
 }));
 
@@ -41,6 +43,9 @@ beforeEach(() => {
     mockNavigate.mockClear();
     getChatHistoryDetailByPublicId.mockReset();
     streamReview.mockReset();
+    approveOutline.mockReset();
+    getReviewRun.mockImplementation(() => Promise.resolve(null));
+    cancelReview.mockImplementation(() => Promise.resolve({}));
     fetchCitations.mockImplementation(() => Promise.resolve({}));
     mockParams = {};
 });
@@ -53,7 +58,7 @@ it('sets up a review with the length cards and the year presets', async () => {
     expect(document.querySelector('.lr-mtopbar-step')).toHaveTextContent('Scope');
     expect(segments()).toEqual([true, false, false, false]);
 
-    const start = screen.getByRole('button', { name: /Start writing/ });
+    const start = screen.getByRole('button', { name: /Generate outline/ });
     expect(start).toBeDisabled();
     fireEvent.change(screen.getByLabelText('Topic'), { target: { value: 'Does p53 loss cause chemoresistance?' } });
     expect(start).toBeEnabled();
@@ -76,7 +81,7 @@ it('shows the share done and the stages while the review is written', async () =
     streamReview.mockImplementation((args, onFrame) => { send = onFrame; return new Promise(() => {}); });
     render(<LiteratureReview />);
     fireEvent.change(screen.getByLabelText('Topic'), { target: { value: 'Does p53 loss cause chemoresistance?' } });
-    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Start writing/ })); });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Generate outline/ })); });
     act(() => send({ type: 'progress', phase: 'synthesis', label: 'Extracting claims…', percent: 52,
                      detail: { searches: 40, papers_opened: 186 } }));
     expect(screen.getByText('52%')).toBeInTheDocument();
@@ -92,7 +97,8 @@ it('shows the share done and the stages while the review is written', async () =
     const rows = Array.from(screen.getByRole('region', { name: 'Sections' }).querySelectorAll('li'))
         .map((li) => li.textContent);
     expect(rows).toEqual(['01IntroductionDone', '02Mechanisms of resistanceWriting', '03OutlookQueued']);
-    expect(screen.getByRole('button', { name: 'Writing your review…' })).toBeDisabled();
+    // before the outline is approved the run is building it, not writing
+    expect(screen.getByRole('button', { name: 'Building the outline…' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled();
 });
 
