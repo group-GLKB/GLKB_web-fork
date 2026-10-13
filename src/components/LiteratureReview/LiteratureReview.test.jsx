@@ -12,6 +12,7 @@ import LiteratureReview from './index';
 import { getChatHistoryDetailByPublicId } from '../../service/ChatHistory';
 import { approveOutline, cancelReview, getReviewRun, streamReview } from '../../service/LiteratureReview';
 import { fetchCitations } from '../../service/Citation';
+import { applyStreamCredits, fetchUsage } from '../../service/credits';
 import { deleteAttachment, resizeImageIfNeeded, uploadAttachment } from '../../service/attachments';
 
 const mockNavigate = jest.fn();
@@ -36,6 +37,7 @@ jest.mock('../Auth/AuthContext', () => ({
 }));
 jest.mock('../../service/Citation', () => ({ fetchCitations: jest.fn(() => Promise.resolve({})) }));
 jest.mock('../../service/ChatHistory', () => ({ getChatHistoryDetailByPublicId: jest.fn() }));
+jest.mock('../../service/credits', () => ({ applyStreamCredits: jest.fn(), fetchUsage: jest.fn() }));
 // Outline approval is off until it is scheduled (config/features.js); its own tests turn it on.
 let mockOutlineApproval = false;
 jest.mock('../../config/features', () => ({
@@ -47,6 +49,7 @@ jest.mock('../../service/LiteratureReview', () => ({
     approveOutline: jest.fn(),
     getReviewRun: jest.fn(() => Promise.resolve(null)),
     cancelReview: jest.fn(() => Promise.resolve({})),
+    reviewRefusal: jest.requireActual('../../service/LiteratureReview').reviewRefusal,
 }));
 
 beforeEach(() => {
@@ -54,6 +57,7 @@ beforeEach(() => {
     getChatHistoryDetailByPublicId.mockReset();
     streamReview.mockReset();
     mockOutlineApproval = false;
+    applyStreamCredits.mockImplementation(() => true);
     approveOutline.mockReset();
     getReviewRun.mockImplementation(() => Promise.resolve(null));
     cancelReview.mockImplementation(() => Promise.resolve({}));
@@ -458,5 +462,38 @@ describe('the outline, approved before anything is written', () => {
         expect(cancelReview).toHaveBeenCalledWith('lr_1');
         expect(screen.getByLabelText('Topic')).toHaveValue('Kinase inhibitor resistance');
         expect(screen.getByRole('button', { name: /Generate outline/ })).toBeEnabled();
+    });
+});
+
+describe('credits', () => {
+    it('labels what the review costs at the model picked', async () => {
+        render(<LiteratureReview />);
+        // the pricing request fails here, so the picker's fallback prices are shown: GPT-6 Luna 10
+        const row = await screen.findByText('Cost');
+        expect(row.parentElement).toHaveTextContent('Cost10 credits');
+    });
+
+    it('says why a review the reader cannot afford was refused, and what they can afford', async () => {
+        streamReview.mockImplementation(() => Promise.reject({ response: { status: 429, data: JSON.stringify({ detail: {
+            code: 'INSUFFICIENT_CREDITS', required: 50, remaining: 30,
+            message: 'Not enough credits. This review requires 50 credits. You currently have 30 credits remaining.',
+            cheaper_option: { pipeline: 'literature_review', service_tier: 'standard', credits: 10 },
+        } }) } }));
+        render(<LiteratureReview />);
+        await startReview('Kinase inhibitor resistance');
+        expect(await screen.findByText(/This review requires 50 credits\. You currently have 30 credits remaining\. Switch to GPT-6 Luna Literature Review to continue with 10 credits\./))
+            .toBeInTheDocument();
+    });
+
+    it('folds the balance the saved review reports into the reader\'s credits', async () => {
+        streamReview.mockImplementation(async (req, onFrame) => {
+            onFrame({ step: 'Started', history_id: 1, public_id: 'p1' });
+            onFrame({ step: 'Complete', response: '# T\n\nA claim [1].', references: [] });
+            onFrame({ step: 'Saved', public_id: 'p1', credits: { charged: 10, remaining: 90 } });
+        });
+        render(<LiteratureReview />);
+        await startReview('Kinase inhibitor resistance');
+        expect(applyStreamCredits).toHaveBeenCalledWith({ charged: 10, remaining: 90 });
+        expect(fetchUsage).not.toHaveBeenCalled();
     });
 });

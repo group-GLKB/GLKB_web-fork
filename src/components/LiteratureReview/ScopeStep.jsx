@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Switch } from '@mui/material';
 
 import {
@@ -12,6 +12,7 @@ import { AttachmentChips, attachmentBlockedNote, dragHasFiles, filesFromTransfer
 import { PAPER_ACCEPT, PAPER_FORMATS_TEXT, REVIEW_PAPER_LIMITS } from '../../service/attachments';
 import { REVIEW_STYLES, styleById } from './citationStyle';
 import { LR_OUTLINE_APPROVAL_ENABLED } from '../../config/features';
+import { creditsFor, fetchTierPricing } from '../../service/serviceTiers';
 
 /**
  * Step 1: the topic and its scope, confirmed before anything runs (design: the outline
@@ -90,6 +91,15 @@ export default function ScopeStep({
 }) {
     const now = new Date().getFullYear();
     const words = scope.targetWords || 6000;
+    // What this review costs at the model picked (GET /credits/pricing): GPT-6 Luna 10, GPT-6.1 Sol 50.
+    const [pricing, setPricing] = useState(null);
+    useEffect(() => {
+        let alive = true;
+        fetchTierPricing().then((p) => { if (alive) setPricing(p); });
+        return () => { alive = false; };
+    }, []);
+    const cost = creditsFor(pricing, serviceTier, 'literature_review');
+    const costText = cost === null ? '' : `${cost.toLocaleString('en-US')} credit${cost === 1 ? '' : 's'}`;
     const fileRef = useRef(null);
     const [dragOver, setDragOver] = useState(false);
     const paperCount = papers?.readyAttachments?.length || 0;
@@ -266,7 +276,11 @@ export default function ScopeStep({
                 <div className="lr-mbar">
                     <div className="lr-mbar-text">
                         <div className="lr-mbar-big"><strong>~{words.toLocaleString('en-US')}</strong> words</div>
-                        <div className="lr-mbar-sub">{phoneSource(sources, paperCount)}</div>
+                        <div className="lr-mbar-sub">
+                            {costText && <strong className="lr-mbar-cost">{costText}</strong>}
+                            {costText && ' · '}
+                            {phoneSource(sources, paperCount)}
+                        </div>
                     </div>
                     <button type="button" className="lr-primary lr-mbar-go" disabled={!canStart} onClick={onStart}>
                         {startLabel()}
@@ -327,6 +341,12 @@ export default function ScopeStep({
                     <span>Planned length</span>
                     <span className="lr-mono">~{words.toLocaleString('en-US')} words · ~{Math.max(6, Math.round(words / 600))} sections</span>
                 </div>
+                {costText && (
+                    <div className="lr-planned lr-cost">
+                        <span>Cost</span>
+                        <span className="lr-mono">{costText}</span>
+                    </div>
+                )}
                 {fewPapersHint}
                 <button type="button" className="lr-primary" disabled={!canStart} onClick={onStart}>
                     {startLabel()}

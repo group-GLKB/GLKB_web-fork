@@ -35,6 +35,7 @@ jest.mock('../../service/LiteratureReview', () => ({
     approveOutline: jest.fn(),
     getReviewRun: jest.fn(() => Promise.resolve(null)),
     cancelReview: jest.fn(() => Promise.resolve({})),
+    reviewRefusal: jest.requireActual('../../service/LiteratureReview').reviewRefusal,
 }));
 
 beforeAll(() => {

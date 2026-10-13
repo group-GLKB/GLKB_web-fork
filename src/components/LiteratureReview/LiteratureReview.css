@@ -726,3 +726,8 @@
 .lr-outline-actions { display: flex; align-items: center; gap: 16px; margin-top: 20px; }
 .lr-outline-actions .lr-outline-total { margin-left: auto; font-size: 14px; color: var(--color-text-tertiary, #5E6E87); }
 .lr-outline-actions .lr-primary.is-small { width: auto; height: 44px; padding: 0 20px; }
+
+/* What the review costs (credits), beside the start. */
+.lr-planned.lr-cost { margin-top: -12px; }
+.lr-cost .lr-mono { font-weight: 600; color: var(--color-text-primary, #0B1220); }
+.lr-mbar-sub .lr-mbar-cost { font-weight: 600; color: var(--color-text-primary, #0B1220); }

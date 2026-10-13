@@ -37,7 +37,8 @@ export const refusalText = (refusal) => {
     }
     const cheaper = refusal.code === INSUFFICIENT_CREDITS ? refusal.cheaper_option : null;
     if (cheaper?.service_tier && Number.isFinite(Number(cheaper.credits))) {
-        const mode = cheaper.pipeline === 'deep_research' ? ' Investigate' : ' AI Chat';
+        const mode = cheaper.pipeline === 'deep_research' ? ' Investigate'
+            : cheaper.pipeline === 'literature_review' ? ' Literature Review' : ' AI Chat';
         text += ` Switch to ${tierLabel(cheaper.service_tier)}${mode} to continue with ${cheaper.credits} credits.`;
     }
     return text;

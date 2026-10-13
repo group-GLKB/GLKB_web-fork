@@ -31,6 +31,8 @@ const PRICING = parsePricing({
         { pipeline: 'chat', service_tier: 'premium', credits: 10, enabled: true },
         { pipeline: 'deep_research', service_tier: 'standard', credits: 20, enabled: true },
         { pipeline: 'deep_research', service_tier: 'premium', credits: 45, enabled: true },
+        { pipeline: 'literature_review', service_tier: 'standard', credits: 10, enabled: true },
+        { pipeline: 'literature_review', service_tier: 'premium', credits: 50, enabled: true },
     ],
 });
 
@@ -82,6 +84,14 @@ describe('what it offers', () => {
         const list = await open();
         expect(list).toHaveTextContent('45 credits/query');
         expect(list).toHaveTextContent('20 credits/query');
+    });
+
+    it('prices a literature review per review', async () => {
+        setup({ value: 'standard', pipeline: 'literature_review' });
+        const list = await open();
+        expect(list).toHaveTextContent('50 credits/review');
+        expect(list).toHaveTextContent('10 credits/review');
+        expect(list).not.toHaveTextContent('/query');
     });
 
     it('names each tier by its model, never by the tier', async () => {

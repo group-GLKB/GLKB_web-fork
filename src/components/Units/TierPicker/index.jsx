@@ -35,8 +35,11 @@ import {
 } from '../../../service/serviceTiers';
 import { trackGtagEvent } from '../../../utils/gtag';
 
-const creditsText = (credits) => (
-    Number.isFinite(credits) ? `${credits} credit${credits === 1 ? '' : 's'}/query` : ''
+// A literature review is charged once per review, not per question.
+const creditsText = (credits, pipeline) => (
+    Number.isFinite(credits)
+        ? `${credits} credit${credits === 1 ? '' : 's'}/${pipeline === 'literature_review' ? 'review' : 'query'}`
+        : ''
 );
 
 const TierPicker = ({
@@ -143,7 +146,7 @@ const TierPicker = ({
                             )}
                         </span>
                         <span className="model-picker-option-description">
-                            {[creditsText(entry.credits[pipeline]), entry.description]
+                            {[creditsText(entry.credits[pipeline], pipeline), entry.description]
                                 .filter(Boolean).join(' · ')}
                         </span>
                     </span>

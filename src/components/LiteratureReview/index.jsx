@@ -30,7 +30,11 @@ import { Alert, LinearProgress, useMediaQuery } from '@mui/material';
 
 import { useAuth } from '../Auth/AuthContext';
 import { getChatHistoryDetailByPublicId } from '../../service/ChatHistory';
-import { approveOutline, cancelReview, getReviewRun, streamReview } from '../../service/LiteratureReview';
+import {
+    approveOutline, cancelReview, getReviewRun, reviewRefusal, streamReview,
+} from '../../service/LiteratureReview';
+import { applyStreamCredits, fetchUsage } from '../../service/credits';
+import { refusalText } from '../../utils/refusals';
 import { fetchCitations } from '../../service/Citation';
 import { getTierPref, setTierPref } from '../../service/serviceTiers';
 import { CHAT_HOME_PATH, CHAT_NEW_PATH } from '../../config/entryRoutes';
@@ -224,6 +228,9 @@ export default function LiteratureReview() {
        says whether the stream ended the way a run should: a review, an outline, or an error. */
     const onFrame = useCallback((run) => (frame) => {
         if (frame.run_id) runIdRef.current = frame.run_id;
+        // A review is charged (2026-10-13): the frame that ends it carries the balance; without a
+        // usable figure the balance is read again.
+        if (frame.credits && !applyStreamCredits(frame.credits)) fetchUsage({ isAuthenticated: true });
         if (frame.step === 'Started' && frame.public_id) {
             // The backend's first frame: the review already has its History entry. Take its
             // address now, not at the end — a reload mid-run (or a laptop waking up) then
@@ -300,8 +307,10 @@ export default function LiteratureReview() {
             }
         } catch (err) {
             if (err?.code === 'ERR_CANCELED' || err?.name === 'AbortError') return;
-            const detail = err?.response?.data?.detail;
-            setError(typeof detail === 'string' ? detail : (err?.message || 'The review could not start.'));
+            // Refused before anything ran — not enough credits names the price and a cheaper choice.
+            const refusal = reviewRefusal(err);
+            setError(refusal?.code ? refusalText(refusal)
+                : (refusal?.message || err?.message || 'The review could not start.'));
             setStatus('error');
         }
     }, [topic, serviceTier, scope, sources, papers.readyAttachments, isAuthenticated, openLoginModal, onFrame]);

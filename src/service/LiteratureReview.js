@@ -108,3 +108,28 @@ export const getReviewRun = async (publicId) => {
         throw err;
     }
 };
+
+/**
+ * Why the backend refused to start a review, as `{status, code, message, ...}` — `code` is
+ * INSUFFICIENT_CREDITS (with `required`, `remaining`, `cheaper_option`) when the reader cannot afford
+ * it — or null for an error that is not a refusal. The stream asks for text, so the body arrives as
+ * a string.
+ */
+export const reviewRefusal = (error) => {
+    const response = error?.response;
+    const status = Number(response?.status);
+    if (!response || !Number.isFinite(status) || status < 400) return null;
+    let body = response.data;
+    if (typeof body === 'string') {
+        try {
+            body = JSON.parse(body);
+        } catch (parseError) {
+            body = { detail: body };
+        }
+    }
+    const detail = body?.detail;
+    if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
+        return { ...detail, status, code: detail.code || null, message: detail.message || '' };
+    }
+    return { status, code: null, message: typeof detail === 'string' ? detail : '' };
+};
