@@ -6,6 +6,27 @@ import BetaBadge from '../Units/BetaBadge';
 import { minutesLeft, STAGES, stageFill, stageIndex } from './reviewModel';
 
 const count = (n, one, many) => `${Number(n).toLocaleString('en-US')} ${n === 1 ? one : many}`;
+const pad2 = (n) => String(n).padStart(2, '0');
+const SECTION_STATE = { queued: 'Queued', writing: 'Writing', done: 'Done' };
+
+/** The outline's sections once the run has planned them, each with where it is (the design's "Sections"). */
+function SectionList({ rows }) {
+    if (!rows?.length) return null;
+    return (
+        <section className="lr-sections" aria-label="Sections">
+            <div className="lr-sections-title">Sections</div>
+            <ol className="lr-sections-list">
+                {rows.map((row, i) => (
+                    <li key={row.id} className={`lr-section-row is-${row.state}`}>
+                        <span className="lr-mono lr-section-row-num">{pad2(i + 1)}</span>
+                        <span className="lr-section-row-title">{row.title}</span>
+                        <span className="lr-section-row-state">{SECTION_STATE[row.state] || row.state}</span>
+                    </li>
+                ))}
+            </ol>
+        </section>
+    );
+}
 
 /** What each stage's row says on its right, from the counts the service reports. */
 const stageCount = (stage, detail, targetWords) => {
@@ -28,6 +49,7 @@ const stageCount = (stage, detail, targetWords) => {
  */
 export default function WritingStep({
     topic, progress, elapsed, targetWords, notify, pending, onStop, papers = 0, papersOnly = false, phone = false,
+    sections = null,
 }) {
     const phase = progress?.phase || 'acquisition';
     const at = stageIndex(phase);
@@ -77,6 +99,7 @@ export default function WritingStep({
                         );
                     })}
                 </ol>
+                <SectionList rows={sections} />
                 <p className="lr-mleave">
                     You can close this tab — the review keeps running.
                     {notify && " We'll email you when it's ready."}
@@ -124,6 +147,7 @@ export default function WritingStep({
                         })}
                     </ol>
                 </section>
+                <SectionList rows={sections} />
                 <div className="lr-leave">
                     <span>You can close this tab — the review keeps running.</span>
                     <span className="lr-leave-side">

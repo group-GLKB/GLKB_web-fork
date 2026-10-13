@@ -63,6 +63,8 @@ export default function LiteratureReview() {
     const [serviceTier, setServiceTier] = useState(() => location.state?.serviceTier || getTierPref());
     const [status, setStatus] = useState('idle'); // idle | running | done | error | loading | pending
     const [progress, setProgress] = useState(null);
+    // The outline's sections and where each one is, once the run has planned them ({ title, rows }).
+    const [sections, setSections] = useState(null);
     const [review, setReview] = useState(null); // { markdown, references, usage, executionTime, createdAt }
     // NCBI's record for each cited PMID, which the citation style formats ({} until it arrives).
     const [records, setRecords] = useState({});
@@ -214,6 +216,7 @@ export default function LiteratureReview() {
         setSavedPapers(usedPapers);
         setProgress({ phase: sources === 'papers' ? 'synthesis' : 'acquisition', label: 'Starting…',
                       percent: 1, detail: {} });
+        setSections(null);
         setStatus('running');
         trackGtagEvent('literature_review_start', { target_words: scope.targetWords || 0, sources,
                                                     papers: usedPapers.length });
@@ -238,6 +241,8 @@ export default function LiteratureReview() {
                 if (frame.type === 'progress') {
                     setProgress({ phase: frame.phase, label: frame.label, percent: frame.percent,
                                   detail: frame.detail || {} });
+                } else if (frame.type === 'sections') {
+                    setSections({ title: frame.title || '', rows: Array.isArray(frame.sections) ? frame.sections : [] });
                 } else if (frame.step === 'Complete') {
                     finished = true;
                     setReview({ markdown: frame.response || '', references: frame.references || [],
@@ -379,6 +384,7 @@ export default function LiteratureReview() {
                     notify={status === 'running' && scope.notify !== false}
                     pending={status === 'pending'}
                     onStop={status === 'running' ? stop : null}
+                    sections={status === 'running' ? sections?.rows : null}
                     phone={isPhone}
                 />
             )}

@@ -83,6 +83,15 @@ it('shows the share done and the stages while the review is written', async () =
     const stages = Array.from(document.querySelectorAll('.lr-mstage'));
     expect(stages.map((li) => li.className.replace('lr-mstage ', ''))).toEqual(['is-done', 'is-current', 'is-todo', 'is-todo']);
     expect(stages[0]).toHaveTextContent('Searching the literature40 searches · 186 papers');
+    expect(screen.queryByRole('region', { name: 'Sections' })).toBeNull();
+    act(() => send({ type: 'sections', title: 'p53 and resistance', sections: [
+        { id: 's1', kind: 'introduction', title: 'Introduction', state: 'done' },
+        { id: 's2', kind: 'body', title: 'Mechanisms of resistance', state: 'writing' },
+        { id: 's3', kind: 'outlook', title: 'Outlook', state: 'queued' },
+    ] }));
+    const rows = Array.from(screen.getByRole('region', { name: 'Sections' }).querySelectorAll('li'))
+        .map((li) => li.textContent);
+    expect(rows).toEqual(['01IntroductionDone', '02Mechanisms of resistanceWriting', '03OutlookQueued']);
     expect(screen.getByRole('button', { name: 'Writing your review…' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled();
 });
