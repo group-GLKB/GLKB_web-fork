@@ -374,7 +374,7 @@
 }
 
 .HomePageRoot.is-phone-device .homepage-hero {
-    padding: 9vh 24px 6vh;
+    padding: 9vh 16px 6vh;
 }
 
 .HomePageRoot.is-phone-device {
@@ -565,6 +565,14 @@
     height: 166px;
     padding: 24px;
 }
+
+/* The phone sheet's model list (TierPicker variant="list"), above the search controls. */
+.home-search-options-section.is-model {
+    box-sizing: border-box;
+    align-items: stretch;
+    padding: 16px 24px 20px;
+}
+.home-search-options-section.is-model .model-picker-list { width: 100%; }
 
 .home-search-options-section-heading {
     display: flex;
@@ -1068,6 +1076,7 @@
   justify-content: center;
   padding: 24px 16px 0;
 }
+.HomePageRoot.is-phone-device .news-strip-slot { padding: 14px 16px 0; }
 .HomePageRoot .news-strip {
   display: inline-flex;
   align-items: center;
@@ -1129,7 +1138,126 @@
   cursor: pointer;
 }
 .HomePageRoot .news-strip-close:hover { background: var(--color-background-muted, #E5E9F0); }
-.HomePageRoot.is-phone-device .news-strip { height: 36px; gap: 8px; font-size: 13px; }
-.HomePageRoot.is-phone-device .news-strip-dots,
-.HomePageRoot.is-phone-device .news-strip-tag { display: none; }
-.HomePageRoot.is-phone-device .news-strip-cta { font-size: 13px; }
+.HomePageRoot .news-strip-region { display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 100%; min-width: 0; }
+/* The phone design: the strip runs the width, the link is its arrow, the dots sit underneath. */
+.HomePageRoot .news-strip-region.is-compact { width: 100%; }
+.HomePageRoot .news-strip-region.is-compact .news-strip {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  height: 44px;
+  gap: 10px;
+  padding: 0 6px 0 6px;
+  font-size: 15px;
+}
+.HomePageRoot .news-strip-region.is-compact .news-strip-text { flex: 1; }
+.HomePageRoot .news-strip-region.is-compact .news-strip-cta { padding: 4px; font-size: 17px; }
+.HomePageRoot .news-strip-region.is-compact .news-strip-close { margin-left: 0; padding: 6px; }
+.HomePageRoot .news-strip-region.is-compact .news-strip-dots { margin-left: 0; }
+
+/* ── Phone composer: the mode pill, the Options icon (phone design) ──────── */
+.HomePageRoot .composer-mode-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  height: 36px;
+  padding: 0 2px 0 6px;
+  border: 0;
+  border-radius: 10px;
+  letter-spacing: -0.01em;
+  background: transparent;
+  color: var(--color-text-tertiary, #5E6E87);
+  font: 600 15px/20px Geist, sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.HomePageRoot .composer-mode-pill:disabled { cursor: not-allowed; opacity: .6; }
+.HomePageRoot .composer-mode-pill-icon { display: inline-flex; flex: none; }
+.HomePageRoot .composer-mode-pill-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.HomePageRoot .composer-mode-pill-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-left: 2px;
+  border-radius: 50%;
+  background: var(--color-brand-primary);
+}
+.HomePageRoot .composer-mode-pill-caret { flex: none; width: 18px !important; height: 18px !important; margin-left: -3px; opacity: .7; }
+.HomePageRoot .composer-mode-pill.is-investigate { background: #EEE7FD; color: #5B21B6; }
+.HomePageRoot .composer-mode-pill.is-review { background: var(--color-brand-soft, #EEF3FF); color: var(--color-brand-primary); }
+.HomePageRoot .composer-options-dot {
+  position: absolute;
+  top: 7px;
+  right: 1px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-brand-primary);
+}
+@media (max-width: 359px) {
+  .HomePageRoot .composer-mode-pill { font-size: 14px; padding-left: 8px; }
+}
+
+/* The mode sheet renders in a portal, outside .HomePageRoot, so these are not scoped. */
+.composer-mode-sheet {
+  padding: 0 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: var(--color-background-surface, #fff) !important;
+  font-family: Geist, sans-serif;
+}
+.composer-mode-sheet-handle {
+  width: 44px;
+  height: 4px;
+  margin: 8px auto 14px;
+  border-radius: 4px;
+  background: var(--color-background-normal, #D9DEE7);
+}
+.composer-mode-sheet-title {
+  padding: 0 12px 10px;
+  font: 600 15px/20px Geist, sans-serif;
+  color: var(--color-text-tertiary, #5E6E87);
+}
+.composer-mode-sheet-list { display: flex; flex-direction: column; gap: 4px; }
+.composer-mode-sheet-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 12px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.composer-mode-sheet-row.is-active { background: var(--color-background-subtle, #F5F7FA); }
+.composer-mode-sheet-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+.composer-mode-sheet-row.is-chat .composer-mode-sheet-icon { background: #DCF5E6; color: #157347; }
+.composer-mode-sheet-row.is-investigate .composer-mode-sheet-icon { background: #EEE7FD; color: #6D28D9; }
+.composer-mode-sheet-row.is-review .composer-mode-sheet-icon { background: var(--color-brand-soft, #EEF3FF); color: var(--color-brand-primary); }
+.composer-mode-sheet-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.composer-mode-sheet-label {
+  display: flex;
+  align-items: center;
+  font: 600 17px/24px Geist, sans-serif;
+  color: var(--color-text-primary, #0B1220);
+}
+.composer-mode-sheet-hint { font: 400 14px/20px Geist, sans-serif; color: var(--color-text-tertiary, #5E6E87); }
+.composer-mode-sheet-duration {
+  white-space: nowrap;
+  font-family: var(--font-family-mono, "Geist Mono", monospace);
+  font-size: 13px;
+  color: var(--color-grey-400, #8090AB);
+}
+.composer-mode-sheet-check { flex: none; width: 22px !important; height: 22px !important; color: var(--color-brand-primary); }

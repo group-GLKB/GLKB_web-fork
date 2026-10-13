@@ -392,3 +392,249 @@
 
 /* A reference the reader uploaded: named by its file; it links to PubMed only when PubMed knows it. */
 .lr-ref-meta .lr-ref-upload { margin-right: 10px; font-weight: 600; color: var(--color-text-secondary, #222A38); }
+
+/* ── The phone design (≤767px; the components render these only there) ───────────────────── */
+.lr-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.lr-ref-pos, .lr-disclaimer { display: none; }
+
+/* The bar: back · "Literature Review" over the step · one action, and the steps as four segments. */
+.lr-mtopbar {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  padding: 4px 12px 10px;
+  border-bottom: 1px solid var(--color-border-default, #E5E9F0);
+  background: var(--color-background-surface, #fff);
+}
+.lr-mtopbar-row { display: grid; grid-template-columns: 96px minmax(0, 1fr) 96px; align-items: center; min-height: 52px; }
+.lr-mtopbar-back {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--color-text-primary, #0B1220);
+  cursor: pointer;
+}
+.lr-mtopbar-title { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.lr-mtopbar-kicker {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: 600 14px/18px var(--font-family-sans, "Geist", sans-serif);
+  color: var(--color-brand-primary);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.lr-mtopbar-step { font-size: 18px; line-height: 24px; font-weight: 600; color: var(--color-text-primary, #0B1220); }
+.lr-mtopbar-action { justify-self: end; display: flex; }
+.lr-mtopbar-action .lr-primary.is-small { height: 40px; padding: 0 16px; border-radius: 10px; font-size: 16px; }
+.lr-msteps { display: flex; gap: 4px; margin: 6px 0 0; padding: 0 4px; list-style: none; }
+.lr-msteps li { flex: 1; height: 4px; border-radius: 2px; background: var(--color-background-muted, #E5E9F0); }
+.lr-msteps li.is-on { background: var(--color-brand-primary); }
+
+/* A card, and the bar along the bottom that holds the page's one action. */
+.lr-mcard {
+  padding: 4px 16px;
+  border: 1px solid var(--color-border-default, #E5E9F0);
+  border-radius: 16px;
+  background: var(--color-background-surface, #fff);
+}
+.lr-mcard.is-drop-target { outline: 2px dashed var(--color-brand-primary, #155dfc); outline-offset: -6px; }
+.lr-mbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px -16px 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--color-border-default, #E5E9F0);
+  background: var(--color-background-surface, #fff);
+}
+.lr-mbar-text { flex: 1; min-width: 0; }
+.lr-mbar-big { font-size: 15px; color: var(--color-text-tertiary, #5E6E87); white-space: nowrap; }
+.lr-mbar-big strong { margin-right: 2px; font-size: 24px; line-height: 30px; font-weight: 700; color: var(--color-text-primary, #0B1220); }
+.lr-mbar-sub { font-size: 13px; line-height: 18px; color: var(--color-text-tertiary, #5E6E87); }
+.lr-mbar .lr-mbar-go { flex: none; width: auto; height: 52px; padding: 0 20px; border-radius: 12px; font-size: 17px; }
+.lr-mbar-status {
+  flex: 1;
+  height: 52px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--color-background-muted, #E5E9F0);
+  color: var(--color-text-tertiary, #5E6E87);
+  font: 600 17px/1 var(--font-family-sans, "Geist", sans-serif);
+}
+.lr-mbar .lr-mbar-stop { flex: none; height: 52px; border-radius: 12px; }
+
+/* A phone page fills the screen under the bar (≈78px), so its bottom bar sits at the bottom even
+   when there is little above it. */
+.lr-mscope, .lr-mwriting {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-height: calc(100vh - 78px);
+  min-height: calc(100dvh - 78px);
+}
+.lr-mscope > .lr-mbar, .lr-mwriting > .lr-mbar { margin-top: auto; }
+.lr-mscope > .lr-note, .lr-mwriting > .lr-mleave { margin-bottom: 20px; }
+
+/* Scope: "Set up your review". */
+.lr-mscope { padding: 24px 16px 0; }
+.lr-mscope-title { margin: 0 0 8px; font-size: 28px; line-height: 34px; font-weight: 700; letter-spacing: -0.01em; }
+.lr-mscope-sub { margin: 0 0 20px; font-size: 16px; line-height: 24px; color: var(--color-text-tertiary, #5E6E87); }
+.lr-mfield { padding: 20px 0; border-bottom: 1px solid var(--color-border-subtle, #F0F2F6); }
+.lr-mfield-label { display: block; font-size: 17px; line-height: 24px; font-weight: 600; color: var(--color-text-primary, #0B1220); }
+.lr-mfield-hint { margin: 2px 0 12px; font-size: 14px; line-height: 20px; color: var(--color-text-tertiary, #5E6E87); }
+.lr-mtopic {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border-default, #E5E9F0);
+  border-radius: 12px;
+  background: var(--color-background-surface, #fff);
+  resize: vertical;
+  font: 400 17px/26px var(--font-family-sans, "Geist", sans-serif);
+  color: var(--color-text-primary, #0B1220);
+  outline: none;
+}
+.lr-mtopic::placeholder { color: var(--color-grey-400, #8090AB); }
+.lr-mtopic:focus { border-color: var(--color-brand-primary); box-shadow: 0 0 0 3px var(--color-brand-soft, #EEF3FF); }
+.lr-mlengths { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.lr-mlength {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border-default, #E5E9F0);
+  border-radius: 12px;
+  background: var(--color-background-surface, #fff);
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+.lr-mlength-n { font-size: 20px; line-height: 26px; font-weight: 600; color: var(--color-text-primary, #0B1220); }
+.lr-mlength-label { font-size: 15px; line-height: 20px; color: var(--color-text-tertiary, #5E6E87); }
+.lr-mlength.is-on, .lr-mchip.is-on {
+  border-color: var(--color-brand-primary);
+  background: var(--color-brand-soft, #EEF3FF);
+  box-shadow: inset 0 0 0 1px var(--color-brand-primary);
+}
+.lr-mlength.is-on .lr-mlength-n, .lr-mchip.is-on { color: var(--color-brand-primary); }
+.lr-mcustom.option-menu-trigger { margin-top: 10px; padding-left: 0; font-size: 15px; font-weight: 600; color: var(--color-brand-primary); }
+.lr-mcustom.option-menu-trigger.is-on { padding-left: 10px; }
+.lr-mchips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.lr-mchip, .lr-mchip.option-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-default, #E5E9F0);
+  border-radius: 12px;
+  background: var(--color-background-surface, #fff);
+  font: 500 15px/20px var(--font-family-sans, "Geist", sans-serif);
+  color: var(--color-text-primary, #0B1220);
+  cursor: pointer;
+}
+.lr-mchip.option-menu-trigger { padding-right: 6px; }
+.lr-mchip.is-on { color: var(--color-brand-primary); }
+.lr-mchip:disabled { opacity: .5; cursor: not-allowed; }
+.lr-mrows { margin: 4px 0 8px; }
+.lr-mrows > div:last-child { border-bottom: 0; }
+
+/* Writing: the share done, the stages as a checklist. */
+.lr-mwriting { padding: 28px 16px 0; }
+.lr-mpct { display: flex; align-items: baseline; gap: 12px; }
+.lr-mpct-n { font-size: 56px; line-height: 60px; font-weight: 800; letter-spacing: -0.03em; color: var(--color-text-primary, #0B1220); }
+.lr-mpct-left { font-size: 17px; color: var(--color-text-tertiary, #5E6E87); }
+.lr-mpct-pending { font-size: 28px; line-height: 36px; font-weight: 700; }
+.lr-mprogress { height: 8px; margin: 16px 0 20px; border-radius: 4px; background: var(--color-background-muted, #E5E9F0); overflow: hidden; }
+.lr-mprogress > span { display: block; height: 100%; border-radius: 4px; background: var(--color-brand-primary); transition: width .6s ease; }
+.lr-mwriting-topic { margin: 0 0 20px; font-size: 17px; line-height: 26px; color: var(--color-text-primary, #0B1220); }
+.lr-mwriting .lr-writing-papers { margin: -12px 0 20px; }
+.lr-mstages { margin: 0; padding: 8px 16px; list-style: none; }
+.lr-mstage { display: flex; align-items: center; gap: 16px; padding: 14px 0; }
+.lr-mstage-mark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-background-subtle, #F5F7FA);
+  box-shadow: inset 0 0 0 1px var(--color-border-default, #E5E9F0);
+}
+.lr-mstage.is-done .lr-mstage-mark { background: var(--color-brand-primary); color: #fff; box-shadow: none; }
+.lr-mstage.is-current .lr-mstage-mark {
+  background: var(--color-background-surface, #fff);
+  box-shadow: inset 0 0 0 2px var(--color-brand-primary), 0 0 0 4px var(--color-brand-soft, #EEF3FF);
+}
+.lr-mstage-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.lr-mstage-name { font-size: 18px; line-height: 24px; font-weight: 600; color: var(--color-text-primary, #0B1220); }
+.lr-mstage.is-todo .lr-mstage-name { color: var(--color-grey-400, #8090AB); }
+.lr-mstage-detail { font-size: 15px; line-height: 20px; color: var(--color-text-tertiary, #5E6E87); }
+.lr-mleave { margin: 16px 4px 0; font-size: 14px; line-height: 20px; color: var(--color-text-tertiary, #5E6E87); }
+
+/* The finished review ("Draft"): one column on white, numbered sections, a plain numbered list. */
+.lr-mverified { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 15px; line-height: 20px; font-weight: 600; color: #157347; }
+.lr-mverified-mark { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #DCF5E6; }
+.lr-mverified.is-warn { color: #B45309; }
+.lr-mmeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 8px;
+  margin: -4px 0 8px;
+  font: 400 14px/24px var(--font-family-mono, "Geist Mono", monospace);
+  color: var(--color-text-tertiary, #5E6E87);
+}
+.lr-mmeta > * + *::before { content: '·'; margin-right: 8px; }
+.lr-mmeta .lr-style-select.option-menu-trigger { height: 24px; margin: 0; padding: 0; border: 0; font: inherit; color: inherit; }
+
+@media (max-width: 767px) {
+  .lr-review { background: var(--color-background-surface, #fff); }
+  .lr-document { padding: 20px 20px 24px; }
+  .lr-document .lr-title { margin-bottom: 12px; font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -0.01em; }
+  .lr-section { scroll-margin-top: 80px; }
+  .lr-section h2 { gap: 12px; margin: 32px 0 12px; font-size: 22px; line-height: 28px; font-weight: 700; }
+  .lr-section-num { font-size: 15px; }
+  .lr-para { margin: 0; padding: 0; }
+  .lr-para:hover { background: none; }
+  .lr-para-anchor { display: none; }
+  .lr-para p { margin-bottom: 12px; font-size: 17px; line-height: 30px; }
+  .lr-cite.is-author-date {
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: var(--color-brand-soft, #EEF3FF);
+    color: var(--color-brand-primary);
+    font-weight: 500;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+  .lr-refs { margin: 0 20px; border-top: 1px solid var(--color-border-default, #E5E9F0); background: transparent; }
+  .lr-refs-head { padding: 24px 0 4px; border-bottom: 0; }
+  .lr-refs-count { display: none; }
+  .lr-refs-list { padding: 0; gap: 0; overflow: visible; }
+  .lr-ref { display: grid; grid-template-columns: 28px minmax(0, 1fr); padding: 14px 0; border: 0; border-bottom: 1px solid var(--color-border-subtle, #F0F2F6); border-radius: 0; }
+  .lr-ref-head { display: none; }
+  .lr-ref-pos { display: block; grid-column: 1; grid-row: 1 / span 3; font-size: 15px; line-height: 24px; color: var(--color-text-tertiary, #5E6E87); }
+  .lr-ref-text, .lr-ref-meta, .lr-ref-quote { grid-column: 2; }
+  .lr-ref-text { font-size: 16px; line-height: 24px; color: var(--color-text-secondary, #222A38); }
+  /* The supporting sentence shows for the reference a citation was tapped through to. */
+  .lr-ref-quote { display: none; }
+  .lr-ref.is-highlighted { border-color: var(--color-border-subtle, #F0F2F6); box-shadow: none; }
+  .lr-ref.is-highlighted .lr-ref-quote { display: block; }
+  .lr-disclaimer { display: block; margin: 16px 0 32px; font-size: 14px; line-height: 20px; color: var(--color-text-tertiary, #5E6E87); }
+}

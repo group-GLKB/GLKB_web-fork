@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import CheckIcon from '@mui/icons-material/Check';
 import remarkGfm from 'remark-gfm';
 
 import BetaBadge from '../Units/BetaBadge';
@@ -29,13 +30,15 @@ export const PARAGRAPH_ACTIONS = [
     { id: 'evidence', label: 'Add evidence', prompt: (t) => `Find more published evidence, with PMIDs, for the claims in this passage from my literature review.\n\n"${t}"` },
 ];
 
-function ReferenceCard({ entry, authorDate, highlighted, refEl }) {
+function ReferenceCard({ entry, authorDate, highlighted, refEl, position }) {
     const reference = entry.reference;
     return (
         <article ref={refEl} id={`ref-${entry.number}`} className={`lr-ref${highlighted ? ' is-highlighted' : ''}`}>
             <div className="lr-ref-head">
                 <span className="lr-mono lr-ref-num">{authorDate ? entry.label : `[${entry.number}]`}</span>
             </div>
+            {/* The phone design numbers the list down its left edge instead. */}
+            <span className="lr-ref-pos" aria-hidden="true">{position}</span>
             <div className="lr-ref-text">{entry.text}</div>
             {(reference.pmid || reference.source === 'upload') && (
                 <div className="lr-ref-meta">
@@ -68,7 +71,7 @@ function ReferenceCard({ entry, authorDate, highlighted, refEl }) {
  * review — are left out otherwise rather than estimated.
  */
 export default function ReviewDocument({
-    markdown, references: given, records, citationStyle, onCitationStyle, meta, onAction,
+    markdown, references: given, records, citationStyle, onCitationStyle, meta, onAction, phone = false,
 }) {
     const review = useMemo(() => parseReview(markdown, given), [markdown, given]);
     const byNumber = useMemo(() => new Map(review.references.map((r) => [r.number, r])), [review.references]);
@@ -169,6 +172,15 @@ export default function ReviewDocument({
         setActiveId(id);
         document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
+    const styleSelect = onCitationStyle ? (
+        <OptionSelect label={`Citation style: ${styled.style.label}`} panelLabel="Citation style"
+                      className="lr-style-select" placement="bottom-start"
+                      value={styled.style.id} onChange={onCitationStyle}
+                      options={REVIEW_STYLES.map((st) => ({
+                          id: st.id, label: st.label,
+                          hint: st.authorDate ? 'Author–year in the text' : 'Numbered in the text',
+                      }))} />
+    ) : <span>{styled.style.label}</span>;
     const render = (md) => <ReactMarkdown remarkPlugins={REMARK_PLUGINS} components={components}>{linkCitations(md)}</ReactMarkdown>;
     const hoverRefs = hover ? hover.nums.map((n) => byNumber.get(n)).filter(Boolean) : [];
 
@@ -194,22 +206,36 @@ export default function ReviewDocument({
             </nav>
 
             <article className="lr-document">
-                <div className="lr-kicker">Literature review · Draft 1<BetaBadge className="lr-kicker-beta" /></div>
+                {/* The phone design: what the audit found as one badge, then a one-line meta. The badge
+                    needs the pipeline's audit; without it nothing is claimed. */}
+                {phone ? review.audit && (
+                    review.audit.fabricated ? (
+                        <div className="lr-mverified is-warn">
+                            {review.audit.fabricated === 1 ? '1 citation needs' : `${review.audit.fabricated} citations need`} review
+                        </div>
+                    ) : (
+                        <div className="lr-mverified">
+                            <span className="lr-mverified-mark"><CheckIcon style={{ width: 13, height: 13 }} /></span>
+                            Citations verified
+                        </div>
+                    )
+                ) : <div className="lr-kicker">Literature review · Draft 1<BetaBadge className="lr-kicker-beta" /></div>}
                 <h1 className="lr-title">{review.title || meta?.topic}</h1>
+                {phone && (
+                    <div className="lr-mmeta">
+                        <span>≈{words.toLocaleString('en-US')} words</span>
+                        <span>{review.references.length} reference{review.references.length === 1 ? '' : 's'}</span>
+                        {meta?.startYear && <span>{meta.startYear}–{meta.cutoffYear || new Date().getFullYear()}</span>}
+                        {styleSelect}
+                    </div>
+                )}
+                {!phone && (<>
                 <div className="lr-meta">
                     {meta?.startYear
                         ? <span>{meta.startYear}–{meta.cutoffYear || new Date().getFullYear()}</span>
                         : meta?.cutoffYear && <span>Up to {meta.cutoffYear}</span>}
                     {meta?.papers > 0 && <span>{meta.papers === 1 ? 'One' : meta.papers} of your papers</span>}
-                    {onCitationStyle ? (
-                        <OptionSelect label={`Citation style: ${styled.style.label}`} panelLabel="Citation style"
-                                      className="lr-style-select" placement="bottom-start"
-                                      value={styled.style.id} onChange={onCitationStyle}
-                                      options={REVIEW_STYLES.map((st) => ({
-                                          id: st.id, label: st.label,
-                                          hint: st.authorDate ? 'Author–year in the text' : 'Numbered in the text',
-                                      }))} />
-                    ) : <span>{styled.style.label}</span>}
+                    {styleSelect}
                     {meta?.generated && <span>Generated {meta.generated}{meta.minutes ? ` · ${meta.minutes} min` : ''}</span>}
                 </div>
                 <div className="lr-stats">
@@ -239,10 +265,11 @@ export default function ReviewDocument({
                 <p className="lr-hint">
                     Hover a citation to preview the paper.{PARAGRAPH_ACTIONS_ENABLED && ' Hover a paragraph to ask about it or rewrite it.'}
                 </p>
+                </>)}
                 {review.intro && <div className="lr-section">{render(review.intro)}</div>}
                 {review.sections.map((s) => (
                     <section key={s.id} id={s.id} className="lr-section">
-                        <h2><span className="lr-mono lr-section-num">{pad2(s.number)}</span>{s.title}</h2>
+                        <h2><span className="lr-mono lr-section-num">{phone ? s.number : pad2(s.number)}</span>{s.title}</h2>
                         {render(s.body)}
                     </section>
                 ))}
@@ -254,11 +281,14 @@ export default function ReviewDocument({
                     <span className="lr-mono lr-refs-count">{review.references.length}</span>
                 </div>
                 <div className="lr-refs-list">
-                    {styled.entries.map((e) => (
+                    {styled.entries.map((e, i) => (
                         <ReferenceCard key={e.number} entry={e} authorDate={authorDate} highlighted={highlight === e.number}
-                                       refEl={(el) => { if (el) refEls.current.set(e.number, el); }} />
+                                       position={i + 1} refEl={(el) => { if (el) refEls.current.set(e.number, el); }} />
                     ))}
                 </div>
+                {phone && (
+                    <p className="lr-disclaimer">AI-generated draft. Verify all citations against primary sources before submission.</p>
+                )}
             </aside>
 
             {hover && hoverRefs.length > 0 && (

@@ -27,7 +27,7 @@ const stageCount = (stage, detail, targetWords) => {
  * are the ones its progress frames carry.
  */
 export default function WritingStep({
-    topic, progress, elapsed, targetWords, notify, pending, onStop, papers = 0, papersOnly = false,
+    topic, progress, elapsed, targetWords, notify, pending, onStop, papers = 0, papersOnly = false, phone = false,
 }) {
     const phase = progress?.phase || 'acquisition';
     const at = stageIndex(phase);
@@ -35,17 +35,66 @@ export default function WritingStep({
     const left = minutesLeft(progress?.percent, elapsed);
     const detail = progress?.detail || {};
     const writing = phase === 'writing';
+    const papersLine = papers > 0 && (
+        <p className="lr-writing-papers">
+            {papersOnly ? `From your ${papers === 1 ? 'paper' : `${papers} papers`} only`
+                : `With your ${papers === 1 ? 'paper' : `${papers} papers`}`}
+        </p>
+    );
+
+    if (phone) {
+        /* The phone design: the share done as one big number and one bar, the topic, the stages as a
+           checklist (done, in hand, to come) and a status bar at the bottom. A review reopened while
+           it is still being written has no percentage to show, so it says so instead. */
+        const percent = Math.max(1, Math.min(99, Math.round(Number(progress?.percent) || 1)));
+        return (
+            <div className="lr-mwriting">
+                <div className="lr-mpct" aria-live="polite">
+                    {pending ? <span className="lr-mpct-pending">Still being written</span> : (
+                        <>
+                            <span className="lr-mpct-n">{percent}%</span>
+                            <span className="lr-mpct-left">{left ? `About ${left} min left` : (progress?.label || 'Starting…')}</span>
+                        </>
+                    )}
+                </div>
+                <div className="lr-mprogress" aria-hidden="true"><span style={{ width: `${pending ? 0 : percent}%` }} /></div>
+                <p className="lr-mwriting-topic">{topic}</p>
+                {papersLine}
+                <ol className="lr-mcard lr-mstages">
+                    {STAGES.map((stage, i) => {
+                        const state = pending ? 'todo' : i < at ? 'done' : i === at ? 'current' : 'todo';
+                        const said = state === 'todo' ? '' : (stageCount(stage, detail, targetWords) || stage.detail);
+                        return (
+                            <li key={stage.id} className={`lr-mstage is-${state}`}>
+                                <span className="lr-mstage-mark">
+                                    {state === 'done' && <CheckIcon style={{ width: 16, height: 16 }} />}
+                                </span>
+                                <span className="lr-mstage-text">
+                                    <span className="lr-mstage-name">{stage.doing}</span>
+                                    {said && <span className="lr-mstage-detail">{said}</span>}
+                                </span>
+                            </li>
+                        );
+                    })}
+                </ol>
+                <p className="lr-mleave">
+                    You can close this tab — the review keeps running.
+                    {notify && " We'll email you when it's ready."}
+                </p>
+                <div className="lr-mbar">
+                    <button type="button" className="lr-mbar-status" disabled>Writing your review…</button>
+                    {onStop && <button type="button" className="lr-secondary lr-mbar-stop" onClick={onStop}>Stop</button>}
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="lr-page lr-writing">
             <div className="lr-main is-narrow">
                 <div className="lr-kicker">{writing ? 'Step 3 · Writing' : 'Step 2 · Building the outline'}<BetaBadge className="lr-kicker-beta" /></div>
                 <h1 className="lr-title">{topic}</h1>
-                {papers > 0 && (
-                    <p className="lr-writing-papers">
-                        {papersOnly ? `From your ${papers === 1 ? 'paper' : `${papers} papers`} only`
-                            : `With your ${papers === 1 ? 'paper' : `${papers} papers`}`}
-                    </p>
-                )}
+                {papersLine}
                 <section className="lr-card lr-progress" aria-live="polite">
                     <div className="lr-progress-head">
                         <span className="lr-progress-label">{pending ? 'Writing — this page updates when the review is saved' : (progress?.label || 'Starting…')}</span>

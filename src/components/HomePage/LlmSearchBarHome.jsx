@@ -36,7 +36,7 @@ import {
 } from '../Units/AttachmentChips';
 import { effectiveTier, getTierPref, setTierPref } from '../../service/serviceTiers';
 import { GUEST_INVESTIGATE_REASON, GUEST_REVIEW_REASON } from '../../utils/refusals';
-import ComposerModes, { COMPOSER_MODES } from './ComposerModes';
+import ComposerModes, { COMPOSER_MODES, ModePill, ModeSheet } from './ComposerModes';
 import ReviewScope, { initialScope } from './ReviewScope';
 import { setStylePref } from '../LiteratureReview/citationStyle';
 import {
@@ -58,6 +58,8 @@ const REVIEW_ATTACH = {
     accept: PAPER_ACCEPT,
 };
 
+const MODE_SHEET_SEEN_KEY = 'glkb-mode-sheet-seen-v1';
+
 const LlmSearchBar = React.forwardRef((props, ref) => {
     const [llmQuery, setLlmQuery] = useState('');
     /* The composer's mode: AI Chat, Investigate or Literature Review, picked on the tabs along
@@ -65,6 +67,12 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
        their flag (config/features.js); with both off there are no tabs and every question is
        a chat question, as before. */
     const [mode, setMode] = useState('chat');
+    /* On a phone the modes are picked in a bottom sheet from the pill in the composer's row. Its
+       dot says there is more than Chat, until the reader has opened the sheet once. */
+    const [modeSheetOpen, setModeSheetOpen] = useState(false);
+    const [modeSheetSeen, setModeSheetSeen] = useState(() => {
+        try { return window.localStorage.getItem(MODE_SHEET_SEEN_KEY) === '1'; } catch { return false; }
+    });
     const investigateEnabled = INVESTIGATE_ENABLED && mode === 'investigate';
     const reviewEnabled = LITERATURE_REVIEW_ENABLED && mode === 'review';
     const modes = ['chat', INVESTIGATE_ENABLED && 'investigate', LITERATURE_REVIEW_ENABLED && 'review']
@@ -131,8 +139,12 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
     // The app shell and HomePage both switch at 767px. A separate 600px
     // threshold mixed the mobile page with the PC search controls.
     const isMobileLayout = useMediaQuery('(max-width:767px)');
-    // Investigate and Literature Review say what the button does; AI Chat keeps the bare arrow.
-    const modeAction = isMobileLayout ? '' : (COMPOSER_MODES[mode]?.action || '');
+    // Investigate and Literature Review say what the button does (shorter on a phone); AI Chat
+    // keeps the bare arrow.
+    const modeAction = (isMobileLayout ? COMPOSER_MODES[mode]?.mobileAction : COMPOSER_MODES[mode]?.action) || '';
+    /* The review's scope chips sit in the composer on a wide screen only: on a phone the review
+       page's "Set up your review" is where they are set (the phone design), so the box keeps its size. */
+    const scopeInComposer = reviewEnabled && !isMobileLayout;
     // The review scope row sits between the topic and the control row, so the box grows by it:
     // by its measured height (its chips wrap to more rows on a phone, or with longer values),
     // estimated until it has been measured.
@@ -146,7 +158,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         return () => observer.disconnect();
     }, [scopeEl]);
     const scopeRows = scopeHeight ? scopeHeight + 8 : (isMobileLayout ? 96 : 52);
-    const composerMinHeight = `${(isMobileLayout ? 148 : 120) + (reviewEnabled ? scopeRows : 0)}px`;
+    const composerMinHeight = `${(isMobileLayout ? 148 : 120) + (scopeInComposer ? scopeRows : 0)}px`;
     const inputTimeoutRef = React.useRef(null);
     const hasTrackedInputRef = React.useRef(false);
     const lastPrefillRef = React.useRef(undefined);
@@ -365,8 +377,10 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         ? mobileSelectedOptions.join(' + ')
         : 'Options';
 
+    /* On a phone the Options sheet also holds the model (the row has no room for its chip), so it
+       opens in every mode; with the search controls locked it shows the model alone. */
     const openSearchOptions = () => {
-        if (searchOptionsLocked) return;
+        if (searchOptionsLocked && !isMobileLayout) return;
         trackGtagEvent('home_search_options_open_click', {
             source: isMobileLayout ? 'mobile' : 'desktop',
         });
@@ -382,6 +396,17 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             return;
         }
         setDesktopOptionsOpen(true);
+    };
+
+    const openModeSheet = () => {
+        trackGtagEvent('home_mode_sheet_open_click', { mode });
+        setIsOpen(false);
+        props.onCollapseExampleLists?.();
+        setModeSheetOpen(true);
+        if (!modeSheetSeen) {
+            setModeSheetSeen(true);
+            try { window.localStorage.setItem(MODE_SHEET_SEEN_KEY, '1'); } catch { /* this visit only */ }
+        }
     };
 
     // Turning Investigate on while the drawer is open must not leave an inert panel on screen,
@@ -412,15 +437,51 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
         setSortBy(defaultSortBy);
     };
 
+    const tierPicker = (variant) => (
+        <TierPicker
+            variant={variant}
+            value={serviceTier}
+            onChange={(tierId) => {
+                setServiceTier(tierId);
+                setTierPref(tierId);
+            }}
+            onResolveDefault={setServiceTier}
+            // Toggling Investigate re-prices the list (an Investigate
+            // query costs more per tier). A review has the same tiers.
+            pipeline={reviewEnabled ? 'literature_review'
+                : investigateEnabled ? 'deep_research' : 'chat'}
+            onOpenChange={setTierMenuOpen}
+            disabled={isInputLocked}
+            isGuest={isGuest}
+            onRequireSignIn={(tier) => {
+                setMobileOptionsOpen(false);
+                openLoginModal(
+                    `${tier?.label || 'GPT-6.1 Sol'} is available to signed-in users. Sign in to use it — it's free.`,
+                );
+            }}
+        />
+    );
+
     const searchOptionsPanel = (
         <div className="home-search-options-panel">
             <header className="home-search-options-header">
-                <h2>Search Options</h2>
+                <h2>{isMobileLayout ? 'Options' : 'Search Options'}</h2>
                 <button type="button" aria-label="Close search options" onClick={closeSearchOptions}>
                     <SearchOptionsCloseIcon />
                 </button>
             </header>
 
+            {isMobileLayout && (
+                <section className="home-search-options-section is-model">
+                    <div className="home-search-options-section-heading">
+                        <h3>Model</h3>
+                    </div>
+                    {tierPicker('list')}
+                </section>
+            )}
+            {isMobileLayout && !searchOptionsLocked && <div className="home-search-options-divider" />}
+
+            {!searchOptionsLocked && (<>
             <section className="home-search-options-section is-article-type">
                 <div className="home-search-options-section-heading">
                     <h3>Article Type</h3>
@@ -474,10 +535,13 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 </div>
                 <p>Best matches for your query</p>
             </section>
+            </>)}
 
             <footer className="home-search-options-footer">
                 <div>
-                    <button type="button" className="home-search-options-reset" onClick={handleResetSearchOptions}>Reset</button>
+                    {!searchOptionsLocked && (
+                        <button type="button" className="home-search-options-reset" onClick={handleResetSearchOptions}>Reset</button>
+                    )}
                     <button type="button" className="home-search-options-done" onClick={closeSearchOptions}>Done</button>
                 </div>
             </footer>
@@ -519,7 +583,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
             <Autocomplete
                 freeSolo
                 fullWidth
-                open={!mobileOptionsOpen && !desktopOptionsOpen && !tierMenuOpen && isOpen}
+                open={!mobileOptionsOpen && !desktopOptionsOpen && !tierMenuOpen && !modeSheetOpen && isOpen}
                 disabled={isInputLocked}
                 options={props.autocompleteOptions || []}
                 filterOptions={(options) => (llmQuery?.trim() === '' ? options : [])}
@@ -566,13 +630,13 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                 renderInput={(params) => (
                     // The "+" panel opens under this box (field and control row), as ChatGPT's does.
                     <Box data-attach-anchor sx={{ position: 'relative', width: '100%' }}>
-                        {hasModeTabs && (
+                        {/* On a phone the mode is the pill in the bottom row instead (ModePill). */}
+                        {hasModeTabs && !isMobileLayout && (
                             <ComposerModes
                                 modes={modes}
                                 mode={mode}
                                 onChange={changeMode}
                                 disabled={isInputLocked}
-                                compact={isMobileLayout}
                             />
                         )}
                         <AttachmentChips
@@ -616,17 +680,18 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     alignItems: 'flex-start',
                                     paddingLeft: '20px',
                                     paddingRight: '20px !important',
-                                    paddingTop: hasModeTabs ? '8px' : (isMobileLayout ? '16.5px' : '20px'),
-                                    paddingBottom: (isMobileLayout ? 58 : 52) + (reviewEnabled ? scopeRows : 0) + 'px',
+                                    paddingTop: hasModeTabs && !isMobileLayout ? '8px' : (isMobileLayout ? '18px' : '20px'),
+                                    paddingBottom: (isMobileLayout ? 64 : 52) + (scopeInComposer ? scopeRows : 0) + 'px',
                                     fontFamily: 'Geist, sans-serif',
-                                    fontSize: '14px',
+                                    // 16px on a phone: below it iOS zooms the page in on focus.
+                                    fontSize: isMobileLayout ? '16px' : '14px',
                                     color: 'var(--color-text-primary)',
                                     '& fieldset': {
                                         border: 'none',
                                     },
                                 },
                                 '& .MuiInputBase-input': {
-                                    lineHeight: '22px',
+                                    lineHeight: isMobileLayout ? '24px' : '22px',
                                     padding: '0 !important',
                                 },
                                 '& .MuiInputBase-input::placeholder': {
@@ -644,7 +709,7 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             }}
                         />
 
-                        {reviewEnabled && (
+                        {scopeInComposer && (
                             <div className="review-scope-wrap" ref={setScopeEl}>
                                 <ReviewScope scope={reviewScope}
                                              paperCount={paperCount}
@@ -658,13 +723,14 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                         <Box
                             sx={{
                                 position: 'absolute',
-                                left: '16px',
-                                right: '16px',
-                                bottom: '16px',
+                                left: isMobileLayout ? '8px' : '16px',
+                                right: isMobileLayout ? '8px' : '16px',
+                                bottom: isMobileLayout ? '12px' : '16px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
-                                gap: 2,
+                                // A phone's row is tight: "+ · Literature Review ▾ · options · Start →".
+                                gap: isMobileLayout ? '6px' : 2,
                                 pointerEvents: 'none',
                             }}
                         >
@@ -697,13 +763,21 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         source="home_searchbar"
                                     />
                                 </Box>
+                                {hasModeTabs && isMobileLayout && (
+                                    <ModePill
+                                        mode={mode}
+                                        onOpen={openModeSheet}
+                                        disabled={isInputLocked}
+                                        showDot={!modeSheetSeen && mode === 'chat'}
+                                    />
+                                )}
                             </Box>
 
                             <Box
                                 sx={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: isMobileLayout ? '8px' : '16px',
+                                    gap: isMobileLayout ? '6px' : '16px',
                                     minWidth: 0,
                                     // With Investigate hidden this is the row's only child, so
                                     // `space-between` alone would park it on the left.
@@ -733,31 +807,22 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         event.stopPropagation();
                                     }}
                                     // Never squeezed: the model chip does not shrink, so a shrinking
-                                    // wrapper only let it spill over Search Options on a phone.
-                                    sx={{ display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, flexShrink: 0 }}
+                                    // wrapper only let it spill over Search Options. On a phone the
+                                    // model is in the Options sheet instead (the row has no room).
+                                    sx={{ display: isMobileLayout ? 'none' : 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, flexShrink: 0 }}
                                 >
-                                <TierPicker
-                                    value={serviceTier}
-                                    onChange={(tierId) => {
-                                        setServiceTier(tierId);
-                                        setTierPref(tierId);
-                                    }}
-                                    onResolveDefault={setServiceTier}
-                                    // Toggling Investigate re-prices the list (an Investigate
-                                    // query costs more per tier). A review has the same tiers.
-                                    pipeline={reviewEnabled ? 'literature_review'
-                                        : investigateEnabled ? 'deep_research' : 'chat'}
-                                    onOpenChange={setTierMenuOpen}
-                                    disabled={isInputLocked}
-                                    isGuest={isGuest}
-                                    onRequireSignIn={(tier) => openLoginModal(
-                                        `${tier?.label || 'GPT-6.1 Sol'} is available to signed-in users. Sign in to use it — it's free.`,
-                                    )}
-                                />
+                                {tierPicker()}
                                 </Box>
 
-                                {!searchOptionsLocked && (
+                                {/* The phone's Options: an icon alone (the phone design), opening the sheet
+                                    that holds the model and, in Chat, the search controls. A dot says
+                                    a search control is off its default. */}
+                                {isMobileLayout && (
                                 <Box
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label={mobileSelectedOptions.length ? `Options: ${mobileChipLabel}` : 'Options'}
+                                    className="composer-options-button"
                                     onMouseDown={(event) => {
                                         event.preventDefault();
                                         event.stopPropagation();
@@ -767,34 +832,30 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                         event.stopPropagation();
                                         openSearchOptions();
                                     }}
+                                    onKeyDown={(event) => {
+                                        if (event.key !== 'Enter' && event.key !== ' ') return;
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        openSearchOptions();
+                                    }}
                                     sx={{
-                                        display: isMobileLayout ? 'inline-flex' : 'none',
+                                        position: 'relative',
+                                        display: 'inline-flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        gap: '4px',
-                                        padding: '4px 8px',
-                                        borderRadius: '8px',
-                                        background: 'transparent',
-                                        color: 'var(--color-text-tertiary)',
+                                        width: '28px',
+                                        height: '40px',
+                                        flexShrink: 0,
+                                        borderRadius: '10px',
+                                        color: 'var(--color-text-secondary)',
                                         cursor: 'pointer',
-                                        fontFamily: 'Geist, sans-serif',
-                                        fontWeight: 600,
-                                        fontSize: '12px',
-                                        lineHeight: '16px',
-                                        textTransform: 'none',
-                                        minWidth: 0,
-                                        maxWidth: 'calc(100% - 52px)',
-                                        whiteSpace: 'nowrap',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
                                         pointerEvents: 'auto',
                                     }}
                                 >
-                                    {/* On a phone the row also holds the paperclip and the model
-                                        chip, so this is what gives way: the label truncates and the
-                                        icon keeps its size (unshrunk, it was squeezed to nothing). */}
-                                    <SearchOptionsIcon style={{ color: 'var(--color-text-tertiary)', width: '20px', height: '20px', flexShrink: 0 }} />
-                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{mobileChipLabel}</span>
+                                    <SearchOptionsIcon style={{ width: '24px', height: '24px' }} />
+                                    {mobileSelectedOptions.length > 0 && !searchOptionsLocked && (
+                                        <span className="composer-options-dot" aria-hidden="true" />
+                                    )}
                                 </Box>
                                 )}
 
@@ -849,16 +910,17 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                                     className={`search-button-big${modeAction ? ' has-label' : ''}`}
                                     onClick={() => { if (!isInputLocked) navigateToLLMAgent(llmQuery.trim(), 'button'); }}
                                     sx={{
-                                        height: modeAction ? '36px' : '32px',
-                                        width: modeAction ? 'auto' : '32px',
-                                        padding: modeAction ? '0 16px' : 0,
-                                        gap: '8px',
+                                        height: isMobileLayout ? '40px' : (modeAction ? '36px' : '32px'),
+                                        width: modeAction ? 'auto' : (isMobileLayout ? '40px' : '32px'),
+                                        padding: modeAction ? (isMobileLayout ? '0 10px' : '0 16px') : 0,
+                                        gap: isMobileLayout ? '6px' : '8px',
                                         color: canStart ? 'var(--color-neutral-white)' : 'var(--color-brand-primary)',
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 600,
                                         fontSize: '15px',
                                         whiteSpace: 'nowrap',
-                                        borderRadius: '8px',
+                                        flexShrink: 0,
+                                        borderRadius: isMobileLayout ? '10px' : '8px',
                                         backgroundColor: canStart ? 'var(--color-brand-primary)' : 'var(--color-brand-muted)',
                                         display: 'flex',
                                         alignItems: 'center',
@@ -889,6 +951,9 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             open={mobileOptionsOpen}
                             onClose={closeSearchOptions}
                             ModalProps={{
+                                // Mounted while closed: on a phone the model list inside it is the
+                                // picker that resolves the default tier before anything is sent.
+                                keepMounted: isMobileLayout,
                                 BackdropProps: {
                                     sx: { backgroundColor: 'rgba(0, 0, 0, 0.32)' },
                                 },
@@ -912,6 +977,16 @@ const LlmSearchBar = React.forwardRef((props, ref) => {
                             </Box>
                             {searchOptionsPanel}
                         </Drawer>
+
+                        {hasModeTabs && isMobileLayout && (
+                            <ModeSheet
+                                open={modeSheetOpen}
+                                modes={modes}
+                                mode={mode}
+                                onClose={() => setModeSheetOpen(false)}
+                                onPick={(next) => { setModeSheetOpen(false); changeMode(next); }}
+                            />
+                        )}
 
                         <Drawer
                             anchor="right"

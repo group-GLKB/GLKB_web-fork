@@ -2,7 +2,8 @@ import React, { useRef, useState } from 'react';
 import { Alert, Switch } from '@mui/material';
 
 import {
-    ARTICLE_TYPES, LengthOptions, SEARCH_ONLY_FILTER, sourceById, sourceOptions, sourcesPatch, YearRange, yearsLabel,
+    ARTICLE_TYPES, CustomLength, LengthOptions, SEARCH_ONLY_FILTER, sourceById, sourceOptions, sourcesPatch, YearRange,
+    yearsLabel,
 } from '../HomePage/ReviewScope';
 import BetaBadge from '../Units/BetaBadge';
 import TierPicker from '../Units/TierPicker';
@@ -36,9 +37,33 @@ const lede = (sources, n) => {
         + 'Nothing runs until you start it.';
 };
 
+/** The phone design's length cards: four presets, each named for what it reads as. */
+export const PHONE_LENGTHS = [
+    { words: 2000, label: 'Brief overview' },
+    { words: 4000, label: 'Typical review' },
+    { words: 6000, label: 'In-depth' },
+    { words: 8000, label: 'Comprehensive' },
+];
+
+/** The phone page's one line under its title, for the sources chosen. */
+const phoneLede = (sources, n) => {
+    const yours = n === 1 ? 'your paper' : `your ${n} papers`;
+    if (sources === 'papers') return `GLKB reads ${yours} in full and writes the review from them, every claim cited. Nothing runs until you start it.`;
+    if (sources === 'papers_and_search') return `GLKB finds the evidence, reads it with ${yours} and writes the review, every claim cited. Nothing runs until you start it.`;
+    return 'GLKB finds the evidence, outlines the review and writes it, every claim cited. Nothing runs until you start it.';
+};
+
+/** The bottom bar's second line: what the review reads, and how long it takes. */
+const phoneSource = (sources, n) => {
+    const yours = n === 1 ? 'your paper' : `your ${n} papers`;
+    if (sources === 'papers') return `From ${yours} · draft in 2–5 min`;
+    if (sources === 'papers_and_search') return `${yours[0].toUpperCase()}${yours.slice(1)} + 33M abstracts · draft in 8–12 min`;
+    return 'From 33M abstracts · draft in 8–12 min';
+};
+
 export default function ScopeStep({
     topic, onTopic, scope, onScope, serviceTier, onServiceTier, onResolveTier, onStart, canStart, error,
-    papers, sources = 'search',
+    papers, sources = 'search', phone = false,
 }) {
     const now = new Date().getFullYear();
     const words = scope.targetWords || 6000;
@@ -53,6 +78,178 @@ export default function ScopeStep({
     const papersOnly = sources === 'papers';
     // A source that reads papers, chosen before there are any: keep the choice and pick the files.
     const upload = papers ? (id) => { onScope({ ...scope, sources: id }); fileRef.current?.click(); } : undefined;
+    // Article types to Model: the same rows on a wide screen and a phone.
+    const restRows = (
+        <>
+        <div><dt>Article types</dt><dd>
+            <OptionSelect label={`Article types: ${ARTICLE_TYPES.find((t) => t.id === (scope.articleTypes || 'all'))?.label}`}
+                          panelLabel="Article types" value={scope.articleTypes || 'all'} options={ARTICLE_TYPES}
+                          disabled={papersOnly} title={papersOnly ? SEARCH_ONLY_FILTER : undefined}
+                          onChange={(id) => onScope({ ...scope, articleTypes: id })} />
+        </dd></div>
+        <div><dt>Citation style</dt><dd>
+            <OptionSelect label={`Citation style: ${styleById(scope.citationStyle).label}`}
+                          panelLabel="Citation style" value={styleById(scope.citationStyle).id}
+                          options={REVIEW_STYLES.map((st) => ({
+                              id: st.id, label: st.label,
+                              hint: st.authorDate ? 'Author–year in the text' : 'Numbered in the text',
+                          }))}
+                          onChange={(id) => onScope({ ...scope, citationStyle: id })} />
+        </dd></div>
+        <div><dt>Sources</dt><dd>
+            <OptionSelect label={`Sources: ${sourceById(sources).label}`} panelLabel="Sources"
+                          panelClassName="review-scope-panel is-sources"
+                          value={sources} options={sourceOptions(paperCount, upload)}
+                          onChange={(id) => onScope({ ...scope, ...sourcesPatch(id, paperCount) })} />
+        </dd></div>
+        <div><dt>Your papers</dt><dd>
+            {papers ? (
+                <>
+                    <button type="button" className="lr-link lr-add-papers"
+                            title={`Add your own papers: ${PAPER_FORMATS_TEXT}`}
+                            onClick={() => fileRef.current?.click()}>
+                        {paperCount ? `${paperCount} · Add more` : '+ Add papers'}
+                    </button>
+                    <input ref={fileRef} type="file" multiple hidden accept={PAPER_ACCEPT}
+                           data-testid="lr-papers-input" aria-label="Add your papers"
+                           onChange={(e) => {
+                               const files = Array.from(e.target.files || []);
+                               e.target.value = '';
+                               if (files.length) papers.addFiles(files);
+                           }} />
+                </>
+            ) : <span className="is-fixed">None</span>}
+        </dd></div>
+        {papers && (papers.hasItems || papers.notice) && (
+            <div className="lr-scope-papers">
+                <AttachmentChips items={papers.items} notice={papers.notice} blockedNote={blocked}
+                                 onRemove={papers.remove} />
+            </div>
+        )}
+        <div><dt>Email me when ready</dt><dd>
+            <Switch size="small" checked={scope.notify !== false}
+                    onChange={(e) => onScope({ ...scope, notify: e.target.checked })}
+                    inputProps={{ 'aria-label': 'Email me when ready' }} />
+        </dd></div>
+        <div><dt>Model</dt><dd className="lr-scope-tier">
+            <TierPicker
+                value={serviceTier}
+                onChange={onServiceTier}
+                onResolveDefault={onResolveTier}
+                pipeline="literature_review"
+            />
+        </dd></div>
+        </>
+    );
+    const dropHandlers = {
+        onDragOver: (e) => { if (papers && dragHasFiles(e)) { e.preventDefault(); setDragOver(true); } },
+        onDragLeave: () => setDragOver(false),
+        onDrop: (e) => {
+            if (!papers || !dragHasFiles(e)) return;
+            e.preventDefault();
+            setDragOver(false);
+            papers.addFiles(filesFromTransfer(e.dataTransfer));
+        },
+    };
+    const fewPapersHint = fewPapers && (
+        <p className="lr-scope-hint">
+            {paperCount === 1 ? 'One paper carries' : `${paperCount} papers carry`} about{' '}
+            {carried.toLocaleString('en-US')} words; the review will come out shorter than planned.
+        </p>
+    );
+
+    if (phone) {
+        /* The phone design ("Set up your review"): the topic, the length as four cards and the years
+           as presets in one card, the other rows under them, and the start in a bar at the bottom. */
+        const yearPresets = [null, now - 5, now - 10, now - 20];
+        const onPresetYears = !scope.cutoffYear && yearPresets.includes(scope.startYear || null);
+        const customWords = !PHONE_LENGTHS.some((l) => l.words === words);
+        return (
+            <div className="lr-mscope">
+                <h1 className="lr-mscope-title">Set up your review</h1>
+                <p className="lr-mscope-sub">{phoneLede(sources, paperCount)}</p>
+                {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+                <section className={`lr-mcard${dragOver ? ' is-drop-target' : ''}`} aria-label="Scope" {...dropHandlers}>
+                    <div className="lr-mfield">
+                        <label className="lr-mfield-label" htmlFor="lr-topic">Topic</label>
+                        <p className="lr-mfield-hint">A question works better than a keyword.</p>
+                        <textarea
+                            id="lr-topic"
+                            className="lr-mtopic"
+                            aria-label="Topic"
+                            rows={3}
+                            value={topic}
+                            onChange={(e) => onTopic(e.target.value)}
+                            placeholder="e.g. Does p53 loss cause chemotherapy resistance across cancers?"
+                        />
+                    </div>
+                    <div className="lr-mfield">
+                        <div className="lr-mfield-label" id="lr-length-label">Target length</div>
+                        <p className="lr-mfield-hint">Main text, excluding references.</p>
+                        <div className="lr-mlengths" role="radiogroup" aria-labelledby="lr-length-label">
+                            {PHONE_LENGTHS.map((l) => (
+                                <button key={l.words} type="button" role="radio" aria-checked={words === l.words}
+                                        className={`lr-mlength${words === l.words ? ' is-on' : ''}`}
+                                        onClick={() => onScope({ ...scope, targetWords: l.words })}>
+                                    <span className="lr-mlength-n">~{l.words.toLocaleString('en-US')}</span>
+                                    <span className="lr-mlength-label">{l.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <OptionDropdown label={`Custom length${customWords ? `: ${words.toLocaleString('en-US')} words` : ''}`}
+                                        panelLabel="Target length" panelClassName="review-scope-panel is-length"
+                                        className={`lr-mcustom${customWords ? ' is-on' : ''}`} placement="bottom-start"
+                                        display={customWords ? `Custom: ${words.toLocaleString('en-US')} words` : 'Custom length'}>
+                            {(close) => (
+                                <div className="option-menu-footer">
+                                    <CustomLength key={words} value={words}
+                                                  onSet={(n) => { onScope({ ...scope, targetWords: n }); close(); }} />
+                                </div>
+                            )}
+                        </OptionDropdown>
+                    </div>
+                    <div className="lr-mfield">
+                        <div className="lr-mfield-label" id="lr-years-label">Publication years</div>
+                        {papersOnly && <p className="lr-mfield-hint">{SEARCH_ONLY_FILTER}</p>}
+                        <div className="lr-mchips" role="radiogroup" aria-labelledby="lr-years-label">
+                            {yearPresets.map((y) => {
+                                const on = onPresetYears && (scope.startYear || null) === y;
+                                return (
+                                    <button key={y ?? 'any'} type="button" role="radio" aria-checked={on} disabled={papersOnly}
+                                            className={`lr-mchip${on ? ' is-on' : ''}`}
+                                            onClick={() => onScope({ ...scope, startYear: y, cutoffYear: null })}>
+                                        {y ? `${y}–${now}` : 'Any year'}
+                                    </button>
+                                );
+                            })}
+                            <OptionDropdown label={`Years: ${yearsLabel(scope, now, { long: true })}`} panelLabel="Years"
+                                            panelClassName="review-scope-panel is-years" placement="bottom-start"
+                                            className={`lr-mchip${onPresetYears ? '' : ' is-on'}`} disabled={papersOnly}
+                                            display={onPresetYears ? 'Custom' : yearsLabel(scope, now, { long: true })}>
+                                {() => (
+                                    <YearRange startYear={scope.startYear} cutoffYear={scope.cutoffYear} now={now}
+                                               onChange={(patch) => onScope({ ...scope, ...patch })} />
+                                )}
+                            </OptionDropdown>
+                        </div>
+                    </div>
+                    <dl className="lr-scope-rows lr-mrows">{restRows}</dl>
+                    {fewPapersHint}
+                </section>
+                <p className="lr-note">You can leave once it starts — the draft appears in Recent.</p>
+                <div className="lr-mbar">
+                    <div className="lr-mbar-text">
+                        <div className="lr-mbar-big"><strong>~{words.toLocaleString('en-US')}</strong> words</div>
+                        <div className="lr-mbar-sub">{phoneSource(sources, paperCount)}</div>
+                    </div>
+                    <button type="button" className="lr-primary lr-mbar-go" disabled={!canStart} onClick={onStart}>
+                        Start writing →
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="lr-page lr-scope">
             <div className="lr-main">
@@ -73,14 +270,7 @@ export default function ScopeStep({
             <aside
                 className={`lr-card lr-scope-card${dragOver ? ' is-drop-target' : ''}`}
                 aria-label="Scope"
-                onDragOver={(e) => { if (papers && dragHasFiles(e)) { e.preventDefault(); setDragOver(true); } }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={(e) => {
-                    if (!papers || !dragHasFiles(e)) return;
-                    e.preventDefault();
-                    setDragOver(false);
-                    papers.addFiles(filesFromTransfer(e.dataTransfer));
-                }}
+                {...dropHandlers}
             >
                 <div className="lr-card-title">Scope</div>
                 <dl className="lr-scope-rows">
@@ -105,75 +295,13 @@ export default function ScopeStep({
                             )}
                         </OptionDropdown>
                     </dd></div>
-                    <div><dt>Article types</dt><dd>
-                        <OptionSelect label={`Article types: ${ARTICLE_TYPES.find((t) => t.id === (scope.articleTypes || 'all'))?.label}`}
-                                      panelLabel="Article types" value={scope.articleTypes || 'all'} options={ARTICLE_TYPES}
-                                      disabled={papersOnly} title={papersOnly ? SEARCH_ONLY_FILTER : undefined}
-                                      onChange={(id) => onScope({ ...scope, articleTypes: id })} />
-                    </dd></div>
-                    <div><dt>Citation style</dt><dd>
-                        <OptionSelect label={`Citation style: ${styleById(scope.citationStyle).label}`}
-                                      panelLabel="Citation style" value={styleById(scope.citationStyle).id}
-                                      options={REVIEW_STYLES.map((st) => ({
-                                          id: st.id, label: st.label,
-                                          hint: st.authorDate ? 'Author–year in the text' : 'Numbered in the text',
-                                      }))}
-                                      onChange={(id) => onScope({ ...scope, citationStyle: id })} />
-                    </dd></div>
-                    <div><dt>Sources</dt><dd>
-                        <OptionSelect label={`Sources: ${sourceById(sources).label}`} panelLabel="Sources"
-                                      panelClassName="review-scope-panel is-sources"
-                                      value={sources} options={sourceOptions(paperCount, upload)}
-                                      onChange={(id) => onScope({ ...scope, ...sourcesPatch(id, paperCount) })} />
-                    </dd></div>
-                    <div><dt>Your papers</dt><dd>
-                        {papers ? (
-                            <>
-                                <button type="button" className="lr-link lr-add-papers"
-                                        title={`Add your own papers: ${PAPER_FORMATS_TEXT}`}
-                                        onClick={() => fileRef.current?.click()}>
-                                    {paperCount ? `${paperCount} · Add more` : '+ Add papers'}
-                                </button>
-                                <input ref={fileRef} type="file" multiple hidden accept={PAPER_ACCEPT}
-                                       data-testid="lr-papers-input" aria-label="Add your papers"
-                                       onChange={(e) => {
-                                           const files = Array.from(e.target.files || []);
-                                           e.target.value = '';
-                                           if (files.length) papers.addFiles(files);
-                                       }} />
-                            </>
-                        ) : <span className="is-fixed">None</span>}
-                    </dd></div>
-                    {papers && (papers.hasItems || papers.notice) && (
-                        <div className="lr-scope-papers">
-                            <AttachmentChips items={papers.items} notice={papers.notice} blockedNote={blocked}
-                                             onRemove={papers.remove} />
-                        </div>
-                    )}
-                    <div><dt>Email me when ready</dt><dd>
-                        <Switch size="small" checked={scope.notify !== false}
-                                onChange={(e) => onScope({ ...scope, notify: e.target.checked })}
-                                inputProps={{ 'aria-label': 'Email me when ready' }} />
-                    </dd></div>
-                    <div><dt>Model</dt><dd className="lr-scope-tier">
-                        <TierPicker
-                            value={serviceTier}
-                            onChange={onServiceTier}
-                            onResolveDefault={onResolveTier}
-                            pipeline="literature_review"
-                        />
-                    </dd></div>
+                    {restRows}
                 </dl>
                 <div className="lr-planned">
                     <span>Planned length</span>
                     <span className="lr-mono">~{words.toLocaleString('en-US')} words · ~{Math.max(6, Math.round(words / 600))} sections</span>
                 </div>
-                {fewPapers && (
-                    <p className="lr-scope-hint">
-                        {paperCount === 1 ? 'One paper carries' : `${paperCount} papers carry`} about{' '}
-                        {carried.toLocaleString('en-US')} words; the review will come out shorter than planned.
-                    </p>
-                )}
+                {fewPapersHint}
                 <button type="button" className="lr-primary" disabled={!canStart} onClick={onStart}>
                     Start writing →
                 </button>

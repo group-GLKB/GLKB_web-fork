@@ -299,7 +299,7 @@ const HomePage = () => {
                             scrollToFirstStep={true}
                         />
                         <div className="news-strip-slot">
-                            <NewsStrip onTry={tryNews} />
+                            <NewsStrip onTry={tryNews} compact={isPhoneDevice} />
                         </div>
                         <Box
                             className="homepage-hero"
@@ -311,7 +311,8 @@ const HomePage = () => {
                                     className="glkb-title"
                                     sx={{
                                         fontFamily: 'Geist, sans-serif',
-                                        fontWeight: isPhoneDevice ? 700 : 800,
+                                        fontWeight: 800,
+                                        letterSpacing: isPhoneDevice ? '-0.01em' : undefined,
                                         fontSize: isPhoneDevice ? '32px' : '40px',
                                         lineHeight: isPhoneDevice ? '40px' : '48px',
                                     }}
@@ -325,9 +326,9 @@ const HomePage = () => {
                                     sx={{
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 400,
-                                        fontSize: isPhoneDevice ? '12px' : '14px',
+                                        fontSize: isPhoneDevice ? '15px' : '14px',
                                         color: 'var(--color-text-tertiary)',
-                                        lineHeight: isPhoneDevice ? '20px' : '22px',
+                                        lineHeight: '22px',
                                     }}
                                 >
                                     Weeks of research, done in minutes.

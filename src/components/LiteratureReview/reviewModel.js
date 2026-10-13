@@ -11,14 +11,15 @@
 
 /** The four stages of a run, as the review service reports them, with the share of the bar
  *  each owns (glkb-agent literature_review/worker.py STAGE_SPAN). */
+// `doing` is the stage as the phone design's list words it ("Searching literature").
 export const STAGES = [
-    { id: 'acquisition', span: [2, 45], label: 'Search & select',
+    { id: 'acquisition', span: [2, 45], label: 'Search & select', doing: 'Searching the literature',
       detail: 'PubMed, the GLKB knowledge graph, citation chaining' },
-    { id: 'synthesis', span: [45, 70], label: 'Synthesize',
+    { id: 'synthesis', span: [45, 70], label: 'Synthesize', doing: 'Synthesizing the evidence',
       detail: 'Claims extracted from the papers and related to each other' },
-    { id: 'planning', span: [70, 80], label: 'Outline',
+    { id: 'planning', span: [70, 80], label: 'Outline', doing: 'Outlining sections',
       detail: 'Sections, their order and how long each should be' },
-    { id: 'writing', span: [80, 99], label: 'Write',
+    { id: 'writing', span: [80, 99], label: 'Write', doing: 'Writing sections',
       detail: 'Every sentence written from its cited evidence' },
 ];
 

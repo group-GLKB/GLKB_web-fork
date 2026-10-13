@@ -146,3 +146,15 @@ it('falls back to built-in prices when the endpoint cannot be read', async () =>
     expect(list).toHaveTextContent('GPT-6.1 Sol');
     expect(list).toHaveTextContent('10 credits/query');
 });
+
+describe('as a list (the phone composer\'s Options sheet)', () => {
+    it('shows the rows in place, without the chip, and picks like the menu', async () => {
+        const { onChange } = setup({ value: 'standard', variant: 'list' });
+        const list = await screen.findByRole('listbox', { name: 'Model' });
+        expect(screen.queryByRole('button', { name: /^Model: / })).toBeNull();
+        expect(screen.getByRole('option', { name: /GPT-6 Luna/ })).toHaveAttribute('aria-selected', 'true');
+        fireEvent.click(screen.getByRole('option', { name: /GPT-6.1 Sol/ }));
+        expect(onChange).toHaveBeenCalledWith('premium');
+        expect(list).toBeInTheDocument();
+    });
+});

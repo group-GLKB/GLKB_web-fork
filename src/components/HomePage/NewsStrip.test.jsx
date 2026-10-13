@@ -42,3 +42,12 @@ it('stays closed once closed, until the news changes', () => {
     render(<NewsStrip />);
     expect(screen.queryByRole('region', { name: 'News' })).toBeNull();
 });
+
+it('on a phone, links with its arrow alone and puts the dots under the strip', () => {
+    render(<NewsStrip compact />);
+    const cta = screen.getByRole('button', { name: 'Read more' });
+    expect(cta).toHaveTextContent(/^→$/);
+    const dots = document.querySelector('.news-strip-dots');
+    expect(document.querySelector('.news-strip').contains(dots)).toBe(false);
+    expect(screen.getByRole('region', { name: 'News' }).contains(dots)).toBe(true);
+});

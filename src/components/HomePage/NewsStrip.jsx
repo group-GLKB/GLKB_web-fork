@@ -10,6 +10,8 @@ import { trackGtagEvent } from '../../utils/gtag';
  * position dots, a close). One item at a time, advancing every ROTATE_MS while the
  * pointer is not on it. Closing it hides the strip until NEWS_VERSION changes, so a new
  * set of news shows again to people who closed the old one.
+ *
+ * `compact` is the phone design: the link is its arrow alone, and the dots sit under the strip.
  */
 export const NEWS_VERSION = '2026-10-10';
 const STORAGE_KEY = 'glkb-news-dismissed';
@@ -42,7 +44,7 @@ const readDismissed = () => {
     try { return window.localStorage.getItem(STORAGE_KEY) === NEWS_VERSION; } catch { return false; }
 };
 
-export default function NewsStrip({ onTry }) {
+export default function NewsStrip({ onTry, compact = false }) {
     const items = useMemo(newsItems, []);
     const navigate = useNavigate();
     const [dismissed, setDismissed] = useState(readDismissed);
@@ -68,9 +70,24 @@ export default function NewsStrip({ onTry }) {
         setDismissed(true);
     };
 
+    const dots = items.length > 1 && (
+        <span className="news-strip-dots">
+            {items.map((entry, i) => (
+                <button
+                    key={entry.id}
+                    type="button"
+                    className={`news-strip-dot${i === index ? ' is-active' : ''}`}
+                    aria-label={`News ${i + 1} of ${items.length}`}
+                    aria-current={i === index || undefined}
+                    onClick={() => setIndex(i)}
+                />
+            ))}
+        </span>
+    );
+
     return (
         <div
-            className="news-strip"
+            className={`news-strip-region${compact ? ' is-compact' : ''}`}
             role="region"
             aria-label="News"
             onMouseEnter={() => setPaused(true)}
@@ -78,28 +95,18 @@ export default function NewsStrip({ onTry }) {
             onFocus={() => setPaused(true)}
             onBlur={() => setPaused(false)}
         >
-            <span className={`news-strip-tag is-${item.tone}`}>{item.tag}</span>
-            <span className="news-strip-text" title={item.text}>{item.text}</span>
-            <button type="button" className="news-strip-cta" onClick={open}>
-                {item.cta} <span aria-hidden="true">→</span>
-            </button>
-            {items.length > 1 && (
-                <span className="news-strip-dots">
-                    {items.map((entry, i) => (
-                        <button
-                            key={entry.id}
-                            type="button"
-                            className={`news-strip-dot${i === index ? ' is-active' : ''}`}
-                            aria-label={`News ${i + 1} of ${items.length}`}
-                            aria-current={i === index || undefined}
-                            onClick={() => setIndex(i)}
-                        />
-                    ))}
-                </span>
-            )}
-            <button type="button" className="news-strip-close" aria-label="Close news" onClick={close}>
-                <CloseIcon style={{ width: 14, height: 14 }} />
-            </button>
+            <div className="news-strip">
+                <span className={`news-strip-tag is-${item.tone}`}>{item.tag}</span>
+                <span className="news-strip-text" title={item.text}>{item.text}</span>
+                <button type="button" className="news-strip-cta" onClick={open} aria-label={compact ? item.cta : undefined}>
+                    {!compact && <>{item.cta}{' '}</>}<span aria-hidden="true">→</span>
+                </button>
+                {!compact && dots}
+                <button type="button" className="news-strip-close" aria-label="Close news" onClick={close}>
+                    <CloseIcon style={{ width: compact ? 16 : 14, height: compact ? 16 : 14 }} />
+                </button>
+            </div>
+            {compact && dots}
         </div>
     );
 }

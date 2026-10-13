@@ -3,19 +3,22 @@
     top: 0;
     z-index: 1200;
     height: 56px;
-    padding: 16px 24px;
+    padding: 0 12px;
     box-sizing: border-box;
-    display: flex;
+    /* Sidebar | logo, centred | new chat (the phone design). */
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     background: var(--color-background-surface);
     border-bottom: 1px solid var(--color-border-default);
 }
 
 .app-mobile-header-context {
-    width: 24px;
-    height: 24px;
+    width: 40px;
+    height: 40px;
     border: none;
+    border-radius: 10px;
     background: transparent;
     padding: 0;
     display: inline-flex;
@@ -25,8 +28,10 @@
 }
 
 .app-mobile-header-logo-link {
+    justify-self: center;
     display: inline-flex;
     align-items: center;
+    gap: 10px;
     text-decoration: none;
 }
 
@@ -44,18 +49,17 @@
 }
 
 .app-mobile-header-new-chat {
-    margin-left: auto;
-    border-radius: 16px;
-    border: 1px solid var(--color-brand-primary);
-    background: var(--color-background-surface);
-    color: var(--color-brand-primary);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 6px 10px;
-    line-height: 1.1;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 10px;
+    background: var(--color-brand-soft);
+    color: var(--color-text-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    white-space: nowrap;
 }
 
 .app-layout-content.has-mobile-header {

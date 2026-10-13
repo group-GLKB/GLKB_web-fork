@@ -23,7 +23,7 @@ import './LiteratureReview.css';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Alert, LinearProgress } from '@mui/material';
+import { Alert, LinearProgress, useMediaQuery } from '@mui/material';
 
 import { useAuth } from '../Auth/AuthContext';
 import { getChatHistoryDetailByPublicId } from '../../service/ChatHistory';
@@ -39,7 +39,7 @@ import { useAttachments } from '../Units/AttachmentChips';
 import { OptionItem, OptionPanel } from '../Units/OptionMenu';
 import { REVIEW_PAPER_LIMITS } from '../../service/attachments';
 import { setStylePref, styleMarkdown } from './citationStyle';
-import { TopBar } from './Chrome';
+import { PhoneTopBar, TopBar } from './Chrome';
 import ScopeStep from './ScopeStep';
 import WritingStep from './WritingStep';
 import ReviewDocument from './ReviewDocument';
@@ -81,6 +81,8 @@ export default function LiteratureReview() {
     const [exportAnchor, setExportAnchor] = useState(null);
     const [copied, setCopied] = useState(false);
     const runIdRef = useRef(null);
+    // The app's phone breakpoint (Layout): the phone design's own bar and pages below it.
+    const isPhone = useMediaQuery('(max-width:767px)');
 
     /* The review as a compilable .tex (utils/reviewToLatex.js). Done here rather than on the
        server because the markdown is already in hand, including for a review reopened from
@@ -298,6 +300,34 @@ export default function LiteratureReview() {
     const step = formShown ? 0 : writing ? (progress?.phase === 'writing' ? 2 : 1) : status === 'done' ? 3 : 1;
     const minutes = review?.executionTime ? Math.max(1, Math.round(review.executionTime / 60)) : null;
 
+    const exportItems = [
+        { id: 'word', label: 'Word (.doc)', hint: 'To edit in Word or Google Docs', run: downloadWord },
+        { id: 'pdf', label: 'PDF', hint: 'Saved from the print dialog', run: downloadPdf },
+        { id: 'latex', label: 'LaTeX (.tex)', hint: 'A .tex file to compile', run: downloadLatex },
+    ];
+    const exportMenu = (items) => (
+        <OptionPanel anchorEl={exportAnchor} open={Boolean(exportAnchor)} onClose={() => setExportAnchor(null)}
+                     label="Export" role="menu">
+            {items.map((x) => (
+                <OptionItem key={x.id} role="menuitem" label={x.label} hint={x.hint}
+                            onClick={() => { setExportAnchor(null); x.run(); }} />
+            ))}
+        </OptionPanel>
+    );
+    // On a phone the bar has room for Export alone (the phone design); sharing is its first row.
+    const phoneAction = status === 'done' && review ? (
+        <>
+            <button type="button" className="lr-primary is-small" aria-haspopup="menu" aria-expanded={Boolean(exportAnchor)}
+                    onClick={(e) => setExportAnchor(exportAnchor ? null : e.currentTarget)}>
+                {copied ? 'Copied' : 'Export'}
+            </button>
+            {exportMenu([
+                { id: 'link', label: 'Copy link', hint: 'To share this review', run: share },
+                ...exportItems,
+            ])}
+        </>
+    ) : null;
+
     const actions = status === 'done' && review ? (
         <>
             <button type="button" className="lr-secondary" onClick={share}>{copied ? 'Link copied' : 'Share'}</button>
@@ -305,23 +335,15 @@ export default function LiteratureReview() {
                     onClick={(e) => setExportAnchor(exportAnchor ? null : e.currentTarget)}>
                 Export
             </button>
-            <OptionPanel anchorEl={exportAnchor} open={Boolean(exportAnchor)} onClose={() => setExportAnchor(null)}
-                         label="Export" role="menu">
-                {[
-                    { id: 'word', label: 'Word (.doc)', hint: 'To edit in Word or Google Docs', run: downloadWord },
-                    { id: 'pdf', label: 'PDF', hint: 'Saved from the print dialog', run: downloadPdf },
-                    { id: 'latex', label: 'LaTeX (.tex)', hint: 'A .tex file to compile', run: downloadLatex },
-                ].map((x) => (
-                    <OptionItem key={x.id} role="menuitem" label={x.label} hint={x.hint}
-                                onClick={() => { setExportAnchor(null); x.run(); }} />
-                ))}
-            </OptionPanel>
+            {exportMenu(exportItems)}
         </>
     ) : null;
 
     return (
         <div className="lr-root">
-            <TopBar step={step} onHome={() => navigate(CHAT_HOME_PATH)} onNew={startNew} actions={actions} />
+            {isPhone
+                ? <PhoneTopBar step={step} onHome={() => navigate(CHAT_HOME_PATH)} onNew={startNew} action={phoneAction} />
+                : <TopBar step={step} onHome={() => navigate(CHAT_HOME_PATH)} onNew={startNew} actions={actions} />}
 
             {/* Hidden rather than unmounted while a review runs or is shown: the old form's MUI
                 TextareaAutosize could throw on unmount; the textarea here is plain, but the form
@@ -340,6 +362,7 @@ export default function LiteratureReview() {
                     error={formShown ? error : ''}
                     papers={papers}
                     sources={sources}
+                    phone={isPhone}
                 />
             </div>
 
@@ -356,6 +379,7 @@ export default function LiteratureReview() {
                     notify={status === 'running' && scope.notify !== false}
                     pending={status === 'pending'}
                     onStop={status === 'running' ? stop : null}
+                    phone={isPhone}
                 />
             )}
             {status === 'pending' && (
@@ -402,6 +426,7 @@ export default function LiteratureReview() {
                             papers: savedPapers.length,
                         }}
                         onAction={paragraphAction}
+                        phone={isPhone}
                     />
                 </>
             )}
