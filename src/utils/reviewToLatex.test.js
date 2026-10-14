@@ -194,3 +194,23 @@ describe('the filename', () => {
         expect(latexFilename('', d)).toBe('literature-review_2026-10-06.tex');
     });
 });
+
+describe('an author–year reference list (a citation style applied)', () => {
+    const md = '# T\n\nA claim (Lee et al., 2021; Park & Kim, 2019).\n\n## References\n\n'
+        + 'Lee, A., Park, B., & Kim, C. (2021). Paper one. Cell, 141(2), 243–254.\n\n'
+        + 'Park, B., & Kim, C. (2019). Paper two.\n';
+    const tex = reviewToLatex(md);
+
+    it('lists every entry unnumbered, with no \\cite to resolve', () => {
+        expect(tex).toContain('\\section*{References}');
+        expect(tex).not.toContain('thebibliography');
+        expect(tex.match(/\\item /g)).toHaveLength(2);
+        expect(tex).toContain('Park \\& Kim, 2019');
+        expect(tex).not.toContain('\\cite{');
+    });
+
+    it('still reads a numbered list with a wrapped entry as numbered', () => {
+        const numbered = reviewToLatex('# T\n\nText [1].\n\n## References\n\n1. First part\ncontinued. PMID 5.\n');
+        expect(numbered).toContain('\\bibitem{ref1} First part continued. PMID 5.');
+    });
+});

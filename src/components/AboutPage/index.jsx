@@ -89,7 +89,7 @@ const AboutPage = () => {
     const navigate = useNavigate();
     const [openFaqId, setOpenFaqId] = useState(faqData[0]?.id ?? null);
     const [useCase, setUseCase] = useState(USE_CASES[0].id);
-    const { openLoginModal, isAuthenticated, loading: authLoading } = useAuth();
+    const { isAuthenticated, loading: authLoading } = useAuth();
     const previousAuth = useRef(null);
     const railRef = useRef(null);
     const [railOverflows, setRailOverflows] = useState(false);
@@ -105,8 +105,7 @@ const AboutPage = () => {
     }, [authLoading, isAuthenticated, navigate]);
 
     const handleGetStarted = () => {
-        if (isAuthenticated) navigate(CHAT_HOME_PATH);
-        else openLoginModal();
+        navigate(CHAT_HOME_PATH);
     };
 
     // Once seen, `/` stops sending this browser here (config/entryRoutes.js).

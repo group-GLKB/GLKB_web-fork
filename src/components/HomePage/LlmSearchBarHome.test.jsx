@@ -8,7 +8,7 @@
  * the payload falls back to the defaults.
  */
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import LlmSearchBarHome from './LlmSearchBarHome';
@@ -22,6 +22,7 @@ let mockInvestigateFlag = true;
 let mockReviewFlag = false;
 jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
 jest.mock('../../utils/gtag', () => ({ trackGtagEvent: jest.fn() }));
+jest.mock('../../service/LiteratureReview', () => ({}));
 // These are about the composer's own behaviour, so the reader is signed in throughout; a
 // guest's composer is LlmSearchBarHome.guest.test.jsx.
 jest.mock('../Auth/AuthContext', () => ({
@@ -69,7 +70,7 @@ const setup = (props = {}) => render(
 // Matched outside the drawers on purpose: the option chips inside them carry the very same
 // labels once the drawer has been opened, so a plain by-role query finds several elements.
 // The trigger's accessible name is the current selection, hence the alternation.
-const OPTIONS_LABEL = /Search Options|Reviews only|High impact|Most recent/;
+const OPTIONS_LABEL = /Options|Reviews only|High impact|Most recent/;
 const optionsTrigger = () => {
     const drawers = Array.from(document.querySelectorAll('.MuiDrawer-root'));
     return Array.from(document.querySelectorAll('button')).find((node) => (
@@ -77,7 +78,9 @@ const optionsTrigger = () => {
     )) || null;
 };
 // `hidden: true` because an open drawer is a modal: MUI marks the rest of the page aria-hidden.
-const investigateButton = () => screen.queryByRole('button', { name: /investigate/i, hidden: true });
+// The modes are tabs along the composer's top edge; leaving Investigate is picking Chat.
+const investigateButton = () => screen.queryByRole('tab', { name: /investigate/i, hidden: true });
+const chatTab = () => screen.queryByRole('tab', { name: /chat/i, hidden: true });
 // The drawers use `keepMounted`, so their content is in the DOM whether open or closed —
 // presence of "Article Type" proves nothing. MUI marks a closed modal with `MuiModal-hidden`.
 const drawerIsOpen = () => Array.from(document.querySelectorAll('.MuiDrawer-root'))
@@ -177,7 +180,7 @@ describe('with Investigate on', () => {
     it('tracks entering the mode, but not switching it back off', () => {
         setup();
         fireEvent.click(investigateButton());
-        fireEvent.click(investigateButton());
+        fireEvent.click(chatTab());
 
         expect(trackGtagEvent).toHaveBeenCalledWith('home_investigate_enable_click', {
             source: 'home_searchbar',
@@ -239,8 +242,8 @@ describe('with Investigate on', () => {
         setup();
         chooseReviewsOnly();
         fireEvent.click(investigateButton());
-        fireEvent.click(investigateButton());
-        expect(optionsTrigger()).toHaveTextContent('Search Options');
+        fireEvent.click(chatTab());
+        expect(optionsTrigger()).toHaveTextContent('Options');
         expect(submit()).toEqual({
             filters: [],
             rankingMode: 'default',
@@ -253,35 +256,126 @@ describe('with Investigate on', () => {
 });
 
 describe('with LITERATURE_REVIEW_ENABLED on', () => {
-    const toolMenu = () => screen.getByRole('button', { name: 'Choose research tool', hidden: true });
+    const reviewTab = () => screen.getByRole('tab', { name: /Literature Review/, hidden: true });
 
-    it('turns the Investigate chip into a menu of the two research tools', () => {
+    it('offers the three modes as tabs', () => {
         mockReviewFlag = true;
         setup();
-        fireEvent.click(toolMenu());
-        // (the icons render as their file names under jest, hence "ends with")
-        const items = screen.getAllByRole('menuitem').map((n) => n.textContent);
-        expect(items).toHaveLength(2);
-        expect(items[0]).toMatch(/Investigate$/);
-        expect(items[1]).toMatch(/Literature Review$/);
+        const tabs = screen.getAllByRole('tab', { hidden: true });
+        expect(tabs.map((n) => n.querySelector('.composer-mode-label').textContent)).toEqual(['Chat', 'Investigate', 'Literature Review']);
+        expect(tabs.map((n) => Boolean(n.querySelector('.beta-badge')))).toEqual([false, false, true]);
+        expect(screen.getByRole('tab', { name: /Chat/, hidden: true })).toHaveAttribute('aria-selected', 'true');
     });
 
-    it('sends a question asked with Literature Review to its own page, not the chat', () => {
+    it('sends a question asked with Literature Review to its own page, with its scope', () => {
         mockReviewFlag = true;
         setup();
-        fireEvent.click(toolMenu());
-        fireEvent.click(screen.getByRole('menuitem', { name: /Literature Review$/ }));
+        fireEvent.click(reviewTab());
         expect(screen.getByTitle('Literature Review on')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText(/Topic or research question for your review/)).toBeInTheDocument();
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'osimertinib resistance' } });
         fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
-        expect(mockNavigate).toHaveBeenCalledWith('/literature-review', { state: { initialQuery: 'osimertinib resistance' } });
+        const { state } = mockNavigate.mock.calls[0][1];
+        expect(mockNavigate.mock.calls[0][0]).toBe('/literature-review');
+        expect(state.initialQuery).toBe('osimertinib resistance');
+        expect(state.scope).toEqual({
+            targetWords: 6000, startYear: null, cutoffYear: null, notify: true, articleTypes: 'all',
+            citationStyle: 'vancouver', sources: null,
+        });
+        expect(state.papers).toEqual([]);
+        // The model is picked with the chat's own picker: a service tier, never a model id.
+        expect(state).not.toHaveProperty('model');
+        expect(state).toHaveProperty('serviceTier');
     });
 
-    it('leaves Investigate working from the same chip', () => {
+    it('takes any length typed, kept in the service\'s bounds', () => {
         mockReviewFlag = true;
         setup();
-        fireEvent.click(toolMenu());
-        fireEvent.click(screen.getByRole('menuitem', { name: /Investigate$/ }));
+        fireEvent.click(reviewTab());
+        fireEvent.click(screen.getByRole('button', { name: /Length/, hidden: true }));
+        const input = screen.getByLabelText('Custom length in words');
+        fireEvent.change(input, { target: { value: '25000' } });
+        fireEvent.keyDown(input, { key: 'Enter' });
+        expect(screen.getByRole('button', { name: /Length: 12,000 words/, hidden: true })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /Length/, hidden: true }));
+        fireEvent.change(screen.getByLabelText('Custom length in words'), { target: { value: '2750' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Set', hidden: true }));
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'CAR-T in solid tumors' } });
+        fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
+        expect(mockNavigate.mock.calls[0][1].state.scope.targetWords).toBe(2800);
+    });
+
+    it('sends the article types and citation style the reader picked', () => {
+        mockReviewFlag = true;
+        setup();
+        fireEvent.click(reviewTab());
+        fireEvent.click(screen.getByRole('button', { name: /Types: All types/, hidden: true }));
+        fireEvent.click(screen.getByRole('option', { name: /Primary research/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Style: Vancouver/, hidden: true }));
+        fireEvent.click(screen.getByRole('option', { name: /APA 7/ }));
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'CAR-T in solid tumors' } });
+        fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
+        const { scope } = mockNavigate.mock.calls[0][1].state;
+        expect(scope.articleTypes).toBe('primary');
+        expect(scope.citationStyle).toBe('apa');
+    });
+
+    it('sends the length the reader picked', () => {
+        mockReviewFlag = true;
+        setup();
+        fireEvent.click(reviewTab());
+        fireEvent.click(screen.getByRole('button', { name: /Length/, hidden: true }));
+        fireEvent.click(screen.getByRole('option', { name: /4,500 words/ }));
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'CAR-T in solid tumors' } });
+        fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
+        expect(mockNavigate.mock.calls[0][1].state.scope.targetWords).toBe(4500);
+    });
+
+    it('sends the years picked, from a start year to an end year', () => {
+        const now = new Date().getFullYear();
+        mockReviewFlag = true;
+        setup();
+        fireEvent.click(reviewTab());
+        fireEvent.click(screen.getByRole('button', { name: `Years: to ${now}`, hidden: true }));
+        const from = screen.getByRole('group', { name: 'From' });
+        const to = screen.getByRole('group', { name: 'To' });
+        fireEvent.click(within(from).getByRole('option', { name: String(now - 10) }));
+        // the panel stays open for the other end; an end before the start is not offered
+        fireEvent.click(within(to).getByRole('option', { name: String(now - 2) }));
+        expect(screen.getByRole('button', { name: `Years: ${now - 10}–${now - 2}`, hidden: true })).toBeInTheDocument();
+        // any two typed
+        fireEvent.change(screen.getByLabelText('From year'), { target: { value: '2008' } });
+        fireEvent.change(screen.getByLabelText('To year'), { target: { value: '2001' } });
+        expect(screen.getByRole('button', { name: 'Set', hidden: true })).toBeDisabled();
+        fireEvent.change(screen.getByLabelText('To year'), { target: { value: '2019' } });
+        fireEvent.keyDown(screen.getByLabelText('To year'), { key: 'Enter' });
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'CAR-T in solid tumors' } });
+        fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));
+        const { scope } = mockNavigate.mock.calls[0][1].state;
+        expect(scope.startYear).toBe(2008);
+        expect(scope.cutoffYear).toBe(2019);
+    });
+
+    it('offers every source, and says the papers ones need papers first', () => {
+        mockReviewFlag = true;
+        setup();
+        fireEvent.click(reviewTab());
+        fireEvent.click(screen.getByRole('button', { name: 'Sources: Search only', hidden: true }));
+        expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+            expect.stringMatching(/^Search only/), expect.stringMatching(/^Your papers \+ search/),
+            expect.stringMatching(/^Your papers only/),
+        ]);
+        fireEvent.click(screen.getByRole('option', { name: /Your papers only/ }));
+        expect(screen.getByRole('status')).toHaveTextContent(/No papers added yet: upload at least one/);
+        // not chosen: still a search
+        expect(screen.getByRole('button', { name: 'Sources: Search only', hidden: true })).toBeInTheDocument();
+        expect(screen.getByRole('option', { name: /Your papers only/ })).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('leaves Investigate working beside it', () => {
+        mockReviewFlag = true;
+        setup();
+        fireEvent.click(investigateButton());
         expect(screen.getByTitle('Investigate on')).toBeInTheDocument();
         fireEvent.change(screen.getByRole('combobox'), { target: { value: 'what is TP53?' } });
         fireEvent.click(screen.getByRole('button', { name: /start chat/i, hidden: true }));

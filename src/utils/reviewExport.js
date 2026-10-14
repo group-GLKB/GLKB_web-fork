@@ -8,8 +8,9 @@
  * Word opens either way. For a typeset PDF the .tex export (utils/reviewToLatex.js) is the better
  * path; this one is for a reader who wants the file now.
  *
- * Citations stay as the `[1, 2]` the review was written with: neither format has LaTeX's reference
- * machinery, so the numbers and the list are kept as text and stay consistent as long as neither
+ * Citations stay as the text has them — `[1, 2]`, or "(Lee et al., 2021)" once a citation style
+ * has been applied (LiteratureReview/citationStyle.js): neither format has LaTeX's reference
+ * machinery, so the citations and the list are kept as text and stay consistent as long as neither
  * is edited.
  */
 
@@ -29,8 +30,11 @@ export function reviewToHtml(markdown) {
     let list = null;          // 'ul' | 'ol'
     let tableRows = [];
 
+    let inReferences = false;
     const flushParagraph = () => {
-        if (paragraph.length) out.push(`<p>${inline(paragraph.join(' '))}</p>`);
+        // An unnumbered entry of an author-date reference list (LiteratureReview/citationStyle.js)
+        // takes the list's hanging indent too.
+        if (paragraph.length) out.push(`<p${inReferences ? ' class="ref"' : ''}>${inline(paragraph.join(' '))}</p>`);
         paragraph = [];
     };
     const flushList = () => {
@@ -53,7 +57,6 @@ export function reviewToHtml(markdown) {
     };
     const flush = () => { flushParagraph(); flushList(); flushTable(); };
 
-    let inReferences = false;
     lines.forEach((raw) => {
         const line = raw.trimEnd();
 

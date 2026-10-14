@@ -1,8 +1,16 @@
 /**
  * Literature Review — its own page, its own pipeline.
  *
- *   /literature-review              write a new review (the topic may arrive from the home box)
- *   /literature-review/:publicId    a saved review, reopened from History or a link
+ *   /literature-review              set up and write a new review (the topic and scope may arrive
+ *                                   from the home composer's Literature Review tab)
+ *   /literature-review/:publicId    a saved review, reopened from History, Recent or a link
+ *
+ * The page walks the design's four steps — Scope, Outline, Writing, Review. Behind
+ * LR_OUTLINE_APPROVAL_ENABLED (off for now), the run stops once the outline is planned
+ * (`outline_approval`): the reader renames, reorders or leaves out sections and approves it
+ * (OutlineStep), and only then is anything written. Nothing runs while they decide, and a reload —
+ * or the mail saying the outline is ready — finds it again (getReviewRun). Off, Outline is a step the
+ * run passes through, not one the reader edits.
  *
  * Independent of the chat page on purpose: the chat page's state machine carries "Investigate or
  * not" as one boolean through queues, recovery snapshots and reload logic, and a third mode
@@ -14,36 +22,42 @@
  * A review takes minutes. The backend owns the run (a detached task), so leaving this page does
  * not stop it: the review is saved into History when it finishes, and reopening it here shows it.
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import './LiteratureReview.css';
+
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import {
-    Alert, Box, Button, LinearProgress, MenuItem, Select, TextField, Typography,
-} from '@mui/material';
+import { Alert, LinearProgress, useMediaQuery } from '@mui/material';
 
 import { useAuth } from '../Auth/AuthContext';
 import { getChatHistoryDetailByPublicId } from '../../service/ChatHistory';
-import { cancelReview, fetchReviewModels, streamReview } from '../../service/LiteratureReview';
+import {
+    approveOutline, cancelReview, getReviewRun, reviewRefusal, streamReview,
+} from '../../service/LiteratureReview';
+import { applyStreamCredits, fetchUsage } from '../../service/credits';
+import { refusalText } from '../../utils/refusals';
+import { fetchCitations } from '../../service/Citation';
+import { getTierPref, setTierPref } from '../../service/serviceTiers';
+import { CHAT_HOME_PATH, CHAT_NEW_PATH } from '../../config/entryRoutes';
+import { LR_OUTLINE_APPROVAL_ENABLED } from '../../config/features';
 import { latexFilename, reviewToLatex } from '../../utils/reviewToLatex';
 import { exportFilename, reviewTitle, reviewToPrintable, reviewToWord } from '../../utils/reviewExport';
 import { trackGtagEvent } from '../../utils/gtag';
-
-const REMARK_PLUGINS = [remarkGfm];
-
-const STAGES = [
-    { id: 'acquisition', label: 'Search & select literature' },
-    { id: 'synthesis', label: 'Synthesise evidence' },
-    { id: 'planning', label: 'Plan' },
-    { id: 'writing', label: 'Write' },
-];
+import { effectiveSources, initialScope } from '../HomePage/ReviewScope';
+import { useAttachments } from '../Units/AttachmentChips';
+import { OptionItem, OptionPanel } from '../Units/OptionMenu';
+import { REVIEW_PAPER_LIMITS } from '../../service/attachments';
+import { setStylePref, styleMarkdown } from './citationStyle';
+import { PhoneTopBar, TopBar } from './Chrome';
+import OutlineStep from './OutlineStep';
+import ScopeStep from './ScopeStep';
+import WritingStep from './WritingStep';
+import ReviewDocument from './ReviewDocument';
 
 const PENDING_RECHECK_MS = 15000;
 
-const formatSeconds = (s) => {
-    if (!Number.isFinite(s)) return '';
-    const m = Math.floor(s / 60);
-    return m ? `${m} min ${Math.round(s % 60)} s` : `${Math.round(s)} s`;
+const formatDate = (value) => {
+    const d = value ? new Date(value) : new Date();
+    return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 export default function LiteratureReview() {
@@ -53,14 +67,35 @@ export default function LiteratureReview() {
     const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
 
     const [topic, setTopic] = useState(location.state?.initialQuery || '');
-    const [models, setModels] = useState([]);
-    const [model, setModel] = useState('');
-    const [status, setStatus] = useState('idle'); // idle | running | done | error | loading
+    const [scope, setScope] = useState(() => ({ ...initialScope(), ...(location.state?.scope || {}) }));
+    // The chat's own model picker: a service tier, which the review service maps to a model.
+    const [serviceTier, setServiceTier] = useState(() => location.state?.serviceTier || getTierPref());
+    const [status, setStatus] = useState('idle'); // idle | running | outline | done | error | loading | pending
     const [progress, setProgress] = useState(null);
-    const [review, setReview] = useState(null); // { markdown, usage, executionTime }
+    // The outline's sections and where each one is, once the run has planned them ({ title, rows }).
+    const [sections, setSections] = useState(null);
+    // The outline the run stopped at, waiting for the reader's approval ({ title, thesis, words, sections }).
+    const [outline, setOutline] = useState(null);
+    const [review, setReview] = useState(null); // { markdown, references, usage, executionTime, createdAt }
+    // NCBI's record for each cited PMID, which the citation style formats ({} until it arrives).
+    const [records, setRecords] = useState({});
     const [error, setError] = useState('');
     const [savedQuestion, setSavedQuestion] = useState('');
+    // The reader's own papers: uploaded here, or on the home bar and carried over (already uploaded).
+    const papers = useAttachments({
+        limits: REVIEW_PAPER_LIMITS,
+        initial: location.state?.papers,
+        onRequireSignIn: () => openLoginModal?.(),
+    });
+    const paperIds = papers.readyAttachments.map((a) => a.id);
+    const sources = effectiveSources(scope, paperIds.length);
+    // The papers a saved review was written from (its prompt's attachments), and how many a run uses.
+    const [savedPapers, setSavedPapers] = useState([]);
+    const [exportAnchor, setExportAnchor] = useState(null);
+    const [copied, setCopied] = useState(false);
     const runIdRef = useRef(null);
+    // The app's phone breakpoint (Layout): the phone design's own bar and pages below it.
+    const isPhone = useMediaQuery('(max-width:767px)');
 
     /* The review as a compilable .tex (utils/reviewToLatex.js). Done here rather than on the
        server because the markdown is already in hand, including for a review reopened from
@@ -77,19 +112,23 @@ export default function LiteratureReview() {
         trackGtagEvent('literature_review_export', { format });
     }, []);
 
+    // The review as the exports write it: in the citation style the page shows.
+    const styled = useCallback(() => styleMarkdown(review?.markdown, review?.references, records, scope.citationStyle),
+        [review, records, scope.citationStyle]);
+
     const downloadLatex = useCallback(() => {
         if (!review?.markdown) return;
         const title = savedQuestion || topic;
-        saveFile(reviewToLatex(review.markdown, { title }), 'application/x-tex',
+        saveFile(reviewToLatex(styled(), { title }), 'application/x-tex',
                  latexFilename(title), 'latex');
-    }, [review, savedQuestion, topic, saveFile]);
+    }, [review, savedQuestion, topic, saveFile, styled]);
 
     const downloadWord = useCallback(() => {
         if (!review?.markdown) return;
         const title = savedQuestion || topic;
-        saveFile(reviewToWord(review.markdown, { title }), 'application/msword',
+        saveFile(reviewToWord(styled(), { title }), 'application/msword',
                  exportFilename(reviewTitle(review.markdown, title), 'doc'), 'word');
-    }, [review, savedQuestion, topic, saveFile]);
+    }, [review, savedQuestion, topic, saveFile, styled]);
 
     /* PDF goes through the browser's own print dialog ("Save as PDF") rather than a PDF library:
        on a 6,000-word review the browser paginates, keeps headings with their text and hyphenates,
@@ -100,13 +139,13 @@ export default function LiteratureReview() {
         const title = savedQuestion || topic;
         const w = window.open('', '_blank');
         if (!w) { setError('Allow pop-ups for this site to save the review as a PDF.'); return; }
-        w.document.write(reviewToPrintable(review.markdown, { title }));
+        w.document.write(reviewToPrintable(styled(), { title }));
         w.document.close();
         w.focus();
         // Let the styles apply before the dialog takes its snapshot of the page.
         setTimeout(() => w.print(), 300);
         trackGtagEvent('literature_review_export', { format: 'pdf' });
-    }, [review, savedQuestion, topic]);
+    }, [review, savedQuestion, topic, styled]);
     const abortRef = useRef(null);
     const startedAtRef = useRef(null);
     // The address this page gave the review it just wrote; reaching it must not reload the review.
@@ -115,14 +154,15 @@ export default function LiteratureReview() {
     // A saved review that is still being written is re-checked on this tick (see PENDING_RECHECK_MS).
     const [recheck, setRecheck] = useState(0);
 
+    // The cited papers' records, for the citation style. A review's references carry a title, year
+    // and DOI; the authors, journal, volume and pages a style needs come from NCBI (service/Citation).
     useEffect(() => {
-        fetchReviewModels()
-            .then((data) => {
-                setModels(data?.models || []);
-                setModel((current) => current || data?.default_model || data?.models?.[0]?.id || '');
-            })
-            .catch(() => setModels([]));
-    }, []);
+        const pmids = (review?.references || []).map((r) => r.pmid).filter(Boolean);
+        if (!pmids.length) return undefined;
+        let alive = true;
+        fetchCitations(pmids).then((found) => { if (alive) setRecords(found || {}); });
+        return () => { alive = false; };
+    }, [review?.references]);
 
     // A saved review: load it from History. One still being written (reopened after a reload, or
     // from History mid-run) is looked at again every PENDING_RECHECK_MS until its answer is saved.
@@ -138,13 +178,32 @@ export default function LiteratureReview() {
                 const question = [...messages].reverse().find((m) => m.role === 'user');
                 const answer = [...messages].reverse().find((m) => m.role === 'assistant');
                 setSavedQuestion(question?.content || '');
+                setSavedPapers(Array.isArray(question?.attachments) ? question.attachments : []);
                 if (answer?.content) {
-                    setReview({ markdown: answer.content });
+                    setReview({ markdown: answer.content, references: answer.references || [],
+                                createdAt: answer.created_at || detail?.created_at });
                     setStatus('done');
-                } else {
+                    return;
+                }
+                // Not answered yet: an outline waiting for the reader, or a review still being written.
+                const wait = () => {
                     setStatus('pending');
                     timer = setTimeout(() => setRecheck((n) => n + 1), PENDING_RECHECK_MS);
+                };
+                if (!LR_OUTLINE_APPROVAL_ENABLED) {
+                    wait();
+                    return;
                 }
+                getReviewRun(publicId).then((run) => {
+                    if (!alive) return;
+                    if (run?.status === 'outline' && run.outline) {
+                        runIdRef.current = run.run_id;
+                        setOutline(run.outline);
+                        setStatus('outline');
+                    } else {
+                        wait();
+                    }
+                }).catch(() => { if (alive) wait(); });
             })
             .catch(() => {
                 if (!alive) return;
@@ -165,6 +224,47 @@ export default function LiteratureReview() {
 
     useEffect(() => () => abortRef.current?.abort(), []);
 
+    /* What a run's frames do to the page (the first run and the approved outline's alike). `run.finished`
+       says whether the stream ended the way a run should: a review, an outline, or an error. */
+    const onFrame = useCallback((run) => (frame) => {
+        if (frame.run_id) runIdRef.current = frame.run_id;
+        // A review is charged (2026-10-13): the frame that ends it carries the balance; without a
+        // usable figure the balance is read again.
+        if (frame.credits && !applyStreamCredits(frame.credits)) fetchUsage({ isAuthenticated: true });
+        if (frame.step === 'Started' && frame.public_id) {
+            // The backend's first frame: the review already has its History entry. Take its
+            // address now, not at the end — a reload mid-run (or a laptop waking up) then
+            // reopens this review as "still being written" instead of an empty form.
+            ownPublicIdRef.current = frame.public_id;
+            navigate(`/literature-review/${frame.public_id}`, { replace: true });
+        }
+        if (frame.type === 'progress') {
+            setProgress({ phase: frame.phase, label: frame.label, percent: frame.percent,
+                          detail: frame.detail || {} });
+        } else if (frame.type === 'sections') {
+            setSections({ title: frame.title || '', rows: Array.isArray(frame.sections) ? frame.sections : [] });
+        } else if (frame.step === 'Outline') {
+            run.finished = true;
+            setOutline(frame.outline || null);
+            setStatus('outline');
+        } else if (frame.step === 'Complete') {
+            run.finished = true;
+            setOutline(null);
+            setReview({ markdown: frame.response || '', references: frame.references || [],
+                        usage: frame.usage, executionTime: frame.execution_time });
+            setStatus('done');
+        } else if (frame.step === 'Saved' && frame.public_id) {
+            // Give the review an address of its own, so a reload keeps it.
+            ownPublicIdRef.current = frame.public_id;
+            navigate(`/literature-review/${frame.public_id}`, { replace: true });
+        } else if (frame.step === 'Error') {
+            run.finished = true;
+            setError(frame.error === 'stopped' ? 'The review was stopped.' : (frame.error || 'The review failed.'));
+            // An approval the service refused ran nothing: the outline still waits.
+            setStatus(run.approving && frame.status === 400 ? 'outline' : 'error');
+        }
+    }, [navigate]);
+
     const start = useCallback(async () => {
         const question = topic.trim();
         if (question.length < 3) return;
@@ -181,38 +281,59 @@ export default function LiteratureReview() {
         setError('');
         setReview(null);
         setSavedQuestion(question);
-        setProgress({ phase: 'acquisition', label: 'Starting…', percent: 1, detail: {} });
+        const usedPapers = sources === 'search' ? [] : papers.readyAttachments;
+        setSavedPapers(usedPapers);
+        setProgress({ phase: sources === 'papers' ? 'synthesis' : 'acquisition', label: 'Starting…',
+                      percent: 1, detail: {} });
+        setSections(null);
         setStatus('running');
-        let finished = false;
+        trackGtagEvent('literature_review_start', { target_words: scope.targetWords || 0, sources,
+                                                    papers: usedPapers.length });
+        const run = { finished: false };
         try {
-            await streamReview({ question, model, signal: controller.signal }, (frame) => {
-                if (frame.run_id) runIdRef.current = frame.run_id;
-                if (frame.step === 'Started' && frame.public_id) {
-                    // The backend's first frame: the review already has its History entry. Take its
-                    // address now, not at the end — a reload mid-run (or a laptop waking up) then
-                    // reopens this review as "still being written" instead of an empty form.
-                    ownPublicIdRef.current = frame.public_id;
-                    navigate(`/literature-review/${frame.public_id}`, { replace: true });
-                }
-                if (frame.type === 'progress') {
-                    setProgress({ phase: frame.phase, label: frame.label, percent: frame.percent,
-                                  detail: frame.detail || {} });
-                } else if (frame.step === 'Complete') {
-                    finished = true;
-                    setReview({ markdown: frame.response || '', usage: frame.usage,
-                                executionTime: frame.execution_time });
-                    setStatus('done');
-                } else if (frame.step === 'Saved' && frame.public_id) {
-                    // Give the review an address of its own, so a reload keeps it.
-                    ownPublicIdRef.current = frame.public_id;
-                    navigate(`/literature-review/${frame.public_id}`, { replace: true });
-                } else if (frame.step === 'Error') {
-                    finished = true;
-                    setError(frame.error === 'stopped' ? 'The review was stopped.' : (frame.error || 'The review failed.'));
-                    setStatus('error');
-                }
-            });
-            if (!finished) {
+            await streamReview({
+                question, serviceTier, signal: controller.signal, articleTypes: scope.articleTypes,
+                targetWords: scope.targetWords, cutoffYear: scope.cutoffYear,
+                // The years filter what GLKB searches; the reader's own papers are all used.
+                startYear: sources === 'papers' ? null : scope.startYear,
+                notify: scope.notify !== false,
+                papers: usedPapers.map((a) => a.id), sources,
+                outlineApproval: LR_OUTLINE_APPROVAL_ENABLED,
+            }, onFrame(run));
+            if (!run.finished) {
+                setError('The connection ended before the review finished. If it keeps running on the '
+                    + 'server it will appear in History.');
+                setStatus('error');
+            }
+        } catch (err) {
+            if (err?.code === 'ERR_CANCELED' || err?.name === 'AbortError') return;
+            // Refused before anything ran — not enough credits names the price and a cheaper choice.
+            const refusal = reviewRefusal(err);
+            setError(refusal?.code ? refusalText(refusal)
+                : (refusal?.message || err?.message || 'The review could not start.'));
+            setStatus('error');
+        }
+    }, [topic, serviceTier, scope, sources, papers.readyAttachments, isAuthenticated, openLoginModal, onFrame]);
+
+    /* Write the outline as the reader approved it: the same frames as the first run, into the same
+       conversation. An approval the service finds does not fit (a 400: nothing ran) leaves the outline
+       waiting, with the reason; one already approved elsewhere (a 409) is being written. */
+    const approve = useCallback(async ({ title, sections: chosen }) => {
+        const runId = runIdRef.current;
+        if (!runId) return;
+        const controller = new AbortController();
+        abortRef.current = controller;
+        startedAtRef.current = Date.now();
+        setElapsed(0);
+        setError('');
+        setSections(null);
+        setProgress({ phase: 'writing', label: 'Writing the review…', percent: 80, detail: {} });
+        setStatus('running');
+        trackGtagEvent('literature_review_outline_approve', { sections: chosen.length });
+        const run = { finished: false, approving: true };
+        try {
+            await approveOutline({ runId, title, sections: chosen, signal: controller.signal }, onFrame(run));
+            if (!run.finished) {
                 setError('The connection ended before the review finished. If it keeps running on the '
                     + 'server it will appear in History.');
                 setStatus('error');
@@ -220,13 +341,32 @@ export default function LiteratureReview() {
         } catch (err) {
             if (err?.code === 'ERR_CANCELED' || err?.name === 'AbortError') return;
             const detail = err?.response?.data?.detail;
+            if (err?.response?.status === 409) {
+                // Approved already (another tab, another device): it is being written; look again.
+                ownPublicIdRef.current = null;
+                setStatus('pending');
+                setRecheck((n) => n + 1);
+                return;
+            }
             setError(typeof detail === 'string' ? detail : (err?.message || 'The review could not start.'));
-            setStatus('error');
+            setStatus('outline');
         }
-    }, [topic, model, isAuthenticated, openLoginModal, navigate]);
+    }, [onFrame]);
 
-    // Arriving from the home box with a topic: nothing else to choose but the model, so the form
-    // stays up (the model is the cost lever: Sol is ~20x Luna) rather than starting on its own.
+    /* Discard the outline: the prompt is answered as stopped, and the topic is kept for another try. */
+    const discardOutline = useCallback(async () => {
+        try {
+            await cancelReview(runIdRef.current);
+        } catch (err) {
+            /* nothing was running; the outline is left as it was */
+        }
+        trackGtagEvent('literature_review_outline_discard', {});
+        setOutline(null);
+        setError('');
+        setTopic((t) => t || savedQuestion);
+        setStatus('idle');
+        navigate('/literature-review');
+    }, [navigate, savedQuestion]);
 
     const stop = useCallback(async () => {
         try {
@@ -236,150 +376,168 @@ export default function LiteratureReview() {
         }
     }, []);
 
-    const stageIndex = useMemo(
-        () => Math.max(0, STAGES.findIndex((s) => s.id === progress?.phase)),
-        [progress],
-    );
+    const startNew = () => {
+        // The papers belong to the review they were sent with; a new one starts with none.
+        papers.clear(); setSavedPapers([]);
+        setStatus('idle'); setReview(null); setError(''); setTopic(''); navigate('/literature-review');
+    };
 
-    const cost = review?.usage?.totals?.cost_usd;
+    /* A paragraph action opens a new chat on that passage (design: Ask / Rewrite / Shorten /
+       Add evidence). The chat answers it like any question, citations included. */
+    const paragraphAction = useCallback((action, text) => {
+        trackGtagEvent('literature_review_paragraph_action', { action: action.id });
+        navigate(CHAT_NEW_PATH, { state: { initialQuery: action.prompt(text, savedQuestion || topic) } });
+    }, [navigate, savedQuestion, topic]);
+
+    const share = async () => {
+        try {
+            await navigator.clipboard.writeText(window.location.href);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch { setError('Copy the address from the browser bar to share this review.'); }
+    };
+
     const formShown = status === 'idle' || (status === 'error' && !publicId);
+    const writing = status === 'running' || status === 'pending';
+    const step = formShown ? 0 : writing ? (progress?.phase === 'writing' ? 2 : 1) : status === 'done' ? 3 : 1;
+    const minutes = review?.executionTime ? Math.max(1, Math.round(review.executionTime / 60)) : null;
+
+    const exportItems = [
+        { id: 'word', label: 'Word (.doc)', hint: 'To edit in Word or Google Docs', run: downloadWord },
+        { id: 'pdf', label: 'PDF', hint: 'Saved from the print dialog', run: downloadPdf },
+        { id: 'latex', label: 'LaTeX (.tex)', hint: 'A .tex file to compile', run: downloadLatex },
+    ];
+    const exportMenu = (items) => (
+        <OptionPanel anchorEl={exportAnchor} open={Boolean(exportAnchor)} onClose={() => setExportAnchor(null)}
+                     label="Export" role="menu">
+            {items.map((x) => (
+                <OptionItem key={x.id} role="menuitem" label={x.label} hint={x.hint}
+                            onClick={() => { setExportAnchor(null); x.run(); }} />
+            ))}
+        </OptionPanel>
+    );
+    // On a phone the bar has room for Export alone (the phone design); sharing is its first row.
+    const phoneAction = status === 'done' && review ? (
+        <>
+            <button type="button" className="lr-primary is-small" aria-haspopup="menu" aria-expanded={Boolean(exportAnchor)}
+                    onClick={(e) => setExportAnchor(exportAnchor ? null : e.currentTarget)}>
+                {copied ? 'Copied' : 'Export'}
+            </button>
+            {exportMenu([
+                { id: 'link', label: 'Copy link', hint: 'To share this review', run: share },
+                ...exportItems,
+            ])}
+        </>
+    ) : null;
+
+    const actions = status === 'done' && review ? (
+        <>
+            <button type="button" className="lr-secondary" onClick={share}>{copied ? 'Link copied' : 'Share'}</button>
+            <button type="button" className="lr-primary is-small" aria-haspopup="menu" aria-expanded={Boolean(exportAnchor)}
+                    onClick={(e) => setExportAnchor(exportAnchor ? null : e.currentTarget)}>
+                Export
+            </button>
+            {exportMenu(exportItems)}
+        </>
+    ) : null;
 
     return (
-        <Box sx={{ maxWidth: 920, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 3, md: 5 } }}>
-            <Typography variant="overline" sx={{ color: 'var(--color-text-tertiary)', letterSpacing: 1 }}>
-                Literature Review · internal preview
-            </Typography>
+        <div className="lr-root">
+            {isPhone
+                ? <PhoneTopBar step={step} onHome={() => navigate(CHAT_HOME_PATH)} onNew={startNew} action={phoneAction} />
+                : <TopBar step={step} onHome={() => navigate(CHAT_HOME_PATH)} onNew={startNew} actions={actions} />}
 
-            {/* Hidden rather than unmounted while a review runs or is shown: the Topic field is MUI's
-                TextareaAutosize, whose resize handler can fire just after its textarea is removed and
-                then throws (getComputedStyle on null) — seen once in six runs of this page. */}
-            <Box sx={{ mt: 1, flexDirection: 'column', gap: 2,
-                       display: formShown ? 'flex' : 'none' }}>
-                <Typography variant="h5" sx={{ fontWeight: 600 }}>Write a literature review</Typography>
-                <Typography variant="body2" sx={{ color: 'var(--color-text-secondary)' }}>
-                    GLKB searches the literature, selects and synthesises the evidence, and writes a cited
-                    review. It takes several minutes; you can leave this page and find the result in History.
-                </Typography>
-                <TextField
-                    label="Topic"
-                    multiline
-                    minRows={2}
-                    value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
-                    placeholder="e.g. Mechanisms of osimertinib resistance in EGFR-mutant lung cancer"
+            {/* Hidden rather than unmounted while a review runs or is shown: the old form's MUI
+                TextareaAutosize could throw on unmount; the textarea here is plain, but the form
+                keeps its state either way. */}
+            <div style={{ display: formShown ? 'block' : 'none' }}>
+                <ScopeStep
+                    topic={topic}
+                    onTopic={setTopic}
+                    scope={scope}
+                    onScope={setScope}
+                    serviceTier={serviceTier}
+                    onServiceTier={(tier) => { setServiceTier(tier); setTierPref(tier); }}
+                    onResolveTier={setServiceTier}
+                    onStart={start}
+                    canStart={topic.trim().length >= 3 && !authLoading && !papers.isUploading && !papers.hasErrors}
+                    error={formShown ? error : ''}
+                    papers={papers}
+                    sources={sources}
+                    phone={isPhone}
                 />
-                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-                    {models.length > 0 && (
-                        <Select size="small" value={model} onChange={(e) => setModel(e.target.value)}
-                                aria-label="Model">
-                            {models.map((m) => (
-                                <MenuItem key={m.id} value={m.id}>
-                                    {m.label}{m.description ? ` — ${m.description}` : ''}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    )}
-                    <Button variant="contained" disableElevation onClick={start}
-                            disabled={topic.trim().length < 3 || authLoading}
-                            sx={{ textTransform: 'none', fontWeight: 600 }}>
-                        Write review
-                    </Button>
-                </Box>
-                {formShown && error && <Alert severity="error">{error}</Alert>}
-            </Box>
+            </div>
 
-            {status === 'loading' && <LinearProgress sx={{ mt: 3 }} />}
+            {status === 'loading' && <LinearProgress sx={{ mx: 4, mt: 4 }} />}
 
-            {(status === 'running' || status === 'done' || status === 'pending'
-                || (status === 'error' && publicId)) && savedQuestion && (
-                <Typography variant="h5" sx={{ fontWeight: 600, mt: 1 }}>{savedQuestion}</Typography>
+            {status === 'outline' && outline && (
+                <OutlineStep key={runIdRef.current || 'outline'} outline={outline} onApprove={approve}
+                             onDiscard={discardOutline} error={error} phone={isPhone} />
             )}
 
-            {status === 'running' && progress && (
-                <Box sx={{ mt: 3, p: 2.5, borderRadius: 2, border: '1px solid var(--color-border-subtle, #e5e7eb)' }}>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1.5 }}>
-                        {STAGES.map((s, i) => (
-                            <Typography key={s.id} variant="caption" sx={{
-                                px: 1, py: 0.25, borderRadius: 1,
-                                fontWeight: i === stageIndex ? 700 : 500,
-                                color: i <= stageIndex ? 'var(--color-brand-primary)' : 'var(--color-text-tertiary)',
-                                background: i === stageIndex ? 'var(--color-brand-muted)' : 'transparent',
-                            }}>
-                                {i + 1}. {s.label}
-                            </Typography>
-                        ))}
-                    </Box>
-                    <LinearProgress variant="determinate" value={Math.min(100, progress.percent || 0)} />
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1, flexWrap: 'wrap', gap: 1 }}>
-                        <Typography variant="body2">{progress.label}</Typography>
-                        <Typography variant="body2" sx={{ color: 'var(--color-text-tertiary)' }}>
-                            {[
-                                progress.detail?.searches ? `${progress.detail.searches} searches` : null,
-                                progress.detail?.papers_opened ? `${progress.detail.papers_opened} papers read` : null,
-                                progress.detail?.llm_calls ? `${progress.detail.llm_calls} model calls` : null,
-                                formatSeconds(elapsed),
-                            ].filter(Boolean).join(' · ')}
-                        </Typography>
-                    </Box>
-                    <Button size="small" onClick={stop} sx={{ mt: 1.5, textTransform: 'none' }}>Stop</Button>
-                </Box>
+            {writing && (
+                <WritingStep
+                    topic={savedQuestion}
+                    progress={progress}
+                    elapsed={elapsed}
+                    targetWords={scope.targetWords}
+                    papers={savedPapers.length}
+                    papersOnly={status === 'running' && sources === 'papers'}
+                    notify={status === 'running' && scope.notify !== false}
+                    pending={status === 'pending'}
+                    onStop={status === 'running' ? stop : null}
+                    sections={status === 'running' ? sections?.rows : null}
+                    phone={isPhone}
+                />
             )}
-
             {status === 'pending' && (
-                <Alert severity="info" sx={{ mt: 3 }}>
-                    This review is still being written. It appears here when it is finished (reviews take
-                    15–25 minutes); you can leave this page and find it in History.
-                </Alert>
+                <div className="lr-page"><div className="lr-main is-narrow">
+                    <Alert severity="info">
+                        This review is still being written. It appears here when it is finished (reviews take
+                        8–12 minutes); you can leave this page and find it in History.
+                    </Alert>
+                </div></div>
             )}
 
             {status === 'error' && publicId && (
-                <Box sx={{ mt: 3 }}>
+                <div className="lr-page"><div className="lr-main is-narrow">
+                    {savedQuestion && <h1 className="lr-title">{savedQuestion}</h1>}
                     <Alert severity="error">{error}</Alert>
                     {/* The topic is kept: after a Stop or a failure the likeliest next step is to run it again. */}
-                    <Button sx={{ mt: 2, textTransform: 'none' }} onClick={() => {
+                    <button type="button" className="lr-secondary" style={{ marginTop: 16 }} onClick={() => {
                         setStatus('idle'); setError(''); setTopic((t) => t || savedQuestion);
                         navigate('/literature-review');
                     }}>
                         Try again
-                    </Button>
-                </Box>
+                    </button>
+                </div></div>
             )}
 
             {status === 'done' && review && (
-                <Box sx={{ mt: 3 }}>
-                    {(Number.isFinite(cost) || review.executionTime) && (
-                        <Typography variant="caption" sx={{ color: 'var(--color-text-tertiary)' }}>
-                            {[review.executionTime ? formatSeconds(review.executionTime) : null,
-                              Number.isFinite(cost) ? `$${cost.toFixed(3)}` : null].filter(Boolean).join(' · ')}
-                        </Typography>
-                    )}
-                    <Box className="markdown-body" sx={{ mt: 1, '& h1': { display: 'none' } }}>
-                        <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>{review.markdown}</ReactMarkdown>
-                    </Box>
-                    {/* Three ways out: LaTeX for a typeset paper (its numbered citations become
-                        \cite keys against a thebibliography), Word to keep editing, PDF to read
-                        or send. */}
+                <>
                     {/* An export that cannot run says so here: the error Alert above only renders
                         in the error state, so on a finished review it would show nothing at all. */}
-                    {error && <Alert severity="warning" sx={{ mt: 2 }} onClose={() => setError('')}>{error}</Alert>}
-                    <Box sx={{ mt: 3, display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-                        <Button variant="outlined" sx={{ textTransform: 'none' }} onClick={downloadLatex}>
-                            LaTeX (.tex)
-                        </Button>
-                        <Button variant="outlined" sx={{ textTransform: 'none' }} onClick={downloadWord}>
-                            Word (.doc)
-                        </Button>
-                        <Button variant="outlined" sx={{ textTransform: 'none' }} onClick={downloadPdf}>
-                            PDF
-                        </Button>
-                    </Box>
-                    <Button sx={{ mt: 2, textTransform: 'none' }} onClick={() => {
-                        setStatus('idle'); setReview(null); setTopic(''); navigate('/literature-review');
-                    }}>
-                        Write another review
-                    </Button>
-                </Box>
+                    {error && <Alert severity="warning" sx={{ mx: 4, mt: 2 }} onClose={() => setError('')}>{error}</Alert>}
+                    <ReviewDocument
+                        markdown={review.markdown}
+                        references={review.references}
+                        records={records}
+                        citationStyle={scope.citationStyle}
+                        onCitationStyle={(id) => { setScope((s) => ({ ...s, citationStyle: id })); setStylePref(id); }}
+                        meta={{
+                            topic: savedQuestion,
+                            targetWords: scope.targetWords,
+                            startYear: scope.startYear,
+                            cutoffYear: scope.cutoffYear,
+                            generated: formatDate(review.createdAt),
+                            minutes,
+                            papers: savedPapers.length,
+                        }}
+                        onAction={paragraphAction}
+                        phone={isPhone}
+                    />
+                </>
             )}
-        </Box>
+        </div>
     );
 }

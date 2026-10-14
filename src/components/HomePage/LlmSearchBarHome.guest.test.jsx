@@ -1,6 +1,6 @@
 /** The home composer is where most visitors meet the product. Since guest mode reopened
- *  (2026-10-03) a guest may ask here — Standard only, a monthly number of questions — and is
- *  asked to sign in only when they reach past that. */
+ *  (2026-10-03) a guest may ask here — AI Chat at Standard only, 10 questions in all since
+ *  2026-10-09 — and is asked to sign in when they reach past that, or for Investigate. */
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -106,13 +106,13 @@ describe('a guest at the home composer', () => {
         expect(optionsPanels().some((panel) => isVisible(panel))).toBe(true);
     });
 
-    it('is asked to sign in, with the reason, once the month\'s questions are used — question kept', () => {
-        renderBar({ isQueryLimitReached: true, limitReachedText: "You've used your 100 free questions this month." });
+    it('is asked to sign in, with the reason, once the free questions are used — question kept', () => {
+        renderBar({ isQueryLimitReached: true, limitReachedText: "You've used your 10 free questions." });
         const box = typeQuestion('What is BRCA1?');
         expect(box).toBeEnabled();
         startChat();
 
-        expect(mockAuth.openLoginModal).toHaveBeenCalledWith("You've used your 100 free questions this month.");
+        expect(mockAuth.openLoginModal).toHaveBeenCalledWith("You've used your 10 free questions.");
         expect(mockNavigate).not.toHaveBeenCalled();
         expect(box).toHaveValue('What is BRCA1?');
     });
@@ -122,6 +122,25 @@ describe('a guest at the home composer', () => {
         fireEvent.click(await screen.findByRole('button', { name: 'Model: GPT-6 Luna' }));
         fireEvent.click(screen.getByRole('option', { name: /GPT-6.1 Sol/ }));
         expect(mockAuth.openLoginModal).toHaveBeenCalledWith(expect.stringMatching(/GPT-6.1 Sol is available to signed-in users/));
+    });
+
+    it('turning on Investigate asks them to sign in, and the question stays AI Chat', () => {
+        renderBar();
+        fireEvent.click(screen.getByTitle('Investigate off'));
+
+        expect(mockAuth.openLoginModal).toHaveBeenCalledWith(
+            "Investigate is available to signed-in users. Sign in to use it — it's free.",
+        );
+        expect(screen.getByTitle('Investigate off')).toBeInTheDocument();
+
+        mockAuth.openLoginModal.mockClear();
+        typeQuestion('What is BRCA1?');
+        startChat();
+        expect(mockNavigate).toHaveBeenCalledWith('/chat/new', expect.objectContaining({
+            state: expect.objectContaining({
+                initialSearchOptions: expect.objectContaining({ investigateEnabled: false }),
+            }),
+        }));
     });
 });
 
@@ -137,6 +156,15 @@ describe('a signed-in reader at the same composer', () => {
         expect(mockNavigate).toHaveBeenCalledWith('/chat/new', expect.objectContaining({
             state: expect.objectContaining({ initialQuery: 'What is BRCA1?' }),
         }));
+        expect(mockAuth.openLoginModal).not.toHaveBeenCalled();
+    });
+
+    it('can turn on Investigate', () => {
+        mockAuth.isAuthenticated = true;
+        renderBar();
+        fireEvent.click(screen.getByTitle('Investigate off'));
+
+        expect(screen.getByTitle('Investigate on')).toBeInTheDocument();
         expect(mockAuth.openLoginModal).not.toHaveBeenCalled();
     });
 

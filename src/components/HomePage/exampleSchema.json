@@ -7,8 +7,8 @@
     "pills": [
         {
             "id": "focus-hypothesis",
-            "label": "Focus My Hypothesis",
-            "panelTitle": "Focus My Hypothesis",
+            "label": "Focus my hypothesis",
+            "panelTitle": "Focus my hypothesis",
             "icon": "lightbulb",
             "examples": [
                 "Which genes and pathways make oxidative stress–driven neuron loss in Parkinson’s disease testable?",
@@ -20,8 +20,8 @@
         },
         {
             "id": "compare-options",
-            "label": "Compare My Options",
-            "panelTitle": "Compare My Options",
+            "label": "Compare my options",
+            "panelTitle": "Compare my options",
             "icon": "chart",
             "examples": [
                 "Which gene—EGFR, ALK, or KRAS—offers the clearest NSCLC teaching case?",
@@ -33,8 +33,8 @@
         },
         {
             "id": "check-claim",
-            "label": "Check a Claim",
-            "panelTitle": "Check a Claim",
+            "label": "Check a claim",
+            "panelTitle": "Check a claim",
             "icon": "book",
             "examples": [
                 "Does p53 loss cause chemotherapy resistance across cancers?",
@@ -46,8 +46,8 @@
         },
         {
             "id": "build-evidence",
-            "label": "Build My Evidence",
-            "panelTitle": "Build My Evidence",
+            "label": "Build my evidence",
+            "panelTitle": "Build my evidence",
             "icon": "knowledge",
             "examples": [
                 "How does CFTR mutation class affect modulator response?",
@@ -57,5 +57,15 @@
                 "What evidence supports combining STING agonists with checkpoint blockade in melanoma?"
             ]
         }
+    ],
+    "investigateExamples": [
+        "Map resistance mechanisms of KRAS G12C inhibitors",
+        "How can IL-6/STAT3-driven drug resistance be targeted?",
+        "Which pathways make NSCLC tumors immunotherapy-resistant?"
+    ],
+    "reviewExamples": [
+        "Does p53 loss cause chemotherapy resistance across cancers?",
+        "Gut microbiome composition and immune checkpoint response",
+        "Barriers to CAR-T efficacy in solid tumors"
     ]
 }

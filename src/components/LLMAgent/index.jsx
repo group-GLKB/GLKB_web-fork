@@ -51,7 +51,6 @@ import {
   Drawer,
   FormControlLabel,
   Grid,
-  IconButton,
   Radio,
   RadioGroup,
   Snackbar,
@@ -77,6 +76,9 @@ import {
 } from './traceReplay';
 import ClarifyPanel, { getClarificationQuestionKey } from './ClarifyPanel';
 import ReferenceHoverCard from './ReferenceHoverCard';
+import AnswerGraphForMessage from '../AnswerGraph/AnswerGraphForMessage';
+import IconButton from '../Units/HintIconButton';
+import { splitAnswerForGraph } from '../AnswerGraph/answerGraph';
 import { getBookmarks, toggleBookmark } from '../../utils/bookmarks';
 import { resolveClarifyRound } from './clarifyRound';
 import { sortReferences } from './referenceSort';
@@ -111,6 +113,7 @@ import {
   fetchUsage,
   getUsageSnapshot,
   limitReachedText,
+  recordGuestQuestion,
   subscribeToUsage,
 } from '../../service/credits';
 import {
@@ -1376,13 +1379,72 @@ const MessageCard = React.memo(function MessageCard({
         return clearTimers;
     }, [isLoading, loadingStepLabel]);
 
+
+    /* The answer's text, split where its in-text knowledge graph goes (components/
+       AnswerGraph). Only a finished answer gets a graph: while it streams, the split point
+       would move under the reader. */
+    const answerMarkdown = stripUnresolvedCitations(
+            bindMarkersToLinks(
+                stripCitationsBlock(
+                    repairOrphanSingleItemMarkdown(
+                        isLoading
+                            ? tidyStreamingText(message.content)
+                            : message.content,
+                    ),
+                ),
+                citationsByMarker,
+            ),
+        );
+    // With no list, an answer that cites papers still gets a graph, built from its text.
+    const showAnswerGraph = isAssistant && !isLoading
+        && (message.kgQueryList?.length > 0 || message.references?.length > 0);
+    const answerParts = showAnswerGraph ? splitAnswerForGraph(answerMarkdown) : [answerMarkdown];
+    if (showAnswerGraph && answerParts.length === 1) answerParts.push('');
+    const markdownComponents = {
+        /* Wide tables scroll inside their own box.
+           Without this a table with more columns
+           than the message column can hold widens
+           the whole answer and puts a horizontal
+           scrollbar under the entire conversation. */
+        table: ({ node, ...props }) => (
+            <div className="markdown-table-scroll">
+                <table {...props} />
+            </div>
+        ),
+        a: ({ href, children, title, ...props }) => {
+            const isPubMedReference = href?.includes('pubmed.ncbi.nlm.nih.gov');
+            const referenceNumber = isPubMedReference ? getReferenceNumber(href) : null;
+            if (!isPubMedReference) {
+                return <a href={href} title={title} {...props}>{children}</a>;
+            }
+            // The marker is ours; PubMed should not be sent it.
+            const linkHref = hrefWithoutMarker(href);
+            // `title` is dropped on purpose: the agent puts the evidence
+            // sentence there, and leaving it would show the browser's own
+            // tooltip on top of the card that now presents the same quote
+            // with the paper it came from.
+            return (
+                <a
+                    href={linkHref}
+                    {...props}
+                    onMouseEnter={(event) => showReferenceCard(href, event.currentTarget)}
+                    onMouseLeave={hideReferenceCard}
+                    onFocus={(event) => showReferenceCard(href, event.currentTarget)}
+                    onBlur={hideReferenceCard}
+                >
+                    <span className="inline-citation-number">{referenceNumber || children}</span>
+                </a>
+            );
+        },
+    };
+
     return (
         <div
             className="message-card"
             data-message-index={index}
             data-message-role={message.role}
         >
-            <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: "5px", justifyContent: "flex-end" }}>
+            <Container className="message-pair" key={index} sx={{ display: "flex", flexDirection: "row", alignItems: "flex-end", mb: isAssistant ? '5px' : 0, justifyContent: "flex-end" }}>
                 <Box
                     sx={{
                         bgcolor: isAssistant ? "transparent" : "var(--color-background-muted)",
@@ -1666,59 +1728,18 @@ const MessageCard = React.memo(function MessageCard({
                                         onChange={(event) => setEditContent(event.target.value)}
                                     /> : (
                                         <div className="markdown-body">
-                                            <ReactMarkdown
-                                                remarkPlugins={REMARK_PLUGINS}
-                                                components={{
-                                                    /* Wide tables scroll inside their own box.
-                                                       Without this a table with more columns
-                                                       than the message column can hold widens
-                                                       the whole answer and puts a horizontal
-                                                       scrollbar under the entire conversation. */
-                                                    table: ({ node, ...props }) => (
-                                                        <div className="markdown-table-scroll">
-                                                            <table {...props} />
-                                                        </div>
-                                                    ),
-                                                    a: ({ href, children, title, ...props }) => {
-                                                        const isPubMedReference = href?.includes('pubmed.ncbi.nlm.nih.gov');
-                                                        const referenceNumber = isPubMedReference ? getReferenceNumber(href) : null;
-                                                        if (!isPubMedReference) {
-                                                            return <a href={href} title={title} {...props}>{children}</a>;
-                                                        }
-                                                        // The marker is ours; PubMed should not be sent it.
-                                                        const linkHref = hrefWithoutMarker(href);
-                                                        // `title` is dropped on purpose: the agent puts the evidence
-                                                        // sentence there, and leaving it would show the browser's own
-                                                        // tooltip on top of the card that now presents the same quote
-                                                        // with the paper it came from.
-                                                        return (
-                                                            <a
-                                                                href={linkHref}
-                                                                {...props}
-                                                                onMouseEnter={(event) => showReferenceCard(href, event.currentTarget)}
-                                                                onMouseLeave={hideReferenceCard}
-                                                                onFocus={(event) => showReferenceCard(href, event.currentTarget)}
-                                                                onBlur={hideReferenceCard}
-                                                            >
-                                                                <span className="inline-citation-number">{referenceNumber || children}</span>
-                                                            </a>
-                                                        );
-                                                    },
-                                                }}
-                                            >
-                                                {stripUnresolvedCitations(
-                                                    bindMarkersToLinks(
-                                                        stripCitationsBlock(
-                                                            repairOrphanSingleItemMarkdown(
-                                                                isLoading
-                                                                    ? tidyStreamingText(message.content)
-                                                                    : message.content,
-                                                            ),
-                                                        ),
-                                                        citationsByMarker,
-                                                    ),
-                                                )}
-                                            </ReactMarkdown>
+                                            {answerParts.map((part, partIndex) => (
+                                                <React.Fragment key={partIndex}>
+                                                    {partIndex === 1 && (
+                                                        <AnswerGraphForMessage kgQueryList={message.kgQueryList} answer={message.content} />
+                                                    )}
+                                                    {part && (
+                                                        <ReactMarkdown remarkPlugins={REMARK_PLUGINS} components={markdownComponents}>
+                                                            {part}
+                                                        </ReactMarkdown>
+                                                    )}
+                                                </React.Fragment>
+                                            ))}
                                             {hoverCard && (
                                                 <ReferenceHoverCard
                                                     reference={hoverCard.reference}
@@ -1754,7 +1775,7 @@ const MessageCard = React.memo(function MessageCard({
                         </Box>
 
                         {isAssistant && (
-                            <Stack direction="row" spacing={1} mt={2} sx={{ pb: "8px" }}>
+                            <Stack className="message-action-row" direction="row" mt={2} sx={{ pb: "8px" }}>
                                 {!isLoading && (
                                     <IconButton
                                         size="small"
@@ -1798,16 +1819,16 @@ const MessageCard = React.memo(function MessageCard({
 
             </Container>
             {!isAssistant && <Box sx={{ justifyContent: "flex-end", direction: "row", display: "flex", alignItems: "center" }}>
-                <Stack direction="row" spacing={1} sx={{ pb: "8px", pr: "24px" }}>
+                <Stack className="message-action-row user-action-row" direction="row" sx={{ pb: "8px", pr: { xs: '16px', sm: '24px' }, mt: '16px' }}>
                     {
                         isEditing ? <>
-                            <IconButton size="small" onClick={() => {
+                            <IconButton size="small" title="Cancel editing" onClick={() => {
                                 setIsEditing(false);
                                 setEditContent('');
                             }}>
                                 <ClearIcon fontSize="small" />
                             </IconButton>
-                            <IconButton size="small" onClick={(event) => {
+                            <IconButton size="small" title="Save message" onClick={(event) => {
                                 if (editContent.trim() === '') {
                                     return;
                                 }
@@ -1829,6 +1850,7 @@ const MessageCard = React.memo(function MessageCard({
                             {allowUserEdit && (
                                 <IconButton
                                     size="small"
+                                    title="Edit message"
                                     onClick={() => {
                                         if (!allowUserEdit || isAssistant) return;
 
@@ -1836,7 +1858,7 @@ const MessageCard = React.memo(function MessageCard({
                                         setEditContent(message.content);
                                     }}
                                 >
-                                    <EditNoteIcon fontSize="small" />
+                                    <EditNoteIcon />
                                 </IconButton>
                             )}
                         </div>
@@ -2424,8 +2446,9 @@ function LLMAgent({ isRouteActive = true }) {
         });
     }, [navigate]);
     const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
-    /* A guest may ask again (guest mode reopened 2026-10-03): Standard only, a monthly number
-       of questions and Investigate runs per IP. The backend enforces both and refuses with a
+    /* A guest may ask again (guest mode reopened 2026-10-03): AI Chat at Standard only, 10
+       questions per IP in all (since 2026-10-09; Investigate needs an account, and the count
+       never resets). The backend enforces both and refuses with a
        code (utils/refusals.js); what is left here is asking them to sign in when they reach
        for more. */
     const isGuest = !authLoading && !isAuthenticated;
@@ -4584,6 +4607,7 @@ function LLMAgent({ isRouteActive = true }) {
                 directCitations: parseDirectCitations(
                     update.directCitations ?? update.direct_citations,
                 ),
+                kgQueryList: update.kgQueryList ?? update.kg_query_list ?? [],
                 timestamp,
                 thinkingSteps: existing.thinkingSteps || [],
                 thoughtDurationMs: Date.now() - requestStartedAt,
@@ -5106,6 +5130,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 content: update.answer,
                                 references: parseReferences(update.references),
                                 directCitations: parseDirectCitations(update.directCitations),
+                                kgQueryList: update.kgQueryList || [],
                                 timestamp: timestamp,
                                 thinkingSteps: thinkingStepsRef.current,
                                 thoughtDurationMs: Date.now() - requestStartedAt,
@@ -5485,6 +5510,10 @@ function LLMAgent({ isRouteActive = true }) {
             }
             streamOutcome = outcome;
         } finally {
+            // A guest's ten are counted per browser (service/credits.js), once the answer is in.
+            if (isGuest && !investigateEnabled && (streamOutcome === 'ok' || streamOutcome === 'recovered')) {
+                recordGuestQuestion();
+            }
             refreshTierStatus();
             /* Unconditional, and by BOTH of this run's possible names: a detached run reaches
                here with the foreground belonging to a later one, and it still has to take its
@@ -6765,6 +6794,7 @@ function LLMAgent({ isRouteActive = true }) {
                                 content: update.answer,
                                 references: parseReferences(update.references),
                                 directCitations: parseDirectCitations(update.directCitations),
+                                kgQueryList: update.kgQueryList || [],
                                 timestamp,
                                 thinkingSteps: [...localThinkingSteps],
                                 thoughtDurationMs: Date.now() - requestStartedAt,

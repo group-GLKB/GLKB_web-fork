@@ -1932,13 +1932,22 @@
 
 .user-message-actions {
     opacity: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.message-card:hover .user-message-actions {
+.message-card:hover .user-message-actions,
+.message-card:focus-within .user-message-actions {
     opacity: 1;
 }
 
-.message-wrapper.assistant .MuiIconButton-root {
+.message-action-row {
+    align-items: center;
+    gap: 8px;
+}
+
+.message-action-row .MuiIconButton-root {
     width: 24px;
     height: 24px;
     padding: 4px;
@@ -1946,9 +1955,20 @@
     color: var(--color-grey-400);
 }
 
-.message-wrapper.assistant .MuiIconButton-root:hover {
+.message-action-row .MuiIconButton-root svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+    color: inherit !important;
+}
+
+.message-action-row .MuiIconButton-root:hover {
     background-color: var(--color-background-subtle);
     color: var(--color-brand-primary);
+}
+
+@media (hover: none) {
+    .user-message-actions { opacity: 1; }
 }
 
 /* Figma 45:2243 — the citation is a 16px square holding the number alone, in

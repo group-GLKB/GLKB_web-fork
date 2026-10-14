@@ -38,6 +38,7 @@ import { trackGtagEvent } from '../../utils/gtag';
 import { useAuth } from '../Auth/AuthContext';
 import exampleSchema from './exampleSchema.json';
 import LlmSearchBar from './LlmSearchBarHome';
+import NewsStrip from './NewsStrip';
 
 // const { Search } = Input;
 const DEBUG_FORCE_LIMIT_WARNING = false;
@@ -57,6 +58,17 @@ const HomePage = () => {
     const [usage, setUsage] = useState(null);
     const [isPhoneDevice, setIsPhoneDevice] = useState(isPhoneViewport);
     const [isAgentRunActive, setIsAgentRunActive] = useState(() => isRunActive());
+    // The composer's mode (Chat / Investigate / Literature Review): what shows under it follows.
+    const [composerMode, setComposerMode] = useState('chat');
+    const [requestedMode, setRequestedMode] = useState(null);
+    const modeExamples = composerMode === 'investigate' ? (exampleSchema.investigateExamples || [])
+        : composerMode === 'review' ? (exampleSchema.reviewExamples || []) : null;
+    const tryNews = (item) => {
+        if (item.mode) setRequestedMode({ mode: item.mode, at: Date.now() });
+        if (item.focus) {
+            setTimeout(() => document.querySelector('.llm-searchbar textarea')?.focus(), 0);
+        }
+    };
     const { isAuthenticated, loading, openLoginModal } = useAuth();
     const navigate = useNavigate();
     const examplePanelRef = useRef(null);
@@ -149,18 +161,6 @@ const HomePage = () => {
         }
     }, [showHomeLimitWarning]);
 
-    const handleAuthGate = (event) => {
-        if (loading) return true;
-        if (isAuthenticated) {
-            return false;
-        }
-        if (event) {
-            event.preventDefault();
-            event.stopPropagation();
-        }
-        openLoginModal();
-        return true;
-    };
 
 
     // const handleSearch = async (v) => {
@@ -298,6 +298,9 @@ const HomePage = () => {
                             spotlightPadding={0}
                             scrollToFirstStep={true}
                         />
+                        <div className="news-strip-slot">
+                            <NewsStrip onTry={tryNews} compact={isPhoneDevice} />
+                        </div>
                         <Box
                             className="homepage-hero"
                             ref={heroRef}
@@ -308,7 +311,8 @@ const HomePage = () => {
                                     className="glkb-title"
                                     sx={{
                                         fontFamily: 'Geist, sans-serif',
-                                        fontWeight: isPhoneDevice ? 700 : 800,
+                                        fontWeight: 800,
+                                        letterSpacing: isPhoneDevice ? '-0.01em' : undefined,
                                         fontSize: isPhoneDevice ? '32px' : '40px',
                                         lineHeight: isPhoneDevice ? '40px' : '48px',
                                     }}
@@ -322,9 +326,9 @@ const HomePage = () => {
                                     sx={{
                                         fontFamily: 'Geist, sans-serif',
                                         fontWeight: 400,
-                                        fontSize: isPhoneDevice ? '12px' : '14px',
+                                        fontSize: isPhoneDevice ? '15px' : '14px',
                                         color: 'var(--color-text-tertiary)',
-                                        lineHeight: isPhoneDevice ? '20px' : '22px',
+                                        lineHeight: '22px',
                                     }}
                                 >
                                     Weeks of research, done in minutes.
@@ -357,10 +361,14 @@ const HomePage = () => {
                                                 setIsAutocompleteExamplesOpen(false);
                                             }}
                                             prefillQuery={prefillQuery}
-                                            autocompleteOptions={exampleSchema.autocomplete || []}
+                                            // The three starter questions are chat questions; Investigate and Literature
+                                            // Review do not open them (their examples show under the composer).
+                                            autocompleteOptions={composerMode === 'chat' ? (exampleSchema.autocomplete || []) : []}
                                             isQueryLimitReached={showHomeLimitWarning}
                                             limitReachedText={limitText}
                                             isAgentRunActive={isAgentRunActive}
+                                            onModeChange={setComposerMode}
+                                            requestedMode={requestedMode}
                                         />
                                         {activePill && (
                                             <Paper className="homepage-examples-panel" ref={examplePanelRef}>
@@ -389,9 +397,6 @@ const HomePage = () => {
                                                             type="button"
                                                             className="homepage-examples-item"
                                                             onClick={() => {
-                                                                if (handleAuthGate()) {
-                                                                    return;
-                                                                }
                                                                 trackGtagEvent('home_example_item_click', {
                                                                     section: activePill?.id || '',
                                                                     label: activePill?.label || '',
@@ -411,6 +416,23 @@ const HomePage = () => {
                                         )}
                                     </Box>
                                 </Box>
+                                {modeExamples ? (
+                                    <Box className={`homepage-mode-examples is-${composerMode}`}>
+                                        {modeExamples.map((example) => (
+                                            <button
+                                                key={example}
+                                                type="button"
+                                                className="homepage-mode-example"
+                                                onClick={() => {
+                                                    trackGtagEvent('home_mode_example_click', { mode: composerMode });
+                                                    setPrefillQuery(example);
+                                                }}
+                                            >
+                                                {example}
+                                            </button>
+                                        ))}
+                                    </Box>
+                                ) : (
                                 <Box className={`homepage-pills${(showExamples || isAutocompleteExamplesOpen) ? ' is-hidden' : ''}${showHomeLimitWarning ? ' has-limit-warning' : ''}`}>
                                     {pills.map((pill) => (
                                         <Box
@@ -422,9 +444,8 @@ const HomePage = () => {
                                                     event.stopPropagation();
                                                     return;
                                                 }
-                                                if (handleAuthGate(event)) {
-                                                    return;
-                                                }
+                                                // Open to guests (2026-10-09): an example only fills the box,
+                                                // and sending it is a question like any other.
                                                 trackGtagEvent('home_example_group_click', {
                                                     section: pill.id,
                                                     label: pill.label,
@@ -437,8 +458,9 @@ const HomePage = () => {
                                         </Box>
                                     ))}
                                 </Box>
+                                )}
                                 <p className="homepage-research-notice">
-                                    FOR RESEARCH USE ONLY — not medical advice. AI-generated; verify all citations against primary sources.
+                                    For research use only — not medical advice. AI-generated; verify all citations against primary sources.
                                 </p>
                             </Box>
                         </Box>
@@ -446,7 +468,7 @@ const HomePage = () => {
                         <div className="footer">
                             <div style={{ width: '100%', margin: '0 auto', padding: '0 0px' }}>
                                 <p className="homepage-footer-line">
-                                    © 2025 GLKB – Genomic Literature Knowledge Base | glkb.org
+                                    © 2026 GLKB — Genomic Literature Knowledge Base · glkb.org
                                 </p>
                                 <p className="homepage-footer-line">
                                     Developed and maintained by the <a className="homepage-lab-link" href="https://jieliu6.github.io/" target="_blank" rel="noopener noreferrer">Jie Liu Lab</a>, Department of Computational Medicine and Bioinformatics, University of Michigan.

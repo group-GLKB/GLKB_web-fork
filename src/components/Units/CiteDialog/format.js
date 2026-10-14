@@ -12,13 +12,14 @@
  * without volume/pages/DOI — rather than nothing.
  *
  * The five styles follow their current editions for a journal article:
- *   MLA 9, APA 7, Chicago 17 (notes-bibliography), Harvard (Cite Them Right), Vancouver.
+ *   MLA 9, APA 7, Chicago 18 (notes-bibliography), Harvard (Cite Them Right), Vancouver.
  * Titles are kept exactly as PubMed records them (sentence case); a style that asks for
  * Title Case is not applied, because capitalising gene and protein names mechanically
  * corrupts them (BRCA1 → Brca1, p53 → P53).
  */
 
 export const FORMATS = ['MLA', 'APA', 'Chicago', 'Harvard', 'Vancouver'];
+export const STYLE_EDITIONS = { MLA: '9th edition', APA: '7th edition', Chicago: '18th edition · bibliography', Harvard: 'Cite Them Right', Vancouver: 'NLM · first six authors' };
 export const EXPORTS = ['BibTeX', 'RIS', 'EndNote'];
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -29,6 +30,9 @@ const EN_DASH = '–';
 // ---------------------------------------------------------------------------------------
 
 const clean = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
+
+/** NCBI's records keep PubMed's inline markup in titles ("RRM2<sup>K283</sup>"); a reference is plain text. */
+const untagged = (value) => String(value ?? '').replace(/<\/?(?:sup|sub|i|b|em|strong|u|scp|span)\b[^>]*>/gi, '');
 
 /** Strip one trailing full stop; each style decides its own terminal punctuation. */
 const untrailed = (value) => clean(value).replace(/\.$/, '');
@@ -87,7 +91,7 @@ export const normalizeCsl = (csl) => {
     const [year, month, day] = dateParts.map((n) => Number(n) || 0);
     const pmid = clean(item.PMID) || (clean(item.id).match(/^pmid:(\d+)$/i)?.[1] ?? '');
     return {
-        title: untrailed(item.title),
+        title: untrailed(untagged(item.title)),
         authors,
         journal: clean(item['container-title']),
         journalAbbrev: clean(item['container-title-short']) || clean(item['container-title']),
@@ -98,7 +102,7 @@ export const normalizeCsl = (csl) => {
         volume: clean(item.volume),
         issue: clean(item.issue),
         page: clean(item.page).replace(/\s*[-–—]+\s*/g, '-'),
-        doi: clean(item.DOI),
+        doi: clean(item.DOI).replace(/^(?:https?:\/\/(?:dx\.)?doi\.org\/|doi:\s*)/i, ''),
         pmid,
         pmcid: clean(item.PMCID),
         issn: clean(item.ISSN),
@@ -115,7 +119,7 @@ export const normalizeCsl = (csl) => {
 const givenTokens = (given) => clean(given).split(' ').filter(Boolean);
 
 /** "Samuel F" → "S. F."; "Hua-Tang" → "H.-T." (APA, Harvard). NLM drops both dots and hyphens: "SF", "HT". */
-const initials = (given, { dot = '.', sep = ' ', hyphen = '-' } = {}) => givenTokens(given)
+const initials = (given, { dot = '.', sep = ' ', hyphen = '-' } = {}) => givenTokens(given.replace(/\.(?=[^\s.-])/g, '. '))
     .map((token) => token.split('-').map((part) => (part ? `${part[0]}${dot}` : '')).filter(Boolean).join(hyphen))
     .join(sep);
 
@@ -144,21 +148,23 @@ export const expandPageRange = (page) => {
     if (!m) return [text, ''];
     const [, prefixA, a, prefixB, b] = m;
     let end = b;
-    if (prefixB === prefixA && b.length < a.length) end = a.slice(0, a.length - b.length) + b;
+    if ((!prefixB || prefixB === prefixA) && b.length < a.length) end = a.slice(0, a.length - b.length) + b;
     return [`${prefixA}${a}`, `${prefixB || prefixA}${end}`];
 };
 
-const pageRange = (page, { expand, dash = EN_DASH }) => {
+const pageRange = (page, { expand, dash = EN_DASH, chicagoStyle = false }) => {
     const [start, end] = expandPageRange(page);
     if (!start) return '';
     if (!end) return start;
     if (expand) return `${start}${dash}${end}`;
-    // MLA's "minimal-two" rule, which Chicago shares for the common cases: drop the leading
-    // digits the end page has in common with the start, keeping at least two ("243–54", "1100–05").
+    // Chicago differs from MLA at whole hundreds and 101–109 (etc.).
+    if (chicagoStyle && /^\d+$/.test(start) && Number(start) % 100 === 0) return `${start}${dash}${end}`;
+    const minimum = chicagoStyle && /^\d+$/.test(start) && Number(start) > 100 && Number(start) % 100 < 10 ? 1 : 2;
+    // Do not abbreviate prefixes such as S12–S15 as though they were numeric digits.
     let short = end;
-    if (start.length === end.length && start.length > 2) {
+    if (/^\d+$/.test(start) && /^\d+$/.test(end) && start.length === end.length && start.length > 2) {
         let common = 0;
-        while (common < start.length - 2 && start[common] === end[common]) common += 1;
+        while (common < start.length - minimum && start[common] === end[common]) common += 1;
         short = end.slice(common);
     }
     return `${start}${dash}${short}`;
@@ -243,9 +249,9 @@ const apa = (r) => {
 };
 
 /**
- * Chicago 17, notes-bibliography:  Bunting, Samuel F., Elsa Callén, …, et al. "Title." Cell
+ * Chicago 18, notes-bibliography:  Bunting, Samuel F., Elsa Callén, …, et al. "Title." Cell
  *         141, no. 2 (2010): 243–54. https://doi.org/….
- * Up to ten authors listed in full; more than ten → the first seven and "et al."
+ * Up to six authors listed in full; more than six → the first three and "et al."
  */
 const chicago = (r) => {
     const authors = authorList(r.authors, {
@@ -256,9 +262,9 @@ const chicago = (r) => {
         joinWith: (names) => (names.length >= 2
             ? `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`
             : names[0]),
-        max: 10, keep: 7, etAl: ', et al.',
+        max: 6, keep: 3, etAl: ', et al.',
     });
-    const pages = pageRange(r.page, { expand: false });
+    const pages = pageRange(r.page, { expand: false, chicagoStyle: true });
     const source = joinParts([
         joinParts([r.journal, r.volume]),
         r.issue && `no. ${r.issue}`,
@@ -325,7 +331,51 @@ const vancouver = (r) => {
     ]);
 };
 
-const STYLES = { MLA: mla, APA: apa, Chicago: chicago, Harvard: harvard, Vancouver: vancouver };
+/**
+ * AMA 11:  Bunting SF, Callén E, Wong N, et al. Title. Cell. 2010;141(2):243-254.
+ *         doi:10.1016/j.cell.2010.03.012
+ * Up to six authors listed; more than six → the first three and "et al."; the page range in full.
+ */
+const ama = (r) => {
+    const authors = authorList(r.authors, {
+        render: (a) => joinParts([a.family, initials(a.given, { dot: '', sep: '', hyphen: '' })]),
+        joinWith: (names) => names.join(', '),
+        max: 6, keep: 3, etAl: ', et al',
+    });
+    const pages = pageRange(r.page, { expand: true, dash: '-' });
+    const locator = `${r.year ? String(r.year) : ''}${r.volume ? `;${r.volume}` : ''}${r.issue ? `(${r.issue})` : ''}${pages ? `:${pages}` : ''}`;
+    return joinParts([
+        authors && endWithStop(authors),
+        r.title && endWithStop(r.title),
+        r.journalAbbrev && endWithStop(r.journalAbbrev),
+        locator && endWithStop(locator),
+        r.doi && `doi:${r.doi}`,
+    ]);
+};
+
+/**
+ * Nature:  Bunting, S. F., Callén, E. & Wong, N. Title. Cell 141, 243–254 (2010).
+ * Up to five authors listed ("A, B & C"); more than five → the first and "et al."
+ */
+const nature = (r) => {
+    const authors = authorList(r.authors, {
+        render: (a) => joinParts([a.family, initials(a.given)], ', '),
+        joinWith: (names) => (names.length >= 2
+            ? `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`
+            : names[0]),
+        max: 5, keep: 1, etAl: ' et al.',
+    });
+    const pages = pageRange(r.page, { expand: true });
+    const source = joinParts([r.journalAbbrev, r.volume && `${r.volume}${pages ? ',' : ''}`, pages]);
+    return joinParts([
+        authors && endWithStop(authors),
+        r.title && endWithStop(r.title),
+        endWithStop(`${source ? `${source} ` : ''}(${yearOf(r)})`),
+    ]);
+};
+
+// AMA and Nature are offered by the Literature Review's style picker, not (yet) the dialog's FORMATS.
+const STYLES = { MLA: mla, APA: apa, Chicago: chicago, Harvard: harvard, Vancouver: vancouver, AMA: ama, Nature: nature };
 
 /** The reference in one of `FORMATS`, from a CSL-JSON record (or a `cslFromCard` item). */
 export const formatCitation = (format, csl) => {
@@ -334,6 +384,43 @@ export const formatCitation = (format, csl) => {
     const r = normalizeCsl(csl);
     if (!r.title && !r.authors.length) return '';
     return render(r);
+};
+
+const escapeHtml = (text) => String(text).replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[char]));
+
+/** Style bibliographic fields, never substring-match a journal/volume inside a title.
+ * APA italicizes journal and volume; MLA/Chicago/Harvard the journal only.
+ * NLM Vancouver stays roman. AMA italicizes the abbreviated journal; Nature also
+ * bolds the volume. These last two styles are used by the review formatter.
+ * All source text is escaped before introducing our own trusted markup.
+ */
+export const formatCitationHtml = (format, csl) => {
+    const render = STYLES[format];
+    if (!render) return '';
+    const r = normalizeCsl(csl);
+    if (!r.title && !r.authors.length) return '';
+    let prefix = '\uE000cite';
+    while (JSON.stringify(r).includes(prefix)) prefix += '_';
+    const fragments = [];
+    const mark = (value, tag) => {
+        if (!value) return value;
+        // Keep terminal punctuation visible to endWithStop in the plain formatter.
+        const punctuation = String(value).match(/[.!?]+$/)?.[0] || '';
+        const text = punctuation ? String(value).slice(0, -punctuation.length) : String(value);
+        if (!text) return value;
+        const token = `${prefix}${fragments.length}\uE001`;
+        fragments.push([token, `<${tag}>${escapeHtml(text)}</${tag}>`]);
+        return token + punctuation;
+    };
+    if (['MLA', 'APA', 'Chicago', 'Harvard'].includes(format)) r.journal = mark(r.journal, 'em');
+    if (['AMA', 'Nature'].includes(format)) r.journalAbbrev = mark(r.journalAbbrev, 'em');
+    if (format === 'APA') r.volume = mark(r.volume, 'em');
+    if (format === 'Nature') r.volume = mark(r.volume, 'strong');
+    let html = escapeHtml(render(r));
+    fragments.forEach(([token, markup]) => { html = html.split(token).join(markup); });
+    return html;
 };
 
 // ---------------------------------------------------------------------------------------

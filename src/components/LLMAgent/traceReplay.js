@@ -131,6 +131,7 @@ export const replayTrace = (rawTrace) => {
     let percent = investigate ? PHASE_PERCENT_FLOOR.planning : null;
     let keywords = [];
     let papers = [];
+    let kgQueryList = [];
 
     const foldProgress = (update, rawContent = '') => {
         phase = mergePhaseMonotonic(
@@ -198,6 +199,9 @@ export const replayTrace = (rawTrace) => {
                 break;
             case 'final':
                 if (update.funnel) funnel = mergeFunnel(funnel, update.funnel);
+                // The backend keeps the answer's kg_query_list on the Complete stub, so a
+                // reloaded answer draws the same in-text graph the live one did.
+                if (update.kgQueryList?.length) kgQueryList = update.kgQueryList;
                 break;
             default:
                 break;
@@ -220,6 +224,7 @@ export const replayTrace = (rawTrace) => {
     if (Array.isArray(trace.trajectory) && trace.trajectory.length) {
         out.trajectory = trace.trajectory;
     }
+    if (kgQueryList.length) out.kgQueryList = kgQueryList;
     if (investigate) {
         const complete = trace.complete !== false;
         Object.assign(out, {

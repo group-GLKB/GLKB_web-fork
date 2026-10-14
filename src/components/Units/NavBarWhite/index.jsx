@@ -67,7 +67,9 @@ import {
 import userAccountIcon from '../../../img/user/ic_outline-account-circle.svg';
 import userLogoutIcon from '../../../img/user/mynaui_logout.svg';
 import { ABOUT_PATH, CHAT_HOME_PATH, isConversationPath } from '../../../config/entryRoutes';
-import { getRunningConversationIds, subscribeToActiveRun } from '../../../service/activeRun';
+import { LITERATURE_REVIEW_ENABLED } from '../../../config/features';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import { getRunningConversationIds, runKindOf, subscribeToActiveRun } from '../../../service/activeRun';
 import { getRecentPriorityIds, subscribeToRecentPriority } from '../../../service/recentPriority';
 import {
   fetchConversations,
@@ -301,8 +303,28 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
         setOpen(false);
     }, [location.pathname]);
 
+    /* A page that needs the width (a finished literature review: contents, draft and references
+       side by side) asks for the rail with `glkb-sidebar-rail` {detail: true}, and gives it back
+       with {detail: false}. The collapse is the page's, not the reader's: it is not saved as their
+       preference, and leaving the page restores what they had. */
+    const railRef = useRef(null); // the reader's own `open` while a page holds the rail
     useEffect(() => {
-        if (typeof window === 'undefined' || isSmallScreen) {
+        const onRail = (event) => {
+            if (event.detail) {
+                if (railRef.current === null) railRef.current = open;
+                setOpen(false);
+            } else if (railRef.current !== null) {
+                const restore = railRef.current;
+                railRef.current = null;
+                setOpen(restore);
+            }
+        };
+        window.addEventListener('glkb-sidebar-rail', onRail);
+        return () => window.removeEventListener('glkb-sidebar-rail', onRail);
+    }, [open]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined' || isSmallScreen || railRef.current !== null) {
             return;
         }
 
@@ -440,13 +462,15 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
         [
             { label: 'Explore', to: '/search', icon: <CategorySearchIcon style={{ width: 20, height: 20 }} /> },
             { label: 'API', to: '/api-page', icon: <CodeBlocksIcon style={{ width: 20, height: 20 }} /> },
+            // Behind its flag (config/features.js), like every other Literature Review entry point.
+            LITERATURE_REVIEW_ENABLED && { label: 'Literature Review', to: '/literature-review', icon: <DescriptionOutlinedIcon style={{ width: 20, height: 20 }} /> },
             { label: 'Library', to: '/library', icon: <BookIcon className="sidebar-book-icon" style={{ width: 20, height: 20 }} /> },
             { label: 'History', to: '/history', icon: <HistoryIcon className="sidebar-history-icon" style={{ width: 20, height: 20 }} /> },
-        ].filter((item) => !(DEBUG_HIDE_EXPLORE && item.label === 'Explore'))
+        ].filter((item) => item && !(DEBUG_HIDE_EXPLORE && item.label === 'Explore'))
     ), []);
 
     const displayedMiddleItems = isCompactSidebar
-        ? ['Library', 'History', 'API']
+        ? ['Literature Review', 'Library', 'History', 'API']
             .map((label) => middleItems.find((item) => item.label === label))
             .filter(Boolean)
         : middleItems;
@@ -699,7 +723,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                     secondary={item.secondaryLabel}
                     primaryTypographyProps={{
                         fontFamily: 'Geist, sans-serif',
-                        fontWeight: item.secondaryLabel ? 600 : 500,
+                        fontWeight: item.secondaryLabel ? 600 : (topItems.includes(item) || middleItems.includes(item) ? 400 : 500),
                         fontSize: item.secondaryLabel ? '14px' : '16px',
                         lineHeight: item.secondaryLabel ? '22px' : '20px',
                         color: item.secondaryLabel
@@ -1033,7 +1057,7 @@ function NavBarWhite({ showLogo = true, hideCompactRail = false }) {
                                                             transform: 'translateY(-50%)',
                                                         }}
                                                     >
-                                                        <ConversationRunStatus />
+                                                        <ConversationRunStatus kind={runKindOf(conversation)} />
                                                     </Box>
                                                 ) : <IconButton
                                                     size="small"

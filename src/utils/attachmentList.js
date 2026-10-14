@@ -34,7 +34,7 @@ const EXTENSION_FORMAT = {
     rb: 'Ruby', php: 'PHP', swift: 'Swift', pl: 'Perl', lua: 'Lua', sh: 'Shell', bash: 'Shell',
     zsh: 'Shell', ps1: 'PowerShell', sql: 'SQL', json: 'JSON', yaml: 'YAML', yml: 'YAML', toml: 'TOML',
     xml: 'XML', html: 'HTML', htm: 'HTML', css: 'CSS', scss: 'SCSS', csv: 'CSV', tsv: 'TSV', tex: 'LaTeX',
-    md: 'Markdown', txt: 'Text', log: 'Text', rtf: 'Rich text', docx: 'Word', doc: 'Word',
+    md: 'Markdown', txt: 'Text', log: 'Text', rtf: 'RTF', odt: 'OpenDocument', docx: 'Word', doc: 'Word',
     pptx: 'PowerPoint', ppt: 'PowerPoint', xlsx: 'Excel', xls: 'Excel', pdf: 'PDF', epub: 'EPUB',
     png: 'PNG image', jpg: 'JPEG image', jpeg: 'JPEG image', webp: 'WebP image', gif: 'GIF image',
     fasta: 'FASTA', fa: 'FASTA', fastq: 'FASTQ', vcf: 'VCF', bed: 'BED', gff: 'GFF', gtf: 'GTF',

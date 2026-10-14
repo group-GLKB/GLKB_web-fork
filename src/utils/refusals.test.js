@@ -10,6 +10,15 @@ describe('refusalText', () => {
             + ' Switch to GPT-6 Luna Investigate to continue with 20 credits.');
     });
 
+    it('offers a cheaper literature review by its model', () => {
+        expect(refusalText({
+            code: 'INSUFFICIENT_CREDITS',
+            message: 'Not enough credits. This review requires 50 credits. You currently have 30 credits remaining.',
+            cheaper_option: { pipeline: 'literature_review', service_tier: 'standard', credits: 10 },
+        })).toBe('Not enough credits. This review requires 50 credits. You currently have 30 credits remaining. '
+            + 'Switch to GPT-6 Luna Literature Review to continue with 10 credits.');
+    });
+
     it('says nothing about a cheaper choice when there is none', () => {
         expect(refusalText({ code: 'INSUFFICIENT_CREDITS', message: 'Not enough credits.', cheaper_option: null }))
             .toBe('Not enough credits.');

@@ -101,6 +101,19 @@ export const isConversationRunning = (conversationId) => (
 );
 
 /**
+ * What a working conversation is running — 'chat', 'investigate' or 'literature_review' — for the
+ * colour of its dot. A Literature Review conversation is always one; otherwise the run this
+ * registry holds says (a chat follow-up in a conversation that once investigated is a chat run),
+ * and the conversation's own sticky label covers a run it does not hold.
+ */
+export const runKindOf = (conversation) => {
+    if (conversation?.mode === 'literature_review') return 'literature_review';
+    const kind = conversation?.id != null ? runs.get(String(conversation.id))?.kind : null;
+    if (kind) return kind;
+    return conversation?.isInvestigate ? 'investigate' : 'chat';
+};
+
+/**
  * The session id a conversation's run can be reattached at, if this registry knows one.
  *
  * The per-conversation session store is the usual source; this covers the run recovered from
@@ -213,7 +226,7 @@ export const clearPendingRun = (key) => {
  * would free the conversation while its own run was still writing — and let a queued follow-up
  * race it. That is the bug this registry exists to prevent.
  *
- * @param {Array<{id: *, isAnswering?: boolean, sessionId?: string, isInvestigate?: boolean}>} summaries
+ * @param {Array<{id: *, isAnswering?: boolean, sessionId?: string, isInvestigate?: boolean, mode?: string}>} summaries
  */
 /* Conversations this session has established are NOT being answered, whatever the server
    still says. `is_answering` is bounded on the backend now, but a client that has just
@@ -250,8 +263,11 @@ export const reconcileRunsWithServer = (summaries) => {
                 }
                 return;
             }
+            const kind = summary.mode === 'literature_review'
+                ? 'literature_review'
+                : (summary.isInvestigate ? 'investigate' : 'chat');
             runs.set(key, {
-                kind: summary.isInvestigate ? 'investigate' : 'chat',
+                kind,
                 runId: null,
                 conversationId: key,
                 sessionId: summary.sessionId || null,
@@ -261,7 +277,7 @@ export const reconcileRunsWithServer = (summaries) => {
             markRunInFlight({
                 conversationId: key,
                 sessionId: summary.sessionId || null,
-                kind: summary.isInvestigate ? 'investigate' : 'chat',
+                kind,
             });
             changed = true;
             return;

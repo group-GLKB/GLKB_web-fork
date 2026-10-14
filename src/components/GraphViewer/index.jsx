@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, TextField, Typography } from '@mui/material';
 import Graph from '../Graph';
 import { requestGraphViewer } from '../../service/GraphViewer';
+import { useAuth } from '../Auth/AuthContext';
+import { GUEST_GRAPH_VIEWER_REASON } from '../../utils/refusals';
 
 // Same bounded example as gkb2_frontend's GraphViewerQueryDialog.
 export const EXAMPLE_REQUEST = {
@@ -23,6 +25,15 @@ export default function GraphViewer() {
     const activeRequest = useRef(null);
     const graphRef = useRef(null);
     useEffect(() => () => activeRequest.current?.abort(), []);
+    /* Signed-in readers only (2026-10-09: a guest gets AI Chat and nothing else). A guest who
+       lands here by URL is sent home with the sign-in overlay open, as /search does. */
+    const { isAuthenticated, loading: authLoading, openLoginModal } = useAuth();
+    const navigate = useNavigate();
+    useEffect(() => {
+        if (authLoading || isAuthenticated) return;
+        openLoginModal(GUEST_GRAPH_VIEWER_REASON);
+        navigate('/', { replace: true });
+    }, [authLoading, isAuthenticated, openLoginModal, navigate]);
 
     const submit = async (event) => {
         event.preventDefault();

@@ -1,0 +1,1005 @@
+{
+ "question": "What is the role of TP53 and MDM2 in breast cancer, and how does BRCA1 interact with them?",
+ "answer": "TP53 is a tumor suppressor whose activity can be restrained by MDM2, while BRCA1 both cooperates with p53 and is affected by its activity. In BRCA1-associated breast cancer, loss of p53 function is especially common, linking defective DNA repair with failure of a key growth-control pathway.[9482880](https://pubmed.ncbi.nlm.nih.gov/9482880)[12563309](https://pubmed.ncbi.nlm.nih.gov/12563309)[19336573](https://pubmed.ncbi.nlm.nih.gov/19336573)\n\n**MDM2 can switch off p53’s tumor-suppressive activity.** MDM2 inhibits p53’s transcriptional activity and promotes its degradation; when p53 is functional, this interaction helps restrain p53-driven cell-cycle arrest or apoptosis.[12563309](https://pubmed.ncbi.nlm.nih.gov/12563309) In breast cancer, MDM2 expression has also been linked to estrogen-receptor status: one study found higher MDM2 mRNA in ER-positive than ER-negative cell lines.[8324731](https://pubmed.ncbi.nlm.nih.gov/8324731)\n\n**BRCA1 and p53 cooperate, and p53 also influences BRCA1’s location.** BRCA1 can enhance p53-dependent gene expression, and the proteins were found to associate; this coactivation depended on wild-type p53.[9482880](https://pubmed.ncbi.nlm.nih.gov/9482880) In breast cancer cells, p53 can also bind BRCA1 and promote its export from the nucleus after DNA damage. Dysfunctional p53 was associated with retention of otherwise wild-type BRCA1 in the nucleus, suggesting that p53 loss may impair BRCA1’s normal trafficking and damage response.[21742769](https://pubmed.ncbi.nlm.nih.gov/21742769)\n\n**TP53 mutations are frequent in BRCA1-associated tumors, though frequency depends on tumor subtype.** In one sequencing study, all 21 BRCA1-related tumors carried TP53 mutations, many of them truncating mutations that would not necessarily cause strong p53 staining.[19336573](https://pubmed.ncbi.nlm.nih.gov/19336573) Another study found mutations in 34 of 35 BRCA1 basal-like tumors, but also in 35 of 38 sporadic basal-like tumors; among BRCA1 luminal tumors, 10 of 19 were mutated.[19147582](https://pubmed.ncbi.nlm.nih.gov/19147582) So p53 loss is a prominent feature of BRCA1-associated breast cancer, but it is not unique to BRCA1 status and varies across subtypes.\n\n**These alterations matter in treatment response as well as tumor biology.** In a cohort of metastatic hormone-receptor-positive breast cancer, TP53 loss and MDM2 amplification were associated with lack of long-term disease control on CDK4/6 inhibition; the study reported them in 27.6% and 6.4% of patients, respectively.[39393354](https://pubmed.ncbi.nlm.nih.gov/39393354) This connects disruption of the p53 pathway with treatment resistance, although it does not establish a direct BRCA1–MDM2 mechanism.",
+ "kg_query_list": [
+  "WITH [\"hgnc:11998\", \"hgnc:6973\", \"hgnc:1100\", \"mondo:0007254\", \"mesh:D004260\", \"mesh:D011960\", \"mesh:D017209\"] AS node_ids\nMATCH (n:Vocabulary)-[r]->(m:Vocabulary)\nWHERE n.id IN node_ids AND m.id IN node_ids AND n.id <> m.id\nWITH collect(DISTINCT n) + collect(DISTINCT m) AS ns, collect(r) AS edges\nRETURN [i IN range(0, size(ns) - 1) WHERE NOT ns[i] IN ns[0..i] | ns[i]] AS nodes, edges",
+  "WITH [\"hgnc:11998\", \"hgnc:6973\", \"hgnc:1100\", \"mondo:0007254\", \"mesh:D004260\", \"mesh:D011960\", \"mesh:D017209\"] AS node_ids\nMATCH (n:Vocabulary) WHERE n.id IN node_ids\nRETURN collect(DISTINCT n) AS nodes, [] AS edges"
+ ],
+ "rows": [
+  {
+   "nodes": [
+    {
+     "elementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "labels": [
+      "Entity",
+      "NamedThing",
+      "ThingWithTaxon",
+      "BiologicalEntity",
+      "Gene",
+      "Vocabulary"
+     ],
+     "properties": {
+      "name": "MDM2",
+      "description": "MDM2 proto-oncogene",
+      "id": "hgnc:6973",
+      "n_citation": 11081
+     }
+    },
+    {
+     "elementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "labels": [
+      "Entity",
+      "NamedThing",
+      "ThingWithTaxon",
+      "BiologicalEntity",
+      "DiseaseOrPhenotypicFeature",
+      "Disease",
+      "Vocabulary"
+     ],
+     "properties": {
+      "name": "breast cancer",
+      "description": "A primary or metastatic malignant neoplasm involving the breast. The vast majority of cases are carcinomas arising from the breast parenchyma or the nipple. Malignant breast neoplasms occur more frequently in females than in males.",
+      "id": "mondo:0007254",
+      "n_citation": 275845
+     }
+    },
+    {
+     "elementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92088843",
+     "labels": [
+      "Entity",
+      "NamedThing",
+      "MeshTerm",
+      "Vocabulary"
+     ],
+     "properties": {
+      "name": "Apoptosis",
+      "description": "A regulated cell death mechanism characterized by distinctive morphologic changes in the nucleus and cytoplasm, including the endonucleolytic cleavage of genomic DNA, at regularly spaced, internucleosomal sites, i.e., DNA FRAGMENTATION. It is genetically programmed and serves as a balance to mitosis in regulating the size of animal tissues and in mediating pathologic processes associated with tumor growth.",
+      "id": "mesh:D017209",
+      "n_citation": 331483
+     }
+    },
+    {
+     "elementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "labels": [
+      "Entity",
+      "NamedThing",
+      "ThingWithTaxon",
+      "BiologicalEntity",
+      "Gene",
+      "Vocabulary"
+     ],
+     "properties": {
+      "name": "BRCA1",
+      "description": "BRCA1 DNA repair associated",
+      "id": "hgnc:1100",
+      "n_citation": 16325
+     }
+    },
+    {
+     "elementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "labels": [
+      "Entity",
+      "NamedThing",
+      "ThingWithTaxon",
+      "BiologicalEntity",
+      "Gene",
+      "Vocabulary"
+     ],
+     "properties": {
+      "name": "TP53",
+      "description": "tumor protein p53",
+      "id": "hgnc:11998",
+      "n_citation": 119268
+     }
+    },
+    {
+     "elementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92076640",
+     "labels": [
+      "Entity",
+      "NamedThing",
+      "MeshTerm",
+      "Vocabulary"
+     ],
+     "properties": {
+      "name": "DNA Repair",
+      "description": "The reconstruction of a continuous two-stranded DNA molecule without mismatch from a molecule which contained damaged regions. The major repair mechanisms are excision repair, in which defective regions in one strand are excised and resynthesized using the complementary base pairing information in the intact strand\\; photoreactivation repair, in which the lethal and mutagenic effects of ultraviolet light are eliminated\\; and post-replication repair, in which the primary lesions are not repaired, but the gaps in one daughter duplex are filled in by incorporation of portions of the other (undamaged) daughter duplex. Excision repair and post-replication repair are sometimes referred to as ''dark repair'' because they do not require light.",
+      "id": "mesh:D004260",
+      "n_citation": 56377
+     }
+    },
+    {
+     "elementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92084619",
+     "labels": [
+      "Entity",
+      "NamedThing",
+      "MeshTerm",
+      "Vocabulary"
+     ],
+     "properties": {
+      "name": "Receptors, Estrogen",
+      "description": "Cytoplasmic proteins that bind estrogens and migrate to the nucleus where they regulate DNA transcription. Evaluation of the state of estrogen receptors in breast cancer patients has become clinically important.",
+      "id": "mesh:D011960",
+      "n_citation": 69815
+     }
+    }
+   ],
+   "edges": [
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1196104029",
+     "type": "GeneToDiseaseAssociation",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "properties": {
+      "type": "associated with",
+      "source": "primekg"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1196144419",
+     "type": "GeneToGeneAssociation",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "properties": {
+      "type": "ppi",
+      "source": "primekg"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2014632617",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92084619",
+     "properties": {
+      "source": "PubMed",
+      "evidence": [
+       "pmid21896991_15",
+       "pmid21896991_9",
+       "pmid21896991_2"
+      ],
+      "n_article": 217
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2014632613",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92076640",
+     "properties": {
+      "source": "PubMed",
+      "n_article": 224
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2014631713",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92088843",
+     "properties": {
+      "source": "PubMed",
+      "n_article": 2699
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1957299784",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "properties": {
+      "evidence": [
+       "pmid21833626_1",
+       "pmid17214373_3",
+       "pmid33911942_0"
+      ],
+      "n_article": 452,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1880033560",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "properties": {
+      "evidence": [
+       "pmid9535786_7"
+      ],
+      "n_article": 130,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1880033512",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "properties": {
+      "evidence": [
+       "pmid21730132_1",
+       "pmid21730163_1",
+       "pmid21730163_1"
+      ],
+      "n_article": 15020,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:241242989",
+     "type": "Similar",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "properties": {
+      "score": 0.07091365978131155
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2605200626",
+     "type": "GeneToDiseaseAssociation",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "properties": {
+      "type": "associated with",
+      "source": "primekg"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2605203158",
+     "type": "GeneToDiseaseAssociation",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "properties": {
+      "type": "associated with",
+      "source": "primekg"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2605202054",
+     "type": "GeneToDiseaseAssociation",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "properties": {
+      "type": "associated with",
+      "source": "primekg"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1982917148",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92088843",
+     "properties": {
+      "source": "PubMed",
+      "n_article": 12054
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1982917016",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92084619",
+     "properties": {
+      "evidence": [
+       "pmid21823894_3",
+       "pmid21823894_3",
+       "pmid21263059_2"
+      ],
+      "n_article": 28276,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1877782730",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "properties": {
+      "evidence": [
+       "pmid21833626_1",
+       "pmid17214373_3",
+       "pmid33911942_0"
+      ],
+      "n_article": 452,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1877782663",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "properties": {
+      "evidence": [
+       "pmid10471047_1",
+       "pmid20554748_1"
+      ],
+      "n_article": 7070,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1877782664",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "properties": {
+      "evidence": [
+       "pmid15986445_2",
+       "pmid12375043_2",
+       "pmid21242970_1"
+      ],
+      "n_article": 6703,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:273175174",
+     "type": "Similar",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92084619",
+     "properties": {
+      "score": 0.0901770309445371
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:247138636",
+     "type": "Similar",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "properties": {
+      "score": 0.01912247580614624
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:247138635",
+     "type": "Similar",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "properties": {
+      "score": 0.02366836743701559
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2496978198",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92088843",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "properties": {
+      "source": "PubMed",
+      "n_article": 12054
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2402705706",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92088843",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "properties": {
+      "source": "PubMed",
+      "n_article": 566
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2402705032",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92088843",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "properties": {
+      "evidence": [
+       "pmid10080384_8",
+       "pmid22065914_3"
+      ],
+      "n_article": 32644,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2402705116",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92088843",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "properties": {
+      "source": "PubMed",
+      "n_article": 2699
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:287445808",
+     "type": "Similar",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92088843",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "properties": {
+      "score": 0.02139829154506529
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:268880865",
+     "type": "Similar",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92088843",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "properties": {
+      "score": 0.06342774293255724
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1196102601",
+     "type": "GeneToDiseaseAssociation",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "properties": {
+      "type": "associated with",
+      "source": "primekg"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1196278459",
+     "type": "GeneToGeneAssociation",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "properties": {
+      "type": "ppi",
+      "source": "primekg"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2004033127",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92084619",
+     "properties": {
+      "evidence": [
+       "pmid12400015_0",
+       "pmid20346095_2",
+       "pmid20346095_2"
+      ],
+      "n_article": 1498,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2004033525",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92088843",
+     "properties": {
+      "source": "PubMed",
+      "n_article": 566
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2004033121",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92076640",
+     "properties": {
+      "evidence": [
+       "pmid22197612_1",
+       "pmid30283497_8"
+      ],
+      "n_article": 1723,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1952052803",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "properties": {
+      "evidence": [
+       "pmid15986445_2",
+       "pmid12375043_2",
+       "pmid21242970_1"
+      ],
+      "n_article": 6703,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1878996844",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "properties": {
+      "evidence": [
+       "pmid9535786_7"
+      ],
+      "n_article": 130,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1878996803",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "properties": {
+      "evidence": [
+       "pmid9535786_7",
+       "pmid28846478_3",
+       "pmid10319859_3"
+      ],
+      "n_article": 2987,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:257692764",
+     "type": "Similar",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92076640",
+     "properties": {
+      "score": 0.02152758652345543
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:243492437",
+     "type": "Similar",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "properties": {
+      "score": 0.02366836743701559
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:240065080",
+     "type": "Similar",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "properties": {
+      "score": 0.015469105935121581
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1196105133",
+     "type": "GeneToDiseaseAssociation",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "properties": {
+      "type": "associated with",
+      "source": "primekg"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1196545341",
+     "type": "GeneToGeneAssociation",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "properties": {
+      "type": "ppi",
+      "source": "primekg"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1196419783",
+     "type": "GeneToGeneAssociation",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "properties": {
+      "type": "ppi",
+      "source": "primekg"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2004177107",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92076640",
+     "properties": {
+      "evidence": [
+       "pmid10773824_3",
+       "pmid31171367_6"
+      ],
+      "n_article": 3547,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2004176565",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92088843",
+     "properties": {
+      "evidence": [
+       "pmid10080384_8",
+       "pmid22065914_3"
+      ],
+      "n_article": 32644,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2004176946",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92084619",
+     "properties": {
+      "evidence": [
+       "pmid9538138_3",
+       "pmid9516944_11",
+       "pmid20547751_7"
+      ],
+      "n_article": 5391,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1952133702",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "properties": {
+      "evidence": [
+       "pmid10471047_1",
+       "pmid20554748_1"
+      ],
+      "n_article": 7070,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1879013797",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "properties": {
+      "evidence": [
+       "pmid9535786_7",
+       "pmid28846478_3",
+       "pmid10319859_3"
+      ],
+      "n_article": 2987,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:1879013783",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "properties": {
+      "evidence": [
+       "pmid21730132_1",
+       "pmid21730163_1",
+       "pmid21730163_1"
+      ],
+      "n_article": 15020,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:257708043",
+     "type": "Similar",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92088843",
+     "properties": {
+      "score": 0.06342774293255724
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:243502087",
+     "type": "Similar",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "properties": {
+      "score": 0.01912247580614624
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:240075534",
+     "type": "Similar",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "properties": {
+      "score": 0.07091365978131155
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:240075634",
+     "type": "Similar",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "properties": {
+      "score": 0.015469105935121581
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2570865053",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92076640",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92088843",
+     "properties": {
+      "n_article": 3301,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2485958349",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92076640",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "properties": {
+      "source": "PubMed",
+      "evidence": [
+       "pmid18669164_1",
+       "pmid27466510_1",
+       "pmid27768589_1"
+      ],
+      "n_article": 1305
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2056966427",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92076640",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "properties": {
+      "evidence": [
+       "pmid10773824_3",
+       "pmid31171367_6"
+      ],
+      "n_article": 3547,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2056966543",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92076640",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "properties": {
+      "source": "PubMed",
+      "n_article": 224
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2056966430",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92076640",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "properties": {
+      "evidence": [
+       "pmid22197612_1",
+       "pmid30283497_8"
+      ],
+      "n_article": 1723,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:267809866",
+     "type": "Similar",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92076640",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "properties": {
+      "score": 0.02152758652345543
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:267809871",
+     "type": "Similar",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92076640",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "properties": {
+      "score": 0.016735044997353097
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2400572559",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92084619",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "properties": {
+      "evidence": [
+       "pmid12400015_0",
+       "pmid20346095_2",
+       "pmid20346095_2"
+      ],
+      "n_article": 1498,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2573325968",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92084619",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92088843",
+     "properties": {
+      "source": "PubMed",
+      "n_article": 3609
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2493761479",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92084619",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "properties": {
+      "evidence": [
+       "pmid21823894_3",
+       "pmid21823894_3",
+       "pmid21263059_2"
+      ],
+      "n_article": 28276,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2400573100",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92084619",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "properties": {
+      "source": "PubMed",
+      "evidence": [
+       "pmid21896991_15",
+       "pmid21896991_9",
+       "pmid21896991_2"
+      ],
+      "n_article": 217
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:2400572533",
+     "type": "Cooccur",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92084619",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "properties": {
+      "evidence": [
+       "pmid9538138_3",
+       "pmid9516944_11",
+       "pmid20547751_7"
+      ],
+      "n_article": 5391,
+      "source": "PubMed"
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:287112643",
+     "type": "Similar",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92084619",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "properties": {
+      "score": 0.0901770309445371
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:268576786",
+     "type": "Similar",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92084619",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "properties": {
+      "score": 0.01469721190607886
+     }
+    },
+    {
+     "elementId": "5:985e1991-9ee2-4413-97ef-41341abef78d:268576788",
+     "type": "Similar",
+     "startNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92084619",
+     "endNodeElementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "properties": {
+      "score": 0.009851906047379974
+     }
+    }
+   ]
+  },
+  {
+   "nodes": [
+    {
+     "elementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91744449",
+     "labels": [
+      "Entity",
+      "NamedThing",
+      "ThingWithTaxon",
+      "BiologicalEntity",
+      "Gene",
+      "Vocabulary"
+     ],
+     "properties": {
+      "name": "MDM2",
+      "description": "MDM2 proto-oncogene",
+      "id": "hgnc:6973",
+      "n_citation": 11081
+     }
+    },
+    {
+     "elementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91661004",
+     "labels": [
+      "Entity",
+      "NamedThing",
+      "ThingWithTaxon",
+      "BiologicalEntity",
+      "DiseaseOrPhenotypicFeature",
+      "Disease",
+      "Vocabulary"
+     ],
+     "properties": {
+      "name": "breast cancer",
+      "description": "A primary or metastatic malignant neoplasm involving the breast. The vast majority of cases are carcinomas arising from the breast parenchyma or the nipple. Malignant breast neoplasms occur more frequently in females than in males.",
+      "id": "mondo:0007254",
+      "n_citation": 275845
+     }
+    },
+    {
+     "elementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92088843",
+     "labels": [
+      "Entity",
+      "NamedThing",
+      "MeshTerm",
+      "Vocabulary"
+     ],
+     "properties": {
+      "name": "Apoptosis",
+      "description": "A regulated cell death mechanism characterized by distinctive morphologic changes in the nucleus and cytoplasm, including the endonucleolytic cleavage of genomic DNA, at regularly spaced, internucleosomal sites, i.e., DNA FRAGMENTATION. It is genetically programmed and serves as a balance to mitosis in regulating the size of animal tissues and in mediating pathologic processes associated with tumor growth.",
+      "id": "mesh:D017209",
+      "n_citation": 331483
+     }
+    },
+    {
+     "elementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705458",
+     "labels": [
+      "Entity",
+      "NamedThing",
+      "ThingWithTaxon",
+      "BiologicalEntity",
+      "Gene",
+      "Vocabulary"
+     ],
+     "properties": {
+      "name": "BRCA1",
+      "description": "BRCA1 DNA repair associated",
+      "id": "hgnc:1100",
+      "n_citation": 16325
+     }
+    },
+    {
+     "elementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:91705649",
+     "labels": [
+      "Entity",
+      "NamedThing",
+      "ThingWithTaxon",
+      "BiologicalEntity",
+      "Gene",
+      "Vocabulary"
+     ],
+     "properties": {
+      "name": "TP53",
+      "description": "tumor protein p53",
+      "id": "hgnc:11998",
+      "n_citation": 119268
+     }
+    },
+    {
+     "elementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92076640",
+     "labels": [
+      "Entity",
+      "NamedThing",
+      "MeshTerm",
+      "Vocabulary"
+     ],
+     "properties": {
+      "name": "DNA Repair",
+      "description": "The reconstruction of a continuous two-stranded DNA molecule without mismatch from a molecule which contained damaged regions. The major repair mechanisms are excision repair, in which defective regions in one strand are excised and resynthesized using the complementary base pairing information in the intact strand\\; photoreactivation repair, in which the lethal and mutagenic effects of ultraviolet light are eliminated\\; and post-replication repair, in which the primary lesions are not repaired, but the gaps in one daughter duplex are filled in by incorporation of portions of the other (undamaged) daughter duplex. Excision repair and post-replication repair are sometimes referred to as ''dark repair'' because they do not require light.",
+      "id": "mesh:D004260",
+      "n_citation": 56377
+     }
+    },
+    {
+     "elementId": "4:985e1991-9ee2-4413-97ef-41341abef78d:92084619",
+     "labels": [
+      "Entity",
+      "NamedThing",
+      "MeshTerm",
+      "Vocabulary"
+     ],
+     "properties": {
+      "name": "Receptors, Estrogen",
+      "description": "Cytoplasmic proteins that bind estrogens and migrate to the nucleus where they regulate DNA transcription. Evaluation of the state of estrogen receptors in breast cancer patients has become clinically important.",
+      "id": "mesh:D011960",
+      "n_citation": 69815
+     }
+    }
+   ],
+   "edges": []
+  }
+ ],
+ "captured": "2026-10-10, gpt-6-luna chat turn on a local agent; rows from GLKB Query API"
+}
