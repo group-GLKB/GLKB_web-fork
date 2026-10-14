@@ -22,7 +22,7 @@
  * routes redirected to `/` but the button showing, the button just bounces the
  * user to the home page.
  */
-export const SHOW_API_DOCS = false;
+export const SHOW_API_DOCS = true;
 
 /**
  * Whether Investigate (deep research) is offered.
@@ -34,7 +34,7 @@ export const SHOW_API_DOCS = false;
 export const INVESTIGATE_ENABLED = true;
 
 /**
- * Whether Literature Review is offered. In internal testing — keep it FALSE on `production`.
+ * Whether Literature Review is offered. On everywhere, glkb.org included, since 2026-10-14.
  *
  * On: the home search box's Investigate chip becomes a two-tool dropdown (Investigate /
  * Literature Review), the `/literature-review` page exists, and History opens Literature Review
@@ -43,16 +43,15 @@ export const INVESTIGATE_ENABLED = true;
  * separate pipeline end to end (backend `/literature-review`, glkb-agent `literature_review/`),
  * so turning it off here touches nothing chat or Investigate depend on.
  *
- * OFF on the production site whatever this branch says. `production` has no line for this flag, so
- * an ordinary master -> production merge brings this file's line in WITHOUT a conflict (checked with
- * `git merge-tree` on 2026-09-30: the merged file read `LITERATURE_REVIEW_ENABLED = true`) — a plain
- * `true` here would open the feature on glkb.org with the next unrelated release.
+ * `production` has no line for this flag, so an ordinary master -> production merge brings this
+ * file's line in WITHOUT a conflict (checked with `git merge-tree` on 2026-09-30): whatever master
+ * says here is what glkb.org gets with the next release.
  *
  * THE SWITCH is the last line of this file — one value, nothing else to change:
  *   false                 off everywhere (2026-10-09; also 10-03 to 10-06)
- *   !isProductionSite()   on for dev.glkb.org and localhost, off on glkb.org (internal testing;
- *                         current since 2026-10-10, for the redesigned review pages)
- *   true                  on everywhere (launch)
+ *   !isProductionSite()   on for dev.glkb.org and localhost, off on glkb.org (internal testing,
+ *                         2026-10-10 to 10-14, for the redesigned review pages)
+ *   true                  on everywhere (launch; current since 2026-10-14)
  * Off hides the entry points only; the page, the client and the pipeline stay in the codebase.
  */
 /**
@@ -87,4 +86,4 @@ export const isProductionSite = (hostname = (typeof window !== 'undefined' ? win
     PRODUCTION_HOSTS.includes(String(hostname || '').toLowerCase())
 );
 
-export const LITERATURE_REVIEW_ENABLED = !isProductionSite();
+export const LITERATURE_REVIEW_ENABLED = true;
